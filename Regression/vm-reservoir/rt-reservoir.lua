@@ -67,7 +67,6 @@ sim = Plasma.App {
       bcx = { maxwellianL, maxwellianR },
       -- Evolve species?
       evolve = true,
-      --evolveCollisions = false,
       diagnostics = { "M0", "M1i", "M2" },
      
       -- Collisions.

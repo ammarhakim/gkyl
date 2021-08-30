@@ -50,23 +50,36 @@ function Gyrofluid:setAuxFields(auxFields)
    local potentials = auxFields[1]   -- First auxField is Field object.
    local geo        = auxFields[2]   -- Second auxField is ExternalField object.
    local primMom    = auxFields[3]   -- Third auxField is the primitive moments field.
-   local cSound     = auxFields[4]   -- Third auxField is the sound speed.
+   local cRusanov   = auxFields[4]   -- Fourth auxField is the speed used in the Rusanov numerical flux.
+
+   if self._isFirst then
+      -- In case there is no Jacobian:
+      if geo.jacobGeoInv == nil then
+         self.unitFld = DataStruct.Field {
+            onGrid        = self._grid,
+            numComponents = self._basis:numBasis(),
+            ghost         = {1, 1},
+            metaData      = {polyOrder = self._basis:polyOrder(),
+                             basisType = self._basis:id(),},
+         }
+         local evOnNodes = Updater.EvalOnNodes {
+            onGrid = self._grid,   evaluate = function(t, xn) return 1. end,
+            basis  = self._basis,  onGhosts = true,
+         }
+         evOnNodes:advance(0., {}, {self.unitFld})
+      end
+   end
 
    -- Get the electrostatic potential, phi.
    self.phi = potentials.phi
 
    -- Get magnetic geometry fields.
-   self.bmag    = geo.bmag
    self.rBmag   = geo.bmagInv
-   self.cmag    = geo.cmag
-   self.b_x     = geo.b_x
-   self.b_y     = geo.b_y
-   self.b_z     = geo.b_z
-   self.jacob   = geo.jacobGeo
+   self.rJacob  = geo.jacobGeoInv or self.unitFld
    self.phiWall = geo.phiWall  -- For sheath BCs.
 
    self.primMom = primMom   -- Primitive moments uPar, Tpar, Tperp.
-   self.cSound  = cSound    -- Sound speed.
+   self.cRusanov = cRusanov
 
    if self._isFirst then
 
@@ -75,15 +88,15 @@ function Gyrofluid:setAuxFields(auxFields)
          onGrid    = self._grid,   operation = "Multiply",
          weakBasis = self._basis,  onGhosts  = true,
       }
-      self.jacobDbmag = DataStruct.Field {
+      self.rBmagSq = DataStruct.Field {
          onGrid        = self._grid,            
          numComponents = self._basis:numBasis(),
          ghost         = {1, 1},
          metaData      = {polyOrder = self._basis:polyOrder(),
                           basisType = self._basis:id(),},
       }
-      self.jacobDbmag:clear(0.)
-      weakMult:advance(0., {self.jacob,self.rBmag}, {self.jacobDbmag})
+      self.rBmagSq:clear(0.)
+      weakMult:advance(0., {self.rBmag,self.rBmag}, {self.rBmagSq})
 
       -- Compute dBdz. Eventually we'll remove this or put it in geo.
       local dBdzFunc = function (t, xn)
@@ -113,34 +126,29 @@ function Gyrofluid:setAuxFields(auxFields)
 
       -- Allocate pointers and indexers to field objects.
 
-      self.indexer = self.bmag:genIndexer()
+      self.indexer = self.rBmag:genIndexer()
 
       -- Potentials.
-      self.phiPtr  = self.phi:get(1)
-      self.phiPtrl = self.phi:get(1)
-      self.phiPtrr = self.phi:get(1)
+      self.phiPtr = self.phi:get(1)
+      self.phiPtrL, self.phiPtrR = self.phi:get(1), self.phi:get(1)
 
       -- Geometry.
-      self.bmagPtr       = self.bmag:get(1)
-      self.rBmagPtr      = self.rBmag:get(1)
-      self.cmagPtr       = self.cmag:get(1)
-      self.b_xPtr        = self.b_x:get(1)
-      self.b_yPtr        = self.b_y:get(1)
-      self.b_zPtr        = self.b_z:get(1)
-      self.jacobPtr      = self.jacob:get(1)
-      self.phiWallPtr    = self.phiWall:get(1)
-      self.jacobDbmagPtr = self.jacobDbmag:get(1)
-      self.dBdzPtr       = self.dBdz:get(1)
+      self.rJacobPtr  = self.rJacob:get(1)
+      self.rJacobPtrL, self.rJacobPtrR = self.rJacob:get(1), self.rJacob:get(1)
+      self.rBmagPtr   = self.rBmag:get(1)
+      self.rBmagPtrL, self.rBmagPtrR = self.rBmag:get(1), self.rBmag:get(1)
+      self.rBmagSqPtr = self.rBmagSq:get(1)
+      self.rBmagSqPtrL, self.rBmagSqPtrR = self.rBmagSq:get(1), self.rBmagSq:get(1)
+      self.phiWallPtr = self.phiWall:get(1)
+      self.dBdzPtr    = self.dBdz:get(1)
 
       -- Primitive moments.
-      self.primMomPtr  = self.primMom:get(1)
-      self.primMomPtrl = self.primMom:get(1)
-      self.primMomPtrr = self.primMom:get(1)
+      self.primMomPtr = self.primMom:get(1)
+      self.primMomPtrL, self.primMomPtrR = self.primMom:get(1), self.primMom:get(1)
 
-      -- Sound speed.
-      self.cSoundPtr  = self.cSound:get(1)
-      self.cSoundPtrl = self.cSound:get(1)
-      self.cSoundPtrr = self.cSound:get(1)
+      -- Speed in Rusanov numerical flux.
+      self.cRusanovPtr = self.cRusanov:get(1)
+      self.cRusanovPtrL, self.cRusanovPtrR = self.cRusanov:get(1), self.cRusanov:get(1)
 
       self._isFirst = false -- No longer first time.
    end
@@ -151,15 +159,13 @@ function Gyrofluid:volTerm(w, dx, idx, f, out)
    local tmStart = Time.clock()
 
    self.phi:fill(self.indexer(idx), self.phiPtr)
-   self.bmag:fill(self.indexer(idx), self.bmagPtr)
+   self.rJacob:fill(self.indexer(idx), self.rJacobPtr)
    self.rBmag:fill(self.indexer(idx), self.rBmagPtr)
-   self.jacob:fill(self.indexer(idx), self.jacobPtr)
-   self.jacobDbmag:fill(self.indexer(idx), self.jacobDbmagPtr)
    self.primMom:fill(self.indexer(idx), self.primMomPtr)
    self.dBdz:fill(self.indexer(idx), self.dBdzPtr)
-   self.cSound:fill(self.indexer(idx), self.cSoundPtr)
+   self.cRusanov:fill(self.indexer(idx), self.cRusanovPtr)
 
-   local res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.jacobPtr:data(), self.rBmagPtr:data(), self.jacobDbmagPtr:data(), self.dBdzPtr:data(), f:data(), self.phiPtr:data(), self.primMomPtr:data(), self.cSoundPtr:data(), out:data())
+   local res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.rJacobPtr:data(), self.rBmagPtr:data(), self.dBdzPtr:data(), f:data(), self.phiPtr:data(), self.primMomPtr:data(), self.cRusanovPtr:data(), out:data())
    self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
    return res
 end
@@ -168,18 +174,21 @@ end
 function Gyrofluid:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    local tmStart = Time.clock()
 
-   self.phi:fill(self.indexer(idxl), self.phiPtrl)
-   self.phi:fill(self.indexer(idxr), self.phiPtrr)
-   self.bmag:fill(self.indexer(idxl), self.bmagPtr)
-   self.rBmag:fill(self.indexer(idxl), self.rBmagPtr)
-   self.jacob:fill(self.indexer(idxl), self.jacobPtr)
-   self.jacobDbmag:fill(self.indexer(idxl), self.jacobDbmagPtr)
-   self.primMom:fill(self.indexer(idxl), self.primMomPtrl)
-   self.primMom:fill(self.indexer(idxr), self.primMomPtrr)
-   self.cSound:fill(self.indexer(idxl), self.cSoundPtrl)
-   self.cSound:fill(self.indexer(idxr), self.cSoundPtrr)
+   self.phi:fill(self.indexer(idxl), self.phiPtrL)
+   self.rJacob:fill(self.indexer(idxl), self.rJacobPtrL)
+   self.rBmag:fill(self.indexer(idxl), self.rBmagPtrL)
+   self.rBmagSq:fill(self.indexer(idxl), self.rBmagSqPtrL)
+   self.primMom:fill(self.indexer(idxl), self.primMomPtrL)
+   self.cRusanov:fill(self.indexer(idxl), self.cRusanovPtrL)
+
+   self.phi:fill(self.indexer(idxr), self.phiPtrR)
+   self.rJacob:fill(self.indexer(idxr), self.rJacobPtrR)
+   self.rBmag:fill(self.indexer(idxr), self.rBmagPtrR)
+   self.rBmagSq:fill(self.indexer(idxr), self.rBmagSqPtrR)
+   self.primMom:fill(self.indexer(idxr), self.primMomPtrR)
+   self.cRusanov:fill(self.indexer(idxr), self.cRusanovPtrR)
    
-   local res = self._surfTerm[dir](self.charge, self.mass, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.jacobPtr:data(), self.rBmagPtr:data(), self.jacobDbmagPtr:data(), fl:data(), fr:data(), self.phiPtrl:data(), self.phiPtrr:data(), self.primMomPtrl:data(), self.primMomPtrr:data(), self.cSoundPtrl:data(), self.cSoundPtrr:data(), outl:data(), outr:data())
+   local res = self._surfTerm[dir](self.charge, self.mass, wl:data(), wr:data(), dxl:data(), dxr:data(), maxs, self.rJacobPtrL:data(), self.rJacobPtrR:data(), self.rBmagPtrL:data(), self.rBmagPtrR:data(), self.rBmagSqPtrL:data(), self.rBmagSqPtrR:data(), fl:data(), fr:data(), self.phiPtrL:data(), self.phiPtrR:data(), self.primMomPtrL:data(), self.primMomPtrR:data(), self.cRusanovPtrL:data(), self.cRusanovPtrR:data(), outl:data(), outr:data())
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res
 end

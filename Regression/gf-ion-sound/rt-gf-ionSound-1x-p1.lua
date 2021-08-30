@@ -1,118 +1,110 @@
 -- Gkyl -------------------------------------------------------------------
 --
--- Gyrofluid ion sound wave test case.
+-- Gyrofluid ion acoustic wave damping.
+-- Time normalized to the ion gyrofrequency, omega_ci 
+-- Distances normalized to the ion sound gyroradius, rho_s=c_s/omega_ci.
+-- Temperatures normalized to the electron temperature, T_e.
+-- Velocities normalized to c_s=sqrt(T_e/m_i).
 --
 ---------------------------------------------------------------------------
 local Plasma = require ("App.PlasmaOnCartGrid").Gyrofluid()
 
-q_e     = -1.0
-q_i     = 1.0
-m_e     = 1.0
-m_i     = 1.0
+tau     = 1.0            -- Ion temperature to electron temperature ratio.
+Te      = 1.0            -- Electron temperature.
+mIon    = 1.0            -- Ion mass
+mElc    = 1.0/1836.16    -- Electron mass.
+n0      = 1.0            -- Background density.
+B0      = 1.0            -- Background magnetic field magnitude.
+kpar0   = 0.5            -- Wave number.
+kperp   = 0.3            -- k_perp*rho_s.
+nuIon   = 0.0            -- Ion-ion collision frequency.
+nuElc   = 0.0            -- Electron-electron collision frequency.
 
-TiTe    = 1.0
-kpar    = 0.5
-XL, XU  = -math.pi/kpar, math.pi/kpar
-Ti0     = 1.0
-Te0     = Ti0/TiTe
-n0      = 1.0
-ni0     = n0
-ne0     = n0
-B0      = 1.0
+-- Lower and upper bound of configuration space.
+xLower, xUpper = -math.pi/kpar0, math.pi/kpar0
 
-vtElc = math.sqrt(Te0/m_e)
-vtIon = math.sqrt(Ti0/m_i)
+Ti      = Te*tau     -- Ion temperature.
+nIon    = n0         -- Background ion density.
+nElc    = n0         -- Background electron density.
 
--- Electron-electron collision freq.
-nuElc = 0.
--- Ion-ion collision freq.
-nuIon = 0.
+vtIon   = math.sqrt(Ti)                -- Ion thermal speed.
+vtElc   = math.sqrt((mIon/mElc)*Te)    -- Electron thermal speed.
 
 -- Beer & Hammett 3+1 closure model parameters.
 beta_par = (32. - 9.*math.pi)/(3.*math.pi - 8.)
 D_par    = 2.*math.sqrt(math.pi)/(3.*math.pi - 8.)
 D_perp   = math.sqrt(math.pi)/2.
 
-kappaParIon  = ni0*(vtIon^2)*(3.+beta_par)/(math.sqrt(3)*D_par*vtIon*kpar+nuIon)
-kappaPerpIon = ni0*(vtIon^2)/(math.sqrt(2)*D_perp*vtIon*kpar+nuIon)
-kappaParElc  = ne0*(vtElc^2)*(3.+beta_par)/(math.sqrt(3)*D_par*vtElc*kpar+nuElc)
-kappaPerpElc = ne0*(vtElc^2)/(math.sqrt(2)*D_perp*vtElc*kpar+nuElc)
+kappaParIon  = nIon*(vtIon^2)*(3.+beta_par)/(math.sqrt(3)*D_par*vtIon*kpar0+nuIon)
+kappaPerpIon = nIon*(vtIon^2)/(math.sqrt(2)*D_perp*vtIon*kpar0+nuIon)
+kappaParElc  = nElc*(vtElc^2)*(3.+beta_par)/(math.sqrt(3)*D_par*vtElc*kpar0+nuElc)
+kappaPerpElc = nElc*(vtElc^2)/(math.sqrt(2)*D_perp*vtElc*kpar0+nuElc)
 
 -- Geometry related parameters.
 R0 = 1.0
 r0 = 0.0
 
 plasmaApp = Plasma.App {
-   logToFile = true,
-
-   tEnd   = 15.0,              -- End time.
-   nFrame = 1,                 -- Number of output frames.
-   lower  = {-math.pi/kpar},   -- Configuration space lower left.
-   upper  = { math.pi/kpar},   -- Configuration space upper right.
-   cells  = {16},              -- Configuration space cells.
-   mapc2p = function(xc)  -- MF (2021/04/20): this is only intended to give a Jacobian=1 for now.
-      -- Field-aligned coordinates (x,y).
-      local x, y = xc[1], xc[2]
-      -- Cylindrical coordinates (R,phi).
-      local phi = x/(R0+r0)
-      -- Cartesian coordinates (X,Y).
-      local X = R0*math.cos(phi)
-      local Y = R0*math.sin(phi)
-      return X, Y
-   end,
-   basis       = "serendipity",      -- One of "serendipity" or "maximal-order".
+   tEnd        = 5.0,                -- End time.
+   nFrame      = 1,                  -- Number of output frames.
+   lower       = {xLower},           -- Configuration space lower left.
+   upper       = {xUpper},           -- Configuration space upper right.
+   cells       = {16},               -- Configuration space cells.
+   basis       = "serendipity",      -- One of "serendipity" or "tensor".
    polyOrder   = 1,                  -- Polynomial order.
    timeStepper = "rk3",              -- One of "rk2" or "rk3".
    cflFrac     = 0.90,
+
+   -- Frequency with which to compute integrated diagnostics.
+--   calcIntQuantEvery = 1/600.,
 
    -- Decomposition for configuration space.
    decompCuts = {1},   -- Cuts in each configuration direction.
 
    -- Boundary conditions for configuration space.
-   periodicDirs = {1}, -- Periodic directions.
+   periodicDirs = {1},   -- Periodic directions.
 
-   -- Gyrokinetic ions.
+   -- Gyrofluid ions.
    ion = Plasma.Species {
-      charge = q_i,  mass = m_i,
+      charge = 1.0,  mass = mIon,
       -- Initial conditions.
       init = Plasma.GyrofluidProjection {
          density = function (t, xn)
-            local x = xn[1]
-            local k = kpar
+            local x     = xn[1]
+            local k     = kpar0
             local alpha = 0.01
-            local perturb = alpha*math.cos(k*x)
-            return ni0*(1+perturb)
+            return nIon*(1.+alpha*math.cos(k*x))
          end,
-         parallelTemperature = function (t, xn) return Ti0 end,
-         perpendicularTemperature = function (t, xn) return Ti0 end,
+         parallelTemperature = function (t, xn) return Ti end,
+         perpendicularTemperature = function (t, xn) return Ti end,
       },
       closure = Plasma.HeatFlux{
          kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
+      diagnostics = {"M0","intM0","intM1","intM2","Upar","Tpar","Tperp"},
    },
 
-   -- Gyrokinetic electronss.
+   -- Gyrofluid electronss.
    elc = Plasma.Species {
-      charge = q_e,  mass = m_e,
+      charge = -1.0,  mass = mElc,
       -- Initial conditions.
       init = Plasma.GyrofluidProjection {
-         density = function (t, xn) return ne0 end,
-         parallelTemperature = function (t, xn) return Te0 end,
-         perpendicularTemperature = function (t, xn) return Te0 end,
+         density = function (t, xn) return nElc end,
+         parallelTemperature = function (t, xn) return Te end,
+         perpendicularTemperature = function (t, xn) return Te end,
       },
       closure = Plasma.HeatFlux{
          kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
+      diagnostics = {"M0","intM0","intM1","intM2","Upar","Tpar","Tperp"},
    },
 
    -- Field solver.
    field = Plasma.Field {
       evolve  = true, -- Evolve field?
-      kperpSq = 0.3,
+      kperpSq = kperp^2,
    },
 
    -- Magnetic geometry.

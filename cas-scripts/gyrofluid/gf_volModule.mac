@@ -56,6 +56,7 @@ calcGFvolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
   [d,m,basis,vars,varLabel,numMom,moms_e,moms_c,primMoms_e,primMoms_c,
    m0_e,m0_c,m1_e,m1_c,m2_e,m2_c,m2perp_e,m2perp_c,upar_e,upar_c,Tpar_e,Tpar_c,Tperp_e,Tperp_c,
    basisPrime,basisPrimeP,pperpJac_c,pparJac_c,pperpJac_e,pparJac_e,
+   rJac_e,rBmag_e,
    m0Flux_c,m1Flux_c,m2Flux_c,m2perpFlux_c,m0Flux_e,m1Flux_e,m2Flux_e,m2perpFlux_e,
    flux_e,incr_c,mI,numBzeros,qPhiDm_e,h_e,dBdz_e,
    zMid,TparMid,Tmid,uMidOut,cMidOut],
@@ -73,18 +74,17 @@ calcGFvolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
   varLabel : makelist(string(vars[d]),d,1,dim),
 
   printf(fh, "~%"),
-  printf(fh, "double ~a(const double q_, const double m_, const double *w, const double *dx, const double *jac, const double *rBmag, const double *jacDbmag, const double *dBdz, const double *sMom, const double *phi, const double *primMom, const double *cs, double *out) ~%{ ~%", funcNm),
+  printf(fh, "double ~a(const double q_, const double m_, const double *w, const double *dx, const double *rJac, const double *rBmag, const double *dBdz, const double *sMom, const double *phi, const double *primMom, const double *cRus, double *out) ~%{ ~%", funcNm),
   printf(fh, "  // q_,m_:   species charge and mass.~%"),
   printf(fh, "  // w:       cell-center.~%"),
   printf(fh, "  // dx:      cell length.~%"),
   printf(fh, "  // uMaxIn:  maximum speed.~%"),
-  printf(fh, "  // jac:     jacobian.~%"),
+  printf(fh, "  // rJac:    reciprocal of jacobian (1/B).~%"),
   printf(fh, "  // rBmag:   reciprocal of magnetic field magnitude (1/B).~%"),
-  printf(fh, "  // jacDbmag:jacobian divided by B (J/B).~%"),
   printf(fh, "  // sMom:    stepped moments (times Jacobian).~%"),
   printf(fh, "  // phi:     electrostatic potential.~%"),
   printf(fh, "  // primMom: primitive moments (upar, Tpar, Tperp).~%"),
-  printf(fh, "  // cs:      sound speed.~%"),
+  printf(fh, "  // cRus:    phase speed in Rusanov numerical flux.~%"),
   printf(fh, "  // out:     output increment.~%"),
   printf(fh, "~%"),
 
@@ -126,12 +126,15 @@ calcGFvolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
   pperpJac_e : doExpand(pperpJac_c,basis),
   pparJac_e  : doExpand(pparJac_c,basis),
 
+  rBmag_e   : doExpand1(rBmag, basis),
+  rJac_e    : doExpand1(rJac, basis),
+
   /* Define the fluxes so we can compute the advective
      contributions of all equations in a loop. */
-  m0Flux_c     : calcInnerProdList(vars,1,basis,m1_e),
-  m1Flux_c     : calcInnerProdList(vars,1,basis,2*(m2_e-pperpJac_e)),
-  m2Flux_c     : calcInnerProdList(vars,upar_e,basis,m2_e+pparJac_e),
-  m2perpFlux_c : calcInnerProdList(vars,upar_e,basis,m2perp_e),
+  m0Flux_c     : calcInnerProdList(vars,1,basis,rJac_e*m1_e*rBmag_e),
+  m1Flux_c     : calcInnerProdList(vars,1,basis,rJac_e*2*(m2_e-pperpJac_e)*rBmag_e),
+  m2Flux_c     : calcInnerProdList(vars,upar_e,basis,rJac_e*(m2_e+pparJac_e)*rBmag_e),
+  m2perpFlux_c : calcInnerProdList(vars,upar_e,basis,rJac_e*m2perp_e*rBmag_e),
   m0Flux_e     : doExpand(m0Flux_c,basis),
   m1Flux_e     : doExpand(m1Flux_c,basis),
   m2Flux_e     : doExpand(m2Flux_c,basis),
@@ -165,9 +168,9 @@ calcGFvolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
 
   /* Return CFL frequency */
   zMid    : makelist(vars[d]=0, d, 1, dim),
-  cs_e    : doExpand1(cs,basis),
+  cRus_e  : doExpand1(cRus,basis),
   uMidOut : float(expand(fullratsimp(subst(zMid,upar_e)))),
-  cMidOut : float(expand(fullratsimp(subst(zMid,cs_e)))),
+  cMidOut : float(expand(fullratsimp(subst(zMid,cRus_e)))),
 
   printf(fh, "  return ~a*(fabs(~a) + ~a); ~%", rdx2, uMidOut, cMidOut ),
 

@@ -35,7 +35,7 @@ for polyOrder : 1 thru 1 do (
   printf(fh, "#include <math.h>~%"),
   printf(fh, "#include <vlasov_fpo.h>~%~%"),
 
-  printf(fh, "void vlasov_fpo_moms_3xser__p~a(const double* dv, const double* vc, const double* f, double* out) {~%", polyOrder),
+  printf(fh, "void vlasov_fpo_moms_3x_ser_p~a(const double* dv, const double* vc, const double* f, double* out) {~%", polyOrder),
   
   printf(fh, "  out[0] += ~a;~%", subst(pow, "^", float(subst(indexSubList, expand(M0))))),
   printf(fh, "  out[1] += ~a;~%", subst(pow, "^", float(subst(indexSubList, expand(M1x))))),
@@ -71,8 +71,7 @@ polyOrder : 1 $
 indexSubList : append(
   makelist(dv[i]=dv[i-1], i, 1, numDims),
   makelist(vc[i]=vc[i-1], i, 1, numDims),
-  makelist(f[i]=f[i-1], i, 1, length(basisC[polyOrder])),
-  makelist(h[i]=h[i-1], i, 1, length(basisC[polyOrder]))
+  makelist(f[i]=f[i-1], i, 1, length(basisC[polyOrder]))
   ) $
 fExp : doExpand(f, basisC[polyOrder]) $
 intXlo : integrate(integrate((-dv[1]/2+vc[1])*subst(x=-1, fExp), y, -1, 1), z, -1, 1) * dv[2]*dv[3]/4 ;
@@ -82,17 +81,16 @@ intYup : -integrate(integrate((dv[2]/2+vc[2])*subst(y=1, fExp), x, -1, 1), z, -1
 intZlo : integrate(integrate((-dv[3]/2+vc[3])*subst(z=-1, fExp), x, -1, 1), y, -1, 1) * dv[1]*dv[2]/4 $
 intZup : -integrate(integrate((dv[3]/2+vc[3])*subst(z=1, fExp), x, -1, 1), y, -1, 1) * dv[1]*dv[2]/4 $
 fh : openw("~/max-out/intKernel") $
-printf(fh, "if (isXloEdge) {~%") $
+printf(fh, "if (isXloEdge)~%") $
 printf(fh, "  out += ~a;~%", float(subst(indexSubList, expand(intXlo)))) $
-printf(fh, "} else if (isXupEdge) {~%") $
+printf(fh, "if (isXupEdge)~%") $
 printf(fh, "  out += ~a;~%", float(subst(indexSubList, expand(intXup)))) $
-printf(fh, "} else if (isYloEdge) {~%") $
+printf(fh, "if (isYloEdge)~%") $
 printf(fh, "  out += ~a;~%", float(subst(indexSubList, expand(intYlo)))) $
-printf(fh, "} else if (isYupEdge) {~%") $
+printf(fh, "if (isYupEdge)~%") $
 printf(fh, "  out += ~a;~%", float(subst(indexSubList, expand(intYup)))) $
-printf(fh, "} else if (isZloEdge) {~%") $
+printf(fh, "if (isZloEdge)~%") $
 printf(fh, "  out += ~a;~%", float(subst(indexSubList, expand(intZlo)))) $
-printf(fh, "} else {~%") $
+printf(fh, "if (isZupEdge)~%") $
 printf(fh, "  out += ~a;~%", float(subst(indexSubList, expand(intZup)))) $
-printf(fh, "}") $
 close(fh) $

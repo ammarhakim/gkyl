@@ -14,19 +14,18 @@ double vlasov_fpo_momM0mod_3x_ser_p1(const double* dv, const double* vc, const d
                                      int isYloEdge, int isYupEdge,
                                      int isZloEdge, int isZupEdge) {
   double out = 3 * 0.3535533905932737*dv[0]*f[0]*dv[1]*dv[2];
-  if (isXloEdge) {
+  if (isXloEdge)
     out += (-0.6123724356957944*vc[0]*dv[1]*f[1]*dv[2])+0.3061862178478971*dv[0]*dv[1]*f[1]*dv[2]+0.3535533905932737*f[0]*vc[0]*dv[1]*dv[2]-0.1767766952966368*dv[0]*f[0]*dv[1]*dv[2];
-  } else if (isXupEdge) {
+  if (isXupEdge)
     out += (-0.6123724356957944*vc[0]*dv[1]*f[1]*dv[2])-0.3061862178478971*dv[0]*dv[1]*f[1]*dv[2]-0.3535533905932737*f[0]*vc[0]*dv[1]*dv[2]-0.1767766952966368*dv[0]*f[0]*dv[1]*dv[2];
-  } else if (isYloEdge) {
+  if (isYloEdge)
     out += (-0.6123724356957944*dv[0]*vc[1]*dv[2]*f[2])+0.3061862178478971*dv[0]*dv[1]*dv[2]*f[2]+0.3535533905932737*dv[0]*f[0]*vc[1]*dv[2]-0.1767766952966368*dv[0]*f[0]*dv[1]*dv[2];
-  } else if (isYupEdge) {
+  if (isYupEdge)
     out += (-0.6123724356957944*dv[0]*vc[1]*dv[2]*f[2])-0.3061862178478971*dv[0]*dv[1]*dv[2]*f[2]-0.3535533905932737*dv[0]*f[0]*vc[1]*dv[2]-0.1767766952966368*dv[0]*f[0]*dv[1]*dv[2];
-  } else if (isZloEdge) {
+  if (isZloEdge)
     out += (-0.6123724356957944*dv[0]*dv[1]*vc[2]*f[3])+0.3061862178478971*dv[0]*dv[1]*dv[2]*f[3]+0.3535533905932737*dv[0]*f[0]*dv[1]*vc[2]-0.1767766952966368*dv[0]*f[0]*dv[1]*dv[2];
-  } else {
+  if (isZupEdge)
     out += (-0.6123724356957944*dv[0]*dv[1]*vc[2]*f[3])-0.3061862178478971*dv[0]*dv[1]*dv[2]*f[3]-0.3535533905932737*dv[0]*f[0]*dv[1]*vc[2]-0.1767766952966368*dv[0]*f[0]*dv[1]*dv[2];
-  }
   return out;
 }
 

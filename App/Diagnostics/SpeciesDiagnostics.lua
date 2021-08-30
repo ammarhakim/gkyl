@@ -109,12 +109,15 @@ function SpeciesDiagnostics:fullInit(mySpecies, field, diagOwner)
 
    -- Option to write grid and integrated diagnostics in two files, instead of every diagnostic having a file.
    self.inTwoFiles = false
-   if lume.any(diagOwner.tbl.diagnostics, function(e) return e=="twoFiles" end) then
+   if lume.any(diagOwner.tbl.diagnostics, function(e) return e=="twoFiles" end) or
+      lume.any(diagOwner.tbl.diagnostics, function(e) return e=="groupDiagnostics" end) or
+      mySpecies.groupDiags then
       lume.remove(diagOwner.tbl.diagnostics,"twoFiles")
+      lume.remove(diagOwner.tbl.diagnostics,"groupDiagnostics")
       self.inTwoFiles = true
    end
 
-   -- Sort requested diagnostics into grid and integrated diagnostics.
+   -- Sort requested diagnostics into grid and integrated diagnostics.   
    for _, nm in ipairs(diagOwner.tbl.diagnostics) do
       if contains(diagsImpl, nm) then
          self.diags[nm] = diagsImpl[nm]{}

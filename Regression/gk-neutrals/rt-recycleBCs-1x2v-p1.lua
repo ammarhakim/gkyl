@@ -42,7 +42,7 @@ Lx = 40 --[m]
 
 -- Source parameters
 Ls     = 25 -- [m]
-S0     = 7e22*nfac -- [m^-3 s^-1] jupyter nb recommends 
+S0     = 7e22*nfac -- [m^-3 s^-1]
 P_src  = 1e6
 srcFac = 0.1
 
@@ -50,12 +50,6 @@ srcFac = 0.1
 sourceDensity = function (t,xn)
    local x = xn[1]
    return srcFac*S0*(math.exp(-x^2/20)+ 0.001)
-   -- local flr = 0.001
-   -- if math.abs(x) < Ls/2 then
-   --    return S0*(math.cos(math.pi*x/Ls)+flr)
-   -- else
-   --  return S0*flr
-   -- end
 end
 sourceTemperatureElc = function (t,xn)
    local x = xn[1]
@@ -68,13 +62,8 @@ end
 sourceDensityNeut = function (t,xn)
    local x = xn[1]
    local x0 = 1
-   local S0n = 8e-21*n0^2 --nfac*1e23
+   local S0n = 8e-21*n0^2
    return S0n
-   --  if x <= 0 then
-   --    return S0n*(sech((-Lx/2-x)/x0)^2+ 0.001)
-   -- else       
-   --    return S0n*(sech((Lx/2-x)/x0)^2 + 0.001)
-   -- end
 end
 
 -- Parameters for collisions.
@@ -138,20 +127,21 @@ sim = Plasma.App {
             return Te0
          end,
       },
-      source = Plasma.MaxwellianProjection {
-	  density = sourceDensity,
-	   temperature = sourceTemperatureElc,
+      source = Plasma.Source {
+	 kind = "Maxwellian",
+	 density = sourceDensity,
+	 temperature = sourceTemperatureElc,
       }, 
       evolve = true, -- Evolve species?
       coll = Plasma.LBOCollisions {
          collideWith = {'elc', 'ion'},
          nuFrac      = 0.1,
-	 --frequencies = {nuElc},
       },
       ionization = Plasma.Ionization {
       	 collideWith = {"neut"},  elemCharge   = eV, 
          electrons   = "elc",     elcMass      = me,
-      	 neutrals    = "neut",    plasma       = "H",         
+      	 neutrals    = "neut",    plasma       = "H",
+         diagnostics = {"M0", "intM0", "reactRate", "source"},
       },
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
       bcx = {Plasma.SheathBC{diagnostics={"M0","Upar","intM0"}},
@@ -191,15 +181,15 @@ sim = Plasma.App {
             return Ti0
          end,
       },
-      source = Plasma.MaxwellianProjection {
-	  density = sourceDensity,
-	  temperature = sourceTemperatureIon,
+      source = Plasma.Source {
+	 kind = "Maxwellian",
+	 density = sourceDensity,
+	 temperature = sourceTemperatureIon,
       }, 
       evolve = true,
       coll = Plasma.LBOCollisions {
          collideWith = {'ion','elc'},
          nuFrac      = 0.1,
-	 --frequencies = {nuIon},
       },
       ionization = Plasma.Ionization {
       	 collideWith = {"neut"},  elemCharge = eV,
@@ -210,7 +200,7 @@ sim = Plasma.App {
       	 collideWith = {"neut"},  neutMass = mi,
       	 ions        = "ion",     plasma   = "H",
       	 neutrals    = "neut",    charge   = qi,
-      	 ionMass     = mi,
+      	 ionMass     = mi,        diagnostics = {"reactRate","source"},
       },
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
       bcx = {Plasma.SheathBC{diagnostics={"M0","Upar","intM0"}},
@@ -248,7 +238,8 @@ sim = Plasma.App {
          end,
       },
       evolve = true,
-      source = Plasma.VmMaxwellianProjection {
+      source = Plasma.VmSource {
+	 kind = "Maxwellian",
          density = sourceDensityNeut,
          driftSpeed = function (t, xn)
             return {0,0,0}
@@ -257,14 +248,11 @@ sim = Plasma.App {
             return 10*eV
          end,
       },
-      -- coll = Plasma.VmBGKCollisions {
-      --    collideWith = {'neut'},
-      -- 	 frequencies = {1e6},
-      -- },
-      ionization = Plasma.Ionization {
+     ionization = Plasma.Ionization {
       	 collideWith = {"elc"},  elemCharge = eV,
       	 electrons   = "elc",    elcMass    = me,
       	 neutrals    = "neut",   plasma     = "H",
+	 diagnostics = {"M0", "intM0", "source"},
       },
       chargeExchange = Plasma.ChargeExchange {
       	 collideWith = {"ion"},	 neutMass = mi,

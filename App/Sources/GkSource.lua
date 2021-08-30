@@ -33,7 +33,11 @@ function GkSource:fullInit(thisSpecies)
    self.power = tbl.power
 
    if tbl.profile then
-      self.profile = tbl.profile
+      if type(tbl.profile) == "function" then
+         self.profile = Projection.FunctionProjection{func = tbl.profile,}
+      elseif type(tbl.profile) == "string" then
+         self.profile = Projection.FunctionProjection{fromFile = tbl.profile,}
+      end
    elseif tbl.kind then
       self.density     = assert(tbl.density, "App.GkSource: must specify density profile of source in 'density'.")
       self.temperature = assert(tbl.temperature, "App.GkSource: must specify temperature profile of source in 'density'.")
@@ -115,7 +119,6 @@ function GkSource:createDiagnostics(mySpecies, field)
       self.diagnostics = DiagsApp{implementation = GkDiags()}
       self.diagnostics:fullInit(mySpecies, field, self)
    end
-
    return self.diagnostics
 end
 

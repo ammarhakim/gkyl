@@ -11,45 +11,6 @@ using namespace Gkyl;
 
 
 
-__device__ Maxwell_volumeTerm_t p_Maxwell_volumeTerm_1xMaxP1 =
-  &Gkyl::MaxwellModDecl<1,1,G_MAX_ORDER_C>::volumeTerm;
-
-__device__ Maxwell_surfTerm_t p_Maxwell_surfTerm_1xMaxP1 =
-  &Gkyl::MaxwellModDecl<1,1,G_MAX_ORDER_C>::surfTerm;
-
-
-__device__ Maxwell_volumeTerm_t p_Maxwell_volumeTerm_1xMaxP2 =
-  &Gkyl::MaxwellModDecl<1,2,G_MAX_ORDER_C>::volumeTerm;
-
-__device__ Maxwell_surfTerm_t p_Maxwell_surfTerm_1xMaxP2 =
-  &Gkyl::MaxwellModDecl<1,2,G_MAX_ORDER_C>::surfTerm;
-
-
-__device__ Maxwell_volumeTerm_t p_Maxwell_volumeTerm_2xMaxP1 =
-  &Gkyl::MaxwellModDecl<2,1,G_MAX_ORDER_C>::volumeTerm;
-
-__device__ Maxwell_surfTerm_t p_Maxwell_surfTerm_2xMaxP1 =
-  &Gkyl::MaxwellModDecl<2,1,G_MAX_ORDER_C>::surfTerm;
-
-
-__device__ Maxwell_volumeTerm_t p_Maxwell_volumeTerm_2xMaxP2 =
-  &Gkyl::MaxwellModDecl<2,2,G_MAX_ORDER_C>::volumeTerm;
-
-__device__ Maxwell_surfTerm_t p_Maxwell_surfTerm_2xMaxP2 =
-  &Gkyl::MaxwellModDecl<2,2,G_MAX_ORDER_C>::surfTerm;
-
-
-
-
-__device__ Maxwell_volumeTerm_t p_Maxwell_volumeTerm_3xMaxP1 =
-  &Gkyl::MaxwellModDecl<3,1,G_MAX_ORDER_C>::volumeTerm;
-
-__device__ Maxwell_surfTerm_t p_Maxwell_surfTerm_3xMaxP1 =
-  &Gkyl::MaxwellModDecl<3,1,G_MAX_ORDER_C>::surfTerm;
-
-
-
-
 __device__ Maxwell_volumeTerm_t p_Maxwell_volumeTerm_1xSerP1 =
   &Gkyl::MaxwellModDecl<1,1,G_SERENDIPITY_C>::volumeTerm;
 

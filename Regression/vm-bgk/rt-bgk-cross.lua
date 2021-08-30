@@ -48,7 +48,6 @@ app = Plasma.App {
 	 return maxwellian(n1, u1, vth1, v)
       end,
       evolve = true,
-      --evolveCollisions = false,
       -- diagnostic moments
       diagnostics = { "M0", "M1i", "M2", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
       -- Collisions.
@@ -70,7 +69,6 @@ app = Plasma.App {
 	 return maxwellian(n2, u2, vth2, v)
       end,
       evolve = true,
-      --evolveCollisions = false,
       -- diagnostic moments
       diagnostics = { "M0", "M1i", "M2", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
       coll = Plasma.BGKCollisions {
