@@ -179,7 +179,10 @@ local findIntersect = function(yTar, yDo, xBounds, yLims)
    local tol = 1.e-13
    local Ly  = yLims.up - yLims.lo
    local function lossF(xIn) return yTar-yShiftF(xIn)-yDo end
+--   local function lossF(xIn) print(string.format("xIn=%g | yTar=%g | yDo=%g | yTar-yShiftF(xIn)-yDo = %g", xIn, yTar, yDo, yTar-yShiftF(xIn)-yDo)); return yTar-yShiftF(xIn)-yDo end
+--   print("yTar, yDo, xBounds, yS(2), fLo, fUp  = ",yTar, yDo, xBounds.lo, xBounds.up, yShiftF(2.), lossF(xBounds.lo),lossF(xBounds.up))
    root0 = _M.rootFind(lossF, xBounds, tol)
+--   print("not found yet")
    if root0 == nil then
       -- Maybe yTar-ySh intersects y=yDo in a periodic copy of the domain. Find roots of
       -- yTar-ySh-(yDo-nP*Ly)=0 where Ly is the y-length of the domain and nP is an integer.
@@ -219,23 +222,39 @@ local doTarOff = function(xcDoIn, xcTarIn)
    local shift     = yShiftF(xcDoIn[1])
    local shiftSign = sign(shift)
    local Ly        = domLim[2].up - domLim[2].lo
-   local yShDLyFac = math.floor(math.abs(shift)/Ly)
-
-   if yShDLyFac < 1. then yShDLyFac = 1. end
-
-   local ps = 0.
---   if shiftSign==1 and xcDoIn[2] <= xcTarIn[2] then
---      return xcDoIn[2] + yShDLyFac*Ly - xcTarIn[2] + ps
---   elseif shiftSign==-1 and xcDoIn[2] >= xcTarIn[2] then
---      return xcDoIn[2] - yShDLyFac*Ly - xcTarIn[2] + ps
-
-   if shiftSign==1 and (xcDoIn[2] > xcTarIn[2] or (shift>dx[2] and xcDoIn[2] == xcTarIn[2])) then
-      return xcTarIn[2] - (xcDoIn[2] - yShDLyFac*Ly) + ps
-   elseif shiftSign==-1 and (xcDoIn[2] < xcTarIn[2] or (-shift>dx[2] and xcDoIn[2] == xcTarIn[2])) then
-      return xcTarIn[2] - (xcDoIn[2] + yShDLyFac*Ly) + ps
-   else
-      return xcTarIn[2] - xcDoIn[2] + ps
+--   local yShDLyFac = math.floor(math.abs(shift)/Ly)
+--   local yShDLyFac = shiftSign<0. and math.floor(math.abs(shift)/Ly) or math.ceil(math.abs(shift)/Ly) 
+--   print(string.format("xc=%f | S(xc)=%f | yShDLyFac=%d",xcDoIn[1], shift, yShDLyFac))
+--   return xcTarIn[2] - (xcDoIn[2] - shiftSign*yShDLyFac*Ly)
+   local cornerTarS
+   cornerTarS = {lo={lo=xcTarIn[2]-dx[2]/2.-yShiftF(xcDoIn[1]-dx[1]/2.), up=xcTarIn[2]+dx[2]/2.-yShiftF(xcDoIn[1]-dx[1]/2.)},
+                 up={lo=xcTarIn[2]-dx[2]/2.-yShiftF(xcDoIn[1]+dx[1]/2.), up=xcTarIn[2]+dx[2]/2.-yShiftF(xcDoIn[1]+dx[1]/2.)}}
+   local yDoS = xcDoIn[2] - 0
+   local keepShifting = true
+   while keepShifting do
+      cornerDo = {lo={lo=yDoS-dx[2]/2., up=yDoS+dx[2]/2},
+                  up={lo=yDoS-dx[2]/2., up=yDoS+dx[2]/2}}
+      if ((cornerDo.lo.lo >= cornerTarS.lo.lo) and (cornerDo.lo.lo <= cornerTarS.lo.up)) or
+         ((cornerDo.lo.up >= cornerTarS.lo.lo) and (cornerDo.lo.up <= cornerTarS.lo.up)) or
+         ((cornerDo.up.lo >= cornerTarS.up.lo) and (cornerDo.up.lo <= cornerTarS.up.up)) or
+         ((cornerDo.up.up >= cornerTarS.up.lo) and (cornerDo.up.up <= cornerTarS.up.up)) then
+         keepShifting = false
+         break
+      else
+         yDoS = yDoS - shiftSign*Ly
+      end
    end
+   return xcTarIn[2] - yDoS
+--   if yShDLyFac < 1. then yShDLyFac = 1. end
+--
+--   local ps = 0.
+--   if shiftSign==1 and (xcDoIn[2] > xcTarIn[2] or (shift>dx[2] and xcDoIn[2] == xcTarIn[2])) then
+--      return xcTarIn[2] - (xcDoIn[2] - yShDLyFac*Ly) + ps
+--   elseif shiftSign==-1 and (xcDoIn[2] < xcTarIn[2] or (-shift>dx[2] and xcDoIn[2] == xcTarIn[2])) then
+--      return xcTarIn[2] - (xcDoIn[2] + yShDLyFac*Ly) + ps
+--   else
+--      return xcTarIn[2] - xcDoIn[2] + ps
+--   end
 end
 
 -- Given a logical space x coordinate (xi) and a (physical) y-coordinate in the target cell,
@@ -778,6 +797,7 @@ local subCellInt_sxiiiORsxiv = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, a
       yTarR       = limTar[2].up
       xLogBoundsR = {lo=p2l(x_pq.upTar.upDo,xcDoIn[1],dx[1]), up=1.}
       yLogBoundsR = {lo=p2l(wrapNum(limTar[2].up-yShiftF(limTar[1].up),domLim[2],atUpperYcell), xcDoIn[2], dx[2]), up=1.}
+--      print("    yLogBoundsR=",yLogBoundsR.lo,yLogBoundsR.up)
       -- Scenario siii-like part.
       yTarL       = limTar[2].lo
       xLogBoundsL = {lo=-1., up=p2l(x_pq.loTar.loDo,xcDoIn[1],dx[1])}
@@ -789,7 +809,7 @@ local subCellInt_sxiiiORsxiv = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, a
                          return yShiftedLogInv(xn[1], yTarL, xcDoIn, xcTarIn, xLogBoundsL, atUpperYcell)
                       end}
    local dySubL, _ = dxAxc(yLogBoundsL)
-   if (xLogBoundsL.up-xLogBoundsL.lo) > 1.e-14 and dySubL > 1.e-14 then
+   if (xLogBoundsL.up-xLogBoundsL.lo) > 1.e-13 and dySubL > 1.e-13 then
       nodToModProj1D(xLogLimsL.lo, yLogBoundsL, projData.xiLoL_eta)
       nodToModProj1D(xLogLimsL.up, yLogBoundsL, projData.xiUpL_eta)
       -- Subtract the left corner subcell region.
@@ -802,7 +822,9 @@ local subCellInt_sxiiiORsxiv = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, a
                       end,
                       up = function(t,xn) return 1.0 end}
    local dySubR, _ = dxAxc(yLogBoundsR)
-   if (xLogBoundsR.up-xLogBoundsR.lo) > 1.e-14 and dySubR > 1.e-14 then
+--   print("      ycOff = ",ycOff)
+--   print("      dySubR = ",dySubR)
+   if (xLogBoundsR.up-xLogBoundsR.lo) > 1.e-13 and dySubR > 1.e-13 then
       nodToModProj1D(xLogLimsR.lo, yLogBoundsR, projData.xiLoR_eta)
       nodToModProj1D(xLogLimsR.up, yLogBoundsR, projData.xiUpR_eta)
       -- Subtract the right corner subcell region.
@@ -827,10 +849,6 @@ local subCellInt_sxvORsxvi = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limDo, limT
    if (limDo[2].lo <= yShiftLoXc) and (yShiftLoXc <= limDo[2].up) then   -- Scenario sxv.
 --      print("    scenario sxv")
       local yTar = limTar[2].lo
---      etaLims = {lo = function(t,xn) return -1.0 end,
---                 up = function(t,xn)
---                         return -1.0+(1.0-yShiftedLog(xn[1], yTar, 1, xcDoIn, xcTarIn, atUpperYcell))
---                      end}
       etaLims = {lo = function(t,xn)
                          return yShiftedLog(xn[1], yTar, 1, xcDoIn, xcTarIn, atUpperYcell)
                       end,
@@ -838,10 +856,6 @@ local subCellInt_sxvORsxvi = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limDo, limT
    else   -- Scenario sxvi.
 --      print("    scenario sxvi")
       local yTar = limTar[2].up
---      etaLims = {lo = function(t,xn)
---                          return -1.0+(1.0-yShiftedLog(xn[1], yTar, 1, xcDoIn, xcTarIn, atUpperYcell))
---                       end,
---                 up = function(t,xn) return 1.0 end}
       etaLims = {lo = function(t,xn) return -1.0 end,
                  up = function(t,xn)
                          return yShiftedLog(xn[1], yTar, 1, xcDoIn, xcTarIn, atUpperYcell)
@@ -931,6 +945,9 @@ function _M.getDonors(grid, yShift, yShBasis)
             idxP[1], idxP[2] = idx[1], nil
             grid:findCell(searchPoint,idxShifted,chooseLo,idxP)
             newIdx = {idxShifted[1], idxShifted[2]}
+--            if idx[1]==1 and idx[2]==1 and dC==1 and xS==1 then
+--            print(string.format("iTar=(1,1) | evPoint=(%f,%f) | yShEv=%f | sPoint=(%f,%f) | iDo=(%d,%d)",evPoint[1],evPoint[2],yShEv,searchPoint[1],searchPoint[2],newIdx[1],newIdx[2]))
+--            end
             if lume.findTable(doCellsC,newIdx)==nil then table.insert(doCellsC,newIdx) end
 
             -- Search other shifted points along this line.
@@ -1055,6 +1072,7 @@ function _M.preCalcMat(grid, yShift, doCells, tsMatVecs)
 
 --      print("xIdx = ",xIdx[1])
 
+--if xIdx[1] == 85 then
       for iC = 1, #doCellsC do
 
          local idxDo = doCellsC[iC]
@@ -1152,6 +1170,7 @@ function _M.preCalcMat(grid, yShift, doCells, tsMatVecs)
          end
 --end
       end
+--end
 
    end
 end

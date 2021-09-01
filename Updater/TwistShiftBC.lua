@@ -79,14 +79,6 @@ function TwistShiftBC:init(tbl)
    local yShPolyOrder = assert(
       tbl.yShiftPolyOrder, "Updater.TwistShift: Must provide the polyOrder for projecting y-shift using 'yShiftPolyOrder'.")
 
-   -- Wrap the shift function in a function that translates it down to the domain
-   -- or to a coordinate no more than one domain away (in y).
-   yShTransFunc = function(t, xn)
-      local Ly  = self.grid:upper(2)-self.grid:lower(2)
-      local ySh = yShFunc(t, xn)
-      return ySh-math.sign(ySh)*math.floor(math.abs(ySh)/Ly)*Ly
-   end
-
    -- Project the y-shift function (of x) onto a 1D grid/basis.
    local yShGridIngr = self.grid:childGrid({1})
    local yShGrid = Grid.RectCart {
@@ -104,12 +96,12 @@ function TwistShiftBC:init(tbl)
    local projUpd = EvOnNodesUpd {
       onGrid   = yShGrid,
       basis    = yShBasis,
-      evaluate = yShTransFunc,
+      evaluate = yShFunc,
    }
    projUpd:advance(0., {}, {self.yShFld})
 
    -- Set some constant variables needed across tsFun functions.
-   tsFun.set_yShiftF(yShTransFunc)
+   tsFun.set_yShiftF(yShFunc)
    tsFun.set_domLim(self.grid)
    tsFun.set_dx(self.grid)
    tsFun.set_projData(yShPolyOrder)
