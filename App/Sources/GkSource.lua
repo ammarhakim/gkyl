@@ -10,7 +10,7 @@ local SourceBase = require "App.Sources.SourceBase"
 local DataStruct = require "DataStruct"
 local lume       = require "Lib.lume"
 local Mpi        = require "Comm.Mpi"
-local Projection = require "App.Projection"
+local Projection = require "App.Projection.GkProjection"
 local Proto      = require "Lib.Proto"
 local Time       = require "Lib.Time"
 local Updater    = require "Updater"
@@ -34,9 +34,14 @@ function GkSource:fullInit(thisSpecies)
 
    if tbl.profile then
       if type(tbl.profile) == "function" then
-         self.profile = Projection.FunctionProjection{func = tbl.profile,}
+	 self.profile = Projection.FunctionProjection {
+	    func = function(t, zn) return tbl.profile(t, zn) end
+	 }
       elseif type(tbl.profile) == "string" then
          self.profile = Projection.FunctionProjection{fromFile = tbl.profile,}
+	 -- self.profile = Projection.ReadInput {
+	 --    inputFile = tbl.profile,
+	 -- }
       end
    elseif tbl.kind then
       self.density     = assert(tbl.density, "App.GkSource: must specify density profile of source in 'density'.")
