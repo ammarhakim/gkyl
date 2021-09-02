@@ -59,6 +59,7 @@
 
 -- Gkyl libraries.
 local Lin          = require "Lib.Linalg"
+local Mpi          = require "Comm.Mpi"
 local lume         = require "Lib.lume"
 local math         = require "sci.math"  -- For sign function.
 local LinearDecomp = require "Lib.LinearDecomp"
@@ -897,7 +898,7 @@ function _M.getDonors(grid, yShift, yShBasis)
 
    local localRange = grid:localRange()
    local xyRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = localRange:selectFirst(2), numSplit = grid:numSharedProcs() }
+      range = localRange:selectFirst(2), numSplit = grid:numSharedProcs(), threadComm = grid:commSet().sharedComm }
    local tId = grid:subGridSharedId()   -- Local thread ID.
 
    local yShNumB    = yShift:numComponents()
@@ -913,6 +914,7 @@ function _M.getDonors(grid, yShift, yShBasis)
    end
 
    for idx in xyRangeDecomp:rowMajorIter(tId) do
+      --print("A", Mpi.Comm_rank(grid:commSet().comm), idx[1], idx[2])
       grid:setIndex(idx)
       
       local doCellsC = doCells[idx[1]][idx[2]]  -- Donor cells of current target cell.
@@ -1037,7 +1039,7 @@ function _M.preCalcMat(grid, yShift, doCells, tsMatVecs)
    local localRange = grid:localRange()
 
    local xRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = localRange:selectFirst(1), numSplit = grid:numSharedProcs() }
+      range = localRange:selectFirst(1), numSplit = grid:numSharedProcs(), threadComm = grid:commSet().sharedComm }
    local tId = grid:subGridSharedId() -- Local thread ID.
 
    local yIdxTar = 1   -- For positive(negative) yShift idx=1(last) might be better, but ideally it shouldn't matter.

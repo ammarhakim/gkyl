@@ -184,6 +184,13 @@ function RectCart:localRange() return self._localRange end
 function RectCart:globalRange() return self._globalRange end
 function RectCart:isDirPeriodic(dir) return self._isDirPeriodic[dir] end
 function RectCart:getPeriodicDirs() return self._periodicDirs end
+function RectCart:setPeriodicDirs(periodicDirs)
+   self._periodicDirs  = periodicDirs
+   self._isDirPeriodic = {false, false, false, false, false, false}
+   for _, dir in ipairs(self._periodicDirs) do
+      self._isDirPeriodic[dir] = true
+   end
+end
 function RectCart:cuts(dir) return self._cuts[dir] end
 function RectCart:setIndex(idxIn)
    if type(idxIn) == "cdata" then
@@ -358,6 +365,7 @@ end
 function RectCart:copyHostToDevice()
    return getDevicePointerToGrid(self)
 end
+
 
 function RectCart:childGrid(keepDims)
    -- Collect the ingredients needed for a child grid: a grid with a subset of the

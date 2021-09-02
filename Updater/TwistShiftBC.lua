@@ -105,6 +105,7 @@ function TwistShiftBC:init(tbl)
    tsFun.set_domLim(self.grid)
    tsFun.set_dx(self.grid)
    tsFun.set_projData(yShPolyOrder)
+   --print(Mpi.Comm_rank(grid:commSet().sharedComm), "before TS init")
 
    -- Call function computing the donor cells.
    self.doCells = tsFun.getDonors(self.grid, self.yShFld, yShBasis)
@@ -145,6 +146,15 @@ function TwistShiftBC:_advance(tCurr, inFld, outFld)
    local fldDoItr, fldTarItr = fldDo:get(1), fldTar:get(1)
 
    if oneFld then
+ 
+      -- fetch skin cells from opposite edge in z (donors) 
+      -- and copy to ghost cells (targets)
+      local fldGrid = fldTar:grid()
+      local periodicDirs = fldGrid:getPeriodicDirs()
+      local modifiedPeriodicDirs = {3}
+      fldGrid:setPeriodicDirs(modifiedPeriodicDirs)
+      fldTar:sync()
+      fldGrid:setPeriodicDirs(periodicDirs)
 
       local global = fldTar:globalRange()
 
@@ -181,6 +191,7 @@ function TwistShiftBC:_advance(tCurr, inFld, outFld)
          local doCellsC = self.doCells[idxTar[1]][idxTar[2]]
 
          idxTar:copyInto(self.idxDoP)
+         -- get z index of skin cells (donors) that will be shift-copied to ghost cells (targets)
          self.idxDoP[3] = self.zEdge=="lower" and global:upper(3) or global:lower(3)
 --         print("idxTar = ",idxTar[1],idxTar[2],idxTar[3],idxTar[4],idxTar[5])
 
