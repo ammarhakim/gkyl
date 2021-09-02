@@ -68,6 +68,11 @@ function test_1()
       end
    end
    
+   grid:setPeriodicDirs({2})
+   local periodicDirs = grid:getPeriodicDirs()
+   assert_equal(periodicDirs[1], 2, "Checking periodic dirs")
+   assert_equal(grid:isDirPeriodic(1), false, "Checking periodic dirs")
+   assert_equal(grid:isDirPeriodic(2), true, "Checking periodic dirs")
 end
 
 function test_2()
