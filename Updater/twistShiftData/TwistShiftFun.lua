@@ -182,7 +182,6 @@ local findIntersect = function(yTar, yDo, xBounds, yLims)
 --   local function lossF(xIn) print(string.format("xIn=%g | yTar=%g | yDo=%g | yTar-yShiftF(xIn)-yDo = %g", xIn, yTar, yDo, yTar-yShiftF(xIn)-yDo)); return yTar-yShiftF(xIn)-yDo end
 --   print("yTar, yDo, xBounds, yS(2), fLo, fUp  = ",yTar, yDo, xBounds.lo, xBounds.up, yShiftF(2.), lossF(xBounds.lo),lossF(xBounds.up))
    root0 = _M.rootFind(lossF, xBounds, tol)
---   print("not found yet")
    if root0 == nil then
       -- Maybe yTar-ySh intersects y=yDo in a periodic copy of the domain. Find roots of
       -- yTar-ySh-(yDo-nP*Ly)=0 where Ly is the y-length of the domain and nP is an integer.
@@ -222,22 +221,13 @@ local doTarOff = function(xcDoIn, xcTarIn)
    local shift     = yShiftF(xcDoIn[1])
    local shiftSign = sign(shift)
    local Ly        = domLim[2].up - domLim[2].lo
---   local yShDLyFac = math.floor(math.abs(shift)/Ly)
---   local yShDLyFac = shiftSign<0. and math.floor(math.abs(shift)/Ly) or math.ceil(math.abs(shift)/Ly) 
---   print(string.format("xc=%f | S(xc)=%f | yShDLyFac=%d",xcDoIn[1], shift, yShDLyFac))
---   return xcTarIn[2] - (xcDoIn[2] - shiftSign*yShDLyFac*Ly)
-   local cornerTarS
-   cornerTarS = {lo={lo=xcTarIn[2]-dx[2]/2.-yShiftF(xcDoIn[1]-dx[1]/2.), up=xcTarIn[2]+dx[2]/2.-yShiftF(xcDoIn[1]-dx[1]/2.)},
-                 up={lo=xcTarIn[2]-dx[2]/2.-yShiftF(xcDoIn[1]+dx[1]/2.), up=xcTarIn[2]+dx[2]/2.-yShiftF(xcDoIn[1]+dx[1]/2.)}}
-   local yDoS = xcDoIn[2] - 0
+   -- The idea here is that we keep shifting the donor cell center until it is in a
+   -- periodic copy of our domain which overlaps with the shifted target cell center.
+   local yDoS, yTarS = xcDoIn[2], xcTarIn[2]-shift
    local keepShifting = true
    while keepShifting do
-      cornerDo = {lo={lo=yDoS-dx[2]/2., up=yDoS+dx[2]/2},
-                  up={lo=yDoS-dx[2]/2., up=yDoS+dx[2]/2}}
-      if ((cornerDo.lo.lo >= cornerTarS.lo.lo) and (cornerDo.lo.lo <= cornerTarS.lo.up)) or
-         ((cornerDo.lo.up >= cornerTarS.lo.lo) and (cornerDo.lo.up <= cornerTarS.lo.up)) or
-         ((cornerDo.up.lo >= cornerTarS.up.lo) and (cornerDo.up.lo <= cornerTarS.up.up)) or
-         ((cornerDo.up.up >= cornerTarS.up.lo) and (cornerDo.up.up <= cornerTarS.up.up)) then
+      local yDoSlo, yDoSup = yDoS-Ly/2., yDoS+Ly/2.
+      if yDoSlo <= yTarS and yTarS <= yDoSup then
          keepShifting = false
          break
       else
@@ -245,16 +235,6 @@ local doTarOff = function(xcDoIn, xcTarIn)
       end
    end
    return xcTarIn[2] - yDoS
---   if yShDLyFac < 1. then yShDLyFac = 1. end
---
---   local ps = 0.
---   if shiftSign==1 and (xcDoIn[2] > xcTarIn[2] or (shift>dx[2] and xcDoIn[2] == xcTarIn[2])) then
---      return xcTarIn[2] - (xcDoIn[2] - yShDLyFac*Ly) + ps
---   elseif shiftSign==-1 and (xcDoIn[2] < xcTarIn[2] or (-shift>dx[2] and xcDoIn[2] == xcTarIn[2])) then
---      return xcTarIn[2] - (xcDoIn[2] + yShDLyFac*Ly) + ps
---   else
---      return xcTarIn[2] - xcDoIn[2] + ps
---   end
 end
 
 -- Given a logical space x coordinate (xi) and a (physical) y-coordinate in the target cell,
