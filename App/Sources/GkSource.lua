@@ -10,7 +10,7 @@ local SourceBase = require "App.Sources.SourceBase"
 local DataStruct = require "DataStruct"
 local lume       = require "Lib.lume"
 local Mpi        = require "Comm.Mpi"
-local Projection = require "App.Projection.GkProjection"
+local Projection = require "App.Projection"
 local Proto      = require "Lib.Proto"
 local Time       = require "Lib.Time"
 local Updater    = require "Updater"
@@ -34,11 +34,11 @@ function GkSource:fullInit(thisSpecies)
 
    if tbl.profile then
       if type(tbl.profile) == "function" then
-	 self.profile = Projection.FunctionProjection {
+	 self.profile = Projection.GkProjection.FunctionProjection {
 	    func = function(t, zn) return tbl.profile(t, zn) end
 	 }
       elseif type(tbl.profile) == "string" then
-         self.profile = Projection.FunctionProjection{fromFile = tbl.profile,}
+         self.profile = Projection.GkProjection.FunctionProjection{fromFile = tbl.profile,}
 	 -- self.profile = Projection.ReadInput {
 	 --    inputFile = tbl.profile,
 	 -- }
