@@ -134,111 +134,115 @@ function TwistShiftBC:_advance(tCurr, inFld, outFld)
 
    local cDim, vDim = self.cDim, self.vDim
 
-   local oneFld = false
-   if fldDo==nil then
-      assert(cDim==3, "Updater.TwistShift: performing twist-shift to a single field is only available for 3D fields.")
-      oneFld = true
-      fldDo  = outFld[1]
-   else
-      assert(cDim==2, "Updater.TwistShift: donor and target fields are separate, so they must be 2D fields.")
+   local indexer = fldTar:genIndexer()
+   local doIndexer = fldDo:genIndexer()
+   local fldDoItr, fldTarItr = fldDo:get(1), fldTar:get(1)
+
+   local global = fldTar:globalRange()
+
+   if self.isFirst then
+      local getGhostRange = function(globalIn, globalExtIn, dir, edge)
+         local lv, uv = globalIn:lowerAsVec(), globalIn:upperAsVec()
+         if edge == "lower" then
+            lv[dir] = globalIn:lower(dir)-1
+            uv[dir] = lv[dir]
+         else
+            lv[dir] = globalIn:upper(dir)+1
+            uv[dir] = lv[dir]
+         end
+         return Range.Range(lv, uv)
+      end
+      local globalExt     = fldTar:globalExtRange()
+      local localExtRange = fldTar:localExtRange()
+      self.ghostRng = localExtRange:intersect(getGhostRange(global, globalExt, 3, self.zEdge))
+      -- Decompose ghost region into threads.
+      self.ghostRangeDecomp = LinearDecomp.LinearDecompRange {
+         range = self.ghostRng, numSplit = self.grid:numSharedProcs(),  
+         threadComm = self:getSharedComm() }
+
+      self.isFirst = false
    end
+
+   -- if fldDo == nil, we will do an in-place operation in the fldTar ghost cells.
+   -- to do this, we first copy the ghost cells of fldTar to a buffer region,
+   -- and then use this buffer region as fldDo
+   if fldDo == nil then
+      fldDo = self.ghostBuffer 
+   end
+
+   local tId = self.grid:subGridSharedId() -- Local thread ID.
+
+   -- fill ghost buffer
+   for idxTar in self.ghostRangeDecomp:rowMajorIter(tId) do
+      fldTar:fill(indexer(idxTar), fldTarItr)
+
+      idxTar:copyInto(self.idxDoP)
+      self.idxDoP[3] = 1
+      fldDo:fill(doIndexer(self.idxDoP), fldDoItr)
+
+      for c = 1, fldTar:numComponents() do fldDoItr[c] = fldTarItr[c] end
+   end
+
+   for idxTar in self.ghostRangeDecomp:rowMajorIter(tId) do
+
+      fldTar:fill(indexer(idxTar), fldTarItr)
+      -- Zero out target cell before operation.
+      for i = 1, self.basis:numBasis() do fldTarItr[i] = 0. end
+
+      local doCellsC = self.doCells[idxTar[1]][idxTar[2]]
+
+      idxTar:copyInto(self.idxDoP)
+      -- get z index of skin cells (donors) that will be shift-copied to ghost cells (targets)
+      self.idxDoP[3] = 1
+        --print("idxTar = ",idxTar[1],idxTar[2],idxTar[3],idxTar[4],idxTar[5])
+
+      for mI = 1, #doCellsC do
+
+         local idxDo2D = doCellsC[mI]
+         self.idxDoP[1], self.idxDoP[2] = idxDo2D[1], idxDo2D[2] 
+           --print("   from idxDo = ",self.idxDoP[1],self.idxDoP[2],self.idxDoP[3],self.idxDoP[4],self.idxDoP[5])
+
+         fldDo:fill(doIndexer(self.idxDoP), fldDoItr)
+
+         -- Matrix-vec multiply to compute the contribution of each donor cell to a target cell..
+         self.tsMatVecMult(self.matVec, idxTar[1], mI, fldDoItr:data(), fldTarItr:data())
+      end
+   end
+end
+
+function TwistShiftBC:_advance2x(tCurr, inFld, outFld)
+   local fldDo, fldTar = inFld[1], outFld[1]
+
+   local cDim, vDim = self.cDim, self.vDim
+
+   assert(cDim==2, "Updater.TwistShift._advance2x: fields must be 2D")
 
    local indexer = fldTar:genIndexer()
    local fldDoItr, fldTarItr = fldDo:get(1), fldTar:get(1)
 
-   if oneFld then
- 
-      -- fetch skin cells from opposite edge in z (donors) 
-      -- and copy to ghost cells (targets)
-      local fldGrid = fldTar:grid()
-      local periodicDirs = fldGrid:getPeriodicDirs()
-      local modifiedPeriodicDirs = {3}
-      fldGrid:setPeriodicDirs(modifiedPeriodicDirs)
-      fldTar:sync()
-      fldGrid:setPeriodicDirs(periodicDirs)
+   local localRange = fldTar:localRange()
 
-      local global = fldTar:globalRange()
+   for idxTar in localRange:rowMajorIter() do
 
-      if self.isFirst then
-         local getGhostRange = function(globalIn, globalExtIn, dir, edge)
-            local lv, uv = globalIn:lowerAsVec(), globalIn:upperAsVec()
-            if edge == "lower" then
-               lv[dir] = globalIn:lower(dir)-1
-               uv[dir] = lv[dir]
-            else
-               lv[dir] = globalIn:upper(dir)+1
-               uv[dir] = lv[dir]
-            end
-            return Range.Range(lv, uv)
-         end
-         local globalExt     = fldTar:globalExtRange()
-         local localExtRange = fldTar:localExtRange()
-         self.ghostRng = localExtRange:intersect(getGhostRange(global, globalExt, 3, self.zEdge))
-         -- Decompose ghost region into threads.
-         self.ghostRangeDecomp = LinearDecomp.LinearDecompRange {
-            range = self.ghostRng, numSplit = self.grid:numSharedProcs() }
+      fldTar:fill(indexer(idxTar), fldTarItr)
+      -- Zero out target cell before operation.
+      for i = 1, self.basis:numBasis() do fldTarItr[i] = 0. end
 
-         self.isFirst = false
-      end
+      local doCellsC = self.doCells[idxTar[1]][idxTar[2]]
 
-      local tId = self.grid:subGridSharedId() -- Local thread ID.
+      idxTar:copyInto(self.idxDoP)
 
-      for idxTar in self.ghostRangeDecomp:rowMajorIter(tId) do
+      for mI = 1, #doCellsC do
 
-         fldTar:fill(indexer(idxTar), fldTarItr)
-         -- Zero out target cell before operation.
-         for i = 1, self.basis:numBasis() do fldTarItr[i] = 0. end
+         local idxDo2D = doCellsC[mI]
+         self.idxDoP[1], self.idxDoP[2] = idxDo2D[1], idxDo2D[2] 
 
-         local doCellsC = self.doCells[idxTar[1]][idxTar[2]]
+         fldDo:fill(indexer(self.idxDoP), fldDoItr)
 
-         idxTar:copyInto(self.idxDoP)
-         -- get z index of skin cells (donors) that will be shift-copied to ghost cells (targets)
-         self.idxDoP[3] = self.zEdge=="lower" and global:upper(3) or global:lower(3)
---         print("idxTar = ",idxTar[1],idxTar[2],idxTar[3],idxTar[4],idxTar[5])
-
-         for mI = 1, #doCellsC do
-
-            local idxDo2D = doCellsC[mI]
-            self.idxDoP[1], self.idxDoP[2] = idxDo2D[1], idxDo2D[2] 
---            print("   from idxDo = ",self.idxDoP[1],self.idxDoP[2],self.idxDoP[3],self.idxDoP[4],self.idxDoP[5])
-
-            fldDo:fill(indexer(self.idxDoP), fldDoItr)
-
-            -- Matrix-vec multiply to compute the contribution of each donor cell to a target cell..
-            self.tsMatVecMult(self.matVec, idxTar[1], mI, fldDoItr:data(), fldTarItr:data())
-         end
-      end
-      
-   else   -- Only for 2D fields.
-      local localRange = fldTar:localRange()
-
-      for idxTar in localRange:rowMajorIter() do
-
-         fldTar:fill(indexer(idxTar), fldTarItr)
-         -- Zero out target cell before operation.
-         for i = 1, self.basis:numBasis() do fldTarItr[i] = 0. end
-
-         local doCellsC = self.doCells[idxTar[1]][idxTar[2]]
-
-         idxTar:copyInto(self.idxDoP)
---         print("idxTar = ",idxTar[1],idxTar[2])
-
-         for mI = 1, #doCellsC do
-
-            local idxDo2D = doCellsC[mI]
---            if idxTar[2]==10 and idxDo2D[2]==6 then
-            self.idxDoP[1], self.idxDoP[2] = idxDo2D[1], idxDo2D[2] 
---            print("   from idxDo = ",self.idxDoP[1],self.idxDoP[2])
-
-            fldDo:fill(indexer(self.idxDoP), fldDoItr)
-
-            -- Matrix-vec multiply to compute the contribution of each donor cell to a target cell..
-            self.tsMatVecMult(self.matVec, idxTar[1], mI, fldDoItr:data(), fldTarItr:data())
---            end
-         end
+         -- Matrix-vec multiply to compute the contribution of each donor cell to a target cell..
+         self.tsMatVecMult(self.matVec, idxTar[1], mI, fldDoItr:data(), fldTarItr:data())
       end
    end
-
 end
 
 return TwistShiftBC

@@ -20,6 +20,7 @@ local Grid         = require "Grid"
 local DiagsApp     = require "App.Diagnostics.SpeciesDiagnostics"
 local GkDiags      = require "App.Diagnostics.GkDiagnostics"
 local xsys         = require "xsys"
+local lume         = require "Lib.lume"
 
 local TwistShiftBC = Proto(BCsBase)
 
@@ -64,6 +65,13 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
       onGrid    = self.grid,       yShiftFunc      = self.yShiftFunc,
       basis     = self.basis,      yShiftPolyOrder = self.yShiftPolyOrder,
       confBasis = self.confBasis,  edge            = self.bcEdge,
+   }
+
+   self:createBoundaryGrid()
+   self.ghostBuffer = DataStruct.Field {
+      onGrid        = self.boundaryGrid,
+      numComponents = self.basis:numBasis(),
+      ghost         = {1,1},
    }
 
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
@@ -297,7 +305,29 @@ function TwistShiftBC:advance(tCurr, mySpecies, field, externalField, inIdx, out
 
    local fIn = mySpecies:rkStepperFields()[outIdx] 
 
-   self.bcSolver:advance(tCurr, {}, {fIn})
+   -- apply periodic BCs in z direction, but only on the first edge (lower or upper, whichever is first)
+   -- first check if sync has been called on this step by any bc
+   local doSync = true
+   for _, bc in lume.orderedIter(mySpecies.nonPeriodicBCs) do 
+      if bc.synced then doSync = false end
+   end
+   if(doSync) then
+      -- fetch skin cells from opposite edge in z (donors) 
+      -- and copy to ghost cells (targets)
+      local fldGrid = fIn:grid()
+      local periodicDirs = fldGrid:getPeriodicDirs()
+      local modifiedPeriodicDirs = {3}
+      fldGrid:setPeriodicDirs(modifiedPeriodicDirs)
+      fIn:sync()
+      fldGrid:setPeriodicDirs(periodicDirs)
+      self.synced = true
+   else
+      -- if doSync=false, this means we should not sync
+      -- but also reset synced flags for next step
+      for _, bc in lume.orderedIter(mySpecies.nonPeriodicBCs) do bc.synced = false end
+   end
+
+   self.bcSolver:advance(tCurr, {self.ghostBuffer}, {fIn})
 end
 
 function TwistShiftBC:getBoundaryFluxFields() return self.boundaryFluxFields end
