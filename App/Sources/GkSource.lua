@@ -10,7 +10,7 @@ local SourceBase = require "App.Sources.SourceBase"
 local DataStruct = require "DataStruct"
 local lume       = require "Lib.lume"
 local Mpi        = require "Comm.Mpi"
-local Projection = require "App.Projection"
+local Projection = require "App.Projection.GkProjection"
 local Proto      = require "Lib.Proto"
 local Time       = require "Lib.Time"
 local Updater    = require "Updater"
@@ -34,35 +34,30 @@ function GkSource:fullInit(thisSpecies)
 
    if tbl.profile then
       if type(tbl.profile) == "function" then
-	 self.profile = Projection.GkProjection.FunctionProjection {
+	 self.profile = Projection.FunctionProjection {
 	    func = function(t, zn) return tbl.profile(t, zn) end
 	 }
       elseif type(tbl.profile) == "string" then
-         self.profile = Projection.GkProjection.FunctionProjection{fromFile = tbl.profile,}
-	 -- self.profile = Projection.ReadInput {
-	 --    inputFile = tbl.profile,
-	 -- }
+         self.profile = Projection.FunctionProjection{fromFile = tbl.profile,}
       end
    elseif tbl.kind then
-      self.density     = assert(tbl.density, "App.GkSource: must specify density profile of source in 'density'.")
-      self.temperature = assert(tbl.temperature, "App.GkSource: must specify temperature profile of source in 'density'.")
+      self.density     = assert(tbl.density or tbl.fromFile, "App.GkSource: If not importing source with 'fromFile' must specify density profile of source in 'density'.")
+      self.temperature = assert(tbl.temperature or tbl.fromFile, "App.GkSource: If not importing source with 'fromFile' must specify temperature profile of source in 'density'.")
       if tbl.kind == "Maxwellian" or tbl.kind == "maxwellian" then
-         self.profile   = Projection.GkProjection.MaxwellianProjection {
-            density     = self.density,
-            temperature = self.temperature,
-            power       = self.power,
+         self.profile   = Projection.MaxwellianProjection {
+            density     = self.density,      power    = self.power,
+            temperature = self.temperature,  fromFile = tbl.fromFile,
          }
       else
          assert(false, "App.GkSource: Source kind not recognized.")
       end    
    else
       -- If user doesn't specify 'kind', default to Maxwellian.
-      self.density     = assert(tbl.density, "App.GkSource: must specify density profile of source in 'density'.")
-      self.temperature = assert(tbl.temperature, "App.GkSource: must specify temperature profile of source in 'density'.")
-      self.profile     = Projection.GkProjection.MaxwellianProjection {
-         density     = self.density,
-         temperature = self.temperature,
-         power       = self.power,
+      self.density     = assert(tbl.density or tbl.fromFile, "App.GkSource: If not importing source with 'fromFile' must specify density profile of source in 'density'.")
+      self.temperature = assert(tbl.temperature or tbl.fromFile, "App.GkSource: If not importing source with 'fromFile' must specify temperature profile of source in 'density'.")
+      self.profile     = Projection.MaxwellianProjection {
+         density     = self.density,      power    = self.power,
+         temperature = self.temperature,  fromFile = tbl.fromFile,
       }
    end
    self.tmEvalSrc = 0.0
@@ -90,10 +85,8 @@ function GkSource:createSolver(mySpecies, extField)
 
    if self.power then
       local calcInt = Updater.CartFieldIntegratedQuantCalc {
-         onGrid        = self.confGrid,
-         basis         = self.confBasis,
-         numComponents = 1,
-         quantity      = "V",
+         onGrid = self.confGrid,   numComponents = 1,
+         basis  = self.confBasis,  quantity      = "V",
       }
       local intKE = DataStruct.DynVector{numComponents = 1}
       mySpecies.ptclEnergyCalc:advance(0.0, {self.fSource}, {mySpecies.ptclEnergyAux})

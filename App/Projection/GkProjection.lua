@@ -17,8 +17,7 @@ local MaxwellianProjectionParent = require ("App.Projection.KineticProjection").
 -- Gk-specific GkProjection.FunctionProjection includes Jacobian factors in initFunc.
 local FunctionProjection = Proto(FunctionProjectionParent)
 function FunctionProjection:advance(time, inFlds, outFlds)
-   local extField = inFlds[1]
-   local distf    = outFlds[1]
+   local extField, distf = inFlds[1], outFlds[1]
    if self.fromFile then
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
@@ -35,10 +34,8 @@ function FunctionProjection:advance(time, inFlds, outFlds)
 
       -- Note: don't use self.project as this does not have jacobian factors in initFunc.
       local project = Updater.ProjectOnBasis {
-         onGrid   = self.phaseGrid,
-         basis    = self.phaseBasis,
-         evaluate = self.initFunc,
-         onGhosts = true
+         onGrid = self.phaseGrid,   evaluate = self.initFunc,
+         basis  = self.phaseBasis,  onGhosts = true
       }
       project:advance(time, {}, {distf})
    end
@@ -54,11 +51,11 @@ local MaxwellianProjection = Proto(MaxwellianProjectionParent)
 
 function MaxwellianProjection:allocConfField()
    local m = DataStruct.Field {
-        onGrid        = self.confGrid,
-        numComponents = self.confBasis:numBasis(),
-        ghost         = {1, 1},
-        metaData      = {polyOrder = self.confBasis:polyOrder(),
-                         basisType = self.confBasis:id()},
+      onGrid        = self.confGrid,
+      numComponents = self.confBasis:numBasis(),
+      ghost         = {1, 1},
+      metaData      = {polyOrder = self.confBasis:polyOrder(),
+                       basisType = self.confBasis:id()},
    }
    m:clear(0.0)
    return m
@@ -70,16 +67,12 @@ function MaxwellianProjection:lagrangeFix(distf)
    local M2, dM2 = self.species:allocMoment(), self.species:allocMoment()
 
    local project = Updater.ProjectOnBasis {
-      onGrid   = self.confGrid,
-      basis    = self.confBasis,
-      evaluate = function(t,xn) return 0. end,   -- Set below.
-      onGhosts = true,
+      onGrid = self.confGrid,   evaluate = function(t,xn) return 0. end,   -- Set below.
+      basis  = self.confBasis,  onGhosts = true,
    }
 
    self.species.numDensityCalc:advance(0.0, {distf}, {M0})
-   local func = function (t, zn)
-      return self.density(t, zn, self.species)
-   end
+   local func = function (t, zn) return self.density(t, zn, self.species) end
    project:setFunc(func)
    project:advance(0.0, {}, {dM0})
    dM0:accumulate(-1.0, M0)
@@ -109,12 +102,9 @@ function MaxwellianProjection:lagrangeFix(distf)
    dM2:accumulate(-1.0, M2)
 
    local lagFix = Updater.LagrangeFix {
-      onGrid     = self.phaseGrid,
-      phaseBasis = self.phaseBasis,
-      confGrid   = self.confGrid,
-      confBasis  = self.confBasis,
-      mode       = 'gk',
-      mass       = self.species.mass,
+      onGrid     = self.phaseGrid,   confBasis  = self.confBasis,
+      phaseBasis = self.phaseBasis,  mode       = 'gk',
+      confGrid   = self.confGrid,    mass       = self.species.mass,
    }
    lagFix:advance(0.0, {dM0, dM1, dM2, self.species.bmag}, {distf})
 end
@@ -134,10 +124,8 @@ function MaxwellianProjection:scaleM012(distf)
    local distf0, distf2par, distf2perp = sp:allocDistf(), sp:allocDistf(), sp:allocDistf()
    distf0:copy(distf)
    local phaseProject = Updater.ProjectOnBasis {
-      onGrid   = self.phaseGrid,
-      basis    = self.phaseBasis,
-      evaluate = function(t,xn) return 0. end,   -- Set below.
-      onGhosts = true
+      onGrid = self.phaseGrid,   evaluate = function(t,xn) return 0. end,   -- Set below.
+      basis  = self.phaseBasis,  onGhosts = true
    }
    local distf2parFunc = function (t, zn)
       local xconf = {}
@@ -165,14 +153,10 @@ function MaxwellianProjection:scaleM012(distf)
 
    -- Initialize exact moments.
    local confProject = Updater.ProjectOnBasis {
-      onGrid   = self.confGrid,
-      basis    = self.confBasis,
-      evaluate = function(t,xn) return 0. end,   -- Set below.
-      onGhosts = true,
+      onGrid = self.confGrid,   evaluate = function(t,xn) return 0. end,   -- Set below.
+      basis  = self.confBasis,  onGhosts = true,
    }
-   local M0func = function (t, zn)
-      return self.density(t, zn, sp)
-   end
+   local M0func = function (t, zn) return self.density(t, zn, sp) end
    confProject:setFunc(M0func)
    confProject:advance(0.0, {}, {M0_e})
 
@@ -184,23 +168,17 @@ function MaxwellianProjection:scaleM012(distf)
 
    -- Initialize weak multiplication/division operators.
    local weakDivision = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "Divide",
-      onGhosts  = true,
+      onGrid    = self.confGrid,   operation = "Divide",
+      weakBasis = self.confBasis,  onGhosts  = true,
    }
    local weakMultiplicationConf = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "Multiply",
-      onGhosts  = true,
+      onGrid    = self.confGrid,   operation = "Multiply",
+      weakBasis = self.confBasis,  onGhosts  = true,
    }
    local weakMultiplicationPhase = Updater.CartFieldBinOp {
-      onGrid     = self.phaseGrid,
-      weakBasis  = self.phaseBasis,
-      fieldBasis = self.confBasis,
-      operation  = "Multiply",
-      onGhosts   = true,
+      onGrid    = self.phaseGrid,   fieldBasis = self.confBasis,
+      weakBasis = self.phaseBasis,  operation  = "Multiply",
+      onGhosts  = true,
    }
 
    -- Calculate M0_mod = M0_e / M0.
@@ -259,10 +237,8 @@ end
 --      return vpar*self.initFunc(t,zn)
 --   end
 --   local project_vpar = Updater.ProjectOnBasis {
---      onGrid   = self.phaseGrid,
---      basis    = self.phaseBasis,
---      evaluate = distf_vparFunc,
---      onGhosts = true
+--      onGrid = self.phaseGrid,   evaluate = distf_vparFunc,
+--      basis  = self.phaseBasis,  onGhosts = true
 --   }
 --   project_vpar:advance(0.0, {}, {distf_vpar})
 --   local distf_vpar2Func = function (t, zn)
@@ -270,10 +246,8 @@ end
 --      return vpar^2*self.initFunc(t,zn)
 --   end
 --   local project_vpar2 = Updater.ProjectOnBasis {
---      onGrid   = self.phaseGrid,
---      basis    = self.phaseBasis,
---      evaluate = distf_vpar2Func,
---      onGhosts = true
+--      onGrid = self.phaseGrid,   evaluate = distf_vpar2Func,
+--      basis  = self.phaseBasis,  onGhosts = true
 --   }
 --   project_vpar2:advance(0.0, {}, {distf_vpar2})
 --   if self.vdim == 2 then 
@@ -282,33 +256,25 @@ end
 --         return mu*sp.bmagFunc(t,zn)*self.initFunc(t,zn)
 --      end
 --      local project_muB = Updater.ProjectOnBasis {
---         onGrid   = self.phaseGrid,
---         basis    = self.phaseBasis,
---         evaluate = distf_muBFunc,
---         onGhosts = true
+--         onGrid = self.phaseGrid,   evaluate = distf_muBFunc,
+--         basis  = self.phaseBasis,  onGhosts = true
 --      }
 --      project_muB:advance(0.0, {}, {distf_muB})
 --   end
 --
 --   -- initialize weak multiplication/division operators
 --   local weakDivision = Updater.CartFieldBinOp {
---      onGrid = self.confGrid,
---      weakBasis = self.confBasis,
---      operation = "Divide",
---      onGhosts = true,
+--      onGrid    = self.confGrid,   operation = "Divide",
+--      weakBasis = self.confBasis,  onGhosts  = true,
 --   }
 --   local weakMultiplicationConf = Updater.CartFieldBinOp {
---      onGrid = self.confGrid,
---      weakBasis = self.confBasis,
---      operation = "Multiply",
---      onGhosts = true,
+--      onGrid    = self.confGrid,   operation = "Multiply",
+--      weakBasis = self.confBasis,  onGhosts  = true,
 --   }
 --   local weakMultiplicationPhase = Updater.CartFieldBinOp {
---      onGrid = self.phaseGrid,
---      weakBasis = self.phaseBasis,
---      fieldBasis = self.confBasis,
---      operation = "Multiply",
---      onGhosts = true,
+--      onGrid    = self.phaseGrid,   fieldBasis = self.confBasis,
+--      weakBasis = self.phaseBasis,  operation  = "Multiply",
+--      onGhosts  = true,
 --   }
 --
 --   -- calculate (inexact) moments of initial distribution function
@@ -337,35 +303,27 @@ end
 --   -- initialize exact moments
 --   local Dens_e, Upar_e, Temp_e = sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
 --   local projectDens = Updater.ProjectOnBasis {
---      onGrid   = self.confGrid,
---      basis    = self.confBasis,
---      evaluate = function(t, zn) return self.density(t, zn, sp) end,
---      onGhosts = true,
+--      onGrid = self.confGrid,   evaluate = function(t, zn) return self.density(t, zn, sp) end,
+--      basis  = self.confBasis,  onGhosts = true,
 --   }
 --   projectDens:advance(0.0, {}, {Dens_e})
 --
 --   local projectUpar = Updater.ProjectOnBasis {
---      onGrid   = self.confGrid,
---      basis    = self.confBasis,
---      evaluate = function(t, zn) return self.driftSpeed(t, zn, sp) end,
---      onGhosts = true,
+--      onGrid = self.confGrid,   evaluate = function(t, zn) return self.driftSpeed(t, zn, sp) end,
+--      basis  = self.confBasis,  onGhosts = true,
 --   }
 --   projectUpar:advance(0.0, {}, {Upar_e})
 --
 --   local projectTemp = Updater.ProjectOnBasis {
---      onGrid   = self.confGrid,
---      basis    = self.confBasis,
---      evaluate = function(t, zn) return self.temperature(t, zn, sp) end,
---      onGhosts = true,
+--      onGrid = self.confGrid,   evaluate = function(t, zn) return self.temperature(t, zn, sp) end,
+--      basis  = self.confBasis,  onGhosts = true,
 --   }
 --   projectTemp:advance(0.0, {}, {Temp_e})
 --
 --   local unitField, TparInv, TperpInv = sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
 --   local projectUnity = Updater.ProjectOnBasis {
---      onGrid   = self.confGrid,
---      basis    = self.confBasis,
---      evaluate = function(t, zn) return 1.0 end,
---      onGhosts = true,
+--      onGrid = self.confGrid,   evaluate = function(t, zn) return 1.0 end,
+--      basis  = self.confBasis,  onGhosts = true,
 --   }
 --   projectUnity:advance(0.0, {}, {unitField})
 --
@@ -452,10 +410,8 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
       local bmag = extField.geo.bmag
       -- Project the moments onto configuration-space basis.
       local confProject = Updater.ProjectOnBasis {
-         onGrid   = self.confGrid,
-         basis    = self.confBasis,
-         evaluate = function(t, xn) return 0. end,   -- Set below.
-         onGhosts = true
+         onGrid = self.confGrid,   evaluate = function(t, xn) return 0. end,   -- Set below.
+         basis  = self.confBasis,  onGhosts = true
       }
       local numDens = self:allocConfField()
       local uPar    = self:allocConfField()
@@ -475,12 +431,9 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
       vtSq:scale(1./self.mass)
       -- Project the Maxwellian. It includes a factor of jacobPhase=B*_||.
       local projMaxwell = Updater.MaxwellianOnBasis {
-         onGrid     = self.phaseGrid,
-         phaseBasis = self.phaseBasis,
-         confGrid   = self.confGrid,
-         confBasis  = self.confBasis,
-         mass       = self.mass,
-         onGhosts   = true,
+         onGrid     = self.phaseGrid,   confBasis = self.confBasis,
+         phaseBasis = self.phaseBasis,  mass      = self.mass,
+         confGrid   = self.confGrid,    onGhosts  = true,
       }
       projMaxwell:advance(time,{numDens,uPar,vtSq,bmag},{distf})
    end

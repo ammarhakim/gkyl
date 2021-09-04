@@ -28,10 +28,8 @@ function MaxwellianProjection:lagrangeFix(distf)
    local M2, dM2 = self.species:allocMoment(), self.species:allocMoment()
 
    local project = Updater.ProjectOnBasis {
-      onGrid   = self.confGrid,
-      basis    = self.confBasis,
-      evaluate = function(t,xn) return 0. end,
-      onGhosts = true,
+      onGrid = self.confGrid,   evaluate = function(t,xn) return 0. end,
+      basis  = self.confBasis,  onGhosts = true,
    }
 
    self.species.numDensityCalc:advance(0.0, {distf}, {M0})
@@ -73,11 +71,9 @@ function MaxwellianProjection:lagrangeFix(distf)
    dM2:accumulate(-1.0, M2)
    
    local lagFix = Updater.LagrangeFix {
-      onGrid     = self.phaseGrid,
-      phaseBasis = self.phaseBasis,
+      onGrid     = self.phaseGrid,   confBasis = self.confBasis,
+      phaseBasis = self.phaseBasis,  mode      = 'vlasov',
       confGrid   = self.confGrid,
-      confBasis  = self.confBasis,
-      mode       = 'vlasov'
    }
    lagFix:advance(0.0, {dM0, dM1, dM2}, {distf})
 end
@@ -85,12 +81,8 @@ end
 function MaxwellianProjection:advance(t, inFlds, outFlds)
    local distf = outFlds[1]
    self.project:advance(t, {}, {distf})
-   if self.exactScaleM0 then
-      self:scaleDensity(distf)
-   end
-   if self.exactLagFixM012 then
-      self:lagrangeFix(distf)
-   end
+   if self.exactScaleM0 then self:scaleDensity(distf) end
+   if self.exactLagFixM012 then self:lagrangeFix(distf) end
 end
 
 ----------------------------------------------------------------------

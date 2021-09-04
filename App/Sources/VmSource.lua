@@ -40,25 +40,23 @@ function VmSource:fullInit(speciesTbl)
          self.profile = Projection.FunctionProjection{fromFile = tbl.profile,}
       end
    elseif tbl.kind then
-      self.density     = assert(tbl.density, "App.VmSource: must specify density profile of source in 'density'.")
-      self.temperature = assert(tbl.temperature, "App.VmSource: must specify temperature profile of source in 'density'.")
+      self.density     = assert(tbl.density or tbl.fromFile, "App.VmSource: If not importing source with 'fromFile' must specify density profile of source in 'density'.")
+      self.temperature = assert(tbl.temperature or tbl.fromFile, "App.VmSource: If not importing source with 'fromFile' must specify temperature profile of source in 'density'.")
       if tbl.kind == "Maxwellian" or tbl.kind == "maxwellian" then
          self.profile = Projection.MaxwellianProjection {
-            density     = self.density,
-            temperature = self.temperature,
-            power       = self.power,
+            density     = self.density,      power    = self.power,
+            temperature = self.temperature,  fromFile = tbl.fromFile,
          }
       else
          assert(false, "App.VmSource: Source kind not recognized.")
       end    
    else
       -- If user doesn't specify 'kind', default to Maxwellian.
-      self.density     = assert(tbl.density, "App.VmSource: must specify density profile of source in 'density'.")
-      self.temperature = assert(tbl.temperature, "App.VmSource: must specify temperature profile of source in 'density'.")
+      self.density     = assert(tbl.density or tbl.fromFile, "App.VmSource: If not importing source with 'fromFile' must specify density profile of source in 'density'.")
+      self.temperature = assert(tbl.temperature or tbl.fromFile, "App.VmSource: If not importing source with 'fromFile' must specify temperature profile of source in 'density'.")
       self.profile     = Projection.MaxwellianProjection {
-         density     = self.density,
-         temperature = self.temperature,
-         power       = self.power,
+         density     = self.density,      power    = self.power,
+         temperature = self.temperature,  fromFile = tbl.fromFile,
       }
    end
    self.tmEvalSrc = 0.0
@@ -86,10 +84,8 @@ function VmSource:createSolver(mySpecies, extField)
 
    if self.power then
       local calcInt = Updater.CartFieldIntegratedQuantCalc {
-         onGrid        = self.confGrid,
-         basis         = self.confBasis,
-         numComponents = 1,
-         quantity      = "V",
+         onGrid = self.confGrid,   numComponents = 1,
+         basis  = self.confBasis,  quantity      = "V",
       }
       local intKE = DataStruct.DynVector{numComponents = 1}
       mySpecies.ptclEnergyCalc:advance(0.0, {self.fSource}, {mySpecies.ptclEnergyAux})

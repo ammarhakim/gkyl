@@ -17,9 +17,7 @@ local KineticProjection = Proto(ProjectionBase)
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
-function KineticProjection:init(tbl)
-   self.tbl = tbl
-end
+function KineticProjection:init(tbl) self.tbl = tbl end
 
 function KineticProjection:fullInit(species)
    self.species = species
@@ -47,11 +45,9 @@ function KineticProjection:fullInit(species)
    self.scaleWithSourcePower = xsys.pickBool(self.tbl.scaleWithSourcePower, false)
 
    self.weakMultiplyConfPhase = Updater.CartFieldBinOp {
-      onGrid     = self.phaseGrid,
-      weakBasis  = self.phaseBasis,
+      onGrid     = self.phaseGrid,   operation = "Multiply",
+      weakBasis  = self.phaseBasis,  onGhosts  = true,
       fieldBasis = self.confBasis,
-      operation  = "Multiply",
-      onGhosts   = true,
    }
 end
 
@@ -62,14 +58,9 @@ local FunctionProjection = Proto(KineticProjection)
 function FunctionProjection:fullInit(species)
    FunctionProjection.super.fullInit(self, species)
 
-   local func = self.tbl.func
-   if not func then func = self.tbl[1] end
-
-   assert(func, "FunctionProjection: Must specify the function")
-   assert(type(func) == "function", "The input must be a table containing function")
-
    if self.fromFile then
-      self.ioMethod  = "MPI"
+      self.exactScaleM0, self.exactScaleM012, self.exactLagFixM012 = false, false, false
+      self.ioMethod   = "MPI"
       self.writeGhost = true
       self.fieldIo = AdiosCartFieldIo {
          elemType   = species.distf[1]:elemType(),
@@ -79,11 +70,15 @@ function FunctionProjection:fullInit(species)
                        basisType = self.phaseBasis:id()}
       }
    else
+      local func = self.tbl.func
+      if not func then func = self.tbl[1] end
+
+      assert(func, "FunctionProjection: Must specify the function")
+      assert(type(func) == "function", "The input must be a table containing function")
+
       self.project = Updater.ProjectOnBasis {
-         onGrid   = self.phaseGrid,
-         basis    = self.phaseBasis,
-         evaluate = func,
-         onGhosts = true
+         onGrid = self.phaseGrid,   evaluate = func,
+         basis  = self.phaseBasis,  onGhosts = true
       }
    end
    self.initFunc = func
@@ -105,52 +100,49 @@ local MaxwellianProjection = Proto(KineticProjection)
 function MaxwellianProjection:fullInit(species)
    MaxwellianProjection.super.fullInit(self, species)
 
-   local tbl = self.tbl
-   self.density     = assert(tbl.density, "Maxwellian: must specify 'density'")
-   self.driftSpeed  = tbl.driftSpeed or function(t, zn)
-      if self.vDegFreedom then return 0.   -- Gyrokinetics. Vlasov doesn't define vDegFreedom. 
-      elseif self.vdim==1 then return {0.}
-      elseif self.vdim==2 then return {0., 0.}
-      elseif self.vdim==3 then return {0., 0., 0.} end
-   end
-   self.temperature = assert(tbl.temperature,
-			     "Maxwellian: must specify 'temperature'")
-
-   -- Check for constants instead of functions.
-   if type(self.density) ~= "function" then
-      self.density = function (t, zn) return tbl.density end
-   end
-   if type(self.driftSpeed) ~= "function" then
-      self.driftSpeed = function (t, zn) return tbl.driftSpeed end
-   end
-   if type(self.temperature) ~= "function" then
-      self.temperature = function (t, zn) return tbl.temperature end
-   end
-
-   self.initFunc = function (t, zn)
-      return species:Maxwellian(zn, self.density(t, zn, species),
-				self.temperature(t, zn, species),
-				self.driftSpeed(t, zn, species))
-   end
-
    if self.fromFile then
-      self.ioMethod  = "MPI"
+      self.exactScaleM0, self.exactScaleM012, self.exactLagFixM012 = false, false, false
+      self.ioMethod   = "MPI"
       self.writeGhost = true
       self.fieldIo = AdiosCartFieldIo {
-         elemType  = species.distf[1]:elemType(),
-         method    = self.ioMethod,
+         elemType   = species.distf[1]:elemType(),
+         method     = self.ioMethod,
          writeGhost = self.writeGhost,
-         metaData  = {polyOrder = self.phaseBasis:polyOrder(),
-                      basisType = self.phaseBasis:id(),
-                      charge    = self.charge,
-                      mass      = self.mass,},
+         metaData   = {polyOrder = self.phaseBasis:polyOrder(),  charge = self.charge,
+                       basisType = self.phaseBasis:id(),         mass   = self.mass,},
       }
    else
+      local tbl = self.tbl
+      self.density     = assert(tbl.density, "Maxwellian: must specify 'density'")
+      self.driftSpeed  = tbl.driftSpeed or function(t, zn)
+         if self.vDegFreedom then return 0.   -- Gyrokinetics. Vlasov doesn't define vDegFreedom. 
+         elseif self.vdim==1 then return {0.}
+         elseif self.vdim==2 then return {0., 0.}
+         elseif self.vdim==3 then return {0., 0., 0.} end
+      end
+      self.temperature = assert(tbl.temperature,
+           		     "Maxwellian: must specify 'temperature'")
+
+      -- Check for constants instead of functions.
+      if type(self.density) ~= "function" then
+         self.density = function (t, zn) return tbl.density end
+      end
+      if type(self.driftSpeed) ~= "function" then
+         self.driftSpeed = function (t, zn) return tbl.driftSpeed end
+      end
+      if type(self.temperature) ~= "function" then
+         self.temperature = function (t, zn) return tbl.temperature end
+      end
+
+      self.initFunc = function (t, zn)
+         return species:Maxwellian(zn, self.density(t, zn, species),
+           			self.temperature(t, zn, species),
+           			self.driftSpeed(t, zn, species))
+      end
+
       self.project = Updater.ProjectOnBasis {
-         onGrid   = self.phaseGrid,
-         basis    = self.phaseBasis,
-         evaluate = self.initFunc,
-         onGhosts = true
+         onGrid = self.phaseGrid,   evaluate = self.initFunc,
+         basis  = self.phaseBasis,  onGhosts = true
       }
    end
 end
@@ -164,18 +156,14 @@ function MaxwellianProjection:scaleDensity(distf)
       return self.density(t, zn, self.species)
    end
    local project = Updater.ProjectOnBasis {
-      onGrid   = self.confGrid,
-      basis    = self.confBasis,
-      evaluate = func,
-      onGhosts = true,
+      onGrid = self.confGrid,   evaluate = func,
+      basis  = self.confBasis,  onGhosts = true,
    }
    project:advance(0.0, {}, {M0e})
 
    local weakDivision = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "Divide",
-      onGhosts  = true,
+      onGrid    = self.confGrid,   operation = "Divide",
+      weakBasis = self.confBasis,  onGhosts  = true,
    }
 
    -- Calculate M0mod = M0e / M0.
