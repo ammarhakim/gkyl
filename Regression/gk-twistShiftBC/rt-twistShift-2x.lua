@@ -21,7 +21,6 @@ local Grid       = require "Grid"
 local DataStruct = require "DataStruct"
 local Basis      = require "Basis"
 local Updater    = require "Updater"
-GKYL_EMBED_INP   = false  -- Don't save input file in .bp files (good for long g1-style input files).
 
 local polyOrder       = 1
 local lower           = {-2.0, -1.50}

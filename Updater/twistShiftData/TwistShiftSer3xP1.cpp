@@ -20,7 +20,7 @@ void twistShift_xLimDG_yShP1_3xSerP1(const double sFac, const double *xLimLo, co
   // Logical center of the subregion in which the DG expansion of the yLimLo/yLimUp functions are defined.
   double ycLim = 0.5*(yLimUp+yLimLo);
 
-  tsData->mat = Eigen::MatrixXd::Zero(8,8);
+  tsData->mat.setZero();
   double yLimLoR2 = std::pow(yLimLo,2);
   double yLimLoR3 = std::pow(yLimLo,3);
   double yLimLoR4 = std::pow(yLimLo,4);
@@ -111,7 +111,7 @@ void twistShift_yLimDG_yShP1_3xSerP1(const double sFac, const double xLimLo, con
   // Logical center of the subregion in which the DG expansion of the yLimLo/yLimUp functions are defined.
   double xcLim = 0.5*(xLimUp+xLimLo);
 
-  tsData->mat = Eigen::MatrixXd::Zero(8,8);
+  tsData->mat.setZero();
   double xLimLoR2 = std::pow(xLimLo,2);
   double xLimLoR3 = std::pow(xLimLo,3);
   double xLimLoR4 = std::pow(xLimLo,4);
@@ -185,7 +185,7 @@ void twistShift_fullCell_yShP1_3xSerP1(const double dyDo, const double yOff, con
   // xIdx:   x-index of the cell.
   // pushNew: push_back a new matrix (true) or add contribution to the last matrix (false).
 
-  tsData->mat = Eigen::MatrixXd::Zero(8,8);
+  tsData->mat.setZero();
 
   tsData->mat(0,0) += 1.0; 
   tsData->mat(1,1) += 1.0; 
@@ -232,7 +232,7 @@ void twistShift_xLimDG_yShP2_3xSerP1(const double sFac, const double *xLimLo, co
   // Logical center of the subregion in which the DG expansion of the yLimLo/yLimUp functions are defined.
   double ycLim = 0.5*(yLimUp+yLimLo);
 
-  tsData->mat = Eigen::MatrixXd::Zero(8,8);
+  tsData->mat.setZero();
   double yLimLoR2 = std::pow(yLimLo,2);
   double yLimLoR3 = std::pow(yLimLo,3);
   double yLimLoR4 = std::pow(yLimLo,4);
@@ -359,7 +359,7 @@ void twistShift_yLimDG_yShP2_3xSerP1(const double sFac, const double xLimLo, con
   // Logical center of the subregion in which the DG expansion of the yLimLo/yLimUp functions are defined.
   double xcLim = 0.5*(xLimUp+xLimLo);
 
-  tsData->mat = Eigen::MatrixXd::Zero(8,8);
+  tsData->mat.setZero();
   double xLimLoR2 = std::pow(xLimLo,2);
   double xLimLoR3 = std::pow(xLimLo,3);
   double xLimLoR4 = std::pow(xLimLo,4);
@@ -449,7 +449,7 @@ void twistShift_fullCell_yShP2_3xSerP1(const double dyDo, const double yOff, con
   // xIdx:   x-index of the cell.
   // pushNew: push_back a new matrix (true) or add contribution to the last matrix (false).
 
-  tsData->mat = Eigen::MatrixXd::Zero(8,8);
+  tsData->mat.setZero();
 
   tsData->mat(0,0) += 1.0; 
   tsData->mat(1,1) += 1.0; 

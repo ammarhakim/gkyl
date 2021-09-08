@@ -142,7 +142,7 @@ calcTwistShiftOp_xLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder, polyOrder1D
      of the source field times the target-grid basis functions (in this case donor and target basis are the same). */
   fldTar_c : fullratsimp(sFac*calcInnerProdListGen(vars,intLims,1.0,shiftedBasis,fldDo_e)),
 
-  printf(fh, "  tsData->mat = Eigen::MatrixXd::Zero(~a,~a);~%", numB, numB),
+  printf(fh, "  tsData->mat.setZero();~%"),
 
   fldTar_cm   : list_matrix_entries(fullratsimp(coefmatrix(fldTar_c,fldDo_c))),
   tarIdo[i,j] := "tsData->mat"[i,j],
@@ -293,7 +293,7 @@ calcTwistShiftOp_yLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder, polyOrder1D
      of the source field times the donor-grid basis functions (in this case donor and target basis are the same). */
   fldTar_c : fullratsimp(sFac*calcInnerProdListGenRev(vars,intLims,1.0,shiftedBasis,fldDo_e)),
   
-  printf(fh, "  tsData->mat = Eigen::MatrixXd::Zero(~a,~a);~%", numB, numB),
+  printf(fh, "  tsData->mat.setZero();~%"),
 
   fldTar_cm   : list_matrix_entries(fullratsimp(coefmatrix(fldTar_c,fldDo_c))),
   tarIdo[i,j] := "tsData->mat"[i,j],
@@ -407,7 +407,7 @@ calcTwistShiftOp_fullCell(fh, funcNm, cdim, vdim, basisFun, polyOrder, polyOrder
   /* First add the integral over the whole cell. */
   fldTar_c : fullratsimp(calcInnerProdList(vars,1.0,shiftedBasis,fldDo_e)),
 
-  printf(fh, "  tsData->mat = Eigen::MatrixXd::Zero(~a,~a);~%", numB, numB),
+  printf(fh, "  tsData->mat.setZero();~%"),
 
   fldTar_cm   : list_matrix_entries(fullratsimp(coefmatrix(fldTar_c,fldDo_c))),
   tarIdo[i,j] := "tsData->mat"[i,j],

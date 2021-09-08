@@ -199,7 +199,7 @@ function TwistShiftBC:_advance(tCurr, inFld, outFld)
       
    else   -- Only for 2D fields.
       local localRange = fldTar:localRange()
-
+      
       for idxTar in localRange:rowMajorIter() do
 
          fldTar:fill(indexer(idxTar), fldTarItr)
@@ -214,15 +214,13 @@ function TwistShiftBC:_advance(tCurr, inFld, outFld)
          for mI = 1, #doCellsC do
 
             local idxDo2D = doCellsC[mI]
---            if idxTar[2]==10 and idxDo2D[2]==6 then
             self.idxDoP[1], self.idxDoP[2] = idxDo2D[1], idxDo2D[2] 
 --            print("   from idxDo = ",self.idxDoP[1],self.idxDoP[2])
 
             fldDo:fill(indexer(self.idxDoP), fldDoItr)
 
-            -- Matrix-vec multiply to compute the contribution of each donor cell to a target cell..
+            -- Matrix-vec multiply to compute the contribution of each donor cell to a target cell.
             self.tsMatVecMult(self.matVec, idxTar[1], mI, fldDoItr:data(), fldTarItr:data())
---            end
          end
       end
    end

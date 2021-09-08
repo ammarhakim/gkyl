@@ -179,8 +179,6 @@ local findIntersect = function(yTar, yDo, xBounds, yLims)
    local tol = 1.e-13
    local Ly  = yLims.up - yLims.lo
    local function lossF(xIn) return yTar-yShiftF(xIn)-yDo end
---   local function lossF(xIn) print(string.format("xIn=%g | yTar=%g | yDo=%g | yTar-yShiftF(xIn)-yDo = %g", xIn, yTar, yDo, yTar-yShiftF(xIn)-yDo)); return yTar-yShiftF(xIn)-yDo end
---   print("yTar, yDo, xBounds, yS(2), fLo, fUp  = ",yTar, yDo, xBounds.lo, xBounds.up, yShiftF(2.), lossF(xBounds.lo),lossF(xBounds.up))
    root0 = _M.rootFind(lossF, xBounds, tol)
    if root0 == nil then
       -- Maybe yTar-ySh intersects y=yDo in a periodic copy of the domain. Find roots of
@@ -289,6 +287,10 @@ local projData = {
    xiUpR_eta = 0,            -- DG coefficients of logical space x-upper limit poly approx (right).
    etaLo_xi  = 0,            -- DG coefficients of logical space y-lower limit poly approx.
    etaUp_xi  = 0,            -- DG coefficients of logical space y-upper limit poly approx.
+   etaLoLo_xi  = 0,            -- DG coefficients of logical space y-lower limit poly approx (lower).
+   etaUpLo_xi  = 0,            -- DG coefficients of logical space y-upper limit poly approx (lower).
+   etaLoUp_xi  = 0,            -- DG coefficients of logical space y-lower limit poly approx (upper).
+   etaUpUp_xi  = 0,            -- DG coefficients of logical space y-upper limit poly approx (upper).
 }
 
 function _M.set_projData(shiftPolyOrder)
@@ -308,6 +310,10 @@ function _M.set_projData(shiftPolyOrder)
    projData.xiUpR_eta = Lin.Vec(numNodes)      -- DG coefficients of logical space x-upper limit poly approx (right).
    projData.etaLo_xi  = Lin.Vec(numNodes)      -- DG coefficients of logical space y-lower limit poly approx.
    projData.etaUp_xi  = Lin.Vec(numNodes)      -- DG coefficients of logical space y-upper limit poly approx.
+   projData.etaLoLo_xi = Lin.Vec(numNodes)      -- DG coefficients of logical space y-lower limit poly approx (lower).
+   projData.etaUpLo_xi = Lin.Vec(numNodes)      -- DG coefficients of logical space y-upper limit poly approx (lower).
+   projData.etaLoUp_xi = Lin.Vec(numNodes)      -- DG coefficients of logical space y-lower limit poly approx (upper).
+   projData.etaUpUp_xi = Lin.Vec(numNodes)      -- DG coefficients of logical space y-upper limit poly approx (upper).
 end
 
 -- Functions used by nodToModProj1D (copied from EvalOnNodes).
@@ -387,13 +393,13 @@ local subCellInt_xLoLimDG = function(yTar, xiBounds, etaBounds, xIdxIn, xcDoIn, 
    --   yShPtrIn:  pointers to y-shift field data in current cell.
    --   tsMatVecs: pre-allocated matrices and vectors.
    --   pushNew:   =1 a new matrix should be pushed, =0 add to existing (last) matrix.
-   local pushNew  = pushNew or 1
-   local ycOff    = doTarOff(xcDoIn, xcTarIn)
-   local xLogLims = {lo = function(t,xn)
-                        return yShiftedLogInv(xn[1], yTar, xcDoIn, xcTarIn, xiBounds, pickUpper)
-                     end,
-                     up = function(t,xn) return 1.0 end}
-   subCellInt_xLimDG(xLogLims, etaBounds, xIdxIn, ycOff, yShPtrIn, tsMatVecsIn, pushNew)
+   local pushNew = pushNew or 1
+   local ycOff   = doTarOff(xcDoIn, xcTarIn)
+   local xiLims  = {lo = function(t,xn)
+                       return yShiftedLogInv(xn[1], yTar, xcDoIn, xcTarIn, xiBounds, pickUpper)
+                    end,
+                    up = function(t,xn) return 1.0 end}
+   subCellInt_xLimDG(xiLims, etaBounds, xIdxIn, ycOff, yShPtrIn, tsMatVecsIn, pushNew)
 end
 
 local subCellInt_xUpLimDG = function(yTar, xiBounds, etaBounds, xIdxIn, xcDoIn, xcTarIn, pickUpper, yShPtrIn, tsMatVecsIn, pushNew)
@@ -417,7 +423,7 @@ local subCellInt_xUpLimDG = function(yTar, xiBounds, etaBounds, xIdxIn, xcDoIn, 
    subCellInt_xLimDG(xiLims, etaBounds, xIdxIn, ycOff, yShPtrIn, tsMatVecsIn, pushNew)
 end
 
-local subCellInt_yLimDG = function(xBounds, yLimFuncs, xIdxIn, offDoTar, yShPtrIn, tsMatVecsIn)
+local subCellInt_yLimDG = function(xBounds, yLimFuncs, xIdxIn, offDoTar, yShPtrIn, tsMatVecsIn, pushNew)
    -- Perform a sub-cell integral with eta-limits that are functions of xi given by a
    -- DG polynomial representation. Here xi-eta mean the logical coordinates of the donor cell.
    -- The functions yLimFuncs define these eta-limits in the xi-space of the
@@ -435,14 +441,58 @@ local subCellInt_yLimDG = function(xBounds, yLimFuncs, xIdxIn, offDoTar, yShPtrI
    --   offDoTar:  physical y-offset between donor and target cells.
    --   yShPtr:    pointers to y-shift field data in current cell.
    --   tsMatVecs: pre-allocated matrices and vectors.
+   --   pushNew:   =1 a new matrix should be pushed, =0 add to existing (last) matrix.
+   local pushNew  = pushNew or 1
    local dy       = dx[2]
    local dxSub, _ = dxAxc(xBounds)
    if dxSub > 0 then
-      nodToModProj1D(xLimFuncs.lo, xBounds, projData.etaLo_xi)
-      nodToModProj1D(xLimFuncs.up, xBounds, projData.etaUp_xi)
+      nodToModProj1D(yLimFuncs.lo, xBounds, projData.etaLo_xi)
+      nodToModProj1D(yLimFuncs.up, xBounds, projData.etaUp_xi)
       intSubYlimDG(1., xBounds.lo, xBounds.up, projData.etaLo_xi:data(), projData.etaUp_xi:data(),
-                   dy, offDoTar, yShPtrIn, tsMatVecsIn, xIdxIn[1], 1)
+                   dy, offDoTar, yShPtrIn, tsMatVecsIn, xIdxIn[1], pushNew)
    end
+end
+
+local subCellInt_yLoLimDG = function(yTar, xiBounds, etaBounds, xIdxIn, xcDoIn, xcTarIn, pickUpper, yShPtrIn, tsMatVecsIn, pushNew)
+   -- Perform subcell integral with variable lower eta-limit.
+   --   yTar:      yTar-yShift gives the curve defining the lower x-limit.
+   --   xiBounds:  logical x range in which to invert yTar-yShift(x).
+   --   etaBounds: logical y limits of the integral.
+   --   xIdxIn:    current x-index.
+   --   xcDo:      cell center coordinates of donor cell.
+   --   xcTar:     cell center coordinates of target cell.
+   --   pickUpper: boolean to indicate if wrapping function should return upper instead of lower boundary.
+   --   yShPtrIn:  pointers to y-shift field data in current cell.
+   --   tsMatVecs: pre-allocated matrices and vectors.
+   --   pushNew:   =1 a new matrix should be pushed, =0 add to existing (last) matrix.
+   local pushNew = pushNew or 1
+   local ycOff   = doTarOff(xcDoIn, xcTarIn)
+   local etaLims = {lo = function(t,xn)
+                        return yShiftedLog(xn[1], yTar, 1, xcDoIn, xcTarIn, pickUpper)
+                    end,
+                    up = function(t,xn) return 1.0 end}
+   subCellInt_yLimDG(xiBounds, etaLims, xIdxIn, ycOff, yShPtrIn, tsMatVecsIn, pushNew)
+end
+
+local subCellInt_yUpLimDG = function(yTar, xiBounds, etaBounds, xIdxIn, xcDoIn, xcTarIn, pickUpper, yShPtrIn, tsMatVecsIn, pushNew)
+   -- Perform subcell integral with variable upper y-limit.
+   --   yTar:      yTar-yShift gives the curve defining the upper x-limit.
+   --   xiBounds:  xi range in which to invert yTar-yShift(x).
+   --   etaBounds: eta y limits of the integral.
+   --   xIdxIn:    current x-index.
+   --   xcDo:      cell center coordinates of donor cell.
+   --   xcTar:     cell center coordinates of target cell.
+   --   pickUpper: boolean to indicate if wrapping function should return upper instead of lower boundary.
+   --   yShPtrIn:  pointers to y-shift field data in current cell.
+   --   tsMatVecs: pre-allocated matrices and vectors.
+   --   pushNew:   =1 a new matrix should be pushed, =0 add to existing (last) matrix.
+   local pushNew = pushNew or 1
+   local ycOff   = doTarOff(xcDoIn, xcTarIn)
+   local etaLims = {lo = function(t,xn) return -1.0 end,
+                    up = function(t,xn)
+                       return yShiftedLog(xn[1], yTar, 1, xcDoIn, xcTarIn, pickUpper)
+                    end}
+   subCellInt_yLimDG(xiBounds, etaLims, xIdxIn, ycOff, yShPtrIn, tsMatVecsIn, pushNew)
 end
 
 local subCellInt_trapezoid = function(xiBounds, etaBounds, yTar, xIdxIn, xcDoIn, xcTarIn, pickUpper, yShPtrIn, tsMatVecsIn, pushNew)
@@ -515,21 +565,41 @@ local subCellInt_siORsii = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, atUpp
    --   atUpperYcell: boolean to indicate if this donor is the upper Y cell.
    --   yShPtrIn:     pointer to y-shift field in current cell.
    --   tsMatVecs:    pre-allocated matrices and vectors.
+
+   -- Two options below:
+--   -- Option A: integral with variable x-limits.
+--   local yShiftUp = yShiftF(limTar[1].up)
+--   local yTar     = limTar[2].lo
+--   if -yShiftUp >= -yShiftF(x_pq.loTar.upDo) then  -- Check if yShift increases or decreases.
+--      print("    scenario si")
+--      -- Scenario si.
+--      local yLogBounds = {lo=p2l(wrapNum(limTar[2].lo-yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2]), up=1.}
+--      local xLogBounds = {lo=-1, up=p2l(x_pq.loTar.upDo,xcDoIn[1],dx[1])}
+--      subCellInt_xUpLimDG(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, atUpperYcell, yShPtrIn, tsMatVecsIn)
+--   else
+--      -- Scenario sii.
+--      print("    scenario sii")
+--      local yLogBounds = {lo=p2l(wrapNum(limTar[2].lo-yShiftUp,domLim[2],atUpperYcell),xcDoIn[2],dx[2]), up=1.}
+--      local xLogBounds = {lo=p2l(x_pq.loTar.upDo,xcDoIn[1],dx[1]), up=1.}
+--      subCellInt_xLoLimDG(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, atUpperYcell, yShPtrIn, tsMatVecsIn)
+--   end
+
+   -- Option B: integral with variable y-limits.
    local yShiftUp = yShiftF(limTar[1].up)
    local yTar     = limTar[2].lo
+   local etaBounds, xiBounds
    if -yShiftUp >= -yShiftF(x_pq.loTar.upDo) then  -- Check if yShift increases or decreases.
 --      print("    scenario si")
       -- Scenario si.
-      local yLogBounds = {lo=p2l(wrapNum(limTar[2].lo-yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2]), up=1.}
-      local xLogBounds = {lo=-1, up=p2l(x_pq.loTar.upDo,xcDoIn[1],dx[1])}
-      subCellInt_xUpLimDG(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, atUpperYcell, yShPtrIn, tsMatVecsIn)
+      etaBounds = {lo=p2l(wrapNum(limTar[2].lo-yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2]), up=1.}
+      xiBounds  = {lo=-1, up=p2l(x_pq.loTar.upDo,xcDoIn[1],dx[1])}
    else
       -- Scenario sii.
 --      print("    scenario sii")
-      local yLogBounds = {lo=p2l(wrapNum(limTar[2].lo-yShiftUp,domLim[2],atUpperYcell),xcDoIn[2],dx[2]), up=1.}
-      local xLogBounds = {lo=p2l(x_pq.loTar.upDo,xcDoIn[1],dx[1]), up=1.}
-      subCellInt_xLoLimDG(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, atUpperYcell, yShPtrIn, tsMatVecsIn)
+      etaBounds = {lo=p2l(wrapNum(limTar[2].lo-yShiftUp,domLim[2],atUpperYcell),xcDoIn[2],dx[2]), up=1.}
+      xiBounds  = {lo=p2l(x_pq.loTar.upDo,xcDoIn[1],dx[1]), up=1.}
    end
+   subCellInt_yLoLimDG(yTar, xiBounds, etaBounds, xIdxIn, xcDoIn, xcTarIn, atUpperYcell, yShPtrIn, tsMatVecsIn)
 end
 
 local subCellInt_siiiORsiv = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, atUpperYcell, yShPtrIn, tsMatVecsIn)
@@ -544,23 +614,41 @@ local subCellInt_siiiORsiv = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, atU
    --   atUpperYcell: boolean to indicate if this donor is the upper Y cell.
    --   yShPtrIn:     pointer to y-shift field in current cell.
    --   tsMatVecs:    pre-allocated matrices and vectors.
+
+   -- Two options below:
+--   -- Option A: integral with variable x-limits.
+--   local yShiftUp = yShiftF(limTar[1].up)
+--   local yTar     = limTar[2].up
+--   if -yShiftUp <= -yShiftF(x_pq.upTar.loDo) then
+--      -- Scenario siii.
+--      print("    scenario siii")
+--      local yLogBounds = {lo=-1., up=p2l(wrapNum(limTar[2].up-yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
+--      local xLogBounds = {lo=-1., up=p2l(x_pq.upTar.loDo,xcDoIn[1],dx[1])}
+--      subCellInt_xUpLimDG(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, atUpperYcell, yShPtrIn, tsMatVecsIn)
+--   else
+--      print("    scenario siv")
+--      -- Scenario siv.
+--      local yLogBounds = {lo=-1., up=p2l(wrapNum(limTar[2].up-yShiftUp,domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
+--      local xLogBounds = {lo=p2l(x_pq.upTar.loDo,xcDoIn[1],dx[1]), up=1.}
+--      subCellInt_xLoLimDG(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, atUpperYcell, yShPtrIn, tsMatVecsIn)
+--   end
+
+   -- Option B: integral with variable y-limits.
    local yShiftUp = yShiftF(limTar[1].up)
    local yTar     = limTar[2].up
+   local etaBounds, xiBounds
    if -yShiftUp <= -yShiftF(x_pq.upTar.loDo) then
       -- Scenario siii.
 --      print("    scenario siii")
-      local yLogBounds = {lo=-1., up=p2l(wrapNum(limTar[2].up-yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
-      local xLogBounds = {lo=-1., up=p2l(x_pq.upTar.loDo,xcDoIn[1],dx[1])}
---      local yLogBounds = {lo=1.-(p2l(wrapNum(limTar[2].up+yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2])-(-1.)), up=1.}
---      local xLogBounds = {lo=-1., up=p2l(x_pq.upTar.loDo,xcDoIn[1],dx[1])}
-      subCellInt_xUpLimDG(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, atUpperYcell, yShPtrIn, tsMatVecsIn)
+      etaBounds = {lo=-1., up=p2l(wrapNum(limTar[2].up-yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
+      xiBounds  = {lo=-1., up=p2l(x_pq.upTar.loDo,xcDoIn[1],dx[1])}
    else
 --      print("    scenario siv")
       -- Scenario siv.
-      local yLogBounds = {lo=-1., up=p2l(wrapNum(limTar[2].up-yShiftUp,domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
-      local xLogBounds = {lo=p2l(x_pq.upTar.loDo,xcDoIn[1],dx[1]), up=1.}
-      subCellInt_xLoLimDG(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, atUpperYcell, yShPtrIn, tsMatVecsIn)
+      etaBounds = {lo=-1., up=p2l(wrapNum(limTar[2].up-yShiftUp,domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
+      xiBounds  = {lo=p2l(x_pq.upTar.loDo,xcDoIn[1],dx[1]), up=1.}
    end
+   subCellInt_yUpLimDG(yTar, xiBounds, etaBounds, xIdxIn, xcDoIn, xcTarIn, atUpperYcell, yShPtrIn, tsMatVecsIn)
 end
 
 local subCellInt_six = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, atUpperYcell, yShPtrIn, tsMatVecsIn)
@@ -758,57 +846,107 @@ local subCellInt_sxiiiORsxiv = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, a
    -- Add the contribution from integrating over the whole cell.
    intFullCell(dx[2], ycOff, yShPtrIn, tsMatVecsIn, xIdxIn[1], 1)
 
-   local yTarL, yTarR
-   local xLogBoundsL, xLogBoundsR = {}, {}
-   local yLogBoundsL, yLogBoundsR = {}, {}
+   -- Two options below:
+--   -- Option A: integral with variable x-limits.
+--   local yTarL, yTarR
+--   local xLogBoundsL, xLogBoundsR = {}, {}
+--   local yLogBoundsL, yLogBoundsR = {}, {}
+--   if -yShiftF(limTar[1].lo) < -yShiftF(limTar[1].up) then   -- Scenario sxiii.
+--      print("    scenario sxiii")
+--      -- Scenario si-like part.
+--      yTarL       = limTar[2].up
+--      xLogBoundsL = {lo=-1., up=p2l(x_pq.upTar.upDo,xcDoIn[1],dx[1])}
+--      yLogBoundsL = {lo=p2l(wrapNum(limTar[2].up-yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2]), up=1.}
+--      -- Scenario siv-like part.
+--      yTarR       = limTar[2].lo
+--      xLogBoundsR = {lo=p2l(x_pq.loTar.loDo,xcDoIn[1],dx[1]), up=1.}
+--      yLogBoundsR = {lo=-1., up=p2l(wrapNum(limTar[2].lo-yShiftF(limTar[1].up),domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
+--   else   -- Scenario sxiv.
+--      print("    scenario sxiv")
+--      -- Scenario sii-like part.
+--      yTarR       = limTar[2].up
+--      xLogBoundsR = {lo=p2l(x_pq.upTar.upDo,xcDoIn[1],dx[1]), up=1.}
+--      yLogBoundsR = {lo=p2l(wrapNum(limTar[2].up-yShiftF(limTar[1].up),domLim[2],atUpperYcell), xcDoIn[2], dx[2]), up=1.}
+--      -- Scenario siii-like part.
+--      yTarL       = limTar[2].lo
+--      xLogBoundsL = {lo=-1., up=p2l(x_pq.loTar.loDo,xcDoIn[1],dx[1])}
+--      yLogBoundsL = {lo=-1., up=p2l(wrapNum(limTar[2].lo-yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
+--   end
+--   -- Project x-limits of left subcell region to subtract.
+--   local xLogLimsL = {lo = function(t,xn) return -1.0 end,
+--                      up = function(t,xn)
+--                         return yShiftedLogInv(xn[1], yTarL, xcDoIn, xcTarIn, xLogBoundsL, atUpperYcell)
+--                      end}
+--   local dySubL, _ = dxAxc(yLogBoundsL)
+--   if (xLogBoundsL.up-xLogBoundsL.lo) > 1.e-13 and dySubL > 1.e-13 then
+--      nodToModProj1D(xLogLimsL.lo, yLogBoundsL, projData.xiLoL_eta)
+--      nodToModProj1D(xLogLimsL.up, yLogBoundsL, projData.xiUpL_eta)
+--      -- Subtract the left corner subcell region.
+--      intSubXlimDG(-1., projData.xiLoL_eta:data(), projData.xiUpL_eta:data(), yLogBoundsL.lo, yLogBoundsL.up,
+--                   dx[2], ycOff, yShPtrIn, tsMatVecsIn, xIdxIn[1], 0)
+--   end
+--   -- Project x-limits of right subcell region to subtract.
+--   local xLogLimsR = {lo = function(t,xn)
+--                         return yShiftedLogInv(xn[1], yTarR, xcDoIn, xcTarIn, xLogBoundsR, atUpperYcell)
+--                      end,
+--                      up = function(t,xn) return 1.0 end}
+--   local dySubR, _ = dxAxc(yLogBoundsR)
+--   if (xLogBoundsR.up-xLogBoundsR.lo) > 1.e-13 and dySubR > 1.e-13 then
+--      nodToModProj1D(xLogLimsR.lo, yLogBoundsR, projData.xiLoR_eta)
+--      nodToModProj1D(xLogLimsR.up, yLogBoundsR, projData.xiUpR_eta)
+--      -- Subtract the right corner subcell region.
+--      intSubXlimDG(-1., projData.xiLoR_eta:data(), projData.xiUpR_eta:data(), yLogBoundsR.lo, yLogBoundsR.up,
+--                   dx[2], ycOff, yShPtrIn, tsMatVecsIn, xIdxIn[1], 0)
+--   end
+
+
+   -- Option B: integral with variable y-limits.
+   local yTarLo, yTarUp
+   local xiBoundsLo, xiBoundsUp  = {}, {}
+   local etaBoundsLo, etaBoundUp = {}, {}
    if -yShiftF(limTar[1].lo) < -yShiftF(limTar[1].up) then   -- Scenario sxiii.
 --      print("    scenario sxiii")
       -- Scenario si-like part.
-      yTarL       = limTar[2].up
-      xLogBoundsL = {lo=-1., up=p2l(x_pq.upTar.upDo,xcDoIn[1],dx[1])}
-      yLogBoundsL = {lo=p2l(wrapNum(limTar[2].up-yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2]), up=1.}
+      yTarUp      = limTar[2].up
+      xiBoundsUp  = {lo=-1., up=p2l(x_pq.upTar.upDo,xcDoIn[1],dx[1])}
+      etaBoundsUp = {lo=p2l(wrapNum(limTar[2].up-yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2]), up=1.}
       -- Scenario siv-like part.
-      yTarR       = limTar[2].lo
-      xLogBoundsR = {lo=p2l(x_pq.loTar.loDo,xcDoIn[1],dx[1]), up=1.}
-      yLogBoundsR = {lo=-1., up=p2l(wrapNum(limTar[2].lo-yShiftF(limTar[1].up),domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
+      yTarLo      = limTar[2].lo
+      xiBoundsLo  = {lo=p2l(x_pq.loTar.loDo,xcDoIn[1],dx[1]), up=1.}
+      etaBoundsLo = {lo=-1., up=p2l(wrapNum(limTar[2].lo-yShiftF(limTar[1].up),domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
    else   -- Scenario sxiv.
 --      print("    scenario sxiv")
       -- Scenario sii-like part.
-      yTarR       = limTar[2].up
-      xLogBoundsR = {lo=p2l(x_pq.upTar.upDo,xcDoIn[1],dx[1]), up=1.}
-      yLogBoundsR = {lo=p2l(wrapNum(limTar[2].up-yShiftF(limTar[1].up),domLim[2],atUpperYcell), xcDoIn[2], dx[2]), up=1.}
---      print("    yLogBoundsR=",yLogBoundsR.lo,yLogBoundsR.up)
+      yTarUp      = limTar[2].up
+      xiBoundsUp  = {lo=p2l(x_pq.upTar.upDo,xcDoIn[1],dx[1]), up=1.}
+      etaBoundsUp = {lo=p2l(wrapNum(limTar[2].up-yShiftF(limTar[1].up),domLim[2],atUpperYcell), xcDoIn[2], dx[2]), up=1.}
       -- Scenario siii-like part.
-      yTarL       = limTar[2].lo
-      xLogBoundsL = {lo=-1., up=p2l(x_pq.loTar.loDo,xcDoIn[1],dx[1])}
-      yLogBoundsL = {lo=-1., up=p2l(wrapNum(limTar[2].lo-yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
+      yTarLo      = limTar[2].lo
+      xiBoundsLo  = {lo=-1., up=p2l(x_pq.loTar.loDo,xcDoIn[1],dx[1])}
+      etaBoundsLo = {lo=-1., up=p2l(wrapNum(limTar[2].lo-yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
    end
-   -- Project x-limits of left subcell region to subtract.
-   local xLogLimsL = {lo = function(t,xn) return -1.0 end,
-                      up = function(t,xn)
-                         return yShiftedLogInv(xn[1], yTarL, xcDoIn, xcTarIn, xLogBoundsL, atUpperYcell)
-                      end}
-   local dySubL, _ = dxAxc(yLogBoundsL)
-   if (xLogBoundsL.up-xLogBoundsL.lo) > 1.e-13 and dySubL > 1.e-13 then
-      nodToModProj1D(xLogLimsL.lo, yLogBoundsL, projData.xiLoL_eta)
-      nodToModProj1D(xLogLimsL.up, yLogBoundsL, projData.xiUpL_eta)
-      -- Subtract the left corner subcell region.
-      intSubXlimDG(-1., projData.xiLoL_eta:data(), projData.xiUpL_eta:data(), yLogBoundsL.lo, yLogBoundsL.up,
-                   dx[2], ycOff, yShPtrIn, tsMatVecsIn, xIdxIn[1], 0)
-   end
-   -- Project x-limits of right subcell region to subtract.
-   local xLogLimsR = {lo = function(t,xn)
-                         return yShiftedLogInv(xn[1], yTarR, xcDoIn, xcTarIn, xLogBoundsR, atUpperYcell)
+
+   local etaLimsUp = {lo = function(t,xn)
+                         return yShiftedLog(xn[1], yTarUp, 1, xcDoIn, xcTarIn, atUpperYcell)
                       end,
                       up = function(t,xn) return 1.0 end}
-   local dySubR, _ = dxAxc(yLogBoundsR)
---   print("      ycOff = ",ycOff)
---   print("      dySubR = ",dySubR)
-   if (xLogBoundsR.up-xLogBoundsR.lo) > 1.e-13 and dySubR > 1.e-13 then
-      nodToModProj1D(xLogLimsR.lo, yLogBoundsR, projData.xiLoR_eta)
-      nodToModProj1D(xLogLimsR.up, yLogBoundsR, projData.xiUpR_eta)
-      -- Subtract the right corner subcell region.
-      intSubXlimDG(-1., projData.xiLoR_eta:data(), projData.xiUpR_eta:data(), yLogBoundsR.lo, yLogBoundsR.up,
+   local dxSubUp, _ = dxAxc(xiBoundsUp)
+   if (etaBoundsUp.up-etaBoundsUp.lo) > 1.e-13 and dxSubUp > 1.e-13 then
+      nodToModProj1D(etaLimsUp.lo, xiBoundsUp, projData.etaLoUp_xi)
+      nodToModProj1D(etaLimsUp.up, xiBoundsUp, projData.etaUpUp_xi)
+      intSubYlimDG(-1., xiBoundsUp.lo, xiBoundsUp.up, projData.etaLoUp_xi:data(), projData.etaUpUp_xi:data(),
+                   dx[2], ycOff, yShPtrIn, tsMatVecsIn, xIdxIn[1], 0)
+   end
+
+   local etaLimsLo = {lo = function(t,xn) return -1.0 end,
+                      up = function(t,xn)
+                         return yShiftedLog(xn[1], yTarLo, 1, xcDoIn, xcTarIn, atUpperYcell)
+                      end}
+   local dxSubLo, _ = dxAxc(xiBoundsLo)
+   if (etaBoundsLo.up-etaBoundsLo.lo) > 1.e-13 and dxSubLo > 1.e-13 then
+      nodToModProj1D(etaLimsLo.lo, xiBoundsLo, projData.etaLoLo_xi)
+      nodToModProj1D(etaLimsLo.up, xiBoundsLo, projData.etaUpLo_xi)
+      intSubYlimDG(-1., xiBoundsLo.lo, xiBoundsLo.up, projData.etaLoLo_xi:data(), projData.etaUpLo_xi:data(),
                    dx[2], ycOff, yShPtrIn, tsMatVecsIn, xIdxIn[1], 0)
    end
 end
@@ -844,9 +982,6 @@ local subCellInt_sxvORsxvi = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limDo, limT
    nodToModProj1D(etaLims.lo, xiBounds, projData.etaLo_xi)
    nodToModProj1D(etaLims.up, xiBounds, projData.etaUp_xi)
    local ycOff = doTarOff(xcDoIn, xcTarIn)  -- Offset between cell centers along y.
---   print(string.format("      etaLo_xi = %g, %g\n",projData.etaLo_xi[1],projData.etaLo_xi[2]))
---   print(string.format("      etaUp_xi = %g, %g\n",projData.etaUp_xi[1],projData.etaUp_xi[2]))
---   print(string.format("      ycOff = %f\n",ycOff))
    intSubYlimDG(1., xiBounds.lo, xiBounds.up, projData.etaLo_xi:data(), projData.etaUp_xi:data(),
                 dx[2], ycOff, yShPtrIn, tsMatVecsIn, xIdxIn[1], 1)
 end
@@ -920,14 +1055,11 @@ function _M.getDonors(grid, yShift, yShBasis)
 
             -- Find the index of the cell that owns the shifted point.
             for d = 1,2 do idxShifted[d] = nil end
-            searchPoint[1], searchPoint[2] = evPoint[1], wrapNum(evPoint[2]-yShEv,domLim[2],true)
+            searchPoint[1], searchPoint[2] = evPoint[1], wrapNum(evPoint[2]-yShEv,domLim[2],false)
             local chooseLo = (dC==2 and xS==2) and true or false
             idxP[1], idxP[2] = idx[1], nil
             grid:findCell(searchPoint,idxShifted,chooseLo,idxP)
             newIdx = {idxShifted[1], idxShifted[2]}
---            if idx[1]==1 and idx[2]==1 and dC==1 and xS==1 then
---            print(string.format("iTar=(1,1) | evPoint=(%f,%f) | yShEv=%f | sPoint=(%f,%f) | iDo=(%d,%d)",evPoint[1],evPoint[2],yShEv,searchPoint[1],searchPoint[2],newIdx[1],newIdx[2]))
---            end
             if lume.findTable(doCellsC,newIdx)==nil then table.insert(doCellsC,newIdx) end
 
             -- Search other shifted points along this line.
@@ -946,7 +1078,7 @@ function _M.getDonors(grid, yShift, yShBasis)
 
                -- Find the index of the cell that owns the shifted point.
                for d = 1,2 do idxShifted[d] = nil end
-               searchPoint[1], searchPoint[2] = newP[1], wrapNum(newP[2]-yShEv,domLim[2],true)
+               searchPoint[1], searchPoint[2] = newP[1], wrapNum(newP[2]-yShEv,domLim[2],false)
                idxP[1], idxP[2] = idx[1], nil
                grid:findCell(searchPoint,idxShifted,true,idxP)
                newIdx = {idxShifted[1], idxShifted[2]}
@@ -1052,7 +1184,6 @@ function _M.preCalcMat(grid, yShift, doCells, tsMatVecs)
 
 --      print("xIdx = ",xIdx[1])
 
---if xIdx[1] == 85 then
       for iC = 1, #doCellsC do
 
          local idxDo = doCellsC[iC]
@@ -1077,13 +1208,11 @@ function _M.preCalcMat(grid, yShift, doCells, tsMatVecs)
                interPts[i][j]  = findIntersect(yTar, yDo, cellLimTar[1], domLim[2])
                if interPts[i][j]==nil then foundAll=false end 
 --               print(string.format("    O_%s,%s = %g",i,j,interPts[i][j] or -1e19))
---               print(string.format("       yTar, yDo, cellLimTar[1], domLim[2] = %g, %g, (%g,%g), (%g,%g)",yTar, yDo, cellLimTar[1].lo, cellLimTar[1].up, domLim[2].lo, domLim[2].up))
             end
          end
 
          local atUpperCell = idxDo[2]==grid:numCells(2)   -- User in wrapNum
 
---if 1==2 then
          if foundAll then   -- Scenario sN.
             subCellInt_sN(interPts, xIdx, xcDo, xcTar, cellLimTar, atUpperCell, yShPtr:data(), tsMatVecs)
          else
@@ -1148,9 +1277,7 @@ function _M.preCalcMat(grid, yShift, doCells, tsMatVecs)
                subCellInt_sxvORsxvi(interPts, xIdx, xcDo, xcTar, cellLimDo, cellLimTar, atUpperCell, yShPtr:data(), tsMatVecs)
             end
          end
---end
       end
---end
 
    end
 end
