@@ -15,7 +15,7 @@ ESorEM : "ES"$
 geo : "general"$ 
 
 /* Linear or nonlinear kernels */
-LorNL : "linear"$
+LorNL : "both"$
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 1$
