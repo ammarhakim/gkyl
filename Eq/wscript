@@ -519,6 +519,15 @@ def build(bld):
     gkData/EmGyrokineticGenGeoSurfTensor1x1vP2.cpp
     gkData/EmGyrokineticGenGeoSurfTensor1x2vP2.cpp
 
+    gkData/LinearDeltaFGyrokineticGenGeoSer1x1vP1.cpp
+    gkData/LinearDeltaFGyrokineticGenGeoSer1x2vP1.cpp
+    gkData/LinearDeltaFGyrokineticGenGeoSer2x2vP1.cpp
+    gkData/LinearDeltaFGyrokineticGenGeoSer3x2vP1.cpp
+    gkData/LinearDeltaFGyrokineticGenGeoSurfSer1x1vP1.cpp
+    gkData/LinearDeltaFGyrokineticGenGeoSurfSer1x2vP1.cpp
+    gkData/LinearDeltaFGyrokineticGenGeoSurfSer2x2vP1.cpp
+    gkData/LinearDeltaFGyrokineticGenGeoSurfSer3x2vP1.cpp
+
     gkData/GkSheathFuncsSerP1.cpp
     gkData/GkSheathFuncsSerP2.cpp
 
