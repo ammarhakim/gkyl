@@ -45,6 +45,7 @@ function AdiabaticSpecies:fullInit(appTbl)
    self.fluctuationBCs = false
 
    assert(self.evolve==false, "AdiabaticSpecies: cannot evolve an adiabatic species")
+   assert(self.n0, "Must specify background density as global variable 'n0' in species table as 'n0 = ...'")
 end
 
 function AdiabaticSpecies:createSolver(field, externalField)
@@ -52,7 +53,7 @@ function AdiabaticSpecies:createSolver(field, externalField)
    -- Compute density in center of domain.
    local gridCenter = {}
    for d = 1, self.ndim do gridCenter[d] = (self.grid:upper(d) + self.grid:lower(d))/2 end
-   self._dens0 = self.initFunc(0., gridCenter)
+   self._dens0 = self.n0 -- self.initFunc(0., gridCenter)
 
    self.qneutFac = self:allocMoment()
 

@@ -39,6 +39,7 @@ function FluidSpecies:fullInit(appTbl)
 
    self.charge = tbl.charge or 1.0
    self.mass   = tbl.mass or 1.0
+   self.n0     = tbl.n0 or n0
 
    self.evolve              = xsys.pickBool(tbl.evolve, true) -- Default: evolve species.
    self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless, self.evolve)

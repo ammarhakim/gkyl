@@ -165,6 +165,9 @@ function KineticSpecies:fullInit(appTbl)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
    if self.deltaF then self.fluctuationBCs = true end
 
+   self.deltafGK       = xsys.pickBool(tbl.deltafGK, false)
+   self.deltafLinear   = xsys.pickBool(tbl.deltafLinear, false)
+
    self.zeroFluxDirections = {}
 
    -- Read in boundary conditions.

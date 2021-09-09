@@ -23,6 +23,9 @@ plasmaApp = Plasma.App {
    lower       = {-math.pi/knumber}, -- Configuration space lower left.
    upper       = {math.pi/knumber},  -- Configuration space upper right.
    cells       = {16},               -- Configuration space cells.
+   mapc2p = function(xc)
+      return xc[1]
+   end,
    basis       = "serendipity",      -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                  -- Polynomial order.
    timeStepper = "rk3",              -- One of "rk2" or "rk3".
@@ -42,9 +45,6 @@ plasmaApp = Plasma.App {
       lower = {-6.0},
       upper = { 6.0},
       cells = {32},
-   mapc2p = function(xc)
-      return xc[1]
-   end,
       -- Initial conditions.
       -- Specify background so that we can plot perturbed distribution and moments.
       background = Plasma.MaxwellianProjection {
@@ -57,11 +57,13 @@ plasmaApp = Plasma.App {
             local k = knumber
             local alpha = 0.01
             local perturb = alpha*math.cos(k*x)
-            return ni0*(1+perturb)
+            return ni0*(perturb)
          end,
          temperature = function (t, xn) return Ti0 end,
       },
       evolve = true, -- Evolve species?
+      deltafGK = true,
+      deltafLinear = true,
       diagnostics = {"M0", "M2", "intM0", "intM2"},
    },
 
@@ -71,7 +73,7 @@ plasmaApp = Plasma.App {
       temp = Te0,
       -- Initial conditions.. use ion background so that background is exactly neutral.
       init = function (t, xn)
-         return ne0
+         return 0
       end,
       evolve = false, -- Evolve species?
    },

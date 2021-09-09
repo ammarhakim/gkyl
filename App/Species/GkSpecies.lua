@@ -10,6 +10,7 @@ local Proto          = require "Lib.Proto"
 local KineticSpecies = require "App.Species.KineticSpecies"
 local Mpi            = require "Comm.Mpi"
 local GyrokineticEq  = require "Eq.Gyrokinetic"
+local DeltaFGyrokineticEq  = require "Eq.DeltaFGyrokinetic"
 local Updater        = require "Updater"
 local DataStruct     = require "DataStruct"
 local Time           = require "Lib.Time"
@@ -194,21 +195,41 @@ function GkSpecies:createSolver(field, externalField)
    end
 
    -- Create updater to advance solution by one time-step.
-   self.equation = GyrokineticEq.GkEq {
-      onGrid       = self.grid,
-      confGrid     = self.confGrid,
-      phaseBasis   = self.basis,
-      confBasis    = self.confBasis,
-      charge       = self.charge,
-      mass         = self.mass,
-      hasPhi       = hasPhi,
-      hasApar      = hasApar,
-      Bvars        = externalField.bmagVars,
-      hasSheathBCs = self.hasSheathBCs,
-      positivity   = self.positivity,
-      gyavgSlvr    = self.emGyavgSlvr,
-      geometry     = externalField.geo.name,
-   }
+   if self.deltafGK then
+      self.equation = DeltaFGyrokineticEq.GkEq {
+         onGrid       = self.grid,
+         confGrid     = self.confGrid,
+         phaseBasis   = self.basis,
+         confBasis    = self.confBasis,
+         charge       = self.charge,
+         mass         = self.mass,
+         hasPhi       = hasPhi,
+         hasApar      = hasApar,
+         Bvars        = externalField.bmagVars,
+         hasSheathBCs = self.hasSheathBCs,
+         positivity   = self.positivity,
+         gyavgSlvr    = self.emGyavgSlvr,
+         geometry     = externalField.geo.name,
+         f0           = self.fBackground,
+         linear       = self.deltafLinear,
+      }
+   else
+      self.equation = GyrokineticEq.GkEq {
+         onGrid       = self.grid,
+         confGrid     = self.confGrid,
+         phaseBasis   = self.basis,
+         confBasis    = self.confBasis,
+         charge       = self.charge,
+         mass         = self.mass,
+         hasPhi       = hasPhi,
+         hasApar      = hasApar,
+         Bvars        = externalField.bmagVars,
+         hasSheathBCs = self.hasSheathBCs,
+         positivity   = self.positivity,
+         gyavgSlvr    = self.emGyavgSlvr,
+         geometry     = externalField.geo.name,
+      }
+   end
 
    -- No update in mu direction (last velocity direction if present)
    local upd = {}
@@ -774,9 +795,9 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
+      self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv, self.fBackground}, {fRhsOut})
    else
-      self.equation:setAuxFields({em, emFunc, dApardtProv})  -- Set auxFields in case they are needed by BCs/collisions.
+      self.equation:setAuxFields({em, emFunc, dApardtProv, self.fBackground})  -- Set auxFields in case they are needed by BCs/collisions.
    end
 
    for _, bc in pairs(self.nonPeriodicBCs) do
