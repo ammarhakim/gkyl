@@ -601,7 +601,7 @@ function KineticSpecies:initDist(extField)
       if string.find(nm,"background") then
 	 if not self.fBackground then self.fBackground = self:allocDistf() end
 	 self.fBackground:accumulate(1.0, self.distf[2])
-	 self.fBackground:sync(syncPeriodicDirs)
+	 self.fBackground:sync(false)
 	 backgroundCnt = backgroundCnt + 1
       end
       -- if pr.isReservoir then

@@ -131,6 +131,13 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, var
   /* Always pure upwind in z direction. */
   if (surfDir=cdim and cdim#2) then (pureUpwind : true) else (pureUpwind : false),
 
+  /* if nonlinear, combine alpha0 + alpha1 (since both get convolved with f1) */
+  if (isLinear=false) then (
+    alpha0UpR_e : alpha0UpR_e + alpha1UpR_e,
+    alpha0SurfR_e : alpha0SurfR_e + alpha1SurfR_e,
+    alpha0UpSurfR_e : alpha0UpSurfR_e + alpha1UpSurfR_e
+  ), 
+
   /* Note: always use pureUpwind for p=1. */
   first : true,
   if (alpha0SurfR_e = 0) then (
@@ -142,8 +149,11 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, var
     f0L_e : doExpand1(f0L,bP),  f0R_e : doExpand1(f0R,bP),
     f1L_e : doExpand1(f1L,bP),  f1R_e : doExpand1(f1R,bP),
 
-    printf(fh, "  // linear term alpha0*f1 ~%"),
-    /* Linear term alpha0*f1 */
+    if (isLinear=false) then (
+      printf(fh, "  // linear + nonlinear terms (alpha0+alpha1)*f1 ~%")
+    ) else (
+      printf(fh, "  // linear term alpha0*f1 ~%")
+    ),
     [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wQuadNodeAlpha(fh,basisFun,polyOrder,bP,surfDir,"R",
                                                                 alpha0SurfR_e,alpha0UpSurfR_e,f1L_e,f1R_e,wApar,false),
 
@@ -203,37 +213,6 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, var
       writeCIncrExprsNoExpand1(emModL, incrEmMod_s),
       printf(fh, "~%"),
       flush_output(fh)
-    ),
-
-    if(isLinear=false) then (
-      printf(fh, "  // nonlinear term alpha1*f1 ~%"),
-      /* Nonlinear term alpha1*f1 */
-      [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wQuadNodeAlpha(fh,basisFun,polyOrder,bP,surfDir,"R",
-                                                                  alpha1SurfR_e,alpha1UpSurfR_e,f1L_e,f1R_e,wApar,false),
-
-      flush_output(fh),
-
-      /* Write the actual increments to the left and right cells, which are
-         built with incr, dxv factors and some sign changes. */
-      incr_s : makelist(incr[i-1], i, 1, numP),
-      writeCIncrExprsNoExpand1(outR, rdSurfVar2R*incr_s),
-      printf(fh, "~%"),
-      flush_output(fh),
-
-      signs  : fullratsimp(incrL_c/incrR_c),
-      incr_s : makelist(signs[i]*incr[i-1], i, 1, numP),
-      writeCIncrExprsNoExpand1(outL, rdSurfVar2L*incr_s),
-      printf(fh, "~%"),
-      flush_output(fh),
-
-      if surfVar=vpar and wApar and polyOrder=1 then (
-        incrEmMod_s : rdSurfVar2R*makelist(incrEmMod[i-1], i, 1, numP),
-        writeCIncrExprsNoExpand1(emModR, incrEmMod_s),
-        incrEmMod_s : rdSurfVar2L*makelist(signs[i]*incrEmMod[i-1], i, 1, numP),
-        writeCIncrExprsNoExpand1(emModL, incrEmMod_s),
-        printf(fh, "~%"),
-        flush_output(fh)
-      )
     )
   ),
 

@@ -71,7 +71,6 @@ plasmaApp = Plasma.App {
 
    -- Boundary conditions for configuration space.
    periodicDirs = {1,2},   -- Periodic directions.
-   deltaF = true,          -- Only apply BCs to fluctuations, and use perturbed moments in field solve.
 
    -- Gyrokinetic electrons.
    electron = Plasma.Species {
@@ -99,17 +98,19 @@ plasmaApp = Plasma.App {
          density = function (t, xn)
             local x, y, z = xn[1], xn[2]
             local perturb = 1e-8*rho_e/L_T*math.cos(ky_min*y)
-            return n0*(1+perturb)
+            return n0*(perturb)
          end,
          driftSpeed = 0.0,
          temperature = function (t, xn)
             local x = xn[1]
-            return Te0*(1-(x-r0)/L_T)
+            return Te0--*(1-(x-r0)/L_T)
          end,
-         exactScaleM012 = true,
+         --exactScaleM012 = true,
       },
       evolve = true, -- Evolve species?
       diagnostics = {"M0", "Upar", "Temp"}, 
+      deltafGK = true,
+      deltafLinear = true,
    },
 
    -- Adiabatic ions.
@@ -118,7 +119,7 @@ plasmaApp = Plasma.App {
       mass   = mi,
       temp   = Ti0,
       -- Initial conditions.
-      init   = function (t, xn, self) return n0 end,
+      init   = function (t, xn, self) return 0 end,
       evolve = false, -- Evolve species?
    },
 

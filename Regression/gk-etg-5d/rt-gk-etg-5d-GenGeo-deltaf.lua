@@ -80,8 +80,6 @@ plasmaApp = Plasma.App {
    -- Poundary conditions for configuration space.
    periodicDirs = {1,2,3}, -- Periodic directions.
 
-   --deltaF = true,
-
    -- Gyrokinetic electrons.
    electron = Plasma.Species {
       charge = qe,
@@ -106,16 +104,17 @@ plasmaApp = Plasma.App {
          density = function (t, xn)
             local x, y, z = xn[1], xn[2], xn[3]
             local perturb = 1e-5*rho_e/L_T*math.cos(ky_min*y+kz_min*z)
-            return n0*(1-(x-r0)/L_n) + n0*perturb
+            return n0*perturb
          end,
          temperature = function (t, xn)
             local x = xn[1]
-            return Te0*(1-(x-r0)/L_T)
+            return Te0--*(1-(x-r0)/L_T)
          end,
       },
       evolve = true, -- Evolve species?
       diagnostics = {"M0", "M2"},
-      fluctuationBCs = true,
+      deltafGK = true,
+      deltafLinear = true,
    },
 
    -- Adiabatic ions
@@ -126,7 +125,7 @@ plasmaApp = Plasma.App {
       -- Initial conditions.
       init = function (t, xn)
          local x = xn[1]
-         return n0*(1-(x-r0)/L_n)
+         return 0. -- n0*(1-(x-r0)/L_n)
       end,
       evolve = false, -- Evolve species?
    },

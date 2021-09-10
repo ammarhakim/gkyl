@@ -52,7 +52,7 @@ double DeltaFGyrokineticGenGeoSurf1x1vSer_x_P1_Bvars(const double q_, const doub
   double alphaSurfAvgR = (0.2165063509461096*BstarZdBmagR[0]*hamil0R[2]*rdvpar2R)/m_; 
 
   double incr[4]; 
-  // linear term alpha0*f1 
+  // linear + nonlinear terms (alpha0+alpha1)*f1 
   double alphaOrdR;
   double fUpOrd[2];
   alphaOrdR = 0.7071067811865475*alpha0R[0]; 
@@ -135,14 +135,13 @@ double DeltaFGyrokineticGenGeoSurf1x1vSer_vpar_P1_Bvars(const double q_, const d
   double alphaSurfAvgR = -(0.2165063509461096*BstarZdBmagR[0]*hamil1R[1]*rdx2R)/m_; 
 
   double incr[4]; 
-  // alpha0 == 0, so nothing to do for alpha0*f1 term.
-  // linear term alpha1*f0 
+  // linear + nonlinear terms (alpha0+alpha1)*f1 
   double alphaOrdR;
   double fUpOrd[2];
   alphaOrdR = 0.7071067811865475*alpha1R[0]; 
-  fUpOrd[0] = 0.5*(((-0.8660254037844386*(f0R[3]+f0L[3]))+0.8660254037844386*(f0R[2]+f0L[2])+0.5*f0R[1]-0.5*(f0L[1]+f0R[0])+0.5*f0L[0])*sgn(alphaOrdR)+0.8660254037844386*f0R[3]-0.8660254037844386*(f0L[3]+f0R[2])+0.8660254037844386*f0L[2]-0.5*(f0R[1]+f0L[1])+0.5*(f0R[0]+f0L[0])); 
+  fUpOrd[0] = 0.5*(((-0.8660254037844386*(f1R[3]+f1L[3]))+0.8660254037844386*(f1R[2]+f1L[2])+0.5*f1R[1]-0.5*(f1L[1]+f1R[0])+0.5*f1L[0])*sgn(alphaOrdR)+0.8660254037844386*f1R[3]-0.8660254037844386*(f1L[3]+f1R[2])+0.8660254037844386*f1L[2]-0.5*(f1R[1]+f1L[1])+0.5*(f1R[0]+f1L[0])); 
   alphaOrdR = 0.7071067811865475*alpha1R[0]; 
-  fUpOrd[1] = 0.5*((0.8660254037844386*(f0R[3]+f0L[3]+f0R[2]+f0L[2])-0.5*(f0R[1]+f0R[0])+0.5*(f0L[1]+f0L[0]))*sgn(alphaOrdR)-0.8660254037844386*(f0R[3]+f0R[2])+0.8660254037844386*(f0L[3]+f0L[2])+0.5*(f0R[1]+f0L[1]+f0R[0]+f0L[0])); 
+  fUpOrd[1] = 0.5*((0.8660254037844386*(f1R[3]+f1L[3]+f1R[2]+f1L[2])-0.5*(f1R[1]+f1R[0])+0.5*(f1L[1]+f1L[0]))*sgn(alphaOrdR)-0.8660254037844386*(f1R[3]+f1R[2])+0.8660254037844386*(f1L[3]+f1L[2])+0.5*(f1R[1]+f1L[1]+f1R[0]+f1L[0])); 
 
   double fUp[2];
   fUp[0] = 0.7071067811865475*(fUpOrd[1]+fUpOrd[0]); 
@@ -163,11 +162,11 @@ double DeltaFGyrokineticGenGeoSurf1x1vSer_vpar_P1_Bvars(const double q_, const d
   outL[2] += incr[2]*rdvpar2L; 
   outL[3] += incr[3]*rdvpar2L; 
 
-  // nonlinear term alpha1*f1 
+  // linear term alpha1*f0 
   alphaOrdR = 0.7071067811865475*alpha1R[0]; 
-  fUpOrd[0] = 0.5*(((-0.8660254037844386*(f1R[3]+f1L[3]))+0.8660254037844386*(f1R[2]+f1L[2])+0.5*f1R[1]-0.5*(f1L[1]+f1R[0])+0.5*f1L[0])*sgn(alphaOrdR)+0.8660254037844386*f1R[3]-0.8660254037844386*(f1L[3]+f1R[2])+0.8660254037844386*f1L[2]-0.5*(f1R[1]+f1L[1])+0.5*(f1R[0]+f1L[0])); 
+  fUpOrd[0] = 0.5*(((-0.8660254037844386*(f0R[3]+f0L[3]))+0.8660254037844386*(f0R[2]+f0L[2])+0.5*f0R[1]-0.5*(f0L[1]+f0R[0])+0.5*f0L[0])*sgn(alphaOrdR)+0.8660254037844386*f0R[3]-0.8660254037844386*(f0L[3]+f0R[2])+0.8660254037844386*f0L[2]-0.5*(f0R[1]+f0L[1])+0.5*(f0R[0]+f0L[0])); 
   alphaOrdR = 0.7071067811865475*alpha1R[0]; 
-  fUpOrd[1] = 0.5*((0.8660254037844386*(f1R[3]+f1L[3]+f1R[2]+f1L[2])-0.5*(f1R[1]+f1R[0])+0.5*(f1L[1]+f1L[0]))*sgn(alphaOrdR)-0.8660254037844386*(f1R[3]+f1R[2])+0.8660254037844386*(f1L[3]+f1L[2])+0.5*(f1R[1]+f1L[1]+f1R[0]+f1L[0])); 
+  fUpOrd[1] = 0.5*((0.8660254037844386*(f0R[3]+f0L[3]+f0R[2]+f0L[2])-0.5*(f0R[1]+f0R[0])+0.5*(f0L[1]+f0L[0]))*sgn(alphaOrdR)-0.8660254037844386*(f0R[3]+f0R[2])+0.8660254037844386*(f0L[3]+f0L[2])+0.5*(f0R[1]+f0L[1]+f0R[0]+f0L[0])); 
 
   fUp[0] = 0.7071067811865475*(fUpOrd[1]+fUpOrd[0]); 
   fUp[1] = 0.7071067811865475*(fUpOrd[1]-1.0*fUpOrd[0]); 
@@ -246,7 +245,7 @@ double DeltaFGyrokineticGenGeoSurf1x1vSer_x_P1_Bvarsx(const double q_, const dou
   double alphaSurfAvgR = -(0.125*(3.0*BstarZdBmagR[1]-1.732050807568877*BstarZdBmagR[0])*hamil0R[2]*rdvpar2R)/m_; 
 
   double incr[4]; 
-  // linear term alpha0*f1 
+  // linear + nonlinear terms (alpha0+alpha1)*f1 
   double alphaOrdR;
   double fUpOrd[2];
   alphaOrdR = 0.7071067811865475*alpha0R[0]-0.7071067811865475*alpha0R[1]; 
@@ -333,14 +332,13 @@ double DeltaFGyrokineticGenGeoSurf1x1vSer_vpar_P1_Bvarsx(const double q_, const 
   double alphaSurfAvgR = (0.125*(3.0*hamil1R[1]*BstarZdBmagR[2]-1.732050807568877*BstarZdBmagR[0]*hamil1R[1])*rdx2R)/m_; 
 
   double incr[4]; 
-  // alpha0 == 0, so nothing to do for alpha0*f1 term.
-  // linear term alpha1*f0 
+  // linear + nonlinear terms (alpha0+alpha1)*f1 
   double alphaOrdR;
   double fUpOrd[2];
   alphaOrdR = 0.7071067811865475*alpha1R[0]-0.7071067811865475*alpha1R[1]; 
-  fUpOrd[0] = 0.5*(((-0.8660254037844386*(f0R[3]+f0L[3]))+0.8660254037844386*(f0R[2]+f0L[2])+0.5*f0R[1]-0.5*(f0L[1]+f0R[0])+0.5*f0L[0])*sgn(alphaOrdR)+0.8660254037844386*f0R[3]-0.8660254037844386*(f0L[3]+f0R[2])+0.8660254037844386*f0L[2]-0.5*(f0R[1]+f0L[1])+0.5*(f0R[0]+f0L[0])); 
+  fUpOrd[0] = 0.5*(((-0.8660254037844386*(f1R[3]+f1L[3]))+0.8660254037844386*(f1R[2]+f1L[2])+0.5*f1R[1]-0.5*(f1L[1]+f1R[0])+0.5*f1L[0])*sgn(alphaOrdR)+0.8660254037844386*f1R[3]-0.8660254037844386*(f1L[3]+f1R[2])+0.8660254037844386*f1L[2]-0.5*(f1R[1]+f1L[1])+0.5*(f1R[0]+f1L[0])); 
   alphaOrdR = 0.7071067811865475*(alpha1R[1]+alpha1R[0]); 
-  fUpOrd[1] = 0.5*((0.8660254037844386*(f0R[3]+f0L[3]+f0R[2]+f0L[2])-0.5*(f0R[1]+f0R[0])+0.5*(f0L[1]+f0L[0]))*sgn(alphaOrdR)-0.8660254037844386*(f0R[3]+f0R[2])+0.8660254037844386*(f0L[3]+f0L[2])+0.5*(f0R[1]+f0L[1]+f0R[0]+f0L[0])); 
+  fUpOrd[1] = 0.5*((0.8660254037844386*(f1R[3]+f1L[3]+f1R[2]+f1L[2])-0.5*(f1R[1]+f1R[0])+0.5*(f1L[1]+f1L[0]))*sgn(alphaOrdR)-0.8660254037844386*(f1R[3]+f1R[2])+0.8660254037844386*(f1L[3]+f1L[2])+0.5*(f1R[1]+f1L[1]+f1R[0]+f1L[0])); 
 
   double fUp[2];
   fUp[0] = 0.7071067811865475*(fUpOrd[1]+fUpOrd[0]); 
@@ -361,11 +359,11 @@ double DeltaFGyrokineticGenGeoSurf1x1vSer_vpar_P1_Bvarsx(const double q_, const 
   outL[2] += incr[2]*rdvpar2L; 
   outL[3] += incr[3]*rdvpar2L; 
 
-  // nonlinear term alpha1*f1 
+  // linear term alpha1*f0 
   alphaOrdR = 0.7071067811865475*alpha1R[0]-0.7071067811865475*alpha1R[1]; 
-  fUpOrd[0] = 0.5*(((-0.8660254037844386*(f1R[3]+f1L[3]))+0.8660254037844386*(f1R[2]+f1L[2])+0.5*f1R[1]-0.5*(f1L[1]+f1R[0])+0.5*f1L[0])*sgn(alphaOrdR)+0.8660254037844386*f1R[3]-0.8660254037844386*(f1L[3]+f1R[2])+0.8660254037844386*f1L[2]-0.5*(f1R[1]+f1L[1])+0.5*(f1R[0]+f1L[0])); 
+  fUpOrd[0] = 0.5*(((-0.8660254037844386*(f0R[3]+f0L[3]))+0.8660254037844386*(f0R[2]+f0L[2])+0.5*f0R[1]-0.5*(f0L[1]+f0R[0])+0.5*f0L[0])*sgn(alphaOrdR)+0.8660254037844386*f0R[3]-0.8660254037844386*(f0L[3]+f0R[2])+0.8660254037844386*f0L[2]-0.5*(f0R[1]+f0L[1])+0.5*(f0R[0]+f0L[0])); 
   alphaOrdR = 0.7071067811865475*(alpha1R[1]+alpha1R[0]); 
-  fUpOrd[1] = 0.5*((0.8660254037844386*(f1R[3]+f1L[3]+f1R[2]+f1L[2])-0.5*(f1R[1]+f1R[0])+0.5*(f1L[1]+f1L[0]))*sgn(alphaOrdR)-0.8660254037844386*(f1R[3]+f1R[2])+0.8660254037844386*(f1L[3]+f1L[2])+0.5*(f1R[1]+f1L[1]+f1R[0]+f1L[0])); 
+  fUpOrd[1] = 0.5*((0.8660254037844386*(f0R[3]+f0L[3]+f0R[2]+f0L[2])-0.5*(f0R[1]+f0R[0])+0.5*(f0L[1]+f0L[0]))*sgn(alphaOrdR)-0.8660254037844386*(f0R[3]+f0R[2])+0.8660254037844386*(f0L[3]+f0L[2])+0.5*(f0R[1]+f0L[1]+f0R[0]+f0L[0])); 
 
   fUp[0] = 0.7071067811865475*(fUpOrd[1]+fUpOrd[0]); 
   fUp[1] = 0.7071067811865475*(fUpOrd[1]-1.0*fUpOrd[0]); 
@@ -440,7 +438,7 @@ double DeltaFGyrokineticGenGeoSurf1x1vSer_x_P1_Bvarsz(const double q_, const dou
   double alphaSurfAvgR = (0.2165063509461096*BstarZdBmagR[0]*hamil0R[2]*rdvpar2R)/m_; 
 
   double incr[4]; 
-  // linear term alpha0*f1 
+  // linear + nonlinear terms (alpha0+alpha1)*f1 
   double alphaOrdR;
   double fUpOrd[2];
   alphaOrdR = 0.7071067811865475*alpha0R[0]; 
@@ -523,14 +521,13 @@ double DeltaFGyrokineticGenGeoSurf1x1vSer_vpar_P1_Bvarsz(const double q_, const 
   double alphaSurfAvgR = -(0.2165063509461096*BstarZdBmagR[0]*hamil1R[1]*rdx2R)/m_; 
 
   double incr[4]; 
-  // alpha0 == 0, so nothing to do for alpha0*f1 term.
-  // linear term alpha1*f0 
+  // linear + nonlinear terms (alpha0+alpha1)*f1 
   double alphaOrdR;
   double fUpOrd[2];
   alphaOrdR = 0.7071067811865475*alpha1R[0]; 
-  fUpOrd[0] = 0.5*(((-0.8660254037844386*(f0R[3]+f0L[3]))+0.8660254037844386*(f0R[2]+f0L[2])+0.5*f0R[1]-0.5*(f0L[1]+f0R[0])+0.5*f0L[0])*sgn(alphaOrdR)+0.8660254037844386*f0R[3]-0.8660254037844386*(f0L[3]+f0R[2])+0.8660254037844386*f0L[2]-0.5*(f0R[1]+f0L[1])+0.5*(f0R[0]+f0L[0])); 
+  fUpOrd[0] = 0.5*(((-0.8660254037844386*(f1R[3]+f1L[3]))+0.8660254037844386*(f1R[2]+f1L[2])+0.5*f1R[1]-0.5*(f1L[1]+f1R[0])+0.5*f1L[0])*sgn(alphaOrdR)+0.8660254037844386*f1R[3]-0.8660254037844386*(f1L[3]+f1R[2])+0.8660254037844386*f1L[2]-0.5*(f1R[1]+f1L[1])+0.5*(f1R[0]+f1L[0])); 
   alphaOrdR = 0.7071067811865475*alpha1R[0]; 
-  fUpOrd[1] = 0.5*((0.8660254037844386*(f0R[3]+f0L[3]+f0R[2]+f0L[2])-0.5*(f0R[1]+f0R[0])+0.5*(f0L[1]+f0L[0]))*sgn(alphaOrdR)-0.8660254037844386*(f0R[3]+f0R[2])+0.8660254037844386*(f0L[3]+f0L[2])+0.5*(f0R[1]+f0L[1]+f0R[0]+f0L[0])); 
+  fUpOrd[1] = 0.5*((0.8660254037844386*(f1R[3]+f1L[3]+f1R[2]+f1L[2])-0.5*(f1R[1]+f1R[0])+0.5*(f1L[1]+f1L[0]))*sgn(alphaOrdR)-0.8660254037844386*(f1R[3]+f1R[2])+0.8660254037844386*(f1L[3]+f1L[2])+0.5*(f1R[1]+f1L[1]+f1R[0]+f1L[0])); 
 
   double fUp[2];
   fUp[0] = 0.7071067811865475*(fUpOrd[1]+fUpOrd[0]); 
@@ -551,11 +548,11 @@ double DeltaFGyrokineticGenGeoSurf1x1vSer_vpar_P1_Bvarsz(const double q_, const 
   outL[2] += incr[2]*rdvpar2L; 
   outL[3] += incr[3]*rdvpar2L; 
 
-  // nonlinear term alpha1*f1 
+  // linear term alpha1*f0 
   alphaOrdR = 0.7071067811865475*alpha1R[0]; 
-  fUpOrd[0] = 0.5*(((-0.8660254037844386*(f1R[3]+f1L[3]))+0.8660254037844386*(f1R[2]+f1L[2])+0.5*f1R[1]-0.5*(f1L[1]+f1R[0])+0.5*f1L[0])*sgn(alphaOrdR)+0.8660254037844386*f1R[3]-0.8660254037844386*(f1L[3]+f1R[2])+0.8660254037844386*f1L[2]-0.5*(f1R[1]+f1L[1])+0.5*(f1R[0]+f1L[0])); 
+  fUpOrd[0] = 0.5*(((-0.8660254037844386*(f0R[3]+f0L[3]))+0.8660254037844386*(f0R[2]+f0L[2])+0.5*f0R[1]-0.5*(f0L[1]+f0R[0])+0.5*f0L[0])*sgn(alphaOrdR)+0.8660254037844386*f0R[3]-0.8660254037844386*(f0L[3]+f0R[2])+0.8660254037844386*f0L[2]-0.5*(f0R[1]+f0L[1])+0.5*(f0R[0]+f0L[0])); 
   alphaOrdR = 0.7071067811865475*alpha1R[0]; 
-  fUpOrd[1] = 0.5*((0.8660254037844386*(f1R[3]+f1L[3]+f1R[2]+f1L[2])-0.5*(f1R[1]+f1R[0])+0.5*(f1L[1]+f1L[0]))*sgn(alphaOrdR)-0.8660254037844386*(f1R[3]+f1R[2])+0.8660254037844386*(f1L[3]+f1L[2])+0.5*(f1R[1]+f1L[1]+f1R[0]+f1L[0])); 
+  fUpOrd[1] = 0.5*((0.8660254037844386*(f0R[3]+f0L[3]+f0R[2]+f0L[2])-0.5*(f0R[1]+f0R[0])+0.5*(f0L[1]+f0L[0]))*sgn(alphaOrdR)-0.8660254037844386*(f0R[3]+f0R[2])+0.8660254037844386*(f0L[3]+f0L[2])+0.5*(f0R[1]+f0L[1]+f0R[0]+f0L[0])); 
 
   fUp[0] = 0.7071067811865475*(fUpOrd[1]+fUpOrd[0]); 
   fUp[1] = 0.7071067811865475*(fUpOrd[1]-1.0*fUpOrd[0]); 
@@ -634,7 +631,7 @@ double DeltaFGyrokineticGenGeoSurf1x1vSer_x_P1_Bvarsxz(const double q_, const do
   double alphaSurfAvgR = -(0.125*(3.0*BstarZdBmagR[1]-1.732050807568877*BstarZdBmagR[0])*hamil0R[2]*rdvpar2R)/m_; 
 
   double incr[4]; 
-  // linear term alpha0*f1 
+  // linear + nonlinear terms (alpha0+alpha1)*f1 
   double alphaOrdR;
   double fUpOrd[2];
   alphaOrdR = 0.7071067811865475*alpha0R[0]-0.7071067811865475*alpha0R[1]; 
@@ -721,14 +718,13 @@ double DeltaFGyrokineticGenGeoSurf1x1vSer_vpar_P1_Bvarsxz(const double q_, const
   double alphaSurfAvgR = (0.125*(3.0*hamil1R[1]*BstarZdBmagR[2]-1.732050807568877*BstarZdBmagR[0]*hamil1R[1])*rdx2R)/m_; 
 
   double incr[4]; 
-  // alpha0 == 0, so nothing to do for alpha0*f1 term.
-  // linear term alpha1*f0 
+  // linear + nonlinear terms (alpha0+alpha1)*f1 
   double alphaOrdR;
   double fUpOrd[2];
   alphaOrdR = 0.7071067811865475*alpha1R[0]-0.7071067811865475*alpha1R[1]; 
-  fUpOrd[0] = 0.5*(((-0.8660254037844386*(f0R[3]+f0L[3]))+0.8660254037844386*(f0R[2]+f0L[2])+0.5*f0R[1]-0.5*(f0L[1]+f0R[0])+0.5*f0L[0])*sgn(alphaOrdR)+0.8660254037844386*f0R[3]-0.8660254037844386*(f0L[3]+f0R[2])+0.8660254037844386*f0L[2]-0.5*(f0R[1]+f0L[1])+0.5*(f0R[0]+f0L[0])); 
+  fUpOrd[0] = 0.5*(((-0.8660254037844386*(f1R[3]+f1L[3]))+0.8660254037844386*(f1R[2]+f1L[2])+0.5*f1R[1]-0.5*(f1L[1]+f1R[0])+0.5*f1L[0])*sgn(alphaOrdR)+0.8660254037844386*f1R[3]-0.8660254037844386*(f1L[3]+f1R[2])+0.8660254037844386*f1L[2]-0.5*(f1R[1]+f1L[1])+0.5*(f1R[0]+f1L[0])); 
   alphaOrdR = 0.7071067811865475*(alpha1R[1]+alpha1R[0]); 
-  fUpOrd[1] = 0.5*((0.8660254037844386*(f0R[3]+f0L[3]+f0R[2]+f0L[2])-0.5*(f0R[1]+f0R[0])+0.5*(f0L[1]+f0L[0]))*sgn(alphaOrdR)-0.8660254037844386*(f0R[3]+f0R[2])+0.8660254037844386*(f0L[3]+f0L[2])+0.5*(f0R[1]+f0L[1]+f0R[0]+f0L[0])); 
+  fUpOrd[1] = 0.5*((0.8660254037844386*(f1R[3]+f1L[3]+f1R[2]+f1L[2])-0.5*(f1R[1]+f1R[0])+0.5*(f1L[1]+f1L[0]))*sgn(alphaOrdR)-0.8660254037844386*(f1R[3]+f1R[2])+0.8660254037844386*(f1L[3]+f1L[2])+0.5*(f1R[1]+f1L[1]+f1R[0]+f1L[0])); 
 
   double fUp[2];
   fUp[0] = 0.7071067811865475*(fUpOrd[1]+fUpOrd[0]); 
@@ -749,11 +745,11 @@ double DeltaFGyrokineticGenGeoSurf1x1vSer_vpar_P1_Bvarsxz(const double q_, const
   outL[2] += incr[2]*rdvpar2L; 
   outL[3] += incr[3]*rdvpar2L; 
 
-  // nonlinear term alpha1*f1 
+  // linear term alpha1*f0 
   alphaOrdR = 0.7071067811865475*alpha1R[0]-0.7071067811865475*alpha1R[1]; 
-  fUpOrd[0] = 0.5*(((-0.8660254037844386*(f1R[3]+f1L[3]))+0.8660254037844386*(f1R[2]+f1L[2])+0.5*f1R[1]-0.5*(f1L[1]+f1R[0])+0.5*f1L[0])*sgn(alphaOrdR)+0.8660254037844386*f1R[3]-0.8660254037844386*(f1L[3]+f1R[2])+0.8660254037844386*f1L[2]-0.5*(f1R[1]+f1L[1])+0.5*(f1R[0]+f1L[0])); 
+  fUpOrd[0] = 0.5*(((-0.8660254037844386*(f0R[3]+f0L[3]))+0.8660254037844386*(f0R[2]+f0L[2])+0.5*f0R[1]-0.5*(f0L[1]+f0R[0])+0.5*f0L[0])*sgn(alphaOrdR)+0.8660254037844386*f0R[3]-0.8660254037844386*(f0L[3]+f0R[2])+0.8660254037844386*f0L[2]-0.5*(f0R[1]+f0L[1])+0.5*(f0R[0]+f0L[0])); 
   alphaOrdR = 0.7071067811865475*(alpha1R[1]+alpha1R[0]); 
-  fUpOrd[1] = 0.5*((0.8660254037844386*(f1R[3]+f1L[3]+f1R[2]+f1L[2])-0.5*(f1R[1]+f1R[0])+0.5*(f1L[1]+f1L[0]))*sgn(alphaOrdR)-0.8660254037844386*(f1R[3]+f1R[2])+0.8660254037844386*(f1L[3]+f1L[2])+0.5*(f1R[1]+f1L[1]+f1R[0]+f1L[0])); 
+  fUpOrd[1] = 0.5*((0.8660254037844386*(f0R[3]+f0L[3]+f0R[2]+f0L[2])-0.5*(f0R[1]+f0R[0])+0.5*(f0L[1]+f0L[0]))*sgn(alphaOrdR)-0.8660254037844386*(f0R[3]+f0R[2])+0.8660254037844386*(f0L[3]+f0L[2])+0.5*(f0R[1]+f0L[1]+f0R[0]+f0L[0])); 
 
   fUp[0] = 0.7071067811865475*(fUpOrd[1]+fUpOrd[0]); 
   fUp[1] = 0.7071067811865475*(fUpOrd[1]-1.0*fUpOrd[0]); 
