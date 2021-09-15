@@ -41,6 +41,7 @@ def build(bld):
     sqrtOnBasisData/sqrt_on_basis_4x_p2_tensor.cpp
 
     twistShiftData/TwistShiftAllocDel.cpp
+    twistShiftData/TwistShiftSer2xP0.cpp
     twistShiftData/TwistShiftSer2xP1.cpp
     twistShiftData/TwistShiftSer3xP1.cpp
     twistShiftData/TwistShiftSer3x2vP1.cpp
@@ -60,7 +61,6 @@ def build(bld):
 
     interpolateCalcData/CartFieldInterpSer1x.cpp
     interpolateCalcData/CartFieldInterpSer2x.cpp
-    interpolateCalcData/TwistShiftInterpSer2xP1.cpp
 
     mgPoissonCalcData/MGpoissonDGSer1x.cpp
     mgPoissonCalcData/MGpoissonDGSer2x.cpp

@@ -36,9 +36,7 @@ local dz              = (upper[3]-lower[3])/numCells[3]
 -- It has to be everywhere >0 or everywhere <0 (it cannot be zero, or too close to it).
 local yShiftFunc = function(t, xn)
                       local x = xn[1]
---                      return 1./(1.+0.25*x)
                       return -0.3*x+0.97
---                      return dy/2.
                    end
 
 -- Donor field function.

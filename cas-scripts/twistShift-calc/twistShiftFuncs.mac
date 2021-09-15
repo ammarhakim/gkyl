@@ -74,11 +74,11 @@ calcTwistShiftOp_xLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder, polyOrder1D
   kill(varsC, varsP, basisC, basisP),
   if vdim=0 then (
     load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
-    basis : basisC[polyOrder],
+    if (polyOrder=0) then (basis:basisConstant) else (basis : basisC[polyOrder]),
     vars  : varsC
   ) else (
     load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
-    basis : basisP[polyOrder],
+    if (polyOrder=0) then (basis:basisConstant) else (basis : basisP[polyOrder]),
     vars  : varsP
   ),
   numB : length(basis),
@@ -151,7 +151,7 @@ calcTwistShiftOp_xLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder, polyOrder1D
   /* In general these expressions are very complex. It would be beneficial to
      perform some kind of common subexpression elimination. For now we'll just eliminate the exponents. */
   subList : [],
-  maxExponent : 18,
+  maxExponent : 48,
   expQ        : [yLimLo, yLimUp, dyLim, ycLim, dyDo, yOff],
   for eI : 1 thru length(expQ) do (
     for f : 2 thru maxExponent do (
@@ -227,11 +227,11 @@ calcTwistShiftOp_yLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder, polyOrder1D
   kill(varsC, varsP, basisC, basisP),
   if vdim=0 then (
     load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
-    basis : basisC[polyOrder],
+    if (polyOrder=0) then (basis:basisConstant) else (basis : basisC[polyOrder]),
     vars  : varsC
   ) else (
     load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
-    basis : basisP[polyOrder],
+    if (polyOrder=0) then (basis:basisConstant) else (basis : basisP[polyOrder]),
     vars  : varsP
   ),
   numB : length(basis),
@@ -302,7 +302,7 @@ calcTwistShiftOp_yLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder, polyOrder1D
   /* In general these expressions are very complex. It would be beneficial to
      perform some kind of common subexpression elimination. For now we'll just eliminate the exponents. */
   subList : [],
-  maxExponent : 18,
+  maxExponent : 48,
   expQ        : [xLimLo, xLimUp, dxLim, xcLim, dyDo, yOff, sFac],
   for eI : 1 thru length(expQ) do (
     for f : 2 thru maxExponent do (
@@ -375,11 +375,11 @@ calcTwistShiftOp_fullCell(fh, funcNm, cdim, vdim, basisFun, polyOrder, polyOrder
   kill(varsC, varsP, basisC, basisP),
   if vdim=0 then (
     load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
-    basis : basisC[polyOrder],
+    if (polyOrder=0) then (basis:basisConstant) else (basis : basisC[polyOrder]),
     vars  : varsC
   ) else (
     load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
-    basis : basisP[polyOrder],
+    if (polyOrder=0) then (basis:basisConstant) else (basis : basisP[polyOrder]),
     vars  : varsP
   ),
   numB : length(basis),
@@ -416,7 +416,7 @@ calcTwistShiftOp_fullCell(fh, funcNm, cdim, vdim, basisFun, polyOrder, polyOrder
   /* In general these expressions are very complex. It would be beneficial to
      perform some kind of common subexpression elimination. For now we'll just eliminate the exponents. */
   subList : [],
-  maxExponent : 18,
+  maxExponent : 48,
   expQ        : [dyDo, yOff],
   for eI : 1 thru length(expQ) do (
     for f : 2 thru maxExponent do (
@@ -479,11 +479,11 @@ calcTwistShiftOp_matVecMult(fh, funcNm, cdim, vdim, basisFun, polyOrder) := bloc
   kill(varsC, varsP, basisC, basisP),
   if vdim=0 then (
     load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
-    basis : basisC[polyOrder],
+    if (polyOrder=0) then (basis:basisConstant) else (basis : basisC[polyOrder]),
     vars  : varsC
   ) else (
     load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
-    basis : basisP[polyOrder],
+    if (polyOrder=0) then (basis:basisConstant) else (basis : basisP[polyOrder]),
     vars  : varsP
   ),
   numB : length(basis),

@@ -56,7 +56,7 @@ for bInd : 1 thru length(bName) do (
       maxPolyOrderB : polyOrderMax,
       if (ci+vi>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
 
-      for polyOrder : 1 thru maxPolyOrderB do (
+      for polyOrder : 0 thru maxPolyOrderB do (
 
         vStr : "",
         if (vi>0) then (vStr: sconcat(vi,"v")),
