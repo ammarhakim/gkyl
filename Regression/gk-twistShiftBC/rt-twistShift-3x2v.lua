@@ -252,7 +252,7 @@ for i, edge in ipairs(edges) do
    }
    
    local t1 = os.clock()
-   twistShiftUpd[edge]:advance(0., {}, {fldTar})
+   twistShiftUpd[edge]:_advance3xInPlace(0., {}, {fldTar})
    local t2 = os.clock()
    io.write(edge.." shift time: ", t2-t1, " s\n")
    

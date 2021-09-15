@@ -20,6 +20,7 @@ local Grid         = require "Grid"
 local DiagsApp     = require "App.Diagnostics.SpeciesDiagnostics"
 local GkDiags      = require "App.Diagnostics.GkDiagnostics"
 local xsys         = require "xsys"
+local lume         = require "Lib.lume"
 
 local TwistShiftBC = Proto(BCsBase)
 
@@ -66,31 +67,43 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
       confBasis = self.confBasis,  edge            = self.bcEdge,
    }
 
+   -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
+   self:createBoundaryGrid()
+
+   local distf = mySpecies["getDistF"] and mySpecies:getDistF() or mySpecies:getMoments()
+   -- Define methods to allocate fields defined on boundary grid (used by e.g. diagnostics).
+   self.allocCartField = function(self, grid, nComp, ghosts, metaData)
+      local f = DataStruct.Field {
+         onGrid        = grid,   ghost         = ghosts,
+         numComponents = nComp,  metaData      = metaData,
+      }
+      f:clear(0.0)
+      return f
+   end
+   local allocDistf = function()
+      return self:allocCartField(self.boundaryGrid, self.basis:numBasis(),
+                                 {distf:lowerGhost(),distf:upperGhost()}, distf:getMetaData())
+   end
+   self.boundaryField    = allocDistf()
+   self.boundaryFieldPtr = self.boundaryField:get(1)
+
+   -- Create the range needed to loop over ghosts.
+   local global, globalExt, localExtRange = distf:globalRange(), distf:globalExtRange(), distf:localExtRange()
+   self.ghostRange = localExtRange:intersect(self:getGhostRange(global, globalExt))
+   -- Decompose ghost region into threads.
+   self.ghostRangeDecomp = LinearDecomp.LinearDecompRange{range=self.ghostRange, numSplit=self.grid:numSharedProcs()}
+
+   self.boundaryIdxr = self.boundaryField:genIndexer()
+
+   self.idxOut = Lin.IntVec(self.grid:ndim())
+
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
    -- the fluxes through a boundary (e.g. neutral recycling).
    if self.saveFlux then
-      -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
-      self:createBoundaryGrid()
-
       -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
       self:createConfBoundaryGrid()
 
-      local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
-      -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
-      self.allocCartField = function(self, grid, nComp, ghosts, metaData)
-         local f = DataStruct.Field {
-            onGrid        = grid,
-            numComponents = nComp,
-            ghost         = ghosts,
-            metaData      = metaData,
-         }
-         f:clear(0.0)
-         return f
-      end
-      local allocDistf = function()
-         return self:allocCartField(self.boundaryGrid, self.basis:numBasis(),
-                                    {distf:lowerGhost(),distf:upperGhost()}, distf:getMetaData())
-      end
+      local numDensity = mySpecies:getNumDensity()
       self.allocMoment = function(self)
          return self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
                                     {numDensity:lowerGhost(),numDensity:upperGhost()}, numDensity:getMetaData())
@@ -110,16 +123,8 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
       end
       self.boundaryFluxRate      = allocDistf()
       self.boundaryFluxFieldPrev = allocDistf()
-      self.boundaryIdxr          = self.boundaryFluxFields[1]:genIndexer()
 
-      self.idxOut = Lin.IntVec(self.grid:ndim())
-
-      -- Create the range needed to loop over ghosts.
-      local global, globalExt, localExtRange = distf:globalRange(), distf:globalExtRange(), distf:localExtRange()
-      self.ghostRange = localExtRange:intersect(self:getGhostRange(global, globalExt))
-      -- Decompose ghost region into threads.
-      self.ghostRangeDecomp = LinearDecomp.LinearDecompRange{range=self.ghostRange, numSplit=self.grid:numSharedProcs()}
-      self.tId              = self.grid:subGridSharedId() -- Local thread ID.
+      self.tId = self.grid:subGridSharedId() -- Local thread ID.
 
       -- The following are needed to evaluate a conf-space CartField on the confBoundaryGrid.
       self.confBoundaryField    = self:allocMoment()
@@ -297,7 +302,30 @@ function TwistShiftBC:advance(tCurr, mySpecies, field, externalField, inIdx, out
 
    local fIn = mySpecies:rkStepperFields()[outIdx] 
 
-   self.bcSolver:advance(tCurr, {}, {fIn})
+   -- Apply periodic BCs in z direction, but only on the first edge (lower or upper, whichever is first)
+   -- First check if sync has been called on this step by any BC.
+   local doSync = true
+   for _, bc in lume.orderedIter(mySpecies.nonPeriodicBCs) do 
+      if bc.synced then doSync = false end
+   end
+   if doSync then
+      -- Fetch skin cells from opposite z-edge (donor) and copy to ghost cells (target).
+      local fldGrid = fIn:grid()
+      local periodicDirs = fldGrid:getPeriodicDirs()
+      local modifiedPeriodicDirs = {3}
+      fldGrid:setPeriodicDirs(modifiedPeriodicDirs)
+      fIn:sync()
+      fldGrid:setPeriodicDirs(periodicDirs)
+      self.synced = true
+   else
+      -- Don't sync but reset synced flags for next step.
+      for _, bc in lume.orderedIter(mySpecies.nonPeriodicBCs) do bc.synced = false end
+   end
+
+   -- Copy field ghost cells to boundary field (buffer).
+   self:evalOnBoundary(fIn)
+
+   self.bcSolver:advance(tCurr, {self.boundaryField}, {fIn})
 end
 
 function TwistShiftBC:getBoundaryFluxFields() return self.boundaryFluxFields end

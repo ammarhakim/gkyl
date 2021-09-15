@@ -865,6 +865,82 @@ function test_17()
 
 end
 
+function test_18()
+   -- test periodic sync, but with a grid not initialized with periodic dirs.
+   -- instead, grid:setPeriodicDirs is called just before sync is called.
+
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {10, 10},
+   }
+   local field = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 1,
+      ghost         = {1, 1},
+      syncCorners   = false,
+   }
+   field:clear(10.5)
+
+   -- Set skel cells.
+   local indexer = field:indexer()
+   local fItr
+   fItr = field:get(indexer(1,1));   fItr[1] = 1.0
+   fItr = field:get(indexer(10,1));  fItr[1] = 2.0
+   fItr = field:get(indexer(1,10));  fItr[1] = 3.0
+   fItr = field:get(indexer(10,10)); fItr[1] = 4.0
+
+   grid:setPeriodicDirs({1})
+   field:sync() -- Sync field.
+   -- Check if periodic dirs are sync()-ed properly.
+   local fItr = field:get(indexer(11,1))
+   assert_equal(1.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(11,10))
+   assert_equal(3.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(0,1))
+   assert_equal(2.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(0,10))
+   assert_equal(4.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(1,11))
+   assert_equal(10.5, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(10,11))
+   assert_equal(10.5, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(1,0))
+   assert_equal(10.5, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(10,0))
+   assert_equal(10.5, fItr[1], "Checking non-corner periodic sync")
+
+   field:clear(10.5)
+
+   -- Set skel cells.
+   local indexer = field:indexer()
+   local fItr
+   fItr = field:get(indexer(1,1));   fItr[1] = 1.0
+   fItr = field:get(indexer(10,1));  fItr[1] = 2.0
+   fItr = field:get(indexer(1,10));  fItr[1] = 3.0
+   fItr = field:get(indexer(10,10)); fItr[1] = 4.0
+
+   grid:setPeriodicDirs({2})
+   field:sync() -- Sync field.
+
+   local fItr = field:get(indexer(1,11))
+   assert_equal(1.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(10,11))
+   assert_equal(2.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(1,0))
+   assert_equal(3.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(10,0))
+   assert_equal(4.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(11,1))
+   assert_equal(10.5, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(11,10))
+   assert_equal(10.5, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(0,1))
+   assert_equal(10.5, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(0,10))
+   assert_equal(10.5, fItr[1], "Checking non-corner periodic sync")
+end
+
 test_1()
 test_2()
 test_3()
@@ -882,6 +958,7 @@ test_14()
 test_15()
 test_16()
 test_17()
+test_18()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

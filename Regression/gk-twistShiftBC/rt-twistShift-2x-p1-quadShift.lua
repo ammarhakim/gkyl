@@ -166,7 +166,7 @@ for gI, numCells in ipairs(cells) do
    
    -- Apply the forward shift.
    local t1 = os.clock()
-   twistShiftUpd:advance(0., {fldDo}, {fldTar})
+   twistShiftUpd:_advance2x(0., {fldDo}, {fldTar})
    local t2 = os.clock()
    --io.write("Forward shift time: ", t2-t1, " s\n")
    
@@ -189,7 +189,7 @@ for gI, numCells in ipairs(cells) do
    fldDo:clear(0.)
    local t1 = os.clock()
    -- Apply the backward shift.
-   twistShiftBackUpd:advance(0., {fldTar}, {fldDo})
+   twistShiftBackUpd:_advance2x(0., {fldTar}, {fldDo})
    local t2 = os.clock()
    --io.write("Backward shift time: ", t2-t1, " s\n")
    
