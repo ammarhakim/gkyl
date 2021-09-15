@@ -40,6 +40,12 @@ def build(bld):
     sqrtOnBasisData/sqrt_on_basis_4x_p1_tensor.cpp
     sqrtOnBasisData/sqrt_on_basis_4x_p2_tensor.cpp
 
+    twistShiftData/TwistShiftAllocDel.cpp
+    twistShiftData/TwistShiftSer2xP0.cpp
+    twistShiftData/TwistShiftSer2xP1.cpp
+    twistShiftData/TwistShiftSer3xP1.cpp
+    twistShiftData/TwistShiftSer3x2vP1.cpp
+
     momentCalcData/IntegratedDGMomentSer1x.cpp
     momentCalcData/IntegratedDGMomentSer2x.cpp
     momentCalcData/IntegratedDGMomentSer3x.cpp
@@ -397,7 +403,7 @@ def build(bld):
 
     bld.shlib(source = sources,
 
-              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData maxwellianOnBasisData projectFluxOnGhostsData sqrtOnBasisData', 
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData maxwellianOnBasisData twistShiftData projectFluxOnGhostsData sqrtOnBasisData', 
 
               use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     

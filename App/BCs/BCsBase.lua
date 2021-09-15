@@ -141,6 +141,24 @@ function BCsBase:getGhostRange(global, globalExt)
    end
    return Range.Range(lv, uv)
 end
+function BCsBase:evalOnBoundary(inFld)
+   -- Evaluate inFld on the boundary grid and copy it to the boundary field buffer.
+   local inFldPtr  = inFld:get(1)
+   local inFldIdxr = inFld:genIndexer()
+
+   local tId = self.grid:subGridSharedId() -- Local thread ID.
+   for idxIn in self.ghostRangeDecomp:rowMajorIter(tId) do
+      idxIn:copyInto(self.idxOut)
+      self.idxOut[self.bcDir] = 1
+
+      inFld:fill(inFldIdxr(idxIn), inFldPtr)
+      self.boundaryField:fill(self.boundaryIdxr(self.idxOut), self.boundaryFieldPtr)
+
+      for c = 1, inFld:numComponents() do self.boundaryFieldPtr[c] = inFldPtr[c] end
+   end
+
+   return self.boundaryField
+end
 function BCsBase:evalOnConfBoundary(inFld)
    -- For kinetic species this method evaluates inFld on the confBoundary grid.
    local inFldPtr  = inFld:get(1)

@@ -14,6 +14,7 @@ local GyrofluidSpecies   = require "App.Species.GyrofluidSpecies"
 local IncompEulerSpecies = require "App.Species.IncompEulerSpecies"
 local KineticSpecies     = require "App.Species.KineticSpecies"
 local MomentSpecies      = require "App.Species.MomentSpecies"
+local PassiveAdvectionSpecies = require "App.Species.PassiveAdvectionSpecies"
 local SpeciesBase        = require "App.Species.SpeciesBase"
 local VlasovSpecies      = require "App.Species.VlasovSpecies"
 
@@ -26,6 +27,7 @@ return {
    IncompEulerSpecies = IncompEulerSpecies,
    KineticSpecies     = KineticSpecies,
    MomentSpecies      = MomentSpecies,
+   PassiveAdvectionSpecies = PassiveAdvectionSpecies,
    SpeciesBase        = SpeciesBase,
    VlasovSpecies      = VlasovSpecies,
 }

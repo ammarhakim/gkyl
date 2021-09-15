@@ -60,6 +60,8 @@ function CartFieldIntegratedQuantCalc:init(tbl)
 
    self.timeIntegrate = xsys.pickBool(tbl.timeIntegrate, false)
 
+   self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
+
    -- For use in advance method.
    self.dxv        = Lin.Vec(self.basis:ndim())    -- Cell shape.
    self.localVals  = Lin.Vec(self.numComponents)
@@ -85,7 +87,7 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, inFld, outFld)
    end
 
    -- Construct range for shared memory.
-   local fieldRange = field:localRange()
+   local fieldRange = self.onGhosts and field:localExtRange() or field:localRange()
    local fieldRangeDecomp = LinearDecomp.LinearDecompRange {
       range = fieldRange:selectFirst(ndim), numSplit = grid:numSharedProcs() }
    local tId = grid:subGridSharedId()    -- Local thread ID.
