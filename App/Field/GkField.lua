@@ -822,7 +822,11 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
       end
       for _, s in lume.orderedIter(species) do
          if s:isEvolving() then 
-            self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getNumDensity())
+            if self.deltafGK then
+               self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getTotalNumDensity(self.deltafLinear,inIdx))
+            else
+               self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getNumDensity())
+            end
             -- Taking momDensity at outIdx gives momentum moment of df/dt.
             self.currentDens:accumulate(s:getCharge(), s:getMomDensity(outIdx))
          end

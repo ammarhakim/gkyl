@@ -255,16 +255,32 @@ function GkSpecies:createSolver(field, externalField)
    
    if hasApar then
       -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
-      self.equationStep2 = GyrokineticEq.GkEqStep2 {
-         onGrid     = self.grid,
-         phaseBasis = self.basis,
-         confBasis  = self.confBasis,
-         charge     = self.charge,
-         mass       = self.mass,
-         Bvars      = externalField.bmagVars,
-         positivity = self.positivity,
-         geometry   = externalField.geo.name,
-      }
+      if self.deltafGK then
+         self.equationStep2 = DeltaFGyrokineticEq.GkEqStep2 {
+            onGrid     = self.grid,
+            phaseBasis = self.basis,
+            confBasis  = self.confBasis,
+            charge     = self.charge,
+            mass       = self.mass,
+            Bvars      = externalField.bmagVars,
+            positivity = self.positivity,
+            geometry   = externalField.geo.name,
+            geometry     = externalField.geo.name,
+            f0           = self.fBackground,
+            linear       = self.deltafLinear,
+         }
+      else
+         self.equationStep2 = GyrokineticEq.GkEqStep2 {
+            onGrid     = self.grid,
+            phaseBasis = self.basis,
+            confBasis  = self.confBasis,
+            charge     = self.charge,
+            mass       = self.mass,
+            Bvars      = externalField.bmagVars,
+            positivity = self.positivity,
+            geometry   = externalField.geo.name,
+         }
+      end
 
       if self.basis:polyOrder()==1 then 
          -- This solver calculates vpar surface terms for Ohm's law. p=1 only!
@@ -820,7 +836,7 @@ function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
 
    if self.evolveCollisionless then
       self.solverStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solverStep2:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
+      self.solverStep2:advance(tCurr, {fIn, em, emFunc, dApardtProv, self.fBackground}, {fRhsOut})
    end
 end
 
@@ -837,7 +853,7 @@ function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
 
    if self.evolveCollisionless then
       self.solverStep3:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solverStep3:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
+      self.solverStep3:advance(tCurr, {fIn, em, emFunc, dApardtProv, self.fBackground}, {fRhsOut})
    end
 end
 
@@ -984,6 +1000,30 @@ function GkSpecies:getNumDensity(rkIdx)
    return self.numDensityAux
 end
 
+function GkSpecies:getTotalNumDensity(linear, rkIdx)
+   -- If no rkIdx specified, assume numDensity has already been calculated.
+   if rkIdx == nil then return self.numDensity end 
+   local fIn = self:rkStepperFields()[rkIdx]
+
+   if self.evolve or self._firstMomentCalc then
+      local tmStart = Time.clock()
+
+      if linear then
+         fIn = self.fBackground
+      else
+         fIn:accumulate(1.0, self.fBackground)
+      end
+      self.numDensityCalc:advance(nil, {fIn}, { self.numDensityAux })
+      if not linear then
+         fIn:accumulate(-1.0, self.fBackground)
+      end
+
+      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
+   end
+   if not self.evolve then self._firstMomentCalc = false end
+   return self.numDensityAux
+end
+
 function GkSpecies:getBackgroundDens() return self.n0 end
 
 function GkSpecies:getMomDensity(rkIdx)
@@ -1030,7 +1070,6 @@ function GkSpecies:getEmModifier(rkIdx)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
 
-      fIn = self.getF_or_deltaF(fIn)
       self.momProjDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
 
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart

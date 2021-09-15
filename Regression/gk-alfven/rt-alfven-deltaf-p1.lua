@@ -58,6 +58,9 @@ plasmaApp = Plasma.App {
    lower       = {-math.pi/kz_min}, -- Configuration space lower left.
    upper       = { math.pi/kz_min}, -- Configuration space upper right.
    cells       = {16},              -- Configuration space cells.
+   mapc2p = function(xc)
+      return xc[1]
+   end,
    basis       = "serendipity",     -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                 -- Polynomial order.
    timeStepper = "rk3",             -- One of "rk2" or "rk3".
@@ -69,7 +72,6 @@ plasmaApp = Plasma.App {
 
    -- Boundary conditions for configuration space.
    periodicDirs = {1}, -- Periodic directions.
-   --deltaF = true,
 
    -- Gyrokinetic electrons.
    electron = Plasma.Species {
@@ -94,17 +96,18 @@ plasmaApp = Plasma.App {
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
 	    local x = xn[1]
-            return ne0*(1 + 1e-6*math.cos(kz_min*x))
+            return ne0*(1e-6*math.cos(kz_min*x))
          end,
          driftSpeed = 0.0,
          temperature = function (t, xn)
             local x = xn[1]
             return Te0
          end,
-         exactScaleM0 = true,
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"perturbed", "M0", "M1", "intM0", "intM1", "intM2"},
+      deltafGK = true,
+      deltafLinear = false,
+      diagnostics = {"M0", "M1", "intM0", "intM1", "intM2"},
    },
 
    ion = Plasma.Species {
@@ -115,7 +118,7 @@ plasmaApp = Plasma.App {
       cells = {32},
       background = Plasma.MaxwellianProjection {
          density = function (t, xn)
-	    local x = xn[1]
+            local x = xn[1]
             return ni0
          end,
          driftSpeed = 0.0,
@@ -128,16 +131,17 @@ plasmaApp = Plasma.App {
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
 	    local x = xn[1]
-            return ni0
+            return 0.
          end,
          driftSpeed = 0.0,
          temperature = function (t, xn)
             local x = xn[1]
             return Ti0
          end,
-         exactScaleM0 = true,
       },
       evolve = true, -- Evolve species?
+      deltafGK = true,
+      deltafLinear = false,
       diagnostics = {"M0", "M1", "intM0", "intM1", "intM2"},
    },
 

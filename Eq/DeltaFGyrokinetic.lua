@@ -307,6 +307,9 @@ function DeltaFGyrokineticStep2:setAuxFields(auxFields)
 
    if self._isFirst then
       -- Allocate pointers and indexers to field objects.
+      self.f0Ptr = self.f0:get(1)
+      self.f0lPtr = self.f0:get(1)
+      self.f0Idxr = self.f0:genIndexer()
 
       -- Potentials.
       self.phiPtr         = self.phi:get(1)
@@ -361,7 +364,7 @@ end
 function DeltaFGyrokineticStep2:surfTermGenGeo(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    local tmStart = Time.clock()
    self.f0:fill(self.f0Idxr(idxl), self.f0lPtr)
-   self.f0:fill(self.f0Idxr(idx), self.f0Ptr)
+   self.f0:fill(self.f0Idxr(idxr), self.f0Ptr)
    self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
    self.jacobTotInv:fill(self.jacobTotInvIdxr(idxr), self.jacobTotInvPtr)

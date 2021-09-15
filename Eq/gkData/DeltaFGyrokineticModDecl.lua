@@ -109,9 +109,9 @@ function _M.selectStep2Surf(basisNm, CDIM, VDIM, polyOrder, positivity, Bvars, g
 
    local funcNm
    if polyOrder > 1 then
-      funcNm = string.format("Em%sDeltaFGyrokinetic%sSurf%dx%dv%s_vpar_P%d", geoType, linStr, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm = string.format("Em%sDeltaFGyrokinetic%sSurf%dx%dv%s_vpar_P%d", linStr, geoType, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
    else
-      funcNm = string.format("Em%sDeltaFGyrokinetic%sSurf%dx%dv%sStep2_vpar_P%d", geoType, linStr, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm = string.format("Em%sDeltaFGyrokinetic%sSurf%dx%dv%sStep2_vpar_P%d", linStr, geoType, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
    end
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
