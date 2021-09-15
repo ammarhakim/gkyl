@@ -227,7 +227,7 @@ function DeltaFGyrokinetic:surfTermGenGeo(dir, cfll, cflr, wl, wr, dxl, dxr, max
      self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProvPtr)
      self.emMod:fill(self.emModIdxr(idxl), self.emModPtrL)
      self.emMod:fill(self.emModIdxr(idxr), self.emModPtrR)
-     res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.aparLPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
+     res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.aparLPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), self.f0lPtr:data(), self.f0Ptr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
    else 
      res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), self.f0lPtr:data(), self.f0Ptr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    end
@@ -282,13 +282,14 @@ end
 function DeltaFGyrokineticStep2:setAuxFields(auxFields)
    local potentials = auxFields[1]   -- First auxField is Field object.
    local geo        = auxFields[2]   -- Second auxField is ExternalField object.
-   --local potentialsProv = auxFields[3]
 
    -- Get phi, Apar, and dApar/dt.
    self.phi         = potentials.phi
    self.apar        = potentials.apar
    self.dApardt     = potentials.dApardt
    self.dApardtProv = auxFields[3]
+
+   self.f0 = auxFields[4]
 
    -- Get magnetic geometry fields.
    self.bmag = geo.bmag
@@ -346,9 +347,10 @@ end
 
 -- Volume integral term for use in DG scheme
 function DeltaFGyrokineticStep2:volTerm(w, dx, idx, f, out)
+   self.f0:fill(self.f0Idxr(idx), self.f0Ptr)
    self.bmag:fill(self.bmagIdxr(idx), self.bmagPtr)
    self.dApardt:fill(self.dApardtIdxr(idx), self.dApardtPtr)
-   return self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.dApardtPtr:data(), f:data(), out:data())
+   return self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.dApardtPtr:data(), self.f0Ptr:data(), f:data(), out:data())
 end
 
 -- Surface integral term for use in DG scheme 
@@ -356,24 +358,10 @@ end
 function DeltaFGyrokineticStep2:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    return self.surfTermFunc(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
 end
-function DeltaFGyrokineticStep2:surfTermSimpleHelical(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
-   local tmStart = Time.clock()
-   self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
-   self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
-   self.bmagInv:fill(self.bmagInvIdxr(idxr), self.bmagInvPtr)
-   self.cmag:fill(self.cmagIdxr(idxr), self.cmagPtr)
-   self.bdriftX:fill(self.bdriftXIdxr(idxr), self.bdriftXPtr)
-   self.bdriftY:fill(self.bdriftYIdxr(idxr), self.bdriftYPtr)
-   self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
-   self.dApardt:fill(self.dApardtIdxr(idxr), self.dApardtPtr)
-   self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProvPtr)
-
-   local res = self._surfTerm(self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.cmagPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), nil, nil)
-
-   return res
-end
 function DeltaFGyrokineticStep2:surfTermGenGeo(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    local tmStart = Time.clock()
+   self.f0:fill(self.f0Idxr(idxl), self.f0lPtr)
+   self.f0:fill(self.f0Idxr(idx), self.f0Ptr)
    self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
    self.jacobTotInv:fill(self.jacobTotInvIdxr(idxr), self.jacobTotInvPtr)
@@ -386,7 +374,7 @@ function DeltaFGyrokineticStep2:surfTermGenGeo(dir, cfll, cflr, wl, wr, dxl, dxr
    self.dApardt:fill(self.dApardtIdxr(idxr), self.dApardtPtr)
    self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProvPtr)
 
-   local res = self._surfTerm(self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.aparLPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), nil, nil)
+   local res = self._surfTerm(self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.aparLPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), self.f0lPtr:data(), self.f0Ptr:data(), fl:data(), fr:data(), outl:data(), outr:data(), nil, nil)
 
    return res
 end

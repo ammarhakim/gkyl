@@ -399,7 +399,7 @@ calcAndWrite_alpha(fH,surfDir,bP,polyOrder,basisType,mass,charge,rdx2,rdv2,
     dApardtPrev_e : inFlds[6],
     alpha1Up_e : alpha1_e - (charge/mass)*dApardtPrev_e,
 
-    if isStep2 then ( alpha1_e : - (charge/mass)*dApardt_e)
+    if isStep2 then (alpha0_e : 0 , alpha1_e : - (charge/mass)*dApardt_e)
   ),
 
   bSurf : basisFromVars(basisType,surfIntVars,polyOrder),  /* Surface basis. */

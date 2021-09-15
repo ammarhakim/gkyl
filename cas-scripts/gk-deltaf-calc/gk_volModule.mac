@@ -195,7 +195,7 @@ buildGKStep2VolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder,useGenGeo) := 
   numC : length(bC), numP : length(bP),
 
   print("Working on ", funcNm, "_P", polyOrder),
-  printf(fh, "double ~aP~a(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+  printf(fh, "double ~aP~a(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f0, const double *f1, double *out) ~%{ ~%", funcNm, polyOrder),
   printf(fh, "  // q_,m_: species charge and mass.~%"),
   printf(fh, "  // w[NDIM]: cell-center.~%"),
   printf(fh, "  // dxv[NDIM]: cell length.~%"),
@@ -207,18 +207,31 @@ buildGKStep2VolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder,useGenGeo) := 
   printf(fh, "  double rdvpar2 = 2.0/dxv[~a]; ~%", cdim),
 
   /* Expand distribution function on basis. */
-  f_e : doExpand1(f,bP),
+  f0_e : doExpand1(f0,bP),
+  f1_e : doExpand1(f1,bP),
 
   /* Expand dApar/dt. */
   dApardt_e : doExpand1(dApardt,bC),
 
+  /* Write linear term */
   /* Calculate volume term, which is inner product
-     < - f (q/m) dApar/dt d/dvpar(bP) > */
-  volTerm_c : fullratsimp(calcInnerProdList(varsP, 1, diff(bP,vpar), -(q_/m_)*dApardt_e*rdvpar2*f_e)),
+     < - f0 (q/m) dApar/dt d/dvpar(bP) > */
+  volTerm_c : fullratsimp(calcInnerProdList(varsP, 1, diff(bP,vpar), -(q_/m_)*dApardt_e*rdvpar2*f0_e)),
 
   replaceList : [wvpar^2=wvparSq, rdvpar2^2=rdvpar2Sq, rdx2^2=rdx2Sq, m_^2=mSq, q_^2=qSq],
   /* Write C increment expressions for volume term. */
   writeCIncrExprsNoExpand(float(subst(replaceList, facsum(volTerm_c,rdvpar2)))),
+
+  if(isLinear=false) then (
+     /* Write nonlinear term */
+     /* Calculate volume term, which is inner product
+        < - f1 (q/m) dApar/dt d/dvpar(bP) > */
+     volTerm_c : fullratsimp(calcInnerProdList(varsP, 1, diff(bP,vpar), -(q_/m_)*dApardt_e*rdvpar2*f1_e)),
+
+     replaceList : [wvpar^2=wvparSq, rdvpar2^2=rdvpar2Sq, rdx2^2=rdx2Sq, m_^2=mSq, q_^2=qSq],
+     /* Write C increment expressions for volume term. */
+     writeCIncrExprsNoExpand(float(subst(replaceList, facsum(volTerm_c,rdvpar2))))
+  ),
 
   alpha_e : - (q_/m_)*dApardt_e*rdvpar2,
 
@@ -231,27 +244,9 @@ buildGKStep2VolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder,useGenGeo) := 
   dir    : cdim+1,
   dirVar : varsP[dir],         /* Variable in current direction. */
 
-  printf(fh, "#if cflType == SURFAVG ~%"),
-
-  /* Evaluate CFL by surface averaging. */
-  /* Note: factor of 2/dxv already included in alpha_e. */
-  alphaSurfAvgL_s : calc_surfAvgAlpha(bP,dirVar,alpha_e,true),
-  printf(fh, "  // Evaluate surface-averaged alpha on left.~%"),
-  printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaSurfAvgL_s))),
-  printf(fh, "  cflFreq += -0.5*(alphaL-std::abs(alphaL)); ~%"),
-  /* Note: factor of 2/dxv already included in alpha_e. */
-  alphaSurfAvgR_s : calc_surfAvgAlpha(bP,dirVar,alpha_e,false),
-  printf(fh, "  // Evaluate surface-averaged alpha on right.~%"),
-  printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaSurfAvgR_s))),
-  printf(fh, "  cflFreq += 0.5*(alphaR+std::abs(alphaR)); ~%"),
-  flush_output(fh),
-
-  printf(fh, "#elif cflType == QUAD ~%"),
-
   /* Evaluate cfl by evaluating at all surface quadrature points. */
   calcAndWrite_quadCFLfreq_wPhaseAlpha(basisFun,polyOrder,bP,dir,alpha_e),
 
-  printf(fh, "#endif ~%"),
   printf(fh, "~%"),
 
   printf(fh, "return cflFreq; ~%"),

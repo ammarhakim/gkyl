@@ -9,7 +9,7 @@ load("gk-deltaf-calc/gk_volModule")$
 /* ...... USER INPUTS........ */
 
 /* Choose to generate kernels for "ES", "EM" gyrokinetics or "both". */
-ESorEM : "ES"$ 
+ESorEM : "EM"$ 
 
 /* Generate kernels for "simple" (helical), "general" or "both" geometries. */
 geo : "general"$

@@ -9,13 +9,13 @@ load("gk-deltaf-calc/gk_surfModule")$
 /* ...... USER INPUTS........ */
 
 /* Generate kernels for "ES", "EM" gyrokinetics or "both". */
-ESorEM : "ES"$ 
+ESorEM : "EM"$ 
 
 /* Generate kernels for "simple" (helical), "general" or "both" geometries. */
 geo : "general"$ 
 
 /* Linear or nonlinear kernels */
-LorNL : "nonlinear"$
+LorNL : "both"$
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 1$

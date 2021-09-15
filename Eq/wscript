@@ -536,6 +536,23 @@ def build(bld):
     gkData/DeltaFGyrokineticGenGeoSurfSer2x2vP1.cpp
     gkData/DeltaFGyrokineticGenGeoSurfSer3x2vP1.cpp
 
+    gkData/EmLinearDeltaFGyrokineticGenGeoSer1x1vP1.cpp
+    gkData/EmLinearDeltaFGyrokineticGenGeoSer1x2vP1.cpp
+    gkData/EmLinearDeltaFGyrokineticGenGeoSer2x2vP1.cpp
+    gkData/EmLinearDeltaFGyrokineticGenGeoSer3x2vP1.cpp
+    gkData/EmLinearDeltaFGyrokineticGenGeoSurfSer1x1vP1.cpp
+    gkData/EmLinearDeltaFGyrokineticGenGeoSurfSer1x2vP1.cpp
+    gkData/EmLinearDeltaFGyrokineticGenGeoSurfSer2x2vP1.cpp
+    gkData/EmLinearDeltaFGyrokineticGenGeoSurfSer3x2vP1.cpp
+    gkData/EmDeltaFGyrokineticGenGeoSer1x1vP1.cpp
+    gkData/EmDeltaFGyrokineticGenGeoSer1x2vP1.cpp
+    gkData/EmDeltaFGyrokineticGenGeoSer2x2vP1.cpp
+    gkData/EmDeltaFGyrokineticGenGeoSer3x2vP1.cpp
+    gkData/EmDeltaFGyrokineticGenGeoSurfSer1x1vP1.cpp
+    gkData/EmDeltaFGyrokineticGenGeoSurfSer1x2vP1.cpp
+    gkData/EmDeltaFGyrokineticGenGeoSurfSer2x2vP1.cpp
+    gkData/EmDeltaFGyrokineticGenGeoSurfSer3x2vP1.cpp
+
     gkData/GkSheathFuncsSerP1.cpp
     gkData/GkSheathFuncsSerP2.cpp
 
