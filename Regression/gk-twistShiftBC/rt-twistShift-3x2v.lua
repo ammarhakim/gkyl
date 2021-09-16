@@ -10,6 +10,16 @@
 -- of the skin cell it originated from, we need to create a field that projects
 -- the donor function only in the ghost cell or only in the skin cell.
 --
+-- Some pgkyl commands to check results:
+--   pgkyl rt-twistShift-3x2v_fldDo_upper.bp --z2 3 -t fDo rt-twistShift-3x2v_fldTar_lower.bp --z2 0 -t fTar interp activate -t fDo sel --z2 -1 --z3 0. --z4 0. activate -t fTar sel --z2 0 --z3 0. --z4 0. activate -t fDo,fTar pl -b
+--   pgkyl rt-twistShift-3x2v_fldDo_lower.bp --z2 0 -t fDo rt-twistShift-3x2v_fldTar_upper.bp --z2 5 -t fTar interp activate -t fDo sel --z2 0 --z3 0. --z4 0. activate -t fTar sel --z2 -1 --z3 0. --z4 0. activate -t fDo,fTar pl -b
+--   pgkyl rt-twistShift-3x2v_fldDo_intM0_lower.bp rt-twistShift-3x2v_fldTar_intM0_upper.bp ev 'f[0] f[1] -' pr
+--   pgkyl rt-twistShift-3x2v_fldDo_intM1_lower.bp rt-twistShift-3x2v_fldTar_intM1_upper.bp ev 'f[0] f[1] -' pr
+--   pgkyl rt-twistShift-3x2v_fldDo_intM2_lower.bp rt-twistShift-3x2v_fldTar_intM2_upper.bp ev 'f[0] f[1] -' pr
+--   pgkyl rt-twistShift-3x2v_fldDo_intM0_upper.bp rt-twistShift-3x2v_fldTar_intM0_lower.bp ev 'f[0] f[1] -' pr
+--   pgkyl rt-twistShift-3x2v_fldDo_intM1_upper.bp rt-twistShift-3x2v_fldTar_intM1_lower.bp ev 'f[0] f[1] -' pr
+--   pgkyl rt-twistShift-3x2v_fldDo_intM2_upper.bp rt-twistShift-3x2v_fldTar_intM2_lower.bp ev 'f[0] f[1] -' pr
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
