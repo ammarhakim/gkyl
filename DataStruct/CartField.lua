@@ -404,7 +404,7 @@ local function Field_meta_ctor(elct)
       -- ghost cells may be different on each lower/upper side. (AHH)
       for dir = 1, self._ndim do
          -- set up periodic-sync Datatypes for all dirs, in case we want to change periodicDirs later
-         --if grid:isDirPeriodic(dir) then
+         if self._lowerGhost > 0 and self._upperGhost > 0 then
             local skelIds = decomposedRange:boundarySubDomainIds(dir)
             for i = 1, #skelIds do
                local loId, upId = skelIds[i].lower, skelIds[i].upper
@@ -451,7 +451,7 @@ local function Field_meta_ctor(elct)
                      rgnRecv, localExtRange, self._numComponents, self._layout, elctCommType)
                end	       
             end
-         --end
+         end
       end
 
       local structAny = function(key,structIn, idIn)
