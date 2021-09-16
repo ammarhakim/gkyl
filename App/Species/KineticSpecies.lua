@@ -205,7 +205,7 @@ function KineticSpecies:fullInit(appTbl)
          elseif val=="zeroFlux" then
             goodBC = true
          end
-         assert(goodBC, "GkSpecies: bc not recognized.")
+         assert(goodBC, "KineticSpecies: bc not recognized.")
       end
    end
    lume.setOrder(self.nonPeriodicBCs)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).

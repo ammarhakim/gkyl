@@ -1,0 +1,86 @@
+/* Create header file for CartFieldInterpolate updater. */
+
+fh : openw("~/max-out/TwistShiftModDecl.h")$
+
+polyOrderMax : 2$
+
+bName        : ["Ser"]$
+
+
+VarsC : [X, Y, Z]$
+pVars : [X, Y, Z, VX, VY, VZ]$
+
+gkVdims : [[0], [0,2]]$
+
+printf(fh, "// -- Gkyl ---------------------------------------------------------------------~%")$
+printf(fh, "//~%")$
+printf(fh, "// C++ header for TwistShift kernels.~%")$
+printf(fh, "//~%")$
+printf(fh, "//    _______     ___~%")$
+printf(fh, "// + 6 @ |||| # P ||| +~%")$
+printf(fh, "// -----------------------------------------------------------------------------~%")$
+
+printf(fh, "#ifndef TWIST_SHIFT_MOD_DECL_H ~%")$
+printf(fh, "#define TWIST_SHIFT_MOD_DECL_H ~%~%")$
+
+printf(fh, "#include <cmath>~%")$
+printf(fh, "#include <algorithm>~%~%")$
+
+printf(fh, "#include <Eigen/Dense>~%")$
+printf(fh, "#include <vector>~%~%")$
+
+printf(fh, "struct tsStruct;~%")$
+printf(fh, "~%")$
+printf(fh, "struct tsStruct~%")$
+printf(fh, "{~%")$
+printf(fh, "  tsStruct(const int numMats, const int matN);~%")$
+printf(fh, "  std::vector<std::vector<Eigen::MatrixXd>> cellMat;~%")$
+printf(fh, "  Eigen::MatrixXd mat;~%")$
+printf(fh, "  Eigen::VectorXd vecDo;~%")$
+printf(fh, "  Eigen::VectorXd vecTar;~%")$
+printf(fh, "};~%~%")$
+
+printf(fh, "extern \"C\" { ~%~%")$
+
+printf(fh, "  void* twistShift_alloc(const int numMats, const int matN);~%")$
+printf(fh, "  void twistShift_allocCellMat(tsStruct *tsData, const int cellIdx, const int numMats);~%")$
+printf(fh, "  void twistShift_delete(tsStruct *tsData);~%~%")$
+
+for bInd : 1 thru length(bName) do (
+
+  for ci : 2 thru 3 do (
+
+    for gkV : 1 thru length(gkVdims[ci-1]) do (
+      vi : gkVdims[ci-1][gkV],
+
+      maxPolyOrderB : polyOrderMax,
+      if (ci+vi>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+
+      for polyOrder : 0 thru maxPolyOrderB do (
+
+        vStr : "",
+        if (vi>0) then (vStr: sconcat(vi,"v")),
+  
+        printf(fh, "  void twistShift_matVecMult_~ax~a~aP~a(tsStruct *tsData, const int xIdx, const int matIdx, const double *fldDo, double *fldTar);~%", ci, vStr, bName[bInd], polyOrder),
+  
+        for polyOrder1D : 1 thru polyOrder+1 do (
+  
+          /* Twist-shift BC interpolation kernels. */
+          printf(fh, "  void twistShift_xLimDG_yShP~a_~ax~a~aP~a(const double sFac, const double *xLimLo, const double *xLimUp, const double yLimLo, const double yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew);~%", polyOrder1D, ci, vStr, bName[bInd], polyOrder),
+          printf(fh, "  void twistShift_yLimDG_yShP~a_~ax~a~aP~a(const double sFac, const double xLimLo, const double xLimUp, const double *yLimLo, const double *yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew);~%", polyOrder1D, ci, vStr, bName[bInd], polyOrder),
+          printf(fh, "  void twistShift_fullCell_yShP~a_~ax~a~aP~a(const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew);~%", polyOrder1D, ci, vStr, bName[bInd], polyOrder),
+          printf(fh, "~%")
+        )
+  
+      ),
+      printf(fh, "~%")
+
+    )
+  )
+
+);
+
+printf(fh, "}~%~%")$
+printf(fh, "#endif ~%")$
+
+close(fh)$

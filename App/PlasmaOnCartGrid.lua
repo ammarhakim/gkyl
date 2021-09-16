@@ -838,8 +838,9 @@ return {
          ReflectBC  = require ("App.BCs.GkBasic").GkReflect,
          SheathBC   = require ("App.BCs.GkBasic").GkSheath,
          ZeroFluxBC = require ("App.BCs.GkBasic").GkZeroFlux,
-	 VmAbsorbBC = require ("App.BCs.VlasovBasic").VlasovAbsorb,
-	 VmReflectBC = require ("App.BCs.VlasovBasic").VlasovReflect,
+         TwistShiftBC = require "App.BCs.TwistShift",
+	 VmAbsorbBC   = require ("App.BCs.VlasovBasic").VlasovAbsorb,
+	 VmReflectBC  = require ("App.BCs.VlasovBasic").VlasovReflect,
 	 BGKCollisions   = require "App.Collisions.GkBGKCollisions",
 	 BgkCollisions   = require "App.Collisions.GkBGKCollisions",
 	 ChargeExchange  = require "App.Collisions.GkChargeExchange",
@@ -862,30 +863,14 @@ return {
       App.label = "Incompressible Euler"
       return {
 	 App        = App,
-         BasicBC    = require ("App.BCs.IncompEulerBasic").IncompEulerBasic,
-         AbsorbBC   = require ("App.BCs.IncompEulerBasic").IncompEulerAbsorb,
-         CopyBC     = require ("App.BCs.IncompEulerBasic").IncompEulerCopy,
-         ZeroFluxBC = require ("App.BCs.IncompEulerBasic").IncompEulerZeroFlux,
+         BasicBC    = require ("App.BCs.FluidBasic").FluidBasic,
+         AbsorbBC   = require ("App.BCs.FluidBasic").FluidAbsorb,
+         CopyBC     = require ("App.BCs.FluidBasic").FluidCopy,
+         ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
 	 Diffusion  = require "App.Collisions.Diffusion",
 	 Field      = require ("App.Field.GkField").GkField,
          Source     = require "App.Sources.FluidSource",
 	 Species    = require "App.Species.IncompEulerSpecies",
-      }
-   end,
-   
-   Moments = function ()
-      App.label = "Multi-fluid"
-      return {
-         App = App,
-         Species = require "App.Species.MomentSpecies",
-         Field = require ("App.Field.MaxwellField").MaxwellField,
-         CollisionlessEmSource = require "App.FluidSources.CollisionlessEmSource",
-         TenMomentRelaxSource  = require "App.FluidSources.TenMomentRelaxSource",
-         MomentFrictionSource = require "App.FluidSources.MomentFrictionSource",
-         AxisymmetricMomentSource = require "App.FluidSources.AxisymmetricMomentSource",
-         AxisymmetricPhMaxwellSource = require "App.FluidSources.AxisymmetricPhMaxwellSource",
-         BraginskiiHeatConductionSource = require "App.FluidSources.BraginskiiHeatConductionSource",
-         BraginskiiViscosityDiffusionSource = require "App.FluidSources.BraginskiiViscosityDiffusionSource",
       }
    end,
 
@@ -935,5 +920,20 @@ return {
          BraginskiiHeatConductionSource = require "App.FluidSources.BraginskiiHeatConductionSource",
          BraginskiiViscosityDiffusionSource = require "App.FluidSources.BraginskiiViscosityDiffusionSource",
       }
-   end
+   end,
+
+   PassiveAdvection = function ()
+      App.label = "Passively-advected scalar fluid"
+      return {
+	 App        = App,
+         BasicBC    = require ("App.BCs.FluidBasic").FluidBasic,
+         AbsorbBC   = require ("App.BCs.FluidBasic").FluidAbsorb,
+         CopyBC     = require ("App.BCs.FluidBasic").FluidCopy,
+         ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
+         TwistShiftBC = require "App.BCs.TwistShift",
+	 Diffusion  = require "App.Collisions.Diffusion",
+         Source     = require "App.Sources.FluidSource",
+	 Species    = require "App.Species.PassiveAdvectionSpecies",
+      }
+   end,
 }

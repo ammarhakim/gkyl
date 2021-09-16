@@ -141,6 +141,18 @@ function FluidSpecies:fullInit(appTbl)
       if tbl.bcz[1] == nil or tbl.bcz[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
       self.bcInDir[3] = {tbl.bcz[1], tbl.bcz[2]}
    end
+   if tbl.bcvx then
+      if tbl.bcvx[1] == nil or tbl.bcvx[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
+      self.bcInDir[4] = {tbl.bcvx[1], tbl.bcvx[2]}
+   end
+   if tbl.bcvy then
+      if tbl.bcvy[1] == nil or tbl.bcvy[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
+      self.bcInDir[5] = {tbl.bcvy[1], tbl.bcvy[2]}
+   end
+   if tbl.bcvz then
+      if tbl.bcvz[1] == nil or tbl.bcvz[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
+      self.bcInDir[6] = {tbl.bcvz[1], tbl.bcvz[2]}
+   end
    -- Initialize boundary conditions.
    self.nonPeriodicBCs = {}
    local dirLabel  = {'X','Y','Z'}
@@ -276,14 +288,16 @@ function FluidSpecies:createSolver(field, externalField)
    end
 
    -- Operators needed for time-dependent calculation and diagnostics.
-   self.weakMultiply = Updater.CartFieldBinOp {
-      onGrid    = self.grid,   operation = "Multiply",
-      weakBasis = self.basis,  onGhosts  = true,
-   }
-   self.weakDivide = Updater.CartFieldBinOp {
-      onGrid    = self.grid,   operation = "Divide",
-      weakBasis = self.basis,  onGhosts  = true,
-   }
+   if self.ndim <= 3 then
+      self.weakMultiply = Updater.CartFieldBinOp {
+         onGrid    = self.grid,   operation = "Multiply",
+         weakBasis = self.basis,  onGhosts  = true,
+      }
+      self.weakDivide = Updater.CartFieldBinOp {
+         onGrid    = self.grid,   operation = "Divide",
+         weakBasis = self.basis,  onGhosts  = true,
+      }
+   end
    self.volIntegral = {
       scalar = Updater.CartFieldIntegratedQuantCalc {
          onGrid = self.grid,   numComponents = 1,
