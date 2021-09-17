@@ -405,7 +405,7 @@ def build(bld):
 
               includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData maxwellianOnBasisData twistShiftData projectFluxOnGhostsData sqrtOnBasisData', 
 
-              use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
+              use='lib EIGEN MPI FFTW CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     
 ## Removed the following files from the build for now
 #     binOpCalcData/CartFieldBinOpSer3x3vP2.cpp

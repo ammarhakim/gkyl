@@ -25,7 +25,7 @@ from waflib.Options import options
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkyl luajit mpi adios eigen sqlite3 cutools',
+    opt.load('gkyl luajit mpi adios fftw eigen sqlite3 cutools',
              tooldir='waf_tools')
 
 def configure(conf):
@@ -38,6 +38,7 @@ def configure(conf):
     conf.check_luajit()
     conf.check_mpi()
     conf.check_adios()
+    conf.check_fftw()
     conf.check_eigen()
     conf.check_sqlite3()
     conf.check_cutools()

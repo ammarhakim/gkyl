@@ -18,6 +18,7 @@ BUILD_LUAROCKS=
 BUILD_ADIOS=
 BUILD_OPENMPI=
 BUILD_EIGEN=
+BUILD_FFTW=
 BUILD_ZMQ=
 BUILD_CZMQ=
 
@@ -57,6 +58,7 @@ and C++ compilers to use.
 --build-adios               Should we build ADIOS?
 --build-openmpi             Should we build OpenMPI?
 --build-eigen               Should we build Eigen?
+--build-fftw                Should we build FFTW?
 --build-zmq                 Should we build ZeroMQ?
 --build-czmq                Should we build C interface to ZeroMQ?
 
@@ -155,6 +157,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_ADIOS="$value"
       ;;
+   --build-fftw)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_FFTW="$value"
+      ;;
    --build-luarocks)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_LUAROCKS="$value"
@@ -249,6 +255,14 @@ build_adios() {
     fi
 }
 
+build_fftw() {
+    if [[ ! "$BUILD_FFTW" = "no" && ("$BUILD_FFTW" = "yes" || ! -f $PREFIX/fftw/include/fftw3.h) ]]
+    then
+	echo "Building FFTW"
+	./build-fftw.sh
+    fi
+}
+
 build_luarocks() {
     if [ "$BUILD_LUAROCKS" = "yes" ]
     then    
@@ -282,5 +296,6 @@ build_luajit_ppcle
 build_luarocks
 build_adios
 build_eigen
+build_fftw
 build_zmq
 build_czmq
