@@ -298,6 +298,32 @@ function CartProdDecomp:childDecomp(keepDir)
                childRank = math.floor(parentNodeRank/parentCuts[1]) % parentCuts[2]
             end
          end
+      elseif parentDim == 4 then
+         if childDim == 1 then
+            if keepDir[1] == 1 then 
+               childRank = math.floor(parentNodeRank/parentCuts[1])
+            elseif keepDir[1] == 2 then 
+               childRank = parentNodeRank % parentCuts[1] + parentCuts[1]*math.floor(parentNodeRank/(parentCuts[1]*parentCuts[2]))
+            elseif keepDir[1] == 3 then 
+               childRank = parentNodeRank % (parentCuts[1]*parentCuts[2])
+            elseif keepDir[1] == 4 then 
+               childRank = parentNodeRank % (parentCuts[1]*parentCuts[2]*parentCuts[3])
+            end
+         end
+      elseif parentDim == 5 then
+         if childDim == 1 then
+            if keepDir[1] == 1 then 
+               childRank = math.floor(parentNodeRank/parentCuts[1])
+            elseif keepDir[1] == 2 then 
+               childRank = parentNodeRank % parentCuts[1] + parentCuts[1]*math.floor(parentNodeRank/(parentCuts[1]*parentCuts[2]))
+            elseif keepDir[1] == 3 then 
+               childRank = parentNodeRank % (parentCuts[1]*parentCuts[2])
+            elseif keepDir[1] == 4 then 
+               childRank = parentNodeRank % (parentCuts[1]*parentCuts[2]*parentCuts[3])
+            elseif keepDir[1] == 5 then 
+               childRank = parentNodeRank % (parentCuts[1]*parentCuts[2]*parentCuts[3]*parentCuts[4])
+            end
+         end
       end
 --      -- (UNFINISHED) The following assumes a row-major order distribution of MPI processes.
 --      if parentDim == 2 then

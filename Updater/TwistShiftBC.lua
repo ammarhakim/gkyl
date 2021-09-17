@@ -97,6 +97,7 @@ function TwistShiftBC:init(tbl)
       basis    = yShBasis,
       evaluate = yShFunc,
    }
+   local yShIndexer, yShItr = self.yShFld:genIndexer(), self.yShFld:get(1)
    projUpd:advance(0., {}, {self.yShFld})
 
    -- Set some constant variables needed across tsFun functions.
@@ -104,7 +105,6 @@ function TwistShiftBC:init(tbl)
    tsFun.set_domLim(self.grid)
    tsFun.set_dx(self.grid)
    tsFun.set_projData(yShPolyOrder)
-   --print(Mpi.Comm_rank(grid:commSet().sharedComm), "before TS init")
 
    -- Call function computing the donor cells.
    self.doCells = tsFun.getDonors(self.grid, self.yShFld, yShBasis)

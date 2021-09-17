@@ -40,10 +40,10 @@ end
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = 2,              -- End time.
-   nFrame      = 10,                -- Number of output frames.
+   tEnd        = 2,                -- End time.
+   nFrame      = 1,                -- Number of output frames.
    lower       = {0, 0},           -- Configuration space lower left.
-   upper       = {Lx, Ly},       -- Configuration space upper right.
+   upper       = {Lx, Ly},         -- Configuration space upper right.
    cells       = {16, 16},         -- Configuration space cells.
    basis       = "serendipity",    -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                -- Polynomial order.
@@ -52,7 +52,7 @@ plasmaApp = Plasma.App {
    
    -- Decomposition for configuration space.
    decompCuts = {1, 1},    -- Cuts in each configuration direction.
-   useShared  = false,    -- If to use shared memory.
+   useShared  = false,     -- If to use shared memory.
 
    -- Boundary conditions for configuration space.
    periodicDirs = {1, 2}, -- Periodic directions

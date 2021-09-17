@@ -31,11 +31,11 @@ end
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = 3,              -- End time.
-   nFrame      = 3,                -- Number of output frames.
-   lower       = {0, 0, 0},           -- Configuration space lower left.
-   upper       = {Lx, Ly, Lz},       -- Configuration space upper right.
-   cells       = {16, 16, 16},         -- Configuration space cells.
+   tEnd        = 3,                -- End time.
+   nFrame      = 1,                -- Number of output frames.
+   lower       = {0, 0, 0},        -- Configuration space lower left.
+   upper       = {Lx, Ly, Lz},     -- Configuration space upper right.
+   cells       = {16, 16, 16},     -- Configuration space cells.
    basis       = "serendipity",    -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                -- Polynomial order.
    timeStepper = "rk3",            -- One of "rk2" or "rk3".
