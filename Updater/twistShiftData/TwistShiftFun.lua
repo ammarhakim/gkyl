@@ -1029,7 +1029,6 @@ function _M.getDonors(grid, yShift, yShBasis)
    end
 
    for idx in xyRangeDecomp:rowMajorIter(tId) do
-      --print("A", Mpi.Comm_rank(grid:commSet().comm), idx[1], idx[2])
       grid:setIndex(idx)
       
       local doCellsC = doCells[idx[1]][idx[2]]  -- Donor cells of current target cell.
@@ -1091,6 +1090,7 @@ function _M.getDonors(grid, yShift, yShBasis)
       end
 
    end
+
    return doCells
 end
 
