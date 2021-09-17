@@ -261,7 +261,7 @@ local yShiftedLogInv = function(ySlog, yTar, xcDoIn, xcTarIn, xLim, pickUpper)
    local function lossF(xlog)
       return ySlog - yShiftedLog(xlog, yTar, 1., xcDoIn, xcTarIn, pickUpper)
    end
-   local tol = 1.e-11
+   local tol = 1.e-10
    -- Have to consider extended logical space even though the part of the y-yShift curve
    -- that is not in this cell does not get used in the integral because the fixed
    -- y limit cuts if off. But if we didn't consider extended logical space the shape of the
