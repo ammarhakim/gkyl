@@ -280,7 +280,7 @@ function CartProdDecomp:childDecomp(keepDir)
          elseif keepDir[1] == 2 then 
             childRank = parentNodeRank % parentCuts[1]
          end
-      elseif parentDim == 3 then
+      else  -- This assumes that there's no decomposition along directions>3. 
          if childDim == 1 then
             if keepDir[1] == 1 then 
                childRank = math.floor(parentNodeRank/parentCuts[1])
@@ -296,32 +296,6 @@ function CartProdDecomp:childDecomp(keepDir)
                childRank = (parentNodeRank % (parentCuts[1]*parentCuts[2])) % parentCuts[1]
             elseif ((keepDir[1] == 3) and (keepDir[2] == 1)) or ((keepDir[1] == 1) and (keepDir[2] == 3)) then
                childRank = math.floor(parentNodeRank/parentCuts[1]) % parentCuts[2]
-            end
-         end
-      elseif parentDim == 4 then
-         if childDim == 1 then
-            if keepDir[1] == 1 then 
-               childRank = math.floor(parentNodeRank/parentCuts[1])
-            elseif keepDir[1] == 2 then 
-               childRank = parentNodeRank % parentCuts[1] + parentCuts[1]*math.floor(parentNodeRank/(parentCuts[1]*parentCuts[2]))
-            elseif keepDir[1] == 3 then 
-               childRank = parentNodeRank % (parentCuts[1]*parentCuts[2])
-            elseif keepDir[1] == 4 then 
-               childRank = parentNodeRank % (parentCuts[1]*parentCuts[2]*parentCuts[3])
-            end
-         end
-      elseif parentDim == 5 then
-         if childDim == 1 then
-            if keepDir[1] == 1 then 
-               childRank = math.floor(parentNodeRank/parentCuts[1])
-            elseif keepDir[1] == 2 then 
-               childRank = parentNodeRank % parentCuts[1] + parentCuts[1]*math.floor(parentNodeRank/(parentCuts[1]*parentCuts[2]))
-            elseif keepDir[1] == 3 then 
-               childRank = parentNodeRank % (parentCuts[1]*parentCuts[2])
-            elseif keepDir[1] == 4 then 
-               childRank = parentNodeRank % (parentCuts[1]*parentCuts[2]*parentCuts[3])
-            elseif keepDir[1] == 5 then 
-               childRank = parentNodeRank % (parentCuts[1]*parentCuts[2]*parentCuts[3]*parentCuts[4])
             end
          end
       end

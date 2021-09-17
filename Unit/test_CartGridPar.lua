@@ -106,6 +106,7 @@ function test_3(comm)
       local childDim, localRange = childGrid[d]:ndim(), childGrid[d]:localRange()
       local lox, dx = childGrid[d]:lower(1), childGrid[d]:dx(1)
       local idx, xc = Lin.IntVec(childDim), Lin.Vec(childDim)
+      -- MF 2021/09/15 WARNING: this test is not sufficient. It doesn't check that the range is correct.
       for i = localRange:lower(1), localRange:upper(1) do
          childGrid[d]:setIndex( idx:setValues {i} )
          childGrid[d]:cellCenter(xc)
@@ -191,6 +192,7 @@ function test_4(comm)
       local childDim, localRange = childGrid[d]:ndim(), childGrid[d]:localRange()
       local lox, dx = childGrid[d]:lower(1), childGrid[d]:dx(1)
       local idx, xc = Lin.IntVec(childDim), Lin.Vec(childDim)
+      -- MF 2021/09/15 WARNING: this test is not sufficient. It doesn't check that the range is correct.
       for i = localRange:lower(1), localRange:upper(1) do
          childGrid[d]:setIndex( idx:setValues {i} )
          childGrid[d]:cellCenter(xc)
@@ -223,6 +225,7 @@ function test_4(comm)
       local lox, dx = childGrid2D[cD]:lower(1), childGrid2D[cD]:dx(1)
       local loy, dy = childGrid2D[cD]:lower(2), childGrid2D[cD]:dx(2)
       local idx, xc = Lin.IntVec(childDim), Lin.Vec(childDim)
+      -- MF 2021/09/15 WARNING: this test is not sufficient. It doesn't check that the range is correct.
       for i = localRange:lower(1), localRange:upper(1) do
          for j = localRange:lower(2), localRange:upper(2) do
             childGrid2D[cD]:setIndex( idx:setValues {i,j} )
@@ -303,6 +306,7 @@ function test_5(comm)
       local loy, dy = childGrid3D[cD]:lower(2), childGrid3D[cD]:dx(2)
       local loz, dz = childGrid3D[cD]:lower(3), childGrid3D[cD]:dx(3)
       local idx, xc = Lin.IntVec(childDim), Lin.Vec(childDim)
+      -- MF 2021/09/15 WARNING: this test is not sufficient. It doesn't check that the range is correct.
       for i = localRange:lower(1), localRange:upper(1) do
          for j = localRange:lower(2), localRange:upper(2) do
             for k = localRange:lower(3), localRange:upper(3) do
@@ -358,12 +362,6 @@ function test_6(comm)
          childGrid[d]:cellCenter(xc)
          assert_equal(xc[1], lox+(i-0.5)*dx, string.format("Testing child %d cell-center coordinate",d))
       end
---      local localRange = childGrid[d]._localRange
---      if Mpi.Comm_rank(grid:commSet().comm)==1 then
---         print(string.format("%d  %d: lower=%d | upper=%d",d,Mpi.Comm_rank(grid:commSet().comm),localRange:lower(1),localRange:upper(1)))
---      else
---         print(string.format("%d  %d: lower=%d | upper=%d",d,Mpi.Comm_rank(grid:commSet().comm),localRange:lower(1),localRange:upper(1)))
---      end
    end
 
    -- Create an YZVxVy, XZVxVy, XYVxVy, XYZVy and XYZVx subgrids.
@@ -393,6 +391,7 @@ function test_6(comm)
       local loz, dz = childGrid4D[cD]:lower(3), childGrid4D[cD]:dx(3)
       local lovx, dvx = childGrid4D[cD]:lower(4), childGrid4D[cD]:dx(4)
       local idx, xc = Lin.IntVec(childDim), Lin.Vec(childDim)
+      -- MF 2021/09/15 WARNING: this test is not sufficient. It doesn't check that the range is correct.
       for i = localRange:lower(1), localRange:upper(1) do
          for j = localRange:lower(2), localRange:upper(2) do
             for k = localRange:lower(3), localRange:upper(3) do
@@ -436,11 +435,7 @@ function test_7(comm)
    assert_equal(6, fIdx[2], "Checking 2D fIdx[2] for interior point")
    grid:findCell(np, fIdx, true, {2,nil})    -- If we know fIdx[1].
 
---   local myRank = Mpi.Comm_rank(Mpi.COMM_WORLD)
---   if myRank==1 then
---      print(string.format("%d | fIdx = (%d,%d)",myRank, fIdx[1],fIdx[2]))
---   end
---   assert(2==fIdx[1] and 6==fIdx[2], "Checking 2D fIdx for interior point (known)")
+   assert(2==fIdx[1] and 6==fIdx[2], "Checking 2D fIdx for interior point (known)")
 end
 
 -- Run tests
@@ -448,9 +443,9 @@ end
 --test_2(Mpi.COMM_WORLD)
 test_3(Mpi.COMM_WORLD)
 test_4(Mpi.COMM_WORLD)
---test_5(Mpi.COMM_WORLD)  -- Capabilities not fully working.
---test_6(Mpi.COMM_WORLD)  -- Capabilities not fully working.
---test_7(Mpi.COMM_WORLD)
+test_5(Mpi.COMM_WORLD)
+test_6(Mpi.COMM_WORLD)
+test_7(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
