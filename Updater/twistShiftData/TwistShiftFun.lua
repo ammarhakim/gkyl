@@ -71,6 +71,11 @@ local xsys             = require "xsys"
 
 local TwistShiftDecl = require "Updater.twistShiftData.TwistShiftModDecl"
 
+local debugPrint = false  -- Set to false to turn off debugging print statements.
+local function printDebug(str)
+   if debugPrint then print(str) end
+end
+
 -- Kernels. Assigned by the selectTwistShiftKernels function.
 local intSubXlimDG = nil 
 local intSubYlimDG = nil
@@ -261,7 +266,7 @@ local yShiftedLogInv = function(ySlog, yTar, xcDoIn, xcTarIn, xLim, pickUpper)
    local function lossF(xlog)
       return ySlog - yShiftedLog(xlog, yTar, 1., xcDoIn, xcTarIn, pickUpper)
    end
-   local tol = 1.e-11
+   local tol = 1.e-10
    -- Have to consider extended logical space even though the part of the y-yShift curve
    -- that is not in this cell does not get used in the integral because the fixed
    -- y limit cuts if off. But if we didn't consider extended logical space the shape of the
@@ -535,7 +540,7 @@ local subCellInt_sN = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, atUpperYce
    --   tsMatVecs:    pre-allocated matrices and vectors.
    local etaBounds = {lo=-1., up=1.}   -- Logical-space y-limits of the subcell integral.
 
---   print("    scenario sN")
+   printDebug("    scenario sN")
    local yTar      = {lo=nil, up=nil}  -- yTar-yShift defines the x-limits of the subcell integral.
    -- Lo/up limits of x-logical space of lo/up limits of integral.
    local xiBounds = {lo={lo=nil, up=nil}, up={lo=nil, up=nil}}
@@ -572,14 +577,14 @@ local subCellInt_siORsii = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, atUpp
 --   local yShiftUp = yShiftF(limTar[1].up)
 --   local yTar     = limTar[2].lo
 --   if -yShiftUp >= -yShiftF(x_pq.loTar.upDo) then  -- Check if yShift increases or decreases.
---      print("    scenario si")
+--      printDebug("    scenario si")
 --      -- Scenario si.
 --      local yLogBounds = {lo=p2l(wrapNum(limTar[2].lo-yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2]), up=1.}
 --      local xLogBounds = {lo=-1, up=p2l(x_pq.loTar.upDo,xcDoIn[1],dx[1])}
 --      subCellInt_xUpLimDG(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, atUpperYcell, yShPtrIn, tsMatVecsIn)
 --   else
 --      -- Scenario sii.
---      print("    scenario sii")
+--      printDebug("    scenario sii")
 --      local yLogBounds = {lo=p2l(wrapNum(limTar[2].lo-yShiftUp,domLim[2],atUpperYcell),xcDoIn[2],dx[2]), up=1.}
 --      local xLogBounds = {lo=p2l(x_pq.loTar.upDo,xcDoIn[1],dx[1]), up=1.}
 --      subCellInt_xLoLimDG(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, atUpperYcell, yShPtrIn, tsMatVecsIn)
@@ -590,13 +595,13 @@ local subCellInt_siORsii = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, atUpp
    local yTar     = limTar[2].lo
    local etaBounds, xiBounds
    if -yShiftUp >= -yShiftF(x_pq.loTar.upDo) then  -- Check if yShift increases or decreases.
---      print("    scenario si")
+      printDebug("    scenario si")
       -- Scenario si.
       etaBounds = {lo=p2l(wrapNum(limTar[2].lo-yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2]), up=1.}
       xiBounds  = {lo=-1, up=p2l(x_pq.loTar.upDo,xcDoIn[1],dx[1])}
    else
       -- Scenario sii.
---      print("    scenario sii")
+      printDebug("    scenario sii")
       etaBounds = {lo=p2l(wrapNum(limTar[2].lo-yShiftUp,domLim[2],atUpperYcell),xcDoIn[2],dx[2]), up=1.}
       xiBounds  = {lo=p2l(x_pq.loTar.upDo,xcDoIn[1],dx[1]), up=1.}
    end
@@ -622,12 +627,12 @@ local subCellInt_siiiORsiv = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, atU
 --   local yTar     = limTar[2].up
 --   if -yShiftUp <= -yShiftF(x_pq.upTar.loDo) then
 --      -- Scenario siii.
---      print("    scenario siii")
+--      printDebug("    scenario siii")
 --      local yLogBounds = {lo=-1., up=p2l(wrapNum(limTar[2].up-yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
 --      local xLogBounds = {lo=-1., up=p2l(x_pq.upTar.loDo,xcDoIn[1],dx[1])}
 --      subCellInt_xUpLimDG(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, atUpperYcell, yShPtrIn, tsMatVecsIn)
 --   else
---      print("    scenario siv")
+--      printDebug("    scenario siv")
 --      -- Scenario siv.
 --      local yLogBounds = {lo=-1., up=p2l(wrapNum(limTar[2].up-yShiftUp,domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
 --      local xLogBounds = {lo=p2l(x_pq.upTar.loDo,xcDoIn[1],dx[1]), up=1.}
@@ -640,11 +645,11 @@ local subCellInt_siiiORsiv = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, atU
    local etaBounds, xiBounds
    if -yShiftUp <= -yShiftF(x_pq.upTar.loDo) then
       -- Scenario siii.
---      print("    scenario siii")
+      printDebug("    scenario siii")
       etaBounds = {lo=-1., up=p2l(wrapNum(limTar[2].up-yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
       xiBounds  = {lo=-1., up=p2l(x_pq.upTar.loDo,xcDoIn[1],dx[1])}
    else
---      print("    scenario siv")
+      printDebug("    scenario siv")
       -- Scenario siv.
       etaBounds = {lo=-1., up=p2l(wrapNum(limTar[2].up-yShiftUp,domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
       xiBounds  = {lo=p2l(x_pq.upTar.loDo,xcDoIn[1],dx[1]), up=1.}
@@ -732,8 +737,8 @@ local subCellInt_svORsvi = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, atUpp
    -- x-integral by comparing where y=y_{j_do+1/2} crosses y_{j_tar-/+1/2}-yShift.
    if x_pq.loTar.upDo > x_pq.upTar.upDo then   -- Scenario sv.
       local xLogLoLo, xLogLoUp = -1., p2l(x_pq.upTar.upDo,xcDoIn[1],dx[1])
---      print("    scenario sv")
-      if (xLogLoUp-xLogLoLo) > 0 then
+      printDebug("    scenario sv")
+      if (xLogLoUp-xLogLoLo) > 1.e-13 then
          -- Add scenario sN-like contribution.
          local yTars      = {lo=limTar[2].up, up=limTar[2].lo}
          local xLogBounds = {lo={lo=xLogLoLo, up=xLogLoUp},
@@ -747,13 +752,13 @@ local subCellInt_svORsvi = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, atUpp
          yLogBounds.lo = -1.
          subCellInt_xUpLimDG(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, atUpperYcell, yShPtrIn, tsMatVecsIn, 0)
       else   -- This is better handled as a scenario six.
---         print("      as six")
+         printDebug("      as six")
          subCellInt_six(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, atUpperYcell, yShPtrIn, tsMatVecsIn)
       end
    else   -- Scenario svi.
       local xLogUpLo, xLogUpUp = p2l(x_pq.upTar.upDo,xcDoIn[1],dx[1]), 1.
---      print("    scenario svi")
-      if (xLogUpUp-xLogUpLo) > 0 then
+      printDebug("    scenario svi")
+      if (xLogUpUp-xLogUpLo) > 1.e-13 then
          -- Add scenario sN-like contribution.
          local yTars      = {lo=limTar[2].lo, up=limTar[2].up}
          local xLogBounds = {lo={lo=p2l(x_pq.loTar.upDo,xcDoIn[1],dx[1]), up=p2l(x_pq.loTar.loDo,xcDoIn[1],dx[1])},
@@ -767,7 +772,7 @@ local subCellInt_svORsvi = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, atUpp
          yLogBounds.lo = -1.
          subCellInt_xLoLimDG(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, atUpperYcell, yShPtrIn, tsMatVecsIn, 0)
       else    -- This is better handled as a scenario sx.
---         print("      as sx")
+         printDebug("      as sx")
          subCellInt_sx(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, atUpperYcell, yShPtrIn, tsMatVecsIn)
       end
    end
@@ -789,8 +794,8 @@ local subCellInt_sviiORsviii = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, a
    -- x-integral by comparing where y=y_{j_do-1/2} crosses y_{j_tar-/+1/2}-yShift.
    if x_pq.loTar.loDo < x_pq.upTar.loDo then   -- Scenario svii.
       local xLimLoLo, xLimLoUp = -1., p2l(x_pq.loTar.loDo,xcDoIn[1],dx[1])
---      print("    scenario svii")
-      if (xLimLoUp-xLimLoLo) > 0 then
+      printDebug("    scenario svii")
+      if (xLimLoUp-xLimLoLo) > 1.e-13 then
          -- Add scenario sN-like contribution.
          local yTar       = {lo=limTar[2].lo, up=limTar[2].up}
          local xLogBounds = {lo={lo=xLimLoLo, up=xLimLoUp},
@@ -804,13 +809,13 @@ local subCellInt_sviiORsviii = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, a
          yLogBounds.up = 1.
          subCellInt_xUpLimDG(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, atUpperYcell, yShPtrIn, tsMatVecsIn, 0)
       else   -- This is better handled as a scenario sxi.
---         print("      as sxi")
+         printDebug("      as sxi")
          subCellInt_sxi(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, atUpperYcell, yShPtrIn, tsMatVecsIn)
       end
    else   -- Scenario sviii.
       local xLimUpLo, xLimUpUp = p2l(x_pq.loTar.loDo,xcDoIn[1],dx[1]), 1.
---      print("    scenario sviii")
-      if (xLimUpUp-xLimUpLo) > 0 then
+      printDebug("    scenario sviii")
+      if (xLimUpUp-xLimUpLo) > 1.e-13 then
          -- Add scenario sN-like contribution.
          local yTar       = {lo=limTar[2].up, up=limTar[2].lo}
          local xLogBounds = {lo={lo=p2l(x_pq.upTar.loDo,xcDoIn[1],dx[1]), up=p2l(x_pq.upTar.upDo,xcDoIn[1],dx[1])},
@@ -824,7 +829,7 @@ local subCellInt_sviiORsviii = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, a
          yLogBounds.up    = 1.
          subCellInt_xLoLimDG(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, atUpperYcell, yShPtrIn, tsMatVecsIn, 0)
       else   -- This is better handled as a scenario sxii.
---         print("      as sxii")
+         printDebug("      as sxii")
          subCellInt_sxii(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, atUpperYcell, yShPtrIn, tsMatVecsIn)
       end
    end
@@ -853,7 +858,7 @@ local subCellInt_sxiiiORsxiv = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, a
 --   local xLogBoundsL, xLogBoundsR = {}, {}
 --   local yLogBoundsL, yLogBoundsR = {}, {}
 --   if -yShiftF(limTar[1].lo) < -yShiftF(limTar[1].up) then   -- Scenario sxiii.
---      print("    scenario sxiii")
+--      printDebug("    scenario sxiii")
 --      -- Scenario si-like part.
 --      yTarL       = limTar[2].up
 --      xLogBoundsL = {lo=-1., up=p2l(x_pq.upTar.upDo,xcDoIn[1],dx[1])}
@@ -863,7 +868,7 @@ local subCellInt_sxiiiORsxiv = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, a
 --      xLogBoundsR = {lo=p2l(x_pq.loTar.loDo,xcDoIn[1],dx[1]), up=1.}
 --      yLogBoundsR = {lo=-1., up=p2l(wrapNum(limTar[2].lo-yShiftF(limTar[1].up),domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
 --   else   -- Scenario sxiv.
---      print("    scenario sxiv")
+--      printDebug("    scenario sxiv")
 --      -- Scenario sii-like part.
 --      yTarR       = limTar[2].up
 --      xLogBoundsR = {lo=p2l(x_pq.upTar.upDo,xcDoIn[1],dx[1]), up=1.}
@@ -906,7 +911,7 @@ local subCellInt_sxiiiORsxiv = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, a
    local xiBoundsLo, xiBoundsUp  = {}, {}
    local etaBoundsLo, etaBoundUp = {}, {}
    if -yShiftF(limTar[1].lo) < -yShiftF(limTar[1].up) then   -- Scenario sxiii.
---      print("    scenario sxiii")
+      printDebug("    scenario sxiii")
       -- Scenario si-like part.
       yTarUp      = limTar[2].up
       xiBoundsUp  = {lo=-1., up=p2l(x_pq.upTar.upDo,xcDoIn[1],dx[1])}
@@ -916,7 +921,7 @@ local subCellInt_sxiiiORsxiv = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, a
       xiBoundsLo  = {lo=p2l(x_pq.loTar.loDo,xcDoIn[1],dx[1]), up=1.}
       etaBoundsLo = {lo=-1., up=p2l(wrapNum(limTar[2].lo-yShiftF(limTar[1].up),domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
    else   -- Scenario sxiv.
---      print("    scenario sxiv")
+      printDebug("    scenario sxiv")
       -- Scenario sii-like part.
       yTarUp      = limTar[2].up
       xiBoundsUp  = {lo=p2l(x_pq.upTar.upDo,xcDoIn[1],dx[1]), up=1.}
@@ -966,14 +971,14 @@ local subCellInt_sxvORsxvi = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limDo, limT
    local etaLims  = {}               -- Table of functions definting the limits of eta integral.
    local yShiftLoXc = wrapNum(limTar[2].lo-yShiftF(xcDoIn[1]),domLim[2],atUpperYcell)
    if (limDo[2].lo <= yShiftLoXc) and (yShiftLoXc <= limDo[2].up) then   -- Scenario sxv.
---      print("    scenario sxv")
+      printDebug("    scenario sxv")
       local yTar = limTar[2].lo
       etaLims = {lo = function(t,xn)
                          return yShiftedLog(xn[1], yTar, 1, xcDoIn, xcTarIn, atUpperYcell)
                       end,
                  up = function(t,xn) return 1.0 end}
    else   -- Scenario sxvi.
---      print("    scenario sxvi")
+      printDebug("    scenario sxvi")
       local yTar = limTar[2].up
       etaLims = {lo = function(t,xn) return -1.0 end,
                  up = function(t,xn)
@@ -1184,12 +1189,12 @@ function _M.preCalcMat(grid, yShift, doCells, tsMatVecs)
 
       local doCellsC = doCells[idxTar[1]][idxTar[2]]   -- Donor cells of current target cell.
 
---      print("xIdx = ",xIdx[1])
+      printDebug(string.format("xIdx = %d",xIdx[1]))
 
       for iC = 1, #doCellsC do
 
          local idxDo = doCellsC[iC]
---         print("  from idxDo = ",idxDo[1],idxDo[2])
+         printDebug(string.format("  from idxDo = %d, %d",idxDo[1],idxDo[2]))
          idxDoP[1], idxDoP[2] = idxDo[1], idxDo[2]
 
          grid:setIndex(idxDoP)
@@ -1209,7 +1214,7 @@ function _M.preCalcMat(grid, yShift, doCells, tsMatVecs)
                local yTar, yDo = cellLimTar[2][tarLim], cellLimDo[2][doLim]
                interPts[i][j]  = findIntersect(yTar, yDo, cellLimTar[1], domLim[2])
                if interPts[i][j]==nil then foundAll=false end 
---               print(string.format("    O_%s,%s = %g",i,j,interPts[i][j] or -1e19))
+               printDebug(string.format("    O_%s,%s = %g",i,j,interPts[i][j] or -1e19))
             end
          end
 

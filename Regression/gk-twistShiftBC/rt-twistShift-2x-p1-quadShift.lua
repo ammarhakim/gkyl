@@ -38,12 +38,12 @@ function qprofile(r)
 end
 
 local q0 = qprofile(x0)
+--print("x0/q0*Lz = ",x0/q0*Lz)
 
 local polyOrder       = 1
 local lower           = {x0-Lx/2, y0-Ly/2}
 local upper           = {x0+Lx/2, y0+Ly/2}
---local cells           = {{10,10}, {20,20}, {40, 40}, {16,64}, {32, 128}, {64, 256}}  -- MF 2021/09/15: 10x10, 20x20 and 40x40 are failing.
-local cells           = {{16,64}, {32, 128}, {64, 256}}
+local cells           = {{10,10}, {20,20}, {40, 40}, {16,64}, {32, 128}, {64, 256}}  -- MF 2021/09/15: 10x10, 20x20 and 40x40 are failing.
 local periodicDirs    = {1,2}
 local yShiftPolyOrder = polyOrder  -- Poly order for discretizing the shift function, = polyOrder, 1 if polyOrder=0, or 1 or 2 if polyOrder=1.
 
