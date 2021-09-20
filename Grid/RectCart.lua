@@ -391,20 +391,16 @@ function RectCart:childGrid(keepDims)
    if self.decomp then
       local childComm, childWriteRank, childCuts, childIsShared = self.decomp:childDecomp(keepDims)
       childDecomp = DecompRegionCalc.CartProd {
-         comm      = childComm,
-         writeRank = childWriteRank,
-         cuts      = childCuts,
-         useShared = childIsShared,
+         comm         = childComm,       cuts      = childCuts,
+         writeRank    = childWriteRank,  useShared = childIsShared,
          __serTesting = true,
       }
    end
 
    local childGridIngredients = {
-      lower = childLower,
-      upper = childUpper,
+      lower = childLower,  periodicDirs  = childPeriodicDirs,
+      upper = childUpper,  decomposition = childDecomp,
       cells = childCells,
-      periodicDirs  = childPeriodicDirs,
-      decomposition = childDecomp,
    }
    return childGridIngredients
 end

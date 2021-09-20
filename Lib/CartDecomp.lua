@@ -280,7 +280,7 @@ function CartProdDecomp:childDecomp(keepDir)
          elseif keepDir[1] == 2 then 
             childRank = parentNodeRank % parentCuts[1]
          end
-      elseif parentDim == 3 then
+      else  -- This assumes that there's no decomposition along directions>3. 
          if childDim == 1 then
             if keepDir[1] == 1 then 
                childRank = math.floor(parentNodeRank/parentCuts[1])

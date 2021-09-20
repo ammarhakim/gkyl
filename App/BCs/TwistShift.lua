@@ -74,8 +74,8 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
    -- Define methods to allocate fields defined on boundary grid (used by e.g. diagnostics).
    self.allocCartField = function(self, grid, nComp, ghosts, metaData)
       local f = DataStruct.Field {
-         onGrid        = grid,   ghost         = ghosts,
-         numComponents = nComp,  metaData      = metaData,
+         onGrid        = grid,   ghost    = ghosts,
+         numComponents = nComp,  metaData = metaData,
       }
       f:clear(0.0)
       return f
