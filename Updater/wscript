@@ -308,6 +308,7 @@ def build(bld):
     FemParPoissonImpl.cpp
     FemMatrices.cpp
     FemGyroaverageImpl.cpp
+    FemPerpFourierFilterImpl.cpp
 
     DiscontPoissonImpl.cpp
   

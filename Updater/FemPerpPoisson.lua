@@ -411,7 +411,7 @@ function FemPerpPoisson:completeAssemblyAndSolve(tCurr, sol)
    local ndim       = self._ndim
    local localRange = sol:localRange()
 
-   if self._first then self.solPtr = sol:get(1) end
+   self.solPtr = sol:get(1)
 
    -- Loop over local z cells.
    for idz=self.local_z_lower, self.local_z_upper do

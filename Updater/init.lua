@@ -24,6 +24,7 @@ local FemGyroaverage = require "Updater.FemGyroaverage"
 local FemParPoisson = require "Updater.FemParPoisson"
 local FemPerpPoisson = require "Updater.FemPerpPoisson"
 local FemPoisson = require "Updater.FemPoisson"
+local FemPerpFourierFilter = require "Updater.FemPerpFourierFilter"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
 local HyperDisCont = require "Updater.HyperDisCont"
 local HyperDisContCellBased = require "Updater.HyperDisContCellBased"
@@ -75,6 +76,7 @@ return {
    FemParPoisson = FemParPoisson,
    FemPerpPoisson = FemPerpPoisson,
    FemPoisson = FemPoisson,
+   FemPerpFourierFilter = FemPerpFourierFilter,
    FiveMomentSrc = FiveMomentSrc,
    HyperDisCont = HyperDisCont,
    HyperDisContCellBased = HyperDisContCellBased,
