@@ -182,6 +182,7 @@ function RectCart:totalNumCells()
 end
 function RectCart:localRange() return self._localRange end
 function RectCart:globalRange() return self._globalRange end
+function RectCart:localNumCells(dir) return self._numCells[dir]/self._cuts[dir] end
 function RectCart:isDirPeriodic(dir) return self._isDirPeriodic[dir] end
 function RectCart:getPeriodicDirs() return self._periodicDirs end
 function RectCart:setPeriodicDirs(periodicDirs)

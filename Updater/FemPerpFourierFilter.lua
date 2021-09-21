@@ -33,10 +33,10 @@ if GKYL_HAVE_MPI then Mpi = require "Comm.Mpi" end
 
 ffi.cdef[[
   typedef struct FemPerpFourierFilter FemPerpFourierFilter;
-  FemPerpFourierFilter* new_FemPerpFourierFilter(int nx, int ny, int ndim, int *ikyFilter, int numFilter);
+  FemPerpFourierFilter* new_FemPerpFourierFilter(int nx, int ny, int nz, int ndim, int *ikyFilter, int numFilter);
   void delete_FemPerpFourierFilter(FemPerpFourierFilter* f);
-  void assembleGlobalSrc(FemPerpFourierFilter* f, double *data, int idx, int idy);
-  void getFilteredSolution(FemPerpFourierFilter* f, double *data, int idx, int idy);
+  void assembleGlobalSrc(FemPerpFourierFilter* f, double *data, int idx, int idy, int idz);
+  void getFilteredSolution(FemPerpFourierFilter* f, double *data, int idx, int idy, int idz);
   void fft_r2c(FemPerpFourierFilter* f);
   void fft_c2r(FemPerpFourierFilter* f);
   void filter(FemPerpFourierFilter* f);
@@ -50,11 +50,7 @@ function FemPerpFourierFilter:init(tbl)
 
    self._grid  = assert(tbl.onGrid, "Updater.FemPerpFourierFilter: Must provide grid object using 'onGrid'")
    self._basis = assert(tbl.basis, "Updater.FemPerpFourierFilter: Must specify basis functions to use using 'basis'")
-   self._ikyTbl = tbl.kyfilter
-
    self._ndim = self._grid:ndim()
-   self._nx = self._grid:numCells(1)
-   self._ny = self._grid:numCells(2)
    self._p  = self._basis:polyOrder()
 
    assert(self._basis:id()=="serendipity", "Updater.FemPerpFourierFilter: only implemented for modal serendipity basis")
@@ -62,37 +58,25 @@ function FemPerpFourierFilter:init(tbl)
    assert(self._p==1, "Updater.FemPerpFourierFilter: only implemented for polyOrder = 1")
    assert(self._ndim==2 or self._ndim==3, "Updater.FemPerpFourierFilter: only implemented for 2D or 3D (with no filter in 3rd dimension)")
 
+   self._nx = self._grid:localNumCells(1)
+   self._ny = self._grid:numCells(2)
+   if self._ndim > 2 then self._nz = self._grid:localNumCells(3) else self._nz = 0 end
+
    self._onGhosts = xsys.pickBool(tbl.onGhosts, false)
 
    self._first = true
 
-   --if GKYL_HAVE_MPI then
-   --   -- Split communicators in z.
-   --   local commSet   = self._grid:commSet()
-   --   local worldComm = commSet.comm
-   --   local nodeComm  = commSet.nodeComm
-   --   local nodeRank  = Mpi.Comm_rank(nodeComm)
-   --   local zrank     = 0
-   --   if self._ndim==3 then zrank = math.floor(nodeRank/self._grid:cuts(1)/self._grid:cuts(2)) end
-   --   self._zcomm = Mpi.Comm_split(worldComm, zrank, nodeRank)
-   --end
-
-   --local localRange = self._grid:localRange()
-   ---- Create region that is effectively 2d and global in x-y directions.
-   --self.local_z_lower = 1
-   --self.local_z_upper = 1
-   --if (self._ndim == 3) then
-   --   self.local_z_lower = localRange:lower(3)
-   --   self.local_z_upper = localRange:upper(3)
-   --end
-
-   self._numFilter = #self._ikyTbl
+   self._kyTbl = tbl.kyfilter
+   self._numFilter = #self._kyTbl
    self._iky = ffi.new("int[?]", self._numFilter)
+   local Ly = self._grid:upper(2) - self._grid:lower(2)
    for i = 0, self._numFilter-1 do
-      self._iky[i] = self._ikyTbl[i+1]
+      self._iky[i] = self._kyTbl[i+1]*Ly/(2*math.pi)
    end
 
-   self._filter = ffiC.new_FemPerpFourierFilter(self._nx, self._ny, self._ndim, self._iky, self._numFilter)
+   -- use nx+1 and nz+1 to include node at end of x and z dimensions
+   -- for y, we will assume periodicity, so we do not include this last node
+   self._filter = ffiC.new_FemPerpFourierFilter(self._nx+1, self._ny, self._nz+1, self._ndim, self._iky, self._numFilter)
 
    return self
 end
@@ -111,9 +95,11 @@ function FemPerpFourierFilter:_advance(tCurr, inFld, outFld)
    local solPtr = sol:get(1)
    local indexer = src:genIndexer()
 
-   for idx in localRange:rowMajorIter() do
-      src:fill(indexer(idx), srcPtr)
-      ffiC.assembleGlobalSrc(self._filter, srcPtr:data(), idx[1]-1, idx[2]-1)
+   for idx in localExtRange:rowMajorIter() do
+      if (idx[1]>0 and idx[2]>0 and idx[2]<=self._ny and (ndim==2 or idx[3]>0)) then
+        src:fill(indexer(idx), srcPtr)
+        ffiC.assembleGlobalSrc(self._filter, srcPtr:data(), idx[1]-1, idx[2]-1, idx[3]-1)
+      end
    end
 
    ffiC.fft_r2c(self._filter)
@@ -124,7 +110,7 @@ function FemPerpFourierFilter:_advance(tCurr, inFld, outFld)
 
    for idx in localRange:rowMajorIter() do
       sol:fill(indexer(idx), solPtr)
-      ffiC.getFilteredSolution(self._filter, solPtr:data(), idx[1]-1, idx[2]-1)
+      ffiC.getFilteredSolution(self._filter, solPtr:data(), idx[1]-1, idx[2]-1, idx[3]-1)
    end
 end
 

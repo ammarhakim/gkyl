@@ -19,10 +19,10 @@ class FemPerpFourierFilter;
 
 extern "C" {
 // C wrappers for interfacing with FemPerpFourierFilter class
-  void* new_FemPerpFourierFilter(int nx, int ny, int ndim, int *ikyFilter, int numFilter);
+  void* new_FemPerpFourierFilter(int nx, int ny, int nz, int ndim, int *ikyFilter, int numFilter);
   void delete_FemPerpFourierFilter(FemPerpFourierFilter* f);
-  void assembleGlobalSrc(FemPerpFourierFilter* f, double *modalSrc, int idx, int idy);
-  void getFilteredSolution(FemPerpFourierFilter* f, double *modalSol, int idx, int idy);
+  void assembleGlobalSrc(FemPerpFourierFilter* f, double *modalSrc, int idx, int idy, int idz);
+  void getFilteredSolution(FemPerpFourierFilter* f, double *modalSol, int idx, int idy, int idz);
   void fft_r2c(FemPerpFourierFilter* f);
   void fft_c2r(FemPerpFourierFilter* f);
   void filter(FemPerpFourierFilter* f);
@@ -31,16 +31,16 @@ extern "C" {
 class FemPerpFourierFilter
 {
   public:
-    FemPerpFourierFilter(int nx, int ny, int ndim, int *ikyFilter, int numFilter);
+    FemPerpFourierFilter(int nx, int ny, int nz, int ndim, int *ikyFilter, int numFilter);
     ~FemPerpFourierFilter();
-    void assembleGlobalSrc(double *modalSrc, int idx, int idy);
-    void getFilteredSolution(double *modalSol, int idx, int idy);
+    void assembleGlobalSrc(double *modalSrc, int idx, int idy, int idz);
+    void getFilteredSolution(double *modalSol, int idx, int idy, int idz);
     void fft_r2c();
     void fft_c2r();
     void filter();
   
   private:
-    const int nx, ny, ndim;
+    const int nx, ny, nz, ndim;
     int nlocal;
     fftw_plan plan_r2c, plan_c2r;
     fftw_complex *data_c;
