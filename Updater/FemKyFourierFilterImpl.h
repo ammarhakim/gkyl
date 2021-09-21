@@ -15,24 +15,24 @@
 #include <fftw3.h>
 #include <mpi.h>
 
-class FemPerpFourierFilter;
+class FemKyFourierFilter;
 
 extern "C" {
-// C wrappers for interfacing with FemPerpFourierFilter class
-  void* new_FemPerpFourierFilter(int nx, int ny, int nz, int ndim, int *ikyFilter, int numFilter);
-  void delete_FemPerpFourierFilter(FemPerpFourierFilter* f);
-  void assembleGlobalSrc(FemPerpFourierFilter* f, double *modalSrc, int idx, int idy, int idz);
-  void getFilteredSolution(FemPerpFourierFilter* f, double *modalSol, int idx, int idy, int idz);
-  void fft_r2c(FemPerpFourierFilter* f);
-  void fft_c2r(FemPerpFourierFilter* f);
-  void filter(FemPerpFourierFilter* f);
+// C wrappers for interfacing with FemKyFourierFilter class
+  void* new_FemKyFourierFilter(int nx, int ny, int nz, int ndim, int *ikyFilter, int numFilter);
+  void delete_FemKyFourierFilter(FemKyFourierFilter* f);
+  void assembleGlobalSrc(FemKyFourierFilter* f, double *modalSrc, int idx, int idy, int idz);
+  void getFilteredSolution(FemKyFourierFilter* f, double *modalSol, int idx, int idy, int idz);
+  void fft_r2c(FemKyFourierFilter* f);
+  void fft_c2r(FemKyFourierFilter* f);
+  void filter(FemKyFourierFilter* f);
 }
 
-class FemPerpFourierFilter
+class FemKyFourierFilter
 {
   public:
-    FemPerpFourierFilter(int nx, int ny, int nz, int ndim, int *ikyFilter, int numFilter);
-    ~FemPerpFourierFilter();
+    FemKyFourierFilter(int nx, int ny, int nz, int ndim, int *ikyFilter, int numFilter);
+    ~FemKyFourierFilter();
     void assembleGlobalSrc(double *modalSrc, int idx, int idy, int idz);
     void getFilteredSolution(double *modalSol, int idx, int idy, int idz);
     void fft_r2c();

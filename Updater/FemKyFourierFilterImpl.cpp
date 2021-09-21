@@ -5,7 +5,7 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
-#include <FemPerpFourierFilterImpl.h>
+#include <FemKyFourierFilterImpl.h>
 #include <FemPerpPoissonImpl.h>
 #include <FemMatrices.h>
 #include <fftw3.h>
@@ -15,7 +15,7 @@
 #include <vector>
 using namespace Eigen;
 
-FemPerpFourierFilter::FemPerpFourierFilter(int nx_, int ny_, int nz_, int ndim_, int *ikyFilter, int numFilter)
+FemKyFourierFilter::FemKyFourierFilter(int nx_, int ny_, int nz_, int ndim_, int *ikyFilter, int numFilter)
   : nx(nx_), ny(ny_), nz(nz_), ndim(ndim_)
 {
   if(ndim==2) {
@@ -53,11 +53,11 @@ FemPerpFourierFilter::FemPerpFourierFilter(int nx_, int ny_, int nz_, int ndim_,
   }
 }
 
-FemPerpFourierFilter::~FemPerpFourierFilter() 
+FemKyFourierFilter::~FemKyFourierFilter() 
 {
 }
 
-void FemPerpFourierFilter::assembleGlobalSrc(double *modalSrc, int idx, int idy, int idz) {
+void FemKyFourierFilter::assembleGlobalSrc(double *modalSrc, int idx, int idy, int idz) {
   // convert modal data to nodal data. only store first node.
   if(ndim==2) idz = 0;
   int index = idy + ny*idx + ny*nx*idz; // use ordering with y the fastest index
@@ -68,7 +68,7 @@ void FemPerpFourierFilter::assembleGlobalSrc(double *modalSrc, int idx, int idy,
   }
 }
 
-void FemPerpFourierFilter::getFilteredSolution(double *modalSol, int idx, int idy, int idz) {
+void FemKyFourierFilter::getFilteredSolution(double *modalSol, int idx, int idy, int idz) {
   // convert nodal data to modal data. 
   // since only bottom left corner node of each cell is stored in data_r,
   // need to accumulate data from multiple cells to compute modal expansion
@@ -89,15 +89,15 @@ void FemPerpFourierFilter::getFilteredSolution(double *modalSol, int idx, int id
   }
 }
 
-void FemPerpFourierFilter::fft_r2c() {
+void FemKyFourierFilter::fft_r2c() {
   fftw_execute(plan_r2c);
 }
 
-void FemPerpFourierFilter::fft_c2r() {
+void FemKyFourierFilter::fft_c2r() {
   fftw_execute(plan_c2r);
 }
 
-void FemPerpFourierFilter::filter() {
+void FemKyFourierFilter::filter() {
   for (unsigned idy=0; idy<(ny/2+1); idy++) {
     for (unsigned idxz=0; idxz<nx*nz; idxz++) {
       unsigned i = idy + (ny/2+1)*idxz;
@@ -108,34 +108,34 @@ void FemPerpFourierFilter::filter() {
   }
 }
 
-// C wrappers for interfacing with FemPerpFourierFilter class
-extern "C" void* new_FemPerpFourierFilter(int nx, int ny, int nz, int ndim, int *ikyFilter, int numFilter)
+// C wrappers for interfacing with FemKyFourierFilter class
+extern "C" void* new_FemKyFourierFilter(int nx, int ny, int nz, int ndim, int *ikyFilter, int numFilter)
 {
-  FemPerpFourierFilter *f = new FemPerpFourierFilter(nx, ny, nz, ndim, ikyFilter, numFilter);
+  FemKyFourierFilter *f = new FemKyFourierFilter(nx, ny, nz, ndim, ikyFilter, numFilter);
   return reinterpret_cast<void*>(f);
 }
 
-extern "C" void delete_FemPerpFourierFilter(FemPerpFourierFilter* f)
+extern "C" void delete_FemKyFourierFilter(FemKyFourierFilter* f)
 {
   delete f;
 }
 
-extern "C" void assembleGlobalSrc(FemPerpFourierFilter* f, double *data, int idx, int idy, int idz) {
+extern "C" void assembleGlobalSrc(FemKyFourierFilter* f, double *data, int idx, int idy, int idz) {
   f->assembleGlobalSrc(data, idx, idy, idz);
 }
 
-extern "C" void getFilteredSolution(FemPerpFourierFilter* f, double *data, int idx, int idy, int idz) {
+extern "C" void getFilteredSolution(FemKyFourierFilter* f, double *data, int idx, int idy, int idz) {
   f->getFilteredSolution(data, idx, idy, idz);
 }
 
-extern "C" void fft_r2c(FemPerpFourierFilter* f) {
+extern "C" void fft_r2c(FemKyFourierFilter* f) {
   f->fft_r2c();
 }
 
-extern "C" void fft_c2r(FemPerpFourierFilter* f) {
+extern "C" void fft_c2r(FemKyFourierFilter* f) {
   f->fft_c2r();
 }
 
-extern "C" void filter(FemPerpFourierFilter* f) {
+extern "C" void filter(FemKyFourierFilter* f) {
   f->filter();
 }

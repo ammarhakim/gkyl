@@ -68,7 +68,7 @@ function test_2d(nx, ny)
    }
    initCheck:advance(0.,{},{check})
 
-   local filter = Updater.FemPerpFourierFilter {
+   local filter = Updater.FemKyFourierFilter {
       onGrid = grid,
       basis = basis,
       kyfilter = {2*math.pi/Ly, 6*math.pi/Ly},
@@ -155,7 +155,7 @@ function test_3d(nx, ny, nz)
    }
    initCheck:advance(0.,{},{check})
 
-   local filter = Updater.FemPerpFourierFilter {
+   local filter = Updater.FemKyFourierFilter {
       onGrid = grid,
       basis = basis,
       kyfilter = {2*math.pi/Ly, 6*math.pi/Ly},
