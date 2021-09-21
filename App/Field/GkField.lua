@@ -568,6 +568,14 @@ function GkField:createSolver(species, externalField)
          handleBc(dir, {EM_BC_OPEN, EM_BC_OPEN}) 
       end
    end
+
+   if self.tbl.filterKy then
+     self.filterKy = Updater.FemKyFourierFilter {
+        onGrid = self.grid,
+        basis = self.basis,
+        kyfilter = self.tbl.filterKy,
+     }
+   end
 end
 
 function GkField:createDiagnostics()
@@ -800,6 +808,11 @@ function GkField:phiSolve(tCurr, species, inIdx, outIdx)
       self.bcTime = self.bcTime + (Time.clock()-tmStart)
 
       self.calcedPhi = true
+
+      if self.filterKy then 
+         self.filterKy:advance(tCurr, {potCurr.phi}, {potCurr.phi})
+         potCurr.phi:sync(true)
+      end
    end
 end
 

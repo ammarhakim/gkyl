@@ -71,7 +71,7 @@ function FemKyFourierFilter:init(tbl)
    self._iky = ffi.new("int[?]", self._numFilter)
    local Ly = self._grid:upper(2) - self._grid:lower(2)
    for i = 0, self._numFilter-1 do
-      self._iky[i] = self._kyTbl[i+1]*Ly/(2*math.pi)
+      self._iky[i] = math.floor(self._kyTbl[i+1]*Ly/(2*math.pi)+0.5)
    end
 
    -- use nx+1 and nz+1 to include node at end of x and z dimensions

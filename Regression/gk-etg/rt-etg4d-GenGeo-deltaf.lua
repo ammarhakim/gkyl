@@ -126,6 +126,7 @@ plasmaApp = Plasma.App {
    -- Field solver
    field = Plasma.Field {
       evolve = true, -- Evolve fields?
+      filterKy = {ky_min},
    },
 
    -- Magnetic geometry. 
