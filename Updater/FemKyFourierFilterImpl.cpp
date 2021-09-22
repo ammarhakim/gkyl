@@ -66,6 +66,29 @@ void FemKyFourierFilter::assembleGlobalSrc(double *modalSrc, int idx, int idy, i
   for (unsigned m=0; m<nlocal; ++m) {
     data_r[index] += localModToNod(0,m)*modalSrc[m]*norm;
   }
+
+  // handle x and z upper ghosts
+  if(idx==nx-2) { // if on last non-ghost x cell row
+    index = idy + ny*(idx+1) + ny*nx*idz;
+    data_r[index] = 0.;
+    for (unsigned m=0; m<nlocal; ++m) {
+      data_r[index] += localModToNod(1,m)*modalSrc[m]*norm;
+    }
+  }
+  if(idz==nz-2) { // if on last non-ghost z cell row
+    index = idy + ny*idx + ny*nx*(idz+1);
+    data_r[index] = 0.;
+    for (unsigned m=0; m<nlocal; ++m) {
+      data_r[index] += localModToNod(4,m)*modalSrc[m]*norm;
+    }
+  }
+  if(idx==nx-2 && idz==nz-2) { // if on upper x-z corner cell
+    index = idy + ny*(idx+1) + ny*nx*(idz+1);
+    data_r[index] = 0.;
+    for (unsigned m=0; m<nlocal; ++m) {
+      data_r[index] += localModToNod(5,m)*modalSrc[m]*norm;
+    }
+  }
 }
 
 void FemKyFourierFilter::getFilteredSolution(double *modalSol, int idx, int idy, int idz) {

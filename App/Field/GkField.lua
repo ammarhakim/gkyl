@@ -798,6 +798,10 @@ function GkField:phiSolve(tCurr, species, inIdx, outIdx)
          potCurr.phi = potCurr.phiAux
       end
 
+      if self.filterKy then 
+         self.filterKy:advance(tCurr, {potCurr.phi}, {potCurr.phi})
+      end
+
       -- Apply BCs.
       local tmStart = Time.clock()
       -- Make sure phi is continuous across skin-ghost boundary.
@@ -808,11 +812,6 @@ function GkField:phiSolve(tCurr, species, inIdx, outIdx)
       self.bcTime = self.bcTime + (Time.clock()-tmStart)
 
       self.calcedPhi = true
-
-      if self.filterKy then 
-         self.filterKy:advance(tCurr, {potCurr.phi}, {potCurr.phi})
-         potCurr.phi:sync(true)
-      end
    end
 end
 

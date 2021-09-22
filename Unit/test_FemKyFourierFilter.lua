@@ -51,7 +51,6 @@ function test_2d(nx, ny)
          local ky3 = 6*math.pi/Ly
          return 0.5*math.cos(ky1*y) + 1.1*math.cos(ky2*y)*x + .3*math.cos(ky3*y)*(x+2)
       end,
-      onGhosts = true,
    }
    initSrc:advance(0.,{},{src})
 
@@ -137,7 +136,6 @@ function test_3d(nx, ny, nz)
          local ky3 = 6*math.pi/Ly
          return 0.5*math.cos(ky1*y) + 1.1*math.cos(ky2*y) + 0.3*math.cos(ky3*y)*x*z + z
       end,
-      onGhosts = true,
    }
    initSrc:advance(0.,{},{src})
 

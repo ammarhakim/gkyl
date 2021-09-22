@@ -95,7 +95,7 @@ function FemKyFourierFilter:_advance(tCurr, inFld, outFld)
    local solPtr = sol:get(1)
    local indexer = src:genIndexer()
 
-   for idx in localExtRange:rowMajorIter() do
+   for idx in localRange:rowMajorIter() do
       -- get local x,y,z indices for use in fft data layout (these start from 0 on each proc)
       local ix = idx[1] - localExtRange:lower(1) - 1
       local iy = idx[2] - localExtRange:lower(2) - 1
@@ -103,10 +103,8 @@ function FemKyFourierFilter:_advance(tCurr, inFld, outFld)
       if ndim==3 then
         iz = idx[3] - localExtRange:lower(3) - 1
       end
-      if (ix>=0 and iy>=0 and iy<self._ny and (ndim==2 or iz>=0)) then
-        src:fill(indexer(idx), srcPtr)
-        ffiC.assembleGlobalSrc(self._filter, srcPtr:data(), ix, iy, iz)
-      end
+     src:fill(indexer(idx), srcPtr)
+     ffiC.assembleGlobalSrc(self._filter, srcPtr:data(), ix, iy, iz)
    end
 
    ffiC.fft_r2c(self._filter)
