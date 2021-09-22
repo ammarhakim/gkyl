@@ -1,15 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Updater to solve FourierFilter (or rather Helmholtz) equation
---
---   div{ epsilon nabla_perp{ phi } } + beta * phi = sigma
---
--- in perpendicular directions with FEM scheme. Perpendicular directions assumed
--- to be first two configuration-space directions
---
--- We use the following terminology:
---   epsilon: Laplacian weight.
---   beta: modifier weight.
+-- Updater to filter for particular ky Fourier modes. 
+-- Only recommended for use with FEM continuous fields (not DG).
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -66,11 +58,13 @@ function FemKyFourierFilter:init(tbl)
 
    self._first = true
 
+   -- get table of ky's for the filter
    self._kyTbl = tbl.kyfilter
    self._numFilter = #self._kyTbl
    self._iky = ffi.new("int[?]", self._numFilter)
    local Ly = self._grid:upper(2) - self._grid:lower(2)
    for i = 0, self._numFilter-1 do
+      -- convert from actual ky to ky-index iky
       self._iky[i] = math.floor(self._kyTbl[i+1]*Ly/(2*math.pi)+0.5)
    end
 
