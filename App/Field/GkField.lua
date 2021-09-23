@@ -298,7 +298,7 @@ function GkField:initField(species)
       self.aparSlvr:advance(0.0, {self.currentDens}, {apar})
 
       if self.filterKy then 
-         self.filterKy:advance(tCurr, {apar}, {apar})
+         --self.filterKy:advance(tCurr, {apar}, {apar})
       end
 
       -- Clear dApar/dt ... will be solved for before being used.
@@ -856,7 +856,7 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
       self.dApardtSlvr:advance(tCurr, {self.currentDens}, {dApardt}) 
 
       if self.filterKy then 
-         self.filterKy:advance(tCurr, {dApardt}, {dApardt})
+         --self.filterKy:advance(tCurr, {dApardt}, {dApardt})
       end
 
       -- Apply BCs.
@@ -913,7 +913,7 @@ function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
       self.dApardtSlvr2:advance(tCurr, {self.currentDens}, {dApardt}) 
 
       if self.filterKy then 
-         self.filterKy:advance(tCurr, {dApardt}, {dApardt})
+         --self.filterKy:advance(tCurr, {dApardt}, {dApardt})
       end
 
       -- Apply BCs.
