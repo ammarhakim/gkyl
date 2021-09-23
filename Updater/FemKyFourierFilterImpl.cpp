@@ -1,6 +1,6 @@
 // Gkyl ------------------------------------------------------------------------
 //
-// C++ back-end for 2D FEM FourierFilter solver
+// C++ back-end for FemKyFourierFilter solver
 //    _______     ___
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
@@ -33,7 +33,7 @@ FemKyFourierFilter::FemKyFourierFilter(int nx_, int ny_, int nz_, int ndim_, int
   int howmany = nx*nz;
   int idist = ny;
   int odist = ny/2+1;
-  int istride = 1;
+  int istride = 1; // we will set up the data so that it is contiguous in y
   int ostride = 1;
   int *inembed = n;
   int *onembed = n;
@@ -58,11 +58,11 @@ FemKyFourierFilter::~FemKyFourierFilter()
 }
 
 void FemKyFourierFilter::assembleGlobalSrc(double *modalSrc, int idx, int idy, int idz) {
-  // convert modal data to nodal data. only store first node.
   if(ndim==2) idz = 0;
   int index = idy + ny*idx + ny*nx*idz; // use ordering with y the fastest index
   double norm = 1.0/(ny);
   data_r[index] = 0.;
+  // convert modal data to nodal data. only need to store 0th (bottom-left) node for non-boundary cells.
   for (unsigned m=0; m<nlocal; ++m) {
     data_r[index] += localModToNod(0,m)*modalSrc[m]*norm;
   }
@@ -124,7 +124,6 @@ void FemKyFourierFilter::filter() {
   for (unsigned idy=0; idy<(ny/2+1); idy++) {
     for (unsigned idxz=0; idxz<nx*nz; idxz++) {
       unsigned i = idy + (ny/2+1)*idxz;
-      //printf("%d  %d  %f\n", idx, idy, data_c[i][0]);
       data_c[i][0] *= mask[idy];
       data_c[i][1] *= mask[idy];
     }
