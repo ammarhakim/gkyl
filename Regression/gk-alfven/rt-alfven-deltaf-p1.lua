@@ -106,7 +106,7 @@ plasmaApp = Plasma.App {
       },
       evolve = true, -- Evolve species?
       deltafGK = true,
-      deltafLinear = false,
+      deltafLinear = true,
       diagnostics = {"M0", "M1", "intM0", "intM1", "intM2"},
    },
 
@@ -141,7 +141,7 @@ plasmaApp = Plasma.App {
       },
       evolve = true, -- Evolve species?
       deltafGK = true,
-      deltafLinear = false,
+      deltafLinear = true,
       diagnostics = {"M0", "M1", "intM0", "intM1", "intM2"},
    },
 

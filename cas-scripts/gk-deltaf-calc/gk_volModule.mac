@@ -86,8 +86,13 @@ buildGKVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, varsInB, us
   [hamil0_e, hamil1_e] : calcAndWrite_HamilES(fh,q_,m_,[wvpar,wmu],rdv2vec,bP,inFlds_e,""),
 
   /* Compute B* divided by B and write it out. */
-  [BstardBmagR_e, BstardBmagL_e] : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,0,m_,q_,
+  BstardBmagR_e : calcAndWrite_BstardBmagES(fh,cdim,bP,bmagBasis,0,m_,q_,
                                                            wvpar,rdx2vec,rdv2vec,inFlds_e,""),
+
+  if wApar then (
+    [BstardBmagEmR_e, BstardBmagEmL_e] : calcAndWrite_BstardBmagEM(fh,cdim,bP,bmagBasis,0,m_,q_,
+                                                           wvpar,rdx2vec,rdv2vec,inFlds_e,"")
+  ),
 
   /* Calculate cflFreq = sum_d alpha_d / dxv[d]. */
   printf(fh, "  double cflFreq = 0.0; ~%"),
@@ -97,13 +102,12 @@ buildGKVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, varsInB, us
   replaceList : [wvpar^2=wvparSq, rdvpar2^2=rdvpar2Sq, rdx2^2=rdx2Sq, m_^2=mSq, q_^2=qSq],
 
   pbAuxFlds : [BstardBmagR_e],
-  if useGenGeo then (
-    b_x_e : inFlds_e[7],  b_y_e : inFlds_e[8],  b_z_e : inFlds_e[9],
-    jacobTotInv_e : inFlds_e[10],
-    pbAuxFlds : append(pbAuxFlds,[b_x_e,b_y_e,b_z_e,jacobTotInv_e])
-  ) else (
-    bmagInv_e : inFlds_e[7],
-    pbAuxFlds : append(pbAuxFlds,[bmagInv_e])
+  b_x_e : inFlds_e[7],  b_y_e : inFlds_e[8],  b_z_e : inFlds_e[9],
+  jacobTotInv_e : inFlds_e[10],
+  pbAuxFlds : append(pbAuxFlds,[b_x_e,b_y_e,b_z_e,jacobTotInv_e]),
+  if wApar then (
+    pbAuxFlds1 : [BstardBmagEmR_e],
+    pbAuxFlds1 : append(pbAuxFlds1,[b_x_e,b_y_e,b_z_e,jacobTotInv_e])
   ),
 
   alpha0Sum_e : 0,
@@ -122,6 +126,9 @@ buildGKVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, varsInB, us
     /* Calculate phase space velocity alpha_d = {z[d], H} = dz[d]/dt. */
     alpha0_e : poissonBracket(wDir+dirVar/rdDirVar2,hamil0_e,m_,q_,rdx2vec,rdv2vec,pbAuxFlds),
     alpha1_e : poissonBracket(wDir+dirVar/rdDirVar2,hamil1_e,m_,q_,rdx2vec,rdv2vec,pbAuxFlds),
+    if wApar then (
+      alpha1_e : alpha1_e + poissonBracket(wDir+dirVar/rdDirVar2,hamil0_e,m_,q_,rdx2vec,rdv2vec, pbAuxFlds1)
+    ),
 
     /* Project alpha0 on basis and write to array. */
     printf(fh, "  double alpha0~a[~a]; ~%", dirLabel, numP),

@@ -102,25 +102,21 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, var
   [hamil0R_e, hamil1R_e] : calcAndWrite_HamilES(fh,q_,m_,[wvparR,wmuR],rdv2vecR,bP,inFlds_e,"R"),
 
   /* Compute B* divided by B and write it out. */
-  /*
-  [BstardBmagL_e, BstardBmagR_e] : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
-                                                 wvparR,rdx2vecL,rdv2vecL,inFlds_e,"L"),
-  */
-  [BstardBmagR_e, BstardBmagL_e] : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
+  BstardBmagR_e : calcAndWrite_BstardBmagES(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
                                                            wvparR,rdx2vecR,rdv2vecR,inFlds_e,"R"),
+  if wApar then (
+    [BstardBmagEmR_e, BstardBmagEmL_e] : calcAndWrite_BstardBmagEM(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
+                                                           wvparR,rdx2vecR,rdv2vecR,inFlds_e,"R")
+  ),
 
 
   /* Calculate phase space velocity alpha in direction of surfVar. */
   /* We assume alpha.n is continuous across boundary, although H may not be. */
   /* Distinguish between alpha and alphaUp, where alphaUp is the one used to
      determine upwind direction. */
-  /*
-  [alphaUpL_e,alphaSurfL_e,alphaUpSurfL_e] = calcAndWrite_alpha(fh,surfDir,bP,polyOrder,basisType,
-    m_,q_,rdx2vecL,rdv2vecL,inFlds_e,hamilL_e,BstardBmagL_e,BstardBmagR_e,"L",false),
-  */
   [alpha0UpR_e,alpha0SurfR_e,alpha0UpSurfR_e, 
    alpha1UpR_e,alpha1SurfR_e,alpha1UpSurfR_e] : calcAndWrite_alpha(fh,surfDir,bP,polyOrder,basisFun,
-         m_,q_,rdx2vecR,rdv2vecR,inFlds_e,hamil0R_e,hamil1R_e,BstardBmagR_e,BstardBmagL_e,"R",false),
+         m_,q_,rdx2vecR,rdv2vecR,inFlds_e,hamil0R_e,hamil1R_e,BstardBmagR_e,BstardBmagEmR_e,BstardBmagEmL_e,"R",false),
 
   /* Calculate and write out the surface-averaged alpha. */
   alphaSurfAvgR_s : calcAndWrite_surfAvgAlpha(fh,bP,surfDir,alpha0UpR_e+alpha1UpR_e,"R"),
@@ -318,20 +314,21 @@ calcStep2Update(fh, funcNm, cdim, vdim, basisFun, polyOrder, varsInB, useGenGeo)
   [hamil0R_e, hamil1R_e] : calcAndWrite_HamilES(fh,q_,m_,[wvparR,wmuR],rdv2vecR,bP,inFlds_e,"R"),
 
   /* Compute B* divided by B and write it out. */
-  /*
-  [BstardBmagL_e, BstardBmagR_e] : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
-                                                           wvparL,rdx2vecL,rdv2vecL,inFlds_e,"L"),
-  */
-  [BstardBmagR_e, BstardBmagL_e] : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
+  BstardBmagR_e : calcAndWrite_BstardBmagES(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
                                                            wvparR,rdx2vecR,rdv2vecR,inFlds_e,"R"),
+  if wApar then (
+    [BstardBmagEmR_e, BstardBmagEmL_e] : calcAndWrite_BstardBmagEM(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
+                                                           wvparR,rdx2vecR,rdv2vecR,inFlds_e,"R")
+  ),
+
 
   /* Calculate phase space velocity alpha in direction of surfVar. */
   /* We assume alpha.n is continuous across boundary, although H may not be. */
-  /* Distinguish between alpha and alphaUp, where alphaUp is the one used to 
+  /* Distinguish between alpha and alphaUp, where alphaUp is the one used to
      determine upwind direction. */
   [alpha0UpR_e,alpha0SurfR_e,alpha0UpSurfR_e, 
    alpha1UpR_e,alpha1SurfR_e,alpha1UpSurfR_e] : calcAndWrite_alpha(fh,surfDir,bP,polyOrder,basisFun,
-    m_,q_,rdx2vecR,rdv2vecR,inFlds_e,hamil0R_e,hamil1R_e,BstardBmagR_e,BstardBmagL_e,"R",step2),
+         m_,q_,rdx2vecR,rdv2vecR,inFlds_e,hamil0R_e,hamil1R_e,BstardBmagR_e,BstardBmagEmR_e,BstardBmagEmL_e,"R",step2),
 
   /* Calculate and write out the surface-averaged alpha. */
   alphaSurfAvgR_s : calcAndWrite_surfAvgAlpha(fh,bP,surfDir,alpha0UpR_e+alpha1UpR_e,"R"),
