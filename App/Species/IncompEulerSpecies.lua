@@ -13,7 +13,7 @@ local LinearDecomp  = require "Lib.LinearDecomp"
 local Updater       = require "Updater"
 local Mpi           = require "Comm.Mpi"
 local Proto         = require "Lib.Proto"
-local BasicBC       = require ("App.BCs.IncompEulerBasic").IncompEulerBasic
+local BasicBC       = require ("App.BCs.FluidBasic").FluidBasic
 local lume          = require "Lib.lume"
 
 local IncompEulerSpecies = Proto(FluidSpecies)
