@@ -38,7 +38,7 @@ L_T     = L_n/eta_e
 kz_min  = kz_Ln / L_n
 L_parallel = 2*math.pi/kz_min
 -- velocity grid parameters
-N_VPAR, N_MU = 16, 8
+N_VPAR, N_MU = 8, 4
 VPAR_UPPER = math.min(4, 2.5*math.sqrt(N_VPAR/4))*vte
 VPAR_LOWER = -VPAR_UPPER
 MU_LOWER = 0
@@ -48,7 +48,7 @@ omegade  = ky_min*rho_e*vte/R
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd = .15e-6, -- end time
+   tEnd = .075e-6, -- end time
    nFrame = 1, -- number of output frames
    lower = {r0 - dr/2, -dr/2, -L_parallel/2}, -- configuration space lower left
    upper = {r0 + dr/2,  dr/2, L_parallel/2}, -- configuration space upper right
@@ -59,7 +59,7 @@ plasmaApp = Plasma.App {
    cflFrac = 1.0,
 
    -- decomposition for configuration space
-   decompCuts = {1, 2, 1}, -- cuts in each configuration direction
+   decompCuts = {1, 1, 1}, -- cuts in each configuration direction
    useShared = false, -- if to use shared memory
 
    -- boundary conditions for configuration space
