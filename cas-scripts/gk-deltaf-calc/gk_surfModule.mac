@@ -14,7 +14,7 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, var
    BvarsLabel,rdx2vecL,rdx2vecR,rdv2vecL,rdv2vecR,rdSurfVar2L,rdSurfVar2R,bmagBasis,ignoreVars,
    bmag_e,bmagInv_e,phi_e,Apar_e,dAdt_e,dAdtPrev_e,hamilL_e,hamilR_e,BstardBmagL_e,BstardBmagR_e,
    alphaUpL_e,alphaSurfL_e,alphaUpSurfL_e,alphaUpR_e,alphaSurfR_e,alphaUpSurfR_e,alphaSurfAvgR_s,
-   incrL_c,incrR_c,incr_s,signs,incrEmMod_s],
+   incrL_c,incrR_c,incr_s,signs,incrEmMod_s,f0L_e,f1L_e,f0R_e,f1R_e],
 
   kill(varsC, varsP, basisC, basisP),
 
@@ -134,16 +134,17 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, var
     alpha0UpSurfR_e : alpha0UpSurfR_e + alpha1UpSurfR_e
   ), 
 
+  /* Upwinded fluxes based on quadrature-node values of phase-velocity. */
+  /* Expand distribution function. */
+  f0L_e : doExpand1(f0L,bP),  f0R_e : doExpand1(f0R,bP),
+  f1L_e : doExpand1(f1L,bP),  f1R_e : doExpand1(f1R,bP),
+
   /* Note: always use pureUpwind for p=1. */
   first : true,
   if (alpha0SurfR_e = 0) then (
     printf(fh, "  // alpha0 == 0, so nothing to do for alpha0*f1 term.~%"),
     flush_output(fh)
   ) else (
-    /* Upwinded fluxes based on quadrature-node values of phase-velocity. */
-    /* Expand distribution function. */
-    f0L_e : doExpand1(f0L,bP),  f0R_e : doExpand1(f0R,bP),
-    f1L_e : doExpand1(f1L,bP),  f1R_e : doExpand1(f1R,bP),
 
     if (isLinear=false) then (
       printf(fh, "  // linear + nonlinear terms (alpha0+alpha1)*f1 ~%")

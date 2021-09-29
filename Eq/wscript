@@ -523,18 +523,34 @@ def build(bld):
     gkData/LinearDeltaFGyrokineticGenGeoSer1x2vP1.cpp
     gkData/LinearDeltaFGyrokineticGenGeoSer2x2vP1.cpp
     gkData/LinearDeltaFGyrokineticGenGeoSer3x2vP1.cpp
+    gkData/LinearDeltaFGyrokineticGenGeoSer1x1vP2.cpp
+    gkData/LinearDeltaFGyrokineticGenGeoSer1x2vP2.cpp
+    gkData/LinearDeltaFGyrokineticGenGeoSer2x2vP2.cpp
+    gkData/LinearDeltaFGyrokineticGenGeoSer3x2vP2.cpp
     gkData/LinearDeltaFGyrokineticGenGeoSurfSer1x1vP1.cpp
     gkData/LinearDeltaFGyrokineticGenGeoSurfSer1x2vP1.cpp
     gkData/LinearDeltaFGyrokineticGenGeoSurfSer2x2vP1.cpp
     gkData/LinearDeltaFGyrokineticGenGeoSurfSer3x2vP1.cpp
+    gkData/LinearDeltaFGyrokineticGenGeoSurfSer1x1vP2.cpp
+    gkData/LinearDeltaFGyrokineticGenGeoSurfSer1x2vP2.cpp
+    gkData/LinearDeltaFGyrokineticGenGeoSurfSer2x2vP2.cpp
+    gkData/LinearDeltaFGyrokineticGenGeoSurfSer3x2vP2.cpp
     gkData/DeltaFGyrokineticGenGeoSer1x1vP1.cpp
     gkData/DeltaFGyrokineticGenGeoSer1x2vP1.cpp
     gkData/DeltaFGyrokineticGenGeoSer2x2vP1.cpp
     gkData/DeltaFGyrokineticGenGeoSer3x2vP1.cpp
+    gkData/DeltaFGyrokineticGenGeoSer1x1vP2.cpp
+    gkData/DeltaFGyrokineticGenGeoSer1x2vP2.cpp
+    gkData/DeltaFGyrokineticGenGeoSer2x2vP2.cpp
+    gkData/DeltaFGyrokineticGenGeoSer3x2vP2.cpp
     gkData/DeltaFGyrokineticGenGeoSurfSer1x1vP1.cpp
     gkData/DeltaFGyrokineticGenGeoSurfSer1x2vP1.cpp
     gkData/DeltaFGyrokineticGenGeoSurfSer2x2vP1.cpp
     gkData/DeltaFGyrokineticGenGeoSurfSer3x2vP1.cpp
+    gkData/DeltaFGyrokineticGenGeoSurfSer1x1vP2.cpp
+    gkData/DeltaFGyrokineticGenGeoSurfSer1x2vP2.cpp
+    gkData/DeltaFGyrokineticGenGeoSurfSer2x2vP2.cpp
+    gkData/DeltaFGyrokineticGenGeoSurfSer3x2vP2.cpp
 
     gkData/EmLinearDeltaFGyrokineticGenGeoSer1x1vP1.cpp
     gkData/EmLinearDeltaFGyrokineticGenGeoSer1x2vP1.cpp

@@ -171,15 +171,20 @@ buildGKVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, varsInB, us
   /* Expand distribution function on basis. */
   f0_e : doExpand1(f0,bP),
   f1_e : doExpand1(f1,bP),
+  print("O"),
 
   /* Write linear terms */
   volTerm_c : fullratsimp(innerProd(varsP, 1, f0_e, alpha1Sum_e) + innerProd(varsP, 1, f1_e, alpha0Sum_e)),
-  writeCIncrExprsNoExpand(gcfac(float(subst(replaceList, facsum(volTerm_c,append(rdx2vec,rdv2vec)))))),
+  print("A"),
+  writeCIncrExprs(subst(replaceList, facsum(volTerm_c,append(rdx2vec,rdv2vec)))),
+  print("B"),
 
   if(isLinear=false) then (
      /* Write nonlinear terms */
      volTermNL_c : fullratsimp(innerProd(varsP, 1, f1_e, alpha1Sum_e)),
-     writeCIncrExprsNoExpand(gcfac(float(subst(replaceList, facsum(volTermNL_c,append(rdx2vec,rdv2vec))))))
+     print("C"),
+     writeCIncrExprs(subst(replaceList, facsum(volTermNL_c,append(rdx2vec,rdv2vec)))),
+     print("D")
   ),
 
   printf(fh, "  return cflFreq; ~%"),

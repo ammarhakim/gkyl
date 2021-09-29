@@ -645,69 +645,80 @@ calcAndWrite_upwindIncr_wQuadNodeAlpha(fH,basisType,polyOrder,bP,surfDir,sideStr
   surfIntVars : delete(surfVar,varsP),  /* Surface integral variables. */
   pDim        : length(varsP),
 
-  surfNodes : getNodes(basisType, pDim-1, polyOrder),
+  surfNodes : getNodes("Tensor", pDim-1, polyOrder),
   if polyOrder=1 then (surfNodes:surfNodes*(1/sqrt(3))) elseif polyOrder=2 then (surfNodes:surfNodes*sqrt(3/5)),
-  if cdim=1 and vdim=2 and polyOrder=2 then (
-    /* We found that the 1x2v p=2 Ser LBO does not conserve energy if we used 
-       sqrt(3/5) nodes. But it does with sqrt(1/3) nodes, or some an arrangement
-       where corner cells are sqrt(3/5) nodes, and the other four nodes are sqrt(1/3)
-       nodes. We use a similar trick here for the collisionless terms. */
-    p1Nodes : args(getNodes(basisType, pDim-1, 1)),
-    p2Nodes : args(getNodes(basisType, pDim-1, 2)),
-    extraNodeInd : [],  p1NodeInd : [],
-    for i : 1 thru length(p2Nodes) do (
-      idx : sublist_indices(p1Nodes,lambda([x], x=p2Nodes[i])),
-      if length(idx)=0 then (
-        extraNodeInd : endcons(i,extraNodeInd)
-      ) else (
-        p1NodeInd : endcons(i,p1NodeInd)
-      )
-    ),
-    surfNodes : copylist(p2Nodes),
-    for i : 1 thru length(p1NodeInd) do (
-      surfNodes[p1NodeInd[i]] : p2Nodes[p1NodeInd[i]]*sqrt(3/5)
-    ),
-    for i : 1 thru length(extraNodeInd) do (
-      surfNodes[extraNodeInd[i]] : p2Nodes[extraNodeInd[i]]*sqrt(1/3)
-    )
-  ),
   numNodes : length(surfNodes),
+
+  /* Evaluate alpha at ordinates.
+     Note: alphaSurf_e is already a surface expansion. 
+     In addition, it is continuous and does not vary with respect to the surface variable.
+     Thus, there is no need for alpha_l and alpha_r. We only need alpha at the ordinates. */
+  alphaOrd_n : gcfac(float(evAtNodes(alphaUpSurf_e,surfNodes,surfIntVars))),
 
   /* Evaluate fL, fR, and alpha at surface quadrature nodes. */
   fOrdL_n : gcfac(float(evAtNodes(subst(surfVar=+1,fL_e),surfNodes,surfIntVars))),
   fOrdR_n : gcfac(float(evAtNodes(subst(surfVar=-1,fR_e),surfNodes,surfIntVars))),
-  /* Evaluate alpha at ordinates.
-     Note: alphaSurf_e is already a surface expansion. */
-  alphaOrd_n : gcfac(float(evAtNodes(alphaUpSurf_e,surfNodes,surfIntVars))),
-  /* Determine upwinding at each surface quadrature node. */
-  fUpOrd_n : gcfac(.5*(fOrdL_n+fOrdR_n)+.5*sgn(eval_string(sconcat("alphaOrd",sideStr)))*(fOrdL_n-fOrdR_n)),
   if(first) then (
-    printf(fH, "  double alphaOrd~a;~%", sideStr),
     printf(fH, "  double fUpOrd[~a];~%", numNodes)
   ),
+  /* Check sign of alphaOrd_n at each quadrature node and choose appropriate f.
+     If alpha > 0, need fL; else need fR. */
   for i : 1 thru numNodes do (
-    printf(fH, "  alphaOrd~a = ~a; ~%", sideStr, alphaOrd_n[i]),
-    printf(fH, "  fUpOrd[~a] = ~a; ~%", i-1, fUpOrd_n[i])
+    printf(fH, "  if (~a > 0) { ~%", alphaOrd_n[i]),
+    printf(fH, "    fUpOrd[~a] = ~a; ~%", i-1, fOrdL_n[i]),
+    printf(fH, "  } else { ~%"),
+    printf(fH, "    fUpOrd[~a] = ~a; ~%", i-1, fOrdR_n[i]),
+    printf(fH, "  } ~%")
   ),
   printf(fH, "~%"),
   flush_output(fH),
 
-  /* Get modal surface expansion from nodal quadrature points. */
-  nodToMod : calcNodToModWithNodes(basisType, pDim-1, polyOrder, surfNodes),
-  fUp_c : gcfac(fullratsimp(nodToMod . makelist(fUpOrd[i-1],i,1,numNodes))),
-  fUp_c : makelist(fUp_c[i][1],i,1,numNodes),
-  /* Write coefficients of modal surface expansion fupwind. */
   if(first) then (
     printf(fH, "  double fUp[~a];~%", numNodes),
     first : false
   ),
-  writeCExprsNoExpand1(fUp, fUp_c),
-  printf(fH, "~%"),
-  flush_output(fH),
-  
-  bSurf : basisFromVars(basisType,surfIntVars,polyOrder),  /* Surface basis. */
+  bSurf : fullratsimp(basisFromVars(basisType,surfIntVars,polyOrder)),  /* Surface basis. */
 
-  fhatSurf_e : doExpand1(fUp,bSurf),
+  if (basisFun = "Tensor") or (basisFun = "tensor") or (polyOrder = 1) then (
+    /* Get modal surface expansion from nodal quadrature points. */
+    nodToMod : calcNodToModWithNodes(basisType, pDim-1, polyOrder, surfNodes),
+    fUp_c : gcfac(fullratsimp(nodToMod . makelist(fUpOrd[i-1],i,1,numNodes))),
+    fUp_c : makelist(fUp_c[i][1],i,1,numNodes),
+    /* Write coefficients of modal surface expansion fupwind. */
+    /* Clever factorization is possible for polyOrder = 1, but for higher
+       polynomial orders, factorization is *too* clever and can lead to 
+       deeply nested parentheses, not ideal for compiler optimizations */
+    if (polyOrder = 1) then (
+      writeCExprsNoExpand1(fUp, fUp_c)
+    ) else (
+      writeCExprs1(fUp, fUp_c)
+    ),
+    printf(fH, "~%"),
+    flush_output(fH),
+    
+    fhatSurf_e : doExpand1(fUp,bSurf)
+  ) else (
+    /* Make nodal expansions in nodal basis */
+    /* Only required if basis type is not tensor */
+    /* If basis type is tensor (or polyOrder = 1 Serendipity), then well-defined intermediate
+       transformation back from nodal basis to modal basis, otherwise need nodal basis for 
+       final computation of Ghat */
+    basisNodal : fullratsimp(getVarsNodalBasisWithNodes("Tensor", pDim-1, polyOrder, surfIntVars, surfNodes)),
+    print("B"),
+    fHatNodal_e : fullratsimp(sum(fUpOrd[i-1]*basisNodal[i], i, 1, length(basisNodal))),
+    print("C"),
+    fHatModProj_e : fullratsimp(calcInnerProdList(surfIntVars, 1, bSurf, fHatNodal_e)),
+    print("D"),
+    
+    /* Write out projection of tensor nodal basis onto modal basis (usually Serendipity here) */
+    writeCExprs1(fUp, fHatModProj_e),
+    printf(fH, "~%"),
+    flush_output(fH),
+
+    /* Zero out components of fUp which are empty and make new lists with right variable name. */
+    fHatModProj_NoZero : doMakeExprLst(fHatModProj_e, fUp),
+    fhatSurf_e : doExpandLst(fHatModProj_NoZero, bSurf)
+  ),
 
   replaceList : [wvparL^2=wvparSqL, rdvpar2L^2=rdvpar2SqL, rdx2L^2=rdx2SqL,
                  wvparR^2=wvparSqR, rdvpar2R^2=rdvpar2SqR, rdx2R^2=rdx2SqR, m_^2=mSq, q_^2=qSq],
@@ -846,5 +857,6 @@ calcAndWrite_quadCFLfreq_wPhaseAlpha(basisType,polyOrder,bP,surfDir,alpha_e) := 
   for i : 1 thru numNodes do (
     printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaSurfR_n[i]))),
     printf(fh, "  cflFreq += 0.5*(alphaR+std::abs(alphaR)); ~%")
-  )
+  ),
+  flush_output(fh)
 )$

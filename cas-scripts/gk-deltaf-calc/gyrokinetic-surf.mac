@@ -9,7 +9,7 @@ load("gk-deltaf-calc/gk_surfModule")$
 /* ...... USER INPUTS........ */
 
 /* Generate kernels for "ES", "EM" gyrokinetics or "both". */
-ESorEM : "EM"$ 
+ESorEM : "ES"$ 
 
 /* Generate kernels for "simple" (helical), "general" or "both" geometries. */
 geo : "general"$ 
@@ -18,9 +18,9 @@ geo : "general"$
 LorNL : "both"$
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 1$
+maxPolyOrder_Ser : 2$
 minCdim_Ser : 1$
-maxCdim_Ser : 3$
+maxCdim_Ser : 2$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 2$
@@ -91,7 +91,13 @@ for bInd : 1 thru length(bName) do (
               /* Possible combinations of variable dependence of background magnetic field.
                  with [] = const. Note that we assume axisymmetry, which means B cannot depend on y. */
               if isGenGeo then (
-                bVarsList : [[], [x], [z], [x,z]]
+                if (c=1) then ( 
+                  bVarsList : [[], [x]]
+                ) elseif (c=2) then (
+                  bVarsList : [[], [x]]
+                ) else (
+                  bVarsList : [[x,z]]
+                )
               ) else (
                 bVarsList : [[], [x]]
               ),

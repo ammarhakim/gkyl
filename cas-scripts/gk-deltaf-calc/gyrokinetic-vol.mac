@@ -9,17 +9,17 @@ load("gk-deltaf-calc/gk_volModule")$
 /* ...... USER INPUTS........ */
 
 /* Choose to generate kernels for "ES", "EM" gyrokinetics or "both". */
-ESorEM : "EM"$ 
+ESorEM : "ES"$ 
 
 /* Generate kernels for "simple" (helical), "general" or "both" geometries. */
 geo : "general"$
 
 /* Linear or nonlinear kernels */
-LorNL : "both"$
+LorNL : "nonlinear"$
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 1$
-minCdim_Ser : 1$
+maxPolyOrder_Ser : 2$
+minCdim_Ser : 3$
 maxCdim_Ser : 3$
 
 /* Maximal order basis. */
@@ -67,7 +67,7 @@ for bInd : 1 thru length(bName) do (
       maxPolyOrderB : maxPolyOrder[bInd],
       if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
 
-      for polyOrder : 1 thru maxPolyOrderB do (
+      for polyOrder : 2 thru maxPolyOrderB do (
         for linInd : 1 thru length(linType) do (
           isLinear : linType[linInd],
 
@@ -91,7 +91,7 @@ for bInd : 1 thru length(bName) do (
               /* Possible combinations of variable dependence of background magnetic field.
                  with [] = const. Note that we assume axisymmetry, which means B cannot depend on y. */
               if isGenGeo then (
-                bVarsList : [[], [x], [z], [x,z]]
+                bVarsList : [[x,z]]
               ) else (
                 bVarsList : [[], [x]]
               ),

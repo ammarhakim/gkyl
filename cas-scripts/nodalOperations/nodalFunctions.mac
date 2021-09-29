@@ -32,9 +32,9 @@ calcBasisNodToModWithNodesAndBasis(nodes, modalBasis, vars) := block([numNodes, 
   dim      : length(vars),
   basisNodToMod : (
     for i : 1 thru numNodes do (
-      col : copylist(modalBasis),
+      col : fullratsimp(copylist(modalBasis)),
       for d : 1 thru dim do (
-        col : subst(nodes[i][d],vars[d],col)
+        col : fullratsimp(subst(nodes[i][d],vars[d],col))
       ),
       col : columnvector(col),
       if i = 1 then basisNodToMod:col else basisNodToMod:addcol(basisNodToMod, col)
@@ -97,8 +97,10 @@ calcNodToMod(basisType, dim, p) := block([basisNodToMod],
 
 /* Given a 'modalBasis', in the variables 'vars'. */
 calcBasisModToNodWithNodesAndBasis(nodes, modalBasis, vars) := block([basisNodToMod],
-  basisNodToMod : calcBasisNodToModWithNodesAndBasis(nodes, modalBasis, vars),
-  return(invert(basisNodToMod))
+  basisNodToMod : float(fullratsimp(calcBasisNodToModWithNodesAndBasis(nodes, modalBasis, vars))),
+  basisModToNod : invert(basisNodToMod),
+  print("A"),
+  return(basisModToNod)
 )$
 
 /* Given a set of nodes. */
@@ -142,8 +144,8 @@ calcModToNod(basisType, dim, p) := block([basisNodToMod],
 
 /* Given a modal basis and a set of nodes. */
 getNodalBasisWithNodesAndBasis(nodes, modalBasis, vars) := block([basisModToNod],
-  basisModToNod : calcBasisModToNodWithNodesAndBasis(nodes, modalBasis, vars),
-  return(fullratsimp(list_matrix_entries(basisModToNod . modalBasis)))
+  basisModToNod : fullratsimp(calcBasisModToNodWithNodesAndBasis(nodes, modalBasis, vars)),
+  return(list_matrix_entries(basisModToNod . modalBasis))
 )$
 
 /* Given a set of nodes. */
@@ -158,6 +160,24 @@ getNodalBasisWithNodes(basisType, dim, p, nodes) := block([basisModToNod],
     vars  : varsP
   ),
   nodalBasis : getNodalBasisWithNodesAndBasis(nodes, basis, vars),
+  return(nodalBasis)
+)$
+
+/* Given a set of nodes and variable list. */
+getVarsNodalBasisWithNodes(basisType, dim, p, varsIn, nodes) := block([basisModToNod],
+  dimIn : length(varsIn),
+  if (dim < 4) then (
+    load(sconcat("basis-precalc/basis", basisType, dim, "x")),
+    basis : basisC[p],
+    vars  : varsC
+  ) else (
+    load(sconcat("basis-precalc/basis", basisType, dim-3, "x3v")),
+    basis : basisP[p],
+    vars  : varsP
+  ),
+  replaceList : makelist(vars[i]=varsIn[i],i,1,dimIn),
+  basis : psubst(replaceList,basis),
+  nodalBasis : getNodalBasisWithNodesAndBasis(nodes, basis, varsIn),
   return(nodalBasis)
 )$
 
