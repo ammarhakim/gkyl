@@ -849,6 +849,7 @@ return {
 	 Geometry               = require ("App.Field.GkField").GkGeometry,
 	 Ionization             = require "App.Collisions.GkIonization",
 	 LBOCollisions          = require "App.Collisions.GkLBOCollisions",
+	 DeltaFKrook            = require "App.Collisions.GkDeltaFKrook",
 	 LboCollisions          = require "App.Collisions.GkLBOCollisions",
 	 MaxwellianProjection   = require ("App.Projection.GkProjection").MaxwellianProjection,
 	 Species                = require "App.Species.GkSpecies",
