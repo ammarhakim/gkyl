@@ -105,7 +105,7 @@ expandInputFields(bC,bmagBasis,hasApar) := block(
         /* Usually to evaluate a left expansion at the boundary we would need to evaluate at z=1,
            but all other quantities will be right expansions and evaluated at z=-1.
            So let's flip AparL in z so that evaluating at z=-1 will give the boundary value. */
-        AparL_e : subst(varsC[cdim]=-varsC[cdim], AparL_e)
+        AparL_e : psubst(varsC[cdim]=-varsC[cdim], AparL_e)
       )
     ),
 
@@ -266,24 +266,18 @@ calcAndWrite_BstardBmagEM(fH,cdim,bP,bmagBasis,surfDir,mass,charge,wvpar,rdx2,rd
 
   if cdim > 1 then (rdy2 : rdx2[2]) else (rdy2 : 0),
   if cdim > 2 then (rdz2 : rdx2[3]) else (rdz2 : 0),
+  rdx2 : rdx2[1],
 
   /* Expand BstarX/Bmag on basis. */
-  BstarXdBmag_e : (-(Apar_e)*rdz2*diff(b_y_e,z)
-                   +b_z_e*rdy2*diff(Apar_e,y)
-                   -b_y_e*rdz2*diff(Apar_e,z) )*jacobTotInv_e,
+  BstarXdBmag_e : (rdy2*diff(Apar_e*b_z_e,y) - rdz2*diff(Apar_e*b_y_e,z))*jacobTotInv_e,
   /* Expand BstarY/Bmag on basis. */
-  BstarYdBmag_e : (-(Apar_e)*(rdx2[1]*diff(b_z_e,x) - rdz2*diff(b_x_e,z))
-                   -b_z_e*rdx2[1]*diff(Apar_e,x)
-                   +b_x_e*rdz2*diff(Apar_e,z) )*jacobTotInv_e,
+  BstarYdBmag_e : (rdz2*diff(Apar_e*b_x_e,z) - rdx2*diff(Apar_e*b_z_e,x))*jacobTotInv_e,
   /* Expand BstarZ/Bmag on basis. */
-  BstarZdBmag_e : ((Apar_e)*rdx2[1]*diff(b_y_e,x)
-                   +b_y_e*rdx2[1]*diff(Apar_e,x)
-                   -b_x_e*rdy2*diff(Apar_e,y) )*jacobTotInv_e,
+  BstarZdBmag_e : (rdx2*diff(Apar_e*b_y_e,x) - rdy2*diff(Apar_e*b_x_e,y))*jacobTotInv_e,
+
   if (surfDir = cdim) and (cdim#2) and (sideStr="R") then (
     AparL_e : inFlds[11],
-    BstarZdBmagL_e : ((AparL_e)*rdx2[1]*diff(b_y_e,x)
-                    +b_y_e*rdx2[1]*diff(AparL_e,x)
-                    -b_x_e*rdy2*diff(AparL_e,y) )*jacobTotInv_e
+    BstarZdBmagL_e : (rdx2*diff(AparL_e*b_y_e,x) - rdy2*diff(AparL_e*b_x_e,y))*jacobTotInv_e
   ),
 
   varsP : listofvars(bP),
@@ -371,7 +365,7 @@ poissonBracket(f,g,mass,charge,rdx2,rdv2,pbFacs) := block(
   scalefactors(varsC),
   fgrad(fIn) := ev(express(grad(fIn)),diff)*rdx2,
   */
-  fgrad(fIn,vars,diffFacs) := makelist(diff(fIn,vars[d]),d,1,length(vars))*diffFacs,
+  fgrad(fIn,vars,diffFacs) := makelist(diff(fIn,vars[d])*diffFacs[d],d,1,length(vars)),
 
   if cdim > 1 then (rdy2 : rdx2[2]) else (rdy2 : 0),
   if cdim > 2 then (rdz2 : rdx2[3]) else (rdz2 : 0),
@@ -433,7 +427,7 @@ calcAndWrite_alpha(fH,surfDir,bP,polyOrder,basisType,mass,charge,rdx2,rdv2,
   ),
   if hasApar then (
     pbAuxFlds1 : [BstardBmagEm_e],
-    pbAuxFlds1 : append(pbAuxFlds1,[b_x_e,b_y_e,b_z_e,jacobTotInv_e])
+    pbAuxFlds1 : append(pbAuxFlds1,[0,0,0,jacobTotInv_e])
   ),
   alpha0_e : poissonBracket(wSurf+surfVar/rdSurfVar2,hamil0_e,mass,charge,rdx2,rdv2,pbAuxFlds),
   alpha1_e : poissonBracket(wSurf+surfVar/rdSurfVar2,hamil1_e,mass,charge,rdx2,rdv2,pbAuxFlds),

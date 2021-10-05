@@ -9,18 +9,18 @@ load("gk-deltaf-calc/gk_volModule")$
 /* ...... USER INPUTS........ */
 
 /* Choose to generate kernels for "ES", "EM" gyrokinetics or "both". */
-ESorEM : "ES"$ 
+ESorEM : "EM"$ 
 
 /* Generate kernels for "simple" (helical), "general" or "both" geometries. */
 geo : "general"$
 
 /* Linear or nonlinear kernels */
-LorNL : "linear"$
+LorNL : "both"$
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 2$
+maxPolyOrder_Ser : 1$
 minCdim_Ser : 1$
-maxCdim_Ser : 2$
+maxCdim_Ser : 3$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 2$
@@ -67,7 +67,7 @@ for bInd : 1 thru length(bName) do (
       maxPolyOrderB : maxPolyOrder[bInd],
       if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
 
-      for polyOrder : 2 thru maxPolyOrderB do (
+      for polyOrder : 1 thru maxPolyOrderB do (
         for linInd : 1 thru length(linType) do (
           isLinear : linType[linInd],
 

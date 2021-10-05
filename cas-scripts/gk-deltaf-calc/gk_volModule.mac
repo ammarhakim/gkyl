@@ -107,7 +107,7 @@ buildGKVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, varsInB, us
   pbAuxFlds : append(pbAuxFlds,[b_x_e,b_y_e,b_z_e,jacobTotInv_e]),
   if wApar then (
     pbAuxFlds1 : [BstardBmagEmR_e],
-    pbAuxFlds1 : append(pbAuxFlds1,[b_x_e,b_y_e,b_z_e,jacobTotInv_e])
+    pbAuxFlds1 : append(pbAuxFlds1,[0,0,0,jacobTotInv_e])
   ),
 
   alpha0Sum_e : 0,
