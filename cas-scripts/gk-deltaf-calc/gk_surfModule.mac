@@ -151,7 +151,7 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, var
     ) else (
       printf(fh, "  // linear term alpha0*f1 ~%")
     ),
-    [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wQuadNodeAlpha(fh,basisFun,polyOrder,bP,surfDir,"R",
+    [incrL_c, incrR_c, fhatSurf1_e] : calcAndWrite_upwindIncr_wQuadNodeAlpha(fh,basisFun,polyOrder,bP,surfDir,"R",
                                                                 alpha0SurfR_e,alpha0UpSurfR_e,f1L_e,f1R_e,wApar,false),
 
     flush_output(fh),
@@ -169,7 +169,12 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, var
     printf(fh, "~%"),
     flush_output(fh),
 
-    if surfVar=vpar and wApar and polyOrder=1 then (
+    if surfVar=vpar and wApar and polyOrder=1 and isLinear=false then (
+      surfIntVars : delete(surfVar,varsP),  /* Surface integral variables. */
+      tMod       : calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), fhatSurf1_e),
+      incrModR_c : fullratsimp(tMod),
+      writeCExprsNoExpand1(incrEmMod, subst(replaceList, incrModR_c)),
+      printf(fh, "~%"),
       incrEmMod_s : rdSurfVar2R*makelist(incrEmMod[i-1], i, 1, numP),
       writeCIncrExprsNoExpand1(emModR, incrEmMod_s),
       incrEmMod_s : rdSurfVar2L*makelist(signs[i]*incrEmMod[i-1], i, 1, numP),
@@ -185,7 +190,7 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, var
   ) else (
     printf(fh, "  // linear term alpha1*f0 ~%"),
     /* Linear term alpha1*f0 */
-    [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wQuadNodeAlpha(fh,basisFun,polyOrder,bP,surfDir,"R",
+    [incrL_c, incrR_c, fhatSurf0_e] : calcAndWrite_upwindIncr_wQuadNodeAlpha(fh,basisFun,polyOrder,bP,surfDir,"R",
                                                                 alpha1SurfR_e,alpha1UpSurfR_e,f0L_e,f0R_e,wApar,false),
 
     flush_output(fh),
@@ -204,6 +209,11 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, var
     flush_output(fh),
 
     if surfVar=vpar and wApar and polyOrder=1 then (
+      surfIntVars : delete(surfVar,varsP),  /* Surface integral variables. */
+      tMod       : calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), fhatSurf0_e),
+      incrModR_c : fullratsimp(tMod),
+      writeCExprsNoExpand1(incrEmMod, subst(replaceList, incrModR_c)),
+      printf(fh, "~%"),
       incrEmMod_s : rdSurfVar2R*makelist(incrEmMod[i-1], i, 1, numP),
       writeCIncrExprsNoExpand1(emModR, incrEmMod_s),
       incrEmMod_s : rdSurfVar2L*makelist(signs[i]*incrEmMod[i-1], i, 1, numP),
@@ -353,7 +363,7 @@ calcStep2Update(fh, funcNm, cdim, vdim, basisFun, polyOrder, varsInB, useGenGeo)
     ),
 
     /* Upwinded fluxes based on quadrature-node values of phase-velocity. */
-    [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wQuadNodeAlpha(fh,basisFun,polyOrder,bP,surfDir,"R",
+    [incrL_c, incrR_c, fhatSurf_e] : calcAndWrite_upwindIncr_wQuadNodeAlpha(fh,basisFun,polyOrder,bP,surfDir,"R",
                                                                 alpha1SurfR_e,alpha1UpSurfR_e,fL_e,fR_e,wApar,step2),
 
     printf(fh, "~%"),
