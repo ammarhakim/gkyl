@@ -1629,23 +1629,6 @@ double EmDeltaFGyrokineticGenGeoSurf2x2vSer_vpar_P1_Bvarsx(const double q_, cons
   fUp[6] = 0.3535533905932737*(fUpOrd[7]+fUpOrd[6]-1.0*(fUpOrd[5]+fUpOrd[4]+fUpOrd[3]+fUpOrd[2])+fUpOrd[1]+fUpOrd[0]); 
   fUp[7] = 0.3535533905932737*(fUpOrd[7]-1.0*(fUpOrd[6]+fUpOrd[5])+fUpOrd[4]-1.0*fUpOrd[3]+fUpOrd[2]+fUpOrd[1]-1.0*fUpOrd[0]); 
 
-  incrEmMod[0] = 0.7071067811865475*fUp[0]; 
-  incrEmMod[1] = 0.7071067811865475*fUp[1]; 
-  incrEmMod[2] = 0.7071067811865475*fUp[2]; 
-  incrEmMod[3] = -1.224744871391589*fUp[0]; 
-  incrEmMod[4] = 0.7071067811865475*fUp[3]; 
-  incrEmMod[5] = 0.7071067811865475*fUp[4]; 
-  incrEmMod[6] = -1.224744871391589*fUp[1]; 
-  incrEmMod[7] = -1.224744871391589*fUp[2]; 
-  incrEmMod[8] = 0.7071067811865475*fUp[5]; 
-  incrEmMod[9] = 0.7071067811865475*fUp[6]; 
-  incrEmMod[10] = -1.224744871391589*fUp[3]; 
-  incrEmMod[11] = -1.224744871391589*fUp[4]; 
-  incrEmMod[12] = 0.7071067811865475*fUp[7]; 
-  incrEmMod[13] = -1.224744871391589*fUp[5]; 
-  incrEmMod[14] = -1.224744871391589*fUp[6]; 
-  incrEmMod[15] = -1.224744871391589*fUp[7]; 
-
   incr[0] = 0.25*(alpha1R[5]*fUp[5]+alpha1R[3]*fUp[3]+alpha1R[1]*fUp[1]+alpha1R[0]*fUp[0]); 
   incr[1] = 0.25*(alpha1R[3]*fUp[5]+fUp[3]*alpha1R[5]+alpha1R[0]*fUp[1]+fUp[0]*alpha1R[1]); 
   incr[2] = 0.25*(alpha1R[5]*fUp[7]+alpha1R[3]*fUp[6]+alpha1R[1]*fUp[4]+alpha1R[0]*fUp[2]); 
@@ -1696,6 +1679,23 @@ double EmDeltaFGyrokineticGenGeoSurf2x2vSer_vpar_P1_Bvarsx(const double q_, cons
   outL[13] += incr[13]*rdvpar2L; 
   outL[14] += incr[14]*rdvpar2L; 
   outL[15] += incr[15]*rdvpar2L; 
+
+  incrEmMod[0] = 0.7071067811865475*fUp[0]; 
+  incrEmMod[1] = 0.7071067811865475*fUp[1]; 
+  incrEmMod[2] = 0.7071067811865475*fUp[2]; 
+  incrEmMod[3] = -1.224744871391589*fUp[0]; 
+  incrEmMod[4] = 0.7071067811865475*fUp[3]; 
+  incrEmMod[5] = 0.7071067811865475*fUp[4]; 
+  incrEmMod[6] = -1.224744871391589*fUp[1]; 
+  incrEmMod[7] = -1.224744871391589*fUp[2]; 
+  incrEmMod[8] = 0.7071067811865475*fUp[5]; 
+  incrEmMod[9] = 0.7071067811865475*fUp[6]; 
+  incrEmMod[10] = -1.224744871391589*fUp[3]; 
+  incrEmMod[11] = -1.224744871391589*fUp[4]; 
+  incrEmMod[12] = 0.7071067811865475*fUp[7]; 
+  incrEmMod[13] = -1.224744871391589*fUp[5]; 
+  incrEmMod[14] = -1.224744871391589*fUp[6]; 
+  incrEmMod[15] = -1.224744871391589*fUp[7]; 
 
   emModR[0] += incrEmMod[0]*rdvpar2R; 
   emModR[1] += incrEmMod[1]*rdvpar2R; 
@@ -1781,23 +1781,6 @@ double EmDeltaFGyrokineticGenGeoSurf2x2vSer_vpar_P1_Bvarsx(const double q_, cons
   fUp[6] = 0.3535533905932737*(fUpOrd[7]+fUpOrd[6]-1.0*(fUpOrd[5]+fUpOrd[4]+fUpOrd[3]+fUpOrd[2])+fUpOrd[1]+fUpOrd[0]); 
   fUp[7] = 0.3535533905932737*(fUpOrd[7]-1.0*(fUpOrd[6]+fUpOrd[5])+fUpOrd[4]-1.0*fUpOrd[3]+fUpOrd[2]+fUpOrd[1]-1.0*fUpOrd[0]); 
 
-  incrEmMod[0] = 0.7071067811865475*fUp[0]; 
-  incrEmMod[1] = 0.7071067811865475*fUp[1]; 
-  incrEmMod[2] = 0.7071067811865475*fUp[2]; 
-  incrEmMod[3] = -1.224744871391589*fUp[0]; 
-  incrEmMod[4] = 0.7071067811865475*fUp[3]; 
-  incrEmMod[5] = 0.7071067811865475*fUp[4]; 
-  incrEmMod[6] = -1.224744871391589*fUp[1]; 
-  incrEmMod[7] = -1.224744871391589*fUp[2]; 
-  incrEmMod[8] = 0.7071067811865475*fUp[5]; 
-  incrEmMod[9] = 0.7071067811865475*fUp[6]; 
-  incrEmMod[10] = -1.224744871391589*fUp[3]; 
-  incrEmMod[11] = -1.224744871391589*fUp[4]; 
-  incrEmMod[12] = 0.7071067811865475*fUp[7]; 
-  incrEmMod[13] = -1.224744871391589*fUp[5]; 
-  incrEmMod[14] = -1.224744871391589*fUp[6]; 
-  incrEmMod[15] = -1.224744871391589*fUp[7]; 
-
   incr[0] = 0.25*(alpha1R[5]*fUp[5]+alpha1R[3]*fUp[3]+alpha1R[1]*fUp[1]+alpha1R[0]*fUp[0]); 
   incr[1] = 0.25*(alpha1R[3]*fUp[5]+fUp[3]*alpha1R[5]+alpha1R[0]*fUp[1]+fUp[0]*alpha1R[1]); 
   incr[2] = 0.25*(alpha1R[5]*fUp[7]+alpha1R[3]*fUp[6]+alpha1R[1]*fUp[4]+alpha1R[0]*fUp[2]); 
@@ -1848,6 +1831,23 @@ double EmDeltaFGyrokineticGenGeoSurf2x2vSer_vpar_P1_Bvarsx(const double q_, cons
   outL[13] += incr[13]*rdvpar2L; 
   outL[14] += incr[14]*rdvpar2L; 
   outL[15] += incr[15]*rdvpar2L; 
+
+  incrEmMod[0] = 0.7071067811865475*fUp[0]; 
+  incrEmMod[1] = 0.7071067811865475*fUp[1]; 
+  incrEmMod[2] = 0.7071067811865475*fUp[2]; 
+  incrEmMod[3] = -1.224744871391589*fUp[0]; 
+  incrEmMod[4] = 0.7071067811865475*fUp[3]; 
+  incrEmMod[5] = 0.7071067811865475*fUp[4]; 
+  incrEmMod[6] = -1.224744871391589*fUp[1]; 
+  incrEmMod[7] = -1.224744871391589*fUp[2]; 
+  incrEmMod[8] = 0.7071067811865475*fUp[5]; 
+  incrEmMod[9] = 0.7071067811865475*fUp[6]; 
+  incrEmMod[10] = -1.224744871391589*fUp[3]; 
+  incrEmMod[11] = -1.224744871391589*fUp[4]; 
+  incrEmMod[12] = 0.7071067811865475*fUp[7]; 
+  incrEmMod[13] = -1.224744871391589*fUp[5]; 
+  incrEmMod[14] = -1.224744871391589*fUp[6]; 
+  incrEmMod[15] = -1.224744871391589*fUp[7]; 
 
   emModR[0] += incrEmMod[0]*rdvpar2R; 
   emModR[1] += incrEmMod[1]*rdvpar2R; 

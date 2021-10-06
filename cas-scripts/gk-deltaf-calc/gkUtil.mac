@@ -266,18 +266,17 @@ calcAndWrite_BstardBmagEM(fH,cdim,bP,bmagBasis,surfDir,mass,charge,wvpar,rdx2,rd
 
   if cdim > 1 then (rdy2 : rdx2[2]) else (rdy2 : 0),
   if cdim > 2 then (rdz2 : rdx2[3]) else (rdz2 : 0),
-  rdx2 : rdx2[1],
 
   /* Expand BstarX/Bmag on basis. */
   BstarXdBmag_e : (rdy2*diff(Apar_e*b_z_e,y) - rdz2*diff(Apar_e*b_y_e,z))*jacobTotInv_e,
   /* Expand BstarY/Bmag on basis. */
-  BstarYdBmag_e : (rdz2*diff(Apar_e*b_x_e,z) - rdx2*diff(Apar_e*b_z_e,x))*jacobTotInv_e,
+  BstarYdBmag_e : (rdz2*diff(Apar_e*b_x_e,z) - rdx2[1]*diff(Apar_e*b_z_e,x))*jacobTotInv_e,
   /* Expand BstarZ/Bmag on basis. */
-  BstarZdBmag_e : (rdx2*diff(Apar_e*b_y_e,x) - rdy2*diff(Apar_e*b_x_e,y))*jacobTotInv_e,
+  BstarZdBmag_e : (rdx2[1]*diff(Apar_e*b_y_e,x) - rdy2*diff(Apar_e*b_x_e,y))*jacobTotInv_e,
 
   if (surfDir = cdim) and (cdim#2) and (sideStr="R") then (
     AparL_e : inFlds[11],
-    BstarZdBmagL_e : (rdx2*diff(AparL_e*b_y_e,x) - rdy2*diff(AparL_e*b_x_e,y))*jacobTotInv_e
+    BstarZdBmagL_e : (rdx2[1]*diff(AparL_e*b_y_e,x) - rdy2*diff(AparL_e*b_x_e,y))*jacobTotInv_e
   ),
 
   varsP : listofvars(bP),
@@ -717,13 +716,6 @@ calcAndWrite_upwindIncr_wQuadNodeAlpha(fH,basisType,polyOrder,bP,surfDir,sideStr
   replaceList : [wvparL^2=wvparSqL, rdvpar2L^2=rdvpar2SqL, rdx2L^2=rdx2SqL,
                  wvparR^2=wvparSqR, rdvpar2R^2=rdvpar2SqR, rdx2R^2=rdx2SqR, m_^2=mSq, q_^2=qSq],
 
-  if surfVar=vpar and hasApar and polyOrder=1 and (not isStep2) then (
-    tMod       : calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), fhatSurf_e),
-    incrModR_c : fullratsimp(tMod),
-    writeCExprsNoExpand1(incrEmMod, subst(replaceList, incrModR_c)),
-    printf(fH, "~%")
-  ),
-
   fhatAlpha_c : calcInnerProdList(surfIntVars, alphaSurf_e, subst(surfVar=-1, bP), fhatSurf_e),
   incrR_c     : fullratsimp(fhatAlpha_c),
 
@@ -734,7 +726,7 @@ calcAndWrite_upwindIncr_wQuadNodeAlpha(fH,basisType,polyOrder,bP,surfDir,sideStr
   printf(fH, "~%"),
   flush_output(fH),
 
-  return([incrL_c,incrR_c])
+  return([incrL_c,incrR_c, fhatSurf_e])
 )$
 
 

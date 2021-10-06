@@ -213,11 +213,6 @@ double EmDeltaFGyrokineticGenGeoSurf1x1vSer_vpar_P1_Bvars(const double q_, const
   fUp[0] = 0.7071067811865475*(fUpOrd[1]+fUpOrd[0]); 
   fUp[1] = 0.7071067811865475*(fUpOrd[1]-1.0*fUpOrd[0]); 
 
-  incrEmMod[0] = 0.7071067811865475*fUp[0]; 
-  incrEmMod[1] = 0.7071067811865475*fUp[1]; 
-  incrEmMod[2] = -1.224744871391589*fUp[0]; 
-  incrEmMod[3] = -1.224744871391589*fUp[1]; 
-
   incr[0] = 0.5*alpha1R[0]*fUp[0]; 
   incr[1] = 0.5*alpha1R[0]*fUp[1]; 
   incr[2] = -0.8660254037844386*alpha1R[0]*fUp[0]; 
@@ -232,6 +227,11 @@ double EmDeltaFGyrokineticGenGeoSurf1x1vSer_vpar_P1_Bvars(const double q_, const
   outL[1] += -1.0*incr[1]*rdvpar2L; 
   outL[2] += incr[2]*rdvpar2L; 
   outL[3] += incr[3]*rdvpar2L; 
+
+  incrEmMod[0] = 0.7071067811865475*fUp[0]; 
+  incrEmMod[1] = 0.7071067811865475*fUp[1]; 
+  incrEmMod[2] = -1.224744871391589*fUp[0]; 
+  incrEmMod[3] = -1.224744871391589*fUp[1]; 
 
   emModR[0] += incrEmMod[0]*rdvpar2R; 
   emModR[1] += incrEmMod[1]*rdvpar2R; 
@@ -257,11 +257,6 @@ double EmDeltaFGyrokineticGenGeoSurf1x1vSer_vpar_P1_Bvars(const double q_, const
   fUp[0] = 0.7071067811865475*(fUpOrd[1]+fUpOrd[0]); 
   fUp[1] = 0.7071067811865475*(fUpOrd[1]-1.0*fUpOrd[0]); 
 
-  incrEmMod[0] = 0.7071067811865475*fUp[0]; 
-  incrEmMod[1] = 0.7071067811865475*fUp[1]; 
-  incrEmMod[2] = -1.224744871391589*fUp[0]; 
-  incrEmMod[3] = -1.224744871391589*fUp[1]; 
-
   incr[0] = 0.5*alpha1R[0]*fUp[0]; 
   incr[1] = 0.5*alpha1R[0]*fUp[1]; 
   incr[2] = -0.8660254037844386*alpha1R[0]*fUp[0]; 
@@ -276,6 +271,11 @@ double EmDeltaFGyrokineticGenGeoSurf1x1vSer_vpar_P1_Bvars(const double q_, const
   outL[1] += -1.0*incr[1]*rdvpar2L; 
   outL[2] += incr[2]*rdvpar2L; 
   outL[3] += incr[3]*rdvpar2L; 
+
+  incrEmMod[0] = 0.7071067811865475*fUp[0]; 
+  incrEmMod[1] = 0.7071067811865475*fUp[1]; 
+  incrEmMod[2] = -1.224744871391589*fUp[0]; 
+  incrEmMod[3] = -1.224744871391589*fUp[1]; 
 
   emModR[0] += incrEmMod[0]*rdvpar2R; 
   emModR[1] += incrEmMod[1]*rdvpar2R; 
@@ -614,11 +614,6 @@ double EmDeltaFGyrokineticGenGeoSurf1x1vSer_vpar_P1_Bvarsx(const double q_, cons
   fUp[0] = 0.7071067811865475*(fUpOrd[1]+fUpOrd[0]); 
   fUp[1] = 0.7071067811865475*(fUpOrd[1]-1.0*fUpOrd[0]); 
 
-  incrEmMod[0] = 0.7071067811865475*fUp[0]; 
-  incrEmMod[1] = 0.7071067811865475*fUp[1]; 
-  incrEmMod[2] = -1.224744871391589*fUp[0]; 
-  incrEmMod[3] = -1.224744871391589*fUp[1]; 
-
   incr[0] = 0.5*(alpha1R[1]*fUp[1]+alpha1R[0]*fUp[0]); 
   incr[1] = 0.5*(alpha1R[0]*fUp[1]+fUp[0]*alpha1R[1]); 
   incr[2] = -0.8660254037844386*(alpha1R[1]*fUp[1]+alpha1R[0]*fUp[0]); 
@@ -633,6 +628,11 @@ double EmDeltaFGyrokineticGenGeoSurf1x1vSer_vpar_P1_Bvarsx(const double q_, cons
   outL[1] += -1.0*incr[1]*rdvpar2L; 
   outL[2] += incr[2]*rdvpar2L; 
   outL[3] += incr[3]*rdvpar2L; 
+
+  incrEmMod[0] = 0.7071067811865475*fUp[0]; 
+  incrEmMod[1] = 0.7071067811865475*fUp[1]; 
+  incrEmMod[2] = -1.224744871391589*fUp[0]; 
+  incrEmMod[3] = -1.224744871391589*fUp[1]; 
 
   emModR[0] += incrEmMod[0]*rdvpar2R; 
   emModR[1] += incrEmMod[1]*rdvpar2R; 
@@ -658,11 +658,6 @@ double EmDeltaFGyrokineticGenGeoSurf1x1vSer_vpar_P1_Bvarsx(const double q_, cons
   fUp[0] = 0.7071067811865475*(fUpOrd[1]+fUpOrd[0]); 
   fUp[1] = 0.7071067811865475*(fUpOrd[1]-1.0*fUpOrd[0]); 
 
-  incrEmMod[0] = 0.7071067811865475*fUp[0]; 
-  incrEmMod[1] = 0.7071067811865475*fUp[1]; 
-  incrEmMod[2] = -1.224744871391589*fUp[0]; 
-  incrEmMod[3] = -1.224744871391589*fUp[1]; 
-
   incr[0] = 0.5*(alpha1R[1]*fUp[1]+alpha1R[0]*fUp[0]); 
   incr[1] = 0.5*(alpha1R[0]*fUp[1]+fUp[0]*alpha1R[1]); 
   incr[2] = -0.8660254037844386*(alpha1R[1]*fUp[1]+alpha1R[0]*fUp[0]); 
@@ -677,6 +672,11 @@ double EmDeltaFGyrokineticGenGeoSurf1x1vSer_vpar_P1_Bvarsx(const double q_, cons
   outL[1] += -1.0*incr[1]*rdvpar2L; 
   outL[2] += incr[2]*rdvpar2L; 
   outL[3] += incr[3]*rdvpar2L; 
+
+  incrEmMod[0] = 0.7071067811865475*fUp[0]; 
+  incrEmMod[1] = 0.7071067811865475*fUp[1]; 
+  incrEmMod[2] = -1.224744871391589*fUp[0]; 
+  incrEmMod[3] = -1.224744871391589*fUp[1]; 
 
   emModR[0] += incrEmMod[0]*rdvpar2R; 
   emModR[1] += incrEmMod[1]*rdvpar2R; 
