@@ -297,10 +297,6 @@ function GkField:initField(species)
       end
       self.aparSlvr:advance(0.0, {self.currentDens}, {apar})
 
-      if self.filterKy then 
-         --self.filterKy:advance(tCurr, {apar}, {apar})
-      end
-
       -- Clear dApar/dt ... will be solved for before being used.
       self.potentials[1].dApardt:clear(0.0)
    end
@@ -838,26 +834,19 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
       end
       for _, s in lume.orderedIter(species) do
          if s:isEvolving() then 
-            if not s.deltafLinear or self._firstStep2~=false then
-               if s.deltafGK then
-                  self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getTotalNumDensity(s.deltafLinear,inIdx))
-               else
-                  self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getNumDensity())
-               end
-               self.dApardtSlvr:setModifierWeight(self.modifierWeight)
-	    end
+            if s.deltafGK then
+               self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getTotalNumDensity(s.deltafLinear,inIdx))
+            else
+               self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getNumDensity())
+            end
             -- Taking momDensity at outIdx gives momentum moment of df/dt.
             self.currentDens:accumulate(s:getCharge(), s:getMomDensity(outIdx))
          end
       end
-      self._firstStep2 = false
+      self.dApardtSlvr:setModifierWeight(self.modifierWeight)
       -- dApar/dt solve.
       local dApardt = potCurr.dApardt
       self.dApardtSlvr:advance(tCurr, {self.currentDens}, {dApardt}) 
-
-      if self.filterKy then 
-         --self.filterKy:advance(tCurr, {dApardt}, {dApardt})
-      end
 
       -- Apply BCs.
       local tmStart = Time.clock()
@@ -899,22 +888,15 @@ function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
       end
       for _, s in lume.orderedIter(species) do
          if s:isEvolving() then 
-            if not s.deltafLinear or self._firstStep3~=false then
-               self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getEmModifier())
-               self.dApardtSlvr2:setModifierWeight(self.modifierWeight)
-            end
+            self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getEmModifier())
             -- Taking momDensity at outIdx gives momentum moment of df/dt.
             self.currentDens:accumulate(s:getCharge(), s:getMomProjDensity(outIdx))
          end
       end
-      self._firstStep3 = false
+      self.dApardtSlvr2:setModifierWeight(self.modifierWeight)
       -- dApar/dt solve.
       local dApardt = potCurr.dApardt
       self.dApardtSlvr2:advance(tCurr, {self.currentDens}, {dApardt}) 
-
-      if self.filterKy then 
-         --self.filterKy:advance(tCurr, {dApardt}, {dApardt})
-      end
 
       -- Apply BCs.
       local tmStart = Time.clock()
