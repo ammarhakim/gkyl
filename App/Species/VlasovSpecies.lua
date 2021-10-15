@@ -697,18 +697,6 @@ function VlasovSpecies:createDiagnostics(field)
       self.diagnostics[self.name..collNm] = coll:createDiagnostics(self, field)
    end
    lume.setOrder(self.diagnostics)
-
-   -- MF: This is here temporarily. It should be moved to the ionization app. 
-   -- if self.calcIntSrcIz or self.calcReactRate then
-   --    self.srcIzM0 = self:allocMoment()
-   --    self.intSrcIzM0 = DataStruct.DynVector {
-   --       numComponents = 1,
-   --    }
-   --    self.intCalcIz = Updater.CartFieldIntegratedQuantCalc {
-   --       onGrid = self.confGrid,   quantity      = "V",
-   --       basis  = self.confBasis,  numComponents = 1,
-   --    }
-   -- end
 end
 
 function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
