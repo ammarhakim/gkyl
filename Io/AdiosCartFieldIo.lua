@@ -68,13 +68,8 @@ function AdiosCartFieldIo:init(tbl)
 
    -- Create memory allocator.
    self._allocator = Alloc.Alloc_meta_ctor(elct)
-   -- Allocate memory buffer for use in ADIOS I/O. Allocate a number 
-   -- of them in case user wants to output multiple fields to one file.
-   self._outBuff   = {}
-   self._maxFields = 50
-   for i = 1, self._maxFields do
-      self._outBuff[i] = self._allocator(1) -- This will be resized on an actual read/write.
-   end
+   -- Memory buffer for use in ADIOS I/O.
+   self._outBuff = {}
 
    -- write ghost cells on boundaries of global domain (for BCs)
    self._writeGhost = xsys.pickBool(tbl.writeGhost, false)
@@ -142,19 +137,16 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
    local fieldsTbl = type(fieldsIn._ndim)=="number" and {CartGridField = fieldsIn} or fieldsIn
    local numFields = 0
    for fldNm, _ in pairs(fieldsTbl) do numFields=numFields+1 end
-   -- The check below is not actually needed for writes, but it is needed for reads
-   -- so we use them for writes too in case this file will be read in (e.g. restart).
-   assert(numFields <= self._maxFields, "AdiosCartFieldIo: Cannot read/write more fields than self._maxFields.")
 
-   -- Assume fields are defined on the same grid and grab
-   -- grid descriptors from the first field in the table.
+   -- Assume fields are defined on the same grid (and distributed across the same MPI
+   -- communicator) and grab grid descriptors from the first field in the table.
    local field
    for _, fld in pairs(fieldsTbl) do
       field = fld
       break
    end
 
-   local comm  = Mpi.getComm(field:grid():commSet().nodeComm)
+   local comm = Mpi.getComm(field:grid():commSet().nodeComm)
    -- (the extra getComm() is needed as Lua has no concept of
    -- pointers and hence we don't know before hand if nodeComm is a
    -- pointer or an object)
@@ -163,42 +155,20 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
    if not Mpi.Is_comm_valid(comm) then return end
    local rank = Mpi.Comm_rank(comm)
 
+   if not frNum then frNum = 5000 end    -- Default frame-number.
+   if not tmStamp then tmStamp = 0.0 end -- Default time-stamp.
+
    local ndim = field:ndim()
    local localRange, globalRange = field:localRange(), field:globalRange()
    if _writeGhost then 
       -- Extend localRange to include ghost cells if on edge of global domain.
       for d = 1, ndim do
-         if localRange:lower(d) == globalRange:lower(d) then localRange = localRange:extendDir(d, field:lowerGhost(), 0) end
-         if localRange:upper(d) == globalRange:upper(d) then localRange = localRange:extendDir(d, 0, field:upperGhost()) end
+         if localRange:lower(d)==globalRange:lower(d) then localRange = localRange:extendDir(d, field:lowerGhost(), 0) end
+         if localRange:upper(d)==globalRange:upper(d) then localRange = localRange:extendDir(d, 0, field:upperGhost()) end
       end
-      -- Extend globalRange to include ghost cells.
-      globalRange = field:globalExtRange() 
+      globalRange = field:globalExtRange()  -- Extend globalRange to include ghost cells.
    end
-   
-   -- For use in ADIOS output.
-   local _adLocalSz, _adGlobalSz, _adOffset = {}, {}, {}
-   for d = 1, ndim do
-      _adLocalSz[d]  = localRange:shape(d)
-      _adGlobalSz[d] = globalRange:shape(d)
-      _adOffset[d]   = localRange:lower(d)-1
-      if _writeGhost then _adOffset[d] = _adOffset[d] + field:lowerGhost() end
-   end
-   _adLocalSz[ndim+1]  = field:numComponents()
-   _adGlobalSz[ndim+1] = field:numComponents()
-   _adOffset[ndim+1]   = 0
-
-   -- Convert tables to comma-seperated-string. For some strange
-   -- reasons, this is what ADIOS expects.
-   adLocalSz  = toCSV(_adLocalSz)
-   adGlobalSz = toCSV(_adGlobalSz)
-   adOffset   = toCSV(_adOffset)
-
-   if not frNum then frNum = 5000 end    -- Default frame-number.
-   if not tmStamp then tmStamp = 0.0 end -- Default time-stamp.
-
-   -- Resize buffer (only done if needed. Alloc handles this automatically).
-   self._outBuff[1]:expand(localRange:volume()*field:numComponents())
-
+         
    -- Get group name based on fName with frame and suffix chopped off.
    local grpNm = string.gsub(string.gsub(fName, "_(%d+).bp", ""), ".bp", "")
 
@@ -257,7 +227,26 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
          self.grpIds[grpNm], "frame", "", Adios.integer, "", "", "")
       Adios.define_var(
          self.grpIds[grpNm], "time", "", Adios.double, "", "", "")
-      for fldNm, _ in pairs(fieldsTbl) do
+      local _adLocalSz, _adGlobalSz, _adOffset = {}, {}, {}
+      -- Get local (to this MPI rank) and global shape of dataset. Offset is 0 for now.
+      for d = 1, ndim do
+         _adLocalSz[d]  = localRange:shape(d)
+         _adGlobalSz[d] = globalRange:shape(d)
+         _adOffset[d]   = localRange:lower(d)-1
+         if _writeGhost then _adOffset[d] = _adOffset[d] + field:lowerGhost() end
+      end
+      for fldNm, fld in pairs(fieldsTbl) do
+         self._outBuff[fldNm] = self._allocator(localRange:volume()*fld:numComponents())
+
+         _adLocalSz[ndim+1]  = fld:numComponents()
+         _adGlobalSz[ndim+1] = fld:numComponents()
+         _adOffset[ndim+1]   = 0
+
+         -- Convert tables to comma-separated-string. This is what ADIOS expects.
+         local adLocalSz  = toCSV(_adLocalSz)
+         local adGlobalSz = toCSV(_adGlobalSz)
+         local adOffset   = toCSV(_adOffset)
+
          Adios.define_var(
             self.grpIds[grpNm], fldNm, "", self._elctIoType, adLocalSz, adGlobalSz, adOffset)
       end
@@ -272,7 +261,6 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
 
    local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- Concatenate prefix.
 
-
    -- Open file to write out group.
    local fd = Adios.open(grpNm, fullNm, "w", comm)
 
@@ -286,9 +274,9 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
       -- Copy field into output buffer (this copy is needed as
       -- field also contains ghost-cell data, and, in addition,
       -- ADIOS expects data to be laid out in row-major order).
-      fld:_copy_from_field_region(localRange, self._outBuff[1])
+      fld:_copy_from_field_region(localRange, self._outBuff[fldNm])
 
-      local err = Adios.write(fd, fldNm, self._outBuff[1]:data())
+      local err = Adios.write(fd, fldNm, self._outBuff[fldNm]:data())
    end
    Adios.close(fd)
 end
@@ -306,10 +294,9 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
    local fieldsTbl = type(fieldsOut._ndim)=="number" and {CartGridField = fieldsOut} or fieldsOut
    local numFields = 0
    for fldNm, _ in pairs(fieldsTbl) do numFields=numFields+1 end
-   assert(numFields <= self._maxFields, "AdiosCartFieldIo: Cannot read/write more fields than self._maxFields.")
 
-   -- Assume fields are defined on the same grid and grab
-   -- grid descriptors from the first field in the table.
+   -- Assume fields are defined on the same grid (and distributed across the same MPI
+   -- communicator) and grab grid descriptors from the first field in the table.
    local field
    for _, fld in pairs(fieldsTbl) do
       field = fld
@@ -334,38 +321,13 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
       if _readGhost then 
          -- extend localRange to include ghost cells if on edge of global domain
          for d = 1, ndim do
-            if localRange:lower(d) == globalRange:lower(d) then localRange = localRange:extendDir(d, field:lowerGhost(), 0) end
-            if localRange:upper(d) == globalRange:upper(d) then localRange = localRange:extendDir(d, 0, field:upperGhost()) end
+            if localRange:lower(d)==globalRange:lower(d) then localRange = localRange:extendDir(d, field:lowerGhost(), 0) end
+            if localRange:upper(d)==globalRange:upper(d) then localRange = localRange:extendDir(d, 0, field:upperGhost()) end
          end
          -- extend globalRange to include ghost cells
          globalRange = field:globalExtRange() 
       end
-      
-      -- For use in ADIOS output.
-      local _adLocalSz, _adGlobalSz, _adOffset = {}, {}, {}
-      for d = 1, ndim do
-         _adLocalSz[d]  = localRange:shape(d)
-         _adGlobalSz[d] = globalRange:shape(d)
-         _adOffset[d]   = localRange:lower(d)-1
-         if _readGhost then _adOffset[d] = _adOffset[d] + field:lowerGhost() end
-      end
-      _adLocalSz[ndim+1] = field:numComponents()
-      _adGlobalSz[ndim+1] = field:numComponents()
-      _adOffset[ndim+1] = 0
-
-      -- Convert tables to comma-seperated-string. For some strange
-      -- reasons, this is what ADIOS expects.
-      adLocalSz = toCSV(_adLocalSz)
-      adGlobalSz = toCSV(_adGlobalSz)
-      adOffset = toCSV(_adOffset)
-
-      -- Resize buffer (only done if needed. Alloc handles this automatically).
-      local fldI = 0
-      for fldNm, _ in pairs(fieldsTbl) do
-         fldI = fldI + 1
-         self._outBuff[fldI]:expand(localRange:volume()*field:numComponents())
-      end
-
+            
       local rank = Mpi.Comm_rank(comm)
 
       -- Get group name based on fName with frame and suffix chopped off.
@@ -422,7 +384,26 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
             self.grpIds[grpNm], "frame", "", Adios.integer, "", "", "")
          Adios.define_var(
             self.grpIds[grpNm], "time", "", Adios.double, "", "", "")
-         for fldNm, _ in pairs(fieldsTbl) do
+         local _adLocalSz, _adGlobalSz, _adOffset = {}, {}, {}
+         -- Get local (to this MPI rank) and global shape of dataset. Offset is 0 for now.
+         for d = 1, ndim do
+            _adLocalSz[d]  = localRange:shape(d)
+            _adGlobalSz[d] = globalRange:shape(d)
+            _adOffset[d]   = localRange:lower(d)-1
+            if _readGhost then _adOffset[d] = _adOffset[d] + field:lowerGhost() end
+         end
+         for fldNm, fld in pairs(fieldsTbl) do
+            self._outBuff[fldNm] = self._allocator(localRange:volume()*fld:numComponents())
+
+            _adLocalSz[ndim+1]  = fld:numComponents()
+            _adGlobalSz[ndim+1] = fld:numComponents()
+            _adOffset[ndim+1]   = 0
+
+            -- Convert tables to comma-seperated-string. For some strange
+            -- reasons, this is what ADIOS expects.
+            local adLocalSz  = toCSV(_adLocalSz)
+            local adGlobalSz = toCSV(_adGlobalSz)
+            local adOffset   = toCSV(_adOffset)
             Adios.define_var(
                self.grpIds[grpNm], fldNm, "", self._elctIoType, adLocalSz, adGlobalSz, adOffset)
          end
@@ -435,34 +416,30 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
       Adios.schedule_read(fd, Adios.selBoundingBox, "time", 0, 1, tmStampBuff)
       Adios.schedule_read(fd, Adios.selBoundingBox, "frame", 0, 1, frNumBuff)
 
-      -- ADIOS expects input to be const uint64_t* objects, hence vector
-      -- types below)
+      -- ADIOS expects input to be const uint64_t* objects, hence vector types below)
       local start, count = Lin.UInt64Vec(ndim+1), Lin.UInt64Vec(ndim+1)
-      for d = 1, ndim do
-         local st = localRange:lower(d)-1
-         local ct = localRange:shape(d)
-         if _readGhost then st = st + field:lowerGhost() end
-         start[d] = st
-         count[d] = ct
-      end
-      count[ndim+1] = field:numComponents()
-      start[ndim+1] = 0
-      local sel = Adios.selection_boundingbox(ndim+1, start, count)
 
-      local fldI = 0
-      for fldNm, _ in pairs(fieldsTbl) do
-         fldI = fldI + 1
-         Adios.schedule_read(fd, sel, fldNm, 0, 1, self._outBuff[fldI]:data())
+      for fldNm, fld in pairs(fieldsTbl) do
+         for d = 1, ndim do
+            local st = localRange:lower(d)-1
+            local ct = localRange:shape(d)
+            if _readGhost then st = st + fld:lowerGhost() end
+            start[d] = st
+            count[d] = ct
+         end
+         count[ndim+1] = fld:numComponents()
+         start[ndim+1] = 0
+         local sel = Adios.selection_boundingbox(ndim+1, start, count)
+
+         Adios.schedule_read(fd, sel, fldNm, 0, 1, self._outBuff[fldNm]:data())
       end
       Adios.perform_reads(fd, 1)
 
       Adios.read_close(fd) -- No reads actually happen unless one closes file!
 
       -- Copy output buffer into field.
-      local fldI = 0
-      for _, fld in pairs(fieldsTbl) do
-         fldI = fldI + 1
-         fld:_copy_to_field_region(localRange, self._outBuff[fldI])
+      for fldNm, fld in pairs(fieldsTbl) do
+         fld:_copy_to_field_region(localRange, self._outBuff[fldNm])
       end
    end
    -- If running with shared memory, need to broadcast time stamp and frame number.
