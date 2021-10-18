@@ -116,10 +116,10 @@ function BgkCollisions:_advance(tCurr, inFld, outFld)
          end
          for k = 1, numPhaseBasis do
             if sumNufMaxwellItr[k] == sumNufMaxwellItr[k] then -- NaN check.
-               fRhsOutItr[k] = fRhsOutItr[k] + nuFrac*(sumNufMaxwellItr[k] - sumNu*fInItr[k]/(1+sumNu*self._dt))
+               fRhsOutItr[k] = fRhsOutItr[k] + nuFrac*(sumNufMaxwellItr[k] - sumNu*fInItr[k])/(1+sumNu*self._dt)
             end
          end
-	 cflRateByCellPtr:data()[0] = cflRateByCellPtr:data()[0] + sumNu
+	 cflRateByCellPtr:data()[0] = cflRateByCellPtr:data()[0] + sumNu*1e-19
       end
    end
 end
