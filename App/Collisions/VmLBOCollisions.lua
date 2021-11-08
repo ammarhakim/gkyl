@@ -203,6 +203,16 @@ function VmLBOCollisions:fullInit(speciesTbl)
    self.fluxType = speciesTbl.vFlux or "penalty"
    assert(self.fluxType=="upwind" or self.fluxType=="penalty", "App.VmLBOCollisions: 'fluxType' must be 'upwind' or 'penalty'.")
 
+   -- Select between LBO-G and LBO-ET/LBO-EM.
+   local lboType = tbl.lboType and tbl.lboType or "LBO-G"
+   if lboType == "LBO-G" then
+      self.lboType = "VmLBOG"
+   elseif lboType == "LBO-EM" or lboType == "LBO-ET" then
+      self.lboType = "VmLBOE"
+   else
+      assert(false, "App.VmLBOCollisions: lboType not valid. Must be 'LBO-G', 'LBO-EM' or 'LBO-ET'.") 
+   end
+
    self.cfl = 0.0    -- Will be replaced.
 
    self.timers = {nonSlvr = 0.}
@@ -353,7 +363,7 @@ function VmLBOCollisions:createSolver(extField)
          onGrid           = self.confGrid,
          phaseBasis       = self.phaseBasis,
          confBasis        = self.confBasis,
-         operator         = "VmLBO",
+         operator         = self.lboType,
          betaGreene       = self.betaGreene, 
          varyingNu        = self.varNu,
          useCellAverageNu = self.cellConstNu,

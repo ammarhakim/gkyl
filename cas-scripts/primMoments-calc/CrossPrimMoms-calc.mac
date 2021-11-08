@@ -5,36 +5,31 @@ load(stringproc)$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 3$
+maxPolyOrder_Ser : 2$
 minCdim_Ser : 1$
 minVdim_Ser : 1$    /* but see v loop below. */
-maxCdim_Ser : 0$
-maxVdim_Ser : 0$
-
-/* Maximal order basis. */
-maxPolyOrder_Max : 3$
-minCdim_Max : 1$
-minVdim_Max : 1$    /* but see v loop below. */
-maxCdim_Max : 0$
-maxVdim_Max : 0$
+maxCdim_Ser : 2$
+maxVdim_Ser : 2$
 
 /* Tensor order basis. */
 maxPolyOrder_Tensor : 2$
 minCdim_Tensor : 1$
 minVdim_Tensor : 1$    /* but see v loop below. */
-maxCdim_Tensor : 2$
-maxVdim_Tensor : 3$
+maxCdim_Tensor : 0$
+maxVdim_Tensor : 0$
 
 gkVdims      : [[1,2], [2], [2]]$
 
 /* ...... END OF USER INPUTS........ */
 
-bName        : ["Ser","Max","Tensor"]$
-maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
-minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
-minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
-maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
-maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
+bName        : ["Ser","Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Tensor]$
+minVdim      : [minVdim_Ser, minVdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Tensor]$
+maxVdim      : [maxVdim_Ser, maxVdim_Tensor]$
+
+lboKind : ["LBOG","LBOE"]$ /* Type of LBO, LBO-G or LBO-EM/LBO-ET. */
 
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
@@ -50,30 +45,29 @@ for bInd : 1 thru length(bName) do (
         disp(printf(false,sconcat("Creating VmLBOCrossPrimMoments ~ax~avP~a", bName[bInd]),c,v,polyOrder)),
         fname : sconcat("~/max-out/VmLBOCrossPrimMoments", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
         fh : openw(fname),
-  
         printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
         printf(fh, " ~%"),
         printf(fh, "using namespace Eigen; ~%"),
         printf(fh, " ~%"),
-  
-        funcName : sconcat("VmLBOCrossPrimMoments", c, "x", v, "v", bName[bInd]),
-        calcCrossPrimMomsLBO(fh, funcName, c, v, bName[bInd], polyOrder),
-  
+        for kI : 1 thru length(lboKind) do (
+          funcName : sconcat("Vm",lboKind[kI],"CrossPrimMoments", c, "x", v, "v", bName[bInd]),
+          calcCrossPrimMomsLBO(fh, funcName, c, v, bName[bInd], polyOrder, lboKind[kI])
+        ),
         close(fh),
   
         /* For BGK operator. */
         disp(printf(false,sconcat("Creating VmBGKCrossPrimMoments ~ax~avP~a", bName[bInd]),c,v,polyOrder)),
         fname : sconcat("~/max-out/VmBGKCrossPrimMoments", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
         fh : openw(fname),
-  
+
         printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
         printf(fh, " ~%"),
         printf(fh, "using namespace Eigen; ~%"),
         printf(fh, " ~%"),
-  
+
         funcName : sconcat("VmBGKCrossPrimMoments", c, "x", v, "v", bName[bInd]),
         calcCrossPrimMomsBGK(fh, funcName, c, v, bName[bInd], polyOrder),
-  
+
         close(fh)
       )
     ),
@@ -94,15 +88,14 @@ for bInd : 1 thru length(bName) do (
         disp(printf(false,sconcat("Creating GkLBOCrossPrimMoments ~ax~avP~a", bName[bInd]),c,v,polyOrder)),
         fname : sconcat("~/max-out/GkLBOCrossPrimMoments", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
         fh : openw(fname),
-
         printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
         printf(fh, " ~%"),
         printf(fh, "using namespace Eigen; ~%"),
         printf(fh, " ~%"),
-
-        funcName : sconcat("GkLBOCrossPrimMoments", c, "x", v, "v", bName[bInd]),
-        calcCrossPrimMomsLBO(fh, funcName, c, v, bName[bInd], polyOrder),
-
+        for kI : 1 thru length(lboKind) do (
+          funcName : sconcat("Gk",lboKind[kI],"CrossPrimMoments", c, "x", v, "v", bName[bInd]),
+          calcCrossPrimMomsLBO(fh, funcName, c, v, bName[bInd], polyOrder, lboKind[kI])
+        ),
         close(fh),
 
         /* For BGK operator. */

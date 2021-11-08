@@ -165,6 +165,25 @@ local implementation = function()
       self.field:scale(1./specIn.vdim)
    end
 
+   -- ~~~~ Temperature ~~~~~~~~~~~~~~~~~~~~~~
+   -- We could make this depend on VtSq and multiply it by the mass,
+   -- but since VtSq and Temp will likely never be requested together
+   -- we are better off minimizing dependencies.
+   local _Temp = Proto(DiagsImplBase)
+   function _Temp:fullInit(diagApp, specIn, field, owner)
+      self.field   = owner:allocMoment()
+      self.updater = owner.confWeakDivide or specIn.confWeakDivide
+      self.done    = false
+   end
+   function _Temp:getType() return "grid" end
+   function _Temp:getDependencies() return {"M2Thermal","M0"} end
+   function _Temp:advance(tm, inFlds, outFlds)
+      local specIn, diags = inFlds[1], inFlds[2]
+      local M0, M2Thermal = diags["M0"].field, diags["M2Thermal"].field
+      self.updater:advance(tm, {M0, M2Thermal}, {self.field})
+      self.field:scale(specIn.mass/specIn.vdim)
+   end
+
    -- ~~~~ Integrated number density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM0 = Proto(DiagsImplBase)
    function _intM0:fullInit(diagApp, specIn, field, owner)
@@ -267,6 +286,7 @@ local implementation = function()
       M2Flow    = _M2Flow,
       M2Thermal = _M2Thermal,
       VtSq      = _VtSq,
+      Temp      = _Temp,
       intM0        = _intM0,
       intM1i       = _intM1i,
       intM2        = _intM2,

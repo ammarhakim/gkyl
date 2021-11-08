@@ -33,7 +33,7 @@ function _M.selectCrossPrimMomentsCalc(operator, basisNm, CDIM, VDIM, polyOrder)
    local funcType = "void"
    local funcNm = string.format("%sCrossPrimMoments%dx%dv%s_P%d", operator, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
    local funcSign
-   if (operator=="VmLBO") or (operator=="GkLBO") then
+   if (operator=="VmLBOG") or (operator=="VmLBOE") or (operator=="GkLBOG") or (operator=="GkLBOE") then
       if polyOrder==1 then
          funcSign = [[(binOpData_t *data, binOpData_t *dataDiv, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double *m0SSelf, const double *m1SSelf, const double *m2SSelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, const double *m0SOther, const double *m1SOther, const double *m2SOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther)]]
       else

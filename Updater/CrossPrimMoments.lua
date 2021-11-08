@@ -29,7 +29,7 @@ ffi.cdef [[
 
 -- Function to check if operator option is correct.
 local function isOperatorGood(nm)
-   if nm == "VmLBO" or nm == "GkLBO" or nm == "VmBGK" or nm == "GkBGK" then
+   if nm == "VmLBOG" or nm == "VmLBOE" or nm == "GkLBOG" or nm == "GkLBOE" or nm == "VmBGK" or nm == "GkBGK" then
       return true
    end
    return false
@@ -78,11 +78,11 @@ function CrossPrimMoments:init(tbl)
    self._basisID, self._polyOrder = confBasis:id(), confBasis:polyOrder()
 
    local uDim = self._vDim
-   if self._operator=="GkLBO" or self._operator=="GkBGK" then
+   if self._operator=="GkLBOG" or self._operator=="GkLBOE" or self._operator=="GkBGK" then
       uDim = 1
    end
    self._isLBO = false
-   if self._operator=="VmLBO" or self._operator=="GkLBO" then
+   if self._operator=="VmLBOG" or self._operator=="VmLBOE" or self._operator=="GkLBO" then
       self._isLBO = true
    end
 

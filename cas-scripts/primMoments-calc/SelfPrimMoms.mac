@@ -85,7 +85,7 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([],
   printf(fh, "  // If a corner value is below zero, use cell average m0.~%"),
   printf(fh, "  bool cellAvg = false;~%"),
   nodes : eval_string(sconcat("nodes", cdim, "xp", 1)),
-  nodesub(f):=makelist(subst(makelist(varsC[j]=nodes[i][j],j,1,length(varsC)),f),i,1,length(nodes)),
+  nodesub(f) := makelist(subst(makelist(varsC[j]=nodes[i][j],j,1,length(varsC)),f),i,1,length(nodes)),
   m0Corners : gcfac(float(fullratsimp(nodesub(doExpand1(m0,bC))))),
   for i : 1 thru length(nodes) do (
     printf(fh, "  if (~a < 0) cellAvg = true; ~%", m0Corners[i])
