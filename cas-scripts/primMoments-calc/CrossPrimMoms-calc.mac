@@ -5,11 +5,11 @@ load(stringproc)$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 2$
-minCdim_Ser : 1$
-minVdim_Ser : 1$    /* but see v loop below. */
-maxCdim_Ser : 2$
-maxVdim_Ser : 2$
+maxPolyOrder_Ser : 1$
+minCdim_Ser : 3$
+minVdim_Ser : 3$    /* but see v loop below. */
+maxCdim_Ser : 3$
+maxVdim_Ser : 3$
 
 /* Tensor order basis. */
 maxPolyOrder_Tensor : 2$

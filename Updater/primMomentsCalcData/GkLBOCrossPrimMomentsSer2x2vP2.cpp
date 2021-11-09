@@ -2,7 +2,7 @@
  
 using namespace Eigen; 
  
-void GkLBOCrossPrimMoments2x2vSer_P2(binOpData_t *data, binOpData_t *dataDiv,const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
+void GkLBOGCrossPrimMoments2x2vSer_P2(binOpData_t *data, binOpData_t *dataDiv,const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
 { 
   // betaGreenep1:       free parameter beta+1. This has to be >0. 
   // nu, m:              collisionality and mass. 
@@ -12,19 +12,24 @@ void GkLBOCrossPrimMoments2x2vSer_P2(binOpData_t *data, binOpData_t *dataDiv,con
   // uCross,vtSqCross:   cross primitive moments: mean flow velocity and thermal speed squared. 
  
   // If a corner value is below zero, use cell average m0.
-  bool cellAvg = false;
-  if ((-1.936491673103709*m0Self[7])-1.936491673103709*m0Self[6]+1.118033988749895*m0Self[5]+1.118033988749895*m0Self[4]+1.5*m0Self[3]-0.8660254037844386*m0Self[2]-0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) { 
-    cellAvg = true;
-  }
-  if ((-1.936491673103709*m0Self[7])+1.936491673103709*m0Self[6]+1.118033988749895*m0Self[5]+1.118033988749895*m0Self[4]-1.5*m0Self[3]+0.8660254037844386*m0Self[2]-0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) { 
-    cellAvg = true;
-  }
-  if (1.936491673103709*m0Self[7]-1.936491673103709*m0Self[6]+1.118033988749895*m0Self[5]+1.118033988749895*m0Self[4]-1.5*m0Self[3]-0.8660254037844386*m0Self[2]+0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) { 
-    cellAvg = true;
-  }
-  if (1.936491673103709*m0Self[7]+1.936491673103709*m0Self[6]+1.118033988749895*m0Self[5]+1.118033988749895*m0Self[4]+1.5*m0Self[3]+0.8660254037844386*m0Self[2]+0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) { 
-    cellAvg = true;
-  }
+  bool cellAvg;
+  cellAvg = false;
+  if ((-1.936491673103709*m0Self[7])-1.936491673103709*m0Self[6]+1.118033988749895*m0Self[5]+1.118033988749895*m0Self[4]+1.5*m0Self[3]-0.8660254037844386*m0Self[2]-0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if ((-1.936491673103709*m2Self[7])-1.936491673103709*m2Self[6]+1.118033988749895*m2Self[5]+1.118033988749895*m2Self[4]+1.5*m2Self[3]-0.8660254037844386*m2Self[2]-0.8660254037844386*m2Self[1]+0.5*m2Self[0] < 0) cellAvg = true; 
+  if (0.9682458365518543*m0Self[6]+1.118033988749895*m0Self[5]-0.5590169943749475*m0Self[4]-0.8660254037844386*m0Self[2]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if (0.9682458365518543*m2Self[6]+1.118033988749895*m2Self[5]-0.5590169943749475*m2Self[4]-0.8660254037844386*m2Self[2]+0.5*m2Self[0] < 0) cellAvg = true; 
+  if (1.936491673103709*m0Self[7]-1.936491673103709*m0Self[6]+1.118033988749895*m0Self[5]+1.118033988749895*m0Self[4]-1.5*m0Self[3]-0.8660254037844386*m0Self[2]+0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if (1.936491673103709*m2Self[7]-1.936491673103709*m2Self[6]+1.118033988749895*m2Self[5]+1.118033988749895*m2Self[4]-1.5*m2Self[3]-0.8660254037844386*m2Self[2]+0.8660254037844386*m2Self[1]+0.5*m2Self[0] < 0) cellAvg = true; 
+  if (0.9682458365518543*m0Self[7]-0.5590169943749475*m0Self[5]+1.118033988749895*m0Self[4]-0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if (0.9682458365518543*m2Self[7]-0.5590169943749475*m2Self[5]+1.118033988749895*m2Self[4]-0.8660254037844386*m2Self[1]+0.5*m2Self[0] < 0) cellAvg = true; 
+  if ((-0.9682458365518543*m0Self[7])-0.5590169943749475*m0Self[5]+1.118033988749895*m0Self[4]+0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if ((-0.9682458365518543*m2Self[7])-0.5590169943749475*m2Self[5]+1.118033988749895*m2Self[4]+0.8660254037844386*m2Self[1]+0.5*m2Self[0] < 0) cellAvg = true; 
+  if ((-1.936491673103709*m0Self[7])+1.936491673103709*m0Self[6]+1.118033988749895*m0Self[5]+1.118033988749895*m0Self[4]-1.5*m0Self[3]+0.8660254037844386*m0Self[2]-0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if ((-1.936491673103709*m2Self[7])+1.936491673103709*m2Self[6]+1.118033988749895*m2Self[5]+1.118033988749895*m2Self[4]-1.5*m2Self[3]+0.8660254037844386*m2Self[2]-0.8660254037844386*m2Self[1]+0.5*m2Self[0] < 0) cellAvg = true; 
+  if ((-0.9682458365518543*m0Self[6])+1.118033988749895*m0Self[5]-0.5590169943749475*m0Self[4]+0.8660254037844386*m0Self[2]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if ((-0.9682458365518543*m2Self[6])+1.118033988749895*m2Self[5]-0.5590169943749475*m2Self[4]+0.8660254037844386*m2Self[2]+0.5*m2Self[0] < 0) cellAvg = true; 
+  if (1.936491673103709*m0Self[7]+1.936491673103709*m0Self[6]+1.118033988749895*m0Self[5]+1.118033988749895*m0Self[4]+1.5*m0Self[3]+0.8660254037844386*m0Self[2]+0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if (1.936491673103709*m2Self[7]+1.936491673103709*m2Self[6]+1.118033988749895*m2Self[5]+1.118033988749895*m2Self[4]+1.5*m2Self[3]+0.8660254037844386*m2Self[2]+0.8660254037844386*m2Self[1]+0.5*m2Self[0] < 0) cellAvg = true; 
  
   double m0rSelf[8]; 
   double m1rSelf[8]; 
@@ -115,18 +120,23 @@ void GkLBOCrossPrimMoments2x2vSer_P2(binOpData_t *data, binOpData_t *dataDiv,con
     cErSelf[7] = cESelf[7]; 
   } 
  
-  if ((-1.936491673103709*m0Other[7])-1.936491673103709*m0Other[6]+1.118033988749895*m0Other[5]+1.118033988749895*m0Other[4]+1.5*m0Other[3]-0.8660254037844386*m0Other[2]-0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) { 
-    cellAvg = true;
-  }
-  if ((-1.936491673103709*m0Other[7])+1.936491673103709*m0Other[6]+1.118033988749895*m0Other[5]+1.118033988749895*m0Other[4]-1.5*m0Other[3]+0.8660254037844386*m0Other[2]-0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) { 
-    cellAvg = true;
-  }
-  if (1.936491673103709*m0Other[7]-1.936491673103709*m0Other[6]+1.118033988749895*m0Other[5]+1.118033988749895*m0Other[4]-1.5*m0Other[3]-0.8660254037844386*m0Other[2]+0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) { 
-    cellAvg = true;
-  }
-  if (1.936491673103709*m0Other[7]+1.936491673103709*m0Other[6]+1.118033988749895*m0Other[5]+1.118033988749895*m0Other[4]+1.5*m0Other[3]+0.8660254037844386*m0Other[2]+0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) { 
-    cellAvg = true;
-  }
+  cellAvg = false;
+  if ((-1.936491673103709*m0Other[7])-1.936491673103709*m0Other[6]+1.118033988749895*m0Other[5]+1.118033988749895*m0Other[4]+1.5*m0Other[3]-0.8660254037844386*m0Other[2]-0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if ((-1.936491673103709*m2Other[7])-1.936491673103709*m2Other[6]+1.118033988749895*m2Other[5]+1.118033988749895*m2Other[4]+1.5*m2Other[3]-0.8660254037844386*m2Other[2]-0.8660254037844386*m2Other[1]+0.5*m2Other[0] < 0) cellAvg = true; 
+  if (0.9682458365518543*m0Other[6]+1.118033988749895*m0Other[5]-0.5590169943749475*m0Other[4]-0.8660254037844386*m0Other[2]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if (0.9682458365518543*m2Other[6]+1.118033988749895*m2Other[5]-0.5590169943749475*m2Other[4]-0.8660254037844386*m2Other[2]+0.5*m2Other[0] < 0) cellAvg = true; 
+  if (1.936491673103709*m0Other[7]-1.936491673103709*m0Other[6]+1.118033988749895*m0Other[5]+1.118033988749895*m0Other[4]-1.5*m0Other[3]-0.8660254037844386*m0Other[2]+0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if (1.936491673103709*m2Other[7]-1.936491673103709*m2Other[6]+1.118033988749895*m2Other[5]+1.118033988749895*m2Other[4]-1.5*m2Other[3]-0.8660254037844386*m2Other[2]+0.8660254037844386*m2Other[1]+0.5*m2Other[0] < 0) cellAvg = true; 
+  if (0.9682458365518543*m0Other[7]-0.5590169943749475*m0Other[5]+1.118033988749895*m0Other[4]-0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if (0.9682458365518543*m2Other[7]-0.5590169943749475*m2Other[5]+1.118033988749895*m2Other[4]-0.8660254037844386*m2Other[1]+0.5*m2Other[0] < 0) cellAvg = true; 
+  if ((-0.9682458365518543*m0Other[7])-0.5590169943749475*m0Other[5]+1.118033988749895*m0Other[4]+0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if ((-0.9682458365518543*m2Other[7])-0.5590169943749475*m2Other[5]+1.118033988749895*m2Other[4]+0.8660254037844386*m2Other[1]+0.5*m2Other[0] < 0) cellAvg = true; 
+  if ((-1.936491673103709*m0Other[7])+1.936491673103709*m0Other[6]+1.118033988749895*m0Other[5]+1.118033988749895*m0Other[4]-1.5*m0Other[3]+0.8660254037844386*m0Other[2]-0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if ((-1.936491673103709*m2Other[7])+1.936491673103709*m2Other[6]+1.118033988749895*m2Other[5]+1.118033988749895*m2Other[4]-1.5*m2Other[3]+0.8660254037844386*m2Other[2]-0.8660254037844386*m2Other[1]+0.5*m2Other[0] < 0) cellAvg = true; 
+  if ((-0.9682458365518543*m0Other[6])+1.118033988749895*m0Other[5]-0.5590169943749475*m0Other[4]+0.8660254037844386*m0Other[2]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if ((-0.9682458365518543*m2Other[6])+1.118033988749895*m2Other[5]-0.5590169943749475*m2Other[4]+0.8660254037844386*m2Other[2]+0.5*m2Other[0] < 0) cellAvg = true; 
+  if (1.936491673103709*m0Other[7]+1.936491673103709*m0Other[6]+1.118033988749895*m0Other[5]+1.118033988749895*m0Other[4]+1.5*m0Other[3]+0.8660254037844386*m0Other[2]+0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if (1.936491673103709*m2Other[7]+1.936491673103709*m2Other[6]+1.118033988749895*m2Other[5]+1.118033988749895*m2Other[4]+1.5*m2Other[3]+0.8660254037844386*m2Other[2]+0.8660254037844386*m2Other[1]+0.5*m2Other[0] < 0) cellAvg = true; 
  
   double m0rOther[8]; 
   double m1rOther[8]; 
@@ -1527,6 +1537,835 @@ void GkLBOCrossPrimMoments2x2vSer_P2(binOpData_t *data, binOpData_t *dataDiv,con
  
   // ....... RHS vector is composed of m1 and m2 .......... // 
   data->BEV_S << mnuM1sum[0],mnuM1sum[1],mnuM1sum[2],mnuM1sum[3],mnuM1sum[4],mnuM1sum[5],mnuM1sum[6],mnuM1sum[7],mnuM2sum[0],mnuM2sum[1],mnuM2sum[2],mnuM2sum[3],mnuM2sum[4],mnuM2sum[5],mnuM2sum[6],mnuM2sum[7],m1Relax[0],m1Relax[1],m1Relax[2],m1Relax[3],m1Relax[4],m1Relax[5],m1Relax[6],m1Relax[7],m2Relax[0],m2Relax[1],m2Relax[2],m2Relax[3],m2Relax[4],m2Relax[5],m2Relax[6],m2Relax[7]; 
+ 
+  data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
+ 
+  Eigen::Map<VectorXd>(uCrossSelf,8,1) = data->u_S.segment<8>(0); 
+ 
+  Eigen::Map<VectorXd>(vtSqCrossSelf,8,1) = data->u_S.segment<8>(8); 
+ 
+  Eigen::Map<VectorXd>(uCrossOther,8,1) = data->u_S.segment<8>(16); 
+ 
+  Eigen::Map<VectorXd>(vtSqCrossOther,8,1) = data->u_S.segment<8>(24); 
+ 
+} 
+ 
+void GkLBOECrossPrimMoments2x2vSer_P2(binOpData_t *data, binOpData_t *dataDiv,const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
+{ 
+  // betaGreenep1:       free parameter beta+1. This has to be >0. 
+  // nu, m:              collisionality and mass. 
+  // m0,m1,m2:           moments of the distribution function. 
+  // u,vtSq:             self primitive moments: mean flow velocity and thermal speed squared. 
+  // cM,cE:              corrections to momentum and energy conservation due to finite velocity space. 
+  // uCross,vtSqCross:   cross primitive moments: mean flow velocity and thermal speed squared. 
+ 
+  // If a corner value is below zero, use cell average m0.
+  bool cellAvg;
+  cellAvg = false;
+  if ((-1.936491673103709*m0Self[7])-1.936491673103709*m0Self[6]+1.118033988749895*m0Self[5]+1.118033988749895*m0Self[4]+1.5*m0Self[3]-0.8660254037844386*m0Self[2]-0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if ((-1.936491673103709*m2Self[7])-1.936491673103709*m2Self[6]+1.118033988749895*m2Self[5]+1.118033988749895*m2Self[4]+1.5*m2Self[3]-0.8660254037844386*m2Self[2]-0.8660254037844386*m2Self[1]+0.5*m2Self[0] < 0) cellAvg = true; 
+  if (0.9682458365518543*m0Self[6]+1.118033988749895*m0Self[5]-0.5590169943749475*m0Self[4]-0.8660254037844386*m0Self[2]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if (0.9682458365518543*m2Self[6]+1.118033988749895*m2Self[5]-0.5590169943749475*m2Self[4]-0.8660254037844386*m2Self[2]+0.5*m2Self[0] < 0) cellAvg = true; 
+  if (1.936491673103709*m0Self[7]-1.936491673103709*m0Self[6]+1.118033988749895*m0Self[5]+1.118033988749895*m0Self[4]-1.5*m0Self[3]-0.8660254037844386*m0Self[2]+0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if (1.936491673103709*m2Self[7]-1.936491673103709*m2Self[6]+1.118033988749895*m2Self[5]+1.118033988749895*m2Self[4]-1.5*m2Self[3]-0.8660254037844386*m2Self[2]+0.8660254037844386*m2Self[1]+0.5*m2Self[0] < 0) cellAvg = true; 
+  if (0.9682458365518543*m0Self[7]-0.5590169943749475*m0Self[5]+1.118033988749895*m0Self[4]-0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if (0.9682458365518543*m2Self[7]-0.5590169943749475*m2Self[5]+1.118033988749895*m2Self[4]-0.8660254037844386*m2Self[1]+0.5*m2Self[0] < 0) cellAvg = true; 
+  if ((-0.9682458365518543*m0Self[7])-0.5590169943749475*m0Self[5]+1.118033988749895*m0Self[4]+0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if ((-0.9682458365518543*m2Self[7])-0.5590169943749475*m2Self[5]+1.118033988749895*m2Self[4]+0.8660254037844386*m2Self[1]+0.5*m2Self[0] < 0) cellAvg = true; 
+  if ((-1.936491673103709*m0Self[7])+1.936491673103709*m0Self[6]+1.118033988749895*m0Self[5]+1.118033988749895*m0Self[4]-1.5*m0Self[3]+0.8660254037844386*m0Self[2]-0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if ((-1.936491673103709*m2Self[7])+1.936491673103709*m2Self[6]+1.118033988749895*m2Self[5]+1.118033988749895*m2Self[4]-1.5*m2Self[3]+0.8660254037844386*m2Self[2]-0.8660254037844386*m2Self[1]+0.5*m2Self[0] < 0) cellAvg = true; 
+  if ((-0.9682458365518543*m0Self[6])+1.118033988749895*m0Self[5]-0.5590169943749475*m0Self[4]+0.8660254037844386*m0Self[2]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if ((-0.9682458365518543*m2Self[6])+1.118033988749895*m2Self[5]-0.5590169943749475*m2Self[4]+0.8660254037844386*m2Self[2]+0.5*m2Self[0] < 0) cellAvg = true; 
+  if (1.936491673103709*m0Self[7]+1.936491673103709*m0Self[6]+1.118033988749895*m0Self[5]+1.118033988749895*m0Self[4]+1.5*m0Self[3]+0.8660254037844386*m0Self[2]+0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if (1.936491673103709*m2Self[7]+1.936491673103709*m2Self[6]+1.118033988749895*m2Self[5]+1.118033988749895*m2Self[4]+1.5*m2Self[3]+0.8660254037844386*m2Self[2]+0.8660254037844386*m2Self[1]+0.5*m2Self[0] < 0) cellAvg = true; 
+ 
+  double m0rSelf[8]; 
+  double m1rSelf[8]; 
+  double m2rSelf[8]; 
+  double cMrSelf[8]; 
+  double cErSelf[8]; 
+  if (cellAvg) { 
+    m0rSelf[0] = m0Self[0]; 
+    m0rSelf[1] = 0.0; 
+    m0rSelf[2] = 0.0; 
+    m0rSelf[3] = 0.0; 
+    m0rSelf[4] = 0.0; 
+    m0rSelf[5] = 0.0; 
+    m0rSelf[6] = 0.0; 
+    m0rSelf[7] = 0.0; 
+    m1rSelf[0] = m1Self[0]; 
+    m1rSelf[1] = 0.0; 
+    m1rSelf[2] = 0.0; 
+    m1rSelf[3] = 0.0; 
+    m1rSelf[4] = 0.0; 
+    m1rSelf[5] = 0.0; 
+    m1rSelf[6] = 0.0; 
+    m1rSelf[7] = 0.0; 
+    cMrSelf[0] = cMSelf[0]; 
+    cMrSelf[1] = 0.0; 
+    cMrSelf[2] = 0.0; 
+    cMrSelf[3] = 0.0; 
+    cMrSelf[4] = 0.0; 
+    cMrSelf[5] = 0.0; 
+    cMrSelf[6] = 0.0; 
+    cMrSelf[7] = 0.0; 
+    m2rSelf[0] = m2Self[0]; 
+    m2rSelf[1] = 0.0; 
+    m2rSelf[2] = 0.0; 
+    m2rSelf[3] = 0.0; 
+    m2rSelf[4] = 0.0; 
+    m2rSelf[5] = 0.0; 
+    m2rSelf[6] = 0.0; 
+    m2rSelf[7] = 0.0; 
+    cErSelf[0] = cESelf[0]; 
+    cErSelf[1] = 0.0; 
+    cErSelf[2] = 0.0; 
+    cErSelf[3] = 0.0; 
+    cErSelf[4] = 0.0; 
+    cErSelf[5] = 0.0; 
+    cErSelf[6] = 0.0; 
+    cErSelf[7] = 0.0; 
+  } else { 
+    m0rSelf[0] = m0Self[0]; 
+    m0rSelf[1] = m0Self[1]; 
+    m0rSelf[2] = m0Self[2]; 
+    m0rSelf[3] = m0Self[3]; 
+    m0rSelf[4] = m0Self[4]; 
+    m0rSelf[5] = m0Self[5]; 
+    m0rSelf[6] = m0Self[6]; 
+    m0rSelf[7] = m0Self[7]; 
+    m1rSelf[0] = m1Self[0]; 
+    m1rSelf[1] = m1Self[1]; 
+    m1rSelf[2] = m1Self[2]; 
+    m1rSelf[3] = m1Self[3]; 
+    m1rSelf[4] = m1Self[4]; 
+    m1rSelf[5] = m1Self[5]; 
+    m1rSelf[6] = m1Self[6]; 
+    m1rSelf[7] = m1Self[7]; 
+    m2rSelf[0] = m2Self[0]; 
+    m2rSelf[1] = m2Self[1]; 
+    m2rSelf[2] = m2Self[2]; 
+    m2rSelf[3] = m2Self[3]; 
+    m2rSelf[4] = m2Self[4]; 
+    m2rSelf[5] = m2Self[5]; 
+    m2rSelf[6] = m2Self[6]; 
+    m2rSelf[7] = m2Self[7]; 
+    cMrSelf[0] = cMSelf[0]; 
+    cMrSelf[1] = cMSelf[1]; 
+    cMrSelf[2] = cMSelf[2]; 
+    cMrSelf[3] = cMSelf[3]; 
+    cMrSelf[4] = cMSelf[4]; 
+    cMrSelf[5] = cMSelf[5]; 
+    cMrSelf[6] = cMSelf[6]; 
+    cMrSelf[7] = cMSelf[7]; 
+    cErSelf[0] = cESelf[0]; 
+    cErSelf[1] = cESelf[1]; 
+    cErSelf[2] = cESelf[2]; 
+    cErSelf[3] = cESelf[3]; 
+    cErSelf[4] = cESelf[4]; 
+    cErSelf[5] = cESelf[5]; 
+    cErSelf[6] = cESelf[6]; 
+    cErSelf[7] = cESelf[7]; 
+  } 
+ 
+  cellAvg = false;
+  if ((-1.936491673103709*m0Other[7])-1.936491673103709*m0Other[6]+1.118033988749895*m0Other[5]+1.118033988749895*m0Other[4]+1.5*m0Other[3]-0.8660254037844386*m0Other[2]-0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if ((-1.936491673103709*m2Other[7])-1.936491673103709*m2Other[6]+1.118033988749895*m2Other[5]+1.118033988749895*m2Other[4]+1.5*m2Other[3]-0.8660254037844386*m2Other[2]-0.8660254037844386*m2Other[1]+0.5*m2Other[0] < 0) cellAvg = true; 
+  if (0.9682458365518543*m0Other[6]+1.118033988749895*m0Other[5]-0.5590169943749475*m0Other[4]-0.8660254037844386*m0Other[2]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if (0.9682458365518543*m2Other[6]+1.118033988749895*m2Other[5]-0.5590169943749475*m2Other[4]-0.8660254037844386*m2Other[2]+0.5*m2Other[0] < 0) cellAvg = true; 
+  if (1.936491673103709*m0Other[7]-1.936491673103709*m0Other[6]+1.118033988749895*m0Other[5]+1.118033988749895*m0Other[4]-1.5*m0Other[3]-0.8660254037844386*m0Other[2]+0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if (1.936491673103709*m2Other[7]-1.936491673103709*m2Other[6]+1.118033988749895*m2Other[5]+1.118033988749895*m2Other[4]-1.5*m2Other[3]-0.8660254037844386*m2Other[2]+0.8660254037844386*m2Other[1]+0.5*m2Other[0] < 0) cellAvg = true; 
+  if (0.9682458365518543*m0Other[7]-0.5590169943749475*m0Other[5]+1.118033988749895*m0Other[4]-0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if (0.9682458365518543*m2Other[7]-0.5590169943749475*m2Other[5]+1.118033988749895*m2Other[4]-0.8660254037844386*m2Other[1]+0.5*m2Other[0] < 0) cellAvg = true; 
+  if ((-0.9682458365518543*m0Other[7])-0.5590169943749475*m0Other[5]+1.118033988749895*m0Other[4]+0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if ((-0.9682458365518543*m2Other[7])-0.5590169943749475*m2Other[5]+1.118033988749895*m2Other[4]+0.8660254037844386*m2Other[1]+0.5*m2Other[0] < 0) cellAvg = true; 
+  if ((-1.936491673103709*m0Other[7])+1.936491673103709*m0Other[6]+1.118033988749895*m0Other[5]+1.118033988749895*m0Other[4]-1.5*m0Other[3]+0.8660254037844386*m0Other[2]-0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if ((-1.936491673103709*m2Other[7])+1.936491673103709*m2Other[6]+1.118033988749895*m2Other[5]+1.118033988749895*m2Other[4]-1.5*m2Other[3]+0.8660254037844386*m2Other[2]-0.8660254037844386*m2Other[1]+0.5*m2Other[0] < 0) cellAvg = true; 
+  if ((-0.9682458365518543*m0Other[6])+1.118033988749895*m0Other[5]-0.5590169943749475*m0Other[4]+0.8660254037844386*m0Other[2]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if ((-0.9682458365518543*m2Other[6])+1.118033988749895*m2Other[5]-0.5590169943749475*m2Other[4]+0.8660254037844386*m2Other[2]+0.5*m2Other[0] < 0) cellAvg = true; 
+  if (1.936491673103709*m0Other[7]+1.936491673103709*m0Other[6]+1.118033988749895*m0Other[5]+1.118033988749895*m0Other[4]+1.5*m0Other[3]+0.8660254037844386*m0Other[2]+0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if (1.936491673103709*m2Other[7]+1.936491673103709*m2Other[6]+1.118033988749895*m2Other[5]+1.118033988749895*m2Other[4]+1.5*m2Other[3]+0.8660254037844386*m2Other[2]+0.8660254037844386*m2Other[1]+0.5*m2Other[0] < 0) cellAvg = true; 
+ 
+  double m0rOther[8]; 
+  double m1rOther[8]; 
+  double m2rOther[8]; 
+  double cMrOther[8]; 
+  double cErOther[8]; 
+  if (cellAvg) { 
+    m0rOther[0] = m0Other[0]; 
+    m0rOther[1] = 0.0; 
+    m0rOther[2] = 0.0; 
+    m0rOther[3] = 0.0; 
+    m0rOther[4] = 0.0; 
+    m0rOther[5] = 0.0; 
+    m0rOther[6] = 0.0; 
+    m0rOther[7] = 0.0; 
+    m1rOther[0] = m1Other[0]; 
+    m1rOther[1] = 0.0; 
+    m1rOther[2] = 0.0; 
+    m1rOther[3] = 0.0; 
+    m1rOther[4] = 0.0; 
+    m1rOther[5] = 0.0; 
+    m1rOther[6] = 0.0; 
+    m1rOther[7] = 0.0; 
+    cMrOther[0] = cMOther[0]; 
+    cMrOther[1] = 0.0; 
+    cMrOther[2] = 0.0; 
+    cMrOther[3] = 0.0; 
+    cMrOther[4] = 0.0; 
+    cMrOther[5] = 0.0; 
+    cMrOther[6] = 0.0; 
+    cMrOther[7] = 0.0; 
+    m2rOther[0] = m2Other[0]; 
+    m2rOther[1] = 0.0; 
+    m2rOther[2] = 0.0; 
+    m2rOther[3] = 0.0; 
+    m2rOther[4] = 0.0; 
+    m2rOther[5] = 0.0; 
+    m2rOther[6] = 0.0; 
+    m2rOther[7] = 0.0; 
+    cErOther[0] = cEOther[0]; 
+    cErOther[1] = 0.0; 
+    cErOther[2] = 0.0; 
+    cErOther[3] = 0.0; 
+    cErOther[4] = 0.0; 
+    cErOther[5] = 0.0; 
+    cErOther[6] = 0.0; 
+    cErOther[7] = 0.0; 
+  } else { 
+    m0rOther[0] = m0Other[0]; 
+    m0rOther[1] = m0Other[1]; 
+    m0rOther[2] = m0Other[2]; 
+    m0rOther[3] = m0Other[3]; 
+    m0rOther[4] = m0Other[4]; 
+    m0rOther[5] = m0Other[5]; 
+    m0rOther[6] = m0Other[6]; 
+    m0rOther[7] = m0Other[7]; 
+    m1rOther[0] = m1Other[0]; 
+    m1rOther[1] = m1Other[1]; 
+    m1rOther[2] = m1Other[2]; 
+    m1rOther[3] = m1Other[3]; 
+    m1rOther[4] = m1Other[4]; 
+    m1rOther[5] = m1Other[5]; 
+    m1rOther[6] = m1Other[6]; 
+    m1rOther[7] = m1Other[7]; 
+    m2rOther[0] = m2Other[0]; 
+    m2rOther[1] = m2Other[1]; 
+    m2rOther[2] = m2Other[2]; 
+    m2rOther[3] = m2Other[3]; 
+    m2rOther[4] = m2Other[4]; 
+    m2rOther[5] = m2Other[5]; 
+    m2rOther[6] = m2Other[6]; 
+    m2rOther[7] = m2Other[7]; 
+    cMrOther[0] = cMOther[0]; 
+    cMrOther[1] = cMOther[1]; 
+    cMrOther[2] = cMOther[2]; 
+    cMrOther[3] = cMOther[3]; 
+    cMrOther[4] = cMOther[4]; 
+    cMrOther[5] = cMOther[5]; 
+    cMrOther[6] = cMOther[6]; 
+    cMrOther[7] = cMOther[7]; 
+    cErOther[0] = cEOther[0]; 
+    cErOther[1] = cEOther[1]; 
+    cErOther[2] = cEOther[2]; 
+    cErOther[3] = cEOther[3]; 
+    cErOther[4] = cEOther[4]; 
+    cErOther[5] = cEOther[5]; 
+    cErOther[6] = cEOther[6]; 
+    cErOther[7] = cEOther[7]; 
+  } 
+ 
+  // Declare Eigen matrix and vectors for weak system. 
+  data->AEM_S = Eigen::MatrixXd::Zero(32,32); 
+ 
+  double mnuSelf   = mSelf*nuSelf; 
+  double mnuOther  = mOther*nuOther; 
+  double mnuM1sum[8]; 
+  // zero out array with sum of m*nu*m1. 
+  for (unsigned short int vd=0; vd<8; vd++) 
+  { 
+    mnuM1sum[vd] = 0.0; 
+  } 
+ 
+  // ... Block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfX ... // 
+  data->AEM_S(0,0) = 0.5*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(0,1) = 0.5*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(0,2) = 0.5*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(0,3) = 0.5*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(0,4) = 0.5*m0rSelf[4]*mnuSelf; 
+  data->AEM_S(0,5) = 0.5*m0rSelf[5]*mnuSelf; 
+  data->AEM_S(0,6) = 0.5*m0rSelf[6]*mnuSelf; 
+  data->AEM_S(0,7) = 0.5*m0rSelf[7]*mnuSelf; 
+  data->AEM_S(1,0) = 0.5*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(1,1) = 0.4472135954999579*m0rSelf[4]*mnuSelf+0.5*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(1,2) = 0.5*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(1,3) = 0.447213595499958*m0rSelf[6]*mnuSelf+0.5*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(1,4) = 0.4472135954999579*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(1,5) = 0.5000000000000001*m0rSelf[7]*mnuSelf; 
+  data->AEM_S(1,6) = 0.447213595499958*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(1,7) = 0.5000000000000001*m0rSelf[5]*mnuSelf; 
+  data->AEM_S(2,0) = 0.5*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(2,1) = 0.5*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(2,2) = 0.4472135954999579*m0rSelf[5]*mnuSelf+0.5*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(2,3) = 0.447213595499958*m0rSelf[7]*mnuSelf+0.5*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(2,4) = 0.5000000000000001*m0rSelf[6]*mnuSelf; 
+  data->AEM_S(2,5) = 0.4472135954999579*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(2,6) = 0.5000000000000001*m0rSelf[4]*mnuSelf; 
+  data->AEM_S(2,7) = 0.447213595499958*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(3,0) = 0.5*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(3,1) = 0.447213595499958*m0rSelf[6]*mnuSelf+0.5*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(3,2) = 0.447213595499958*m0rSelf[7]*mnuSelf+0.5*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(3,3) = 0.4472135954999579*m0rSelf[5]*mnuSelf+0.4472135954999579*m0rSelf[4]*mnuSelf+0.5*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(3,4) = 0.4472135954999579*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(3,5) = 0.4472135954999579*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(3,6) = 0.4*m0rSelf[7]*mnuSelf+0.447213595499958*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(3,7) = 0.4*m0rSelf[6]*mnuSelf+0.447213595499958*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(4,0) = 0.5*m0rSelf[4]*mnuSelf; 
+  data->AEM_S(4,1) = 0.4472135954999579*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(4,2) = 0.5000000000000001*m0rSelf[6]*mnuSelf; 
+  data->AEM_S(4,3) = 0.4472135954999579*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(4,4) = 0.31943828249997*m0rSelf[4]*mnuSelf+0.5*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(4,6) = 0.31943828249997*m0rSelf[6]*mnuSelf+0.5000000000000001*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(4,7) = 0.4472135954999579*m0rSelf[7]*mnuSelf; 
+  data->AEM_S(5,0) = 0.5*m0rSelf[5]*mnuSelf; 
+  data->AEM_S(5,1) = 0.5000000000000001*m0rSelf[7]*mnuSelf; 
+  data->AEM_S(5,2) = 0.4472135954999579*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(5,3) = 0.4472135954999579*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(5,5) = 0.31943828249997*m0rSelf[5]*mnuSelf+0.5*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(5,6) = 0.4472135954999579*m0rSelf[6]*mnuSelf; 
+  data->AEM_S(5,7) = 0.31943828249997*m0rSelf[7]*mnuSelf+0.5000000000000001*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(6,0) = 0.5*m0rSelf[6]*mnuSelf; 
+  data->AEM_S(6,1) = 0.447213595499958*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(6,2) = 0.5000000000000001*m0rSelf[4]*mnuSelf; 
+  data->AEM_S(6,3) = 0.4*m0rSelf[7]*mnuSelf+0.447213595499958*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(6,4) = 0.31943828249997*m0rSelf[6]*mnuSelf+0.5000000000000001*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(6,5) = 0.4472135954999579*m0rSelf[6]*mnuSelf; 
+  data->AEM_S(6,6) = 0.4472135954999579*m0rSelf[5]*mnuSelf+0.31943828249997*m0rSelf[4]*mnuSelf+0.5*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(6,7) = 0.4*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(7,0) = 0.5*m0rSelf[7]*mnuSelf; 
+  data->AEM_S(7,1) = 0.5000000000000001*m0rSelf[5]*mnuSelf; 
+  data->AEM_S(7,2) = 0.447213595499958*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(7,3) = 0.4*m0rSelf[6]*mnuSelf+0.447213595499958*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(7,4) = 0.4472135954999579*m0rSelf[7]*mnuSelf; 
+  data->AEM_S(7,5) = 0.31943828249997*m0rSelf[7]*mnuSelf+0.5000000000000001*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(7,6) = 0.4*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(7,7) = 0.31943828249997*m0rSelf[5]*mnuSelf+0.4472135954999579*m0rSelf[4]*mnuSelf+0.5*m0rSelf[0]*mnuSelf; 
+ 
+  // ... Block from correction to momentum conservation (self) ... // 
+  data->AEM_S(0,8) = -0.5*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(0,9) = -0.5*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(0,10) = -0.5*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(0,11) = -0.5*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(0,12) = -0.5*cMrSelf[4]*mnuSelf; 
+  data->AEM_S(0,13) = -0.5*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(0,14) = -0.5*cMrSelf[6]*mnuSelf; 
+  data->AEM_S(0,15) = -0.5*cMrSelf[7]*mnuSelf; 
+  data->AEM_S(1,8) = -0.5*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(1,9) = (-0.4472135954999579*cMrSelf[4]*mnuSelf)-0.5*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(1,10) = -0.5*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(1,11) = (-0.447213595499958*cMrSelf[6]*mnuSelf)-0.5*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(1,12) = -0.4472135954999579*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(1,13) = -0.5000000000000001*cMrSelf[7]*mnuSelf; 
+  data->AEM_S(1,14) = -0.447213595499958*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(1,15) = -0.5000000000000001*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(2,8) = -0.5*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(2,9) = -0.5*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(2,10) = (-0.4472135954999579*cMrSelf[5]*mnuSelf)-0.5*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(2,11) = (-0.447213595499958*cMrSelf[7]*mnuSelf)-0.5*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(2,12) = -0.5000000000000001*cMrSelf[6]*mnuSelf; 
+  data->AEM_S(2,13) = -0.4472135954999579*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(2,14) = -0.5000000000000001*cMrSelf[4]*mnuSelf; 
+  data->AEM_S(2,15) = -0.447213595499958*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(3,8) = -0.5*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(3,9) = (-0.447213595499958*cMrSelf[6]*mnuSelf)-0.5*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(3,10) = (-0.447213595499958*cMrSelf[7]*mnuSelf)-0.5*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(3,11) = (-0.4472135954999579*cMrSelf[5]*mnuSelf)-0.4472135954999579*cMrSelf[4]*mnuSelf-0.5*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(3,12) = -0.4472135954999579*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(3,13) = -0.4472135954999579*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(3,14) = (-0.4*cMrSelf[7]*mnuSelf)-0.447213595499958*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(3,15) = (-0.4*cMrSelf[6]*mnuSelf)-0.447213595499958*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(4,8) = -0.5*cMrSelf[4]*mnuSelf; 
+  data->AEM_S(4,9) = -0.4472135954999579*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(4,10) = -0.5000000000000001*cMrSelf[6]*mnuSelf; 
+  data->AEM_S(4,11) = -0.4472135954999579*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(4,12) = (-0.31943828249997*cMrSelf[4]*mnuSelf)-0.5*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(4,14) = (-0.31943828249997*cMrSelf[6]*mnuSelf)-0.5000000000000001*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(4,15) = -0.4472135954999579*cMrSelf[7]*mnuSelf; 
+  data->AEM_S(5,8) = -0.5*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(5,9) = -0.5000000000000001*cMrSelf[7]*mnuSelf; 
+  data->AEM_S(5,10) = -0.4472135954999579*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(5,11) = -0.4472135954999579*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(5,13) = (-0.31943828249997*cMrSelf[5]*mnuSelf)-0.5*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(5,14) = -0.4472135954999579*cMrSelf[6]*mnuSelf; 
+  data->AEM_S(5,15) = (-0.31943828249997*cMrSelf[7]*mnuSelf)-0.5000000000000001*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(6,8) = -0.5*cMrSelf[6]*mnuSelf; 
+  data->AEM_S(6,9) = -0.447213595499958*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(6,10) = -0.5000000000000001*cMrSelf[4]*mnuSelf; 
+  data->AEM_S(6,11) = (-0.4*cMrSelf[7]*mnuSelf)-0.447213595499958*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(6,12) = (-0.31943828249997*cMrSelf[6]*mnuSelf)-0.5000000000000001*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(6,13) = -0.4472135954999579*cMrSelf[6]*mnuSelf; 
+  data->AEM_S(6,14) = (-0.4472135954999579*cMrSelf[5]*mnuSelf)-0.31943828249997*cMrSelf[4]*mnuSelf-0.5*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(6,15) = -0.4*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(7,8) = -0.5*cMrSelf[7]*mnuSelf; 
+  data->AEM_S(7,9) = -0.5000000000000001*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(7,10) = -0.447213595499958*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(7,11) = (-0.4*cMrSelf[6]*mnuSelf)-0.447213595499958*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(7,12) = -0.4472135954999579*cMrSelf[7]*mnuSelf; 
+  data->AEM_S(7,13) = (-0.31943828249997*cMrSelf[7]*mnuSelf)-0.5000000000000001*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(7,14) = -0.4*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(7,15) = (-0.31943828249997*cMrSelf[5]*mnuSelf)-0.4472135954999579*cMrSelf[4]*mnuSelf-0.5*cMrSelf[0]*mnuSelf; 
+ 
+  // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherX ... // 
+  data->AEM_S(0,16) = 0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(0,17) = 0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(0,18) = 0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(0,19) = 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(0,20) = 0.5*m0rOther[4]*mnuOther; 
+  data->AEM_S(0,21) = 0.5*m0rOther[5]*mnuOther; 
+  data->AEM_S(0,22) = 0.5*m0rOther[6]*mnuOther; 
+  data->AEM_S(0,23) = 0.5*m0rOther[7]*mnuOther; 
+  data->AEM_S(1,16) = 0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(1,17) = 0.4472135954999579*m0rOther[4]*mnuOther+0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(1,18) = 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(1,19) = 0.447213595499958*m0rOther[6]*mnuOther+0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(1,20) = 0.4472135954999579*m0rOther[1]*mnuOther; 
+  data->AEM_S(1,21) = 0.5000000000000001*m0rOther[7]*mnuOther; 
+  data->AEM_S(1,22) = 0.447213595499958*m0rOther[3]*mnuOther; 
+  data->AEM_S(1,23) = 0.5000000000000001*m0rOther[5]*mnuOther; 
+  data->AEM_S(2,16) = 0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(2,17) = 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(2,18) = 0.4472135954999579*m0rOther[5]*mnuOther+0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(2,19) = 0.447213595499958*m0rOther[7]*mnuOther+0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(2,20) = 0.5000000000000001*m0rOther[6]*mnuOther; 
+  data->AEM_S(2,21) = 0.4472135954999579*m0rOther[2]*mnuOther; 
+  data->AEM_S(2,22) = 0.5000000000000001*m0rOther[4]*mnuOther; 
+  data->AEM_S(2,23) = 0.447213595499958*m0rOther[3]*mnuOther; 
+  data->AEM_S(3,16) = 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(3,17) = 0.447213595499958*m0rOther[6]*mnuOther+0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(3,18) = 0.447213595499958*m0rOther[7]*mnuOther+0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(3,19) = 0.4472135954999579*m0rOther[5]*mnuOther+0.4472135954999579*m0rOther[4]*mnuOther+0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(3,20) = 0.4472135954999579*m0rOther[3]*mnuOther; 
+  data->AEM_S(3,21) = 0.4472135954999579*m0rOther[3]*mnuOther; 
+  data->AEM_S(3,22) = 0.4*m0rOther[7]*mnuOther+0.447213595499958*m0rOther[1]*mnuOther; 
+  data->AEM_S(3,23) = 0.4*m0rOther[6]*mnuOther+0.447213595499958*m0rOther[2]*mnuOther; 
+  data->AEM_S(4,16) = 0.5*m0rOther[4]*mnuOther; 
+  data->AEM_S(4,17) = 0.4472135954999579*m0rOther[1]*mnuOther; 
+  data->AEM_S(4,18) = 0.5000000000000001*m0rOther[6]*mnuOther; 
+  data->AEM_S(4,19) = 0.4472135954999579*m0rOther[3]*mnuOther; 
+  data->AEM_S(4,20) = 0.31943828249997*m0rOther[4]*mnuOther+0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(4,22) = 0.31943828249997*m0rOther[6]*mnuOther+0.5000000000000001*m0rOther[2]*mnuOther; 
+  data->AEM_S(4,23) = 0.4472135954999579*m0rOther[7]*mnuOther; 
+  data->AEM_S(5,16) = 0.5*m0rOther[5]*mnuOther; 
+  data->AEM_S(5,17) = 0.5000000000000001*m0rOther[7]*mnuOther; 
+  data->AEM_S(5,18) = 0.4472135954999579*m0rOther[2]*mnuOther; 
+  data->AEM_S(5,19) = 0.4472135954999579*m0rOther[3]*mnuOther; 
+  data->AEM_S(5,21) = 0.31943828249997*m0rOther[5]*mnuOther+0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(5,22) = 0.4472135954999579*m0rOther[6]*mnuOther; 
+  data->AEM_S(5,23) = 0.31943828249997*m0rOther[7]*mnuOther+0.5000000000000001*m0rOther[1]*mnuOther; 
+  data->AEM_S(6,16) = 0.5*m0rOther[6]*mnuOther; 
+  data->AEM_S(6,17) = 0.447213595499958*m0rOther[3]*mnuOther; 
+  data->AEM_S(6,18) = 0.5000000000000001*m0rOther[4]*mnuOther; 
+  data->AEM_S(6,19) = 0.4*m0rOther[7]*mnuOther+0.447213595499958*m0rOther[1]*mnuOther; 
+  data->AEM_S(6,20) = 0.31943828249997*m0rOther[6]*mnuOther+0.5000000000000001*m0rOther[2]*mnuOther; 
+  data->AEM_S(6,21) = 0.4472135954999579*m0rOther[6]*mnuOther; 
+  data->AEM_S(6,22) = 0.4472135954999579*m0rOther[5]*mnuOther+0.31943828249997*m0rOther[4]*mnuOther+0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(6,23) = 0.4*m0rOther[3]*mnuOther; 
+  data->AEM_S(7,16) = 0.5*m0rOther[7]*mnuOther; 
+  data->AEM_S(7,17) = 0.5000000000000001*m0rOther[5]*mnuOther; 
+  data->AEM_S(7,18) = 0.447213595499958*m0rOther[3]*mnuOther; 
+  data->AEM_S(7,19) = 0.4*m0rOther[6]*mnuOther+0.447213595499958*m0rOther[2]*mnuOther; 
+  data->AEM_S(7,20) = 0.4472135954999579*m0rOther[7]*mnuOther; 
+  data->AEM_S(7,21) = 0.31943828249997*m0rOther[7]*mnuOther+0.5000000000000001*m0rOther[1]*mnuOther; 
+  data->AEM_S(7,22) = 0.4*m0rOther[3]*mnuOther; 
+  data->AEM_S(7,23) = 0.31943828249997*m0rOther[5]*mnuOther+0.4472135954999579*m0rOther[4]*mnuOther+0.5*m0rOther[0]*mnuOther; 
+ 
+  // ... Block from correction to momentum conservation (other) ... // 
+  data->AEM_S(0,24) = -0.5*cMrOther[0]*mnuOther; 
+  data->AEM_S(0,25) = -0.5*cMrOther[1]*mnuOther; 
+  data->AEM_S(0,26) = -0.5*cMrOther[2]*mnuOther; 
+  data->AEM_S(0,27) = -0.5*cMrOther[3]*mnuOther; 
+  data->AEM_S(0,28) = -0.5*cMrOther[4]*mnuOther; 
+  data->AEM_S(0,29) = -0.5*cMrOther[5]*mnuOther; 
+  data->AEM_S(0,30) = -0.5*cMrOther[6]*mnuOther; 
+  data->AEM_S(0,31) = -0.5*cMrOther[7]*mnuOther; 
+  data->AEM_S(1,24) = -0.5*cMrOther[1]*mnuOther; 
+  data->AEM_S(1,25) = (-0.4472135954999579*cMrOther[4]*mnuOther)-0.5*cMrOther[0]*mnuOther; 
+  data->AEM_S(1,26) = -0.5*cMrOther[3]*mnuOther; 
+  data->AEM_S(1,27) = (-0.447213595499958*cMrOther[6]*mnuOther)-0.5*cMrOther[2]*mnuOther; 
+  data->AEM_S(1,28) = -0.4472135954999579*cMrOther[1]*mnuOther; 
+  data->AEM_S(1,29) = -0.5000000000000001*cMrOther[7]*mnuOther; 
+  data->AEM_S(1,30) = -0.447213595499958*cMrOther[3]*mnuOther; 
+  data->AEM_S(1,31) = -0.5000000000000001*cMrOther[5]*mnuOther; 
+  data->AEM_S(2,24) = -0.5*cMrOther[2]*mnuOther; 
+  data->AEM_S(2,25) = -0.5*cMrOther[3]*mnuOther; 
+  data->AEM_S(2,26) = (-0.4472135954999579*cMrOther[5]*mnuOther)-0.5*cMrOther[0]*mnuOther; 
+  data->AEM_S(2,27) = (-0.447213595499958*cMrOther[7]*mnuOther)-0.5*cMrOther[1]*mnuOther; 
+  data->AEM_S(2,28) = -0.5000000000000001*cMrOther[6]*mnuOther; 
+  data->AEM_S(2,29) = -0.4472135954999579*cMrOther[2]*mnuOther; 
+  data->AEM_S(2,30) = -0.5000000000000001*cMrOther[4]*mnuOther; 
+  data->AEM_S(2,31) = -0.447213595499958*cMrOther[3]*mnuOther; 
+  data->AEM_S(3,24) = -0.5*cMrOther[3]*mnuOther; 
+  data->AEM_S(3,25) = (-0.447213595499958*cMrOther[6]*mnuOther)-0.5*cMrOther[2]*mnuOther; 
+  data->AEM_S(3,26) = (-0.447213595499958*cMrOther[7]*mnuOther)-0.5*cMrOther[1]*mnuOther; 
+  data->AEM_S(3,27) = (-0.4472135954999579*cMrOther[5]*mnuOther)-0.4472135954999579*cMrOther[4]*mnuOther-0.5*cMrOther[0]*mnuOther; 
+  data->AEM_S(3,28) = -0.4472135954999579*cMrOther[3]*mnuOther; 
+  data->AEM_S(3,29) = -0.4472135954999579*cMrOther[3]*mnuOther; 
+  data->AEM_S(3,30) = (-0.4*cMrOther[7]*mnuOther)-0.447213595499958*cMrOther[1]*mnuOther; 
+  data->AEM_S(3,31) = (-0.4*cMrOther[6]*mnuOther)-0.447213595499958*cMrOther[2]*mnuOther; 
+  data->AEM_S(4,24) = -0.5*cMrOther[4]*mnuOther; 
+  data->AEM_S(4,25) = -0.4472135954999579*cMrOther[1]*mnuOther; 
+  data->AEM_S(4,26) = -0.5000000000000001*cMrOther[6]*mnuOther; 
+  data->AEM_S(4,27) = -0.4472135954999579*cMrOther[3]*mnuOther; 
+  data->AEM_S(4,28) = (-0.31943828249997*cMrOther[4]*mnuOther)-0.5*cMrOther[0]*mnuOther; 
+  data->AEM_S(4,30) = (-0.31943828249997*cMrOther[6]*mnuOther)-0.5000000000000001*cMrOther[2]*mnuOther; 
+  data->AEM_S(4,31) = -0.4472135954999579*cMrOther[7]*mnuOther; 
+  data->AEM_S(5,24) = -0.5*cMrOther[5]*mnuOther; 
+  data->AEM_S(5,25) = -0.5000000000000001*cMrOther[7]*mnuOther; 
+  data->AEM_S(5,26) = -0.4472135954999579*cMrOther[2]*mnuOther; 
+  data->AEM_S(5,27) = -0.4472135954999579*cMrOther[3]*mnuOther; 
+  data->AEM_S(5,29) = (-0.31943828249997*cMrOther[5]*mnuOther)-0.5*cMrOther[0]*mnuOther; 
+  data->AEM_S(5,30) = -0.4472135954999579*cMrOther[6]*mnuOther; 
+  data->AEM_S(5,31) = (-0.31943828249997*cMrOther[7]*mnuOther)-0.5000000000000001*cMrOther[1]*mnuOther; 
+  data->AEM_S(6,24) = -0.5*cMrOther[6]*mnuOther; 
+  data->AEM_S(6,25) = -0.447213595499958*cMrOther[3]*mnuOther; 
+  data->AEM_S(6,26) = -0.5000000000000001*cMrOther[4]*mnuOther; 
+  data->AEM_S(6,27) = (-0.4*cMrOther[7]*mnuOther)-0.447213595499958*cMrOther[1]*mnuOther; 
+  data->AEM_S(6,28) = (-0.31943828249997*cMrOther[6]*mnuOther)-0.5000000000000001*cMrOther[2]*mnuOther; 
+  data->AEM_S(6,29) = -0.4472135954999579*cMrOther[6]*mnuOther; 
+  data->AEM_S(6,30) = (-0.4472135954999579*cMrOther[5]*mnuOther)-0.31943828249997*cMrOther[4]*mnuOther-0.5*cMrOther[0]*mnuOther; 
+  data->AEM_S(6,31) = -0.4*cMrOther[3]*mnuOther; 
+  data->AEM_S(7,24) = -0.5*cMrOther[7]*mnuOther; 
+  data->AEM_S(7,25) = -0.5000000000000001*cMrOther[5]*mnuOther; 
+  data->AEM_S(7,26) = -0.447213595499958*cMrOther[3]*mnuOther; 
+  data->AEM_S(7,27) = (-0.4*cMrOther[6]*mnuOther)-0.447213595499958*cMrOther[2]*mnuOther; 
+  data->AEM_S(7,28) = -0.4472135954999579*cMrOther[7]*mnuOther; 
+  data->AEM_S(7,29) = (-0.31943828249997*cMrOther[7]*mnuOther)-0.5000000000000001*cMrOther[1]*mnuOther; 
+  data->AEM_S(7,30) = -0.4*cMrOther[3]*mnuOther; 
+  data->AEM_S(7,31) = (-0.31943828249997*cMrOther[5]*mnuOther)-0.4472135954999579*cMrOther[4]*mnuOther-0.5*cMrOther[0]*mnuOther; 
+ 
+  // ... Block from weak multiply of mSelf, nuSelf, m1SelfX and uCrossSelfX ... // 
+  data->AEM_S(8,0) = 0.5*m1rSelf[0]*mnuSelf; 
+  data->AEM_S(8,1) = 0.5*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(8,2) = 0.5*m1rSelf[2]*mnuSelf; 
+  data->AEM_S(8,3) = 0.5*m1rSelf[3]*mnuSelf; 
+  data->AEM_S(8,4) = 0.5*m1rSelf[4]*mnuSelf; 
+  data->AEM_S(8,5) = 0.5*m1rSelf[5]*mnuSelf; 
+  data->AEM_S(8,6) = 0.5*m1rSelf[6]*mnuSelf; 
+  data->AEM_S(8,7) = 0.5*m1rSelf[7]*mnuSelf; 
+  data->AEM_S(9,0) = 0.5*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(9,1) = 0.4472135954999579*m1rSelf[4]*mnuSelf+0.5*m1rSelf[0]*mnuSelf; 
+  data->AEM_S(9,2) = 0.5*m1rSelf[3]*mnuSelf; 
+  data->AEM_S(9,3) = 0.447213595499958*m1rSelf[6]*mnuSelf+0.5*m1rSelf[2]*mnuSelf; 
+  data->AEM_S(9,4) = 0.4472135954999579*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(9,5) = 0.5000000000000001*m1rSelf[7]*mnuSelf; 
+  data->AEM_S(9,6) = 0.447213595499958*m1rSelf[3]*mnuSelf; 
+  data->AEM_S(9,7) = 0.5000000000000001*m1rSelf[5]*mnuSelf; 
+  data->AEM_S(10,0) = 0.5*m1rSelf[2]*mnuSelf; 
+  data->AEM_S(10,1) = 0.5*m1rSelf[3]*mnuSelf; 
+  data->AEM_S(10,2) = 0.4472135954999579*m1rSelf[5]*mnuSelf+0.5*m1rSelf[0]*mnuSelf; 
+  data->AEM_S(10,3) = 0.447213595499958*m1rSelf[7]*mnuSelf+0.5*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(10,4) = 0.5000000000000001*m1rSelf[6]*mnuSelf; 
+  data->AEM_S(10,5) = 0.4472135954999579*m1rSelf[2]*mnuSelf; 
+  data->AEM_S(10,6) = 0.5000000000000001*m1rSelf[4]*mnuSelf; 
+  data->AEM_S(10,7) = 0.447213595499958*m1rSelf[3]*mnuSelf; 
+  data->AEM_S(11,0) = 0.5*m1rSelf[3]*mnuSelf; 
+  data->AEM_S(11,1) = 0.447213595499958*m1rSelf[6]*mnuSelf+0.5*m1rSelf[2]*mnuSelf; 
+  data->AEM_S(11,2) = 0.447213595499958*m1rSelf[7]*mnuSelf+0.5*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(11,3) = 0.4472135954999579*m1rSelf[5]*mnuSelf+0.4472135954999579*m1rSelf[4]*mnuSelf+0.5*m1rSelf[0]*mnuSelf; 
+  data->AEM_S(11,4) = 0.4472135954999579*m1rSelf[3]*mnuSelf; 
+  data->AEM_S(11,5) = 0.4472135954999579*m1rSelf[3]*mnuSelf; 
+  data->AEM_S(11,6) = 0.4*m1rSelf[7]*mnuSelf+0.447213595499958*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(11,7) = 0.4*m1rSelf[6]*mnuSelf+0.447213595499958*m1rSelf[2]*mnuSelf; 
+  data->AEM_S(12,0) = 0.5*m1rSelf[4]*mnuSelf; 
+  data->AEM_S(12,1) = 0.4472135954999579*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(12,2) = 0.5000000000000001*m1rSelf[6]*mnuSelf; 
+  data->AEM_S(12,3) = 0.4472135954999579*m1rSelf[3]*mnuSelf; 
+  data->AEM_S(12,4) = 0.31943828249997*m1rSelf[4]*mnuSelf+0.5*m1rSelf[0]*mnuSelf; 
+  data->AEM_S(12,6) = 0.31943828249997*m1rSelf[6]*mnuSelf+0.5000000000000001*m1rSelf[2]*mnuSelf; 
+  data->AEM_S(12,7) = 0.4472135954999579*m1rSelf[7]*mnuSelf; 
+  data->AEM_S(13,0) = 0.5*m1rSelf[5]*mnuSelf; 
+  data->AEM_S(13,1) = 0.5000000000000001*m1rSelf[7]*mnuSelf; 
+  data->AEM_S(13,2) = 0.4472135954999579*m1rSelf[2]*mnuSelf; 
+  data->AEM_S(13,3) = 0.4472135954999579*m1rSelf[3]*mnuSelf; 
+  data->AEM_S(13,5) = 0.31943828249997*m1rSelf[5]*mnuSelf+0.5*m1rSelf[0]*mnuSelf; 
+  data->AEM_S(13,6) = 0.4472135954999579*m1rSelf[6]*mnuSelf; 
+  data->AEM_S(13,7) = 0.31943828249997*m1rSelf[7]*mnuSelf+0.5000000000000001*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(14,0) = 0.5*m1rSelf[6]*mnuSelf; 
+  data->AEM_S(14,1) = 0.447213595499958*m1rSelf[3]*mnuSelf; 
+  data->AEM_S(14,2) = 0.5000000000000001*m1rSelf[4]*mnuSelf; 
+  data->AEM_S(14,3) = 0.4*m1rSelf[7]*mnuSelf+0.447213595499958*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(14,4) = 0.31943828249997*m1rSelf[6]*mnuSelf+0.5000000000000001*m1rSelf[2]*mnuSelf; 
+  data->AEM_S(14,5) = 0.4472135954999579*m1rSelf[6]*mnuSelf; 
+  data->AEM_S(14,6) = 0.4472135954999579*m1rSelf[5]*mnuSelf+0.31943828249997*m1rSelf[4]*mnuSelf+0.5*m1rSelf[0]*mnuSelf; 
+  data->AEM_S(14,7) = 0.4*m1rSelf[3]*mnuSelf; 
+  data->AEM_S(15,0) = 0.5*m1rSelf[7]*mnuSelf; 
+  data->AEM_S(15,1) = 0.5000000000000001*m1rSelf[5]*mnuSelf; 
+  data->AEM_S(15,2) = 0.447213595499958*m1rSelf[3]*mnuSelf; 
+  data->AEM_S(15,3) = 0.4*m1rSelf[6]*mnuSelf+0.447213595499958*m1rSelf[2]*mnuSelf; 
+  data->AEM_S(15,4) = 0.4472135954999579*m1rSelf[7]*mnuSelf; 
+  data->AEM_S(15,5) = 0.31943828249997*m1rSelf[7]*mnuSelf+0.5000000000000001*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(15,6) = 0.4*m1rSelf[3]*mnuSelf; 
+  data->AEM_S(15,7) = 0.31943828249997*m1rSelf[5]*mnuSelf+0.4472135954999579*m1rSelf[4]*mnuSelf+0.5*m1rSelf[0]*mnuSelf; 
+ 
+  // ... Block from weak multiply of mOther, nuOther, m1OtherX and uCrossOtherX ... // 
+  data->AEM_S(8,16) = 0.5*m1rOther[0]*mnuOther; 
+  data->AEM_S(8,17) = 0.5*m1rOther[1]*mnuOther; 
+  data->AEM_S(8,18) = 0.5*m1rOther[2]*mnuOther; 
+  data->AEM_S(8,19) = 0.5*m1rOther[3]*mnuOther; 
+  data->AEM_S(8,20) = 0.5*m1rOther[4]*mnuOther; 
+  data->AEM_S(8,21) = 0.5*m1rOther[5]*mnuOther; 
+  data->AEM_S(8,22) = 0.5*m1rOther[6]*mnuOther; 
+  data->AEM_S(8,23) = 0.5*m1rOther[7]*mnuOther; 
+  data->AEM_S(9,16) = 0.5*m1rOther[1]*mnuOther; 
+  data->AEM_S(9,17) = 0.4472135954999579*m1rOther[4]*mnuOther+0.5*m1rOther[0]*mnuOther; 
+  data->AEM_S(9,18) = 0.5*m1rOther[3]*mnuOther; 
+  data->AEM_S(9,19) = 0.447213595499958*m1rOther[6]*mnuOther+0.5*m1rOther[2]*mnuOther; 
+  data->AEM_S(9,20) = 0.4472135954999579*m1rOther[1]*mnuOther; 
+  data->AEM_S(9,21) = 0.5000000000000001*m1rOther[7]*mnuOther; 
+  data->AEM_S(9,22) = 0.447213595499958*m1rOther[3]*mnuOther; 
+  data->AEM_S(9,23) = 0.5000000000000001*m1rOther[5]*mnuOther; 
+  data->AEM_S(10,16) = 0.5*m1rOther[2]*mnuOther; 
+  data->AEM_S(10,17) = 0.5*m1rOther[3]*mnuOther; 
+  data->AEM_S(10,18) = 0.4472135954999579*m1rOther[5]*mnuOther+0.5*m1rOther[0]*mnuOther; 
+  data->AEM_S(10,19) = 0.447213595499958*m1rOther[7]*mnuOther+0.5*m1rOther[1]*mnuOther; 
+  data->AEM_S(10,20) = 0.5000000000000001*m1rOther[6]*mnuOther; 
+  data->AEM_S(10,21) = 0.4472135954999579*m1rOther[2]*mnuOther; 
+  data->AEM_S(10,22) = 0.5000000000000001*m1rOther[4]*mnuOther; 
+  data->AEM_S(10,23) = 0.447213595499958*m1rOther[3]*mnuOther; 
+  data->AEM_S(11,16) = 0.5*m1rOther[3]*mnuOther; 
+  data->AEM_S(11,17) = 0.447213595499958*m1rOther[6]*mnuOther+0.5*m1rOther[2]*mnuOther; 
+  data->AEM_S(11,18) = 0.447213595499958*m1rOther[7]*mnuOther+0.5*m1rOther[1]*mnuOther; 
+  data->AEM_S(11,19) = 0.4472135954999579*m1rOther[5]*mnuOther+0.4472135954999579*m1rOther[4]*mnuOther+0.5*m1rOther[0]*mnuOther; 
+  data->AEM_S(11,20) = 0.4472135954999579*m1rOther[3]*mnuOther; 
+  data->AEM_S(11,21) = 0.4472135954999579*m1rOther[3]*mnuOther; 
+  data->AEM_S(11,22) = 0.4*m1rOther[7]*mnuOther+0.447213595499958*m1rOther[1]*mnuOther; 
+  data->AEM_S(11,23) = 0.4*m1rOther[6]*mnuOther+0.447213595499958*m1rOther[2]*mnuOther; 
+  data->AEM_S(12,16) = 0.5*m1rOther[4]*mnuOther; 
+  data->AEM_S(12,17) = 0.4472135954999579*m1rOther[1]*mnuOther; 
+  data->AEM_S(12,18) = 0.5000000000000001*m1rOther[6]*mnuOther; 
+  data->AEM_S(12,19) = 0.4472135954999579*m1rOther[3]*mnuOther; 
+  data->AEM_S(12,20) = 0.31943828249997*m1rOther[4]*mnuOther+0.5*m1rOther[0]*mnuOther; 
+  data->AEM_S(12,22) = 0.31943828249997*m1rOther[6]*mnuOther+0.5000000000000001*m1rOther[2]*mnuOther; 
+  data->AEM_S(12,23) = 0.4472135954999579*m1rOther[7]*mnuOther; 
+  data->AEM_S(13,16) = 0.5*m1rOther[5]*mnuOther; 
+  data->AEM_S(13,17) = 0.5000000000000001*m1rOther[7]*mnuOther; 
+  data->AEM_S(13,18) = 0.4472135954999579*m1rOther[2]*mnuOther; 
+  data->AEM_S(13,19) = 0.4472135954999579*m1rOther[3]*mnuOther; 
+  data->AEM_S(13,21) = 0.31943828249997*m1rOther[5]*mnuOther+0.5*m1rOther[0]*mnuOther; 
+  data->AEM_S(13,22) = 0.4472135954999579*m1rOther[6]*mnuOther; 
+  data->AEM_S(13,23) = 0.31943828249997*m1rOther[7]*mnuOther+0.5000000000000001*m1rOther[1]*mnuOther; 
+  data->AEM_S(14,16) = 0.5*m1rOther[6]*mnuOther; 
+  data->AEM_S(14,17) = 0.447213595499958*m1rOther[3]*mnuOther; 
+  data->AEM_S(14,18) = 0.5000000000000001*m1rOther[4]*mnuOther; 
+  data->AEM_S(14,19) = 0.4*m1rOther[7]*mnuOther+0.447213595499958*m1rOther[1]*mnuOther; 
+  data->AEM_S(14,20) = 0.31943828249997*m1rOther[6]*mnuOther+0.5000000000000001*m1rOther[2]*mnuOther; 
+  data->AEM_S(14,21) = 0.4472135954999579*m1rOther[6]*mnuOther; 
+  data->AEM_S(14,22) = 0.4472135954999579*m1rOther[5]*mnuOther+0.31943828249997*m1rOther[4]*mnuOther+0.5*m1rOther[0]*mnuOther; 
+  data->AEM_S(14,23) = 0.4*m1rOther[3]*mnuOther; 
+  data->AEM_S(15,16) = 0.5*m1rOther[7]*mnuOther; 
+  data->AEM_S(15,17) = 0.5000000000000001*m1rOther[5]*mnuOther; 
+  data->AEM_S(15,18) = 0.447213595499958*m1rOther[3]*mnuOther; 
+  data->AEM_S(15,19) = 0.4*m1rOther[6]*mnuOther+0.447213595499958*m1rOther[2]*mnuOther; 
+  data->AEM_S(15,20) = 0.4472135954999579*m1rOther[7]*mnuOther; 
+  data->AEM_S(15,21) = 0.31943828249997*m1rOther[7]*mnuOther+0.5000000000000001*m1rOther[1]*mnuOther; 
+  data->AEM_S(15,22) = 0.4*m1rOther[3]*mnuOther; 
+  data->AEM_S(15,23) = 0.31943828249997*m1rOther[5]*mnuOther+0.4472135954999579*m1rOther[4]*mnuOther+0.5*m1rOther[0]*mnuOther; 
+ 
+  // ... Contribution to RHS vector from component 1 of mnuM1Self+mnuM1Other. 
+  mnuM1sum[0] += m1rSelf[0]*mnuSelf+m1rOther[0]*mnuOther; 
+  mnuM1sum[1] += m1rSelf[1]*mnuSelf+m1rOther[1]*mnuOther; 
+  mnuM1sum[2] += m1rSelf[2]*mnuSelf+m1rOther[2]*mnuOther; 
+  mnuM1sum[3] += m1rSelf[3]*mnuSelf+m1rOther[3]*mnuOther; 
+  mnuM1sum[4] += m1rSelf[4]*mnuSelf+m1rOther[4]*mnuOther; 
+  mnuM1sum[5] += m1rSelf[5]*mnuSelf+m1rOther[5]*mnuOther; 
+  mnuM1sum[6] += m1rSelf[6]*mnuSelf+m1rOther[6]*mnuOther; 
+  mnuM1sum[7] += m1rSelf[7]*mnuSelf+m1rOther[7]*mnuOther; 
+ 
+  // ... Block from correction to energy conservation (self) ... // 
+  data->AEM_S(8,8) = 1.5*m0rSelf[0]*mnuSelf-0.5*cErSelf[0]*mnuSelf; 
+  data->AEM_S(8,9) = 1.5*m0rSelf[1]*mnuSelf-0.5*cErSelf[1]*mnuSelf; 
+  data->AEM_S(8,10) = 1.5*m0rSelf[2]*mnuSelf-0.5*cErSelf[2]*mnuSelf; 
+  data->AEM_S(8,11) = 1.5*m0rSelf[3]*mnuSelf-0.5*cErSelf[3]*mnuSelf; 
+  data->AEM_S(8,12) = 1.5*m0rSelf[4]*mnuSelf-0.5*cErSelf[4]*mnuSelf; 
+  data->AEM_S(8,13) = 1.5*m0rSelf[5]*mnuSelf-0.5*cErSelf[5]*mnuSelf; 
+  data->AEM_S(8,14) = 1.5*m0rSelf[6]*mnuSelf-0.5*cErSelf[6]*mnuSelf; 
+  data->AEM_S(8,15) = 1.5*m0rSelf[7]*mnuSelf-0.5*cErSelf[7]*mnuSelf; 
+  data->AEM_S(9,8) = 1.5*m0rSelf[1]*mnuSelf-0.5*cErSelf[1]*mnuSelf; 
+  data->AEM_S(9,9) = 1.341640786499874*m0rSelf[4]*mnuSelf-0.4472135954999579*cErSelf[4]*mnuSelf+1.5*m0rSelf[0]*mnuSelf-0.5*cErSelf[0]*mnuSelf; 
+  data->AEM_S(9,10) = 1.5*m0rSelf[3]*mnuSelf-0.5*cErSelf[3]*mnuSelf; 
+  data->AEM_S(9,11) = 1.341640786499874*m0rSelf[6]*mnuSelf-0.447213595499958*cErSelf[6]*mnuSelf+1.5*m0rSelf[2]*mnuSelf-0.5*cErSelf[2]*mnuSelf; 
+  data->AEM_S(9,12) = 1.341640786499874*m0rSelf[1]*mnuSelf-0.4472135954999579*cErSelf[1]*mnuSelf; 
+  data->AEM_S(9,13) = 1.5*m0rSelf[7]*mnuSelf-0.5000000000000001*cErSelf[7]*mnuSelf; 
+  data->AEM_S(9,14) = 1.341640786499874*m0rSelf[3]*mnuSelf-0.447213595499958*cErSelf[3]*mnuSelf; 
+  data->AEM_S(9,15) = 1.5*m0rSelf[5]*mnuSelf-0.5000000000000001*cErSelf[5]*mnuSelf; 
+  data->AEM_S(10,8) = 1.5*m0rSelf[2]*mnuSelf-0.5*cErSelf[2]*mnuSelf; 
+  data->AEM_S(10,9) = 1.5*m0rSelf[3]*mnuSelf-0.5*cErSelf[3]*mnuSelf; 
+  data->AEM_S(10,10) = 1.341640786499874*m0rSelf[5]*mnuSelf-0.4472135954999579*cErSelf[5]*mnuSelf+1.5*m0rSelf[0]*mnuSelf-0.5*cErSelf[0]*mnuSelf; 
+  data->AEM_S(10,11) = 1.341640786499874*m0rSelf[7]*mnuSelf-0.447213595499958*cErSelf[7]*mnuSelf+1.5*m0rSelf[1]*mnuSelf-0.5*cErSelf[1]*mnuSelf; 
+  data->AEM_S(10,12) = 1.5*m0rSelf[6]*mnuSelf-0.5000000000000001*cErSelf[6]*mnuSelf; 
+  data->AEM_S(10,13) = 1.341640786499874*m0rSelf[2]*mnuSelf-0.4472135954999579*cErSelf[2]*mnuSelf; 
+  data->AEM_S(10,14) = 1.5*m0rSelf[4]*mnuSelf-0.5000000000000001*cErSelf[4]*mnuSelf; 
+  data->AEM_S(10,15) = 1.341640786499874*m0rSelf[3]*mnuSelf-0.447213595499958*cErSelf[3]*mnuSelf; 
+  data->AEM_S(11,8) = 1.5*m0rSelf[3]*mnuSelf-0.5*cErSelf[3]*mnuSelf; 
+  data->AEM_S(11,9) = 1.341640786499874*m0rSelf[6]*mnuSelf-0.447213595499958*cErSelf[6]*mnuSelf+1.5*m0rSelf[2]*mnuSelf-0.5*cErSelf[2]*mnuSelf; 
+  data->AEM_S(11,10) = 1.341640786499874*m0rSelf[7]*mnuSelf-0.447213595499958*cErSelf[7]*mnuSelf+1.5*m0rSelf[1]*mnuSelf-0.5*cErSelf[1]*mnuSelf; 
+  data->AEM_S(11,11) = 1.341640786499874*m0rSelf[5]*mnuSelf-0.4472135954999579*cErSelf[5]*mnuSelf+1.341640786499874*m0rSelf[4]*mnuSelf-0.4472135954999579*cErSelf[4]*mnuSelf+1.5*m0rSelf[0]*mnuSelf-0.5*cErSelf[0]*mnuSelf; 
+  data->AEM_S(11,12) = 1.341640786499874*m0rSelf[3]*mnuSelf-0.4472135954999579*cErSelf[3]*mnuSelf; 
+  data->AEM_S(11,13) = 1.341640786499874*m0rSelf[3]*mnuSelf-0.4472135954999579*cErSelf[3]*mnuSelf; 
+  data->AEM_S(11,14) = 1.2*m0rSelf[7]*mnuSelf-0.4*cErSelf[7]*mnuSelf+1.341640786499874*m0rSelf[1]*mnuSelf-0.447213595499958*cErSelf[1]*mnuSelf; 
+  data->AEM_S(11,15) = 1.2*m0rSelf[6]*mnuSelf-0.4*cErSelf[6]*mnuSelf+1.341640786499874*m0rSelf[2]*mnuSelf-0.447213595499958*cErSelf[2]*mnuSelf; 
+  data->AEM_S(12,8) = 1.5*m0rSelf[4]*mnuSelf-0.5*cErSelf[4]*mnuSelf; 
+  data->AEM_S(12,9) = 1.341640786499874*m0rSelf[1]*mnuSelf-0.4472135954999579*cErSelf[1]*mnuSelf; 
+  data->AEM_S(12,10) = 1.5*m0rSelf[6]*mnuSelf-0.5000000000000001*cErSelf[6]*mnuSelf; 
+  data->AEM_S(12,11) = 1.341640786499874*m0rSelf[3]*mnuSelf-0.4472135954999579*cErSelf[3]*mnuSelf; 
+  data->AEM_S(12,12) = 0.9583148474999099*m0rSelf[4]*mnuSelf-0.31943828249997*cErSelf[4]*mnuSelf+1.5*m0rSelf[0]*mnuSelf-0.5*cErSelf[0]*mnuSelf; 
+  data->AEM_S(12,14) = 0.9583148474999099*m0rSelf[6]*mnuSelf-0.31943828249997*cErSelf[6]*mnuSelf+1.5*m0rSelf[2]*mnuSelf-0.5000000000000001*cErSelf[2]*mnuSelf; 
+  data->AEM_S(12,15) = 1.341640786499874*m0rSelf[7]*mnuSelf-0.4472135954999579*cErSelf[7]*mnuSelf; 
+  data->AEM_S(13,8) = 1.5*m0rSelf[5]*mnuSelf-0.5*cErSelf[5]*mnuSelf; 
+  data->AEM_S(13,9) = 1.5*m0rSelf[7]*mnuSelf-0.5000000000000001*cErSelf[7]*mnuSelf; 
+  data->AEM_S(13,10) = 1.341640786499874*m0rSelf[2]*mnuSelf-0.4472135954999579*cErSelf[2]*mnuSelf; 
+  data->AEM_S(13,11) = 1.341640786499874*m0rSelf[3]*mnuSelf-0.4472135954999579*cErSelf[3]*mnuSelf; 
+  data->AEM_S(13,13) = 0.9583148474999099*m0rSelf[5]*mnuSelf-0.31943828249997*cErSelf[5]*mnuSelf+1.5*m0rSelf[0]*mnuSelf-0.5*cErSelf[0]*mnuSelf; 
+  data->AEM_S(13,14) = 1.341640786499874*m0rSelf[6]*mnuSelf-0.4472135954999579*cErSelf[6]*mnuSelf; 
+  data->AEM_S(13,15) = 0.9583148474999099*m0rSelf[7]*mnuSelf-0.31943828249997*cErSelf[7]*mnuSelf+1.5*m0rSelf[1]*mnuSelf-0.5000000000000001*cErSelf[1]*mnuSelf; 
+  data->AEM_S(14,8) = 1.5*m0rSelf[6]*mnuSelf-0.5*cErSelf[6]*mnuSelf; 
+  data->AEM_S(14,9) = 1.341640786499874*m0rSelf[3]*mnuSelf-0.447213595499958*cErSelf[3]*mnuSelf; 
+  data->AEM_S(14,10) = 1.5*m0rSelf[4]*mnuSelf-0.5000000000000001*cErSelf[4]*mnuSelf; 
+  data->AEM_S(14,11) = 1.2*m0rSelf[7]*mnuSelf-0.4*cErSelf[7]*mnuSelf+1.341640786499874*m0rSelf[1]*mnuSelf-0.447213595499958*cErSelf[1]*mnuSelf; 
+  data->AEM_S(14,12) = 0.9583148474999099*m0rSelf[6]*mnuSelf-0.31943828249997*cErSelf[6]*mnuSelf+1.5*m0rSelf[2]*mnuSelf-0.5000000000000001*cErSelf[2]*mnuSelf; 
+  data->AEM_S(14,13) = 1.341640786499874*m0rSelf[6]*mnuSelf-0.4472135954999579*cErSelf[6]*mnuSelf; 
+  data->AEM_S(14,14) = 1.341640786499874*m0rSelf[5]*mnuSelf-0.4472135954999579*cErSelf[5]*mnuSelf+0.9583148474999099*m0rSelf[4]*mnuSelf-0.31943828249997*cErSelf[4]*mnuSelf+1.5*m0rSelf[0]*mnuSelf-0.5*cErSelf[0]*mnuSelf; 
+  data->AEM_S(14,15) = 1.2*m0rSelf[3]*mnuSelf-0.4*cErSelf[3]*mnuSelf; 
+  data->AEM_S(15,8) = 1.5*m0rSelf[7]*mnuSelf-0.5*cErSelf[7]*mnuSelf; 
+  data->AEM_S(15,9) = 1.5*m0rSelf[5]*mnuSelf-0.5000000000000001*cErSelf[5]*mnuSelf; 
+  data->AEM_S(15,10) = 1.341640786499874*m0rSelf[3]*mnuSelf-0.447213595499958*cErSelf[3]*mnuSelf; 
+  data->AEM_S(15,11) = 1.2*m0rSelf[6]*mnuSelf-0.4*cErSelf[6]*mnuSelf+1.341640786499874*m0rSelf[2]*mnuSelf-0.447213595499958*cErSelf[2]*mnuSelf; 
+  data->AEM_S(15,12) = 1.341640786499874*m0rSelf[7]*mnuSelf-0.4472135954999579*cErSelf[7]*mnuSelf; 
+  data->AEM_S(15,13) = 0.9583148474999099*m0rSelf[7]*mnuSelf-0.31943828249997*cErSelf[7]*mnuSelf+1.5*m0rSelf[1]*mnuSelf-0.5000000000000001*cErSelf[1]*mnuSelf; 
+  data->AEM_S(15,14) = 1.2*m0rSelf[3]*mnuSelf-0.4*cErSelf[3]*mnuSelf; 
+  data->AEM_S(15,15) = 0.9583148474999099*m0rSelf[5]*mnuSelf-0.31943828249997*cErSelf[5]*mnuSelf+1.341640786499874*m0rSelf[4]*mnuSelf-0.4472135954999579*cErSelf[4]*mnuSelf+1.5*m0rSelf[0]*mnuSelf-0.5*cErSelf[0]*mnuSelf; 
+ 
+  // ... Block from correction to energy conservation (other) ... // 
+  data->AEM_S(8,24) = 1.5*m0rOther[0]*mnuOther-0.5*cErOther[0]*mnuOther; 
+  data->AEM_S(8,25) = 1.5*m0rOther[1]*mnuOther-0.5*cErOther[1]*mnuOther; 
+  data->AEM_S(8,26) = 1.5*m0rOther[2]*mnuOther-0.5*cErOther[2]*mnuOther; 
+  data->AEM_S(8,27) = 1.5*m0rOther[3]*mnuOther-0.5*cErOther[3]*mnuOther; 
+  data->AEM_S(8,28) = 1.5*m0rOther[4]*mnuOther-0.5*cErOther[4]*mnuOther; 
+  data->AEM_S(8,29) = 1.5*m0rOther[5]*mnuOther-0.5*cErOther[5]*mnuOther; 
+  data->AEM_S(8,30) = 1.5*m0rOther[6]*mnuOther-0.5*cErOther[6]*mnuOther; 
+  data->AEM_S(8,31) = 1.5*m0rOther[7]*mnuOther-0.5*cErOther[7]*mnuOther; 
+  data->AEM_S(9,24) = 1.5*m0rOther[1]*mnuOther-0.5*cErOther[1]*mnuOther; 
+  data->AEM_S(9,25) = 1.341640786499874*m0rOther[4]*mnuOther-0.4472135954999579*cErOther[4]*mnuOther+1.5*m0rOther[0]*mnuOther-0.5*cErOther[0]*mnuOther; 
+  data->AEM_S(9,26) = 1.5*m0rOther[3]*mnuOther-0.5*cErOther[3]*mnuOther; 
+  data->AEM_S(9,27) = 1.341640786499874*m0rOther[6]*mnuOther-0.447213595499958*cErOther[6]*mnuOther+1.5*m0rOther[2]*mnuOther-0.5*cErOther[2]*mnuOther; 
+  data->AEM_S(9,28) = 1.341640786499874*m0rOther[1]*mnuOther-0.4472135954999579*cErOther[1]*mnuOther; 
+  data->AEM_S(9,29) = 1.5*m0rOther[7]*mnuOther-0.5000000000000001*cErOther[7]*mnuOther; 
+  data->AEM_S(9,30) = 1.341640786499874*m0rOther[3]*mnuOther-0.447213595499958*cErOther[3]*mnuOther; 
+  data->AEM_S(9,31) = 1.5*m0rOther[5]*mnuOther-0.5000000000000001*cErOther[5]*mnuOther; 
+  data->AEM_S(10,24) = 1.5*m0rOther[2]*mnuOther-0.5*cErOther[2]*mnuOther; 
+  data->AEM_S(10,25) = 1.5*m0rOther[3]*mnuOther-0.5*cErOther[3]*mnuOther; 
+  data->AEM_S(10,26) = 1.341640786499874*m0rOther[5]*mnuOther-0.4472135954999579*cErOther[5]*mnuOther+1.5*m0rOther[0]*mnuOther-0.5*cErOther[0]*mnuOther; 
+  data->AEM_S(10,27) = 1.341640786499874*m0rOther[7]*mnuOther-0.447213595499958*cErOther[7]*mnuOther+1.5*m0rOther[1]*mnuOther-0.5*cErOther[1]*mnuOther; 
+  data->AEM_S(10,28) = 1.5*m0rOther[6]*mnuOther-0.5000000000000001*cErOther[6]*mnuOther; 
+  data->AEM_S(10,29) = 1.341640786499874*m0rOther[2]*mnuOther-0.4472135954999579*cErOther[2]*mnuOther; 
+  data->AEM_S(10,30) = 1.5*m0rOther[4]*mnuOther-0.5000000000000001*cErOther[4]*mnuOther; 
+  data->AEM_S(10,31) = 1.341640786499874*m0rOther[3]*mnuOther-0.447213595499958*cErOther[3]*mnuOther; 
+  data->AEM_S(11,24) = 1.5*m0rOther[3]*mnuOther-0.5*cErOther[3]*mnuOther; 
+  data->AEM_S(11,25) = 1.341640786499874*m0rOther[6]*mnuOther-0.447213595499958*cErOther[6]*mnuOther+1.5*m0rOther[2]*mnuOther-0.5*cErOther[2]*mnuOther; 
+  data->AEM_S(11,26) = 1.341640786499874*m0rOther[7]*mnuOther-0.447213595499958*cErOther[7]*mnuOther+1.5*m0rOther[1]*mnuOther-0.5*cErOther[1]*mnuOther; 
+  data->AEM_S(11,27) = 1.341640786499874*m0rOther[5]*mnuOther-0.4472135954999579*cErOther[5]*mnuOther+1.341640786499874*m0rOther[4]*mnuOther-0.4472135954999579*cErOther[4]*mnuOther+1.5*m0rOther[0]*mnuOther-0.5*cErOther[0]*mnuOther; 
+  data->AEM_S(11,28) = 1.341640786499874*m0rOther[3]*mnuOther-0.4472135954999579*cErOther[3]*mnuOther; 
+  data->AEM_S(11,29) = 1.341640786499874*m0rOther[3]*mnuOther-0.4472135954999579*cErOther[3]*mnuOther; 
+  data->AEM_S(11,30) = 1.2*m0rOther[7]*mnuOther-0.4*cErOther[7]*mnuOther+1.341640786499874*m0rOther[1]*mnuOther-0.447213595499958*cErOther[1]*mnuOther; 
+  data->AEM_S(11,31) = 1.2*m0rOther[6]*mnuOther-0.4*cErOther[6]*mnuOther+1.341640786499874*m0rOther[2]*mnuOther-0.447213595499958*cErOther[2]*mnuOther; 
+  data->AEM_S(12,24) = 1.5*m0rOther[4]*mnuOther-0.5*cErOther[4]*mnuOther; 
+  data->AEM_S(12,25) = 1.341640786499874*m0rOther[1]*mnuOther-0.4472135954999579*cErOther[1]*mnuOther; 
+  data->AEM_S(12,26) = 1.5*m0rOther[6]*mnuOther-0.5000000000000001*cErOther[6]*mnuOther; 
+  data->AEM_S(12,27) = 1.341640786499874*m0rOther[3]*mnuOther-0.4472135954999579*cErOther[3]*mnuOther; 
+  data->AEM_S(12,28) = 0.9583148474999099*m0rOther[4]*mnuOther-0.31943828249997*cErOther[4]*mnuOther+1.5*m0rOther[0]*mnuOther-0.5*cErOther[0]*mnuOther; 
+  data->AEM_S(12,30) = 0.9583148474999099*m0rOther[6]*mnuOther-0.31943828249997*cErOther[6]*mnuOther+1.5*m0rOther[2]*mnuOther-0.5000000000000001*cErOther[2]*mnuOther; 
+  data->AEM_S(12,31) = 1.341640786499874*m0rOther[7]*mnuOther-0.4472135954999579*cErOther[7]*mnuOther; 
+  data->AEM_S(13,24) = 1.5*m0rOther[5]*mnuOther-0.5*cErOther[5]*mnuOther; 
+  data->AEM_S(13,25) = 1.5*m0rOther[7]*mnuOther-0.5000000000000001*cErOther[7]*mnuOther; 
+  data->AEM_S(13,26) = 1.341640786499874*m0rOther[2]*mnuOther-0.4472135954999579*cErOther[2]*mnuOther; 
+  data->AEM_S(13,27) = 1.341640786499874*m0rOther[3]*mnuOther-0.4472135954999579*cErOther[3]*mnuOther; 
+  data->AEM_S(13,29) = 0.9583148474999099*m0rOther[5]*mnuOther-0.31943828249997*cErOther[5]*mnuOther+1.5*m0rOther[0]*mnuOther-0.5*cErOther[0]*mnuOther; 
+  data->AEM_S(13,30) = 1.341640786499874*m0rOther[6]*mnuOther-0.4472135954999579*cErOther[6]*mnuOther; 
+  data->AEM_S(13,31) = 0.9583148474999099*m0rOther[7]*mnuOther-0.31943828249997*cErOther[7]*mnuOther+1.5*m0rOther[1]*mnuOther-0.5000000000000001*cErOther[1]*mnuOther; 
+  data->AEM_S(14,24) = 1.5*m0rOther[6]*mnuOther-0.5*cErOther[6]*mnuOther; 
+  data->AEM_S(14,25) = 1.341640786499874*m0rOther[3]*mnuOther-0.447213595499958*cErOther[3]*mnuOther; 
+  data->AEM_S(14,26) = 1.5*m0rOther[4]*mnuOther-0.5000000000000001*cErOther[4]*mnuOther; 
+  data->AEM_S(14,27) = 1.2*m0rOther[7]*mnuOther-0.4*cErOther[7]*mnuOther+1.341640786499874*m0rOther[1]*mnuOther-0.447213595499958*cErOther[1]*mnuOther; 
+  data->AEM_S(14,28) = 0.9583148474999099*m0rOther[6]*mnuOther-0.31943828249997*cErOther[6]*mnuOther+1.5*m0rOther[2]*mnuOther-0.5000000000000001*cErOther[2]*mnuOther; 
+  data->AEM_S(14,29) = 1.341640786499874*m0rOther[6]*mnuOther-0.4472135954999579*cErOther[6]*mnuOther; 
+  data->AEM_S(14,30) = 1.341640786499874*m0rOther[5]*mnuOther-0.4472135954999579*cErOther[5]*mnuOther+0.9583148474999099*m0rOther[4]*mnuOther-0.31943828249997*cErOther[4]*mnuOther+1.5*m0rOther[0]*mnuOther-0.5*cErOther[0]*mnuOther; 
+  data->AEM_S(14,31) = 1.2*m0rOther[3]*mnuOther-0.4*cErOther[3]*mnuOther; 
+  data->AEM_S(15,24) = 1.5*m0rOther[7]*mnuOther-0.5*cErOther[7]*mnuOther; 
+  data->AEM_S(15,25) = 1.5*m0rOther[5]*mnuOther-0.5000000000000001*cErOther[5]*mnuOther; 
+  data->AEM_S(15,26) = 1.341640786499874*m0rOther[3]*mnuOther-0.447213595499958*cErOther[3]*mnuOther; 
+  data->AEM_S(15,27) = 1.2*m0rOther[6]*mnuOther-0.4*cErOther[6]*mnuOther+1.341640786499874*m0rOther[2]*mnuOther-0.447213595499958*cErOther[2]*mnuOther; 
+  data->AEM_S(15,28) = 1.341640786499874*m0rOther[7]*mnuOther-0.4472135954999579*cErOther[7]*mnuOther; 
+  data->AEM_S(15,29) = 0.9583148474999099*m0rOther[7]*mnuOther-0.31943828249997*cErOther[7]*mnuOther+1.5*m0rOther[1]*mnuOther-0.5000000000000001*cErOther[1]*mnuOther; 
+  data->AEM_S(15,30) = 1.2*m0rOther[3]*mnuOther-0.4*cErOther[3]*mnuOther; 
+  data->AEM_S(15,31) = 0.9583148474999099*m0rOther[5]*mnuOther-0.31943828249997*cErOther[5]*mnuOther+1.341640786499874*m0rOther[4]*mnuOther-0.4472135954999579*cErOther[4]*mnuOther+1.5*m0rOther[0]*mnuOther-0.5*cErOther[0]*mnuOther; 
+ 
+  double mnuM2sum[8]; 
+  // ... Contribution to RHS vector from mnuM2Self+mnuM2Other. 
+  mnuM2sum[0] = m2rSelf[0]*mnuSelf+m2rOther[0]*mnuOther; 
+  mnuM2sum[1] = m2rSelf[1]*mnuSelf+m2rOther[1]*mnuOther; 
+  mnuM2sum[2] = m2rSelf[2]*mnuSelf+m2rOther[2]*mnuOther; 
+  mnuM2sum[3] = m2rSelf[3]*mnuSelf+m2rOther[3]*mnuOther; 
+  mnuM2sum[4] = m2rSelf[4]*mnuSelf+m2rOther[4]*mnuOther; 
+  mnuM2sum[5] = m2rSelf[5]*mnuSelf+m2rOther[5]*mnuOther; 
+  mnuM2sum[6] = m2rSelf[6]*mnuSelf+m2rOther[6]*mnuOther; 
+  mnuM2sum[7] = m2rSelf[7]*mnuSelf+m2rOther[7]*mnuOther; 
+ 
+  // ... Equality block from uCrossSelfX ... // 
+  data->AEM_S(16,0) = 1.0; 
+  data->AEM_S(17,1) = 1.0; 
+  data->AEM_S(18,2) = 1.0; 
+  data->AEM_S(19,3) = 1.0; 
+  data->AEM_S(20,4) = 1.0; 
+  data->AEM_S(21,5) = 1.0; 
+  data->AEM_S(22,6) = 1.0; 
+  data->AEM_S(23,7) = 1.0; 
+ 
+  // ... Equality block from uCrossOtherX ... // 
+  data->AEM_S(16,16) = -1.0; 
+  data->AEM_S(17,17) = -1.0; 
+  data->AEM_S(18,18) = -1.0; 
+  data->AEM_S(19,19) = -1.0; 
+  data->AEM_S(20,20) = -1.0; 
+  data->AEM_S(21,21) = -1.0; 
+  data->AEM_S(22,22) = -1.0; 
+  data->AEM_S(23,23) = -1.0; 
+ 
+  // ... Contribution to RHS vector from uCrossSelfX=uCrossOtherX equation. 
+ 
+  // ... Equality block from mSelf*vtSqCrossSelf ... // 
+  data->AEM_S(24,8) = mSelf; 
+  data->AEM_S(25,9) = mSelf; 
+  data->AEM_S(26,10) = mSelf; 
+  data->AEM_S(27,11) = mSelf; 
+  data->AEM_S(28,12) = mSelf; 
+  data->AEM_S(29,13) = mSelf; 
+  data->AEM_S(30,14) = mSelf; 
+  data->AEM_S(31,15) = mSelf; 
+ 
+  // ... Equality block from mOther*vtSqCrossOther ... // 
+  data->AEM_S(24,24) = -1.0*mOther; 
+  data->AEM_S(25,25) = -1.0*mOther; 
+  data->AEM_S(26,26) = -1.0*mOther; 
+  data->AEM_S(27,27) = -1.0*mOther; 
+  data->AEM_S(28,28) = -1.0*mOther; 
+  data->AEM_S(29,29) = -1.0*mOther; 
+  data->AEM_S(30,30) = -1.0*mOther; 
+  data->AEM_S(31,31) = -1.0*mOther; 
+ 
+  // ... Contribution to RHS vector from mSelf*vtSqCrossSelf = mOther*vtSqCrossOther. 
+ 
+  // ....... RHS vector is composed of m1 and m2 .......... // 
+  data->BEV_S << mnuM1sum[0],mnuM1sum[1],mnuM1sum[2],mnuM1sum[3],mnuM1sum[4],mnuM1sum[5],mnuM1sum[6],mnuM1sum[7],mnuM2sum[0],mnuM2sum[1],mnuM2sum[2],mnuM2sum[3],mnuM2sum[4],mnuM2sum[5],mnuM2sum[6],mnuM2sum[7],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0; 
  
   data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
  

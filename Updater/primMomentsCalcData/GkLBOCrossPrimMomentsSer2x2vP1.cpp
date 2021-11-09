@@ -2,7 +2,7 @@
  
 using namespace Eigen; 
  
-void GkLBOCrossPrimMoments2x2vSer_P1(binOpData_t *data, binOpData_t *dataDiv, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double *m0SSelf, const double *m1SSelf, const double *m2SSelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, const double *m0SOther, const double *m1SOther, const double *m2SOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
+void GkLBOGCrossPrimMoments2x2vSer_P1(binOpData_t *data, binOpData_t *dataDiv, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double *m0SSelf, const double *m1SSelf, const double *m2SSelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, const double *m0SOther, const double *m1SOther, const double *m2SOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
 { 
   // betaGreenep1:       free parameter beta+1. This has to be >0. 
   // nu, m:              collisionality and mass. 
@@ -13,19 +13,16 @@ void GkLBOCrossPrimMoments2x2vSer_P1(binOpData_t *data, binOpData_t *dataDiv, co
   // uCross,vtSqCross:   cross primitive moments: mean flow velocity and thermal speed squared. 
  
   // If a corner value is below zero, use cell average m0.
-  bool cellAvg = false;
-  if (1.5*m0Self[3]-0.8660254037844386*m0Self[2]-0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) { 
-    cellAvg = true;
-  }
-  if ((-1.5*m0Self[3])+0.8660254037844386*m0Self[2]-0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) { 
-    cellAvg = true;
-  }
-  if ((-1.5*m0Self[3])-0.8660254037844386*m0Self[2]+0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) { 
-    cellAvg = true;
-  }
-  if (1.5*m0Self[3]+0.8660254037844386*m0Self[2]+0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) { 
-    cellAvg = true;
-  }
+  bool cellAvg;
+  cellAvg = false;
+  if (1.5*m0Self[3]-0.8660254037844386*m0Self[2]-0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if (1.5*m2SSelf[3]-0.8660254037844386*m2SSelf[2]-0.8660254037844386*m2SSelf[1]+0.5*m2SSelf[0] < 0) cellAvg = true; 
+  if ((-1.5*m0Self[3])-0.8660254037844386*m0Self[2]+0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if ((-1.5*m2SSelf[3])-0.8660254037844386*m2SSelf[2]+0.8660254037844386*m2SSelf[1]+0.5*m2SSelf[0] < 0) cellAvg = true; 
+  if ((-1.5*m0Self[3])+0.8660254037844386*m0Self[2]-0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if ((-1.5*m2SSelf[3])+0.8660254037844386*m2SSelf[2]-0.8660254037844386*m2SSelf[1]+0.5*m2SSelf[0] < 0) cellAvg = true; 
+  if (1.5*m0Self[3]+0.8660254037844386*m0Self[2]+0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if (1.5*m2SSelf[3]+0.8660254037844386*m2SSelf[2]+0.8660254037844386*m2SSelf[1]+0.5*m2SSelf[0] < 0) cellAvg = true; 
  
   double m0rSelf[4]; 
   double m1rSelf[4]; 
@@ -103,18 +100,15 @@ void GkLBOCrossPrimMoments2x2vSer_P1(binOpData_t *data, binOpData_t *dataDiv, co
     m2SrSelf[3] = m2SSelf[3]; 
   } 
  
-  if (1.5*m0Other[3]-0.8660254037844386*m0Other[2]-0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) { 
-    cellAvg = true;
-  }
-  if ((-1.5*m0Other[3])+0.8660254037844386*m0Other[2]-0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) { 
-    cellAvg = true;
-  }
-  if ((-1.5*m0Other[3])-0.8660254037844386*m0Other[2]+0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) { 
-    cellAvg = true;
-  }
-  if (1.5*m0Other[3]+0.8660254037844386*m0Other[2]+0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) { 
-    cellAvg = true;
-  }
+  cellAvg = false;
+  if (1.5*m0Other[3]-0.8660254037844386*m0Other[2]-0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if (1.5*m2SOther[3]-0.8660254037844386*m2SOther[2]-0.8660254037844386*m2SOther[1]+0.5*m2SOther[0] < 0) cellAvg = true; 
+  if ((-1.5*m0Other[3])-0.8660254037844386*m0Other[2]+0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if ((-1.5*m2SOther[3])-0.8660254037844386*m2SOther[2]+0.8660254037844386*m2SOther[1]+0.5*m2SOther[0] < 0) cellAvg = true; 
+  if ((-1.5*m0Other[3])+0.8660254037844386*m0Other[2]-0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if ((-1.5*m2SOther[3])+0.8660254037844386*m2SOther[2]-0.8660254037844386*m2SOther[1]+0.5*m2SOther[0] < 0) cellAvg = true; 
+  if (1.5*m0Other[3]+0.8660254037844386*m0Other[2]+0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if (1.5*m2SOther[3]+0.8660254037844386*m2SOther[2]+0.8660254037844386*m2SOther[1]+0.5*m2SOther[0] < 0) cellAvg = true; 
  
   double m0rOther[4]; 
   double m1rOther[4]; 
@@ -668,6 +662,402 @@ void GkLBOCrossPrimMoments2x2vSer_P1(binOpData_t *data, binOpData_t *dataDiv, co
  
   // ....... RHS vector is composed of m1 and m2 .......... // 
   data->BEV_S << mnuM1sum[0],mnuM1sum[1],mnuM1sum[2],mnuM1sum[3],mnuM2sum[0],mnuM2sum[1],mnuM2sum[2],mnuM2sum[3],m1Relax[0],m1Relax[1],m1Relax[2],m1Relax[3],m2Relax[0],m2Relax[1],m2Relax[2],m2Relax[3]; 
+ 
+  data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
+ 
+  Eigen::Map<VectorXd>(uCrossSelf,4,1) = data->u_S.segment<4>(0); 
+ 
+  Eigen::Map<VectorXd>(vtSqCrossSelf,4,1) = data->u_S.segment<4>(4); 
+ 
+  Eigen::Map<VectorXd>(uCrossOther,4,1) = data->u_S.segment<4>(8); 
+ 
+  Eigen::Map<VectorXd>(vtSqCrossOther,4,1) = data->u_S.segment<4>(12); 
+ 
+} 
+ 
+void GkLBOECrossPrimMoments2x2vSer_P1(binOpData_t *data, binOpData_t *dataDiv, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double *m0SSelf, const double *m1SSelf, const double *m2SSelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, const double *m0SOther, const double *m1SOther, const double *m2SOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
+{ 
+  // betaGreenep1:       free parameter beta+1. This has to be >0. 
+  // nu, m:              collisionality and mass. 
+  // m0,m1,m2:           moments of the distribution function. 
+  // m0S,m1S,m1S:        star moments (only used for piecewise linear). 
+  // u,vtSq:             self primitive moments: mean flow velocity and thermal speed squared. 
+  // cM,cE:              corrections to momentum and energy conservation due to finite velocity space. 
+  // uCross,vtSqCross:   cross primitive moments: mean flow velocity and thermal speed squared. 
+ 
+  // If a corner value is below zero, use cell average m0.
+  bool cellAvg;
+  cellAvg = false;
+  if (1.5*m0Self[3]-0.8660254037844386*m0Self[2]-0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if (1.5*m2SSelf[3]-0.8660254037844386*m2SSelf[2]-0.8660254037844386*m2SSelf[1]+0.5*m2SSelf[0] < 0) cellAvg = true; 
+  if ((-1.5*m0Self[3])-0.8660254037844386*m0Self[2]+0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if ((-1.5*m2SSelf[3])-0.8660254037844386*m2SSelf[2]+0.8660254037844386*m2SSelf[1]+0.5*m2SSelf[0] < 0) cellAvg = true; 
+  if ((-1.5*m0Self[3])+0.8660254037844386*m0Self[2]-0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if ((-1.5*m2SSelf[3])+0.8660254037844386*m2SSelf[2]-0.8660254037844386*m2SSelf[1]+0.5*m2SSelf[0] < 0) cellAvg = true; 
+  if (1.5*m0Self[3]+0.8660254037844386*m0Self[2]+0.8660254037844386*m0Self[1]+0.5*m0Self[0] < 0) cellAvg = true; 
+  if (1.5*m2SSelf[3]+0.8660254037844386*m2SSelf[2]+0.8660254037844386*m2SSelf[1]+0.5*m2SSelf[0] < 0) cellAvg = true; 
+ 
+  double m0rSelf[4]; 
+  double m1rSelf[4]; 
+  double m2rSelf[4]; 
+  double cMrSelf[4]; 
+  double cErSelf[4]; 
+  double m0SrSelf[4]; 
+  double m1SrSelf[4]; 
+  double m2SrSelf[4]; 
+  if (cellAvg) { 
+    m0rSelf[0] = m0Self[0]; 
+    m0rSelf[1] = 0.0; 
+    m0rSelf[2] = 0.0; 
+    m0rSelf[3] = 0.0; 
+    m1rSelf[0] = m1Self[0]; 
+    m1rSelf[1] = 0.0; 
+    m1rSelf[2] = 0.0; 
+    m1rSelf[3] = 0.0; 
+    cMrSelf[0] = cMSelf[0]; 
+    cMrSelf[1] = 0.0; 
+    cMrSelf[2] = 0.0; 
+    cMrSelf[3] = 0.0; 
+    m2rSelf[0] = m2Self[0]; 
+    m2rSelf[1] = 0.0; 
+    m2rSelf[2] = 0.0; 
+    m2rSelf[3] = 0.0; 
+    cErSelf[0] = cESelf[0]; 
+    cErSelf[1] = 0.0; 
+    cErSelf[2] = 0.0; 
+    cErSelf[3] = 0.0; 
+    m0SrSelf[0] = m0SSelf[0]; 
+    m0SrSelf[1] = 0.0; 
+    m0SrSelf[2] = 0.0; 
+    m0SrSelf[3] = 0.0; 
+    m1SrSelf[0] = m1SSelf[0]; 
+    m1SrSelf[1] = 0.0; 
+    m1SrSelf[2] = 0.0; 
+    m1SrSelf[3] = 0.0; 
+    m2SrSelf[0] = m2SSelf[0]; 
+    m2SrSelf[1] = 0.0; 
+    m2SrSelf[2] = 0.0; 
+    m2SrSelf[3] = 0.0; 
+  } else { 
+    m0rSelf[0] = m0Self[0]; 
+    m0rSelf[1] = m0Self[1]; 
+    m0rSelf[2] = m0Self[2]; 
+    m0rSelf[3] = m0Self[3]; 
+    m1rSelf[0] = m1Self[0]; 
+    m1rSelf[1] = m1Self[1]; 
+    m1rSelf[2] = m1Self[2]; 
+    m1rSelf[3] = m1Self[3]; 
+    m2rSelf[0] = m2Self[0]; 
+    m2rSelf[1] = m2Self[1]; 
+    m2rSelf[2] = m2Self[2]; 
+    m2rSelf[3] = m2Self[3]; 
+    cMrSelf[0] = cMSelf[0]; 
+    cMrSelf[1] = cMSelf[1]; 
+    cMrSelf[2] = cMSelf[2]; 
+    cMrSelf[3] = cMSelf[3]; 
+    cErSelf[0] = cESelf[0]; 
+    cErSelf[1] = cESelf[1]; 
+    cErSelf[2] = cESelf[2]; 
+    cErSelf[3] = cESelf[3]; 
+    m0SrSelf[0] = m0SSelf[0]; 
+    m0SrSelf[1] = m0SSelf[1]; 
+    m0SrSelf[2] = m0SSelf[2]; 
+    m0SrSelf[3] = m0SSelf[3]; 
+    m1SrSelf[0] = m1SSelf[0]; 
+    m1SrSelf[1] = m1SSelf[1]; 
+    m1SrSelf[2] = m1SSelf[2]; 
+    m1SrSelf[3] = m1SSelf[3]; 
+    m2SrSelf[0] = m2SSelf[0]; 
+    m2SrSelf[1] = m2SSelf[1]; 
+    m2SrSelf[2] = m2SSelf[2]; 
+    m2SrSelf[3] = m2SSelf[3]; 
+  } 
+ 
+  cellAvg = false;
+  if (1.5*m0Other[3]-0.8660254037844386*m0Other[2]-0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if (1.5*m2SOther[3]-0.8660254037844386*m2SOther[2]-0.8660254037844386*m2SOther[1]+0.5*m2SOther[0] < 0) cellAvg = true; 
+  if ((-1.5*m0Other[3])-0.8660254037844386*m0Other[2]+0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if ((-1.5*m2SOther[3])-0.8660254037844386*m2SOther[2]+0.8660254037844386*m2SOther[1]+0.5*m2SOther[0] < 0) cellAvg = true; 
+  if ((-1.5*m0Other[3])+0.8660254037844386*m0Other[2]-0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if ((-1.5*m2SOther[3])+0.8660254037844386*m2SOther[2]-0.8660254037844386*m2SOther[1]+0.5*m2SOther[0] < 0) cellAvg = true; 
+  if (1.5*m0Other[3]+0.8660254037844386*m0Other[2]+0.8660254037844386*m0Other[1]+0.5*m0Other[0] < 0) cellAvg = true; 
+  if (1.5*m2SOther[3]+0.8660254037844386*m2SOther[2]+0.8660254037844386*m2SOther[1]+0.5*m2SOther[0] < 0) cellAvg = true; 
+ 
+  double m0rOther[4]; 
+  double m1rOther[4]; 
+  double m2rOther[4]; 
+  double cMrOther[4]; 
+  double cErOther[4]; 
+  double m0SrOther[4]; 
+  double m1SrOther[4]; 
+  double m2SrOther[4]; 
+  if (cellAvg) { 
+    m0rOther[0] = m0Other[0]; 
+    m0rOther[1] = 0.0; 
+    m0rOther[2] = 0.0; 
+    m0rOther[3] = 0.0; 
+    m1rOther[0] = m1Other[0]; 
+    m1rOther[1] = 0.0; 
+    m1rOther[2] = 0.0; 
+    m1rOther[3] = 0.0; 
+    cMrOther[0] = cMOther[0]; 
+    cMrOther[1] = 0.0; 
+    cMrOther[2] = 0.0; 
+    cMrOther[3] = 0.0; 
+    m2rOther[0] = m2Other[0]; 
+    m2rOther[1] = 0.0; 
+    m2rOther[2] = 0.0; 
+    m2rOther[3] = 0.0; 
+    cErOther[0] = cEOther[0]; 
+    cErOther[1] = 0.0; 
+    cErOther[2] = 0.0; 
+    cErOther[3] = 0.0; 
+    m0SrOther[0] = m0SOther[0]; 
+    m0SrOther[1] = 0.0; 
+    m0SrOther[2] = 0.0; 
+    m0SrOther[3] = 0.0; 
+    m1SrOther[0] = m1SOther[0]; 
+    m1SrOther[1] = 0.0; 
+    m1SrOther[2] = 0.0; 
+    m1SrOther[3] = 0.0; 
+    m2SrOther[0] = m2SOther[0]; 
+    m2SrOther[1] = 0.0; 
+    m2SrOther[2] = 0.0; 
+    m2SrOther[3] = 0.0; 
+  } else { 
+    m0rOther[0] = m0Other[0]; 
+    m0rOther[1] = m0Other[1]; 
+    m0rOther[2] = m0Other[2]; 
+    m0rOther[3] = m0Other[3]; 
+    m1rOther[0] = m1Other[0]; 
+    m1rOther[1] = m1Other[1]; 
+    m1rOther[2] = m1Other[2]; 
+    m1rOther[3] = m1Other[3]; 
+    m2rOther[0] = m2Other[0]; 
+    m2rOther[1] = m2Other[1]; 
+    m2rOther[2] = m2Other[2]; 
+    m2rOther[3] = m2Other[3]; 
+    cMrOther[0] = cMOther[0]; 
+    cMrOther[1] = cMOther[1]; 
+    cMrOther[2] = cMOther[2]; 
+    cMrOther[3] = cMOther[3]; 
+    cErOther[0] = cEOther[0]; 
+    cErOther[1] = cEOther[1]; 
+    cErOther[2] = cEOther[2]; 
+    cErOther[3] = cEOther[3]; 
+    m0SrOther[0] = m0SOther[0]; 
+    m0SrOther[1] = m0SOther[1]; 
+    m0SrOther[2] = m0SOther[2]; 
+    m0SrOther[3] = m0SOther[3]; 
+    m1SrOther[0] = m1SOther[0]; 
+    m1SrOther[1] = m1SOther[1]; 
+    m1SrOther[2] = m1SOther[2]; 
+    m1SrOther[3] = m1SOther[3]; 
+    m2SrOther[0] = m2SOther[0]; 
+    m2SrOther[1] = m2SOther[1]; 
+    m2SrOther[2] = m2SOther[2]; 
+    m2SrOther[3] = m2SOther[3]; 
+  } 
+ 
+  // Declare Eigen matrix and vectors for weak system. 
+  data->AEM_S = Eigen::MatrixXd::Zero(16,16); 
+ 
+  double mnuSelf   = mSelf*nuSelf; 
+  double mnuOther  = mOther*nuOther; 
+  double mnuM1sum[4]; 
+  // zero out array with sum of m*nu*m1. 
+  for (unsigned short int vd=0; vd<4; vd++) 
+  { 
+    mnuM1sum[vd] = 0.0; 
+  } 
+ 
+  // ... Block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfX ... // 
+  data->AEM_S(0,0) = 0.5*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(0,1) = 0.5*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(0,2) = 0.5*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(0,3) = 0.5*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(1,0) = 0.5*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(1,1) = 0.5*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(1,2) = 0.5*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(1,3) = 0.5*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(2,0) = 0.5*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(2,1) = 0.5*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(2,2) = 0.5*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(2,3) = 0.5*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(3,0) = 0.5*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(3,1) = 0.5*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(3,2) = 0.5*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(3,3) = 0.5*m0rSelf[0]*mnuSelf; 
+ 
+  // ... Block from correction to momentum conservation (self) ... // 
+  data->AEM_S(0,4) = -0.5*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(0,5) = -0.5*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(0,6) = -0.5*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(0,7) = -0.5*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(1,4) = -0.5*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(1,5) = -0.5*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(1,6) = -0.5*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(1,7) = -0.5*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(2,4) = -0.5*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(2,5) = -0.5*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(2,6) = -0.5*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(2,7) = -0.5*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(3,4) = -0.5*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(3,5) = -0.5*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(3,6) = -0.5*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(3,7) = -0.5*cMrSelf[0]*mnuSelf; 
+ 
+  // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherX ... // 
+  data->AEM_S(0,8) = 0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(0,9) = 0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(0,10) = 0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(0,11) = 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(1,8) = 0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(1,9) = 0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(1,10) = 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(1,11) = 0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(2,8) = 0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(2,9) = 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(2,10) = 0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(2,11) = 0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(3,8) = 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(3,9) = 0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(3,10) = 0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(3,11) = 0.5*m0rOther[0]*mnuOther; 
+ 
+  // ... Block from correction to momentum conservation (other) ... // 
+  data->AEM_S(0,12) = -0.5*cMrOther[0]*mnuOther; 
+  data->AEM_S(0,13) = -0.5*cMrOther[1]*mnuOther; 
+  data->AEM_S(0,14) = -0.5*cMrOther[2]*mnuOther; 
+  data->AEM_S(0,15) = -0.5*cMrOther[3]*mnuOther; 
+  data->AEM_S(1,12) = -0.5*cMrOther[1]*mnuOther; 
+  data->AEM_S(1,13) = -0.5*cMrOther[0]*mnuOther; 
+  data->AEM_S(1,14) = -0.5*cMrOther[3]*mnuOther; 
+  data->AEM_S(1,15) = -0.5*cMrOther[2]*mnuOther; 
+  data->AEM_S(2,12) = -0.5*cMrOther[2]*mnuOther; 
+  data->AEM_S(2,13) = -0.5*cMrOther[3]*mnuOther; 
+  data->AEM_S(2,14) = -0.5*cMrOther[0]*mnuOther; 
+  data->AEM_S(2,15) = -0.5*cMrOther[1]*mnuOther; 
+  data->AEM_S(3,12) = -0.5*cMrOther[3]*mnuOther; 
+  data->AEM_S(3,13) = -0.5*cMrOther[2]*mnuOther; 
+  data->AEM_S(3,14) = -0.5*cMrOther[1]*mnuOther; 
+  data->AEM_S(3,15) = -0.5*cMrOther[0]*mnuOther; 
+ 
+  // ... Block from weak multiply of mSelf, nuSelf, m1SelfX and uCrossSelfX ... // 
+  data->AEM_S(4,0) = 0.5*m1SrSelf[0]*mnuSelf; 
+  data->AEM_S(4,1) = 0.5*m1SrSelf[1]*mnuSelf; 
+  data->AEM_S(4,2) = 0.5*m1SrSelf[2]*mnuSelf; 
+  data->AEM_S(4,3) = 0.5*m1SrSelf[3]*mnuSelf; 
+  data->AEM_S(5,0) = 0.5*m1SrSelf[1]*mnuSelf; 
+  data->AEM_S(5,1) = 0.5*m1SrSelf[0]*mnuSelf; 
+  data->AEM_S(5,2) = 0.5*m1SrSelf[3]*mnuSelf; 
+  data->AEM_S(5,3) = 0.5*m1SrSelf[2]*mnuSelf; 
+  data->AEM_S(6,0) = 0.5*m1SrSelf[2]*mnuSelf; 
+  data->AEM_S(6,1) = 0.5*m1SrSelf[3]*mnuSelf; 
+  data->AEM_S(6,2) = 0.5*m1SrSelf[0]*mnuSelf; 
+  data->AEM_S(6,3) = 0.5*m1SrSelf[1]*mnuSelf; 
+  data->AEM_S(7,0) = 0.5*m1SrSelf[3]*mnuSelf; 
+  data->AEM_S(7,1) = 0.5*m1SrSelf[2]*mnuSelf; 
+  data->AEM_S(7,2) = 0.5*m1SrSelf[1]*mnuSelf; 
+  data->AEM_S(7,3) = 0.5*m1SrSelf[0]*mnuSelf; 
+ 
+  // ... Block from weak multiply of mOther, nuOther, m1OtherX and uCrossOtherX ... // 
+  data->AEM_S(4,8) = 0.5*m1SrOther[0]*mnuOther; 
+  data->AEM_S(4,9) = 0.5*m1SrOther[1]*mnuOther; 
+  data->AEM_S(4,10) = 0.5*m1SrOther[2]*mnuOther; 
+  data->AEM_S(4,11) = 0.5*m1SrOther[3]*mnuOther; 
+  data->AEM_S(5,8) = 0.5*m1SrOther[1]*mnuOther; 
+  data->AEM_S(5,9) = 0.5*m1SrOther[0]*mnuOther; 
+  data->AEM_S(5,10) = 0.5*m1SrOther[3]*mnuOther; 
+  data->AEM_S(5,11) = 0.5*m1SrOther[2]*mnuOther; 
+  data->AEM_S(6,8) = 0.5*m1SrOther[2]*mnuOther; 
+  data->AEM_S(6,9) = 0.5*m1SrOther[3]*mnuOther; 
+  data->AEM_S(6,10) = 0.5*m1SrOther[0]*mnuOther; 
+  data->AEM_S(6,11) = 0.5*m1SrOther[1]*mnuOther; 
+  data->AEM_S(7,8) = 0.5*m1SrOther[3]*mnuOther; 
+  data->AEM_S(7,9) = 0.5*m1SrOther[2]*mnuOther; 
+  data->AEM_S(7,10) = 0.5*m1SrOther[1]*mnuOther; 
+  data->AEM_S(7,11) = 0.5*m1SrOther[0]*mnuOther; 
+ 
+  // ... Contribution to RHS vector from component 1 of mnuM1Self+mnuM1Other. 
+  mnuM1sum[0] += m1rSelf[0]*mnuSelf+m1rOther[0]*mnuOther; 
+  mnuM1sum[1] += m1rSelf[1]*mnuSelf+m1rOther[1]*mnuOther; 
+  mnuM1sum[2] += m1rSelf[2]*mnuSelf+m1rOther[2]*mnuOther; 
+  mnuM1sum[3] += m1rSelf[3]*mnuSelf+m1rOther[3]*mnuOther; 
+ 
+  // ... Block from correction to energy conservation (self) ... // 
+  data->AEM_S(4,4) = m0rSelf[0]*mnuSelf+0.5*m0SrSelf[0]*mnuSelf-0.5*cErSelf[0]*mnuSelf; 
+  data->AEM_S(4,5) = m0rSelf[1]*mnuSelf+0.5*m0SrSelf[1]*mnuSelf-0.5*cErSelf[1]*mnuSelf; 
+  data->AEM_S(4,6) = m0rSelf[2]*mnuSelf+0.5*m0SrSelf[2]*mnuSelf-0.5*cErSelf[2]*mnuSelf; 
+  data->AEM_S(4,7) = m0rSelf[3]*mnuSelf+0.5*m0SrSelf[3]*mnuSelf-0.5*cErSelf[3]*mnuSelf; 
+  data->AEM_S(5,4) = m0rSelf[1]*mnuSelf+0.5*m0SrSelf[1]*mnuSelf-0.5*cErSelf[1]*mnuSelf; 
+  data->AEM_S(5,5) = m0rSelf[0]*mnuSelf+0.5*m0SrSelf[0]*mnuSelf-0.5*cErSelf[0]*mnuSelf; 
+  data->AEM_S(5,6) = m0rSelf[3]*mnuSelf+0.5*m0SrSelf[3]*mnuSelf-0.5*cErSelf[3]*mnuSelf; 
+  data->AEM_S(5,7) = m0rSelf[2]*mnuSelf+0.5*m0SrSelf[2]*mnuSelf-0.5*cErSelf[2]*mnuSelf; 
+  data->AEM_S(6,4) = m0rSelf[2]*mnuSelf+0.5*m0SrSelf[2]*mnuSelf-0.5*cErSelf[2]*mnuSelf; 
+  data->AEM_S(6,5) = m0rSelf[3]*mnuSelf+0.5*m0SrSelf[3]*mnuSelf-0.5*cErSelf[3]*mnuSelf; 
+  data->AEM_S(6,6) = m0rSelf[0]*mnuSelf+0.5*m0SrSelf[0]*mnuSelf-0.5*cErSelf[0]*mnuSelf; 
+  data->AEM_S(6,7) = m0rSelf[1]*mnuSelf+0.5*m0SrSelf[1]*mnuSelf-0.5*cErSelf[1]*mnuSelf; 
+  data->AEM_S(7,4) = m0rSelf[3]*mnuSelf+0.5*m0SrSelf[3]*mnuSelf-0.5*cErSelf[3]*mnuSelf; 
+  data->AEM_S(7,5) = m0rSelf[2]*mnuSelf+0.5*m0SrSelf[2]*mnuSelf-0.5*cErSelf[2]*mnuSelf; 
+  data->AEM_S(7,6) = m0rSelf[1]*mnuSelf+0.5*m0SrSelf[1]*mnuSelf-0.5*cErSelf[1]*mnuSelf; 
+  data->AEM_S(7,7) = m0rSelf[0]*mnuSelf+0.5*m0SrSelf[0]*mnuSelf-0.5*cErSelf[0]*mnuSelf; 
+ 
+  // ... Block from correction to energy conservation (other) ... // 
+  data->AEM_S(4,12) = m0rOther[0]*mnuOther+0.5*m0SrOther[0]*mnuOther-0.5*cErOther[0]*mnuOther; 
+  data->AEM_S(4,13) = m0rOther[1]*mnuOther+0.5*m0SrOther[1]*mnuOther-0.5*cErOther[1]*mnuOther; 
+  data->AEM_S(4,14) = m0rOther[2]*mnuOther+0.5*m0SrOther[2]*mnuOther-0.5*cErOther[2]*mnuOther; 
+  data->AEM_S(4,15) = m0rOther[3]*mnuOther+0.5*m0SrOther[3]*mnuOther-0.5*cErOther[3]*mnuOther; 
+  data->AEM_S(5,12) = m0rOther[1]*mnuOther+0.5*m0SrOther[1]*mnuOther-0.5*cErOther[1]*mnuOther; 
+  data->AEM_S(5,13) = m0rOther[0]*mnuOther+0.5*m0SrOther[0]*mnuOther-0.5*cErOther[0]*mnuOther; 
+  data->AEM_S(5,14) = m0rOther[3]*mnuOther+0.5*m0SrOther[3]*mnuOther-0.5*cErOther[3]*mnuOther; 
+  data->AEM_S(5,15) = m0rOther[2]*mnuOther+0.5*m0SrOther[2]*mnuOther-0.5*cErOther[2]*mnuOther; 
+  data->AEM_S(6,12) = m0rOther[2]*mnuOther+0.5*m0SrOther[2]*mnuOther-0.5*cErOther[2]*mnuOther; 
+  data->AEM_S(6,13) = m0rOther[3]*mnuOther+0.5*m0SrOther[3]*mnuOther-0.5*cErOther[3]*mnuOther; 
+  data->AEM_S(6,14) = m0rOther[0]*mnuOther+0.5*m0SrOther[0]*mnuOther-0.5*cErOther[0]*mnuOther; 
+  data->AEM_S(6,15) = m0rOther[1]*mnuOther+0.5*m0SrOther[1]*mnuOther-0.5*cErOther[1]*mnuOther; 
+  data->AEM_S(7,12) = m0rOther[3]*mnuOther+0.5*m0SrOther[3]*mnuOther-0.5*cErOther[3]*mnuOther; 
+  data->AEM_S(7,13) = m0rOther[2]*mnuOther+0.5*m0SrOther[2]*mnuOther-0.5*cErOther[2]*mnuOther; 
+  data->AEM_S(7,14) = m0rOther[1]*mnuOther+0.5*m0SrOther[1]*mnuOther-0.5*cErOther[1]*mnuOther; 
+  data->AEM_S(7,15) = m0rOther[0]*mnuOther+0.5*m0SrOther[0]*mnuOther-0.5*cErOther[0]*mnuOther; 
+ 
+  double mnuM2sum[4]; 
+  // ... Contribution to RHS vector from mnuM2Self+mnuM2Other. 
+  mnuM2sum[0] = m2SrSelf[0]*mnuSelf+m2SrOther[0]*mnuOther; 
+  mnuM2sum[1] = m2SrSelf[1]*mnuSelf+m2SrOther[1]*mnuOther; 
+  mnuM2sum[2] = m2SrSelf[2]*mnuSelf+m2SrOther[2]*mnuOther; 
+  mnuM2sum[3] = m2SrSelf[3]*mnuSelf+m2SrOther[3]*mnuOther; 
+ 
+  // ... Equality block from uCrossSelfX ... // 
+  data->AEM_S(8,0) = 1.0; 
+  data->AEM_S(9,1) = 1.0; 
+  data->AEM_S(10,2) = 1.0; 
+  data->AEM_S(11,3) = 1.0; 
+ 
+  // ... Equality block from uCrossOtherX ... // 
+  data->AEM_S(8,8) = -1.0; 
+  data->AEM_S(9,9) = -1.0; 
+  data->AEM_S(10,10) = -1.0; 
+  data->AEM_S(11,11) = -1.0; 
+ 
+  // ... Contribution to RHS vector from uCrossSelfX=uCrossOtherX equation. 
+ 
+  // ... Equality block from mSelf*vtSqCrossSelf ... // 
+  data->AEM_S(12,4) = mSelf; 
+  data->AEM_S(13,5) = mSelf; 
+  data->AEM_S(14,6) = mSelf; 
+  data->AEM_S(15,7) = mSelf; 
+ 
+  // ... Equality block from mOther*vtSqCrossOther ... // 
+  data->AEM_S(12,12) = -1.0*mOther; 
+  data->AEM_S(13,13) = -1.0*mOther; 
+  data->AEM_S(14,14) = -1.0*mOther; 
+  data->AEM_S(15,15) = -1.0*mOther; 
+ 
+  // ... Contribution to RHS vector from mSelf*vtSqCrossSelf = mOther*vtSqCrossOther. 
+ 
+  // ....... RHS vector is composed of m1 and m2 .......... // 
+  data->BEV_S << mnuM1sum[0],mnuM1sum[1],mnuM1sum[2],mnuM1sum[3],mnuM2sum[0],mnuM2sum[1],mnuM2sum[2],mnuM2sum[3],0,0,0,0,0,0,0,0; 
  
   data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
  
