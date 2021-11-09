@@ -90,6 +90,8 @@ function GkLBO:init(tbl)
    -- Flag to indicate if we are being called for first time.
    self._isFirst = true
 
+   self._alwaysApply = false -- Turn to true to bypass robustness checks (for testing).
+
    self.primMomCrossLimit = 0.0
 end
 
@@ -143,7 +145,7 @@ function GkLBO:volTerm(w, dx, idx, q, out)
       local nuVtSqSum0 = self._nuVtSqSumPtr[1]*self._cellAvFac
       local M20        = self._M2Ptr[1]*self._cellAvFac
       if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
-          (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum)) and (M20>0)) then
+          (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum)) and (M20>0)) or self._alwaysApply then
          cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._BmagInvPtr:data(), self._inNuSum, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), q:data(), out:data())
       else
          cflFreq = 0.0
@@ -177,7 +179,7 @@ function GkLBO:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql,
          local nuVtSqSum0 = self._nuVtSqSumPtr[1]*self._cellAvFac
          local M20        = self._M2Ptr[1]*self._cellAvFac
          if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
-             (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum)) and (M20>0)) then
+             (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum)) and (M20>0)) or self._alwaysApply then
             vMuMidMax = self._surfUpdate[dir-self._cdim](
                self._inMass, cfll, cflr, wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._inNuSum, maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
          end
@@ -211,7 +213,7 @@ function GkLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr,
          local nuVtSqSum0 = self._nuVtSqSumPtr[1]*self._cellAvFac
          local M20        = self._M2Ptr[1]*self._cellAvFac
          if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
-             (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum)) and (M20>0)) then
+             (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum)) and (M20>0)) or self._alwaysApply then
             vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
                self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._inNuSum, maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
          end

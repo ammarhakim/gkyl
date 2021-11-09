@@ -455,7 +455,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    local needVarNu               = false
    local userInputNuProfile      = false
    if self.collPairs[self.name][self.name].on then
-      self.needSelfPrimMom          = true
+      self.needSelfPrimMom       = true
       if (self.collPairs[self.name][self.name].kind=="GkLBO") or
          (self.collPairs[self.name][self.name].kind=="VmLBO") then
          self.needCorrectedSelfPrimMom = true

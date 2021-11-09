@@ -42,7 +42,7 @@ function VmLBO:init(tbl)
    self._vMaxSq = self._vMax[1]
    for vd = 1,self._vdim do
       if (self._vMaxSq < self._vMax[vd]) then
-        self._vMaxSq = self._vMax[vd]
+         self._vMaxSq = self._vMax[vd]
       end
    end
    self._vMaxSq = self._vMaxSq^2 
@@ -93,6 +93,8 @@ function VmLBO:init(tbl)
 
    -- Flag to indicate if we are being called for first time.
    self._isFirst = true
+
+   self._alwaysApply = false -- Turn to true to bypass robustness checks (for testing).
 end
 
 -- Methods.
@@ -152,7 +154,7 @@ function VmLBO:volTerm(w, dx, idx, q, out)
       -- If mean flow and thermal speeds are too high or if thermal
       -- speed is negative turn the LBO off (do not call kernels).
       local uCrossingNotFound, nuVtSqSum0 = self:checkPrimMomCrossings()
-      if (uCrossingNotFound and (nuVtSqSum0>0) and (nuVtSqSum0<(self._vMaxSq*self._inNuSum))) then
+      if (uCrossingNotFound and (nuVtSqSum0>0) and (nuVtSqSum0<(self._vMaxSq*self._inNuSum))) or self._alwaysApply then
          cflFreq = self._volUpdate(w:data(), dx:data(), self._inNuSum, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), q:data(), out:data())
       else
          cflFreq = 0.0
@@ -179,7 +181,7 @@ function VmLBO:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql,
          -- If mean flow and thermal speeds are too high or if thermal
          -- speed is negative turn the LBO off (do not call kernels).
          local uCrossingNotFound, nuVtSqSum0 = self:checkPrimMomCrossings()
-         if (uCrossingNotFound and (nuVtSqSum0>0) and (nuVtSqSum0<(self._vMaxSq*self._inNuSum))) then
+         if (uCrossingNotFound and (nuVtSqSum0>0) and (nuVtSqSum0<(self._vMaxSq*self._inNuSum))) or self._alwaysApply then
             vMuMidMax = self._surfUpdate[dir-self._cdim](
                wl:data(), wr:data(), dxl:data(), dxr:data(), self._inNuSum, maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
          end
@@ -207,7 +209,7 @@ function VmLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr,
          -- If mean flow and thermal speeds are too high or if thermal
          -- speed is negative turn the LBO off (do not call kernels).
          local uCrossingNotFound, nuVtSqSum0 = self:checkPrimMomCrossings()
-         if (uCrossingNotFound and (nuVtSqSum0>0) and (nuVtSqSum0<(self._vMaxSq*self._inNuSum))) then
+         if (uCrossingNotFound and (nuVtSqSum0>0) and (nuVtSqSum0<(self._vMaxSq*self._inNuSum))) or self._alwaysApply then
             vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
                wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inNuSum, maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
          end
