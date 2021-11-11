@@ -171,6 +171,16 @@ function GkLBOCollisions:fullInit(speciesTbl)
       self.nuFrac = 1.0
    end
 
+   -- Select between LBO-G and LBO-ET/LBO-EM.
+   local lboType = tbl.lboType and tbl.lboType or "LBO-G"
+   if lboType == "LBO-G" then
+      self.lboType = "GkLBOG"
+   elseif lboType == "LBO-EM" or lboType == "LBO-ET" then
+      self.lboType = "GkLBOE"
+   else
+      assert(false, "App.GkLBOCollisions: lboType not valid. Must be 'LBO-G', 'LBO-EM' or 'LBO-ET'.")
+   end
+
    self.usePositivity = speciesTbl.applyPositivity    -- Use positivity preserving algorithms.
 
    self.timers = {nonSlvr = 0.}
@@ -326,7 +336,7 @@ function GkLBOCollisions:createSolver(externalField)
          onGrid           = self.confGrid,
          phaseBasis       = self.phaseBasis,
          confBasis        = self.confBasis,
-         operator         = "GkLBO",
+         operator         = self.lboType,
          betaGreene       = self.betaGreene,
          varyingNu        = self.varNu,
          useCellAverageNu = self.cellConstNu,

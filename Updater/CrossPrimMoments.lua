@@ -52,7 +52,7 @@ function CrossPrimMoments:init(tbl)
 
    self._operator = assert(
       tbl.operator, "Updater.CrossPrimMoments: Must specify the collision operator (VmLBO, GkLBO, VmBGK or GkBGK) using 'operator'.")
-   assert(isOperatorGood(self._operator), string.format("CrossPrimMoments: Operator option must be 'VmLBO', 'GkLBO', 'VmBGK' or 'GkBGK'. Requested %s instead.", self._operator))
+   assert(isOperatorGood(self._operator), string.format("CrossPrimMoments: Operator option must be 'VmLBOG', 'VmLBOE', 'GkLBOG', 'GkLBOE', 'VmBGK' or 'GkBGK'. Requested %s instead.", self._operator))
 
    -- Indicate if collisionality is spatially varying and if it is cell-wise constant.
    self._varNu       = tbl.varyingNu
@@ -82,7 +82,7 @@ function CrossPrimMoments:init(tbl)
       uDim = 1
    end
    self._isLBO = false
-   if self._operator=="VmLBOG" or self._operator=="VmLBOE" or self._operator=="GkLBO" then
+   if self._operator=="VmLBOG" or self._operator=="VmLBOE" or self._operator=="GkLBOG" or self._operator=="GkLBOE" then
       self._isLBO = true
    end
 
