@@ -196,7 +196,7 @@ calcCrossPrimMomsBGK(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([],
       EfDiv[i,j] := "dataDiv->AEM_S"[i,j],
       Elhs : list_matrix_entries(genmatrix(EfDiv,NC-1,NC-1,0,0)),
       printf(fh, "  // Fill AEM matrix. ~%"),
-      printf(fh, "  dataDiv->AEM_S = Eigen::MatrixXd::Zero(~a,~a); ~%", NC, NC),
+      printf(fh, "  dataDiv->AEM_S.setZero(); ~%"),
       writeCExprsB(Elhs,Eflat)
     ),
     printf(fh, "  // Fill BEV. ~%"),

@@ -76,7 +76,7 @@ void VmBGKCrossPrimMoments2x2vSer_P1(binOpData_t *dataDiv, const double betaGree
   uRelDmnu[2] = uSelf[2]-1.0*uOther[2]; 
   uRelDmnu[3] = uSelf[3]-1.0*uOther[3]; 
   // Fill AEM matrix. 
-  dataDiv->AEM_S = Eigen::MatrixXd::Zero(4,4); 
+  dataDiv->AEM_S.setZero(); 
   dataDiv->AEM_S(0,0) = 0.5*m0rSelf[0]*mnuSelf+0.5*m0rOther[0]*mnuOther; 
   dataDiv->AEM_S(0,1) = 0.5*m0rSelf[1]*mnuSelf+0.5*m0rOther[1]*mnuOther; 
   dataDiv->AEM_S(0,2) = 0.5*m0rSelf[2]*mnuSelf+0.5*m0rOther[2]*mnuOther; 

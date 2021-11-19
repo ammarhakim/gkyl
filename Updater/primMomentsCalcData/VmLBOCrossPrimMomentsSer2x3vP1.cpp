@@ -283,7 +283,7 @@ void VmLBOGCrossPrimMoments2x3vSer_P1(binOpData_t *data, binOpData_t *dataDiv, c
   } 
  
   // Declare Eigen matrix and vectors for weak system. 
-  data->AEM_S = Eigen::MatrixXd::Zero(32,32); 
+  data->AEM_S.setZero(); 
  
   double mnuSelf   = mSelf*nuSelf; 
   double mnuOther  = mOther*nuOther; 
@@ -1554,7 +1554,7 @@ void VmLBOECrossPrimMoments2x3vSer_P1(binOpData_t *data, binOpData_t *dataDiv, c
   } 
  
   // Declare Eigen matrix and vectors for weak system. 
-  data->AEM_S = Eigen::MatrixXd::Zero(32,32); 
+  data->AEM_S.setZero(); 
  
   double mnuSelf   = mSelf*nuSelf; 
   double mnuOther  = mOther*nuOther; 
@@ -1602,40 +1602,40 @@ void VmLBOECrossPrimMoments2x3vSer_P1(binOpData_t *data, binOpData_t *dataDiv, c
   data->AEM_S(3,15) = -0.5*cMrSelf[0]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherX ... // 
-  data->AEM_S(0,16) = 0.5*m0rOther[0]*mnuOther; 
-  data->AEM_S(0,17) = 0.5*m0rOther[1]*mnuOther; 
-  data->AEM_S(0,18) = 0.5*m0rOther[2]*mnuOther; 
-  data->AEM_S(0,19) = 0.5*m0rOther[3]*mnuOther; 
-  data->AEM_S(1,16) = 0.5*m0rOther[1]*mnuOther; 
-  data->AEM_S(1,17) = 0.5*m0rOther[0]*mnuOther; 
-  data->AEM_S(1,18) = 0.5*m0rOther[3]*mnuOther; 
-  data->AEM_S(1,19) = 0.5*m0rOther[2]*mnuOther; 
-  data->AEM_S(2,16) = 0.5*m0rOther[2]*mnuOther; 
-  data->AEM_S(2,17) = 0.5*m0rOther[3]*mnuOther; 
-  data->AEM_S(2,18) = 0.5*m0rOther[0]*mnuOther; 
-  data->AEM_S(2,19) = 0.5*m0rOther[1]*mnuOther; 
-  data->AEM_S(3,16) = 0.5*m0rOther[3]*mnuOther; 
-  data->AEM_S(3,17) = 0.5*m0rOther[2]*mnuOther; 
-  data->AEM_S(3,18) = 0.5*m0rOther[1]*mnuOther; 
-  data->AEM_S(3,19) = 0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(0,0) += 0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(0,1) += 0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(0,2) += 0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(0,3) += 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(1,0) += 0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(1,1) += 0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(1,2) += 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(1,3) += 0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(2,0) += 0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(2,1) += 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(2,2) += 0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(2,3) += 0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(3,0) += 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(3,1) += 0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(3,2) += 0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(3,3) += 0.5*m0rOther[0]*mnuOther; 
  
   // ... Block from correction to momentum conservation (other) ... // 
-  data->AEM_S(0,28) = -0.5*cMrOther[0]*mnuOther; 
-  data->AEM_S(0,29) = -0.5*cMrOther[1]*mnuOther; 
-  data->AEM_S(0,30) = -0.5*cMrOther[2]*mnuOther; 
-  data->AEM_S(0,31) = -0.5*cMrOther[3]*mnuOther; 
-  data->AEM_S(1,28) = -0.5*cMrOther[1]*mnuOther; 
-  data->AEM_S(1,29) = -0.5*cMrOther[0]*mnuOther; 
-  data->AEM_S(1,30) = -0.5*cMrOther[3]*mnuOther; 
-  data->AEM_S(1,31) = -0.5*cMrOther[2]*mnuOther; 
-  data->AEM_S(2,28) = -0.5*cMrOther[2]*mnuOther; 
-  data->AEM_S(2,29) = -0.5*cMrOther[3]*mnuOther; 
-  data->AEM_S(2,30) = -0.5*cMrOther[0]*mnuOther; 
-  data->AEM_S(2,31) = -0.5*cMrOther[1]*mnuOther; 
-  data->AEM_S(3,28) = -0.5*cMrOther[3]*mnuOther; 
-  data->AEM_S(3,29) = -0.5*cMrOther[2]*mnuOther; 
-  data->AEM_S(3,30) = -0.5*cMrOther[1]*mnuOther; 
-  data->AEM_S(3,31) = -0.5*cMrOther[0]*mnuOther; 
+  data->AEM_S(0,12) += -(0.5*cMrOther[0]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(0,13) += -(0.5*cMrOther[1]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(0,14) += -(0.5*cMrOther[2]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(0,15) += -(0.5*cMrOther[3]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(1,12) += -(0.5*cMrOther[1]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(1,13) += -(0.5*cMrOther[0]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(1,14) += -(0.5*cMrOther[3]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(1,15) += -(0.5*cMrOther[2]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(2,12) += -(0.5*cMrOther[2]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(2,13) += -(0.5*cMrOther[3]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(2,14) += -(0.5*cMrOther[0]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(2,15) += -(0.5*cMrOther[1]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(3,12) += -(0.5*cMrOther[3]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(3,13) += -(0.5*cMrOther[2]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(3,14) += -(0.5*cMrOther[1]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(3,15) += -(0.5*cMrOther[0]*mSelf*mnuOther)/mOther; 
  
   // ... Block from weak multiply of mSelf, nuSelf, m1SelfX and uCrossSelfX ... // 
   data->AEM_S(12,0) = 0.5*m1SrSelf[0]*mnuSelf; 
@@ -1656,22 +1656,22 @@ void VmLBOECrossPrimMoments2x3vSer_P1(binOpData_t *data, binOpData_t *dataDiv, c
   data->AEM_S(15,3) = 0.5*m1SrSelf[0]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, m1OtherX and uCrossOtherX ... // 
-  data->AEM_S(12,16) = 0.5*m1SrOther[0]*mnuOther; 
-  data->AEM_S(12,17) = 0.5*m1SrOther[1]*mnuOther; 
-  data->AEM_S(12,18) = 0.5*m1SrOther[2]*mnuOther; 
-  data->AEM_S(12,19) = 0.5*m1SrOther[3]*mnuOther; 
-  data->AEM_S(13,16) = 0.5*m1SrOther[1]*mnuOther; 
-  data->AEM_S(13,17) = 0.5*m1SrOther[0]*mnuOther; 
-  data->AEM_S(13,18) = 0.5*m1SrOther[3]*mnuOther; 
-  data->AEM_S(13,19) = 0.5*m1SrOther[2]*mnuOther; 
-  data->AEM_S(14,16) = 0.5*m1SrOther[2]*mnuOther; 
-  data->AEM_S(14,17) = 0.5*m1SrOther[3]*mnuOther; 
-  data->AEM_S(14,18) = 0.5*m1SrOther[0]*mnuOther; 
-  data->AEM_S(14,19) = 0.5*m1SrOther[1]*mnuOther; 
-  data->AEM_S(15,16) = 0.5*m1SrOther[3]*mnuOther; 
-  data->AEM_S(15,17) = 0.5*m1SrOther[2]*mnuOther; 
-  data->AEM_S(15,18) = 0.5*m1SrOther[1]*mnuOther; 
-  data->AEM_S(15,19) = 0.5*m1SrOther[0]*mnuOther; 
+  data->AEM_S(12,0) += 0.5*m1SrOther[0]*mnuOther; 
+  data->AEM_S(12,1) += 0.5*m1SrOther[1]*mnuOther; 
+  data->AEM_S(12,2) += 0.5*m1SrOther[2]*mnuOther; 
+  data->AEM_S(12,3) += 0.5*m1SrOther[3]*mnuOther; 
+  data->AEM_S(13,0) += 0.5*m1SrOther[1]*mnuOther; 
+  data->AEM_S(13,1) += 0.5*m1SrOther[0]*mnuOther; 
+  data->AEM_S(13,2) += 0.5*m1SrOther[3]*mnuOther; 
+  data->AEM_S(13,3) += 0.5*m1SrOther[2]*mnuOther; 
+  data->AEM_S(14,0) += 0.5*m1SrOther[2]*mnuOther; 
+  data->AEM_S(14,1) += 0.5*m1SrOther[3]*mnuOther; 
+  data->AEM_S(14,2) += 0.5*m1SrOther[0]*mnuOther; 
+  data->AEM_S(14,3) += 0.5*m1SrOther[1]*mnuOther; 
+  data->AEM_S(15,0) += 0.5*m1SrOther[3]*mnuOther; 
+  data->AEM_S(15,1) += 0.5*m1SrOther[2]*mnuOther; 
+  data->AEM_S(15,2) += 0.5*m1SrOther[1]*mnuOther; 
+  data->AEM_S(15,3) += 0.5*m1SrOther[0]*mnuOther; 
  
   // ... Contribution to RHS vector from component 1 of mnuM1Self+mnuM1Other. 
   mnuM1sum[0] += m1rSelf[0]*mnuSelf+m1rOther[0]*mnuOther; 
@@ -1716,40 +1716,40 @@ void VmLBOECrossPrimMoments2x3vSer_P1(binOpData_t *data, binOpData_t *dataDiv, c
   data->AEM_S(7,15) = -0.5*cMrSelf[4]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherY ... // 
-  data->AEM_S(4,20) = 0.5*m0rOther[0]*mnuOther; 
-  data->AEM_S(4,21) = 0.5*m0rOther[1]*mnuOther; 
-  data->AEM_S(4,22) = 0.5*m0rOther[2]*mnuOther; 
-  data->AEM_S(4,23) = 0.5*m0rOther[3]*mnuOther; 
-  data->AEM_S(5,20) = 0.5*m0rOther[1]*mnuOther; 
-  data->AEM_S(5,21) = 0.5*m0rOther[0]*mnuOther; 
-  data->AEM_S(5,22) = 0.5*m0rOther[3]*mnuOther; 
-  data->AEM_S(5,23) = 0.5*m0rOther[2]*mnuOther; 
-  data->AEM_S(6,20) = 0.5*m0rOther[2]*mnuOther; 
-  data->AEM_S(6,21) = 0.5*m0rOther[3]*mnuOther; 
-  data->AEM_S(6,22) = 0.5*m0rOther[0]*mnuOther; 
-  data->AEM_S(6,23) = 0.5*m0rOther[1]*mnuOther; 
-  data->AEM_S(7,20) = 0.5*m0rOther[3]*mnuOther; 
-  data->AEM_S(7,21) = 0.5*m0rOther[2]*mnuOther; 
-  data->AEM_S(7,22) = 0.5*m0rOther[1]*mnuOther; 
-  data->AEM_S(7,23) = 0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(4,4) += 0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(4,5) += 0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(4,6) += 0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(4,7) += 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(5,4) += 0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(5,5) += 0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(5,6) += 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(5,7) += 0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(6,4) += 0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(6,5) += 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(6,6) += 0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(6,7) += 0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(7,4) += 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(7,5) += 0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(7,6) += 0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(7,7) += 0.5*m0rOther[0]*mnuOther; 
  
   // ... Block from correction to momentum conservation (other) ... // 
-  data->AEM_S(4,28) = -0.5*cMrOther[4]*mnuOther; 
-  data->AEM_S(4,29) = -0.5*cMrOther[5]*mnuOther; 
-  data->AEM_S(4,30) = -0.5*cMrOther[6]*mnuOther; 
-  data->AEM_S(4,31) = -0.5*cMrOther[7]*mnuOther; 
-  data->AEM_S(5,28) = -0.5*cMrOther[5]*mnuOther; 
-  data->AEM_S(5,29) = -0.5*cMrOther[4]*mnuOther; 
-  data->AEM_S(5,30) = -0.5*cMrOther[7]*mnuOther; 
-  data->AEM_S(5,31) = -0.5*cMrOther[6]*mnuOther; 
-  data->AEM_S(6,28) = -0.5*cMrOther[6]*mnuOther; 
-  data->AEM_S(6,29) = -0.5*cMrOther[7]*mnuOther; 
-  data->AEM_S(6,30) = -0.5*cMrOther[4]*mnuOther; 
-  data->AEM_S(6,31) = -0.5*cMrOther[5]*mnuOther; 
-  data->AEM_S(7,28) = -0.5*cMrOther[7]*mnuOther; 
-  data->AEM_S(7,29) = -0.5*cMrOther[6]*mnuOther; 
-  data->AEM_S(7,30) = -0.5*cMrOther[5]*mnuOther; 
-  data->AEM_S(7,31) = -0.5*cMrOther[4]*mnuOther; 
+  data->AEM_S(4,12) += -(0.5*cMrOther[4]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(4,13) += -(0.5*cMrOther[5]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(4,14) += -(0.5*cMrOther[6]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(4,15) += -(0.5*cMrOther[7]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(5,12) += -(0.5*cMrOther[5]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(5,13) += -(0.5*cMrOther[4]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(5,14) += -(0.5*cMrOther[7]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(5,15) += -(0.5*cMrOther[6]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(6,12) += -(0.5*cMrOther[6]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(6,13) += -(0.5*cMrOther[7]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(6,14) += -(0.5*cMrOther[4]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(6,15) += -(0.5*cMrOther[5]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(7,12) += -(0.5*cMrOther[7]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(7,13) += -(0.5*cMrOther[6]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(7,14) += -(0.5*cMrOther[5]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(7,15) += -(0.5*cMrOther[4]*mSelf*mnuOther)/mOther; 
  
   // ... Block from weak multiply of mSelf, nuSelf, m1SelfY and uCrossSelfY ... // 
   data->AEM_S(12,4) = 0.5*m1SrSelf[4]*mnuSelf; 
@@ -1770,22 +1770,22 @@ void VmLBOECrossPrimMoments2x3vSer_P1(binOpData_t *data, binOpData_t *dataDiv, c
   data->AEM_S(15,7) = 0.5*m1SrSelf[4]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, m1OtherY and uCrossOtherY ... // 
-  data->AEM_S(12,20) = 0.5*m1SrOther[4]*mnuOther; 
-  data->AEM_S(12,21) = 0.5*m1SrOther[5]*mnuOther; 
-  data->AEM_S(12,22) = 0.5*m1SrOther[6]*mnuOther; 
-  data->AEM_S(12,23) = 0.5*m1SrOther[7]*mnuOther; 
-  data->AEM_S(13,20) = 0.5*m1SrOther[5]*mnuOther; 
-  data->AEM_S(13,21) = 0.5*m1SrOther[4]*mnuOther; 
-  data->AEM_S(13,22) = 0.5*m1SrOther[7]*mnuOther; 
-  data->AEM_S(13,23) = 0.5*m1SrOther[6]*mnuOther; 
-  data->AEM_S(14,20) = 0.5*m1SrOther[6]*mnuOther; 
-  data->AEM_S(14,21) = 0.5*m1SrOther[7]*mnuOther; 
-  data->AEM_S(14,22) = 0.5*m1SrOther[4]*mnuOther; 
-  data->AEM_S(14,23) = 0.5*m1SrOther[5]*mnuOther; 
-  data->AEM_S(15,20) = 0.5*m1SrOther[7]*mnuOther; 
-  data->AEM_S(15,21) = 0.5*m1SrOther[6]*mnuOther; 
-  data->AEM_S(15,22) = 0.5*m1SrOther[5]*mnuOther; 
-  data->AEM_S(15,23) = 0.5*m1SrOther[4]*mnuOther; 
+  data->AEM_S(12,4) += 0.5*m1SrOther[4]*mnuOther; 
+  data->AEM_S(12,5) += 0.5*m1SrOther[5]*mnuOther; 
+  data->AEM_S(12,6) += 0.5*m1SrOther[6]*mnuOther; 
+  data->AEM_S(12,7) += 0.5*m1SrOther[7]*mnuOther; 
+  data->AEM_S(13,4) += 0.5*m1SrOther[5]*mnuOther; 
+  data->AEM_S(13,5) += 0.5*m1SrOther[4]*mnuOther; 
+  data->AEM_S(13,6) += 0.5*m1SrOther[7]*mnuOther; 
+  data->AEM_S(13,7) += 0.5*m1SrOther[6]*mnuOther; 
+  data->AEM_S(14,4) += 0.5*m1SrOther[6]*mnuOther; 
+  data->AEM_S(14,5) += 0.5*m1SrOther[7]*mnuOther; 
+  data->AEM_S(14,6) += 0.5*m1SrOther[4]*mnuOther; 
+  data->AEM_S(14,7) += 0.5*m1SrOther[5]*mnuOther; 
+  data->AEM_S(15,4) += 0.5*m1SrOther[7]*mnuOther; 
+  data->AEM_S(15,5) += 0.5*m1SrOther[6]*mnuOther; 
+  data->AEM_S(15,6) += 0.5*m1SrOther[5]*mnuOther; 
+  data->AEM_S(15,7) += 0.5*m1SrOther[4]*mnuOther; 
  
   // ... Contribution to RHS vector from component 2 of mnuM1Self+mnuM1Other. 
   mnuM1sum[4] += m1rSelf[4]*mnuSelf+m1rOther[4]*mnuOther; 
@@ -1830,40 +1830,40 @@ void VmLBOECrossPrimMoments2x3vSer_P1(binOpData_t *data, binOpData_t *dataDiv, c
   data->AEM_S(11,15) = -0.5*cMrSelf[8]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherZ ... // 
-  data->AEM_S(8,24) = 0.5*m0rOther[0]*mnuOther; 
-  data->AEM_S(8,25) = 0.5*m0rOther[1]*mnuOther; 
-  data->AEM_S(8,26) = 0.5*m0rOther[2]*mnuOther; 
-  data->AEM_S(8,27) = 0.5*m0rOther[3]*mnuOther; 
-  data->AEM_S(9,24) = 0.5*m0rOther[1]*mnuOther; 
-  data->AEM_S(9,25) = 0.5*m0rOther[0]*mnuOther; 
-  data->AEM_S(9,26) = 0.5*m0rOther[3]*mnuOther; 
-  data->AEM_S(9,27) = 0.5*m0rOther[2]*mnuOther; 
-  data->AEM_S(10,24) = 0.5*m0rOther[2]*mnuOther; 
-  data->AEM_S(10,25) = 0.5*m0rOther[3]*mnuOther; 
-  data->AEM_S(10,26) = 0.5*m0rOther[0]*mnuOther; 
-  data->AEM_S(10,27) = 0.5*m0rOther[1]*mnuOther; 
-  data->AEM_S(11,24) = 0.5*m0rOther[3]*mnuOther; 
-  data->AEM_S(11,25) = 0.5*m0rOther[2]*mnuOther; 
-  data->AEM_S(11,26) = 0.5*m0rOther[1]*mnuOther; 
-  data->AEM_S(11,27) = 0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(8,8) += 0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(8,9) += 0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(8,10) += 0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(8,11) += 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(9,8) += 0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(9,9) += 0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(9,10) += 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(9,11) += 0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(10,8) += 0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(10,9) += 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(10,10) += 0.5*m0rOther[0]*mnuOther; 
+  data->AEM_S(10,11) += 0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(11,8) += 0.5*m0rOther[3]*mnuOther; 
+  data->AEM_S(11,9) += 0.5*m0rOther[2]*mnuOther; 
+  data->AEM_S(11,10) += 0.5*m0rOther[1]*mnuOther; 
+  data->AEM_S(11,11) += 0.5*m0rOther[0]*mnuOther; 
  
   // ... Block from correction to momentum conservation (other) ... // 
-  data->AEM_S(8,28) = -0.5*cMrOther[8]*mnuOther; 
-  data->AEM_S(8,29) = -0.5*cMrOther[9]*mnuOther; 
-  data->AEM_S(8,30) = -0.5*cMrOther[10]*mnuOther; 
-  data->AEM_S(8,31) = -0.5*cMrOther[11]*mnuOther; 
-  data->AEM_S(9,28) = -0.5*cMrOther[9]*mnuOther; 
-  data->AEM_S(9,29) = -0.5*cMrOther[8]*mnuOther; 
-  data->AEM_S(9,30) = -0.5*cMrOther[11]*mnuOther; 
-  data->AEM_S(9,31) = -0.5*cMrOther[10]*mnuOther; 
-  data->AEM_S(10,28) = -0.5*cMrOther[10]*mnuOther; 
-  data->AEM_S(10,29) = -0.5*cMrOther[11]*mnuOther; 
-  data->AEM_S(10,30) = -0.5*cMrOther[8]*mnuOther; 
-  data->AEM_S(10,31) = -0.5*cMrOther[9]*mnuOther; 
-  data->AEM_S(11,28) = -0.5*cMrOther[11]*mnuOther; 
-  data->AEM_S(11,29) = -0.5*cMrOther[10]*mnuOther; 
-  data->AEM_S(11,30) = -0.5*cMrOther[9]*mnuOther; 
-  data->AEM_S(11,31) = -0.5*cMrOther[8]*mnuOther; 
+  data->AEM_S(8,12) += -(0.5*cMrOther[8]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(8,13) += -(0.5*cMrOther[9]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(8,14) += -(0.5*cMrOther[10]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(8,15) += -(0.5*cMrOther[11]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(9,12) += -(0.5*cMrOther[9]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(9,13) += -(0.5*cMrOther[8]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(9,14) += -(0.5*cMrOther[11]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(9,15) += -(0.5*cMrOther[10]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(10,12) += -(0.5*cMrOther[10]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(10,13) += -(0.5*cMrOther[11]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(10,14) += -(0.5*cMrOther[8]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(10,15) += -(0.5*cMrOther[9]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(11,12) += -(0.5*cMrOther[11]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(11,13) += -(0.5*cMrOther[10]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(11,14) += -(0.5*cMrOther[9]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(11,15) += -(0.5*cMrOther[8]*mSelf*mnuOther)/mOther; 
  
   // ... Block from weak multiply of mSelf, nuSelf, m1SelfZ and uCrossSelfZ ... // 
   data->AEM_S(12,8) = 0.5*m1SrSelf[8]*mnuSelf; 
@@ -1884,22 +1884,22 @@ void VmLBOECrossPrimMoments2x3vSer_P1(binOpData_t *data, binOpData_t *dataDiv, c
   data->AEM_S(15,11) = 0.5*m1SrSelf[8]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, m1OtherZ and uCrossOtherZ ... // 
-  data->AEM_S(12,24) = 0.5*m1SrOther[8]*mnuOther; 
-  data->AEM_S(12,25) = 0.5*m1SrOther[9]*mnuOther; 
-  data->AEM_S(12,26) = 0.5*m1SrOther[10]*mnuOther; 
-  data->AEM_S(12,27) = 0.5*m1SrOther[11]*mnuOther; 
-  data->AEM_S(13,24) = 0.5*m1SrOther[9]*mnuOther; 
-  data->AEM_S(13,25) = 0.5*m1SrOther[8]*mnuOther; 
-  data->AEM_S(13,26) = 0.5*m1SrOther[11]*mnuOther; 
-  data->AEM_S(13,27) = 0.5*m1SrOther[10]*mnuOther; 
-  data->AEM_S(14,24) = 0.5*m1SrOther[10]*mnuOther; 
-  data->AEM_S(14,25) = 0.5*m1SrOther[11]*mnuOther; 
-  data->AEM_S(14,26) = 0.5*m1SrOther[8]*mnuOther; 
-  data->AEM_S(14,27) = 0.5*m1SrOther[9]*mnuOther; 
-  data->AEM_S(15,24) = 0.5*m1SrOther[11]*mnuOther; 
-  data->AEM_S(15,25) = 0.5*m1SrOther[10]*mnuOther; 
-  data->AEM_S(15,26) = 0.5*m1SrOther[9]*mnuOther; 
-  data->AEM_S(15,27) = 0.5*m1SrOther[8]*mnuOther; 
+  data->AEM_S(12,8) += 0.5*m1SrOther[8]*mnuOther; 
+  data->AEM_S(12,9) += 0.5*m1SrOther[9]*mnuOther; 
+  data->AEM_S(12,10) += 0.5*m1SrOther[10]*mnuOther; 
+  data->AEM_S(12,11) += 0.5*m1SrOther[11]*mnuOther; 
+  data->AEM_S(13,8) += 0.5*m1SrOther[9]*mnuOther; 
+  data->AEM_S(13,9) += 0.5*m1SrOther[8]*mnuOther; 
+  data->AEM_S(13,10) += 0.5*m1SrOther[11]*mnuOther; 
+  data->AEM_S(13,11) += 0.5*m1SrOther[10]*mnuOther; 
+  data->AEM_S(14,8) += 0.5*m1SrOther[10]*mnuOther; 
+  data->AEM_S(14,9) += 0.5*m1SrOther[11]*mnuOther; 
+  data->AEM_S(14,10) += 0.5*m1SrOther[8]*mnuOther; 
+  data->AEM_S(14,11) += 0.5*m1SrOther[9]*mnuOther; 
+  data->AEM_S(15,8) += 0.5*m1SrOther[11]*mnuOther; 
+  data->AEM_S(15,9) += 0.5*m1SrOther[10]*mnuOther; 
+  data->AEM_S(15,10) += 0.5*m1SrOther[9]*mnuOther; 
+  data->AEM_S(15,11) += 0.5*m1SrOther[8]*mnuOther; 
  
   // ... Contribution to RHS vector from component 3 of mnuM1Self+mnuM1Other. 
   mnuM1sum[8] += m1rSelf[8]*mnuSelf+m1rOther[8]*mnuOther; 
@@ -1926,22 +1926,22 @@ void VmLBOECrossPrimMoments2x3vSer_P1(binOpData_t *data, binOpData_t *dataDiv, c
   data->AEM_S(15,15) = 0.5*m0SrSelf[0]*mnuSelf-0.5*cErSelf[0]*mnuSelf; 
  
   // ... Block from correction to energy conservation (other) ... // 
-  data->AEM_S(12,28) = 0.5*m0SrOther[0]*mnuOther-0.5*cErOther[0]*mnuOther; 
-  data->AEM_S(12,29) = 0.5*m0SrOther[1]*mnuOther-0.5*cErOther[1]*mnuOther; 
-  data->AEM_S(12,30) = 0.5*m0SrOther[2]*mnuOther-0.5*cErOther[2]*mnuOther; 
-  data->AEM_S(12,31) = 0.5*m0SrOther[3]*mnuOther-0.5*cErOther[3]*mnuOther; 
-  data->AEM_S(13,28) = 0.5*m0SrOther[1]*mnuOther-0.5*cErOther[1]*mnuOther; 
-  data->AEM_S(13,29) = 0.5*m0SrOther[0]*mnuOther-0.5*cErOther[0]*mnuOther; 
-  data->AEM_S(13,30) = 0.5*m0SrOther[3]*mnuOther-0.5*cErOther[3]*mnuOther; 
-  data->AEM_S(13,31) = 0.5*m0SrOther[2]*mnuOther-0.5*cErOther[2]*mnuOther; 
-  data->AEM_S(14,28) = 0.5*m0SrOther[2]*mnuOther-0.5*cErOther[2]*mnuOther; 
-  data->AEM_S(14,29) = 0.5*m0SrOther[3]*mnuOther-0.5*cErOther[3]*mnuOther; 
-  data->AEM_S(14,30) = 0.5*m0SrOther[0]*mnuOther-0.5*cErOther[0]*mnuOther; 
-  data->AEM_S(14,31) = 0.5*m0SrOther[1]*mnuOther-0.5*cErOther[1]*mnuOther; 
-  data->AEM_S(15,28) = 0.5*m0SrOther[3]*mnuOther-0.5*cErOther[3]*mnuOther; 
-  data->AEM_S(15,29) = 0.5*m0SrOther[2]*mnuOther-0.5*cErOther[2]*mnuOther; 
-  data->AEM_S(15,30) = 0.5*m0SrOther[1]*mnuOther-0.5*cErOther[1]*mnuOther; 
-  data->AEM_S(15,31) = 0.5*m0SrOther[0]*mnuOther-0.5*cErOther[0]*mnuOther; 
+  data->AEM_S(12,12) += (0.5*m0SrOther[0]*mSelf*mnuOther)/mOther-(0.5*cErOther[0]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(12,13) += (0.5*m0SrOther[1]*mSelf*mnuOther)/mOther-(0.5*cErOther[1]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(12,14) += (0.5*m0SrOther[2]*mSelf*mnuOther)/mOther-(0.5*cErOther[2]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(12,15) += (0.5*m0SrOther[3]*mSelf*mnuOther)/mOther-(0.5*cErOther[3]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(13,12) += (0.5*m0SrOther[1]*mSelf*mnuOther)/mOther-(0.5*cErOther[1]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(13,13) += (0.5*m0SrOther[0]*mSelf*mnuOther)/mOther-(0.5*cErOther[0]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(13,14) += (0.5*m0SrOther[3]*mSelf*mnuOther)/mOther-(0.5*cErOther[3]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(13,15) += (0.5*m0SrOther[2]*mSelf*mnuOther)/mOther-(0.5*cErOther[2]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(14,12) += (0.5*m0SrOther[2]*mSelf*mnuOther)/mOther-(0.5*cErOther[2]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(14,13) += (0.5*m0SrOther[3]*mSelf*mnuOther)/mOther-(0.5*cErOther[3]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(14,14) += (0.5*m0SrOther[0]*mSelf*mnuOther)/mOther-(0.5*cErOther[0]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(14,15) += (0.5*m0SrOther[1]*mSelf*mnuOther)/mOther-(0.5*cErOther[1]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(15,12) += (0.5*m0SrOther[3]*mSelf*mnuOther)/mOther-(0.5*cErOther[3]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(15,13) += (0.5*m0SrOther[2]*mSelf*mnuOther)/mOther-(0.5*cErOther[2]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(15,14) += (0.5*m0SrOther[1]*mSelf*mnuOther)/mOther-(0.5*cErOther[1]*mSelf*mnuOther)/mOther; 
+  data->AEM_S(15,15) += (0.5*m0SrOther[0]*mSelf*mnuOther)/mOther-(0.5*cErOther[0]*mSelf*mnuOther)/mOther; 
  
   double mnuM2sum[4]; 
   // ... Contribution to RHS vector from mnuM2Self+mnuM2Other. 
@@ -1960,74 +1960,8 @@ void VmLBOECrossPrimMoments2x3vSer_P1(binOpData_t *data, binOpData_t *dataDiv, c
   data->AEM_S.block<4,4>(4,24).setZero(); 
   data->AEM_S.block<4,4>(8,20).setZero(); 
  
-  // ... Equality block from uCrossSelfX ... // 
-  data->AEM_S(16,0) = 1.0; 
-  data->AEM_S(17,1) = 1.0; 
-  data->AEM_S(18,2) = 1.0; 
-  data->AEM_S(19,3) = 1.0; 
- 
-  // ... Equality block from uCrossOtherX ... // 
-  data->AEM_S(16,16) = -1.0; 
-  data->AEM_S(17,17) = -1.0; 
-  data->AEM_S(18,18) = -1.0; 
-  data->AEM_S(19,19) = -1.0; 
- 
-  // ... Contribution to RHS vector from uCrossSelfX=uCrossOtherX equation. 
- 
-  // ... Equality block from uCrossSelfY ... // 
-  data->AEM_S(20,4) = 1.0; 
-  data->AEM_S(21,5) = 1.0; 
-  data->AEM_S(22,6) = 1.0; 
-  data->AEM_S(23,7) = 1.0; 
- 
-  // ... Equality block from uCrossOtherY ... // 
-  data->AEM_S(20,20) = -1.0; 
-  data->AEM_S(21,21) = -1.0; 
-  data->AEM_S(22,22) = -1.0; 
-  data->AEM_S(23,23) = -1.0; 
- 
-  // ... Contribution to RHS vector from uCrossSelfY=uCrossOtherY equation. 
- 
-  // ... Equality block from uCrossSelfZ ... // 
-  data->AEM_S(24,8) = 1.0; 
-  data->AEM_S(25,9) = 1.0; 
-  data->AEM_S(26,10) = 1.0; 
-  data->AEM_S(27,11) = 1.0; 
- 
-  // ... Equality block from uCrossOtherZ ... // 
-  data->AEM_S(24,24) = -1.0; 
-  data->AEM_S(25,25) = -1.0; 
-  data->AEM_S(26,26) = -1.0; 
-  data->AEM_S(27,27) = -1.0; 
- 
-  // ... Contribution to RHS vector from uCrossSelfZ=uCrossOtherZ equation. 
- 
-  // ... Equality block from mSelf*vtSqCrossSelf ... // 
-  data->AEM_S(28,12) = mSelf; 
-  data->AEM_S(29,13) = mSelf; 
-  data->AEM_S(30,14) = mSelf; 
-  data->AEM_S(31,15) = mSelf; 
- 
-  // ... Equality block from mOther*vtSqCrossOther ... // 
-  data->AEM_S(28,28) = -1.0*mOther; 
-  data->AEM_S(29,29) = -1.0*mOther; 
-  data->AEM_S(30,30) = -1.0*mOther; 
-  data->AEM_S(31,31) = -1.0*mOther; 
- 
-  // ... Contribution to RHS vector from mSelf*vtSqCrossSelf = mOther*vtSqCrossOther. 
- 
-  // Set other entries to 0. // 
-  data->AEM_S.block<4,8>(16,4).setZero(); 
-  data->AEM_S.block<8,4>(20,0).setZero(); 
-  data->AEM_S.block<4,4>(20,8).setZero(); 
-  data->AEM_S.block<4,4>(24,4).setZero(); 
-  data->AEM_S.block<4,8>(16,20).setZero(); 
-  data->AEM_S.block<8,4>(20,16).setZero(); 
-  data->AEM_S.block<4,4>(20,24).setZero(); 
-  data->AEM_S.block<4,4>(24,20).setZero(); 
- 
   // ....... RHS vector is composed of m1 and m2 .......... // 
-  data->BEV_S << mnuM1sum[0],mnuM1sum[1],mnuM1sum[2],mnuM1sum[3],mnuM1sum[4],mnuM1sum[5],mnuM1sum[6],mnuM1sum[7],mnuM1sum[8],mnuM1sum[9],mnuM1sum[10],mnuM1sum[11],mnuM2sum[0],mnuM2sum[1],mnuM2sum[2],mnuM2sum[3],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0; 
+  data->BEV_S << mnuM1sum[0],mnuM1sum[1],mnuM1sum[2],mnuM1sum[3],mnuM1sum[4],mnuM1sum[5],mnuM1sum[6],mnuM1sum[7],mnuM1sum[8],mnuM1sum[9],mnuM1sum[10],mnuM1sum[11],mnuM2sum[0],mnuM2sum[1],mnuM2sum[2],mnuM2sum[3]; 
  
   data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
  
@@ -2035,9 +1969,21 @@ void VmLBOECrossPrimMoments2x3vSer_P1(binOpData_t *data, binOpData_t *dataDiv, c
  
   Eigen::Map<VectorXd>(vtSqCrossSelf,4,1) = data->u_S.segment<4>(12); 
  
-  Eigen::Map<VectorXd>(uCrossOther,12,1) = data->u_S.segment<12>(16); 
- 
-  Eigen::Map<VectorXd>(vtSqCrossOther,4,1) = data->u_S.segment<4>(28); 
- 
+  uCrossOther[0] = uCrossSelf[0]; 
+  uCrossOther[1] = uCrossSelf[1]; 
+  uCrossOther[2] = uCrossSelf[2]; 
+  uCrossOther[3] = uCrossSelf[3]; 
+  uCrossOther[4] = uCrossSelf[4]; 
+  uCrossOther[5] = uCrossSelf[5]; 
+  uCrossOther[6] = uCrossSelf[6]; 
+  uCrossOther[7] = uCrossSelf[7]; 
+  uCrossOther[8] = uCrossSelf[8]; 
+  uCrossOther[9] = uCrossSelf[9]; 
+  uCrossOther[10] = uCrossSelf[10]; 
+  uCrossOther[11] = uCrossSelf[11]; 
+  vtSqCrossOther[0] = (vtSqCrossSelf[0]*mSelf)/mOther; 
+  vtSqCrossOther[1] = (vtSqCrossSelf[1]*mSelf)/mOther; 
+  vtSqCrossOther[2] = (vtSqCrossSelf[2]*mSelf)/mOther; 
+  vtSqCrossOther[3] = (vtSqCrossSelf[3]*mSelf)/mOther; 
 } 
  

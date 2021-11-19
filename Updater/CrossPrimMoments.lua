@@ -51,16 +51,15 @@ function CrossPrimMoments:init(tbl)
       tbl.confBasis, "Updater.CrossPrimMoments: Must provide the configuration basis object using 'confBasis'.")
 
    self._operator = assert(
-      tbl.operator, "Updater.CrossPrimMoments: Must specify the collision operator (VmLBO, GkLBO, VmBGK or GkBGK) using 'operator'.")
+      tbl.operator, "Updater.CrossPrimMoments: Must specify the collision operator using 'operator'.")
    assert(isOperatorGood(self._operator), string.format("CrossPrimMoments: Operator option must be 'VmLBOG', 'VmLBOE', 'GkLBOG', 'GkLBOE', 'VmBGK' or 'GkBGK'. Requested %s instead.", self._operator))
 
    -- Indicate if collisionality is spatially varying and if it is cell-wise constant.
    self._varNu       = tbl.varyingNu
    self._cellConstNu = tbl.useCellAverageNu 
 
-   -- Free-parameter in John Greene's equations.
-   self._beta   = tbl.betaGreene
-   self._betaP1 = self._beta+1
+   -- beta is the free-parameter in John Greene's equations.
+   self._betaP1 = tbl.betaGreene+1
 
    -- Dimension of spaces.
    self._pDim = phaseBasis:ndim()
@@ -88,7 +87,13 @@ function CrossPrimMoments:init(tbl)
 
    -- Need two Eigen matrices: one to divide by (ms*nusr*m0s+mr*nurs*m0r)
    -- and one to compute cross-primitive moments.
-   self._binOpData    = ffiC.new_binOpData_t(self._numBasisC*2*(uDim+1), 0)
+   local matrixN
+   if self._operator=="VmLBOG" or self._operator=="GkLBOG" then
+      matrixN = self._numBasisC*2*(uDim+1)
+   else
+      matrixN = self._numBasisC*(uDim+1)  -- Fewer unknowns because u_sr=u_rs and m_s*v_tsr^2=m_r*v_trs^2.
+   end
+   self._binOpData    = ffiC.new_binOpData_t(matrixN, 0)
    self._binOpDataDiv = ffiC.new_binOpData_t(self._numBasisC, 0)
 
    -- Select C kernel to be used.
