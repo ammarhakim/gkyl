@@ -6,8 +6,8 @@ load(stringproc)$
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 3$
-minCdim_Ser : 3$
-minVdim_Ser : 3$    /* but see v loop below. */
+minCdim_Ser : 1$
+minVdim_Ser : 1$    /* but see v loop below. */
 maxCdim_Ser : 3$
 maxVdim_Ser : 3$
 
@@ -15,8 +15,8 @@ maxVdim_Ser : 3$
 maxPolyOrder_Tensor : 2$
 minCdim_Tensor : 1$
 minVdim_Tensor : 1$    /* but see v loop below. */
-maxCdim_Tensor : 0$
-maxVdim_Tensor : 0$
+maxCdim_Tensor : 2$
+maxVdim_Tensor : 2$
 
 gkVdims      : [[1,2], [2], [2]]$
 

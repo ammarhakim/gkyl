@@ -313,12 +313,6 @@ void VmLBOGCrossPrimMoments1x2vSer_P2(binOpData_t *data, binOpData_t *dataDiv,co
   mnuM2sum[1] = m2rSelf[1]*mnuSelf+m2rOther[1]*mnuOther; 
   mnuM2sum[2] = m2rSelf[2]*mnuSelf+m2rOther[2]*mnuOther; 
  
-  // Set other entries to 0. // 
-  data->AEM_S.block<3,3>(0,3).setZero(); 
-  data->AEM_S.block<3,3>(3,0).setZero(); 
-  data->AEM_S.block<3,3>(0,12).setZero(); 
-  data->AEM_S.block<3,3>(3,9).setZero(); 
- 
   double m1Relax[6]; 
   // zero out array with sum of momentum relaxation terms. 
   for (unsigned short int vd=0; vd<6; vd++) 
@@ -633,12 +627,6 @@ void VmLBOGCrossPrimMoments1x2vSer_P2(binOpData_t *data, binOpData_t *dataDiv,co
   m2Relax[0] = betaGreenep1*((-(1.0*relKinE[0]*mSelf)/(mSelf+mOther))-(2.0*effEthSelf[0]*mSelf)/(mSelf+mOther)+(1.0*relKinE[0]*mOther)/(mSelf+mOther)+(2.0*effEthOther[0]*mOther)/(mSelf+mOther))*mnuOther*mnuSelf+(m2rSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2rOther[0])*mnuOther; 
   m2Relax[1] = betaGreenep1*((-(1.0*relKinE[1]*mSelf)/(mSelf+mOther))-(2.0*effEthSelf[1]*mSelf)/(mSelf+mOther)+(1.0*relKinE[1]*mOther)/(mSelf+mOther)+(2.0*effEthOther[1]*mOther)/(mSelf+mOther))*mnuOther*mnuSelf+(m2rSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2rOther[1])*mnuOther; 
   m2Relax[2] = betaGreenep1*((-(1.0*relKinE[2]*mSelf)/(mSelf+mOther))-(2.0*effEthSelf[2]*mSelf)/(mSelf+mOther)+(1.0*relKinE[2]*mOther)/(mSelf+mOther)+(2.0*effEthOther[2]*mOther)/(mSelf+mOther))*mnuOther*mnuSelf+(m2rSelf[2]-1.0*kinESelf[2])*mnuSelf+(kinEOther[2]-1.0*m2rOther[2])*mnuOther; 
- 
-  // Set other entries to 0. // 
-  data->AEM_S.block<3,3>(9,3).setZero(); 
-  data->AEM_S.block<3,3>(12,0).setZero(); 
-  data->AEM_S.block<3,3>(9,12).setZero(); 
-  data->AEM_S.block<3,3>(12,9).setZero(); 
  
   // ....... RHS vector is composed of m1 and m2 .......... // 
   data->BEV_S << mnuM1sum[0],mnuM1sum[1],mnuM1sum[2],mnuM1sum[3],mnuM1sum[4],mnuM1sum[5],mnuM2sum[0],mnuM2sum[1],mnuM2sum[2],m1Relax[0],m1Relax[1],m1Relax[2],m1Relax[3],m1Relax[4],m1Relax[5],m2Relax[0],m2Relax[1],m2Relax[2]; 
@@ -965,12 +953,6 @@ void VmLBOECrossPrimMoments1x2vSer_P2(binOpData_t *data, binOpData_t *dataDiv,co
   mnuM2sum[0] = m2rSelf[0]*mnuSelf+m2rOther[0]*mnuOther; 
   mnuM2sum[1] = m2rSelf[1]*mnuSelf+m2rOther[1]*mnuOther; 
   mnuM2sum[2] = m2rSelf[2]*mnuSelf+m2rOther[2]*mnuOther; 
- 
-  // Set other entries to 0. // 
-  data->AEM_S.block<3,3>(0,3).setZero(); 
-  data->AEM_S.block<3,3>(3,0).setZero(); 
-  data->AEM_S.block<3,3>(0,12).setZero(); 
-  data->AEM_S.block<3,3>(3,9).setZero(); 
  
   // ....... RHS vector is composed of m1 and m2 .......... // 
   data->BEV_S << mnuM1sum[0],mnuM1sum[1],mnuM1sum[2],mnuM1sum[3],mnuM1sum[4],mnuM1sum[5],mnuM2sum[0],mnuM2sum[1],mnuM2sum[2]; 

@@ -247,12 +247,6 @@ void VmLBOGCrossPrimMoments1x2vSer_P1(binOpData_t *data, binOpData_t *dataDiv, c
   mnuM2sum[0] = m2SrSelf[0]*mnuSelf+m2SrOther[0]*mnuOther; 
   mnuM2sum[1] = m2SrSelf[1]*mnuSelf+m2SrOther[1]*mnuOther; 
  
-  // Set other entries to 0. // 
-  data->AEM_S.block<2,2>(0,2).setZero(); 
-  data->AEM_S.block<2,2>(2,0).setZero(); 
-  data->AEM_S.block<2,2>(0,8).setZero(); 
-  data->AEM_S.block<2,2>(2,6).setZero(); 
- 
   double m1Relax[4]; 
   // zero out array with sum of momentum relaxation terms. 
   for (unsigned short int vd=0; vd<4; vd++) 
@@ -480,12 +474,6 @@ void VmLBOGCrossPrimMoments1x2vSer_P1(binOpData_t *data, binOpData_t *dataDiv, c
   // ... Contribution to RHS vector from energy relaxation. 
   m2Relax[0] = betaGreenep1*((-(1.0*relKinE[0]*mSelf)/(mSelf+mOther))-(2.0*effEthSelf[0]*mSelf)/(mSelf+mOther)+(1.0*relKinE[0]*mOther)/(mSelf+mOther)+(2.0*effEthOther[0]*mOther)/(mSelf+mOther))*mnuOther*mnuSelf+(m2SrSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2SrOther[0])*mnuOther; 
   m2Relax[1] = betaGreenep1*((-(1.0*relKinE[1]*mSelf)/(mSelf+mOther))-(2.0*effEthSelf[1]*mSelf)/(mSelf+mOther)+(1.0*relKinE[1]*mOther)/(mSelf+mOther)+(2.0*effEthOther[1]*mOther)/(mSelf+mOther))*mnuOther*mnuSelf+(m2SrSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2SrOther[1])*mnuOther; 
- 
-  // Set other entries to 0. // 
-  data->AEM_S.block<2,2>(6,2).setZero(); 
-  data->AEM_S.block<2,2>(8,0).setZero(); 
-  data->AEM_S.block<2,2>(6,8).setZero(); 
-  data->AEM_S.block<2,2>(8,6).setZero(); 
  
   // ....... RHS vector is composed of m1 and m2 .......... // 
   data->BEV_S << mnuM1sum[0],mnuM1sum[1],mnuM1sum[2],mnuM1sum[3],mnuM2sum[0],mnuM2sum[1],m1Relax[0],m1Relax[1],m1Relax[2],m1Relax[3],m2Relax[0],m2Relax[1]; 
@@ -746,12 +734,6 @@ void VmLBOECrossPrimMoments1x2vSer_P1(binOpData_t *data, binOpData_t *dataDiv, c
   // ... Contribution to RHS vector from mnuM2Self+mnuM2Other. 
   mnuM2sum[0] = m2SrSelf[0]*mnuSelf+m2SrOther[0]*mnuOther; 
   mnuM2sum[1] = m2SrSelf[1]*mnuSelf+m2SrOther[1]*mnuOther; 
- 
-  // Set other entries to 0. // 
-  data->AEM_S.block<2,2>(0,2).setZero(); 
-  data->AEM_S.block<2,2>(2,0).setZero(); 
-  data->AEM_S.block<2,2>(0,8).setZero(); 
-  data->AEM_S.block<2,2>(2,6).setZero(); 
  
   // ....... RHS vector is composed of m1 and m2 .......... // 
   data->BEV_S << mnuM1sum[0],mnuM1sum[1],mnuM1sum[2],mnuM1sum[3],mnuM2sum[0],mnuM2sum[1]; 

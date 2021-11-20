@@ -90,7 +90,7 @@ function GkLBO:init(tbl)
    -- Flag to indicate if we are being called for first time.
    self._isFirst = true
 
-   self._alwaysApply = false -- Turn to true to bypass robustness checks (for testing).
+   self._alwaysApply = true -- Turn to true to bypass robustness checks (for testing).
 
    self.primMomCrossLimit = 0.0
 end

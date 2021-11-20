@@ -1895,16 +1895,6 @@ void VmLBOGCrossPrimMoments3x3vSer_P1(binOpData_t *data, binOpData_t *dataDiv, c
   mnuM2sum[6] = m2SrSelf[6]*mnuSelf+m2SrOther[6]*mnuOther; 
   mnuM2sum[7] = m2SrSelf[7]*mnuSelf+m2SrOther[7]*mnuOther; 
  
-  // Set other entries to 0. // 
-  data->AEM_S.block<8,16>(0,8).setZero(); 
-  data->AEM_S.block<16,8>(8,0).setZero(); 
-  data->AEM_S.block<8,8>(8,16).setZero(); 
-  data->AEM_S.block<8,8>(16,8).setZero(); 
-  data->AEM_S.block<8,16>(0,40).setZero(); 
-  data->AEM_S.block<16,8>(8,32).setZero(); 
-  data->AEM_S.block<8,8>(8,48).setZero(); 
-  data->AEM_S.block<8,8>(16,40).setZero(); 
- 
   double m1Relax[24]; 
   // zero out array with sum of momentum relaxation terms. 
   for (unsigned short int vd=0; vd<24; vd++) 
@@ -3527,16 +3517,6 @@ void VmLBOGCrossPrimMoments3x3vSer_P1(binOpData_t *data, binOpData_t *dataDiv, c
   m2Relax[5] = betaGreenep1*((-(1.0*relKinE[5]*mSelf)/(mSelf+mOther))-(2.0*effEthSelf[5]*mSelf)/(mSelf+mOther)+(1.0*relKinE[5]*mOther)/(mSelf+mOther)+(2.0*effEthOther[5]*mOther)/(mSelf+mOther))*mnuOther*mnuSelf+(m2SrSelf[5]-1.0*kinESelf[5])*mnuSelf+(kinEOther[5]-1.0*m2SrOther[5])*mnuOther; 
   m2Relax[6] = betaGreenep1*((-(1.0*relKinE[6]*mSelf)/(mSelf+mOther))-(2.0*effEthSelf[6]*mSelf)/(mSelf+mOther)+(1.0*relKinE[6]*mOther)/(mSelf+mOther)+(2.0*effEthOther[6]*mOther)/(mSelf+mOther))*mnuOther*mnuSelf+(m2SrSelf[6]-1.0*kinESelf[6])*mnuSelf+(kinEOther[6]-1.0*m2SrOther[6])*mnuOther; 
   m2Relax[7] = betaGreenep1*((-(1.0*relKinE[7]*mSelf)/(mSelf+mOther))-(2.0*effEthSelf[7]*mSelf)/(mSelf+mOther)+(1.0*relKinE[7]*mOther)/(mSelf+mOther)+(2.0*effEthOther[7]*mOther)/(mSelf+mOther))*mnuOther*mnuSelf+(m2SrSelf[7]-1.0*kinESelf[7])*mnuSelf+(kinEOther[7]-1.0*m2SrOther[7])*mnuOther; 
- 
-  // Set other entries to 0. // 
-  data->AEM_S.block<8,16>(32,8).setZero(); 
-  data->AEM_S.block<16,8>(40,0).setZero(); 
-  data->AEM_S.block<8,8>(40,16).setZero(); 
-  data->AEM_S.block<8,8>(48,8).setZero(); 
-  data->AEM_S.block<8,16>(32,40).setZero(); 
-  data->AEM_S.block<16,8>(40,32).setZero(); 
-  data->AEM_S.block<8,8>(40,48).setZero(); 
-  data->AEM_S.block<8,8>(48,40).setZero(); 
  
   // ....... RHS vector is composed of m1 and m2 .......... // 
   data->BEV_S << mnuM1sum[0],mnuM1sum[1],mnuM1sum[2],mnuM1sum[3],mnuM1sum[4],mnuM1sum[5],mnuM1sum[6],mnuM1sum[7],mnuM1sum[8],mnuM1sum[9],mnuM1sum[10],mnuM1sum[11],mnuM1sum[12],mnuM1sum[13],mnuM1sum[14],mnuM1sum[15],mnuM1sum[16],mnuM1sum[17],mnuM1sum[18],mnuM1sum[19],mnuM1sum[20],mnuM1sum[21],mnuM1sum[22],mnuM1sum[23],mnuM2sum[0],mnuM2sum[1],mnuM2sum[2],mnuM2sum[3],mnuM2sum[4],mnuM2sum[5],mnuM2sum[6],mnuM2sum[7],m1Relax[0],m1Relax[1],m1Relax[2],m1Relax[3],m1Relax[4],m1Relax[5],m1Relax[6],m1Relax[7],m1Relax[8],m1Relax[9],m1Relax[10],m1Relax[11],m1Relax[12],m1Relax[13],m1Relax[14],m1Relax[15],m1Relax[16],m1Relax[17],m1Relax[18],m1Relax[19],m1Relax[20],m1Relax[21],m1Relax[22],m1Relax[23],m2Relax[0],m2Relax[1],m2Relax[2],m2Relax[3],m2Relax[4],m2Relax[5],m2Relax[6],m2Relax[7]; 
@@ -5445,16 +5425,6 @@ void VmLBOECrossPrimMoments3x3vSer_P1(binOpData_t *data, binOpData_t *dataDiv, c
   mnuM2sum[5] = m2SrSelf[5]*mnuSelf+m2SrOther[5]*mnuOther; 
   mnuM2sum[6] = m2SrSelf[6]*mnuSelf+m2SrOther[6]*mnuOther; 
   mnuM2sum[7] = m2SrSelf[7]*mnuSelf+m2SrOther[7]*mnuOther; 
- 
-  // Set other entries to 0. // 
-  data->AEM_S.block<8,16>(0,8).setZero(); 
-  data->AEM_S.block<16,8>(8,0).setZero(); 
-  data->AEM_S.block<8,8>(8,16).setZero(); 
-  data->AEM_S.block<8,8>(16,8).setZero(); 
-  data->AEM_S.block<8,16>(0,40).setZero(); 
-  data->AEM_S.block<16,8>(8,32).setZero(); 
-  data->AEM_S.block<8,8>(8,48).setZero(); 
-  data->AEM_S.block<8,8>(16,40).setZero(); 
  
   // ....... RHS vector is composed of m1 and m2 .......... // 
   data->BEV_S << mnuM1sum[0],mnuM1sum[1],mnuM1sum[2],mnuM1sum[3],mnuM1sum[4],mnuM1sum[5],mnuM1sum[6],mnuM1sum[7],mnuM1sum[8],mnuM1sum[9],mnuM1sum[10],mnuM1sum[11],mnuM1sum[12],mnuM1sum[13],mnuM1sum[14],mnuM1sum[15],mnuM1sum[16],mnuM1sum[17],mnuM1sum[18],mnuM1sum[19],mnuM1sum[20],mnuM1sum[21],mnuM1sum[22],mnuM1sum[23],mnuM2sum[0],mnuM2sum[1],mnuM2sum[2],mnuM2sum[3],mnuM2sum[4],mnuM2sum[5],mnuM2sum[6],mnuM2sum[7]; 

@@ -490,26 +490,6 @@ calcCrossPrimMomsLBO(fh, funcNm, cdim, vdim, basisFun, polyOrder, lboType) := bl
   mnuM2sum_c  : makelist(mnuM2sum[i],i,0,NC-1),
   bRHS_c : append(bRHS_c,mnuM2sum_c),
 
-  if udim=2 then (
-    printf(fh, "  // Set other entries to 0. // ~%"),
-    printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,0,NC),
-    printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,NC,0),
-    printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,0,(udim+2)*NC),
-    printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,NC,(udim+1)*NC),
-    printf(fh, " ~%")
-  ) elseif udim=3 then (
-    printf(fh, "  // Set other entries to 0. // ~%"),
-    printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,2*NC,0,NC),
-    printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",2*NC,NC,NC,0),
-    printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,NC,2*NC),
-    printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,2*NC,NC),
-    printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,2*NC,0,(udim+2)*NC),
-    printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",2*NC,NC,NC,(udim+1)*NC),
-    printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,NC,(udim+3)*NC),
-    printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,2*NC,(udim+2)*NC),
-    printf(fh, " ~%")
-  ),
-
   if sequal(lboType,"LBOG") then (  /* LBO-G (Greene). */
     /* Now add the blocks belonging to the Maxwellian (Morse) relaxation rates. */
     /* Variable holding contribution to RHS vector from momentum relaxation. */
@@ -931,27 +911,7 @@ calcCrossPrimMomsLBO(fh, funcNm, cdim, vdim, basisFun, polyOrder, lboType) := bl
     ),
     printf(fh, " ~%"),
     m2Relax_c  : makelist(m2Relax[i],i,0,NC-1),
-    bRHS_c : append(bRHS_c,m2Relax_c),
-
-    if udim=2 then (
-      printf(fh, "  // Set other entries to 0. // ~%"),
-      printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,(udim+1)*NC,NC),
-      printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,(udim+2)*NC,0),
-      printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,(udim+1)*NC,(udim+2)*NC),
-      printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,(udim+2)*NC,(udim+1)*NC),
-      printf(fh, " ~%")
-    ) elseif udim=3 then (
-      printf(fh, "  // Set other entries to 0. // ~%"),
-      printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,2*NC,(udim+1)*NC,NC),
-      printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",2*NC,NC,(udim+2)*NC,0),
-      printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,(udim+2)*NC,2*NC),
-      printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,(udim+3)*NC,NC),
-      printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,2*NC,(udim+1)*NC,(udim+2)*NC),
-      printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",2*NC,NC,(udim+2)*NC,(udim+1)*NC),
-      printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,(udim+2)*NC,(udim+3)*NC),
-      printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,(udim+3)*NC,(udim+2)*NC),
-      printf(fh, " ~%")
-    )
+    bRHS_c : append(bRHS_c,m2Relax_c)
 
   ),
 
