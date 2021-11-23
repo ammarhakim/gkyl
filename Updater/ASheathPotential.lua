@@ -1,15 +1,21 @@
 -- Gkyl ------------------------------------------------------------------------
 --
+-- Ambipolar, adiabatic electron Sheath Potential (ASheathPotential):
 -- Asumming ambipolar fluxes at the sheath entrance, compute the sheath
 -- and the electrostatic potential in the whole domain.
 -- The potential is computed from
---    phi = phi_s - (T_e/q_e)*log(n_e - n_{es})
--- where phi_s and n_{es} are the sheath potential and electron density,
--- respectively. Since we typically have two sheaths, we compute this in two
--- parts. Continuity is later enforced by an FEM smoothing operator. The sheath
--- potential is
---    phi_s = (T_e/q_e)*log( sqrt(2*pi)*Gamma_i/(n_e*v_{te}) )
--- with Gamma_i being the ion particle flux through the sheath entrance.
+--    phi = phi_s - (T_e/q_e)*log(n_e/n_{es})
+-- which thanks to quasineutrality becomes
+--    phi = phi_s - (T_e/q_e)*log(n_i/n_{is})
+-- where phi_s and n_{ks} are the potential and density of species k at the
+-- sheath entrance, respectively. Since we typically have two sheaths, we
+-- compute this in two parts. Continuity is later enforced by an FEM smoothing
+-- operator. The sheath potential is
+--    phi_s = -(T_e/q_e)*log( sqrt(2*pi)*Gamma_i/(n_e*v_{te}) )
+-- which using quasineutrality again gives
+--    phi_s = -(T_e/q_e)*( log( sqrt(2*pi)*Gamma_i/(n_i*v_{te}) ) )|_{z=z_s}
+-- with Gamma_i being the ion particle flux, and the natural logarithm being
+-- evaluated at the sheath entrance.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -22,21 +28,22 @@ local LinearDecomp = require "Lib.LinearDecomp"
 local Lin          = require "Lib.Linalg"
 local Proto        = require "Lib.Proto"
 local xsys         = require "xsys"
-local ModDecl      = require "Updater.ambipolarSheathPotentialData.AmbipolarSheathPotentialModDecl"
+local ModDecl      = require "Updater.aSheathPotentialData.asheath_potential_mod_decl"
 local Updater      = require "Updater"
 
 -- Inherit the base Updater from UpdaterBase updater object.
-local ASPotential = Proto(UpdaterBase)
+local ASheathPotential = Proto(UpdaterBase)
 
-function ASheath:init(tbl)
-   ASheath.super.init(self, tbl) -- setup base object
+function ASheathPotential:init(tbl)
+   ASheathPotential.super.init(self, tbl) -- setup base object
 
-   self.grid  = assert(tbl.onGrid, "Updater.AmbipolarSheathPotential: Must provide configuration space grid object 'onGrid'.")
-   self.basis = assert(tbl.basis, "Updater.AmbipolarSheathPotential: Must provide configuration space basis object 'basis'.")
-   self.boundaryGrids = assert(tbl.basis, "Updater.AmbipolarSheathPotential: Must provide configuration space boundary grids 'boundaryGrids'.")
+   self.grid  = assert(tbl.onGrid, "Updater.ASheathPotential: Must provide configuration space grid object 'onGrid'.")
+   self.basis = assert(tbl.basis, "Updater.ASheathPotential: Must provide configuration space basis object 'basis'.")
+   self.boundaryGrids = assert(tbl.basis, "Updater.ASheathPotential: Must provide configuration space boundary grids 'boundaryGrids'.")
 
-   self.mElc  = assert(tbl.electronMass, "Updater.AmbipolarSheathPotential: Must provide electron mass in 'electronMass'.")
-   self.qElc  = assert(tbl.electronCharge, "Updater.AmbipolarSheathPotential: Must provide electron charge in 'electronCharge'.")
+   self.mElc    = assert(tbl.electronMass, "Updater.ASheathPotential: Must provide electron mass in 'electronMass'.")
+   self.qElc    = assert(tbl.electronCharge, "Updater.ASheathPotential: Must provide electron charge in 'electronCharge'.")
+   self.tempElc = assert(tbl.electronTemp, "Updater.ASheathPotential: Must provide electron temperature in 'electronTemp'.")
 
    -- Number of quadrature points in each direction
    local numQuad1D = self.basis:polyOrder() + 1
@@ -48,24 +55,25 @@ function ASheath:init(tbl)
    self.dim = self.basis:ndim()
    self.sheathDir = self.dim   -- Assume the sheath direction is the last dimension.
 
-   self._sheathEvKer = ModDecl.selectPhiSheathQuad(self.basis:id(), self.dim, self.basis:polyOrder(), self.quadType)
-   self._phiKer      = ModDecl.selectPhiQuad(self.basis:id(), self.dim, self.basis:polyOrder(), self.quadType)
+   self._phiSheathKer = ModDecl.selectPhiSheathQuad(self.basis:id(), self.dim, self.basis:polyOrder(), self.quadType)
+   self._phiKer       = ModDecl.selectPhiQuad(self.basis:id(), self.dim, self.basis:polyOrder(), self.quadType)
 
    self.idxB = Lin.IntVec(self.dim)
+   for d=1,self.dim do self.idxB[d] = 1 end
    local xcB = Lin.Vec(self.dim)
 
    -- We compute the potential in two halfs [z_min,0] and [0,z_max] first.
    -- For this we need two pairs of grids.
    --   - A lower/upper pair of skin-cell grids to compute phi_s (boundaryGrids).
-   --   - The [z_min,0] and [0,z_max] to compute phi (halfGrid).
+   --   - The [z_min,0] and [0,z_max] grids to compute phi (halfGrid).
    self.boundary = {"lower","upper"}
    self.halfSign = {lower=-1., upper=1.}
    self.halfDomRangeDecomp = {}
    local sheathDirCells = self.grid:numCells(self.sheathDir)
    local globalRange = self.grid:globalRange()
    for _, b in ipairs(self.boundary) do
-      -- Compute the offsets used to shorten the domain in the sheath direction. Assume that the
-      -- zero in the sheath direction is located at a cell boundary and not inside of a cell.
+      -- Compute the offsets used to shorten the domain in the sheath direction.
+      -- ASSUME zero in the sheath direction is at a cell boundary and not inside of a cell.
       local sheathDirExts = {0,0}
       for idx = 1, sheathDirCells do
          self.idxB[self.sheathDir] = idx
@@ -93,23 +101,23 @@ function ASheath:init(tbl)
                      upper=DataStruct.Field{onGrid = self.boundaryGrids["upper"], 
                                             numComponents = self.basis:numBasis(),
                                             ghost = {1,1},}}
-   self.m0ElcSheath = {lower=DataStruct.Field{onGrid = self.boundaryGrids["lower"],
+   self.m0IonSheath = {lower=DataStruct.Field{onGrid = self.boundaryGrids["lower"],
                                               numComponents = self.basis:numBasis(),
                                               ghost = {1,1},},
                        upper=DataStruct.Field{onGrid = self.boundaryGrids["upper"], 
                                               numComponents = self.basis:numBasis(),
                                               ghost = {1,1},}}
    -- Pre-define some pointers and indexers.
-   self.m0ElcSheathPtr = {lower=0, upper=0}
+   self.m0IonSheathPtr = {lower=0, upper=0}
    self.phiSheathPtr   = {lower=0, upper=0}
    self.GammaIonPtr    = {lower=0, upper=0}   -- Set in :advance.
    self.boundaryIdxr   = {lower=0, upper=0}
    for _, b in ipairs(self.boundary) do
       self.phiSheath[b]:clear(0.0)
-      self.m0ElcSheath[b]:clear(0.0)
+      self.m0IonSheath[b]:clear(0.0)
 
       self.phiSheathPtr[b]   = phiSheath[b]:get(1)
-      self.m0ElcSheathPtr[b] = m0ElcSheath[b]:get(1)
+      self.m0IonSheathPtr[b] = m0IonSheath[b]:get(1)
 
       self.boundaryIdxr[b] = self.phiSheath[b]:genIndexer()
    end
@@ -126,15 +134,15 @@ function ASheath:init(tbl)
    self.phiAuxPtr = self.phiAux:get(1)
 end
 
-function ASheath:_advance(tCurr, inFlds, outFlds)
-   local GammaIon, m0Elc, vtSqElc = inFlds[1], inFlds[2], inFlds[3]
+function ASheathPotential:_advance(tCurr, inFlds, outFlds)
+   local GammaIon, m0Ion = inFlds[1], inFlds[2]
    local phi = outFlds[1]
 
    self.GammaIonPtr["lower"]  = GammaIon["lower"]:get(1)
    self.GammaIonPtr["upper"]  = GammaIon["upper"]:get(1)
-   local m0ElcPtr, vtSqElcPtr = m0Elc:get(1), vtSqElc:get(1)
-   local phiPtr               = phi:get(1)
-   local domainIdxr           = inFld:genIndexer()
+   local m0IonPtr   = m0Ion:get(1)
+   local phiPtr     = phi:get(1)
+   local domainIdxr = inFld:genIndexer()
 
    local grid = self.grid
    local globalRange = phi:globalRange()
@@ -149,13 +157,12 @@ function ASheath:_advance(tCurr, inFlds, outFlds)
          idx:copyInto(self.idxB)
          self.idxB[self.sheathDir] = 1
 
-         GammaIon[b]:fill(boundaryIdxr[b](self.idxB), GammaIonPtr[b])
-         phiSheath:fill(boundaryIdxr(self.idxB), phiSheathPtr)
-         m0ElcSheath:fill(boundaryIdxr(self.idxB), m0ElcSheathPtr)
-         m0Elc:fill(innerIdxr(idx), m0ElcPtr)
-         vtSqElc:fill(innerIdxr(idx), vtSqElcPtr)
+         GammaIon[b]:fill(boundaryIdxr[b](self.idxB), self.GammaIonPtr[b])
+         phiSheath:fill(boundaryIdxr(self.idxB), self.phiSheathPtr[b])
+         m0IonSheath:fill(boundaryIdxr(self.idxB), self.m0IonSheathPtr[b])
+         m0Ion:fill(innerIdxr(idx), m0IonPtr)
          
-         self._sheathEvKer[b](qElc, mElc, GammaIonPtr[b]:data(), m0ElcPtr:data(), vtSqElcPtr:data(), m0ElcSheathPtr:data(), phiSheathPtr:data())
+         self._phiSheathKer[b](qElc, mElc, tempElc, GammaIonPtr[b]:data(), m0IonPtr:data(), self.m0IonSheathPtr[b]:data(), self.phiSheathPtr:data())
       end
 
       -- Loop over the half grid and compute phi.
@@ -163,13 +170,12 @@ function ASheath:_advance(tCurr, inFlds, outFlds)
          idx:copyInto(self.idxB)
          self.idxB[self.sheathDir] = 1
 
-         phiSheath:fill(boundaryIdxr(self.idxB), phiSheathPtr)
-         m0ElcSheath:fill(boundaryIdxr(self.idxB), m0ElcSheathPtr)
-         vtSqElc:fill(innerIdxr(idx), vtSqElcPtr)
-         m0Elc:fill(innerIdxr(idx), m0ElcPtr)
+         phiSheath:fill(boundaryIdxr(self.idxB), self.phiSheathPtr[b])
+         m0IonSheath:fill(boundaryIdxr(self.idxB), self.m0IonSheathPtr[b])
+         m0Ion:fill(innerIdxr(idx), m0IonPtr)
          self.phiAux:fill(innerIdxr(idx), self.phiAuxPtr)
 
-         self._phiKer(self.halfSign[b], qElc, mElc, m0ElcPtr:data(), vtSqElcPtr:data(), m0ElcSheathPtr:data(), phiSheathPtr:data(), self.phiAuxPtr:data())
+         self._phiKer(self.halfSign[b], qElc, mElc, tempElc, m0IonPtr:data(), self.m0IonSheathPtr[b]:data(), self.phiSheathPtr[b]:data(), self.phiAuxPtr:data())
       end
    end
 
@@ -177,4 +183,4 @@ function ASheath:_advance(tCurr, inFlds, outFlds)
    self.phiZSmoother:advance(tCurr, {self.phiAux}, {phi})
 end
 
-return ASheath
+return ASPotential
