@@ -6,6 +6,7 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl modules
+local ASheathPotential = require "Updater.ASheathPotential"
 local Bc = require "Updater.Bc"
 local BgkCollisions = require "Updater.BgkCollisions"
 local CartFieldBinOp = require "Updater.CartFieldBinOp"
@@ -56,6 +57,7 @@ local BraginskiiViscosityDiffusion = require "Updater.BraginskiiViscosityDiffusi
 local AnisotropicDiffusion = require "Updater.AnisotropicDiffusion"
 
 return {
+   ASheathPotential = ASheathPotential,
    Bc = Bc,
    BgkCollisions = BgkCollisions,
    CartFieldBinOp = CartFieldBinOp,

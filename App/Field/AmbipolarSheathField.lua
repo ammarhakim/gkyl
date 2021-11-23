@@ -1,22 +1,23 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 -- Field solver for sheath simulations with an ambipolar (logical) sheath
--- BC.
+-- BC and adiabatic electrons.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local FieldBase     = require "App.Field.FieldBase"
-local DataStruct    = require "DataStruct"
-local LinearTrigger = require "LinearTrigger"
-local Proto         = require "Lib.Proto"
-local Updater       = require "Updater"
-local xsys          = require "xsys"
-local FieldBase     = require "App.Field.FieldBase"
-local Species       = require "App.Species"
-local Time          = require "Lib.Time"
-local lume          = require "Lib.lume"
+local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
+local FieldBase        = require "App.Field.FieldBase"
+local DataStruct       = require "DataStruct"
+local LinearTrigger    = require "LinearTrigger"
+local Proto            = require "Lib.Proto"
+local Updater          = require "Updater"
+local xsys             = require "xsys"
+local FieldBase        = require "App.Field.FieldBase"
+local Species          = require "App.Species"
+local Time             = require "Lib.Time"
+local lume             = require "Lib.lume"
 
 local AmbipolarSheathField = Proto(FieldBase.FieldBase)
 
@@ -28,6 +29,8 @@ function AmbipolarSheathField:init(tbl) self.tbl = tbl end
 -- we need the app top-level table for proper initialization.
 function AmbipolarSheathField:fullInit(appTbl)
    local tbl = self.tbl -- Previously store table.
+
+   self.ioMethod = "MPI"
 
    -- Create triggers to write diagnostics.
    local nFrame = tbl.nFrame or appTbl.nFrame
@@ -54,10 +57,13 @@ function AmbipolarSheathField:fullInit(appTbl)
    local ndim = #appTbl.lower
    if appTbl.periodicDirs then self.periodicDirs = appTbl.periodicDirs else self.periodicDirs = {} end
 
-   self.adiabatic = false
+   self.adiabatic = false  -- Electrons must be adiabatic. We check this later.
+   self.discontinuousPhi = xsys.pickBool(tbl.discontinuousPhi, false)
 
    -- Flag to indicate if phi has been calculated.
    self.calcedPhi = false
+
+   self.bcTime = 0.0 -- Timer for BCs.
 
    self._first = true
 
@@ -122,13 +128,7 @@ function AmbipolarSheathField:createSolver(species, externalField)
       end
       if s.charge > 0. then self.ionName = nm else self.elcName = nm end
    end
-   assert(self.adiabatic, "AmbipolarSheathField: currently only available for the adiabatic case.")
-
-   self.phiZSmoother = Updater.FemParPoisson {
-      onGrid = self.grid,   bcLower = {{T="N",V=0.0}},
-      basis  = self.basis,  bcUpper = {{T="N",V=0.0}},
-      smooth = true,
-   }
+   assert(self.adiabatic and (self.adiabSpec.charge<0.), "AmbipolarSheathField: currently only available for the adiabatic electron case.")
 
    local function bcOpen(dir, tm, idxIn, fIn, fOut) self.basis:flipSign(dir, fIn, fOut) end
    local function makeBcUpdater(dir, edge, bcList)
@@ -153,8 +153,8 @@ function AmbipolarSheathField:createSolver(species, externalField)
    for _, bc in lume.orderedIter(ionSpec.nonPeriodicBCs) do
       if bc.bcKind=="sheath" then
          if (ndim==3 and bc:getDir()==3) or ndim==1 then
-            self.ionBC[bc.bcEdge] = bc
-            self.ionBC[bc.bcEdge]:setSaveFlux(true)
+            self.ionBC[bc:getEdge()] = bc
+            self.ionBC[bc:getEdge()]:setSaveFlux(true)
             hasSheath = true
          end
       end
@@ -166,6 +166,22 @@ function AmbipolarSheathField:createSolver(species, externalField)
    for _, bc in lume.orderedIter(self.ionBC) do
       self.bcIonM0flux[bc:getEdge()] = bc:allocMoment()
    end
+
+   self.phiSlvr = Updater.ASheathPotential {
+      onGrid         = self.grid,
+      basis          = self.basis,
+      electronMass   = species[self.elcName]:getMass(),
+      electronCharge = species[self.elcName]:getCharge(),
+      electronTemp   = species[self.elcName]:temp(),
+      boundaryGrids  = {lower=self.ionBC["lower"].confBoundaryGrid,
+                        upper=self.ionBC["upper"].confBoundaryGrid},
+   }
+   self.phiZSmoother = Updater.FemParPoisson {
+      onGrid = self.grid,   bcLower = {{T="N",V=0.0}},
+      basis  = self.basis,  bcUpper = {{T="N",V=0.0}},
+      smooth = true,
+   }
+
 end
 
 function AmbipolarSheathField:createDiagnostics()
@@ -188,7 +204,7 @@ end
 function AmbipolarSheathField:write(tm, force)
    if self.calcIntFieldEnergyTrigger(tm) then
       -- Compute integrated quantities over domain.
-      self.int2Calc:advance(tm, { self.potentials[1].phi }, { self.phiSq })
+      self.intSqCalc:advance(tm, { self.potentials[1].phi }, { self.phiSq })
    end
 
    if self.ioTrigger(tm) or force then
@@ -242,11 +258,16 @@ function AmbipolarSheathField:phiSolve(tCurr, species, inIdx, outIdx)
    -- linear problem, and applies BCs to phi.
    -- Need the self.calcedPhi flag because we assume :phiSolve is called within the
    -- species :advance, but we want multiple species to call it.
-   if not self.calcedPhi then
+   if not self.calcedPhi and tCurr>0. then
       local potCurr = self:rkStepperFields()[inIdx]
-      self.phiSlvr:solve(tCurr, {self.chargeDens}, {potCurr.phiAux})
+--      self.bcIonM0flux["lower"]:write("bcIonM0Flux_lower_0.bp",0,tCurr)
+--      self.bcIonM0flux["upper"]:write("bcIonM0Flux_upper_0.bp",0,tCurr)
+      species[self.ionName]:getNumDensity():write("ionM0_0.bp",0,tCurr)
+      self.phiSlvr:advance(tCurr, {self.bcIonM0flux, species[self.ionName]:getNumDensity()}, {potCurr.phiAux})
+--      potCurr.phiAux:write("phiAux_0.bp",0,tCurr)
+--      assert(false, "computed phi")
       -- Smooth phi in z to ensure continuity in all directions.
-      if self.ndim == 3 and not self.discontinuousPhi then
+      if self.ndim ~= 2 and not self.discontinuousPhi then
          self.phiZSmoother:advance(tCurr, {potCurr.phiAux}, {potCurr.phi})
       else
          potCurr.phi = potCurr.phiAux
@@ -275,13 +296,13 @@ end
 function AmbipolarSheathField:totalSolverTime()
    local time = 0.
    if self.phiSlvr then
-      time = time + self.timers.advTime[1]+self.phiSlvr.slvr.timers.completeNsolve
+      time = time + self.timers.advTime[1]+self.phiSlvr.totalTime
    end
    return time
 end
 function AmbipolarSheathField:totalBcTime() return self.bcTime end
 function AmbipolarSheathField:energyCalcTime()
-   local t = self.int2Calc.totalTime
+   local t = self.intSqCalc.totalTime
    return t
 end
 

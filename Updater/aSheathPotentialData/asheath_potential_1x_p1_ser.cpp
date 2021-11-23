@@ -1,6 +1,6 @@
 #include <asheath_potential_mod_decl.h>
 
-void asheath_potential_gauss_phi_sheath_lower_1x_p1_ser(const double q_e, const double m_e, const double T_e, const double *Gamma_i, const double *m0Ion, double *m0IonS, double *phiS) 
+void asheath_potential_gauss_phi_sheath_lower_1x_p1_ser(const double q_e, const double m_e, const double T_e, const int dirSign, const double *Gamma_i, const double *m0Ion, double *m0IonS, double *phiS) 
 { 
   // q_e:     electron change.
   // m_e:     electron mass.
@@ -22,7 +22,7 @@ void asheath_potential_gauss_phi_sheath_lower_1x_p1_ser(const double q_e, const 
   m0IonS[0] = m0Ion[0]-1.732050807568877*m0Ion[1]; 
 }
 
-void asheath_potential_gauss_phi_sheath_upper_1x_p1_ser(const double q_e, const double m_e, const double T_e, const double *Gamma_i, const double *m0Ion, double *m0IonS, double *phiS) 
+void asheath_potential_gauss_phi_sheath_upper_1x_p1_ser(const double q_e, const double m_e, const double T_e, const int dirSign, const double *Gamma_i, const double *m0Ion, double *m0IonS, double *phiS) 
 { 
   // q_e:     electron change.
   // m_e:     electron mass.

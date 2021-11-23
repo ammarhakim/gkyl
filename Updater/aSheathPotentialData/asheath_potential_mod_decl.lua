@@ -15,9 +15,9 @@ local basisNmMap = { ["serendipity"] = "ser", ["tensor"] = "tensor" }
 local _M = {}
 
 -- Select kernel function to compute expansion coefficients of nu. 
-function _M.ModDecl.selectPhiSheathQuad(basisNm, CDIM, polyOrder, quadType)
+function _M.selectPhiSheathQuad(basisNm, CDIM, polyOrder, quadType)
    local funcType = "void"
-   local funcSign = "(const double q_e, const double m_e, const double T_e, const double *Gamma_i, const double *m0Ion, double *m0IonS, double *phiS)"
+   local funcSign = "(const double q_e, const double m_e, const double T_e, const int dirSign, const double *Gamma_i, const double *m0Ion, double *m0IonS, double *phiS)"
    local funcNm = {}
    for i, b in ipairs({"lower","upper"}) do
       funcNm[i] = string.format("asheath_potential_gauss_phi_sheath_%s_%dx_p%d_%s", b, CDIM, polyOrder, basisNmMap[basisNm])
@@ -35,7 +35,7 @@ function _M.ModDecl.selectPhiSheathQuad(basisNm, CDIM, polyOrder, quadType)
 end
 
 -- Select kernel function to compute cell-wise constant nu. 
-function _M.self._phiKer(basisNm, CDIM, polyOrder, quadType)
+function _M.selectPhiQuad(basisNm, CDIM, polyOrder, quadType)
    local funcType = "void"
    local funcNm = string.format("asheath_potential_gauss_phi_%dx_p%d_%s", CDIM, polyOrder, basisNmMap[basisNm])
    local funcSign = "(const double q_e, const double T_e, const double *m0Ion, const double *m0IonS, const double *phiS, double *phi)"

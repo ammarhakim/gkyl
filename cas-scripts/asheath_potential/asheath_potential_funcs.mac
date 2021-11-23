@@ -70,7 +70,7 @@ genPhiSheathGaussQuad(fh, funcNm, dim, basisNm, polyOrder) := block(
   ghostEvSign : [1, -1],  skinEvSign  : [-1, 1],
   
   for bS : 1 thru 2 do ( /* One kernel for each of lower and upper boundaries. */
-    printf(fh,sconcat("void ",funcNm,"(const double q_e, const double m_e, const double T_e, const double *Gamma_i, const double *m0Ion, double *m0IonS, double *phiS) ~%{ ~%"), boundaryStr[bS]),
+    printf(fh,sconcat("void ",funcNm,"(const double q_e, const double m_e, const double T_e, const int dirSign, const double *Gamma_i, const double *m0Ion, double *m0IonS, double *phiS) ~%{ ~%"), boundaryStr[bS]),
     printf(fh,"  // q_e:     electron change.~%"),
     printf(fh,"  // m_e:     electron mass.~%"),
     printf(fh,"  // T_e:     electron temperature.~%"),

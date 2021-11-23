@@ -29,7 +29,6 @@ local Lin          = require "Lib.Linalg"
 local Proto        = require "Lib.Proto"
 local xsys         = require "xsys"
 local ModDecl      = require "Updater.aSheathPotentialData.asheath_potential_mod_decl"
-local Updater      = require "Updater"
 
 -- Inherit the base Updater from UpdaterBase updater object.
 local ASheathPotential = Proto(UpdaterBase)
@@ -39,7 +38,7 @@ function ASheathPotential:init(tbl)
 
    self.grid  = assert(tbl.onGrid, "Updater.ASheathPotential: Must provide configuration space grid object 'onGrid'.")
    self.basis = assert(tbl.basis, "Updater.ASheathPotential: Must provide configuration space basis object 'basis'.")
-   self.boundaryGrids = assert(tbl.basis, "Updater.ASheathPotential: Must provide configuration space boundary grids 'boundaryGrids'.")
+   self.boundaryGrids = assert(tbl.boundaryGrids, "Updater.ASheathPotential: Must provide configuration space boundary grids 'boundaryGrids'.")
 
    self.mElc    = assert(tbl.electronMass, "Updater.ASheathPotential: Must provide electron mass in 'electronMass'.")
    self.qElc    = assert(tbl.electronCharge, "Updater.ASheathPotential: Must provide electron charge in 'electronCharge'.")
@@ -58,6 +57,7 @@ function ASheathPotential:init(tbl)
    self._phiSheathKer = ModDecl.selectPhiSheathQuad(self.basis:id(), self.dim, self.basis:polyOrder(), self.quadType)
    self._phiKer       = ModDecl.selectPhiQuad(self.basis:id(), self.dim, self.basis:polyOrder(), self.quadType)
 
+   self.dx   = Lin.Vec(self.dim)
    self.idxB = Lin.IntVec(self.dim)
    for d=1,self.dim do self.idxB[d] = 1 end
    local xcB = Lin.Vec(self.dim)
@@ -116,22 +116,11 @@ function ASheathPotential:init(tbl)
       self.phiSheath[b]:clear(0.0)
       self.m0IonSheath[b]:clear(0.0)
 
-      self.phiSheathPtr[b]   = phiSheath[b]:get(1)
-      self.m0IonSheathPtr[b] = m0IonSheath[b]:get(1)
+      self.phiSheathPtr[b]   = self.phiSheath[b]:get(1)
+      self.m0IonSheathPtr[b] = self.m0IonSheath[b]:get(1)
 
       self.boundaryIdxr[b] = self.phiSheath[b]:genIndexer()
    end
-
-   self.phiZSmoother = Updater.FemParPoisson {
-      onGrid = self.grid,   bcLower = {{T="N",V=0.0}},
-      basis  = self.basis,  bcUpper = {{T="N",V=0.0}},
-      smooth = true,
-   }
-   self.phiAux = DataStruct.Field{onGrid = self.grid,
-                                  numComponents = self.basis:numBasis(),
-                                  ghost = {1,1},}
-   self.phiAux:clear(0.)
-   self.phiAuxPtr = self.phiAux:get(1)
 end
 
 function ASheathPotential:_advance(tCurr, inFlds, outFlds)
@@ -140,9 +129,9 @@ function ASheathPotential:_advance(tCurr, inFlds, outFlds)
 
    self.GammaIonPtr["lower"]  = GammaIon["lower"]:get(1)
    self.GammaIonPtr["upper"]  = GammaIon["upper"]:get(1)
-   local m0IonPtr   = m0Ion:get(1)
-   local phiPtr     = phi:get(1)
-   local domainIdxr = inFld:genIndexer()
+   local m0IonPtr  = m0Ion:get(1)
+   local phiPtr    = phi:get(1)
+   local innerIdxr = phi:genIndexer()
 
    local grid = self.grid
    local globalRange = phi:globalRange()
@@ -155,32 +144,30 @@ function ASheathPotential:_advance(tCurr, inFlds, outFlds)
       local tId = grid:subGridSharedId()    -- Local thread ID.
       for idx in skinRangeDecomp:rowMajorIter(tId) do
          idx:copyInto(self.idxB)
-         self.idxB[self.sheathDir] = 1
+         self.idxB[self.sheathDir] = 1  -- Boundary grid has 1 cell in this direction.
+         grid:getDx(self.dx)
 
-         GammaIon[b]:fill(boundaryIdxr[b](self.idxB), self.GammaIonPtr[b])
-         phiSheath:fill(boundaryIdxr(self.idxB), self.phiSheathPtr[b])
-         m0IonSheath:fill(boundaryIdxr(self.idxB), self.m0IonSheathPtr[b])
+         GammaIon[b]:fill(self.boundaryIdxr[b](self.idxB), self.GammaIonPtr[b])
+         self.phiSheath[b]:fill(self.boundaryIdxr[b](self.idxB), self.phiSheathPtr[b])
+         self.m0IonSheath[b]:fill(self.boundaryIdxr[b](self.idxB), self.m0IonSheathPtr[b])
          m0Ion:fill(innerIdxr(idx), m0IonPtr)
          
-         self._phiSheathKer[b](qElc, mElc, tempElc, GammaIonPtr[b]:data(), m0IonPtr:data(), self.m0IonSheathPtr[b]:data(), self.phiSheathPtr:data())
+         self._phiSheathKer[b](self.qElc, self.mElc, self.tempElc, self.halfSign[b], self.GammaIonPtr[b]:data(), m0IonPtr:data(), self.m0IonSheathPtr[b]:data(), self.phiSheathPtr[b]:data())
       end
 
       -- Loop over the half grid and compute phi.
       for idx in self.halfDomRangeDecomp[b]:rowMajorIter(tId) do
          idx:copyInto(self.idxB)
-         self.idxB[self.sheathDir] = 1
+         self.idxB[self.sheathDir] = 1  -- Boundary grid has 1 cell in this direction.
 
-         phiSheath:fill(boundaryIdxr(self.idxB), self.phiSheathPtr[b])
-         m0IonSheath:fill(boundaryIdxr(self.idxB), self.m0IonSheathPtr[b])
+         self.phiSheath[b]:fill(self.boundaryIdxr[b](self.idxB), self.phiSheathPtr[b])
+         self.m0IonSheath[b]:fill(self.boundaryIdxr[b](self.idxB), self.m0IonSheathPtr[b])
          m0Ion:fill(innerIdxr(idx), m0IonPtr)
-         self.phiAux:fill(innerIdxr(idx), self.phiAuxPtr)
+         phi:fill(innerIdxr(idx), phiPtr)
 
-         self._phiKer(self.halfSign[b], qElc, mElc, tempElc, m0IonPtr:data(), self.m0IonSheathPtr[b]:data(), self.phiSheathPtr[b]:data(), self.phiAuxPtr:data())
+         self._phiKer(self.qElc, self.tempElc, m0IonPtr:data(), self.m0IonSheathPtr[b]:data(), self.phiSheathPtr[b]:data(), phiPtr:data())
       end
    end
-
-   -- Use the FEM smoothing operator to enforce continuity.
-   self.phiZSmoother:advance(tCurr, {self.phiAux}, {phi})
 end
 
-return ASPotential
+return ASheathPotential
