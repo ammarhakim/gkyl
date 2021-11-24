@@ -182,6 +182,25 @@ function AmbipolarSheathField:createSolver(species, externalField)
       smooth = true,
    }
 
+   -- Set up constant dummy field.
+   self.unitFld = createField(self.grid,self.basis,{1,1})
+   local initUnit = Updater.ProjectOnBasis {
+      onGrid = self.grid,   evaluate = function (t,xn) return 1.0 end,
+      basis  = self.basis,  onGhosts = true,
+   }
+   initUnit:advance(0.,{},{self.unitFld})
+
+   -- We will need the reciprocal of the conf-space Jacobian (1/J) later.
+   if externalField.geo then
+      if externalField.geo.name=="SimpleHelical" then
+         self.jacobGeoInv = self.unitFld
+      elseif externalField.geo.name=="GenGeo" then
+         self.jacobGeoInv = externalField.geo.jacobGeoInv
+      end
+   else
+      self.jacobGeoInv = self.unitFld
+   end
+
 end
 
 function AmbipolarSheathField:createDiagnostics()
@@ -248,6 +267,7 @@ function AmbipolarSheathField:advance(tCurr, species, inIdx, outIdx)
    for _, bc in lume.orderedIter(self.ionBC) do
       bc.numDensityCalc:advance(tCurr, {bc:getBoundaryFluxFields()[inIdx]}, {self.bcIonM0flux[bc:getEdge()]})
    end
+   self.calcedPhi = false
 
    self.timers.advTime[1] = self.timers.advTime[1] + Time.clock() - tmStart
 end
@@ -258,14 +278,9 @@ function AmbipolarSheathField:phiSolve(tCurr, species, inIdx, outIdx)
    -- linear problem, and applies BCs to phi.
    -- Need the self.calcedPhi flag because we assume :phiSolve is called within the
    -- species :advance, but we want multiple species to call it.
-   if not self.calcedPhi and tCurr>0. then
+   if not self.calcedPhi then
       local potCurr = self:rkStepperFields()[inIdx]
---      self.bcIonM0flux["lower"]:write("bcIonM0Flux_lower_0.bp",0,tCurr)
---      self.bcIonM0flux["upper"]:write("bcIonM0Flux_upper_0.bp",0,tCurr)
-      species[self.ionName]:getNumDensity():write("ionM0_0.bp",0,tCurr)
-      self.phiSlvr:advance(tCurr, {self.bcIonM0flux, species[self.ionName]:getNumDensity()}, {potCurr.phiAux})
---      potCurr.phiAux:write("phiAux_0.bp",0,tCurr)
---      assert(false, "computed phi")
+      self.phiSlvr:advance(tCurr, {self.bcIonM0flux, species[self.ionName]:getNumDensity(), self.jacobGeoInv}, {potCurr.phiAux})
       -- Smooth phi in z to ensure continuity in all directions.
       if self.ndim ~= 2 and not self.discontinuousPhi then
          self.phiZSmoother:advance(tCurr, {potCurr.phiAux}, {potCurr.phi})

@@ -124,13 +124,15 @@ function ASheathPotential:init(tbl)
 end
 
 function ASheathPotential:_advance(tCurr, inFlds, outFlds)
-   local GammaIon, m0Ion = inFlds[1], inFlds[2]
+   local GammaIon, m0Ion, jacobGeoInv = inFlds[1], inFlds[2], inFlds[3]
    local phi = outFlds[1]
 
-   self.GammaIonPtr["lower"]  = GammaIon["lower"]:get(1)
-   self.GammaIonPtr["upper"]  = GammaIon["upper"]:get(1)
-   local m0IonPtr  = m0Ion:get(1)
-   local phiPtr    = phi:get(1)
+   self.GammaIonPtr["lower"] = GammaIon["lower"]:get(1)
+   self.GammaIonPtr["upper"] = GammaIon["upper"]:get(1)
+   local m0IonPtr = m0Ion:get(1)
+   local phiPtr   = phi:get(1)
+   local jacobGeoInvPtr = jacobGeoInv:get(1)
+
    local innerIdxr = phi:genIndexer()
 
    local grid = self.grid
@@ -151,8 +153,9 @@ function ASheathPotential:_advance(tCurr, inFlds, outFlds)
          self.phiSheath[b]:fill(self.boundaryIdxr[b](self.idxB), self.phiSheathPtr[b])
          self.m0IonSheath[b]:fill(self.boundaryIdxr[b](self.idxB), self.m0IonSheathPtr[b])
          m0Ion:fill(innerIdxr(idx), m0IonPtr)
+         jacobGeoInv:fill(innerIdxr(idx), jacobGeoInvPtr)
          
-         self._phiSheathKer[b](self.qElc, self.mElc, self.tempElc, self.halfSign[b], self.GammaIonPtr[b]:data(), m0IonPtr:data(), self.m0IonSheathPtr[b]:data(), self.phiSheathPtr[b]:data())
+         self._phiSheathKer[b](self.qElc, self.mElc, self.tempElc, self.halfSign[b], jacobGeoInvPtr:data(), self.GammaIonPtr[b]:data(), m0IonPtr:data(), self.m0IonSheathPtr[b]:data(), self.phiSheathPtr[b]:data())
       end
 
       -- Loop over the half grid and compute phi.
@@ -164,8 +167,9 @@ function ASheathPotential:_advance(tCurr, inFlds, outFlds)
          self.m0IonSheath[b]:fill(self.boundaryIdxr[b](self.idxB), self.m0IonSheathPtr[b])
          m0Ion:fill(innerIdxr(idx), m0IonPtr)
          phi:fill(innerIdxr(idx), phiPtr)
+         jacobGeoInv:fill(innerIdxr(idx), jacobGeoInvPtr)
 
-         self._phiKer(self.qElc, self.tempElc, m0IonPtr:data(), self.m0IonSheathPtr[b]:data(), self.phiSheathPtr[b]:data(), phiPtr:data())
+         self._phiKer(self.qElc, self.tempElc, jacobGeoInvPtr:data(), m0IonPtr:data(), self.m0IonSheathPtr[b]:data(), self.phiSheathPtr[b]:data(), phiPtr:data())
       end
    end
 end
