@@ -236,7 +236,8 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
          if _writeGhost then _adOffset[d] = _adOffset[d] + field:lowerGhost() end
       end
       for fldNm, fld in pairs(fieldsTbl) do
-         self._outBuff[fldNm] = self._allocator(localRange:volume()*fld:numComponents())
+         self._outBuff[fldNm] = self._outBuff[fldNm] or self._allocator(1)
+         self._outBuff[fldNm]:expand(localRange:volume()*fld:numComponents())
 
          _adLocalSz[ndim+1]  = fld:numComponents()
          _adGlobalSz[ndim+1] = fld:numComponents()
@@ -393,7 +394,8 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
             if _readGhost then _adOffset[d] = _adOffset[d] + field:lowerGhost() end
          end
          for fldNm, fld in pairs(fieldsTbl) do
-            self._outBuff[fldNm] = self._allocator(localRange:volume()*fld:numComponents())
+            self._outBuff[fldNm] = self._outBuff[fldNm] or self._allocator(1)
+            self._outBuff[fldNm]:expand(localRange:volume()*fld:numComponents())
 
             _adLocalSz[ndim+1]  = fld:numComponents()
             _adGlobalSz[ndim+1] = fld:numComponents()
