@@ -19,7 +19,7 @@ for bInd : 1 thru length(bName) do (
      for ci : 1 thru 3 do (
 
        for bS : 1 thru 2 do ( /* One kernel for each of lower and upper boundaries. */
-         printf(fh, "  void asheath_potential_gauss_phi_sheath_~a_~ax_p~a_~a(const double q_e, const double m_e, const double T_e, const int dirSign, const double *jacInv, const double *Gamma_i, const double *m0Ion, double *m0IonS, double *phiS); ~%", boundaryStr[bS], ci, pi, bName[bInd])
+         printf(fh, "  void asheath_potential_gauss_phi_sheath_~a_~ax_p~a_~a(const double sheathDirDx, const double q_e, const double m_e, const double T_e, const int dirSign, const double *jacInv, const double *Gamma_i, const double *m0Ion, double *m0IonS, double *phiS); ~%", boundaryStr[bS], ci, pi, bName[bInd])
        ),
        printf(fh, "  void asheath_potential_gauss_phi_~ax_p~a_~a(const double q_e, const double T_e, const double *jacInv, const double *m0Ion, const double *m0IonS, const double *phiS, double *phi); ~%", ci, pi, bName[bInd]),
        printf(fh, "~%")      

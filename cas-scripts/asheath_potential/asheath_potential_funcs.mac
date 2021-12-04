@@ -70,18 +70,21 @@ genPhiSheathGaussQuad(fh, funcNm, dim, basisNm, polyOrder) := block(
   ghostEvSign : [1, -1],  skinEvSign  : [-1, 1],
   
   for bS : 1 thru 2 do ( /* One kernel for each of lower and upper boundaries. */
-    printf(fh,sconcat("void ",funcNm,"(const double q_e, const double m_e, const double T_e, const int dirSign, const double *jacInv, const double *GammaJac_i, const double *m0JacIon, double *m0IonS, double *phiS) ~%{ ~%"), boundaryStr[bS]),
-    printf(fh,"  // q_e:        electron change.~%"),
-    printf(fh,"  // m_e:        electron mass.~%"),
-    printf(fh,"  // T_e:        electron temperature.~%"),
-    printf(fh,"  // jacInv:     reciprocal of the geometry Jacobian (1/J).~%"),
-    printf(fh,"  // GammaJac_i: ion particle flux (times the Jacobian) through sheath entrance.~%"),
-    printf(fh,"  // m0JacIon:   ion density (times the geometry Jacobian).~%"),
-    printf(fh,"  // m0IonS:     ion density at the sheath entrance.~%"),
-    printf(fh,"  // phiS:       electrostatic sheath potential.~%"),
+    printf(fh,sconcat("void ",funcNm,"(const double sheathDirDx, const double q_e, const double m_e, const double T_e, const int dirSign, const double *jacInv, const double *GammaJac_i, const double *m0JacIon, double *m0IonS, double *phiS) ~%{ ~%"), boundaryStr[bS]),
+    printf(fh,"  // sheathDirDx: cell length in direction of the sheath.~%"),
+    printf(fh,"  // q_e:         electron change.~%"),
+    printf(fh,"  // m_e:         electron mass.~%"),
+    printf(fh,"  // T_e:         electron temperature.~%"),
+    printf(fh,"  // jacInv:      reciprocal of the geometry Jacobian (1/J).~%"),
+    printf(fh,"  // GammaJac_i:  ion particle flux (times the Jacobian) through sheath entrance.~%"),
+    printf(fh,"  // m0JacIon:    ion density (times the geometry Jacobian).~%"),
+    printf(fh,"  // m0IonS:      ion density at the sheath entrance.~%"),
+    printf(fh,"  // phiS:        electrostatic sheath potential.~%"),
     printf(fh,"~%"),
   
-    GammaJacIon_e : doExpand1(GammaJac_i, basis),     /* Particle flux expanded in basis. */
+    /* Particle flux expanded in basis. Need to multiply by an extra dx/2
+       because of the way the boundary fluxes are computed. */
+    GammaJacIon_e : (sheathDirDx/2)*doExpand1(GammaJac_i, basis),
     /* Evaluate the (ghost cell) flux at the boundary surface. */
     GammaJacIonB_c : calcInnerProdList(varsLowD,1,basisLowD,subst(sheathVar=ghostEvSign[bS], GammaJacIon_e)),
     GammaJacIonB_noZero_c : doMakeExprLst(GammaJacIonB_c, GammaJacIonB), 

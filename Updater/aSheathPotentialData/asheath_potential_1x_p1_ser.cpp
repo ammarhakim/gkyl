@@ -1,18 +1,19 @@
 #include <asheath_potential_mod_decl.h>
 
-void asheath_potential_gauss_phi_sheath_lower_1x_p1_ser(const double q_e, const double m_e, const double T_e, const int dirSign, const double *jacInv, const double *GammaJac_i, const double *m0JacIon, double *m0IonS, double *phiS) 
+void asheath_potential_gauss_phi_sheath_lower_1x_p1_ser(const double sheathDirDx, const double q_e, const double m_e, const double T_e, const int dirSign, const double *jacInv, const double *GammaJac_i, const double *m0JacIon, double *m0IonS, double *phiS) 
 { 
-  // q_e:        electron change.
-  // m_e:        electron mass.
-  // T_e:        electron temperature.
-  // jacInv:     reciprocal of the geometry Jacobian (1/J).
-  // GammaJac_i: ion particle flux (times the Jacobian) through sheath entrance.
-  // m0JacIon:   ion density (times the geometry Jacobian).
-  // m0IonS:     ion density at the sheath entrance.
-  // phiS:       electrostatic sheath potential.
+  // sheathDirDx: cell length in direction of the sheath.
+  // q_e:         electron change.
+  // m_e:         electron mass.
+  // T_e:         electron temperature.
+  // jacInv:      reciprocal of the geometry Jacobian (1/J).
+  // GammaJac_i:  ion particle flux (times the Jacobian) through sheath entrance.
+  // m0JacIon:    ion density (times the geometry Jacobian).
+  // m0IonS:      ion density at the sheath entrance.
+  // phiS:        electrostatic sheath potential.
 
   double GammaJacIonB[1];
-  GammaJacIonB[0] = 1.224744871391589*GammaJac_i[1]+0.7071067811865475*GammaJac_i[0]; 
+  GammaJacIonB[0] = 0.6123724356957944*GammaJac_i[1]*sheathDirDx+0.3535533905932737*GammaJac_i[0]*sheathDirDx; 
 
   double m0JacIonB[1];
   m0JacIonB[0] = 0.7071067811865475*m0JacIon[0]-1.224744871391589*m0JacIon[1]; 
@@ -30,19 +31,20 @@ void asheath_potential_gauss_phi_sheath_lower_1x_p1_ser(const double q_e, const 
   m0IonS[0] = 0.5*((1.414213562373095*jacInv[1]-2.449489742783178*jacInv[0])*m0JacIon[1]+m0JacIon[0]*(1.414213562373095*jacInv[0]-2.449489742783178*jacInv[1])); 
 }
 
-void asheath_potential_gauss_phi_sheath_upper_1x_p1_ser(const double q_e, const double m_e, const double T_e, const int dirSign, const double *jacInv, const double *GammaJac_i, const double *m0JacIon, double *m0IonS, double *phiS) 
+void asheath_potential_gauss_phi_sheath_upper_1x_p1_ser(const double sheathDirDx, const double q_e, const double m_e, const double T_e, const int dirSign, const double *jacInv, const double *GammaJac_i, const double *m0JacIon, double *m0IonS, double *phiS) 
 { 
-  // q_e:        electron change.
-  // m_e:        electron mass.
-  // T_e:        electron temperature.
-  // jacInv:     reciprocal of the geometry Jacobian (1/J).
-  // GammaJac_i: ion particle flux (times the Jacobian) through sheath entrance.
-  // m0JacIon:   ion density (times the geometry Jacobian).
-  // m0IonS:     ion density at the sheath entrance.
-  // phiS:       electrostatic sheath potential.
+  // sheathDirDx: cell length in direction of the sheath.
+  // q_e:         electron change.
+  // m_e:         electron mass.
+  // T_e:         electron temperature.
+  // jacInv:      reciprocal of the geometry Jacobian (1/J).
+  // GammaJac_i:  ion particle flux (times the Jacobian) through sheath entrance.
+  // m0JacIon:    ion density (times the geometry Jacobian).
+  // m0IonS:      ion density at the sheath entrance.
+  // phiS:        electrostatic sheath potential.
 
   double GammaJacIonB[1];
-  GammaJacIonB[0] = 0.7071067811865475*GammaJac_i[0]-1.224744871391589*GammaJac_i[1]; 
+  GammaJacIonB[0] = 0.3535533905932737*GammaJac_i[0]*sheathDirDx-0.6123724356957944*GammaJac_i[1]*sheathDirDx; 
 
   double m0JacIonB[1];
   m0JacIonB[0] = 1.224744871391589*m0JacIon[1]+0.7071067811865475*m0JacIon[0]; 

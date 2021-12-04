@@ -29,6 +29,7 @@ local Lin          = require "Lib.Linalg"
 local Proto        = require "Lib.Proto"
 local xsys         = require "xsys"
 local ModDecl      = require "Updater.aSheathPotentialData.asheath_potential_mod_decl"
+local Mpi          = require "Comm.Mpi"
 
 -- Inherit the base Updater from UpdaterBase updater object.
 local ASheathPotential = Proto(UpdaterBase)
@@ -121,6 +122,30 @@ function ASheathPotential:init(tbl)
 
       self.boundaryIdxr[b] = self.phiSheath[b]:genIndexer()
    end
+
+   if GKYL_HAVE_MPI then
+      -- Need a communicator to broadcast the sheath potential and density along z.
+      local commSet   = self.grid:commSet()
+      local worldComm = commSet.comm
+      local nodeComm  = commSet.nodeComm
+      local nodeRank  = Mpi.Comm_rank(nodeComm)
+      local zCommRank = 0
+      if self.dim==3 then zCommRank = nodeRank % (self.grid:cuts(1)*self.grid:cuts(2)) end
+      self.zComm = Mpi.Comm_split(worldComm, zCommRank, nodeRank)
+      local zCommSize = Mpi.Comm_size(self.zComm)
+      self.sheathRank = {lower=0, upper=zCommSize-1}
+      self.numBoundaryDOFs = {lower=self.phiSheath["lower"]:localRange():volume()*self.phiSheath["lower"]:numComponents(),
+                              upper=self.phiSheath["upper"]:localRange():volume()*self.phiSheath["upper"]:numComponents()}
+      self.bcastSheathQuants = function(bInd)
+         for d=1,self.dim do self.idxB[d] = 1 end
+         self.phiSheath[bInd]:fill(self.boundaryIdxr[bInd](self.idxB), self.phiSheathPtr[bInd])
+         self.m0IonSheath[bInd]:fill(self.boundaryIdxr[bInd](self.idxB), self.m0IonSheathPtr[bInd])
+         Mpi.Bcast(self.phiSheathPtr[bInd]:data(), self.numBoundaryDOFs[bInd], Mpi.DOUBLE, self.sheathRank[bInd], self.zComm) 
+         Mpi.Bcast(self.m0IonSheathPtr[bInd]:data(), self.numBoundaryDOFs[bInd], Mpi.DOUBLE, self.sheathRank[bInd], self.zComm) 
+      end
+   else
+      self.bcastSheathQuants = function(bInd) end
+   end
 end
 
 function ASheathPotential:_advance(tCurr, inFlds, outFlds)
@@ -155,8 +180,11 @@ function ASheathPotential:_advance(tCurr, inFlds, outFlds)
          m0Ion:fill(innerIdxr(idx), m0IonPtr)
          jacobGeoInv:fill(innerIdxr(idx), jacobGeoInvPtr)
          
-         self._phiSheathKer[b](self.qElc, self.mElc, self.tempElc, self.halfSign[b], jacobGeoInvPtr:data(), self.GammaIonPtr[b]:data(), m0IonPtr:data(), self.m0IonSheathPtr[b]:data(), self.phiSheathPtr[b]:data())
+         self._phiSheathKer[b](self.dx[self.sheathDir], self.qElc, self.mElc, self.tempElc, self.halfSign[b], jacobGeoInvPtr:data(), self.GammaIonPtr[b]:data(), m0IonPtr:data(), self.m0IonSheathPtr[b]:data(), self.phiSheathPtr[b]:data())
       end
+
+      -- Broadcast the sheath potential and density to other ranks along z.
+      self.bcastSheathQuants(b)
 
       -- Loop over the half grid and compute phi.
       for idx in self.halfDomRangeDecomp[b]:rowMajorIter(tId) do
