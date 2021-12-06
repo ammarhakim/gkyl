@@ -222,7 +222,7 @@ end
 
 function AmbipolarSheathField:write(tm, force)
    if self.calcIntFieldEnergyTrigger(tm) then
-      -- Compute integrated quantities over domain.
+      -- Compute quantities integrated over domain.
       self.intSqCalc:advance(tm, { self.potentials[1].phi }, { self.phiSq })
    end
 
@@ -238,6 +238,11 @@ function AmbipolarSheathField:writeRestart(tm)
    -- (the final "false" prevents writing of ghost cells).
    self.fieldIo:write(self.potentials[1].phi, "phi_restart.bp", tm, self.ioFrame, false)
 
+   -- Write boundary fluxes. They are used upon restart.
+   for _, bc in lume.orderedIter(self.ionBC) do
+      bc:getBoundaryFluxFields()[1]:write(string.format("field_%s_restart.bp", bc.diagnostics.name))
+   end
+
    -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
    self.phiSq:write("phiSq_restart.bp", tm, self.dynVecRestartFrame, false, false)
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
@@ -250,6 +255,11 @@ function AmbipolarSheathField:readRestart()
    self.phiSq:read("phiSq_restart.bp", tm)
 
    self:applyBc(0, self.potentials[1])
+
+   -- Read boundary particle fluxes from previous simulation.
+   for _, bc in lume.orderedIter(self.ionBC) do
+      local _, _ = self.fieldIo:read(bc:getBoundaryFluxFields()[1], string.format("field_%s_restart.bp", bc.diagnostics.name))
+   end
 
    self.ioFrame = fr
    -- Iterate triggers.
