@@ -121,6 +121,10 @@ function KineticSpecies:fullInit(appTbl)
    -- Write ghost cells on boundaries of global domain (for BCs).
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 
+   -- Option to group diagnostics (i.e. it writes one file for all grid diags, and one file
+   -- for all integrated diags) in all diagnostic Apps, rather than writing one file for each.
+   self.groupDiags = appTbl.groupDiagnostics or false
+
    -- Get a random seed for random initial conditions.
    self.randomseed = tbl.randomseed
 
@@ -198,7 +202,7 @@ function KineticSpecies:fullInit(appTbl)
          elseif val=="zeroFlux" then
             goodBC = true
          end
-         assert(goodBC, "GkSpecies: bc not recognized.")
+         assert(goodBC, "KineticSpecies: bc not recognized.")
       end
    end
    lume.setOrder(self.nonPeriodicBCs)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).

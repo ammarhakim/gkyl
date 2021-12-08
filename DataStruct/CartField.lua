@@ -403,7 +403,8 @@ local function Field_meta_ctor(elct)
       -- transfers differently than upper -> lower as the number of
       -- ghost cells may be different on each lower/upper side. (AHH)
       for dir = 1, self._ndim do
-         if grid:isDirPeriodic(dir) then
+         -- set up periodic-sync Datatypes for all dirs, in case we want to change periodicDirs later
+         if self._lowerGhost > 0 and self._upperGhost > 0 then
             local skelIds = decomposedRange:boundarySubDomainIds(dir)
             for i = 1, #skelIds do
                local loId, upId = skelIds[i].lower, skelIds[i].upper

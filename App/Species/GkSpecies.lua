@@ -842,14 +842,6 @@ function GkSpecies:createDiagnostics(field)
       self.diagnostics[self.name..collNm] = coll:createDiagnostics(self, field)
    end
    lume.setOrder(self.diagnostics)
-
-   -- MF: This is here temporarily. It should be moved to the ionization app. 
-   if self.calcReactRate then
-      self.intCalcIz = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.confGrid,   quantity      = "V",
-         basis  = self.confBasis,  numComponents = 1,
-      }
-   end
 end
 
 function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)

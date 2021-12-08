@@ -184,6 +184,13 @@ function RectCart:localRange() return self._localRange end
 function RectCart:globalRange() return self._globalRange end
 function RectCart:isDirPeriodic(dir) return self._isDirPeriodic[dir] end
 function RectCart:getPeriodicDirs() return self._periodicDirs end
+function RectCart:setPeriodicDirs(periodicDirs)
+   self._periodicDirs  = periodicDirs
+   self._isDirPeriodic = {false, false, false, false, false, false}
+   for _, dir in ipairs(self._periodicDirs) do
+      self._isDirPeriodic[dir] = true
+   end
+end
 function RectCart:cuts(dir) return self._cuts[dir] end
 function RectCart:setIndex(idxIn)
    if type(idxIn) == "cdata" then
@@ -240,12 +247,13 @@ function RectCart:findCell(point, cellIdx, pickLower, knownIdx)
       return isTrue
    end
    local isInCell = function(pIn, iIn)
+      local eps = 1.e-14
       local checkIdx = {}
       for d=1, self._ndim do checkIdx[d] = knownIdx[d]==nil and iIn[dimTrans[d]] or knownIdx[d] end
       self:setIndex(checkIdx)
       local inCell = true
       for d = 1, self._ndim do
-         inCell = inCell and (pIn[d]>=self:cellLowerInDir(d) and pIn[d]<=self:cellUpperInDir(d))
+         inCell = inCell and (self:cellLowerInDir(d)-eps<=pIn[d] and pIn[d]<=self:cellUpperInDir(d)+eps)
       end
       return inCell
    end
@@ -358,6 +366,7 @@ function RectCart:copyHostToDevice()
    return getDevicePointerToGrid(self)
 end
 
+
 function RectCart:childGrid(keepDims)
    -- Collect the ingredients needed for a child grid: a grid with a subset of the
    -- directions of the original (parent) grid.
@@ -366,7 +375,7 @@ function RectCart:childGrid(keepDims)
    assert(childDim>0 and childDim<=self._ndim, "RectCart:childGrid cannot have dimensions < 1 or greater than parent grid.")
 
    local childLower, childUpper, childCells, childPeriodicDirs = {}, {}, {}, {}
-   local dI, pIdx = 0
+   local dI, pIdx = 0, 0
    for _, d in ipairs(lume.sort(keepDims)) do
       dI = dI+1
       childLower[dI] = self:lower(d)
@@ -382,20 +391,16 @@ function RectCart:childGrid(keepDims)
    if self.decomp then
       local childComm, childWriteRank, childCuts, childIsShared = self.decomp:childDecomp(keepDims)
       childDecomp = DecompRegionCalc.CartProd {
-         comm      = childComm,
-         writeRank = childWriteRank,
-         cuts      = childCuts,
-         useShared = childIsShared,
+         comm         = childComm,       cuts      = childCuts,
+         writeRank    = childWriteRank,  useShared = childIsShared,
          __serTesting = true,
       }
    end
 
    local childGridIngredients = {
-      lower = childLower,
-      upper = childUpper,
+      lower = childLower,  periodicDirs  = childPeriodicDirs,
+      upper = childUpper,  decomposition = childDecomp,
       cells = childCells,
-      periodicDirs  = childPeriodicDirs,
-      decomposition = childDecomp,
    }
    return childGridIngredients
 end

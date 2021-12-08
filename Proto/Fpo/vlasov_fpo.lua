@@ -7,8 +7,11 @@
 -- Updater; therefore, we have the prototype App. Additionally, this
 -- App is currently hardcoded for 0x3v case.
 --
--- We are solving:
--- df/dt = - d/dvi ( dh/dvi f ) + 1/2 d^2/(dvi dvj) ( d^2g/(dvi dvj) f )
+-- We are solving: (based on the selected "type")
+-- either
+-- df/dt = - d/dvi ( dh/dvi f ) + 1/2 d^2/(dvi dvj) ( d^2g/(dvi dvj) f )    (I)
+-- or
+-- df/dt = - d/dvi ( dh/dvi f ) + 1/2 d/dvi ( d^2g/(dvi dvj) df/dvj )      (II)
 -- where
 -- nabla^2 h = - 4 pi f; nabla^2 g = h
 -------------------------------------------------------------------
@@ -179,24 +182,28 @@ return function(tbl)
       local indexer = fIn:genIndexer()
       local M0mod, M2 = 0.0, 0.0
 
-      local isXloEdge, isXupEdge = 0, 0
-      local isYloEdge, isYupEdge = 0, 0
-      local isZloEdge, isZupEdge = 0, 0
+      local isXloEdge, isXupEdge
+      local isYloEdge, isYupEdge
+      local isZloEdge, isZupEdge
+      
       for idxs in localRange:colMajorIter() do
-         -- if not hasPeriodicBC then
-         --    if idxs[1] == localRange:lower(1) then isXloEdge = 1 end
-         --    if idxs[1] == localRange:upper(1) then isXupEdge = 1 end
-         --    if idxs[2] == localRange:lower(2) then isYloEdge = 1 end
-         --    if idxs[2] == localRange:upper(2) then isYupEdge = 1 end
-         --    if idxs[3] == localRange:lower(3) then isZloEdge = 1 end
-         --    if idxs[3] == localRange:upper(3) then isZupEdge = 1 end
-         -- end
-               
+         isXloEdge, isXupEdge = 0.0, 0.0
+         isYloEdge, isYupEdge = 0.0, 0.0
+         isZloEdge, isZupEdge = 0.0, 0.0
+         if not hasPeriodicBC then
+            if idxs[1] == localRange:lower(1) then isXloEdge = 1 end
+            if idxs[1] == localRange:upper(1) then isXupEdge = 1 end
+            if idxs[2] == localRange:lower(2) then isYloEdge = 1 end
+            if idxs[2] == localRange:upper(2) then isYupEdge = 1 end
+            if idxs[3] == localRange:lower(3) then isZloEdge = 1 end
+            if idxs[3] == localRange:upper(3) then isZupEdge = 1 end
+         end
+
          grid:setIndex(idxs)
          grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
          M0mod = M0mod + momM0modKernelFn(dv:data(), vc:data(), fPtr:data(),
-                                   isXloEdge, isXupEdge, isYloEdge, isYupEdge, isZloEdge, isZupEdge)
+                                          isXloEdge, isXupEdge, isYloEdge, isYupEdge, isZloEdge, isZupEdge)
          M2 = M2 + momM2KernelFn(dv:data(), vc:data(), fPtr:data())
       end
       return M2/M0mod
@@ -336,7 +343,6 @@ return function(tbl)
          elseif doughertyPotentials then
             if doughertyFix then
                local vth2 = calcVth2(fIn)
-               print(moms[5]/moms[1]/3 - vth2)
                projectUpd:setFunc( getDoughertyGmod(vth2) )
             else
                projectUpd:setFunc( getDoughertyG(moms) )
@@ -428,18 +434,23 @@ return function(tbl)
       local isZloEdge, isZupEdge
 
       for idxs in localRange:colMajorIter() do
-         isXloEdge, isXupEdge = false, false
-         isYloEdge, isYupEdge = false, false
-         isZloEdge, isZupEdge = false, false
-
+         isXloEdge, isXupEdge = 0, 0
+         isYloEdge, isYupEdge = 0, 0
+         isZloEdge, isZupEdge = 0, 0
          if not hasPeriodicBC then
-            if idxs[1] == localRange:lower(1) then isXloEdge = true end
-            if idxs[1] == localRange:upper(1) then isXupEdge = true end
-            if idxs[2] == localRange:lower(2) then isYloEdge = true end
-            if idxs[2] == localRange:upper(2) then isYupEdge = true end
-            if idxs[3] == localRange:lower(3) then isZloEdge = true end
-            if idxs[3] == localRange:upper(3) then isZupEdge = true end
+            if idxs[1] == localRange:lower(1) then isXloEdge = 1 end
+            if idxs[1] == localRange:upper(1) then isXupEdge = 1 end
+            if idxs[2] == localRange:lower(2) then isYloEdge = 1 end
+            if idxs[2] == localRange:upper(2) then isYupEdge = 1 end
+            if idxs[3] == localRange:lower(3) then isZloEdge = 1 end
+            if idxs[3] == localRange:upper(3) then isZupEdge = 1 end
          end
+         -- print("-------------------")
+         -- print(idxs[1], idxs[2], idxs[3])
+         -- print(isXloEdge, isXupEdge)
+         -- print(isYloEdge, isYupEdge)
+         -- print(isZloEdge, isZupEdge)
+         -- print("-------------------")
          
          idxs_LLC[1], idxs_LLC[2], idxs_LLC[3] = idxs[1]-1, idxs[2]-1, idxs[3]
          idxs_LCL[1], idxs_LCL[2], idxs_LCL[3] = idxs[1]-1, idxs[2], idxs[3]-1
@@ -600,12 +611,10 @@ return function(tbl)
    -- The RK3 time stepping ------------------------------------------
    -------------------------------------------------------------------
    local function rk3(tCurr, dt, fIn, fOut)
-      local cflFreq
-      local localDt
       -- Stage 1 -----------------------------------------------------
       updatePotentials(tCurr, fIn, h, g)
-      cflFreq = forwardEuler(dt, fIn, h, g, f1)
-      localDt = cflFrac/cflFreq
+      local cflFreq = forwardEuler(dt, fIn, h, g, f1)
+      local localDt = cflFrac/cflFreq
       if localDt < 0.9*dt then
          return false, localDt
       end

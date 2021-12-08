@@ -118,7 +118,7 @@ function VmSteadyStateSource:advance(tCurr, fIn, species, fRhsOut)
       end
    end
    local globalEdgeFlux = ffi.new("double[3]")
-   Mpi.Allreduce(localEdgeFlux, globalEdgeFlux, 1, Mpi.DOUBLE, Mpi.MAX, self.confGrid:commSet().comm)
+   Mpi.Allreduce(localEdgeFlux, globalEdgeFlux, 1, Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
    local densFactor = globalEdgeFlux[0]/self.sourceLength
    fRhsOut:accumulate(densFactor, self.fSource)
    self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm

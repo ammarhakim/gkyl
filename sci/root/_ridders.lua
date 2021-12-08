@@ -15,7 +15,13 @@ local function root(f, xl, xu, stop)
   end
   local yl, yu = f(xl), f(xu)
   if not (diff.le(yl*yu, 0)) then
-    error(string.format("root not bracketed by f(xl=%f)=%f, f(xu=%f)=%f", tostring(xl), tostring(yl), tostring(xu), tostring(yu)))
+     if stop(xl, yl, xl, xu, yl, yu) then
+        return xl, yl, xl, xu, yl, yu
+     elseif stop(xu, yu, xl, xu, yl, yu) then
+        return xu, yu, xl, xu, yl, yu
+     else
+        error(string.format("root not bracketed by f(xl=%f)=%e, f(xu=%f)=%e", tostring(xl), tostring(yl), tostring(xu), tostring(yu)))
+     end
   end
   while true do
     local xm = xl + 0.5*(xu - xl) -- Avoid xm > xl or xm < xu.

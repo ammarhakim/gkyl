@@ -8,20 +8,13 @@ import os
 def build(bld):
     bld.shlib(source = r"""
     Fpo/vlasov_fpo_moms_3x_ser_p1.cpp
+    Fpo/vlasov_fpo_diag_3x_ser_p1.cpp
+
+    Fpo/vlasov_fpo_drag_cell_3x_ser_p1.cpp
+
+    Fpo/vlasov_fpo_diffI_surfx_3x_ser_p1.cpp
+    Fpo/vlasov_fpo_diffI_surfy_3x_ser_p1.cpp
+    Fpo/vlasov_fpo_diffI_surfz_3x_ser_p1.cpp
+    Fpo/vlasov_fpo_diffI_vol_3x_ser_p1.cpp
     """,
     includes = '. Fpo', use='Eigen MPI lib', target = 'proto', name='proto', vnum = '1.0')
-
-# The build doesn't work on Cori if these files are included.
-#    Fpo/vlasov_fpo_diag_3x_ser_p1.cpp
-#
-#    Fpo/vlasov_fpo_drag_cell_3x_ser_p1.cpp
-#
-#    Fpo/vlasov_fpo_diffI_surfx_3x_ser_p1.cpp
-#    Fpo/vlasov_fpo_diffI_surfy_3x_ser_p1.cpp
-#    Fpo/vlasov_fpo_diffI_surfz_3x_ser_p1.cpp
-#    Fpo/vlasov_fpo_diffI_vol_3x_ser_p1.cpp
-#
-#    Fpo/vlasov_fpo_diffII_surfx_3x_ser_p1.cpp
-#    Fpo/vlasov_fpo_diffII_surfy_3x_ser_p1.cpp
-#    Fpo/vlasov_fpo_diffII_surfz_3x_ser_p1.cpp
-#    Fpo/vlasov_fpo_diffII_vol_3x_ser_p1.cpp
