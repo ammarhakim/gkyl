@@ -199,8 +199,6 @@ end
 function MaxwellField:hasEB() return true, self.hasMagField end
 function MaxwellField:setCfl(cfl) self.cfl = cfl end
 function MaxwellField:getCfl() return self.cfl end
-function MaxwellField:setIoMethod(ioMethod) self.ioMethod = ioMethod end
-function MaxwellField:setBasis(basis) self.basis = basis end
 function MaxwellField:setGrid(grid) self.grid = grid end
 
 function MaxwellField:getEpsilon0() return self.epsilon0 end
@@ -916,13 +914,7 @@ function ExternalMaxwellField:fullInit(appTbl)
    end
 end
 
-function ExternalMaxwellField:hasEB()
-   return true, self.hasMagField
-end
-
-function ExternalMaxwellField:setCfl() end
-function ExternalMaxwellField:setIoMethod(ioMethod) self.ioMethod = ioMethod end
-function ExternalMaxwellField:setBasis(basis) self.basis = basis end
+function ExternalMaxwellField:hasEB() return true, self.hasMagField end
 function ExternalMaxwellField:setGrid(grid) self.grid = grid end
 
 function ExternalMaxwellField:alloc(nField)

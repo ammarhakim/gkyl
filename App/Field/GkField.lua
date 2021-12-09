@@ -204,9 +204,6 @@ end
 
 -- Methods for EM field object.
 function GkField:hasEB() return true, self.isElectromagnetic end
-function GkField:setCfl() end
-function GkField:setIoMethod(ioMethod) self.ioMethod = ioMethod end
-function GkField:setBasis(basis) self.basis = basis end
 function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
 
 local function createField(grid, basis, ghostCells, vComp, periodicSync)
@@ -250,10 +247,8 @@ function GkField:alloc(nRkDup)
    -- Set up constant dummy field.
    self.unitWeight = createField(self.grid,self.basis,{1,1})
    local initUnit = Updater.ProjectOnBasis {
-      onGrid   = self.grid,
-      basis    = self.basis,
-      evaluate = function (t,xn) return 1.0 end,
-      onGhosts = true,
+      onGrid = self.grid,   evaluate = function (t,xn) return 1.0 end,
+      basis  = self.basis,  onGhosts = true,
    }
    initUnit:advance(0.,{},{self.unitWeight})
 
@@ -303,6 +298,11 @@ function GkField:initField(species)
 
    -- Apply BCs and update ghosts.
    self:applyBc(0, self.potentials[1])
+
+   if self.ioFrame == 0 then 
+      self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeight_0.bp", tm, self.ioFrame, false)
+      self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_0.bp", tm, self.ioFrame, false)
+   end
 end
 
 function GkField:rkStepperFields() return self.potentials end
@@ -325,15 +325,11 @@ function GkField:combineRk(outIdx, a, aIdx, ...)
    end
 end
 
-function GkField:suggestDt() return GKYL_MAX_DOUBLE end
-function GkField:clearCFL() end
-
 function GkField:createSolver(species, externalField)
    -- Get adiabatic species info.
    for _, s in lume.orderedIter(species) do
       if Species.AdiabaticSpecies.is(s) then
-         self.adiabatic = true
-         self.adiabSpec = s
+         self.adiabatic, self.adiabSpec = true, s
       end
    end
    assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")
@@ -383,11 +379,9 @@ function GkField:createSolver(species, externalField)
    }
    if self.ndim == 3 and not self.discontinuousPhi then
       self.phiZSmoother = Updater.FemParPoisson {
-         onGrid  = self.grid,
-         basis   = self.basis,
-         bcLower = {{T="N",V=0.0}},
-         bcUpper = {{T="N",V=0.0}},
-         smooth  = true,
+         onGrid = self.grid,   bcLower = {{T="N",V=0.0}},
+         basis  = self.basis,  bcUpper = {{T="N",V=0.0}},
+         smooth = true,
       }
    end
    -- When using a linearizedPolarization term in Poisson equation,
@@ -519,10 +513,8 @@ function GkField:createSolver(species, externalField)
    -- Function to construct a BC updater.
    local function makeBcUpdater(dir, edge, bcList)
       return Updater.Bc {
-	 onGrid = self.grid,
-	 boundaryConditions = bcList,
-	 dir = dir,
-	 edge = edge,
+         onGrid             = self.grid,  dir  = dir,
+         boundaryConditions = bcList,     edge = edge,
       }
    end
 
@@ -544,27 +536,14 @@ function GkField:createSolver(species, externalField)
    end
 
    local function handleBc(dir, bc)
-      if bc[1] then
-	 appendBoundaryConditions(dir, "lower", bc[1])
-      end
-      if bc[2] then
-	 appendBoundaryConditions(dir, "upper", bc[2])
-      end
-   end
-
-   local function contains(table, element)
-     for _, value in pairs(table) do
-       if value == element then
-         return true
-       end
-     end
-     return false
+      if bc[1] then appendBoundaryConditions(dir, "lower", bc[1]) end
+      if bc[2] then appendBoundaryConditions(dir, "upper", bc[2]) end
    end
 
    -- For non-periodic dirs, use BC_OPEN to make sure values on edge of ghost cells match
    -- values on edge of skin cells, so that field is continuous across skin-ghost boundary.
    for dir = 1, self.ndim do
-      if not contains(self.periodicDirs, dir) then 
+      if not lume.any(self.periodicDirs, function(t) return t==dir end) then 
          handleBc(dir, {EM_BC_OPEN, EM_BC_OPEN}) 
       end
    end
@@ -637,21 +616,14 @@ function GkField:write(tm, force)
          end
       end
 
-      if self.ioFrame == 0 then 
-         self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeight_0.bp", tm, self.ioFrame, false)
-         self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_0.bp", tm, self.ioFrame, false)
-      end
-      
       if self.ioTrigger(tm) or force then
 	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
-         if self.isElectromagnetic then 
-	    self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
-	    self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
-         end
 	 self.phiSq:write(string.format("phiSq.bp"), tm, self.ioFrame)
 	 self.gradPerpPhiSq:write(string.format("gradPerpPhiSq.bp"), tm, self.ioFrame)
 	 self.esEnergy:write(string.format("esEnergy.bp"), tm, self.ioFrame)
-	 if self.isElectromagnetic then
+         if self.isElectromagnetic then 
+	    self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
+	    self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
 	    self.aparSq:write(string.format("aparSq.bp"), tm, self.ioFrame)
 	    self.emEnergy:write(string.format("emEnergy.bp"), tm, self.ioFrame)
 	 end
@@ -708,9 +680,6 @@ function GkField:readRestart()
    -- Iterate triggers.
    self.ioTrigger(tm)
 end
-
--- Not needed for GK.
-function GkField:accumulateCurrent(dt, current, em) end
 
 -- Solve for electrostatic potential phi.
 function GkField:advance(tCurr, species, inIdx, outIdx)
@@ -793,9 +762,7 @@ function GkField:phiSolve(tCurr, species, inIdx, outIdx)
       -- Apply BCs.
       local tmStart = Time.clock()
       -- Make sure phi is continuous across skin-ghost boundary.
-      for _, bc in ipairs(self.boundaryConditions) do
-         bc:advance(tCurr, {}, {potCurr.phi})
-      end
+      for _, bc in ipairs(self.boundaryConditions) do bc:advance(tCurr, {}, {potCurr.phi}) end
       potCurr.phi:sync(true)
       self.bcTime = self.bcTime + (Time.clock()-tmStart)
 
@@ -898,28 +865,18 @@ function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
    self.timers.advTime[3] = self.timers.advTime[3] + Time.clock() - tmStart
 end
 
-function GkField:applyBcIdx(tCurr, idx)
-   -- don't do anything here. BCs handled in advance steps.
-end
-
--- NOTE: global boundary conditions handled by solver. this just updates interproc ghosts.
+-- NOTE: global boundary conditions handled by solver. This just updates interproc ghosts.
 -- Also NOTE: this method does not usually get called (because it is not called in applyBcIdx).
 function GkField:applyBc(tCurr, potIn)
    local tmStart = Time.clock()
-   for _, bc in ipairs(self.boundaryConditions) do
-      bc:advance(tCurr, {}, {potIn.phi})
-   end
+   for _, bc in ipairs(self.boundaryConditions) do bc:advance(tCurr, {}, {potIn.phi}) end
    potIn.phi:sync(true)
    if self.isElectromagnetic then 
      -- make sure apar is continuous across skin-ghost boundary
-     for _, bc in ipairs(self.boundaryConditions) do
-        bc:advance(tCurr, {}, {potIn.apar})
-     end
+     for _, bc in ipairs(self.boundaryConditions) do bc:advance(tCurr, {}, {potIn.apar}) end
      potIn.apar:sync(true) 
      -- make sure dApardt is continuous across skin-ghost boundary
-     for _, bc in ipairs(self.boundaryConditions) do
-        bc:advance(tCurr, {}, {potIn.dApardt})
-     end
+     for _, bc in ipairs(self.boundaryConditions) do bc:advance(tCurr, {}, {potIn.dApardt}) end
      potIn.dApardt:sync(true) 
    end
    self.bcTime = self.bcTime + (Time.clock()-tmStart)
@@ -934,20 +891,14 @@ function GkField:totalSolverTime()
    end
    return time
 end
-
-function GkField:totalBcTime()
-   return self.bcTime
-end
-
+function GkField:totalBcTime() return self.bcTime end
 function GkField:energyCalcTime()
    local t = self.int2Calc.totalTime
    if self.energyCalc then t = t + self.energyCalc.totalTime end
    return t
 end
 
-function GkField:printDevDiagnostics()
-   self.phiSlvr:printDevDiagnostics()
-end
+function GkField:printDevDiagnostics() self.phiSlvr:printDevDiagnostics() end
 
 -- GkGeometry ---------------------------------------------------------------------
 --
@@ -994,10 +945,6 @@ function GkGeometry:fullInit(appTbl)
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 end
 
-function GkGeometry:hasEB() end
-function GkGeometry:setCfl() end
-function GkGeometry:setIoMethod(ioMethod) self.ioMethod = ioMethod end
-function GkGeometry:setBasis(basis) self.basis = basis end
 function GkGeometry:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
 
 function GkGeometry:alloc()
@@ -1309,8 +1256,7 @@ function GkGeometry:createSolver()
    }
 end
 
-function GkGeometry:createDiagnostics()
-end
+function GkGeometry:createDiagnostics() end
 
 function GkGeometry:initField()
    local log = Logger { logToFile = true }
@@ -1436,8 +1382,7 @@ function GkGeometry:write(tm)
    self.ioFrame = self.ioFrame+1
 end
 
-function GkGeometry:writeRestart(tm)
-end
+function GkGeometry:writeRestart(tm) end
 
 function GkGeometry:rkStepperFields()
    return { self.geo, self.geo, self.geo, self.geo }
@@ -1464,6 +1409,5 @@ end
 
 function GkGeometry:totalBcTime() return 0.0 end
 function GkGeometry:energyCalcTime() return 0.0 end
-
 
 return {GkField = GkField, GkGeometry = GkGeometry}

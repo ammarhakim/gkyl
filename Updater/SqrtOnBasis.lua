@@ -26,7 +26,7 @@ local SqrtOnBasis = Proto(UpdaterBase)
 function SqrtOnBasis:init(tbl)
    SqrtOnBasis.super.init(self, tbl) -- setup base object
 
-   self.grid  = assert(tbl.onGrid, "Updater.SqrtOnBasis: Must provide configuration space grid object 'grid'.")
+   self.grid  = assert(tbl.onGrid, "Updater.SqrtOnBasis: Must provide configuration space grid object 'onGrid'.")
    self.basis = assert(tbl.basis, "Updater.SqrtOnBasis: Must provide configuration space basis object 'basis'.")
    local calcReciprocal = tbl.reciprocal or false
 

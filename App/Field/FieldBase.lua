@@ -12,10 +12,23 @@ local Proto = require "Lib.Proto"
 local FieldBase = Proto()
 function FieldBase:init(tbl) self.isElliptic = false end
 function FieldBase:readRestart() end
+function FieldBase:hasEB() return nil, nil end
+function FieldBase:setCfl() end
+function FieldBase:setIoMethod(ioMethod) self.ioMethod = ioMethod end
+function FieldBase:setBasis(basis) self.basis = basis end
 function FieldBase:printDevDiagnostics() end
+function FieldBase:accumulateCurrent(dt, current, em) end
+function FieldBase:applyBcIdx(tCurr, idx) end
+function FieldBase:suggestDt() return GKYL_MAX_DOUBLE end
+function FieldBase:clearCFL() end
+
 
 local ExternalFieldBase = Proto()
 function ExternalFieldBase:init(tbl) self.isElliptic = false end
+function ExternalFieldBase:hasEB() return nil, nil end
+function ExternalFieldBase:setCfl() end
+function ExternalFieldBase:setIoMethod(ioMethod) self.ioMethod = ioMethod end
+function ExternalFieldBase:setBasis(basis) self.basis = basis end
 function ExternalFieldBase:readRestart() end
 function ExternalFieldBase:printDevDiagnostics() end
 
