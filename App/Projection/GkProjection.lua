@@ -161,7 +161,10 @@ function MaxwellianProjection:scaleM012(distf)
    -- Calculate (inexact) moments of initial distribution function.
    sp.numDensityCalc:advance(0.0, {distf}, {M0})
    sp.M2parCalc:advance(0.0, {distf}, {M2par})
-   if self.vdim > 1 then sp.M2perpCalc:advance(0.0, {distf}, {M2perp}) end
+   if self.vdim > 1 then
+      sp.M2perpCalc:advance(0.0, {distf}, {M2perp})
+      M2perp:scale(0.5)
+   end
 
    -- Initialize exact moments.
    local confProject = Updater.ProjectOnBasis {
@@ -316,7 +319,10 @@ end
 --   sp.numDensityCalc:advance(0.0, {distf}, {Dens})
 --   sp.momDensityCalc:advance(0.0, {distf}, {M1})
 --   sp.M2parCalc:advance(0.0, {distf}, {M2par})
---   if self.vdim == 2 then sp.M2perpCalc:advance(0.0, {distf}, {M2perp}) end
+--   if self.vdim == 2 then
+--      sp.M2perpCalc:advance(0.0, {distf}, {M2perp})
+--      M2perp:scale(0.5)
+--   end
 --
 --   -- calculate weak moments
 --   local Upar, Upar_sq, Tpar, Tperp = sp:allocMoment(), sp:allocMoment(), sp:allocMoment(), sp:allocMoment()

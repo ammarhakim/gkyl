@@ -133,7 +133,7 @@ local implementation = function()
       self.divideByJacobGeo(tm, self.field, self.field)
    end
 
-   -- ~~~~ mu*B moment, perpendicular energy density ~~~~~~~~~~~~~~~~~~~~~~
+   -- ~~~~ 2*mu*B/m moment, perpendicular energy density ~~~~~~~~~~~~~~~~~~~~~~
    local _M2perp = Proto(DiagsImplBase)
    function _M2perp:fullInit(diagApp, specIn, fieldIn, owner)
       self.field            = owner:allocMoment()
@@ -150,7 +150,7 @@ local implementation = function()
       self.divideByJacobGeo(tm, self.field, self.field)
    end
 
-   -- ~~~~ Parallel heat flux density ~~~~~~~~~~~~~~~~~~~~~~
+   -- ~~~~ Parallel heat flux density (vpar^3 moment) ~~~~~~~~~~~~~~~~~~~~~~
    local _M3par = Proto(DiagsImplBase)
    function _M3par:fullInit(diagApp, specIn, fieldIn, owner)
       self.field            = owner:allocMoment()
@@ -167,7 +167,7 @@ local implementation = function()
       self.divideByJacobGeo(tm, self.field, self.field)
    end
 
-   -- ~~~~ Parallel flux of perpendicular energy density ~~~~~~~~~~~~~~~~~~~~~~
+   -- ~~~~ Parallel flux of perpendicular energy density (vpar*2*B/m moment) ~~~~~~~~~~~~~~~~~~~~~~
    local _M3perp = Proto(DiagsImplBase)
    function _M3perp:fullInit(diagApp, specIn, fieldIn, owner)
       self.field            = owner:allocMoment()
@@ -246,7 +246,7 @@ local implementation = function()
       local specIn, diags = inFlds[1], inFlds[2]
       local M0, M2perp    = diags["M0"].field, diags["M2perp"].field
       self.updater:advance(tm, {M0, M2perp}, {self.field})
-      self.field:scale(specIn.mass)
+      self.field:scale(0.5*specIn.mass)
    end
 
    -- ~~~~ Plasma beta ~~~~~~~~~~~~~~~~~~~~~~

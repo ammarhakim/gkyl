@@ -379,12 +379,12 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
             self.M2perpCalc = Updater.DistFuncMomentCalc {
                onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
                phaseBasis = self.basis,         gkfacs    = {mass, self.bmag},
-               moment     = "GkM2perp", -- GkM2 = < (mu*B/m) f >
+               moment     = "GkM2perp", -- GkM2 = < (2*mu*B/m) f >
             }
             self.M3perpCalc = Updater.DistFuncMomentCalc {
                onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
                phaseBasis = self.basis,         gkfacs    = {mass, self.bmag},
-               moment     = "GkM3perp", -- GkM3perp = < vpar*(mu*B/m) f >
+               moment     = "GkM3perp", -- GkM3perp = < vpar*(2*mu*B/m) f >
             }
          end
          self.divideByJacobGeo = self.jacobGeoInv

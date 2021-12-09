@@ -187,7 +187,7 @@ calcGkM2par(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
 ))$
 
 /* Perpendicular Particle Energy */
-/* M2perp = < mu/m B f > */
+/* M2perp = < 2*mu/m B f > */
 calcGkM2perp(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
   [modNm,p,bP,bC,i,fl,bmag_expd,Mtemp,tmp_expd,M],
   kill(varsC, varsP, basisC, basisP),
@@ -207,7 +207,7 @@ calcGkM2perp(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
     fl : doExpand1(f, bP),
     bmag_expd : doExpand1(Bmag, bC),
   
-    Mtemp : calcInnerProdList(varsP, vTrans[2], bC, fl),
+    Mtemp : calcInnerProdList(varsP, 2*vTrans[2], bC, fl),
     Mtemp : map(letsimp, Mtemp),
   
     printf(fh, "  double tmp[~a]; ~%", length(bC)),
@@ -300,7 +300,7 @@ calcGkM3par(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
 ))$
 
 /* Perpendicular Heat Flux */
-/* M3perp = < v_par mu/m B f > */
+/* M3perp = < v_par 2*mu/m B f > */
 calcGkM3perp(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
   [modNm,p,bP,bC,i,fl,bmag_expd,M],
   kill(varsC, varsP, basisC, basisP),
@@ -320,7 +320,7 @@ calcGkM3perp(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
     fl : doExpand1(f, bP),
     bmag_expd : doExpand1(Bmag, bC),
   
-    M : calcInnerProdList(varsP, vTrans[1]*vTrans[2]*bmag_expd, bC, fl),
+    M : calcInnerProdList(varsP, vTrans[1]*2*vTrans[2]*bmag_expd, bC, fl),
     M : map(letsimp, M),
     
     writeCIncrExprsNoExpand1(out, volFact/m_*expand(M)),
