@@ -1,0 +1,35 @@
+/* Create header file for updater computing the sheath potential
+   and the potential everywhere via quadrature assuming ambipolar
+   sheath fluxes and electron adiabaticity. */
+
+polyOrderMax : 2$
+bName        : ["ser","tensor"]$
+boundaryStr  : ["lower","upper"]$
+
+fh : openw("~/max-out/zeroCurrentGkEpar_mod_decl.h")$
+
+printf(fh, "#ifndef ZERO_CURRENT_GK_EPAR_MOD_DECL_H~%")$
+printf(fh, "#define ZERO_CURRENT_GK_EPAR_MOD_DECL_H~%~%")$
+printf(fh, "extern \"C\" { ~%~%")$
+
+for bInd : 1 thru length(bName) do (
+
+   for pi : 1 thru polyOrderMax do (
+     for ci : 1 thru 1 do (
+
+       printf(fh, "  void zeroCurrentGkEpar_divP_~ax_p~a_~a(const double dz, const double charge, const double *cmag, const double *jacobTotInv, const double *jacobGeoInv, const double *bmagInv, const double *dbmagdz, const double *m2par, const double *m2perp, const double *divP); ~%", ci, pi, bName[bInd]),
+       printf(fh, "~%")      
+
+     ),
+     printf(fh, "~%")
+   )
+
+)$
+
+printf(fh, "~% ~%")$
+
+printf(fh, "}~%~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$

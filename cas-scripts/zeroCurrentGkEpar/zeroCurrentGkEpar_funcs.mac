@@ -1,0 +1,76 @@
+/*
+  Functions to generate kernels that compute the parallel electric field
+  for a 1D GK simulation using the vanishing parallel current (summing
+  the q*vpar moments of the GK equation).
+*/
+
+load("out-scripts")$
+load("modal-basis")$
+
+doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+
+genDivPressure(fh, funcNm, dim, basisNm, polyOrder) := block(
+  /* Compute divergence of the pressure of one species */
+  [basis,vars,cmag_e,jacobTotInv_e,jacobGeoInv_e,bmagInv_e,dbmagdz_e,m2par_e,
+   m2perp_e,Ppar_c,Ppar_e,divPpar_c,divPpar_e,divPpar_noZero_c,divPperp_c,
+   divPperp_e,divPperp_noZero_c,divP_c],
+
+  kill(varsC, varsP, basisC, basisP),
+
+  load(sconcat("basis-precalc/basis", basisNm, dim, "x")),
+  basis : basisC[polyOrder],
+  vars  : varsC,
+  numB  : length(basis),
+
+  printf(fh,sconcat("void ",funcNm,"(const double dz, const double charge, const double *cmag, const double *jacobTotInv, const double *jacobGeoInv, const double *bmagInv, const double *dbmagdz, const double *m2par, const double *m2perp, const double *divP) ~%{ ~%")),
+  printf(fh,"  // dz: cell length along the field line.~%"),
+  printf(fh,"  // charge: electric charge.~%"),
+  printf(fh,"  // cmag: coefficient multiplying parallel gradient.~%"),
+  printf(fh,"  // jacobTotInv: reciprocal of the conf-space jacobian times the guiding center coordinate Jacobian.~%"),
+  printf(fh,"  // jacobGeoInv: reciprocal of the conf-space jacobian.~%"),
+  printf(fh,"  // bmagInv: reciprocal of magnetic field magnitude.~%"),
+  printf(fh,"  // dbmagdz: d(bmag)/dz.~%"),
+  printf(fh,"  // m2par: vpar^2 moment of the distribution function.~%"),
+  printf(fh,"  // m2perp: mu*B/m moment of the distribution function.~%"),
+  printf(fh,"~%"),
+
+  cmag_e        : doExpand1(cmag, basis),
+  jacobTotInv_e : doExpand1(jacobTotInv, basis),
+  jacobGeoInv_e : doExpand1(jacobGeoInv, basis),
+  bmagInv_e     : doExpand1(bmagInv, basis),
+  dbmagdz_e     : doExpand1(dbmagdz, basis),
+  m2par_e       : doExpand1(m2par, basis),
+  m2perp_e      : doExpand1(m2perp, basis),
+
+  /* z derivative of cmag*M2par/(J*BparStar). */
+  Ppar_c    : calcInnerProdList(vars, cmag_e*jacobTotInv_e, basis, m2par_e),
+  Ppar_e    : doExpand(Ppar_c, basis),
+  divPpar_c : calcInnerProdList(vars, 1, basis, (dz/2)*diff(Ppar_e, x)),
+
+  printf(fh,"  double divPpar[~a];~%", numB),
+  writeCExprs1(divPpar, divPpar_c),
+  printf(fh,"~%"),
+  divPpar_e : doExpand(divPpar_c,basis),
+  divPpar_noZero_c : doMakeExprLst(divPpar_c, divPpar),
+  divPpar_e : doExpand(divPpar_noZero_c,basis),
+
+  /* Contribution from the perpendicular pressure. */
+  divPperp_c : calcInnerProdList(vars, cmag_e*jacobTotInv_e*bmagInv_e*dbmagdz_e, basis, m2perp_e),
+  divPperp_e : doExpand(divPperp_c, basis),
+
+  printf(fh,"  double divPperp[~a];~%", numB),
+  writeCExprs1(divPperp, divPperp_c),
+  printf(fh,"~%"),
+  divPperp_e : doExpand(divPperp_c,basis),
+  divPperp_noZero_c : doMakeExprLst(divPperp_c, divPperp),
+  divPperp_e : doExpand(divPperp_noZero_c,basis),
+
+  /* Add contributions and multiply them by q/J. */
+  divP_c : calcInnerProdList(vars, charge*jacobGeoInv_e, basis, divPpar_e+divPperp_e),
+
+  writeCIncrExprs1(divP, divP_c),
+  printf(fh,"~%"),
+
+  printf(fh, "}~%"),
+  printf(fh, "~%")
+)$
