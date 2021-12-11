@@ -8,8 +8,8 @@ boundaryStr  : ["lower","upper"]$
 
 fh : openw("~/max-out/asheath_potential_mod_decl.h")$
 
-printf(fh, "#ifndef ASHEATHPOTENTIAL_MOD_DELC_H~%")$
-printf(fh, "#define ASHEATHPOTENTIAL_MOD_DELC_H~%~%")$
+printf(fh, "#ifndef ASHEATHPOTENTIAL_MOD_DECL_H~%")$
+printf(fh, "#define ASHEATHPOTENTIAL_MOD_DECL_H~%~%")$
 printf(fh, "#include <cmath>~%~%")$
 printf(fh, "extern \"C\" { ~%~%")$
 

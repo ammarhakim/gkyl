@@ -11,7 +11,7 @@ doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, leng
 
 genDivPressure(fh, funcNm, dim, basisNm, polyOrder) := block(
   /* Compute divergence of the pressure of one species */
-  [basis,vars,cmag_e,jacobTotInv_e,jacobGeoInv_e,bmagInv_e,dbmagdz_e,m2par_e,
+  [basis,vars,jacobGeoInv_e,dbmagdz_e,m2par_e,
    m2perp_e,Ppar_c,Ppar_e,divPpar_c,divPpar_e,divPpar_noZero_c,divPperp_c,
    divPperp_e,divPperp_noZero_c,divP_c],
 
@@ -22,28 +22,25 @@ genDivPressure(fh, funcNm, dim, basisNm, polyOrder) := block(
   vars  : varsC,
   numB  : length(basis),
 
-  printf(fh,sconcat("void ",funcNm,"(const double dz, const double charge, const double *cmag, const double *jacobTotInv, const double *jacobGeoInv, const double *bmagInv, const double *dbmagdz, const double *m2par, const double *m2perp, const double *divP) ~%{ ~%")),
+  printf(fh,sconcat("void ",funcNm,"(const double dz, const double charge, const double *jacobGeoInv, const double *delparFac, const double *dlnbmagdz, const double *m2par, const double *m2perp, const double *divP) ~%{ ~%")),
   printf(fh,"  // dz: cell length along the field line.~%"),
   printf(fh,"  // charge: electric charge.~%"),
-  printf(fh,"  // cmag: coefficient multiplying parallel gradient.~%"),
-  printf(fh,"  // jacobTotInv: reciprocal of the conf-space jacobian times the guiding center coordinate Jacobian.~%"),
   printf(fh,"  // jacobGeoInv: reciprocal of the conf-space jacobian.~%"),
-  printf(fh,"  // bmagInv: reciprocal of magnetic field magnitude.~%"),
-  printf(fh,"  // dbmagdz: d(bmag)/dz.~%"),
+  printf(fh,"  // delparFac: coefficient multiplying parallel gradient (cmag/(J*B)).~%"),
+  printf(fh,"  // dlnbmagdz: d(ln bmag)/dz.~%"),
   printf(fh,"  // m2par: vpar^2 moment of the distribution function.~%"),
   printf(fh,"  // m2perp: mu*B/m moment of the distribution function.~%"),
   printf(fh,"~%"),
 
-  cmag_e        : doExpand1(cmag, basis),
+  delparFac_e   : doExpand1(delparFac, basis),
   jacobTotInv_e : doExpand1(jacobTotInv, basis),
   jacobGeoInv_e : doExpand1(jacobGeoInv, basis),
-  bmagInv_e     : doExpand1(bmagInv, basis),
-  dbmagdz_e     : doExpand1(dbmagdz, basis),
+  dlnbmagdz_e   : doExpand1(dlnbmagdz, basis),
   m2par_e       : doExpand1(m2par, basis),
   m2perp_e      : doExpand1(m2perp, basis),
 
   /* z derivative of cmag*M2par/(J*BparStar). */
-  Ppar_c    : calcInnerProdList(vars, cmag_e*jacobTotInv_e, basis, m2par_e),
+  Ppar_c    : calcInnerProdList(vars, delparFac_e, basis, m2par_e),
   Ppar_e    : doExpand(Ppar_c, basis),
   divPpar_c : calcInnerProdList(vars, 1, basis, (dz/2)*diff(Ppar_e, x)),
 
@@ -55,7 +52,7 @@ genDivPressure(fh, funcNm, dim, basisNm, polyOrder) := block(
   divPpar_e : doExpand(divPpar_noZero_c,basis),
 
   /* Contribution from the perpendicular pressure. */
-  divPperp_c : calcInnerProdList(vars, cmag_e*jacobTotInv_e*bmagInv_e*dbmagdz_e, basis, m2perp_e),
+  divPperp_c : calcInnerProdList(vars, delparFac_e*dlnbmagdz_e, basis, m2perp_e),
   divPperp_e : doExpand(divPperp_c, basis),
 
   printf(fh,"  double divPperp[~a];~%", numB),

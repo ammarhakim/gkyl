@@ -17,7 +17,7 @@ for bInd : 1 thru length(bName) do (
    for pi : 1 thru polyOrderMax do (
      for ci : 1 thru 1 do (
 
-       printf(fh, "  void zeroCurrentGkEpar_divP_~ax_p~a_~a(const double dz, const double charge, const double *cmag, const double *jacobTotInv, const double *jacobGeoInv, const double *bmagInv, const double *dbmagdz, const double *m2par, const double *m2perp, const double *divP); ~%", ci, pi, bName[bInd]),
+       printf(fh, "  void zeroCurrentGkEpar_divP_~ax_p~a_~a(const double dz, const double charge, const double *jacobGeoInv, const double *delparFac, const double *dlnbmagdz, const double *m2par, const double *m2perp, double *divP); ~%", ci, pi, bName[bInd]),
        printf(fh, "~%")      
 
      ),

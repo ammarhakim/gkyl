@@ -283,11 +283,8 @@ function AmbipolarSheathField:advance(tCurr, species, inIdx, outIdx)
 end
 
 function AmbipolarSheathField:phiSolve(tCurr, species, inIdx, outIdx)
-   -- Assuming that :advance initiated the assembly of the left-side matrix and the
-   -- right-side source vector, :phiSolve waits for the assembly to finish, solves the
-   -- linear problem, and applies BCs to phi.
-   -- Need the self.calcedPhi flag because we assume :phiSolve is called within the
-   -- species :advance, but we want multiple species to call it.
+   -- Finish computing phi and apply BCs to phi.
+   -- This could also be done in :advance.
    if not self.calcedPhi then
       local potCurr = self:rkStepperFields()[inIdx]
       self.phiSlvr:advance(tCurr, {self.bcIonM0flux, species[self.ionName]:getNumDensity(), self.jacobGeoInv}, {potCurr.phiAux})

@@ -172,6 +172,7 @@ function ASheathPotential:_advance(tCurr, inFlds, outFlds)
       for idx in skinRangeDecomp:rowMajorIter(tId) do
          idx:copyInto(self.idxB)
          self.idxB[self.sheathDir] = 1  -- Boundary grid has 1 cell in this direction.
+         grid:setIndex(idx)
          grid:getDx(self.dx)
 
          GammaIon[b]:fill(self.boundaryIdxr[b](self.idxB), self.GammaIonPtr[b])
