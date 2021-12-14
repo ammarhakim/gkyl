@@ -69,13 +69,13 @@ expandInputFields(bC,bmagBasis,hasApar) := block(
    AparL_e,b_x_e,b_y_e,b_z_e,jacobTotInv_e,BdriftX_e,BdriftY_e],
   /* Expand background magnetic field and potentials. */
   bmag_e    : doExpand1(bmag,bmagBasis),
-  phi_e     : doExpand1(phi,bC),
+  Epar_e    : doExpand1(Epar,bC),
 
   Apar_e : 0,  dApardt_e : 0,  dApardtPrev_e : 0,
 
   cmag_e : doExpand1(cmag,bmagBasis),
 
-  expOut : [bmag_e,cmag_e,phi_e,Apar_e,dApardt_e,dApardtPrev_e],
+  expOut : [bmag_e,cmag_e,Epar_e,Apar_e,dApardt_e,dApardtPrev_e],
 
   b_x_e : doExpand1(b_x, bmagBasis),
   b_y_e : doExpand1(b_y, bmagBasis),
@@ -89,7 +89,7 @@ expandInputFields(bC,bmagBasis,hasApar) := block(
   return(expOut)
 )$
 
-calcAndWrite_HamilES(fH,charge,mass,wv,rdv2,bP,inFlds,sideStr) := block(
+calcAndWrite_HamilNoPhi(fH,charge,mass,wv,rdv2,bP,inFlds,sideStr) := block(
   [varsP,numP,hamil_c,subList,hamilNoZero_c],
   /* Expand the Hamiltonian, and write them out. */
 
@@ -97,7 +97,7 @@ calcAndWrite_HamilES(fH,charge,mass,wv,rdv2,bP,inFlds,sideStr) := block(
   bmag_e : inFlds[1],
   phi_e  : inFlds[3],
 
-  hamil_e : charge*phi_e,
+  hamil_e : 0,
   if vdim > 0 then ( hamil_e : hamil_e + (1/2)*mass*(wv[1] + vpar/rdv2[1])^2 ),
   if vdim > 1 then ( hamil_e : hamil_e + (wv[2]+mu/rdv2[2])*bmag_e ),
 
@@ -247,6 +247,15 @@ calcAndWrite_alpha(fH,surfDir,bP,polyOrder,basisType,mass,charge,rdx2,rdv2,
 
   pbAuxFlds : append(pbAuxFlds,[b_x_e,b_y_e,b_z_e,jacobTotInv_e]),
   alpha_e : poissonBracket(wSurf+surfVar/rdSurfVar2,hamil_e,mass,charge,rdx2,rdv2,pbAuxFlds),
+  if surfVar = vpar then (
+    /* Add the contribution from Epar. */
+    /* Function that computes the gradient. */
+    vparPhys  : wSurf+surfVar/rdSurfVar2,
+    Epar_e    : inFlds[3],
+    alphaEpar : (1/mass)*BstardBmag_e . (rdv2[1]*([charge*Epar_e]*rdx2*diff(vparPhys,vpar))),
+
+    alpha_e : alpha_e + alphaEpar
+  ),
 
   Apar_e    : inFlds[4],
   dApardt_e : inFlds[5],

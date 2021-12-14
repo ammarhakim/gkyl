@@ -16,7 +16,7 @@ doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
 buildGKVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   [i,d,pDim,varsC,bC,varsP,bP,vSub,vSubInv,numC,numP,varLabel,rdx2vec,rdv2vec,bmagBasis,
-   ignoreVars,bmag_e,bmagInv_e,b_x_e,b_y_e,b_z_e,jacobTotInv_e,phi_e,Apar_e,dAdt_e,dAdtPrev_e,hamil_e,
+   ignoreVars,bmag_e,bmagInv_e,b_x_e,b_y_e,b_z_e,jacobTotInv_e,Epar_e,Apar_e,dAdt_e,dAdtPrev_e,hamilNoPhi_e,
    BstardBmagL_e,BstardBmagR_e,replaceList,pbAuxFlds,alphaSum_e,vd,dir,dirLabel,wDir,rdDirVar2,dirVar,alpha_e,alpha_c,
    alphaLabel,alphaNoZero_c,alphaDotGradBasis_e,alphaSurfAvgL_s,alphaSurfAvgR_s,surfNodes,numNodes,surfIntVars,
    bSurf,numSurf,alphaSurfL_c,alphaSurfL_e,alphaSurfL_n,alphaSurfR_c,alphaSurfR_e,alphaSurfR_n,f_e,volTerm_c],
@@ -31,7 +31,7 @@ buildGKVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   varLabel : makelist(string(varsP[d]),d,1,pDim),
 
   print("Working on ", funcNm, "_P", polyOrder),
-  printf(fh, "double ~aP~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+  printf(fh, "double ~aP~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *Epar, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
   printf(fh, "  // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.~%"),
   printf(fh, "  // b_x,b_y,b_z: covariant components of the field aligned unit vector.~%"),
   printf(fh, "  // q_,m_: species charge and mass.~%"),
@@ -39,7 +39,7 @@ buildGKVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   printf(fh, "  // dxv[NDIM]: cell length.~%"),
   printf(fh, "  // bmag: magnetic field amplitude.~%"),
   printf(fh, "  // cmag: coefficient multiplying parallel gradient.~%"),
-  printf(fh, "  // phi: electrostatic potential .~%"),
+  printf(fh, "  // Epar: parallel electric field, d(phi)/dz.~%"),
   printf(fh, "  // f: Distribution function.~%"),
   printf(fh, "  // out: output increment.~%"),
   printf(fh, "~%"),
@@ -73,8 +73,8 @@ buildGKVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
 
   inFlds_e : expandInputFields(bC,bmagBasis,wApar),
 
-  /* Compute electrostatic Hamiltonian and write it out. */
-  hamil_e : calcAndWrite_HamilES(fh,q_,m_,[wvpar,wmu],rdv2vec,bP,inFlds_e,""),
+  /* Compute Hamiltonian (w/o the q*phi term) and write it out. */
+  hamilNoPhi_e : calcAndWrite_HamilNoPhi(fh,q_,m_,[wvpar,wmu],rdv2vec,bP,inFlds_e,""),
 
   /* Compute B* divided by B and write it out. */
   [BstardBmagR_e, BstardBmagL_e] : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,0,m_,q_,
@@ -105,7 +105,16 @@ buildGKVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
     dirVar    : varsP[dir],         /* Variable in current direction. */
 
     /* Calculate phase space velocity alpha_d = {z[d], H} = dz[d]/dt. */
-    alpha_e : poissonBracket(wDir+dirVar/rdDirVar2,hamil_e,m_,q_,rdx2vec,rdv2vec,pbAuxFlds),
+    alpha_e : poissonBracket(wDir+dirVar/rdDirVar2,hamilNoPhi_e,m_,q_,rdx2vec,rdv2vec,pbAuxFlds),
+    if dir = cdim+vd then (
+      /* Add the contribution from Epar. */
+      /* Function that computes the gradient. */
+      vparPhys : wDir+dirVar/rdDirVar2,
+      Epar_e   : inFlds_e[3],
+      alphaEpar : (1/m_)*BstardBmagR_e . (rdv2vec[1]*([q_*Epar_e]*rdx2vec*diff(vparPhys,vpar))),
+
+      alpha_e : alpha_e + alphaEpar
+    ),
 
     /* Project alpha on basis and write to array. */
     printf(fh, "  double alpha~a[~a]; ~%", dirLabel, numP),

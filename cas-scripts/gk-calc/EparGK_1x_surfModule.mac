@@ -12,7 +12,7 @@ fpprec : 24$
 calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   [i,d,v,step2,pDim,varsC,bC,varsP,bP,vSub,vSubInv,numC,numP,surfVar,varLabel,dirLabel,
    BvarsLabel,rdx2vecL,rdx2vecR,rdv2vecL,rdv2vecR,rdSurfVar2L,rdSurfVar2R,bmagBasis,ignoreVars,
-   bmag_e,bmagInv_e,phi_e,Apar_e,dAdt_e,dAdtPrev_e,hamilL_e,hamilR_e,BstardBmagL_e,BstardBmagR_e,
+   bmag_e,bmagInv_e,Epar_e,Apar_e,dAdt_e,dAdtPrev_e,hamilNoPhiL_e,hamilNoPhiR_e,BstardBmagL_e,BstardBmagR_e,
    alphaUpL_e,alphaSurfL_e,alphaUpSurfL_e,alphaUpR_e,alphaSurfR_e,alphaUpSurfR_e,alphaSurfAvgR_s,
    incrL_c,incrR_c,incr_s,signs,incrEmMod_s],
 
@@ -28,7 +28,7 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   dirLabel : varLabel[surfDir],
 
   print("Working on ", funcNm, "_", dirLabel, "_P", polyOrder),
-  printf(fh, "double ~a_~a_P~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR) ~%{ ~%", funcNm, dirLabel, polyOrder),
+  printf(fh, "double ~a_~a_P~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *Epar, const double *fL, const double *fR, double *outL, double *outR) ~%{ ~%", funcNm, dirLabel, polyOrder),
   printf(fh, "  // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.~%"),
   printf(fh, "  // b_x,b_y,b_z: covariant components of the field aligned unit vector.~%"),
   printf(fh, "  // q_,m_: species charge and mass.~%"),
@@ -38,7 +38,7 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   printf(fh, "  // amax_in: maximum phase-space speed.~%"),
   printf(fh, "  // bmag: magnetic field amplitude.~%"),
   printf(fh, "  // cmag: coefficient multiplying parallel gradient.~%"),
-  printf(fh, "  // phi: electrostatic potential .~%"),
+  printf(fh, "  // Epar: parallel electric field, d(phi)/dz.~%"),
   printf(fh, "  // fL,fR: Distribution function in left and right cells.~%"),
   printf(fh, "  // outL/outR: Output increment in left and right cells.~%"),
   printf(fh, "~%"),
@@ -81,12 +81,12 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
 
   inFlds_e : expandInputFields(bC,bmagBasis,wApar),
 
-  /* Compute electrostatic Hamiltonian and write it out. Since alpha.n is
+  /* Compute Hamiltonian (w/o the q*phi term) and write it out. Since alpha.n is
      continuous we need only deal with the left or right alpha. */
   /*
-  hamilL_e : calcAndWrite_HamilES(fh,q_,m_,[wvparL,wmuL],rdv2vecL,bP,inFlds_e,"L"),
+  hamilNoPhiL_e : calcAndWrite_HamilNoPhi(fh,q_,m_,[wvparL,wmuL],rdv2vecL,bP,inFlds_e,"L"),
   */
-  hamilR_e : calcAndWrite_HamilES(fh,q_,m_,[wvparR,wmuR],rdv2vecR,bP,inFlds_e,"R"),
+  hamilNoPhiR_e : calcAndWrite_HamilNoPhi(fh,q_,m_,[wvparR,wmuR],rdv2vecR,bP,inFlds_e,"R"),
 
   /* Compute B* divided by B and write it out. */
   /*
@@ -103,10 +103,10 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
      determine upwind direction. */
   /*
   [alphaUpL_e,alphaSurfL_e,alphaUpSurfL_e] = calcAndWrite_alpha(fh,surfDir,bP,polyOrder,basisType,
-    m_,q_,rdx2vecL,rdv2vecL,inFlds_e,hamilL_e,BstardBmagL_e,BstardBmagR_e,"L",false),
+    m_,q_,rdx2vecL,rdv2vecL,inFlds_e,hamilNoPhiL_e,BstardBmagL_e,BstardBmagR_e,"L",false),
   */
   [alphaUpR_e,alphaSurfR_e,alphaUpSurfR_e] : calcAndWrite_alpha(fh,surfDir,bP,polyOrder,basisFun,
-    m_,q_,rdx2vecR,rdv2vecR,inFlds_e,hamilR_e,BstardBmagR_e,BstardBmagL_e,"R",false),
+    m_,q_,rdx2vecR,rdv2vecR,inFlds_e,hamilNoPhiR_e,BstardBmagR_e,BstardBmagL_e,"R",false),
 
   /* Calculate and write out the surface-averaged alpha. */
   alphaSurfAvgR_s : calcAndWrite_surfAvgAlpha(fh,bP,surfDir,alphaUpR_e,"R"),
