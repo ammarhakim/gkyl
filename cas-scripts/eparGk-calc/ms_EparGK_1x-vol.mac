@@ -1,0 +1,53 @@
+/*
+  Generate the volume kernels for 1x gyrokinetics with a
+  centrifugal term and Epar instead of d(phi)/dz.
+
+  The functions called in this file are in gEparGK_1x_volModule.mac.
+*/
+load("gk-calc/EparGK_1x_volModule")$
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 2$
+minCdim_Ser : 1$
+maxCdim_Ser : 1$
+
+/* Tensor order basis. */
+maxPolyOrder_Tensor : 2$
+minCdim_Tensor : 1$
+maxCdim_Tensor : 0$
+
+/* Vdim possibilities. */
+gkVdims : [[2]]$
+
+/* ...... END OF USER INPUTS........ */
+
+/* To generate other bases, just add corresponding column to arrays below. */
+bName        : ["Ser", "Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Tensor]$
+
+/* Generate kernels of selected types. */
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for gkV : 1 thru length(gkVdims[c]) do (
+      v : gkVdims[c][gkV],
+
+      maxPolyOrderB : maxPolyOrder[bInd],
+      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+
+      for polyOrder : 1 thru maxPolyOrderB do (
+        fname : sconcat("~/max-out/EparGyrokinetic", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
+        disp(printf(false,"Creating volume file: ~a",fname)),
+  
+        fh : openw(fname),
+        printf(fh, "#include <EparGyrokineticModDecl.h> ~%"),
+        funcName : sconcat("EparGyrokineticVol", c, "x", v, "v", bName[bInd]),
+        buildGKVolKernel(fh, funcName, c, v, bName[bInd], polyOrder),
+        close(fh)
+      )
+    )
+  )
+)$

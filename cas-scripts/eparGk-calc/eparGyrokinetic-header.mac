@@ -1,0 +1,83 @@
+/* Compute the header file for EparGyrokinetic kernels. */
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 2$
+minCdim_Ser : 1$
+minVdim_Ser : 1$
+maxCdim_Ser : 1$
+maxVdim_Ser : 2$
+
+/* Tensor order basis. */
+maxPolyOrder_Tensor : 2$
+minCdim_Tensor : 1$
+minVdim_Tensor : 1$
+maxCdim_Tensor : 0$
+maxVdim_Tensor : 0$
+
+/* Number of velocity dimensions allowed for each
+   configuration-space dimension. */
+gkVdims : [[2]]$
+
+/* ...... END OF USER INPUTS........ */
+
+varsC : [x, y, z]$
+varsV : [vpar, mu]$
+
+/* To generate other bases, just add corresponding column to arrays below. */
+bName        : ["Ser", "Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Tensor]$
+minVdim      : [minVdim_Ser, minVdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Tensor]$
+maxVdim      : [maxVdim_Ser, maxVdim_Tensor]$
+
+printPrototypes() := block([],
+  for bInd : 1 thru length(bName) do (
+    for c : minCdim[bInd] thru maxCdim[bInd] do (
+      for gkV : 1 thru length(gkVdims[c]) do (
+        v : gkVdims[c][gkV],
+  
+        maxPolyOrderB : maxPolyOrder[bInd],
+        if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+  
+        for polyOrder : 1 thru maxPolyOrderB do (
+
+          printf(fh, "  double EparGyrokineticVol~ax~av~aP~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *Epar, const double *Apar, const double *dApardt, const double *f, double *out); ~%", c, v, bName[bInd], polyOrder),
+  
+          if v=0 then (vd : 0) else (vd : 1),
+  
+          for surfDir : 1 thru c+vd do (
+            if surfDir<=c then (dirlabel : varsC[surfDir]) else (dirlabel : varsV[surfDir-c]),
+  
+            printf(fh, "  double EparGyrokineticSurf~ax~av~a_~a_P~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *Epar, const double *fL, const double *fR, double *outL, double *outR); ~%", c, v, bName[bInd], dirlabel, polyOrder)
+          ),
+          printf(fh, "~%")
+        ),
+        printf(fh, "~%")
+      )
+    )
+  )
+)$
+
+fh : openw("~/max-out/EparGyrokineticModDecl.h")$
+printf(fh, "#ifndef EPAR_GYROKINETIC_MOD_DECL_H ~%")$
+printf(fh, "#define EPAR_GYROKINETIC_MOD_DECL_H ~%")$
+printf(fh, "~%")$
+printf(fh, "#include <cmath>~%")$
+printf(fh, "~%")$
+printf(fh, "#define SURFAVG 1 ~%")$
+printf(fh, "#define QUAD 2 ~%")$
+printf(fh, "#define cflType QUAD ~%")$
+printf(fh, "#define upwindType QUAD ~%")$
+printf(fh, "~%")$
+printf(fh, "template <typename T> int sgn(T val) { ~%")$
+printf(fh, "  return (T(0) < val) - (val < T(0)); ~%}~%")$
+printf(fh, "~%")$
+printf(fh, "extern \"C\" { ~%")$
+printf(fh, "~%")$
+printPrototypes()$
+printf(fh, "} ~%")$
+printf(fh, "#endif ~%")$
+close(fh)$
