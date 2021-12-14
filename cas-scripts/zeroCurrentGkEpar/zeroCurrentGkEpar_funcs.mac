@@ -11,8 +11,8 @@ doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, leng
 
 genDivPressure(fh, funcNm, dim, basisNm, polyOrder) := block(
   /* Compute divergence of the pressure of one species */
-  [basis,vars,jacobGeoInv_e,dbmagdz_e,m2par_e,
-   m2perp_e,Ppar_c,Ppar_e,divPpar_c,divPpar_e,divPpar_noZero_c,divPperp_c,
+  [basis,vars,dbmagdz_e,m2par_e,m2perp_e,Ppar_c,Ppar_e,
+   divPpar_c,divPpar_e,divPpar_noZero_c,divPperp_c,
    divPperp_e,divPperp_noZero_c,divP_c],
 
   kill(varsC, varsP, basisC, basisP),
@@ -22,10 +22,9 @@ genDivPressure(fh, funcNm, dim, basisNm, polyOrder) := block(
   vars  : varsC,
   numB  : length(basis),
 
-  printf(fh,sconcat("void ",funcNm,"(const double dz, const double charge, const double *jacobGeoInv, const double *delparFac, const double *dlnbmagdz, const double *m2par, const double *m2perp, const double *divP) ~%{ ~%")),
+  printf(fh,sconcat("void ",funcNm,"(const double dz, const double charge, const double *delparFac, const double *dlnbmagdz, const double *m2par, const double *m2perp, double *divP) ~%{ ~%")),
   printf(fh,"  // dz: cell length along the field line.~%"),
   printf(fh,"  // charge: electric charge.~%"),
-  printf(fh,"  // jacobGeoInv: reciprocal of the conf-space jacobian.~%"),
   printf(fh,"  // delparFac: coefficient multiplying parallel gradient (cmag/(J*B)).~%"),
   printf(fh,"  // dlnbmagdz: d(ln bmag)/dz.~%"),
   printf(fh,"  // m2par: vpar^2 moment of the distribution function.~%"),
@@ -34,7 +33,6 @@ genDivPressure(fh, funcNm, dim, basisNm, polyOrder) := block(
 
   delparFac_e   : doExpand1(delparFac, basis),
   jacobTotInv_e : doExpand1(jacobTotInv, basis),
-  jacobGeoInv_e : doExpand1(jacobGeoInv, basis),
   dlnbmagdz_e   : doExpand1(dlnbmagdz, basis),
   m2par_e       : doExpand1(m2par, basis),
   m2perp_e      : doExpand1(m2perp, basis),
@@ -63,7 +61,7 @@ genDivPressure(fh, funcNm, dim, basisNm, polyOrder) := block(
   divPperp_e : doExpand(divPperp_noZero_c,basis),
 
   /* Add contributions and multiply them by q/J. */
-  divP_c : calcInnerProdList(vars, charge*jacobGeoInv_e, basis, divPpar_e+divPperp_e),
+  divP_c : calcInnerProdList(vars, charge, basis, divPpar_e+divPperp_e),
 
   writeCIncrExprs1(divP, divP_c),
   printf(fh,"~%"),

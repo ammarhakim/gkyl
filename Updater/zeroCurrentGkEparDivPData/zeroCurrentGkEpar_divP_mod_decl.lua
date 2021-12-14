@@ -19,7 +19,7 @@ local _M = {}
 function _M.selectDivPKer(basisNm, DIM, polyOrder)
    local funcType = "void"
    local funcNm   = string.format("zeroCurrentGkEpar_divP_%dx_p%d_%s", DIM, polyOrder, basisNmMap[basisNm])
-   local funcSign = "(const double dz, const double charge, const double *cmag, const double *jacobTotInv, const double *jacobGeoInv, const double *bmagInv, const double *dbmagdz, const double *m2par, const double *m2perp, const double *divP)"
+   local funcSign = "(const double dz, const double charge, const double *cmag, const double *jacobTotInv, const double *bmagInv, const double *dbmagdz, const double *m2par, const double *m2perp, const double *divP)"
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]

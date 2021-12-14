@@ -16,6 +16,9 @@ def build(bld):
     AxisymmetricPhMaxwellSrcImpl.cpp
     FiveMomentFrictionSrcImpl.cpp
 
+    zeroCurrentGkEparDivPData/zeroCurrentGkEpar_divP_1x_p1_ser.cpp
+    zeroCurrentGkEparDivPData/zeroCurrentGkEpar_divP_1x_p2_ser.cpp
+
     aSheathPotentialData/asheath_potential_1x_p1_ser.cpp
 
     sqrtOnBasisData/sqrt_on_basis_1x_p1_ser.cpp
@@ -405,7 +408,7 @@ def build(bld):
 
     bld.shlib(source = sources,
 
-              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData maxwellianOnBasisData twistShiftData projectFluxOnGhostsData sqrtOnBasisData aSheathPotentialData', 
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData maxwellianOnBasisData twistShiftData projectFluxOnGhostsData sqrtOnBasisData aSheathPotentialData zeroCurrentGkEparDivPData', 
 
               use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     

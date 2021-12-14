@@ -229,6 +229,7 @@ function KineticSpecies:fullInit(appTbl)
    
    -- for GK only: flag for gyroaveraging.
    self.gyavg = xsys.pickBool(tbl.gyroaverage, false)
+   self.useEparGK = xsys.pickBool(tbl.useEparGK, false)
 
    self.ioMethod           = "MPI"
    self.distIoFrame        = 0 -- Frame number for distribution function.

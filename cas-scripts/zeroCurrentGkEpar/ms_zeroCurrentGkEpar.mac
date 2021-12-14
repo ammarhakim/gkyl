@@ -36,7 +36,7 @@ for bInd : 1 thru length(bName) do (
 
       fname : sconcat("~/max-out/zeroCurrentGkEpar_divP_", cD, "x_p", polyOrder, "_", bName[bInd], ".cpp"),
       fh : openw(fname),
-      printf(fh, "#include <zeroCurrentGkEpar_mod_decl.h>~%~%"),
+      printf(fh, "#include <zeroCurrentGkEpar_divP_mod_decl.h>~%~%"),
 
       funcName : sconcat("zeroCurrentGkEpar_divP_", cD, "x_p", polyOrder, "_", bName[bInd]),
       genDivPressure(fh, funcName, cD, bName[bInd], polyOrder),

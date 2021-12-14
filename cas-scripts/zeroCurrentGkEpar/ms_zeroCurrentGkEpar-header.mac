@@ -6,7 +6,7 @@ polyOrderMax : 2$
 bName        : ["ser","tensor"]$
 boundaryStr  : ["lower","upper"]$
 
-fh : openw("~/max-out/zeroCurrentGkEpar_mod_decl.h")$
+fh : openw("~/max-out/zeroCurrentGkEpar_divP_mod_decl.h")$
 
 printf(fh, "#ifndef ZERO_CURRENT_GK_EPAR_MOD_DECL_H~%")$
 printf(fh, "#define ZERO_CURRENT_GK_EPAR_MOD_DECL_H~%~%")$
@@ -17,7 +17,7 @@ for bInd : 1 thru length(bName) do (
    for pi : 1 thru polyOrderMax do (
      for ci : 1 thru 1 do (
 
-       printf(fh, "  void zeroCurrentGkEpar_divP_~ax_p~a_~a(const double dz, const double charge, const double *jacobGeoInv, const double *delparFac, const double *dlnbmagdz, const double *m2par, const double *m2perp, double *divP); ~%", ci, pi, bName[bInd]),
+       printf(fh, "  void zeroCurrentGkEpar_divP_~ax_p~a_~a(const double dz, const double charge, const double *delparFac, const double *dlnbmagdz, const double *m2par, const double *m2perp, double *divP); ~%", ci, pi, bName[bInd]),
        printf(fh, "~%")      
 
      ),

@@ -1,10 +1,9 @@
-#include <zeroCurrentGkEpar_mod_decl.h>
+#include <zeroCurrentGkEpar_divP_mod_decl.h>
 
-void zeroCurrentGkEpar_divP_1x_p2_ser(const double dz, const double charge, const double *jacobGeoInv, const double *delparFac, const double *dlnbmagdz, const double *m2par, const double *m2perp, const double *divP) 
+void zeroCurrentGkEpar_divP_1x_p2_ser(const double dz, const double charge, const double *delparFac, const double *dlnbmagdz, const double *m2par, const double *m2perp, double *divP) 
 { 
   // dz: cell length along the field line.
   // charge: electric charge.
-  // jacobGeoInv: reciprocal of the conf-space jacobian.
   // delparFac: coefficient multiplying parallel gradient (cmag/(J*B)).
   // dlnbmagdz: d(ln bmag)/dz.
   // m2par: vpar^2 moment of the distribution function.
@@ -19,9 +18,9 @@ void zeroCurrentGkEpar_divP_1x_p2_ser(const double dz, const double charge, cons
   divPperp[1] = 0.7857142857142857*delparFac[1]*dlnbmagdz[2]*m2perp[2]+0.7857142857142857*dlnbmagdz[1]*delparFac[2]*m2perp[2]+0.4472135954999579*delparFac[0]*dlnbmagdz[1]*m2perp[2]+0.4472135954999579*dlnbmagdz[0]*delparFac[1]*m2perp[2]+0.7857142857142857*m2perp[1]*delparFac[2]*dlnbmagdz[2]+0.4472135954999579*delparFac[0]*m2perp[1]*dlnbmagdz[2]+0.4472135954999579*m2perp[0]*delparFac[1]*dlnbmagdz[2]+0.4472135954999579*dlnbmagdz[0]*m2perp[1]*delparFac[2]+0.4472135954999579*m2perp[0]*dlnbmagdz[1]*delparFac[2]+0.9*delparFac[1]*dlnbmagdz[1]*m2perp[1]+0.5*delparFac[0]*dlnbmagdz[0]*m2perp[1]+0.5*delparFac[0]*m2perp[0]*dlnbmagdz[1]+0.5*dlnbmagdz[0]*m2perp[0]*delparFac[1]; 
   divPperp[2] = 1.071428571428571*delparFac[2]*dlnbmagdz[2]*m2perp[2]+0.31943828249997*delparFac[0]*dlnbmagdz[2]*m2perp[2]+0.31943828249997*dlnbmagdz[0]*delparFac[2]*m2perp[2]+0.7857142857142857*delparFac[1]*dlnbmagdz[1]*m2perp[2]+0.5*delparFac[0]*dlnbmagdz[0]*m2perp[2]+0.31943828249997*m2perp[0]*delparFac[2]*dlnbmagdz[2]+0.7857142857142857*delparFac[1]*m2perp[1]*dlnbmagdz[2]+0.5*delparFac[0]*m2perp[0]*dlnbmagdz[2]+0.7857142857142857*dlnbmagdz[1]*m2perp[1]*delparFac[2]+0.5*dlnbmagdz[0]*m2perp[0]*delparFac[2]+0.4472135954999579*delparFac[0]*dlnbmagdz[1]*m2perp[1]+0.4472135954999579*dlnbmagdz[0]*delparFac[1]*m2perp[1]+0.4472135954999579*m2perp[0]*delparFac[1]*dlnbmagdz[1]; 
 
-  divP[0] += 0.7071067811865475*divPperp[2]*jacobGeoInv[2]*charge+0.7071067811865475*divPperp[1]*jacobGeoInv[1]*charge+0.7071067811865475*divPpar[1]*jacobGeoInv[1]*charge+0.7071067811865475*divPperp[0]*jacobGeoInv[0]*charge+0.7071067811865475*divPpar[0]*jacobGeoInv[0]*charge; 
-  divP[1] += 0.6324555320336759*divPperp[1]*jacobGeoInv[2]*charge+0.6324555320336759*divPpar[1]*jacobGeoInv[2]*charge+0.6324555320336759*jacobGeoInv[1]*divPperp[2]*charge+0.7071067811865475*divPperp[0]*jacobGeoInv[1]*charge+0.7071067811865475*divPpar[0]*jacobGeoInv[1]*charge+0.7071067811865475*jacobGeoInv[0]*divPperp[1]*charge+0.7071067811865475*jacobGeoInv[0]*divPpar[1]*charge; 
-  divP[2] += 0.4517539514526256*divPperp[2]*jacobGeoInv[2]*charge+0.7071067811865475*divPperp[0]*jacobGeoInv[2]*charge+0.7071067811865475*divPpar[0]*jacobGeoInv[2]*charge+0.7071067811865475*jacobGeoInv[0]*divPperp[2]*charge+0.6324555320336759*divPperp[1]*jacobGeoInv[1]*charge+0.6324555320336759*divPpar[1]*jacobGeoInv[1]*charge; 
+  divP[0] += divPperp[0]*charge+divPpar[0]*charge; 
+  divP[1] += divPperp[1]*charge+divPpar[1]*charge; 
+  divP[2] += divPperp[2]*charge; 
 
 }
 

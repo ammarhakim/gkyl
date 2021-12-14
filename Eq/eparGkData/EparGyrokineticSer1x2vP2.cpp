@@ -1,4 +1,4 @@
-#include <GyrokineticModDecl.h> 
+#include <EparGyrokineticModDecl.h> 
 double EparGyrokineticVol1x2vSerP2(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *Epar, const double *f, double *out) 
 { 
   // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.

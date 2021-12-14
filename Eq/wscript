@@ -524,6 +524,9 @@ def build(bld):
 
     gkData/GkSheathFuncsTensorP2.cpp
 
+    eparGkData/EparGyrokineticSer1x2vP1.cpp
+    eparGkData/EparGyrokineticSurfSer1x2vP1.cpp
+
     gyrofluidData/gyrofluid_surf_1x_p0_ser.cpp
     gyrofluidData/gyrofluid_surf_1x_p1_ser.cpp
     gyrofluidData/gyrofluid_surf_1x_p2_ser.cpp
@@ -559,7 +562,7 @@ def build(bld):
 
     """,
               name = 'eq',
-              target = 'eq', use='EIGEN CUTOOLS', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData gyrofluidData gfHeatFluxData passiveAdvectionData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct',
+              target = 'eq', use='EIGEN CUTOOLS', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData gyrofluidData gfHeatFluxData passiveAdvectionData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct eparGkData',
               vnum = '1.0',
               
     )

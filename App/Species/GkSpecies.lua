@@ -10,6 +10,7 @@ local Proto          = require "Lib.Proto"
 local KineticSpecies = require "App.Species.KineticSpecies"
 local Mpi            = require "Comm.Mpi"
 local GyrokineticEq  = require "Eq.Gyrokinetic"
+local EparGKEq       = require "Eq.EparGyrokinetic"
 local Updater        = require "Updater"
 local DataStruct     = require "DataStruct"
 local Time           = require "Lib.Time"
@@ -194,21 +195,32 @@ function GkSpecies:createSolver(field, externalField)
    end
 
    -- Create updater to advance solution by one time-step.
-   self.equation = GyrokineticEq.GkEq {
-      onGrid       = self.grid,
-      confGrid     = self.confGrid,
-      phaseBasis   = self.basis,
-      confBasis    = self.confBasis,
-      charge       = self.charge,
-      mass         = self.mass,
-      hasPhi       = hasPhi,
-      hasApar      = hasApar,
-      Bvars        = externalField.bmagVars,
-      hasSheathBCs = self.hasSheathBCs,
-      positivity   = self.positivity,
-      gyavgSlvr    = self.emGyavgSlvr,
-      geometry     = externalField.geo.name,
-   }
+   if not self.useEparGK then
+      self.equation = GyrokineticEq.GkEq {
+         onGrid       = self.grid,
+         confGrid     = self.confGrid,
+         phaseBasis   = self.basis,
+         confBasis    = self.confBasis,
+         charge       = self.charge,
+         mass         = self.mass,
+         hasPhi       = hasPhi,
+         hasApar      = hasApar,
+         Bvars        = externalField.bmagVars,
+         hasSheathBCs = self.hasSheathBCs,
+         positivity   = self.positivity,
+         gyavgSlvr    = self.emGyavgSlvr,
+         geometry     = externalField.geo.name,
+      }
+   else
+      self.equation = EparGKEq.GkEq {
+         onGrid     = self.grid,
+         confGrid   = self.confGrid,
+         phaseBasis = self.basis,
+         confBasis  = self.confBasis,
+         charge     = self.charge,
+         mass       = self.mass,
+      }
+   end
 
    -- No update in mu direction (last velocity direction if present)
    local upd = {}

@@ -41,7 +41,6 @@ end
 function ZeroJGkEparDivP:_advance(tCurr, inFlds, outFlds)
 
    local charge = assert(inFld[1], "ZeroJGkEparDivP: Must specify the charge in 'inFld[1]'.")
-   local jacobGeoInv = assert(inFld[2], "ZeroJGkEparDivP: Must specify jacobGeoInv in 'inFld[2]'.")
    local delparFac = assert(inFld[3], "ZeroJGkEparDivP: Must specify delparFac=cmag/(J*B) in 'inFld[3]'.")
    local dlnbmagdz = assert(inFld[4], "ZeroJGkEparDivP: Must specify dlnbmagdz in 'inFld[4]'.")
    local m2par = assert(inFld[5], "ZeroJGkEparDivP: Must specify m2par in 'inFld[5]'.")
@@ -57,7 +56,7 @@ function ZeroJGkEparDivP:_advance(tCurr, inFlds, outFlds)
          range = divPFld:localRange(), numSplit = grid:numSharedProcs() }
    end
 
-   local delparFacItr, jacobGeoInvItr, dlnbmagdzItr = delparFac:get(1), jacobGeoInv:get(1), dlnbmagdz:get(1)
+   local delparFacItr, dlnbmagdzItr = delparFac:get(1), dlnbmagdz:get(1)
    local m2parItr, m2perpItr = m2par:get(1), m2perp:get(1)
    local divPFldItr = divPFld:get(1)
 
@@ -67,13 +66,12 @@ function ZeroJGkEparDivP:_advance(tCurr, inFlds, outFlds)
       grid:getDx(self.dx)
 
       delparFac:fill(indexer(idx), delparFacItr)
-      jacobGeoInv:fill(indexer(idx), jacobGeoInvItr)
       dlnbmagdz:fill(indexer(idx), dlnbmagdzItr)
       m2par:fill(indexer(idx), m2parItr)
       m2perp:fill(indexer(idx), m2perpItr)
       divPFld:fill(indexer(idx), divPItr)
 
-      self._divPKer(self.dx[1], charge, jacobGeoInvItr:data(), delparFacItr:data(), dlnbmagdzItr:data(), m2parItr:data(), m2perpItr:data(), divPItr:data())
+      self._divPKer(self.dx[1], charge, delparFacItr:data(), dlnbmagdzItr:data(), m2parItr:data(), m2perpItr:data(), divPItr:data())
    end
 
 end
