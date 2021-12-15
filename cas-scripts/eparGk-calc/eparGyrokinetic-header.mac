@@ -44,14 +44,14 @@ printPrototypes() := block([],
   
         for polyOrder : 1 thru maxPolyOrderB do (
 
-          printf(fh, "  double EparGyrokineticVol~ax~av~aP~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *Epar, const double *Apar, const double *dApardt, const double *f, double *out); ~%", c, v, bName[bInd], polyOrder),
+          printf(fh, "  double EparGyrokineticVol~ax~av~aP~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *Epar, const double *f, double *out); ~%", c, v, bName[bInd], polyOrder),
   
           if v=0 then (vd : 0) else (vd : 1),
   
           for surfDir : 1 thru c+vd do (
             if surfDir<=c then (dirlabel : varsC[surfDir]) else (dirlabel : varsV[surfDir-c]),
   
-            printf(fh, "  double EparGyrokineticSurf~ax~av~a_~a_P~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *Epar, const double *fL, const double *fR, double *outL, double *outR); ~%", c, v, bName[bInd], dirlabel, polyOrder)
+            printf(fh, "  double EparGyrokineticSurf~ax~av~a_~a_P~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *Epar, const double *fL, const double *fR, double *outL, double *outR); ~%", c, v, bName[bInd], dirlabel, polyOrder)
           ),
           printf(fh, "~%")
         ),

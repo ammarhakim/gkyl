@@ -846,6 +846,7 @@ return {
 	 ChargeExchange  = require "App.Collisions.GkChargeExchange",
 	 Field           = require ("App.Field.GkField").GkField,
 	 AmbipolarSheathField   = require "App.Field.AmbipolarSheathField",
+	 ZeroCurrentField       = require "App.Field.GkZeroCurrentField",
 	 FunctionProjection     = require ("App.Projection.GkProjection").FunctionProjection, 
 	 Geometry               = require ("App.Field.GkField").GkGeometry,
 	 Ionization             = require "App.Collisions.GkIonization",

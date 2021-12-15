@@ -11,6 +11,7 @@ local FieldBase = require "App.Field.FieldBase"
 local AmbipolarSheathField = require "App.Field.AmbipolarSheathField"
 local MaxwellField = require "App.Field.MaxwellField"
 local GkField = require "App.Field.GkField"
+local GkZeroCurrentField = require "App.Field.GkZeroCurrentField"
 
 return {
   FieldBase = FieldBase.FieldBase,
@@ -23,4 +24,5 @@ return {
   FuncMaxwellField = MaxwellField.ExternalMaxwellField, -- for backwards compat
   GkField = GkField.GkField,
   GkGeometry = GkField.GkGeometry,
+  GkZeroCurrentField = GkZeroCurrentField,
 }

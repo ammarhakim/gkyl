@@ -29,10 +29,10 @@ function ZeroJGkEparDivP:init(tbl)
 
    self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
 
-   self.dim = self.basis:ndim()
+   self.dim = self._basis:ndim()
    local nm, p = self._basis:id(), self._basis:polyOrder()
 
-   self._divPKer = ModDecl.selectDivPKer(self.basis:id(), self.dim, self.basis:polyOrder())
+   self._divPKer = ModDecl.selectDivPKer(self._basis:id(), self.dim, self._basis:polyOrder())
 
    self.dx = Lin.Vec(self.dim)
 
@@ -40,14 +40,17 @@ end
 
 function ZeroJGkEparDivP:_advance(tCurr, inFlds, outFlds)
 
-   local charge = assert(inFld[1], "ZeroJGkEparDivP: Must specify the charge in 'inFld[1]'.")
-   local delparFac = assert(inFld[3], "ZeroJGkEparDivP: Must specify delparFac=cmag/(J*B) in 'inFld[3]'.")
-   local dlnbmagdz = assert(inFld[4], "ZeroJGkEparDivP: Must specify dlnbmagdz in 'inFld[4]'.")
-   local m2par = assert(inFld[5], "ZeroJGkEparDivP: Must specify m2par in 'inFld[5]'.")
-   local m2perp = assert(inFld[6], "ZeroJGkEparDivP: Must specify m2perp in 'inFld[6]'.")
-   local divPFld = assert(outFld[1], "ZeroJGkEparDivP: Must specify an output field 'outFld[1]'.")
+   local charge = assert(inFlds[1], "ZeroJGkEparDivP: Must specify the charge in 'inFld[1]'.")
+   local delparFac = assert(inFlds[2], "ZeroJGkEparDivP: Must specify delparFac=cmag/(J*B) in 'inFld[3]'.")
+   local dlnbmagdz = assert(inFlds[3], "ZeroJGkEparDivP: Must specify dlnbmagdz in 'inFld[4]'.")
+   local m2par = assert(inFlds[4], "ZeroJGkEparDivP: Must specify m2par in 'inFld[5]'.")
+   local m2perp = assert(inFlds[5], "ZeroJGkEparDivP: Must specify m2perp in 'inFld[6]'.")
+   local divPFld = assert(outFlds[1], "ZeroJGkEparDivP: Must specify an output field 'outFld[1]'.")
 
-   local grid = self.grid
+   local indexer = divPFld:genIndexer()
+
+   local grid = self._grid
+   local divPRangeDecomp
    if self.onGhosts then
       divPRangeDecomp = LinearDecomp.LinearDecompRange {
          range = divPFld:localExtRange(), numSplit = grid:numSharedProcs() }
@@ -58,7 +61,7 @@ function ZeroJGkEparDivP:_advance(tCurr, inFlds, outFlds)
 
    local delparFacItr, dlnbmagdzItr = delparFac:get(1), dlnbmagdz:get(1)
    local m2parItr, m2perpItr = m2par:get(1), m2perp:get(1)
-   local divPFldItr = divPFld:get(1)
+   local divPItr = divPFld:get(1)
 
    local tId = grid:subGridSharedId()   -- Local thread ID.
    for idx in divPRangeDecomp:rowMajorIter(tId) do

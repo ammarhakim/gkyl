@@ -56,6 +56,7 @@ local FiveMomentFrictionSrc = require "Updater.FiveMomentFrictionSrc"
 local BraginskiiHeatConduction = require "Updater.BraginskiiHeatConduction"
 local BraginskiiViscosityDiffusion = require "Updater.BraginskiiViscosityDiffusion"
 local AnisotropicDiffusion = require "Updater.AnisotropicDiffusion"
+local ZeroCurrentGkEparDivP = require "Updater.ZeroCurrentGkEparDivP"
 
 return {
    ASheathPotential = ASheathPotential,
@@ -108,4 +109,5 @@ return {
    BraginskiiHeatConduction = BraginskiiHeatConduction,
    BraginskiiViscosityDiffusion = BraginskiiViscosityDiffusion,
    AnisotropicDiffusion = AnisotropicDiffusion,
+   ZeroCurrentGkEparDivP = ZeroCurrentGkEparDivP,
 }
