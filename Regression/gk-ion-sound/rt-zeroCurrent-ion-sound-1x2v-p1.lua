@@ -34,8 +34,8 @@ tFinal  = .10        -- Final simulation time.
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = 100*tFinal,           -- End time.
-   nFrame      = 100*1,                -- Number of output frames.
+   tEnd        = tFinal,           -- End time.
+   nFrame      = 1,                -- Number of output frames.
    lower       = {xLower},         -- Configuration space lower left.
    upper       = {xUpper},         -- Configuration space upper right.
    cells       = {8},              -- Configuration space cells.

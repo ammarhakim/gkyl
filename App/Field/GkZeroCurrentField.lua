@@ -274,7 +274,7 @@ function GkZeroCurrentField:advance(tCurr, species, inIdx, outIdx)
       self.EparDivPSlvr:advance(tCurr,{s:getCharge(),self.delparFac,self.dlnbmagdz,
                                        self.M2par,self.M2perp},{self.divP})
    end
-   -- Divide hat{b} . div{ P } by delparFac*sum_s(q_s^2*n_s/m_s) 
+   -- Divide hat{b} . div{ P } by delparFac*sum_s(q_s^2*J*n_s/m_s) 
    self.weakMult:advance(0., {self.chargeDens,self.delparFac}, {self.chargeDens})
    self.weakDiv:advance(0., {self.chargeDens,self.divP}, {fieldsCurr.Epar})
 
