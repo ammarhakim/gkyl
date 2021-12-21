@@ -1390,7 +1390,9 @@ function GkGeometry:initField()
       self.geo.bX:sync(false)
       self.geo.bY:sync(false)
       self.geo.bZ:sync(false)
-      self.geo.tanVecComp:sync(false)
+      if ndim == 3 then
+	 self.geo.tanVecComp:sync(false)
+      end
    end
    self.geo.phiWall:sync(false)
 
