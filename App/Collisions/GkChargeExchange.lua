@@ -178,6 +178,11 @@ function GkChargeExchange:createSolver(funcField)
       a              = self.a,
       b              = self.b,
    }
+   -- genGeo quantities
+   self.bX = geo.bX
+   self.bY = geo.bY
+   self.bZ = geo.bZ
+   
    if (self.speciesName == self.ionNm) then --ions
       self.fMaxNeut =  DataStruct.Field {
 	 onGrid        = self.phaseGrid,
@@ -236,12 +241,12 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
    elseif (self.speciesName == self.neutNm) then
 
       local ionM0     = species[self.ionNm]:fluidMoments()[1]
-      local ionU      = species[self.ionNm]:selfPrimitiveMoments()[1] 
+      local ionUpar   = species[self.ionNm]:selfPrimitiveMoments()[1] 
       local ionVtSq   = species[self.ionNm]:selfPrimitiveMoments()[2]
       local neutM0    = species[self.neutNm]:fluidMoments()[1]
       local neutDistF = species[self.neutNm]:getDistF()
 
-      
+      -- create ionU = {ionUpar*bX,ionUpar*bY,ionUpar*bZ}
       species[self.speciesName].calcMaxwell:advance(tCurr, {ionM0, ionU, ionVtSq}, {self.fMaxIon})
 
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
