@@ -495,6 +495,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
 			counterIz_elc         = false
 		     elseif self.name==species[sN].collisions[collNm].neutNm and counterIz_neut then
 			self.needSelfPrimMom = true
+			if self.vdim == 3 then self.needVtSqGk = true end
 			counterIz_neut       = false
    		     end
    		  end
@@ -518,6 +519,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    			self.neutNmCX         = species[sN].collisions[collNm].neutNm
    			self.needSelfPrimMom  = true
 			species[self.neutNmCX].needSelfPrimMom = true
+			if self.vdim == 3 and (not self.needVtSqGk) then self.needVtSqGk = true end
    			counterCX = false
     		     end
    		  end
@@ -541,6 +543,19 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
          self.m0Star = self:allocMoment()
          self.m1Star = self:allocVectorMoment(self.vdim)
          self.m2Star = self:allocMoment()
+      end
+      if self.needVtSqGk then
+	 print('allocate vtSqGk for Vlasov')
+	 self.bhat = externalField.geo.bhat
+	 self.ptclEnergyNorm = self:allocMoment() -- for M2/M1
+	 self.uPar = self:allocMoment()
+	 self.uParSq = self:allocMoment()
+	 self.vtSqGk = self:allocMoment()
+	 self.confMult = Updater.CartFieldBinOp {
+	    onGrid    = self.confGrid,
+	    weakBasis = self.confBasis,
+	    operation = "Multiply",
+	 }
       end
    end
 
@@ -723,6 +738,15 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
          self.thermalEnergyDensity:combine( 1.0/self.vdim, self.ptclEnergy,
                                            -1.0/self.vdim, self.kineticEnergyDensity )
          self.confDiv:advance(tCurr, {self.numDensity, self.thermalEnergyDensity}, {self.vtSqSelf})
+      end
+      if self.needVtSqGk then
+	 -- When 3V Vlasov neutrals are coupled to GK species, calculate vtSq to use on GK grid for energy conservation.
+	 self.confDotProduct:advance(tCurr, {self.uSelf,self.bhat}, {self.uPar})
+	 self.confMult:advance(tCurr, {uPar, uPar}, {self.uParSq})
+	 self.confDiv:advance(tCurr, {self.numDensity, self.ptclEnergy}, {self.ptclEnergyNorm})
+	 -- Barrier over shared communicator before combine
+         Mpi.Barrier(self.grid:commSet().sharedComm)
+	 self.vtSqGk:combine(1/self.vdim, self.ptclEnergyNorm, -1/self.vdim, self.uParSq)
       end
       -- Indicate that moments, boundary corrections, star moments
       -- and self-primitive moments have been computed.

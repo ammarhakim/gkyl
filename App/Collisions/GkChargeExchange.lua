@@ -178,10 +178,6 @@ function GkChargeExchange:createSolver(funcField)
       a              = self.a,
       b              = self.b,
    }
-   -- genGeo quantities
-   self.bX = geo.bX
-   self.bY = geo.bY
-   self.bZ = geo.bZ
    
    if (self.speciesName == self.ionNm) then --ions
       self.fMaxNeut =  DataStruct.Field {
@@ -212,6 +208,16 @@ function GkChargeExchange:createSolver(funcField)
 	    basisType = self.phaseBasis:id()
 	 },
       }
+      self.ionU =  DataStruct.Field {
+	 onGrid        = self.confGrid,
+	 numComponents = self.confBasis:numBasis()*self.confGrid:ndim(),
+	 ghost         = {1, 1},
+	 metaData = {
+	    polyOrder = self.confBasis:polyOrder(),
+	    basisType = self.confBasis:id()
+	 },
+      }
+      self.bhat = species[self.neutNm].bHat
    end
 end
 
@@ -223,13 +229,13 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
    if (self.speciesName == self.ionNm) then
 
       local neutM0   = species[self.neutNm]:fluidMoments()[1]
-      local neutU    = species[self.neutNm]:selfPrimitiveMoments()[1] 
-      local neutVtSq = species[self.neutNm]:selfPrimitiveMoments()[2]
+      local neutUpar = species[self.neutNm].uPar
+      local neutVtSq = species[self.neutNm].vtSqGk
       local ionM0    = species[self.ionNm]:fluidMoments()[1]
       local ionDistF = species[self.ionNm]:getDistF()
 
       species[self.speciesName].calcMaxwell:advance(tCurr,
-         {neutM0, neutU, neutVtSq, species[self.speciesName].bmag}, {self.fMaxNeut})
+         {neutM0, neutUpar, neutVtSq, species[self.speciesName].bmag}, {self.fMaxNeut})
 
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {ionM0, self.fMaxNeut}, {self.M0iDistFn})
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
@@ -245,9 +251,9 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       local ionVtSq   = species[self.ionNm]:selfPrimitiveMoments()[2]
       local neutM0    = species[self.neutNm]:fluidMoments()[1]
       local neutDistF = species[self.neutNm]:getDistF()
-
-      -- create ionU = {ionUpar*bX,ionUpar*bY,ionUpar*bZ}
-      species[self.speciesName].calcMaxwell:advance(tCurr, {ionM0, ionU, ionVtSq}, {self.fMaxIon})
+      
+      species[self.speciesName].confMult:advance(tCurr, {ionUpar,self.bhat}, {self.ionU})
+      species[self.speciesName].calcMaxwell:advance(tCurr, {ionM0, self.ionU, ionVtSq}, {self.fMaxIon})
 
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {neutM0, self.fMaxIon}, {self.M0nDistFi})

@@ -248,7 +248,18 @@ function GkIonization:createSolver(funcField)
 	    basisType = self.phaseBasis:id()
 	 },
       }
+   elseif (self.speciesName == self.neutNm) then
+      self.fMaxNeut = DataStruct.Field {
+	 onGrid        = self.phaseGrid,
+	 numComponents = self.phaseBasis:numBasis(),
+	 ghost         = {1, 1},
+	 metaData = {
+	    polyOrder = self.phaseBasis:polyOrder(),
+	    basisType = self.phaseBasis:id()
+	 },
+      }
    end
+
    self.m0elc = DataStruct.Field {
       onGrid        = self.confGrid,
       numComponents = self.confBasis:numBasis(),
@@ -265,15 +276,6 @@ function GkIonization:createSolver(funcField)
       metaData = {
 	 polyOrder = self.confBasis:polyOrder(),
 	 basisType = self.confBasis:id()
-      },
-   }
-   self.fMaxNeut = DataStruct.Field {
-      onGrid        = self.phaseGrid,
-      numComponents = self.phaseBasis:numBasis(),
-      ghost         = {1, 1},
-      metaData = {
-	 polyOrder = self.phaseBasis:polyOrder(),
-	 basisType = self.phaseBasis:id()
       },
    }
    self.ionizSrc = DataStruct.Field {
@@ -329,13 +331,12 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       -- Ions. 
       self.m0elc:copy(elcM0)
       local neutM0   = species[self.neutNm]:fluidMoments()[1]
-      local neutU    = species[self.neutNm]:selfPrimitiveMoments()[1] 
-      local neutVtSq = species[self.neutNm]:selfPrimitiveMoments()[2]
-      -- Include only z-component of neutU.
-
+      local neutUpar = species[self.neutNm].uPar 
+      local neutVtSq = species[self.neutNm].vtSqGk
+      
       species[self.speciesName].confWeakMultiply:advance(tCurr, {reactRate, self.m0elc}, {self.coefM0})
       species[self.speciesName].calcMaxwell:advance(tCurr,
-         {neutM0, neutU, neutVtSq, species[self.speciesName].bmag}, {self.fMaxNeut})
+         {neutM0, neutUpar, neutVtSq, species[self.speciesName].bmag}, {self.fMaxNeut})
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {self.coefM0, self.fMaxNeut}, {self.ionizSrc})
 
       fRhsOut:accumulate(1.0,self.ionizSrc)

@@ -1017,13 +1017,8 @@ function GkGeometry:alloc()
       -- b_z = sqrt(g_zz)
       self.geo.b_z = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
-      -- Functions for Cartesian components of magnetic field.
-      -- b_X = b^X = b_x*partialX/partialx + b_y*partialX/partialy + b_z*partialX/partialz
-      self.geo.bX = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-      -- b_Y = b^Y
-      self.geo.bY = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-      -- b_Z = b^Z
-      self.geo.bZ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+      -- Functions for Cartesian components of magnetic field in a vector.
+      self.bHat = createField(self.grid,self.basis,ghostNum,3,syncPeriodic)
 
       -- Components of tanget basis vectors
       self.geo.tanVecComp = createField(self.grid,self.basis,ghostNum,9,syncPeriodic)
@@ -1342,14 +1337,18 @@ function GkGeometry:initField()
 	    bX=self.geo.bX, bY=self.geo.bY, bZ=self.geo.bZ},
             self.fromFile, true)
       else
+	 tempBX = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+	 tempBY = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+	 tempBZ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
          self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
          self.separateComponents:advance(0, {self.geo.allGeo},
             {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
              self.geo.bmag, self.geo.bmagInv, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
              self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ,
-	     self.geo.bX, self.geo.bY, self.geo.bZ})
+	     tempBX, tempBY, tempBZ})
 	 if ndim == 3 then
 	    self.setTanVecComp:advance(0.0, {}, {self.geo.tanVecComp})
+	    self.bHat:combineOffset(1.0, tempBX, 0, 1.0, tempBY, self.basis:numComponents(), 1.0, tempBZ, 2*self.basis:numComponents())
 	 end
       end
    end
@@ -1387,11 +1386,9 @@ function GkGeometry:initField()
       self.geo.b_x:sync(false)
       self.geo.b_y:sync(false)
       self.geo.b_z:sync(false)
-      self.geo.bX:sync(false)
-      self.geo.bY:sync(false)
-      self.geo.bZ:sync(false)
       if ndim == 3 then
 	 self.geo.tanVecComp:sync(false)
+	 self.geo.bhat:sync(false)
       end
    end
    self.geo.phiWall:sync(false)
