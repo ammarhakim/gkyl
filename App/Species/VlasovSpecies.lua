@@ -121,15 +121,17 @@ end
 
 
 function VlasovSpecies:createSolver(field, externalField)
-   -- Run the KineticSpecies 'createSolver()' to initialize the collisions solver.
+   -- Run the KineticSpecies 'createSolver()' to initialize the collisions solver
    VlasovSpecies.super.createSolver(self, field, externalField)
 
+   if self.charge == 0 then self.bHat = externalField.geo.bHat end -- for genGeo with neutrals
+      
    local plasmaE, plasmaB = field:hasEB()
    local extHasE, extHasB = externalField:hasEB()
 
    local hasE = plasmaE or extHasE
    local hasB = plasmaB or extHasB
-
+   
    -- External forces are accumulated to the electric field part of
    -- totalEmField
    if self.hasExtForce then
@@ -495,7 +497,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
 			counterIz_elc         = false
 		     elseif self.name==species[sN].collisions[collNm].neutNm and counterIz_neut then
 			self.needSelfPrimMom = true
-			if self.vdim == 3 then self.needVtSqGk = true end
+			if self.vdim == 3 then self.needGkMom = true end
 			counterIz_neut       = false
    		     end
    		  end
@@ -519,7 +521,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    			self.neutNmCX         = species[sN].collisions[collNm].neutNm
    			self.needSelfPrimMom  = true
 			species[self.neutNmCX].needSelfPrimMom = true
-			if self.vdim == 3 and (not self.needVtSqGk) then self.needVtSqGk = true end
+			if self.vdim == 3 and (not self.needGkMom) then self.needGkMom = true end
    			counterCX = false
     		     end
    		  end
@@ -544,9 +546,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
          self.m1Star = self:allocVectorMoment(self.vdim)
          self.m2Star = self:allocMoment()
       end
-      if self.needVtSqGk then
-	 print('allocate vtSqGk for Vlasov')
-	 self.bhat = externalField.geo.bhat
+      if self.needGkMom then
 	 self.ptclEnergyNorm = self:allocMoment() -- for M2/M1
 	 self.uPar = self:allocMoment()
 	 self.uParSq = self:allocMoment()
@@ -739,9 +739,10 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
                                            -1.0/self.vdim, self.kineticEnergyDensity )
          self.confDiv:advance(tCurr, {self.numDensity, self.thermalEnergyDensity}, {self.vtSqSelf})
       end
-      if self.needVtSqGk then
-	 -- When 3V Vlasov neutrals are coupled to GK species, calculate vtSq to use on GK grid for energy conservation.
-	 self.confDotProduct:advance(tCurr, {self.uSelf,self.bhat}, {self.uPar})
+      if self.needGkMom then
+	 -- When 3V Vlasov neutrals are coupled to GK species, calculate uPar for neutrals and
+	 -- vtSq to use on GK grid for energy conservation.
+	 self.confDotProduct:advance(tCurr, {self.uSelf,self.bHat}, {self.uPar})
 	 self.confMult:advance(tCurr, {uPar, uPar}, {self.uParSq})
 	 self.confDiv:advance(tCurr, {self.numDensity, self.ptclEnergy}, {self.ptclEnergyNorm})
 	 -- Barrier over shared communicator before combine

@@ -1350,7 +1350,6 @@ function GkGeometry:initField()
             {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
              self.geo.bmag, self.geo.bmagInv, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
              self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ,
-	     --self.geo.bX, self.geo.bY, self.geo.bZ})
 	     bXtemp, bYtemp, bZtemp})
 	 if ndim == 3 then
 	    self.setTanVecComp:advance(0.0, {}, {self.geo.tanVecComp})
@@ -1429,6 +1428,7 @@ function GkGeometry:write(tm)
                cmag=self.geo.cmag, b_x=self.geo.b_x, b_y=self.geo.b_y, b_z=self.geo.b_z, gxx=self.geo.gxx,
                gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
                string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
+	    self.fieldIo:write(self.geo.bHat, "bHat_0.bp", tm, self.ioFrame, false)
          end
 
          -- Write a grid file.
