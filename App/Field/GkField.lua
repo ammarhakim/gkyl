@@ -1340,15 +1340,21 @@ function GkGeometry:initField()
             gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
             self.fromFile, true)
       else
+	 local ghostNum     = {1,1}
+	 local syncPeriodic = false
+	 local bXtemp = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+	 local bYtemp = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+	 local bZtemp = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
          self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
          self.separateComponents:advance(0, {self.geo.allGeo},
             {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
              self.geo.bmag, self.geo.bmagInv, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
              self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ,
-	     self.geo.bX, self.geo.bY, self.geo.bZ})
+	     --self.geo.bX, self.geo.bY, self.geo.bZ})
+	     bXtemp, bYtemp, bZtemp})
 	 if ndim == 3 then
 	    self.setTanVecComp:advance(0.0, {}, {self.geo.tanVecComp})
-	    self.geo.bHat:combineOffset(1.0, self.geo.bX, 0, 1.0, self.geo.bY, self.basis:numComponents(), 1.0, self.geo.bZ, 2*self.basis:numComponents())
+	    self.geo.bHat:combineOffset(1.0, bXtemp, 0, 1.0, bYtemp, self.basis:numComponents(), 1.0, bZtemp, 2*self.basis:numComponents())
 	 end
       end
    end
@@ -1386,9 +1392,6 @@ function GkGeometry:initField()
       self.geo.b_x:sync(false)
       self.geo.b_y:sync(false)
       self.geo.b_z:sync(false)
-      self.geo.bX:sync(false)
-      self.geo.bY:sync(false)
-      self.geo.bZ:sync(false)
       if ndim == 3 then
 	 self.geo.tanVecComp:sync(false)
 	 self.geo.bhat:sync(false)
