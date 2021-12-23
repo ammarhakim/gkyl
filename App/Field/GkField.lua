@@ -979,6 +979,14 @@ function GkGeometry:alloc()
    -- g^yy = |grad y|**2.
    self.geo.gyy = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
+   -- Additonal coefficients needed for Vlasov neutrals
+   -- g^xz = grad x . grad z.
+   self.geo.gxz = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   -- g^yz = grad y . grad z.
+   self.geo.gyz = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   -- g^zz = |grad z|**2.
+   self.geo.gzz = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+
    if self.geo.name == "SimpleHelical" then
 
       -- Functions for magnetic drifts.
@@ -1032,7 +1040,7 @@ function GkGeometry:alloc()
       self.geo.tanVecComp = createField(self.grid,self.basis,ghostNum,9,syncPeriodic)
    
       if self.fromFile == nil then
-         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,19,syncPeriodic)
+         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,22,syncPeriodic)
       end
 
    end
@@ -1167,7 +1175,7 @@ function GkGeometry:createSolver()
 	    local bX, bY, bZ = b_x, b_y, b_z
 
             return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
-	           b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian,
+	           b_x, b_y, b_z, gxx, gxy, gxz, gyy, gyz, gzz, gxx*jacobian, gxy*jacobian, gyy*jacobian,
 		   bX, bY, bZ
 	    
          end
@@ -1200,7 +1208,7 @@ function GkGeometry:createSolver()
 	    local bX, bY, bZ = b_x, b_y, b_z
 
             return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
-	           b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian,
+	           b_x, b_y, b_z, gxx, gxy, gxz, gyy, gyz, gzz, gxx*jacobian, gxy*jacobian, gyy*jacobian,
 		   bX, bY, bZ
           end
       else
@@ -1240,7 +1248,7 @@ function GkGeometry:createSolver()
 	    bZ = bx*dZdx + by*dYdz + bz*dZdz     -- b^Z = b_Z
 
             return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
-	           b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian,
+	           b_x, b_y, b_z, gxx, gxy, gxz, gyy, gyz, gzz, gxx*jacobian, gxy*jacobian, gyy*jacobian,
 		   bX, bY, bZ
 	 end
 	 self.calcTanVecComp = function(t, xn)
@@ -1349,7 +1357,8 @@ function GkGeometry:initField()
          self.separateComponents:advance(0, {self.geo.allGeo},
             {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
              self.geo.bmag, self.geo.bmagInv, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
-             self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ,
+             self.geo.gxx, self.geo.gxy, self.geo.gxz, self.geo.gyy, self.geo.gyz, self.geo.gzz,
+	     self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ,
 	     bXtemp, bYtemp, bZtemp})
 	 if ndim == 3 then
 	    self.setTanVecComp:advance(0.0, {}, {self.geo.tanVecComp})
@@ -1375,7 +1384,10 @@ function GkGeometry:initField()
    self.geo.cmag:sync(false)
    self.geo.gxx:sync(false)
    self.geo.gxy:sync(false)
+   self.geo.gxz:sync(false)
    self.geo.gyy:sync(false)
+   self.geo.gyz:sync(false)
+   self.geo.gzz:sync(false)
    if self.geo.name == "SimpleHelical" then
       if self.ndim > 1 then
          self.geo.bdriftX:sync(false)
