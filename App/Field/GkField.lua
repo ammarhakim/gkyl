@@ -1038,6 +1038,15 @@ function GkGeometry:alloc()
       
       -- Components of tanget basis vectors
       self.geo.tanVecComp = createField(self.grid,self.basis,ghostNum,9,syncPeriodic)
+      self.geo.dXdx = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+      self.geo.dYdx = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)      
+      self.geo.dZdx = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+      self.geo.dXdy = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+      self.geo.dYdy = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)      
+      self.geo.dZdy = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+      self.geo.dXdz = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+      self.geo.dYdz = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)      
+      self.geo.dZdz = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
    
       if self.fromFile == nil then
          self.geo.allGeo = createField(self.grid,self.basis,ghostNum,22,syncPeriodic)
@@ -1175,8 +1184,8 @@ function GkGeometry:createSolver()
 	    local bX, bY, bZ = b_x, b_y, b_z
 
             return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
-	           b_x, b_y, b_z, gxx, gxy, gxz, gyy, gyz, gzz, gxx*jacobian, gxy*jacobian, gyy*jacobian,
-		   bX, bY, bZ
+	           b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian,
+		   gxz, gyz, gzz, bX, bY, bZ
 	    
          end
       elseif self.ndim == 2 then
@@ -1208,8 +1217,8 @@ function GkGeometry:createSolver()
 	    local bX, bY, bZ = b_x, b_y, b_z
 
             return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
-	           b_x, b_y, b_z, gxx, gxy, gxz, gyy, gyz, gzz, gxx*jacobian, gxy*jacobian, gyy*jacobian,
-		   bX, bY, bZ
+	           b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian,
+		   gxz, gyz, gzz, bX, bY, bZ
           end
       else
          self.calcAllGeo = function(t, xn)
@@ -1248,8 +1257,8 @@ function GkGeometry:createSolver()
 	    bZ = bx*dZdx + by*dYdz + bz*dZdz     -- b^Z = b_Z
 
             return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
-	           b_x, b_y, b_z, gxx, gxy, gxz, gyy, gyz, gzz, gxx*jacobian, gxy*jacobian, gyy*jacobian,
-		   bX, bY, bZ
+	           b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian,
+		   gxz, gyz, gzz, bX, bY, bZ
 	 end
 	 self.calcTanVecComp = function(t, xn)
 	    local d = {}
@@ -1357,11 +1366,13 @@ function GkGeometry:initField()
          self.separateComponents:advance(0, {self.geo.allGeo},
             {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
              self.geo.bmag, self.geo.bmagInv, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
-             self.geo.gxx, self.geo.gxy, self.geo.gxz, self.geo.gyy, self.geo.gyz, self.geo.gzz,
-	     self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ,
-	     bXtemp, bYtemp, bZtemp})
+             self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ, 
+	     self.geo.gxz, self.geo.gyz, self.geo.gzz, bXtemp, bYtemp, bZtemp})
 	 if ndim == 3 then
 	    self.setTanVecComp:advance(0.0, {}, {self.geo.tanVecComp})
+	    self.separateComponents:advance(0, {self.geo.tanVecComp},
+               {self.geo.dXdx, self.geo.dYdx, self.geo.dZdx, self.geo.dXdy, self.geo.dYdy, self.geo.dZdy,
+		self.geo.dXdz, self.geo.dYdz, self.geo.dZdz})
 	    self.geo.bHat:combineOffset(1.0, bXtemp, 0, 1.0, bYtemp, self.basis:numComponents(), 1.0, bZtemp, 2*self.basis:numComponents())
 	 end
       end
@@ -1404,8 +1415,16 @@ function GkGeometry:initField()
       self.geo.b_y:sync(false)
       self.geo.b_z:sync(false)
       if ndim == 3 then
-	 self.geo.tanVecComp:sync(false)
 	 self.geo.bhat:sync(false)
+	 self.geo.dXdx:sync(false)
+	 self.geo.dYdx:sync(false)
+	 self.geo.dZdx:sync(false)
+	 self.geo.dXdy:sync(false)
+	 self.geo.dYdy:sync(false)
+	 self.geo.dZdy:sync(false)
+	 self.geo.dXdz:sync(false)
+	 self.geo.dYdz:sync(false)
+	 self.geo.dZdz:sync(false)
       end
    end
    self.geo.phiWall:sync(false)
@@ -1440,7 +1459,7 @@ function GkGeometry:write(tm)
                cmag=self.geo.cmag, b_x=self.geo.b_x, b_y=self.geo.b_y, b_z=self.geo.b_z, gxx=self.geo.gxx,
                gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
                string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
-	    self.fieldIo:write(self.geo.bHat, "bHat_0.bp", tm, self.ioFrame, false)
+	    --self.fieldIo:write(self.geo.bHat, "bHat_0.bp", tm, self.ioFrame, false)
          end
 
          -- Write a grid file.
