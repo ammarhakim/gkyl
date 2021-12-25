@@ -1,0 +1,136 @@
+/* Compute the volume term for ONLY the streaming (v . grad(f)) term
+   in the Vlasov-Poisson and Vlasov-Maxwell equations. */
+
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 1$
+
+varsV : [vx, vy, vz]$
+
+writeCExprsCs(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (	
+    if expr[i] # 0.0 then (
+      ep : string(expr[i]),
+      ep : ssubst("log(","ln(",ep),	
+      printf(fh, "  ~a = ~a; ~%", lhs[i-1], ep)	
+    )
+  )
+)$
+
+writeCExprsCVec(lhs, rhs, cd, NP) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (	
+    if expr[i] # 0.0 then (
+      ep : string(expr[i]),
+      ep : ssubst("log(","ln(",ep),	
+      printf(fh, "  ~a = ~a; ~%", lhs[i-1+(cd-1)*NP], ep)	
+    )
+  )
+)$
+
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+
+cidx(cdim)      := makelist(i,i,0,cdim-1)$
+vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
+
+calcVlasovGenGeoVelComp(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,cid,vid,wDdx,dvDdx,dir,volTerm,clst,strOut],
+
+  kill(varsC, varsP, basisC, basisP),
+
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+
+  bP : basisP[polyOrder],
+  print(basisFun, cdim, vdim, polyOrder, length(basisP)),
+  bC : basisC[polyOrder],
+  NC : length(bC),
+  NP : length(bP),
+
+  printf(fh, "__host__ __device__ double ~aP~a(const double *w, const double *dxv, const double *tvComp, double const *gxx, double const *gxy, double const *gxz, double const *gyz, double const *gzz, double *vComp) ~%{ ~%", funcNm, polyOrder),
+  printf(fh, "  // w[NDIM]: Cell-center coordinates.~%"),
+  printf(fh, "  // dxv[NDIM]: Cell spacing.~%"),
+  printf(fh, "  // tvComp[~a]: Components for tangent basis vectors.~%", NC*9),
+  printf(fh, "  // gij[~a]: Contravariant components of metric tensor.~%", NC),
+  printf(fh, "  // vComp[~a]: Velocity components output as vector.~%", NC*cdim),
+
+  cid : cidx(cdim),
+  vid : vidx(cdim,vdim),
+
+  tvComp_e : doExpand1(tvComp, bC),
+  gxx_e : doExpand1(gxx, bC),
+  gxy_e : doExpand1(gxy, bC),
+  gxz_e : doExpand1(gxz, bC),
+  gyy_e : doExpand1(gyy, bC),
+  gyz_e : doExpand1(gyz, bC),
+  gzz_e : doExpand1(gzz, bC),
+
+  /* For multiple components, change indices. */
+  tvComp_e : psubst(makelist(tvComp[i]=tvComp[a0+i],i,0,NC-1),tvComp_e),
+
+  vTemp_c :  makelist(0, i, 1, cdim), 				 
+  /* Calculate v_i components: v_x = v_X*dX/dx + v_Y*dY/dx + v_Z*dZ/dx, ...  */
+  for dir1 : 1 thru cdim do (
+    vTemp_c[dir1] : 0,
+    for dir2 : 1 thru vdim do (
+    	tvi : (dir1 - 1)*cdim + (dir2-1),
+    	vTemp_c[dir1] : vTemp_c[dir1]
+             +calcInnerProdList(varsP, 1, bP, 2/dxv[vid[dir2]]*(varsV[dir2] - w[vid[dir2]])*subst(a0=NC*(tvi),tvComp_e)))
+  ),
+  printf(fh, "~%"),
+
+  /* For writing out intermediate coefficients. */
+  /* writeCExprsCs(vxTemp,vTemp_c[1]),
+  printf(fh, "~%"),
+  writeCExprsCs(vyTemp,vTemp_c[2]), 
+  printf(fh, "~%"),
+  writeCExprsCs(vzTemp,vTemp_c[3]),
+  printf(fh, "~%"), */
+
+  /* vxTemp_e : doExpand1(vxTemp, bC),
+  vyTemp_e : doExpand1(vyTemp, bC),
+  vzTemp_e : doExpand1(vzTemp, bC), */
+
+  /* This probably isn't the right expand function? */
+  v_x_e : doExpandLst(vTemp_c[1], bP),
+  v_y_e : doExpandLst(vTemp_c[2], bP),
+  v_z_e : doExpandLst(vTemp_c[3], bP),
+
+  /* Calculate v^i : v^x = gxx*v_x + gxy*v_y + gxz*v_z, ... */
+  vx_c : calcInnerProdList(varsP, 1, bP, (gxx_e*v_x_e + gxy_e*v_y_e + gxz_e*v_z_e)),
+  vy_c : calcInnerProdList(varsP, 1, bP, (gxy_e*v_x_e + gyy_e*v_y_e + gyz_e*v_z_e)),
+  vz_c : calcInnerProdList(varsP, 1, bP, (gxz_e*v_x_e + gyz_e*v_y_e + gzz_e*v_z_e)),
+
+  /* These outputs don't appear to have the correct coefficients */
+  writeCExprsCVec(vComp,vx_c,1,NP),
+  writeCExprsCVec(vComp,vy_c,2,NP), 
+  writeCExprsCVec(vComp,vz_c,3,NP),
+  
+  printf(fh, "~%"),	
+  printf(fh, "} ~%")
+)$
+
+bName        : ["Ser"]$
+maxPolyOrder : [maxPolyOrder_Ser]$
+
+for bInd : 1 thru length(bName) do (
+  for c : 3 thru 3 do (
+      for v : 3 thru 3 do (
+      	  disp(printf(false,sconcat("Creating vComp ", bName[bInd]," ~ax~av"),c,v)),
+    	  fname : sconcat("~/max-out/VelComp", bName[bInd], c, "x", v, "v", ".cpp"),
+    	  fh : openw(fname),
+
+    	  printf(fh, "#include <VlasovModDecl.h> ~%"),
+    	  printf(fh, "#include <math.h> ~%"),
+
+	  print("attempting to print",c,"x",v,"v functions..."),
+    	  /*. Calculate velocity components  */
+    	  funcNm : sconcat("VelComp", bName[bInd], c, "x", v, "v"),
+    	  calcVlasovGenGeoVelComp(fh, funcNm, c, v, bName[bInd], maxPolyOrder[bInd]),
+    	  close(fh)
+  	  )
+  )	
+)$

@@ -1038,15 +1038,6 @@ function GkGeometry:alloc()
       
       -- Components of tanget basis vectors
       self.geo.tanVecComp = createField(self.grid,self.basis,ghostNum,9,syncPeriodic)
-      self.geo.dXdx = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-      self.geo.dYdx = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)      
-      self.geo.dZdx = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-      self.geo.dXdy = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-      self.geo.dYdy = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)      
-      self.geo.dZdy = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-      self.geo.dXdz = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-      self.geo.dYdz = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)      
-      self.geo.dZdz = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
    
       if self.fromFile == nil then
          self.geo.allGeo = createField(self.grid,self.basis,ghostNum,22,syncPeriodic)
@@ -1370,9 +1361,6 @@ function GkGeometry:initField()
 	     self.geo.gxz, self.geo.gyz, self.geo.gzz, bXtemp, bYtemp, bZtemp})
 	 if ndim == 3 then
 	    self.setTanVecComp:advance(0.0, {}, {self.geo.tanVecComp})
-	    self.separateComponents:advance(0, {self.geo.tanVecComp},
-               {self.geo.dXdx, self.geo.dYdx, self.geo.dZdx, self.geo.dXdy, self.geo.dYdy, self.geo.dZdy,
-		self.geo.dXdz, self.geo.dYdz, self.geo.dZdz})
 	    self.geo.bHat:combineOffset(1.0, bXtemp, 0, 1.0, bYtemp, self.basis:numComponents(), 1.0, bZtemp, 2*self.basis:numComponents())
 	 end
       end
@@ -1416,15 +1404,7 @@ function GkGeometry:initField()
       self.geo.b_z:sync(false)
       if ndim == 3 then
 	 self.geo.bhat:sync(false)
-	 self.geo.dXdx:sync(false)
-	 self.geo.dYdx:sync(false)
-	 self.geo.dZdx:sync(false)
-	 self.geo.dXdy:sync(false)
-	 self.geo.dYdy:sync(false)
-	 self.geo.dZdy:sync(false)
-	 self.geo.dXdz:sync(false)
-	 self.geo.dYdz:sync(false)
-	 self.geo.dZdz:sync(false)
+	 self.geo.tanVecComp:sync(false)
       end
    end
    self.geo.phiWall:sync(false)
