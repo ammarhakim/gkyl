@@ -782,6 +782,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    for _, bc in pairs(self.nonPeriodicBCs) do
       bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)   -- Save boundary fluxes.
    end
+   emIn[1]:useBoundaryFlux(tCurr, outIdx)  -- Some field objects need to use the boundary fluxes right away.
 
    for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
 end
