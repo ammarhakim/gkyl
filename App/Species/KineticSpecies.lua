@@ -143,9 +143,7 @@ function KineticSpecies:fullInit(appTbl)
 
    self.projections = {}
    for nm, val in pairs(tbl) do
-      if ProjectionBase.is(val) and not string.find(nm,"source") then
-         self.projections[nm] = val
-      end
+      if ProjectionBase.is(val) and not string.find(nm,"source") then self.projections[nm] = val end
    end
    -- It is possible to use the keywords 'init' and 'background'
    -- to specify a function directly without using a Projection object.
@@ -226,6 +224,9 @@ function KineticSpecies:fullInit(appTbl)
    if self.positivity and self.nonconPositivity then
       assert(false, "KineticSpecies: 'self.positivity' and 'self.nonconPositvity cannot both be 'true'")
    end
+
+   -- Mask indicating where updates are (=1) and are not (=-1) calculated.
+   self.maskFunc = tbl.mask
    
    -- for GK only: flag for gyroaveraging.
    self.gyavg = xsys.pickBool(tbl.gyroaverage, false)
@@ -394,6 +395,20 @@ function KineticSpecies:allocVectorMoment(dim)
 end
 
 function KineticSpecies:createSolver(field, externalField)
+   -- Project the mask function. Re-map it so that it is zero where we don't
+   -- wish to compute updates.
+   if self.maskFunc then
+      self.maskField = self:allocCartField(self.grid,1,{self.nGhost,self.nGhost},
+         {polyOrder=0,self.basis:id(),grid=GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"})
+      local p0basis = createBasis(self.basis:id(),self.ndim,0)
+      local projMask = Updater.ProjectOnBasis {
+         onGrid = self.grid,   onGhosts = true,
+         basis  = p0basis,     evaluate = self.maskFunc,
+      }
+      projMask:advance(0.,{},{self.maskField})
+   end
+
+
    -- Set up weak multiplication and division operators.
    self.confWeakMultiply = Updater.CartFieldBinOp {
       onGrid    = self.confGrid,   operation = "Multiply",

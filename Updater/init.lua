@@ -27,6 +27,7 @@ local FemPerpPoisson = require "Updater.FemPerpPoisson"
 local FemPoisson = require "Updater.FemPoisson"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
 local HyperDisCont = require "Updater.HyperDisCont"
+local HyperDisContMasked = require "Updater.HyperDisContMasked"
 local HyperDisContCellBased = require "Updater.HyperDisContCellBased"
 local Ionization = require "Updater.Ionization"
 local IntegratedDGMoment = require "Updater.IntegratedDGMoment"
@@ -79,6 +80,7 @@ return {
    FemPoisson = FemPoisson,
    FiveMomentSrc = FiveMomentSrc,
    HyperDisCont = HyperDisCont,
+   HyperDisContMasked = HyperDisContMasked,
    HyperDisContCellBased = HyperDisContCellBased,
    Ionization = Ionization,
    IntegratedDGMoment = IntegratedDGMoment,

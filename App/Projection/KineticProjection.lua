@@ -11,6 +11,7 @@ local Proto            = require "Lib.Proto"
 local Updater          = require "Updater"
 local xsys             = require "xsys"
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
+local LinearDecomp     = require "Lib.LinearDecomp"
 
 -- Shell class for kinetic projections.
 local KineticProjection = Proto(ProjectionBase)
@@ -53,6 +54,34 @@ function KineticProjection:fullInit(species)
       operation  = "Multiply",
       onGhosts   = true,
    }
+
+   -- Mask applied to projected objects. Excluded region is zeroed out.
+   self.maskField = species.maskField
+end
+
+function KineticProjection:applyMask(fld)
+   -- Apply mask (multiply fld by maskField).
+   -- We can't use species.maskFunc to mask the projected functions
+   -- because some projections don't use a Lua function (MaxwellianProjection),
+   -- so we have to multiply by the mask after the projection is done.
+   local maskPtr, fldPtr = self.maskField:get(1), fld:get(1)
+   local fldIndxr, p0Indxr = fld:genIndexer(), self.maskField:genIndexer()
+
+   local grid = self.phaseGrid
+
+   -- Apply mask in ghosts too.
+   local fldRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = fld:localExtRange(), numSplit = grid:numSharedProcs() }
+
+   local tId = grid:subGridSharedId()   -- Local thread ID.
+   for idx in fldRangeDecomp:rowMajorIter(tId) do
+      self.maskField:fill(p0Indxr(idx), maskPtr)
+      fld:fill(fldIndxr(idx), fldPtr)
+
+      if maskPtr[1] < 0. then
+         for k=1,self.phaseBasis:numBasis() do fldPtr[k] = 0. end
+      end
+   end
 end
 
 ----------------------------------------------------------------------
@@ -95,6 +124,7 @@ function FunctionProjection:advance(t, inFlds, outFlds)
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
       self.project:advance(t, {}, {distf})
+      if self.maskField then self:applyMask(distf) end
    end
 end
 
@@ -192,9 +222,8 @@ function MaxwellianProjection:advance(t, inFlds, outFlds)
    else
       self.project:advance(t, {}, {distf})
    end
-   if self.exactScaleM0 then
-      self:scaleDensity(distf)
-   end
+   if self.exactScaleM0 then self:scaleDensity(distf) end
+   if self.maskField then self:applyMask(distf) end
    assert(self.exactLagFixM012 == false, "MaxwellianProjection: Specialized version of 'MaxwellianProjection' is required. Use 'VlasovProjection.MaxwellianProjection' or 'GkProjection.MaxwellianProjection'")
 end
 

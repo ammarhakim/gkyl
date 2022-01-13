@@ -45,6 +45,8 @@ function FunctionProjection:advance(time, inFlds, outFlds)
 
    local jacobGeo = extField.geo.jacobGeo
    if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
+
+   if self.maskField then self:applyMask(distf) end
 end
 
 --------------------------------------------------------------------------------
@@ -494,6 +496,8 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
 
    local jacobGeo = extField.geo.jacobGeo
    if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
+
+   if self.maskField then self:applyMask(distf) end
 end
 
 
