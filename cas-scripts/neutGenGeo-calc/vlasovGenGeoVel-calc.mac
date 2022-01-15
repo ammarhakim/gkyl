@@ -55,7 +55,7 @@ calcVlasovGenGeoVelComp(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([b
   printf(fh, "  // dxv[NDIM]: Cell spacing.~%"),
   printf(fh, "  // tvComp[~a]: Components for tangent basis vectors.~%", NC*9),
   printf(fh, "  // gij[~a]: Contravariant components of metric tensor.~%", NC),
-  printf(fh, "  // vComp[~a]: Velocity components output as vector.~%", NC*cdim),
+  printf(fh, "  // vComp[~a]: Velocity components output as vector.~%", NP*vdim),
 
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),
@@ -78,21 +78,9 @@ calcVlasovGenGeoVelComp(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([b
     for dir2 : 1 thru vdim do (
     	tvi : (dir1 - 1)*cdim + (dir2-1),
     	vTemp_c[dir1] : vTemp_c[dir1]
-             +calcInnerProdList(varsP, 1, bP, 2/dxv[vid[dir2]]*(varsV[dir2] - w[vid[dir2]])*subst(a0=NC*(tvi),tvComp_e)))
+             +calcInnerProdList(varsP, 1, bP, (dxv[vid[dir2]]/2*varsV[dir2] + w[vid[dir2]])*subst(a0=NC*(tvi),tvComp_e)))
   ),
   printf(fh, "~%"),
-
-  /* For writing out intermediate coefficients. */
-  /* writeCExprsCs(vxTemp,vTemp_c[1]),
-  printf(fh, "~%"),
-  writeCExprsCs(vyTemp,vTemp_c[2]), 
-  printf(fh, "~%"),
-  writeCExprsCs(vzTemp,vTemp_c[3]),
-  printf(fh, "~%"), */
-
-  /* vxTemp_e : doExpand1(vxTemp, bC),
-  vyTemp_e : doExpand1(vyTemp, bC),
-  vzTemp_e : doExpand1(vzTemp, bC), */
 
   /* This probably isn't the right expand function? */
   v_x_e : doExpandLst(vTemp_c[1], bP),
@@ -105,9 +93,9 @@ calcVlasovGenGeoVelComp(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([b
   vz_c : calcInnerProdList(varsP, 1, bP, (gxz_e*v_x_e + gyz_e*v_y_e + gzz_e*v_z_e)),
 
   /* These outputs don't appear to have the correct coefficients */
-  writeCExprsCVec(vComp,vx_c,1,NP),
-  writeCExprsCVec(vComp,vy_c,2,NP), 
-  writeCExprsCVec(vComp,vz_c,3,NP),
+  writeCExprsCs(vComp0,vx_c,1,NP),
+  writeCExprsCs(vComp1,vy_c,2,NP), 
+  writeCExprsCs(vComp2,vz_c,3,NP),
   
   printf(fh, "~%"),	
   printf(fh, "} ~%")

@@ -1,0 +1,141 @@
+/* This script generates the streaming kernels for the volume term contribution from 
+   the Vlasov equation for neutral species in general geometry. */
+
+load("modal-basis");
+load("out-scripts");
+load ("scifac")$
+load(stringproc)$
+fpprec : 24$
+
+varsV : [vx, vy, vz]$
+cvars : [X, Y, Z]$
+vvars : [VX, VY, VZ]$
+
+dvdx : [dv0dx0, dv1dx1, dv2dx2]$
+wdx  : [w0dx0, w1dx1, w2dx2]$
+dv11 : [dv10, dv11, dv12]$
+vc   : [vx_c, vy_c, vz_c]$
+
+/* Helper function for switching to eta = (v - w)/(dv/2) coordinates */
+vTransSubs : [vvx=vx*dv1/2+wv1, vvy=vy*dv2/2+wv2, vvz=vz*dv3/2+wv3]$
+
+cidx(cdim)      := makelist(i,i,0,cdim-1)$
+vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
+
+/* Helper functions for expanding in basis functions a quantity we know should be sparse  */
+/* For example, alpha, the phase space flow only depends on a few phase space coordinates */
+doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[a0+i-1] else 0, i, 1, length(vals))$
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+
+calcVlasovGenGeoVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,bC,NP,NC,cflPt,cid,vid,dir,f_e,incr_cdim,incr_vdim,cdir,vdir,expr,alpha_cdim_c,alpha_vdim_c,amid],
+
+  kill(varsC, varsP, basisC, basisP),
+  /* Load basis of dimensionality requested. */
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+
+  printf(fh, "#include <VlasovModDecl.h> ~%"),
+
+  /* Polynomial basis and its derivatives. */
+  bP : basisP[polyOrder],
+  bC : basisC[polyOrder],
+  NP : length(bP),
+  NC : length(bC),
+
+  /* specify a point to evaluate alpha at for use in computing CFL */
+  cflPt : makelist(varsP[d]=0, d, 1, length(varsP)),
+
+  printf(fh, "__host__ __device__ double ~aP~a(const double *w, const double *dxv, const double *tvComp, double const *gxx, double const *gxy, double const *gxz, double const *gyz, double const *gzz const double *jacobGeo, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+  printf(fh, "  // w[NDIM]:   Cell-center coordinates.~%"),
+  printf(fh, "  // dxv[NDIM]: Cell spacing.~%"),
+  printf(fh, "  // tvComp[~a]: Components for tangent basis vectors.~%", NC*9),
+  printf(fh, "  // gij[~a]: Contravariant components of metric tensor.~%", NC),
+  printf(fh, "  // jacobGeo:  Jacobian for gen geo.~%"),  
+  printf(fh, "  // f:         Input distribution function.~%"),
+  printf(fh, "  // out:       Incremented output.~%"),
+
+  cid : cidx(cdim),
+  vid : vidx(cdim,vdim),
+
+  /* common expressions in streaming (v dot grad(f)) term */
+  for dir : 1 thru cdim do (
+    printf(fh, "  double dv~adx~a = dxv[~a]/dxv[~a]; ~%", dir-1, dir-1, vid[dir], cid[dir]),
+    printf(fh, "  double w~adx~a = w[~a]/dxv[~a]; ~%", dir-1, dir-1, vid[dir], cid[dir])
+  ),
+
+  tvComp_e : doExpand1(tvComp, bC),
+  gxx_e : doExpand1(gxx, bC),
+  gxy_e : doExpand1(gxy, bC),
+  gxz_e : doExpand1(gxz, bC),
+  gyy_e : doExpand1(gyy, bC),
+  gyz_e : doExpand1(gyz, bC),
+  gzz_e : doExpand1(gzz, bC),
+
+  /* For multiple components, change indices. */
+  tvComp_e : psubst(makelist(tvComp[i]=tvComp[a0+i],i,0,NC-1),tvComp_e),
+
+  vTemp_c :  makelist(0, i, 1, cdim), 				 
+  /* Calculate v_i components: v_x = v_X*dX/dx + v_Y*dY/dx + v_Z*dZ/dx, ...  */
+  for dir1 : 1 thru cdim do (
+    vTemp_c[dir1] : 0,
+    for dir2 : 1 thru vdim do (
+    	tvi : (dir1 - 1)*cdim + (dir2-1),
+    	vTemp_c[dir1] : vTemp_c[dir1]
+             +calcInnerProdList(varsP, 1, bP, (dxv[vid[dir2]]/2*varsV[dir2] + w[vid[dir2]])*subst(a0=NC*(tvi),tvComp_e)))
+  ),
+  printf(fh, "~%"),
+
+  /* This probably isn't the right expand function? */
+  v_x_e : doExpandLst(vTemp_c[1], bP),
+  v_y_e : doExpandLst(vTemp_c[2], bP),
+  v_z_e : doExpandLst(vTemp_c[3], bP),
+
+  /* Calculate v^i : v^x = gxx*v_x + gxy*v_y + gxz*v_z, ... */
+  vx_c : calcInnerProdList(varsP, 1, bP, (gxx_e*v_x_e + gxy_e*v_y_e + gxz_e*v_z_e)),
+  vy_c : calcInnerProdList(varsP, 1, bP, (gxy_e*v_x_e + gyy_e*v_y_e + gyz_e*v_z_e)),
+  vz_c : calcInnerProdList(varsP, 1, bP, (gxz_e*v_x_e + gyz_e*v_y_e + gzz_e*v_z_e)),
+
+  /* alpha_mid is our approximation of sum_i max(abs(alpha_i))/dx_i */
+  printf(fh, "  double alpha_mid = 0.0; ~%"),
+
+  /* alpha_cdim = vComp */
+  printf(fh, "  double alpha_cdim[~a]; ~%", cdim*length(bP)),
+  printf(fh, "~%"),
+
+  /* Expand distribution function f and jacobian in phase basis. */
+  f_e : doExpand1(f, bP),
+  jacGeo_e : doExpand1(jacobGeo, bC),
+
+  /* This code eliminates zero coefficients. */
+  incr_cdim : 0,
+  /* alpha_cdim = v dot grad(f) */
+  for cdir : 1 thru cdim do (
+    vc_e : doExpandLst(vc[cdir], bP), 
+    alpha_cdim_c : calcInnerProdList(varsP, 1, bP, vc_e*jacGeo_e),
+    expr : gcfac(float(expand(radcan(alpha_cdim_c)))),
+
+    /* Write out the component of alpha_cdim's phase space expansion */
+    for i : 1 thru NP do (
+      if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", alpha_cdim[NP*(cdir-1)+i-1], expr[i])
+    ),
+
+    printf(fh, "  alpha_mid += std::abs(~a)+~a; ~%", wdx[cdir], 0.5*dvdx[cdir]),
+    printf(fh, "~%"),
+    /* zero out components of alpha which are empty */
+    alpha_cdim_NoZero   : doMakeExprLst(alpha_cdim_c, alpha_cdim),
+    alpha_cdim_NoZero_e : doExpandLst(alpha_cdim_NoZero, bP),
+
+    amid : float(expand(subst(cflPt,0.5*subst(a0=NP*(cdir-1),alpha_cdim_NoZero_e)))),
+    printf(fh, "  alpha_mid += std::abs(~a); ~%", amid),
+
+    /* Volume increment from configuration space. */
+    incr_cdim : incr_cdim+subst(a0=NP*(cdir-1),calcInnerProdList(varsP, 1, diff(bP,varsP[cdir]), alpha_cdim_NoZero_e*f_e))
+  ),
+
+  /* write out first attempts to simplify the radicals with radcan, e.g. force sqrt(3)*sqrt(5) = sqrt(15) */
+  /* outscripts loads scifac and uses the aggressive factorization routine "gcfac" */
+  writeCExprsCollect1c(radcan(incr_cdim+incr_vdim)),
+
+  printf(fh, "~%"),
+  printf(fh, "  return alpha_mid; ~%"),
+  printf(fh, "} ~%")
+)$

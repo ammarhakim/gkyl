@@ -1,0 +1,138 @@
+/* Compute the surf term for ONLY the streaming term (v . grad(f))
+   in the Vlasov-Poisson and Vlasov-Maxwell equations. */
+load("modal-basis")$
+load("out-scripts")$
+load(stringproc)$
+load("scifac")$
+fpprec : 24$
+
+varsV : [vx, vy, vz]$
+cvars : [X, Y, Z]$
+vvars : [VX, VY, VZ]$
+
+vc : [vComp0, vComp1, vComp2]$ /* For velocity components pointer. */
+
+cidx(cdim)      := makelist(i,i,0,cdim-1)$
+vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
+
+/* Helper functions for expanding in basis functions a quantity we know should be sparse  */
+/* For example, alpha, the phase space flow only depends on a few phase space coordinates */
+doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+
+calcStreamUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([bP,numBasisP,cid,vid,wvl,wvr,dvl,dvr,cv,vv,surfVars,fL_e,fR_e,fhat,surfTerm,incr_r,clst,incr_s],
+
+  kill(varsC, varsP, basisC, basisP),
+
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+
+  bP        : basisP[p],
+  numBasisP : length(bP),
+
+  printf(fh, "__host__ __device__ void ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *vComp, const double *jacobGeo, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], p),
+  printf(fh, "  // w[NDIM]:   Cell-center coordinates.~%"),
+  printf(fh, "  // dxv[NDIM]: Cell spacing.~%"),
+  printf(fh, "  // vComp:     Velocity components.~%"),  
+  printf(fh, "  // jacobGeo:     General geometry Jacobian.~%"),
+  printf(fh, "  // fl/fr:     Distribution function in left/right cells.~%"),
+  printf(fh, "  // outl/outr: Incremented distribution function in left/right cells.~%"),
+
+  cid : cidx(cdim),
+  vid : vidx(cdim,vdim),
+
+  /* Cell centers and lengths along velocity space. */
+  wvl : wl[vid[dir]],
+  wvr : wr[vid[dir]],
+  dvl : dxvl[vid[dir]],
+  dvr : dxvr[vid[dir]],
+
+  printf(fh, "  double rdxl2 = 2.0/dxvl[~a]; ~%", cid[dir]),
+  printf(fh, "  double rdxr2 = 2.0/dxvr[~a]; ~%~%", cid[dir]),
+
+  printf(fh, "  const double *vComp~a = &vComp[~a]; ~%", dir-1, numC*(dir-1)),
+
+  cv : varsP[dir],
+  vv : varsV[dir],
+  surfVars : delete(cv,varsP),
+
+  /* Generate surface basis. this produces the ndim-1 orthogonal basis with no vv dependence. */
+  bSurf : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst([cv^2=var2,var2=1/3,cv=0],bP)))*bP),
+
+  fL_e : doExpand1(fl, bP),
+  fR_e : doExpand1(fr, bP),
+  vComp_e : doExpand1(vc[dir], bP),
+  jacGeo_e : doExpand1(jacobGeo, bP),
+
+  /* Ghat is the projection of fL onto the surface basis (if v>0)
+     or the projection of fR onto the surface basis (if v<0) */
+  printf(fh, "  double Ghat[~a]; ~%", length(bSurf)),
+  /* alpha is the phase space flux at the surface. */
+  printf(fh, "  double alpha[~a]; ~%", length(bSurf)),
+  printf(fh, "~%"),
+
+
+  printf(fh, "  if (~a>0) { ~%",wvr),
+
+  /* Project alpha_v onto surface basis, and print resulting coefficients. */
+  alpha_c : calcInnerProdList(surfVars, 1, bSurf, vComp_e*jacGeo_e), /* Do I need a subst() here? */
+  writeCExprsCollect1lhsc(alpha, radcan(alpha_c)),
+  printf(fh, "~%"),
+  flush_output(fh),
+  /* Zero out components of alpha which are empty. */
+  alphaNoZero : doMakeExprLst(alpha_c, alpha),
+  alpha_e     : doExpandLst(alphaNoZero, bSurf),
+  
+  Ghat_c : calcInnerProdList(surfVars, subst(cv=1, alpha_e), bSurf, subst(cv=1, fL_e)), /* Multiplication by vComp*jacGeo occurs here. */
+  clst   : [wvl, dvl],
+  writeCExprsCollect1(Ghat, Ghat_c, clst),
+  printf(fh, "~%"),
+  Ghat_c : doMakeExprLst(Ghat_c, Ghat),
+  Ghat_e : doExpandLst(Ghat_c, bSurf),
+  flush_output(fh),
+
+  incr_r : calcInnerProdList(surfVars, 1, subst(cv=-1, bP), Ghat_e),
+
+  writeCIncrExprs1(outr, incr_r*rdxr2),
+  printf(fh, "~%"),
+  
+  incr_l : calcInnerProdList(surfVars, -1, subst(cv=1, bP), Ghat_e),
+
+  /* Left contribution is the same as the right contribution up to sign changes.
+     Can exploit this fact that reduce the number of multiplications. */
+  signs    : fullratsimp(incr_l/incr_r),
+  incr_new : makelist(signs[i]*incr_r[i], i, 1, length(bP)),
+  writeCIncrExprs1(outl, rdxl2*incr_new),
+
+  printf(fh, "  } else { ~%"),
+  
+  Ghat_c : calcInnerProdList(surfVars, subst(cv=-1, alpha_e), bSurf, subst(cv=-1, fR_e)),
+  clst   : [wvr, dvr],
+  writeCExprsCollect1(Ghat, Ghat_c, clst),
+  printf(fh, "~%"),
+  Ghat_c : doMakeExprLst(Ghat_c, Ghat),
+  Ghat_e : doExpandLst(Ghat_c, bSurf),
+  flush_output(fh),
+
+  incr_r : calcInnerProdList(surfVars, 1, subst(cv=-1, bP), Ghat_e),
+
+  clst   : [wvr, dvr],
+  writeCIncrExprs1(outr, incr_r*rdxr2),
+  printf(fh, "~%"),
+
+  incr_l : calcInnerProdList(surfVars, -1, subst(cv=1, bP), Ghat_e),
+
+  /* Left contribution is the same as the right contribution up to sign changes.
+     Can exploit this fact that reduce the number of multiplications. */
+  signs    : fullratsimp(incr_l/incr_r),
+  incr_new : makelist(signs[i]*incr_r[i], i, 1, length(bP)),
+  writeCIncrExprs1(outl, rdxl2*incr_new),
+  
+  printf(fh, "  } ~%"),
+  printf(fh, "} ~%")
+);
+
+calcVlasovStreamSurfUpdater(fh, funcNm, cdim, vdim, basisFun, p) := block([dir],
+  printf(fh, "#include <VlasovModDecl.h> ~%"),
+  for dir : 1 thru cdim do ( calcStreamUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) )
+)$
+
