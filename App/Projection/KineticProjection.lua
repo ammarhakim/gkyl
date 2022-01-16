@@ -18,9 +18,7 @@ local KineticProjection = Proto(ProjectionBase)
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
-function KineticProjection:init(tbl)
-   self.tbl = tbl
-end
+function KineticProjection:init(tbl) self.tbl = tbl end
 
 function KineticProjection:fullInit(species)
    self.species = species
@@ -48,11 +46,9 @@ function KineticProjection:fullInit(species)
    self.scaleWithSourcePower = xsys.pickBool(self.tbl.scaleWithSourcePower, false)
 
    self.weakMultiplyConfPhase = Updater.CartFieldBinOp {
-      onGrid     = self.phaseGrid,
-      weakBasis  = self.phaseBasis,
+      onGrid     = self.phaseGrid,   operation = "Multiply",
+      weakBasis  = self.phaseBasis,  onGhosts  = true,
       fieldBasis = self.confBasis,
-      operation  = "Multiply",
-      onGhosts   = true,
    }
 
    -- Mask applied to projected objects. Excluded region is zeroed out.
@@ -83,6 +79,7 @@ function KineticProjection:applyMask(fld)
       end
    end
 end
+
 
 ----------------------------------------------------------------------
 -- Base class for projection of arbitrary function. No re-scaling.
@@ -124,8 +121,8 @@ function FunctionProjection:advance(t, inFlds, outFlds)
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
       self.project:advance(t, {}, {distf})
-      if self.maskField then self:applyMask(distf) end
    end
+   if self.maskField then self:applyMask(distf) end
 end
 
 ----------------------------------------------------------------------
@@ -222,8 +219,11 @@ function MaxwellianProjection:advance(t, inFlds, outFlds)
    else
       self.project:advance(t, {}, {distf})
    end
-   if self.exactScaleM0 then self:scaleDensity(distf) end
+   -- Exclude part of phase space if user requested it. Do so before exactScale
+   -- otherwise the results don't come out equivalent to a simulation without a
+   -- mask but with a reduced phase space.
    if self.maskField then self:applyMask(distf) end
+   if self.exactScaleM0 then self:scaleDensity(distf) end
    assert(self.exactLagFixM012 == false, "MaxwellianProjection: Specialized version of 'MaxwellianProjection' is required. Use 'VlasovProjection.MaxwellianProjection' or 'GkProjection.MaxwellianProjection'")
 end
 

@@ -328,49 +328,39 @@ function GkSpecies:createSolver(field, externalField)
       }
    end
    self.threeMomentsCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "GkThreeMoments",
+      onGrid     = self.grid,   confBasis = self.confBasis,
+      phaseBasis = self.basis,  moment    = "GkThreeMoments",
       gkfacs     = {self.mass, self.bmag},
    }
    self.calcMaxwell = Updater.MaxwellianOnBasis {
-      onGrid      = self.grid,
-      phaseBasis  = self.basis,
-      confGrid    = self.confGrid,
-      confBasis   = self.confBasis,
-      mass        = self.mass,
+      onGrid     = self.grid,   confGrid  = self.confGrid,
+      phaseBasis = self.basis,  confBasis = self.confBasis,
+      mass       = self.mass,
    }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
       -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
       self.threeMomentsLBOCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.grid,
-         phaseBasis = self.basis,
-         confBasis  = self.confBasis,
-         moment     = "GkThreeMomentsLBO",
-         gkfacs     = {self.mass, self.bmag},
-         positivity = self.positivity,
+         onGrid     = self.grid,       moment     = "GkThreeMomentsLBO",
+         phaseBasis = self.basis,      gkfacs     = {self.mass, self.bmag},
+         confBasis  = self.confBasis,  positivity = self.positivity,
+         maskField  = self.maskField,
       }
       if self.needCorrectedSelfPrimMom then
          self.primMomSelf = Updater.SelfPrimMoments {
-            onGrid     = self.confGrid,
-            phaseBasis = self.basis,
+            onGrid     = self.confGrid,   operator   = "GkLBO",
+            phaseBasis = self.basis,      gkfacs     = {self.mass, self.bmag},
             confBasis  = self.confBasis,
-            operator   = "GkLBO",
-            gkfacs     = {self.mass, self.bmag},
          }
       end
       -- Updaters for the primitive moments.
       self.confDiv = Updater.CartFieldBinOp {
-         onGrid    = self.confGrid,
+         onGrid    = self.confGrid,   operation = "Divide",
          weakBasis = self.confBasis,
-         operation = "Divide",
       }
       self.confMul = Updater.CartFieldBinOp {
-         onGrid    = self.confGrid,
+         onGrid    = self.confGrid,   operation = "Multiply",
          weakBasis = self.confBasis,
-         operation = "Multiply",
       }
    end
 

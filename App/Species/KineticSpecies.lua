@@ -406,6 +406,7 @@ function KineticSpecies:createSolver(field, externalField)
          basis  = p0basis,     evaluate = self.maskFunc,
       }
       projMask:advance(0.,{},{self.maskField})
+      self.distIo:write(self.maskField, string.format("%s_mask_0.bp", self.name, 0), 0., 0)
    end
 
 
@@ -468,7 +469,7 @@ function KineticSpecies:createSolver(field, externalField)
    end
 
    -- Create solvers for collisions.
-   for _, c in pairs(self.collisions) do c:createSolver(externalField) end
+   for _, c in pairs(self.collisions) do c:createSolver(externalField, self) end
 
    -- Create BC solvers.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self, field, externalField) end

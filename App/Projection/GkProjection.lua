@@ -477,15 +477,17 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
       vtSq:scale(1./self.mass)
       -- Project the Maxwellian. It includes a factor of jacobPhase=B*_||.
       local projMaxwell = Updater.MaxwellianOnBasis {
-         onGrid     = self.phaseGrid,
-         phaseBasis = self.phaseBasis,
-         confGrid   = self.confGrid,
-         confBasis  = self.confBasis,
-         mass       = self.mass,
-         onGhosts   = true,
+         onGrid     = self.phaseGrid,   confBasis = self.confBasis,
+         phaseBasis = self.phaseBasis,  mass      = self.mass,
+         confGrid   = self.confGrid,    onGhosts  = true,
       }
       projMaxwell:advance(time,{numDens,uPar,vtSq,bmag},{distf})
    end
+
+   -- Exclude part of phase space if user requested it. Do so before exactScale
+   -- otherwise the results don't come out equivalent to a simulation without a
+   -- mask but with a reduced phase space.
+   if self.maskField then self:applyMask(distf) end
 
    if self.exactScaleM0 then
       self:scaleDensity(distf)
@@ -496,8 +498,6 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
 
    local jacobGeo = extField.geo.jacobGeo
    if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
-
-   if self.maskField then self:applyMask(distf) end
 end
 
 
