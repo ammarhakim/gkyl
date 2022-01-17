@@ -97,22 +97,14 @@ end
 function GkLBO:numEquations() return 1 end
 function GkLBO:numWaves() return 1 end
 function GkLBO:isPositive(q)
-   if q[1] > 0.0 then
-      return true
-   else
-      return false
-   end
+   if q[1] > 0.0 then return true else return false end
 end
 
 -- flux in direction dir.
-function GkLBO:flux(dir, qIn, fOut)
-   assert(false, "GkLBO:flux: NYI!")
-end
+function GkLBO:flux(dir, qIn, fOut) assert(false, "GkLBO:flux: NYI!") end
 
 -- Riemann problem for Gk LBO equation.
-function GkLBO:rp(dir, delta, ql, qr, waves, s)
-   assert(false, "GkLBO:rp: NYI!")
-end
+function GkLBO:rp(dir, delta, ql, qr, waves, s) assert(false, "GkLBO:rp: NYI!") end
 
 -- Compute q-fluctuations.
 function GkLBO:qFluctuations(dir, ql, qr, waves, s, amdq, apdq)
@@ -191,7 +183,7 @@ function GkLBO:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql,
 end
 
 -- Contribution from surface integral term at the boundaries for use in DG scheme.
-function GkLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+function GkLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, edge, ql, qr, outl, outr)
    local vMuMidMax = 0.0
    -- Set pointer to BmagInv, sum(nu*u) and sum(nu*vtSq) fields.
    self._BmagInv:fill(self._BmagInvIdxr(idxl), self._BmagInvPtr)          -- Get pointer to BmagInv field.
@@ -213,12 +205,12 @@ function GkLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr,
          if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
              (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum)) and (M20>0)) then
             vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-               self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._inNuSum, maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+               self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), edge, self._BmagInvPtr:data(), self._inNuSum, maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
          end
       else
          self._nuSum:fill(self._nuSumIdxr(idxl), self._nuSumPtr)    -- Get pointer to sum(nu) field.
          vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-            self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+            self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), edge, self._BmagInvPtr:data(), self._nuSumPtr:data(), maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
    end
    return vMuMidMax

@@ -13,11 +13,6 @@ maxPolyOrder_Ser : 2$
 minCdim_Ser : 1$
 maxCdim_Ser : 3$
 
-/* Maximal order basis. */
-maxPolyOrder_Max : 2$
-minCdim_Max : 1$
-maxCdim_Max : 0$
-
 /* Tensor order basis. */
 maxPolyOrder_Tensor : 2$
 minCdim_Tensor : 1$
@@ -30,10 +25,10 @@ gkVdims : [[1,2], [2], [2]]$
 /* ...... END OF USER INPUTS........ */
 
 /* To generate other bases, just add corresponding column to arrays below. */
-bName        : ["ser", "Mmx", "tensor"]$
-maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
-minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
-maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+bName        : ["Ser", "Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Tensor]$
 
 /* Is non-uniform booleans. */
 if     grid="uni"    then (gridType : [false])
@@ -80,7 +75,7 @@ for bInd : 1 thru length(bName) do (
             printf(fh, "  double GkLBOconstNuSurf~a~ax~av~a_~a_P~a(const double m_, const double cfll, const double cflr, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); ~%", gridStr, c, v, bName[bInd], vVars[surfDir], polyOrder)
           ),
   
-            printf(fh, "  double GkLBOconstNuBoundarySurf~ax~av~a_~a_P~a(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); ~%", c, v, bName[bInd], vVars[surfDir], polyOrder),
+            printf(fh, "  double GkLBOconstNuBoundarySurf~ax~av~a_~a_P~a(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const int edge, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); ~%", c, v, bName[bInd], vVars[surfDir], polyOrder),
   
             if polyOrder=1 then (
               /* Add kernels for positivity preserving algorithm. */

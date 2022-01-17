@@ -273,11 +273,17 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 	          dir, cflm, cflp, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
 	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
-	       if self._zeroFluxFlags[dir] and ((isInsideP and not isInsideM) or (not isInsideP and isInsideM)) then
+	       if self._zeroFluxFlags[dir] and (isInsideP or isInsideM) then
 	          -- we need to give equations a chance to apply partial surface
 	          -- updates even when the zeroFlux BCs have been applied
+                  local edge
+                  if self._maskFld then
+                     edge = (isInsideP and not isInsideM) and -1 or 1
+                  else
+                     edge = i<dirLoSurfIdx and -1 or 1
+                  end
 	          self._equation:boundarySurfTerm(
-	             dir, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
+	             dir, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, edge, qInM, qInP, qRhsOutM, qRhsOutP)
                end
 	    end
 	 end

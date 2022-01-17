@@ -1,9 +1,10 @@
 #include <GkLBOModDecl.h> 
-double GkLBOconstNuBoundarySurf2x2vSer_Vpar_P1(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuBoundarySurf2x2vSer_Vpar_P1(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const int edge, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[4]:         Cell-center coordinates.
   // dxv[4]:       Cell spacing.
   // idx[4]:       current grid index.
+  // edge:          =-1 for lower boundary, =1 for upper boundary.
   // nuSum:        collisionalities added (self and cross species collisionalities). 
   // vMuMidMax:    maximum midpoint value of v-u. 
   // nuUSum[4]:    sum of bulk velocities times their respective collisionalities. 
@@ -13,7 +14,7 @@ double GkLBOconstNuBoundarySurf2x2vSer_Vpar_P1(const double m_, const double *wl
   double rdvSq4L = 4.0/(dxvl[2]*dxvl[2]); 
   double rdvSq4R = 4.0/(dxvr[2]*dxvr[2]); 
 
-  if (idxr[2] == 1) {
+  if (edge < 0) {
 
     outr[3] += (nuVtSqSum[3]*(0.4330127018922193*fr[5]-0.75*fr[11])+nuVtSqSum[2]*(0.4330127018922193*fr[2]-0.75*fr[7])+nuVtSqSum[1]*(0.4330127018922193*fr[1]-0.75*fr[6])+nuVtSqSum[0]*(0.4330127018922193*fr[0]-0.75*fr[3]))*rdvSq4R; 
     outr[6] += (nuVtSqSum[2]*(0.4330127018922193*fr[5]-0.75*fr[11])+nuVtSqSum[3]*(0.4330127018922193*fr[2]-0.75*fr[7])+nuVtSqSum[0]*(0.4330127018922193*fr[1]-0.75*fr[6])+nuVtSqSum[1]*(0.4330127018922193*fr[0]-0.75*fr[3]))*rdvSq4R; 
@@ -38,11 +39,12 @@ double GkLBOconstNuBoundarySurf2x2vSer_Vpar_P1(const double m_, const double *wl
   }
   return 0.0; 
 } 
-double GkLBOconstNuBoundarySurf2x2vSer_Mu_P1(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuBoundarySurf2x2vSer_Mu_P1(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const int edge, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[4]:         Cell-center coordinates.
   // dxv[4]:       Cell spacing.
   // idx[4]:       current grid index.
+  // edge:          =-1 for lower boundary, =1 for upper boundary.
   // nuSum:        collisionalities added (self and cross species collisionalities). 
   // vMuMidMax:    maximum midpoint value of v-u. 
   // nuUSum[4]:    sum of bulk velocities times their respective collisionalities. 
@@ -53,12 +55,12 @@ double GkLBOconstNuBoundarySurf2x2vSer_Mu_P1(const double m_, const double *wl, 
   double rdvSq4R = 4.0/(dxvr[3]*dxvr[3]); 
 
   double diffFac[4]; 
-  diffFac[0] = 0.5*(BmagInv[3]*nuVtSqSum[3]+BmagInv[2]*nuVtSqSum[2]+BmagInv[1]*nuVtSqSum[1]+BmagInv[0]*nuVtSqSum[0])*m_; 
-  diffFac[1] = 0.5*(BmagInv[2]*nuVtSqSum[3]+nuVtSqSum[2]*BmagInv[3]+BmagInv[0]*nuVtSqSum[1]+nuVtSqSum[0]*BmagInv[1])*m_; 
-  diffFac[2] = 0.5*(BmagInv[1]*nuVtSqSum[3]+nuVtSqSum[1]*BmagInv[3]+BmagInv[0]*nuVtSqSum[2]+nuVtSqSum[0]*BmagInv[2])*m_; 
-  diffFac[3] = 0.5*(BmagInv[0]*nuVtSqSum[3]+nuVtSqSum[0]*BmagInv[3]+BmagInv[1]*nuVtSqSum[2]+nuVtSqSum[1]*BmagInv[2])*m_; 
+  diffFac[0] = 0.5*BmagInv[3]*nuVtSqSum[3]*m_+0.5*BmagInv[2]*nuVtSqSum[2]*m_+0.5*BmagInv[1]*nuVtSqSum[1]*m_+0.5*BmagInv[0]*nuVtSqSum[0]*m_; 
+  diffFac[1] = 0.5*BmagInv[2]*nuVtSqSum[3]*m_+0.5*nuVtSqSum[2]*BmagInv[3]*m_+0.5*BmagInv[0]*nuVtSqSum[1]*m_+0.5*nuVtSqSum[0]*BmagInv[1]*m_; 
+  diffFac[2] = 0.5*BmagInv[1]*nuVtSqSum[3]*m_+0.5*nuVtSqSum[1]*BmagInv[3]*m_+0.5*BmagInv[0]*nuVtSqSum[2]*m_+0.5*nuVtSqSum[0]*BmagInv[2]*m_; 
+  diffFac[3] = 0.5*BmagInv[0]*nuVtSqSum[3]*m_+0.5*nuVtSqSum[0]*BmagInv[3]*m_+0.5*BmagInv[1]*nuVtSqSum[2]*m_+0.5*nuVtSqSum[1]*BmagInv[2]*m_; 
 
-  if (idxr[3] == 1) {
+  if (edge < 0) {
 
     outr[4] += (diffFac[3]*(0.75*dxvr[3]-1.5*wr[3])*fr[12]+diffFac[2]*(0.75*dxvr[3]-1.5*wr[3])*fr[9]+diffFac[1]*(0.75*dxvr[3]-1.5*wr[3])*fr[8]+diffFac[3]*(0.8660254037844386*wr[3]-0.4330127018922193*dxvr[3])*fr[5]+diffFac[0]*(0.75*dxvr[3]-1.5*wr[3])*fr[4]+0.8660254037844386*(diffFac[2]*fr[2]+diffFac[1]*fr[1]+diffFac[0]*fr[0])*wr[3]-0.4330127018922193*(diffFac[2]*fr[2]+diffFac[1]*fr[1]+diffFac[0]*fr[0])*dxvr[3])*rdvSq4R; 
     outr[8] += (diffFac[2]*(0.75*dxvr[3]-1.5*wr[3])*fr[12]+diffFac[3]*(0.75*dxvr[3]-1.5*wr[3])*fr[9]+diffFac[0]*(0.75*dxvr[3]-1.5*wr[3])*fr[8]+diffFac[2]*(0.8660254037844386*wr[3]-0.4330127018922193*dxvr[3])*fr[5]+diffFac[1]*(0.75*dxvr[3]-1.5*wr[3])*fr[4]+0.8660254037844386*(fr[2]*diffFac[3]+diffFac[0]*fr[1]+fr[0]*diffFac[1])*wr[3]-0.4330127018922193*(fr[2]*diffFac[3]+diffFac[0]*fr[1]+fr[0]*diffFac[1])*dxvr[3])*rdvSq4R; 

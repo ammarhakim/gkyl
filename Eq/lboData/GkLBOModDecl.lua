@@ -12,7 +12,7 @@ local ffi = require "ffi"
 local function nullFunc(...) end
 
 -- Map of basis function name -> function encoding.
-local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max" , ["tensor"] = "Tensor"}
+local basisNmMap = { ["serendipity"] = "Ser", ["tensor"] = "Tensor"}
 
 local vvars = {"Vpar","Mu"}
 
@@ -88,7 +88,7 @@ function _M.selectBoundarySurf(basisNm, CDIM, VDIM, polyOrder, applyPos)
    for d = 1, VDIM do
       funcNm[d] = string.format("GkLBOBoundarySurf%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], vvars[d], polyOrder)
    end
-   local funcSign = "(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr)"
+   local funcSign = "(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const int edge, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr)"
 
    local CDefStr = ""
    for d = 1, VDIM do CDefStr = CDefStr .. (funcType .. " " .. funcNm[d] .. funcSign .. ";\n") end
@@ -107,7 +107,7 @@ function _M.selectConstNuBoundarySurf(basisNm, CDIM, VDIM, polyOrder, applyPos)
    for d = 1, VDIM do
       funcNm[d] = string.format("GkLBOconstNuBoundarySurf%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], vvars[d], polyOrder)
    end
-   local funcSign = "(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr)"
+   local funcSign = "(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const int edge, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr)"
 
    local CDefStr = ""
    for d = 1, VDIM do CDefStr = CDefStr .. (funcType .. " " .. funcNm[d] .. funcSign .. ";\n") end

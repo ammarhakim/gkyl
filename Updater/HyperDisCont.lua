@@ -103,12 +103,18 @@ function HyperDisCont:init(tbl)
       -- subsequent steps the maximum speed from the previous step
       -- will be used.
       self._maxs[d] = 0.0
+      self._maxsOld[d] = 0.0
    end
    self._noPenaltyFlux = xsys.pickBool(tbl.noPenaltyFlux, false)
 
    self._isFirst = true
    self._auxFields = {} -- Auxilliary fields passed to eqn object.
    self._perpRangeDecomp = {} -- Perp ranges in each direction.
+
+   -- to store grid info (pre-allocated to avoid allocations in time loop).
+   self._dxp,  self._dxm  = Lin.Vec(self._ndim),    Lin.Vec(self._ndim)    -- cell shape on right/left
+   self._xcp,  self._xcm  = Lin.Vec(self._ndim),    Lin.Vec(self._ndim)    -- cell center on right/left
+   self._idxp, self._idxm = Lin.IntVec(self._ndim), Lin.IntVec(self._ndim) -- index on right/left
 
    return self
 end
@@ -166,9 +172,9 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
    local cflRateByCellIdxr = cflRateByCell:genIndexer()
 
    -- to store grid info
-   local dxp, dxm = Lin.Vec(ndim), Lin.Vec(ndim) -- cell shape on right/left
-   local xcp, xcm = Lin.Vec(ndim), Lin.Vec(ndim) -- cell center on right/left
-   local idxp, idxm = Lin.IntVec(ndim), Lin.IntVec(ndim) -- index on right/left
+   local dxp,  dxm  = self._dxp,  self._dxm  -- cell shape on right/left
+   local xcp,  xcm  = self._xcp,  self._xcm  -- cell center on right/left
+   local idxp, idxm = self._idxp, self._idxm -- index on right/left
 
    -- pointers for (re)use in update
    local qInM, qInP = qIn:get(1), qIn:get(1)
@@ -184,11 +190,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 
    -- Use maximum characteristic speeds from previous step as penalty.
    for d = 1, ndim do
-      if self._noPenaltyFlux then 
-         self._maxsOld[d] = 0.0
-      else
-         self._maxsOld[d] = self._maxs[d]
-      end
+      if not self._noPenaltyFlux then self._maxsOld[d] = self._maxs[d] end
       self._maxsLocal[d] = 0.0 -- Reset to get new values in this step.
    end
 
@@ -208,12 +210,8 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
       -- Compute loop bounds for zero flux direction.
       if self._zeroFluxFlags[dir] then
          local dirGlobalLoIdx, dirGlobalUpIdx = globalRange:lower(dir), globalRange:upper(dir)+1
-         if dirLoIdx == dirGlobalLoIdx then 
-            dirLoSurfIdx = dirLoIdx+1
-         end
-         if dirUpIdx == dirGlobalUpIdx then 
-            dirUpSurfIdx = dirUpIdx-1
-         end
+         if dirLoIdx == dirGlobalLoIdx then dirLoSurfIdx = dirLoIdx+1 end
+         if dirUpIdx == dirGlobalUpIdx then dirUpSurfIdx = dirUpIdx-1 end
       end
 
       if self._isFirst then
@@ -266,8 +264,9 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 	          -- we need to give equations a chance to apply partial
 	          -- surface updates even when the zeroFlux BCs have been
 	          -- applied
+                  local edge = i<dirLoSurfIdx and -1 or 1
 	          self._equation:boundarySurfTerm(
-		     dir, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
+		     dir, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, edge, qInM, qInP, qRhsOutM, qRhsOutP)
                end
 	    end
 	 end

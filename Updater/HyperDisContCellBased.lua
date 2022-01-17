@@ -236,9 +236,8 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
                self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
                if zeroFluxFlags[dir] then
-                  -- we need to give equations a chance to apply partial
-                  -- surface updates even when the zeroFlux BCs have been
-                  -- applied
+                  -- we need to give equations a chance to apply partial surface
+                  -- updates even when the zeroFlux BCs have been applied
                   self._equation:boundarySurfTerm(
                      dir, xcL, xcC, dxL, dxC, nil, idxL, idxC, qInL, qInC, self.dummy, qRhsOutC)
                end
@@ -251,9 +250,8 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
                self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
                if zeroFluxFlags[dir] then
-                  -- we need to give equations a chance to apply partial
-                  -- surface updates even when the zeroFlux BCs have been
-                  -- applied
+                  -- we need to give equations a chance to apply partial surface
+                  -- updates even when the zeroFlux BCs have been applied
                   self._equation:boundarySurfTerm(
                      dir, xcC, xcR, dxC, dxR, nil, idxC, idxR, qInC, qInR, qRhsOutC, self.dummy)
                end
@@ -315,9 +313,8 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
                self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
                if self._zeroFluxFlags[dir] then
-                  -- we need to give equations a chance to apply partial
-                  -- surface updates even when the zeroFlux BCs have been
-                  -- applied
+                  -- we need to give equations a chance to apply partial surface
+                  -- updates even when the zeroFlux BCs have been applied
                   self._equation:boundarySurfTerm(
                      dir, xcL, xcC, dxL, dxC, self._maxsOld[dir], idxL, idxC, qInL, qInC, self.dummy, qRhsOutC)
                end
@@ -330,9 +327,8 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
                self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
                if self._zeroFluxFlags[dir] then
-                  -- we need to give equations a chance to apply partial
-                  -- surface updates even when the zeroFlux BCs have been
-                  -- applied
+                  -- we need to give equations a chance to apply partial surface
+                  -- updates even when the zeroFlux BCs have been applied
                   self._equation:boundarySurfTerm(
                      dir, xcC, xcR, dxC, dxR, self._maxsOld[dir], idxC, idxR, qInC, qInR, qRhsOutC, self.dummy)
                end

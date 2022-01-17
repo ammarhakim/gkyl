@@ -207,6 +207,8 @@ function DistFuncMomentCalc:init(tbl)
 
    self.onGhosts = xsys.pickBool(tbl.onGhosts, true)
 
+   self.maskField = tbl.maskField   -- Optional mask that excludes (if =-1) part of the domain.
+
    -- Initialize tools constructed from fields (e.g. ranges).
    self.fldTools = advArgs and self:initFldTools(advArgs[1],advArgs[2]) or nil
 
@@ -447,6 +449,8 @@ function DistFuncMomentCalc:advanceFiveMoments(tCurr, inFld, outFld)
    end
 end
 
+local isInside = function(inOutPtr) return inOutPtr:data()[0] > 0. end
+
 function DistFuncMomentCalc:advanceFiveMomentsLBO(tCurr, inFld, outFld)
    -- Compute the first five (Vlasov) or three (GK) moments of the distribution function,
    -- and also calculate the boundary corrections for LBO collisions.
@@ -465,6 +469,13 @@ function DistFuncMomentCalc:advanceFiveMomentsLBO(tCurr, inFld, outFld)
    
    local grid       = self._onGrid
    local cDim, vDim = self._cDim, self._vDim
+
+   local maskPtr, p0Indexer
+   if self.maskField then
+      maskPtr = self.maskField:get(1)
+      p0Indexer = self.maskField:genIndexer()
+   end
+   local insideLoIdx, insideUpIdx
 
    -- Outer loop is threaded and over configuration space.
    for cIdx in self.fldTools.confRangeDecomp:rowMajorIter(self.fldTools.tId) do
@@ -501,9 +512,35 @@ function DistFuncMomentCalc:advanceFiveMomentsLBO(tCurr, inFld, outFld)
          for vPerpIdx in self.fldTools.perpRange[vDir]:rowMajorIter() do
             vPerpIdx:copyInto(self.idxP)
             for d = 1, cDim do self.idxP[d] = cIdx[d] end
+
+            if self.maskField then
+               -- Determine the lower and upper indices of region inside of mask.
+               insideLoIdx, insideUpIdx = -1, -1
+               for i = self.fldTools.dirLoIdx[vDir], self.fldTools.dirUpIdx[vDir] do
+                  self.idxP[cDim+vDir] = i
+                  self.maskField:fill(p0Indexer(self.idxP), maskPtr)
+                  if insideLoIdx<0 then insideLoIdx = isInside(maskPtr) and self.idxP[cDim+vDir] or -1 end
+
+                  self.idxP[cDim+vDir] = self.fldTools.dirUpIdx[vDir]-(i-self.fldTools.dirLoIdx[vDir])
+                  self.maskField:fill(p0Indexer(self.idxP), maskPtr)
+                  if insideUpIdx<0 then insideUpIdx = isInside(maskPtr) and self.idxP[cDim+vDir] or -1 end
+
+                  if insideLoIdx>-1 and insideUpIdx>-1 then break end
+               end
+               if insideLoIdx==-1 then insideLoIdx=self.fldTools.dirLoIdx[vDir] end
+               if insideUpIdx==-1 then insideUpIdx=self.fldTools.dirUpIdx[vDir] end
+            else
+               insideLoIdx, insideUpIdx = self.fldTools.dirLoIdx[vDir], self.fldTools.dirUpIdx[vDir]
+            end
+--            if self.idxP[1]==1 then
+--               print(string.format("vDir=%d | idx=(%d,%d,%d) | loIdx=%d  upIdx=%d",vDir,self.idxP[1],self.idxP[2],self.idxP[3],insideLoIdx, insideUpIdx))
+--            end
    
-            for _, i in ipairs({self.fldTools.dirLoIdx[vDir], self.fldTools.dirUpIdx[vDir]}) do   -- This loop is over edges.
+            for _, i in ipairs({insideLoIdx, insideUpIdx}) do   -- This loop is over edges.
                self.idxP[cDim+vDir] = i
+--               if self.idxP[1]==1 then
+--                  print(string.format("vDir=%d | idx=(%d,%d,%d)",vDir,self.idxP[1],self.idxP[2],self.idxP[3]))
+--               end
    
                grid:setIndex(self.idxP)
                grid:getDx(self.dxP)
@@ -521,6 +558,7 @@ function DistFuncMomentCalc:advanceFiveMomentsLBO(tCurr, inFld, outFld)
       end    -- vDir loop.
 
    end    -- Loop over configuration space.
+--   print("....... end loop -------------------------------------")
 end
 
 function DistFuncMomentCalc:advanceFiveMomentsLBOp1(tCurr, inFld, outFld)

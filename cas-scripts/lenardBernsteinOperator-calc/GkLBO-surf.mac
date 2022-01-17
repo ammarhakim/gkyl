@@ -11,18 +11,13 @@ grid : "nonuni"$
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 2$
-minCdim_Ser : 2$
+minCdim_Ser : 1$
 maxCdim_Ser : 3$
-
-/* Maximal order basis. */
-maxPolyOrder_Max : 2$
-minCdim_Max : 1$
-maxCdim_Max : 0$
 
 /* Tensor order basis. */
 maxPolyOrder_Tensor : 2$
-minCdim_Tensor : 2$
-maxCdim_Tensor : 3$
+minCdim_Tensor : 1$
+maxCdim_Tensor : 1$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -31,10 +26,10 @@ maxCdim_Tensor : 3$
 gkVdims      : [[1,2], [2], [2]]$
 
 /* To generate other bases, just add corresponding column to arrays below. */
-bName        : ["Ser", "Max", "Tensor"]$
-maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
-minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
-maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+bName        : ["Ser",  "Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Tensor]$
 
 /* Is non-uniform booleans. */
 if     grid="uni"    then (gridType : [false])
@@ -73,7 +68,7 @@ for bInd : 1 thru length(bName) do (
         fh : openw(fname),
         funcName : sconcat("GkLBOconstNuBoundarySurf", c, "x", v, "v", bName[bInd]),
         calcGkLBOconstNuBoundarySurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, usePositivity),
-        close(fh),
+        close(fh)
 
         /* The following create kernels with positivity preserving schemes. */
         if polyOrder = 1 then (

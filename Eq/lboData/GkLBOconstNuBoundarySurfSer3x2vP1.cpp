@@ -1,9 +1,10 @@
 #include <GkLBOModDecl.h> 
-double GkLBOconstNuBoundarySurf3x2vSer_Vpar_P1(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuBoundarySurf3x2vSer_Vpar_P1(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const int edge, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[5]:         Cell-center coordinates.
   // dxv[5]:       Cell spacing.
   // idx[5]:       current grid index.
+  // edge:          =-1 for lower boundary, =1 for upper boundary.
   // nuSum:        collisionalities added (self and cross species collisionalities). 
   // vMuMidMax:    maximum midpoint value of v-u. 
   // nuUSum[8]:    sum of bulk velocities times their respective collisionalities. 
@@ -13,7 +14,7 @@ double GkLBOconstNuBoundarySurf3x2vSer_Vpar_P1(const double m_, const double *wl
   double rdvSq4L = 4.0/(dxvl[3]*dxvl[3]); 
   double rdvSq4R = 4.0/(dxvr[3]*dxvr[3]); 
 
-  if (idxr[3] == 1) {
+  if (edge < 0) {
 
     outr[4] += (nuVtSqSum[7]*(0.3061862178478971*fr[16]-0.5303300858899105*fr[26])+nuVtSqSum[6]*(0.3061862178478971*fr[8]-0.5303300858899105*fr[19])+nuVtSqSum[5]*(0.3061862178478971*fr[7]-0.5303300858899105*fr[18])+nuVtSqSum[4]*(0.3061862178478971*fr[6]-0.5303300858899105*fr[17])+nuVtSqSum[3]*(0.3061862178478971*fr[3]-0.5303300858899105*fr[11])+nuVtSqSum[2]*(0.3061862178478971*fr[2]-0.5303300858899105*fr[10])+nuVtSqSum[1]*(0.3061862178478971*fr[1]-0.5303300858899105*fr[9])+nuVtSqSum[0]*(0.3061862178478971*fr[0]-0.5303300858899105*fr[4]))*rdvSq4R; 
     outr[9] += (nuVtSqSum[6]*(0.3061862178478971*fr[16]-0.5303300858899105*fr[26])+nuVtSqSum[7]*(0.3061862178478971*fr[8]-0.5303300858899105*fr[19])+nuVtSqSum[3]*(0.3061862178478971*fr[7]-0.5303300858899105*fr[18])+nuVtSqSum[2]*(0.3061862178478971*fr[6]-0.5303300858899105*fr[17])+nuVtSqSum[5]*(0.3061862178478971*fr[3]-0.5303300858899105*fr[11])+nuVtSqSum[4]*(0.3061862178478971*fr[2]-0.5303300858899105*fr[10])+nuVtSqSum[0]*(0.3061862178478971*fr[1]-0.5303300858899105*fr[9])+nuVtSqSum[1]*(0.3061862178478971*fr[0]-0.5303300858899105*fr[4]))*rdvSq4R; 
@@ -54,11 +55,12 @@ double GkLBOconstNuBoundarySurf3x2vSer_Vpar_P1(const double m_, const double *wl
   }
   return 0.0; 
 } 
-double GkLBOconstNuBoundarySurf3x2vSer_Mu_P1(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuBoundarySurf3x2vSer_Mu_P1(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const int edge, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[5]:         Cell-center coordinates.
   // dxv[5]:       Cell spacing.
   // idx[5]:       current grid index.
+  // edge:          =-1 for lower boundary, =1 for upper boundary.
   // nuSum:        collisionalities added (self and cross species collisionalities). 
   // vMuMidMax:    maximum midpoint value of v-u. 
   // nuUSum[8]:    sum of bulk velocities times their respective collisionalities. 
@@ -69,16 +71,16 @@ double GkLBOconstNuBoundarySurf3x2vSer_Mu_P1(const double m_, const double *wl, 
   double rdvSq4R = 4.0/(dxvr[4]*dxvr[4]); 
 
   double diffFac[8]; 
-  diffFac[0] = 0.3535533905932737*(BmagInv[7]*nuVtSqSum[7]+BmagInv[6]*nuVtSqSum[6]+BmagInv[5]*nuVtSqSum[5]+BmagInv[4]*nuVtSqSum[4]+BmagInv[3]*nuVtSqSum[3]+BmagInv[2]*nuVtSqSum[2]+BmagInv[1]*nuVtSqSum[1]+BmagInv[0]*nuVtSqSum[0])*m_; 
-  diffFac[1] = 0.3535533905932737*(BmagInv[6]*nuVtSqSum[7]+nuVtSqSum[6]*BmagInv[7]+BmagInv[3]*nuVtSqSum[5]+nuVtSqSum[3]*BmagInv[5]+BmagInv[2]*nuVtSqSum[4]+nuVtSqSum[2]*BmagInv[4]+BmagInv[0]*nuVtSqSum[1]+nuVtSqSum[0]*BmagInv[1])*m_; 
-  diffFac[2] = 0.3535533905932737*(BmagInv[5]*nuVtSqSum[7]+nuVtSqSum[5]*BmagInv[7]+BmagInv[3]*nuVtSqSum[6]+nuVtSqSum[3]*BmagInv[6]+BmagInv[1]*nuVtSqSum[4]+nuVtSqSum[1]*BmagInv[4]+BmagInv[0]*nuVtSqSum[2]+nuVtSqSum[0]*BmagInv[2])*m_; 
-  diffFac[3] = 0.3535533905932737*(BmagInv[4]*nuVtSqSum[7]+nuVtSqSum[4]*BmagInv[7]+BmagInv[2]*nuVtSqSum[6]+nuVtSqSum[2]*BmagInv[6]+BmagInv[1]*nuVtSqSum[5]+nuVtSqSum[1]*BmagInv[5]+BmagInv[0]*nuVtSqSum[3]+nuVtSqSum[0]*BmagInv[3])*m_; 
-  diffFac[4] = 0.3535533905932737*(BmagInv[3]*nuVtSqSum[7]+nuVtSqSum[3]*BmagInv[7]+BmagInv[5]*nuVtSqSum[6]+nuVtSqSum[5]*BmagInv[6]+BmagInv[0]*nuVtSqSum[4]+nuVtSqSum[0]*BmagInv[4]+BmagInv[1]*nuVtSqSum[2]+nuVtSqSum[1]*BmagInv[2])*m_; 
-  diffFac[5] = 0.3535533905932737*(BmagInv[2]*nuVtSqSum[7]+nuVtSqSum[2]*BmagInv[7]+BmagInv[4]*nuVtSqSum[6]+nuVtSqSum[4]*BmagInv[6]+BmagInv[0]*nuVtSqSum[5]+nuVtSqSum[0]*BmagInv[5]+BmagInv[1]*nuVtSqSum[3]+nuVtSqSum[1]*BmagInv[3])*m_; 
-  diffFac[6] = 0.3535533905932737*(BmagInv[1]*nuVtSqSum[7]+nuVtSqSum[1]*BmagInv[7]+BmagInv[0]*nuVtSqSum[6]+nuVtSqSum[0]*BmagInv[6]+BmagInv[4]*nuVtSqSum[5]+nuVtSqSum[4]*BmagInv[5]+BmagInv[2]*nuVtSqSum[3]+nuVtSqSum[2]*BmagInv[3])*m_; 
-  diffFac[7] = 0.3535533905932737*(BmagInv[0]*nuVtSqSum[7]+nuVtSqSum[0]*BmagInv[7]+BmagInv[1]*nuVtSqSum[6]+nuVtSqSum[1]*BmagInv[6]+BmagInv[2]*nuVtSqSum[5]+nuVtSqSum[2]*BmagInv[5]+BmagInv[3]*nuVtSqSum[4]+nuVtSqSum[3]*BmagInv[4])*m_; 
+  diffFac[0] = 0.3535533905932737*BmagInv[7]*nuVtSqSum[7]*m_+0.3535533905932737*BmagInv[6]*nuVtSqSum[6]*m_+0.3535533905932737*BmagInv[5]*nuVtSqSum[5]*m_+0.3535533905932737*BmagInv[4]*nuVtSqSum[4]*m_+0.3535533905932737*BmagInv[3]*nuVtSqSum[3]*m_+0.3535533905932737*BmagInv[2]*nuVtSqSum[2]*m_+0.3535533905932737*BmagInv[1]*nuVtSqSum[1]*m_+0.3535533905932737*BmagInv[0]*nuVtSqSum[0]*m_; 
+  diffFac[1] = 0.3535533905932737*BmagInv[6]*nuVtSqSum[7]*m_+0.3535533905932737*nuVtSqSum[6]*BmagInv[7]*m_+0.3535533905932737*BmagInv[3]*nuVtSqSum[5]*m_+0.3535533905932737*nuVtSqSum[3]*BmagInv[5]*m_+0.3535533905932737*BmagInv[2]*nuVtSqSum[4]*m_+0.3535533905932737*nuVtSqSum[2]*BmagInv[4]*m_+0.3535533905932737*BmagInv[0]*nuVtSqSum[1]*m_+0.3535533905932737*nuVtSqSum[0]*BmagInv[1]*m_; 
+  diffFac[2] = 0.3535533905932737*BmagInv[5]*nuVtSqSum[7]*m_+0.3535533905932737*nuVtSqSum[5]*BmagInv[7]*m_+0.3535533905932737*BmagInv[3]*nuVtSqSum[6]*m_+0.3535533905932737*nuVtSqSum[3]*BmagInv[6]*m_+0.3535533905932737*BmagInv[1]*nuVtSqSum[4]*m_+0.3535533905932737*nuVtSqSum[1]*BmagInv[4]*m_+0.3535533905932737*BmagInv[0]*nuVtSqSum[2]*m_+0.3535533905932737*nuVtSqSum[0]*BmagInv[2]*m_; 
+  diffFac[3] = 0.3535533905932737*BmagInv[4]*nuVtSqSum[7]*m_+0.3535533905932737*nuVtSqSum[4]*BmagInv[7]*m_+0.3535533905932737*BmagInv[2]*nuVtSqSum[6]*m_+0.3535533905932737*nuVtSqSum[2]*BmagInv[6]*m_+0.3535533905932737*BmagInv[1]*nuVtSqSum[5]*m_+0.3535533905932737*nuVtSqSum[1]*BmagInv[5]*m_+0.3535533905932737*BmagInv[0]*nuVtSqSum[3]*m_+0.3535533905932737*nuVtSqSum[0]*BmagInv[3]*m_; 
+  diffFac[4] = 0.3535533905932737*BmagInv[3]*nuVtSqSum[7]*m_+0.3535533905932737*nuVtSqSum[3]*BmagInv[7]*m_+0.3535533905932737*BmagInv[5]*nuVtSqSum[6]*m_+0.3535533905932737*nuVtSqSum[5]*BmagInv[6]*m_+0.3535533905932737*BmagInv[0]*nuVtSqSum[4]*m_+0.3535533905932737*nuVtSqSum[0]*BmagInv[4]*m_+0.3535533905932737*BmagInv[1]*nuVtSqSum[2]*m_+0.3535533905932737*nuVtSqSum[1]*BmagInv[2]*m_; 
+  diffFac[5] = 0.3535533905932737*BmagInv[2]*nuVtSqSum[7]*m_+0.3535533905932737*nuVtSqSum[2]*BmagInv[7]*m_+0.3535533905932737*BmagInv[4]*nuVtSqSum[6]*m_+0.3535533905932737*nuVtSqSum[4]*BmagInv[6]*m_+0.3535533905932737*BmagInv[0]*nuVtSqSum[5]*m_+0.3535533905932737*nuVtSqSum[0]*BmagInv[5]*m_+0.3535533905932737*BmagInv[1]*nuVtSqSum[3]*m_+0.3535533905932737*nuVtSqSum[1]*BmagInv[3]*m_; 
+  diffFac[6] = 0.3535533905932737*BmagInv[1]*nuVtSqSum[7]*m_+0.3535533905932737*nuVtSqSum[1]*BmagInv[7]*m_+0.3535533905932737*BmagInv[0]*nuVtSqSum[6]*m_+0.3535533905932737*nuVtSqSum[0]*BmagInv[6]*m_+0.3535533905932737*BmagInv[4]*nuVtSqSum[5]*m_+0.3535533905932737*nuVtSqSum[4]*BmagInv[5]*m_+0.3535533905932737*BmagInv[2]*nuVtSqSum[3]*m_+0.3535533905932737*nuVtSqSum[2]*BmagInv[3]*m_; 
+  diffFac[7] = 0.3535533905932737*BmagInv[0]*nuVtSqSum[7]*m_+0.3535533905932737*nuVtSqSum[0]*BmagInv[7]*m_+0.3535533905932737*BmagInv[1]*nuVtSqSum[6]*m_+0.3535533905932737*nuVtSqSum[1]*BmagInv[6]*m_+0.3535533905932737*BmagInv[2]*nuVtSqSum[5]*m_+0.3535533905932737*nuVtSqSum[2]*BmagInv[5]*m_+0.3535533905932737*BmagInv[3]*nuVtSqSum[4]*m_+0.3535533905932737*nuVtSqSum[3]*BmagInv[4]*m_; 
 
-  if (idxr[4] == 1) {
+  if (edge < 0) {
 
     outr[5] += ((0.5303300858899105*dxvr[4]-1.060660171779821*wr[4])*diffFac[7]*fr[27]+(0.5303300858899105*dxvr[4]-1.060660171779821*wr[4])*diffFac[6]*fr[22]+(0.5303300858899105*dxvr[4]-1.060660171779821*wr[4])*diffFac[5]*fr[21]+diffFac[4]*(0.5303300858899105*dxvr[4]-1.060660171779821*wr[4])*fr[20]+(0.6123724356957944*wr[4]-0.3061862178478971*dxvr[4])*diffFac[7]*fr[16]+diffFac[3]*(0.5303300858899105*dxvr[4]-1.060660171779821*wr[4])*fr[14]+diffFac[2]*(0.5303300858899105*dxvr[4]-1.060660171779821*wr[4])*fr[13]+diffFac[1]*(0.5303300858899105*dxvr[4]-1.060660171779821*wr[4])*fr[12]+(0.6123724356957944*wr[4]-0.3061862178478971*dxvr[4])*diffFac[6]*fr[8]+(0.6123724356957944*wr[4]-0.3061862178478971*dxvr[4])*diffFac[5]*fr[7]+diffFac[4]*(0.6123724356957944*wr[4]-0.3061862178478971*dxvr[4])*fr[6]+diffFac[0]*(0.5303300858899105*dxvr[4]-1.060660171779821*wr[4])*fr[5]+0.6123724356957944*(diffFac[3]*fr[3]+diffFac[2]*fr[2]+diffFac[1]*fr[1]+diffFac[0]*fr[0])*wr[4]-0.3061862178478971*(diffFac[3]*fr[3]+diffFac[2]*fr[2]+diffFac[1]*fr[1]+diffFac[0]*fr[0])*dxvr[4])*rdvSq4R; 
     outr[12] += ((0.5303300858899105*dxvr[4]-1.060660171779821*wr[4])*diffFac[6]*fr[27]+(0.5303300858899105*dxvr[4]-1.060660171779821*wr[4])*diffFac[7]*fr[22]+diffFac[3]*(0.5303300858899105*dxvr[4]-1.060660171779821*wr[4])*fr[21]+diffFac[2]*(0.5303300858899105*dxvr[4]-1.060660171779821*wr[4])*fr[20]+(0.6123724356957944*wr[4]-0.3061862178478971*dxvr[4])*diffFac[6]*fr[16]+(0.5303300858899105*dxvr[4]-1.060660171779821*wr[4])*diffFac[5]*fr[14]+diffFac[4]*(0.5303300858899105*dxvr[4]-1.060660171779821*wr[4])*fr[13]+diffFac[0]*(0.5303300858899105*dxvr[4]-1.060660171779821*wr[4])*fr[12]+(0.6123724356957944*wr[4]-0.3061862178478971*dxvr[4])*diffFac[7]*fr[8]+diffFac[3]*(0.6123724356957944*wr[4]-0.3061862178478971*dxvr[4])*fr[7]+diffFac[2]*(0.6123724356957944*wr[4]-0.3061862178478971*dxvr[4])*fr[6]+diffFac[1]*(0.5303300858899105*dxvr[4]-1.060660171779821*wr[4])*fr[5]+fr[3]*(0.6123724356957944*wr[4]-0.3061862178478971*dxvr[4])*diffFac[5]+0.6123724356957944*(fr[2]*diffFac[4]+diffFac[0]*fr[1]+fr[0]*diffFac[1])*wr[4]-0.3061862178478971*(fr[2]*diffFac[4]+diffFac[0]*fr[1]+fr[0]*diffFac[1])*dxvr[4])*rdvSq4R; 
