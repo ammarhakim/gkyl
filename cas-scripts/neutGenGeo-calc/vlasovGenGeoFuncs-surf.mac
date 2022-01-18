@@ -81,8 +81,8 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
 
   /* Expand in phase basis. */
   v_x_e : doExpandLst(vTemp_c[1], bP),
-  v_y_e : doExpandLst(vTemp_c[2], bP),
-  v_z_e : doExpandLst(vTemp_c[3], bP),
+  v_y_e : doExpandLst(vTemp_c[1], bP),
+  v_z_e : doExpandLst(vTemp_c[1], bP),
 
   /* Calculate v^i : v^x = gxx*v_x + gxy*v_y + gxz*v_z, ... */
   vx_c : calcInnerProdList(varsP, 1, bP, (gxx_e*v_x_e + gxy_e*v_y_e + gxz_e*v_z_e)),
@@ -94,9 +94,9 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
 
   fL_e : doExpand1(fl, bP),
   fR_e : doExpand1(fr, bP),
+  jacGeo_e : doExpand1(jacobGeo, bC),
   vComp_e : doExpandLst(vc[dir], bP),
-  jacGeo_e : doExpand1(jacobGeo, bP),
-
+  
   /* Ghat is the projection of fL onto the surface basis (if v>0)
      or the projection of fR onto the surface basis (if v<0) */
   printf(fh, "  double Ghat[~a]; ~%", length(bSurf)),
@@ -107,7 +107,7 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
   printf(fh, "  if (~a>0) { ~%",wvr),
 
   /* Project alpha_v onto surface basis, and print resulting coefficients. */
-  alpha_c : calcInnerProdList(surfVars, 1, bSurf, vComp_e*jacGeo_e), /* Do I need a subst() here? */
+  alpha_c : calcInnerProdList(surfVars, 1, bSurf, subst(cv=1, vComp_e*jacGeo_e)), /* Do I need a subst() here? */
   writeCExprsCollect1lhsc(alpha, radcan(alpha_c)),
   printf(fh, "~%"),
   flush_output(fh),
@@ -115,7 +115,7 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
   alphaNoZero : doMakeExprLst(alpha_c, alpha),
   alpha_e     : doExpandLst(alphaNoZero, bSurf),
   
-  Ghat_c : calcInnerProdList(surfVars, subst(cv=1, alpha_e), bSurf, subst(cv=1, fL_e)), /* Multiplication by vComp*jacGeo occurs here. */
+  Ghat_c : calcInnerProdList(surfVars, alpha_e, bSurf, subst(cv=1, fL_e)), /* Multiplication by vComp*jacGeo occurs here. */
   clst   : [wvl, dvl],
   writeCExprsCollect1(Ghat, Ghat_c, clst),
   printf(fh, "~%"),
