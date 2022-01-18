@@ -20,8 +20,8 @@ maxVdim_Ser : 3$
 maxPolyOrder_Tensor : 2$
 minCdim_Tensor : 1$
 minVdim_Tensor : 1$    /* see begining of v loop below though. */
-maxCdim_Tensor : 0$
-maxVdim_Tensor : 0$
+maxCdim_Tensor : 2$
+maxVdim_Tensor : 3$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -45,9 +45,8 @@ for bInd : 1 thru length(bName) do (
       if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
       if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
 
-      for polyOrder : 3 thru maxPolyOrderB do (
+      for polyOrder : 1 thru maxPolyOrderB do (
      
-     /**
         for gridInd : 1 thru length(gridType) do (
           isNonuniform : gridType[gridInd],
 
@@ -73,7 +72,6 @@ for bInd : 1 thru length(bName) do (
         numFluxOp : 1,
         calcVmLBOconstNuSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, numFluxOp, isNonuniform),
         close(fh),
-        **/
 
         
         /* boundarySurf kernels compute surface contribution that we

@@ -40,7 +40,6 @@ for bInd : 1 thru length(bName) do (
       /* Kernels without positivity fix. */
       usePositivity : false,
 
-/**
       disp(printf(false,sconcat("Creating surface ConstDiffusion",bName[bInd]," ~axP~a"),cD,polyOrder)),
       fname    : sconcat("~/max-out/ConstDiffusionSurf", bName[bInd], cD, "xP", polyOrder, ".cpp"),
       fh       : openw(fname),
@@ -63,7 +62,6 @@ for bInd : 1 thru length(bName) do (
       funcName  : sconcat("ConstDiffusionVarCoeffSurf", cD, "x", bName[bInd]),
       buildConstDiffusionVarCoeffSurfKernel(fh, funcName, cD, bName[bInd], polyOrder, diffOrder),
       close(fh),
-      **/
   
       /* boundarySurf kernels compute surface contribution that we
          do not want to zero-out at the boundary. */
@@ -88,7 +86,7 @@ for bInd : 1 thru length(bName) do (
       diffOrder : 2,
       funcName  : sconcat("ConstDiffusionVarCoeffBoundarySurf", cD, "x", bName[bInd]),
       buildConstDiffusionVarCoeffBoundarySurfKernel(fh, funcName, cD, bName[bInd], polyOrder, diffOrder),
-      close(fh) /**,
+      close(fh),
     
       /* Positivity preserving kernels. */
       if (bName[bInd]="Ser") and (polyOrder=1) then (
@@ -112,7 +110,6 @@ for bInd : 1 thru length(bName) do (
         close(fh)
         */
       )
-      **/
     )
 
   )

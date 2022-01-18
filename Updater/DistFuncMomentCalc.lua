@@ -532,15 +532,9 @@ function DistFuncMomentCalc:advanceFiveMomentsLBO(tCurr, inFld, outFld)
             else
                insideLoIdx, insideUpIdx = self.fldTools.dirLoIdx[vDir], self.fldTools.dirUpIdx[vDir]
             end
---            if self.idxP[1]==1 then
---               print(string.format("vDir=%d | idx=(%d,%d,%d) | loIdx=%d  upIdx=%d",vDir,self.idxP[1],self.idxP[2],self.idxP[3],insideLoIdx, insideUpIdx))
---            end
    
             for _, i in ipairs({insideLoIdx, insideUpIdx}) do   -- This loop is over edges.
                self.idxP[cDim+vDir] = i
---               if self.idxP[1]==1 then
---                  print(string.format("vDir=%d | idx=(%d,%d,%d)",vDir,self.idxP[1],self.idxP[2],self.idxP[3]))
---               end
    
                grid:setIndex(self.idxP)
                grid:getDx(self.dxP)
@@ -558,7 +552,6 @@ function DistFuncMomentCalc:advanceFiveMomentsLBO(tCurr, inFld, outFld)
       end    -- vDir loop.
 
    end    -- Loop over configuration space.
---   print("....... end loop -------------------------------------")
 end
 
 function DistFuncMomentCalc:advanceFiveMomentsLBOp1(tCurr, inFld, outFld)

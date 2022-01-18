@@ -207,30 +207,17 @@ function GkSpecies:createSolver(field, externalField)
    table.insert(self.zeroFluxDirections, self.cdim+1)
    if self.vdim > 1 then table.insert(self.zeroFluxDirections, self.cdim+2) end
 
-   if self.maskField then
-      self.solver = Updater.HyperDisContMasked {
-         onGrid             = self.grid,
-         basis              = self.basis,
-         cfl                = self.cfl,
-         equation           = self.equation,
-         zeroFluxDirections = self.zeroFluxDirections,
-         updateDirections   = upd,
-         clearOut           = false,   -- Continue accumulating into output field.
-         globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
-         maskField          = self.maskField,
-      }
-   else
-      self.solver = Updater.HyperDisCont {
-         onGrid             = self.grid,
-         basis              = self.basis,
-         cfl                = self.cfl,
-         equation           = self.equation,
-         zeroFluxDirections = self.zeroFluxDirections,
-         updateDirections   = upd,
-         clearOut           = false,   -- Continue accumulating into output field.
-         globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
-      }
-   end
+   self.solver = Updater.HyperDisCont {
+      onGrid             = self.grid,
+      basis              = self.basis,
+      cfl                = self.cfl,
+      equation           = self.equation,
+      zeroFluxDirections = self.zeroFluxDirections,
+      updateDirections   = upd,
+      clearOut           = false,   -- Continue accumulating into output field.
+      globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
+      maskField          = self.maskField,
+   }
    
    if hasApar then
       -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.

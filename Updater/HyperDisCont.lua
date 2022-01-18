@@ -91,6 +91,14 @@ function HyperDisCont:init(tbl)
    -- Flag to indicate the use of local or global upwind fluxes. Local
    -- does not need to do a reduction of the maximum speed (saves an Mpi.Allreduce).
    self._globalUpwind = xsys.pickBool(tbl.globalUpwind, true)
+   if self._globalUpwind then
+      self._reduceMaxVelocity = function(maxsLocal, maxs)
+         Mpi.Allreduce(
+            maxsLocal:data(), maxs:data(), self._ndim, Mpi.DOUBLE, Mpi.MAX, self:getComm())
+      end
+   else
+      self._reduceMaxVelocity = function(maxsLocal, maxs) end
+   end
 
    -- CFL number
    self._cfl = assert(tbl.cfl, "Updater.HyperDisCont: Must specify CFL number using 'cfl'")
@@ -106,6 +114,22 @@ function HyperDisCont:init(tbl)
       self._maxsOld[d] = 0.0
    end
    self._noPenaltyFlux = xsys.pickBool(tbl.noPenaltyFlux, false)
+
+   -- Mask field, M=1 for cells where updates should be computed,
+   -- and M=0 in cells were updates are not to be calculated.
+   self._maskFld = tbl.maskField
+   if self._maskFld then
+      self._maskM, self._maskP = self._maskFld:get(1), self._maskFld:get(1)
+      self._areInside = function(p0indxr, idxm, idxp) return self:areInsideMasked(p0indxr, idxm, idxp) end
+      self._getBoundaryEdge = function(i,dirLoSurfIdx,isInsideM,isInsideP)
+         return self:whichBoundaryEdgeMasked(i,dirLoSurfIdx,isInsideM,isInsideP)
+      end
+   else
+      self._areInside = function(p0indxr, idxm, idxp) return self:areInsideNOmask(p0indxr, idxm, idxp) end
+      self._getBoundaryEdge = function(i,dirLoSurfIdx,isInsideM,isInsideP)
+         return self:whichBoundaryEdgeNOmask(i,dirLoSurfIdx,isInsideM,isInsideP)
+      end
+   end
 
    self._isFirst = true
    self._auxFields = {} -- Auxilliary fields passed to eqn object.
@@ -146,6 +170,25 @@ function HyperDisCont:initDevice(tbl)
    return self
 end
 
+-- Function determining if cells with indices idxM and idxP are to be
+-- updated or not (excluded).
+local isInside = function(inOutPtr) return inOutPtr:data()[0] > 0. end
+function HyperDisCont:areInsideMasked(p0indexer, idxM, idxP)
+   self._maskFld:fill(p0indexer(idxM), self._maskM)
+   self._maskFld:fill(p0indexer(idxP), self._maskP)
+   return isInside(self._maskM), isInside(self._maskP)
+end
+function HyperDisCont:areInsideNOmask(p0indexer, idxM, idxP) return true, true end
+
+
+-- Function specifying which boundary surface (lower=-1,upper=1) we are at.
+function HyperDisCont:whichBoundaryEdgeMasked(i,dirLoSurfIdx,isInsideM,isInsideP)
+   return (isInsideP and not isInsideM) and -1 or 1
+end
+function HyperDisCont:whichBoundaryEdgeNOmask(i,dirLoSurfIdx,isInsideM,isInsideP)
+   return i<dirLoSurfIdx and -1 or 1
+end
+
 -- advance method
 function HyperDisCont:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
@@ -156,9 +199,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
    local qRhsOut = assert(outFld[1], "HyperDisCont.advance: Must specify an output field")
 
    -- pass aux fields to equation object
-   for i = 1, #inFld-1 do
-      self._auxFields[i] = inFld[i+1]
-   end
+   for i = 1, #inFld-1 do self._auxFields[i] = inFld[i+1] end
    self._equation:setAuxFields(self._auxFields)
 
    local ndim = grid:ndim()
@@ -168,8 +209,8 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 
    local localRange = qRhsOut:localRange()
    local globalRange = qRhsOut:globalRange()
-   local qInIdxr, qRhsOutIdxr = qIn:genIndexer(), qRhsOut:genIndexer() -- indexer functions into fields
-   local cflRateByCellIdxr = cflRateByCell:genIndexer()
+   local indxr = qIn:genIndexer() -- indexer function into fields
+   local indxrP0 = cflRateByCell:genIndexer()
 
    -- to store grid info
    local dxp,  dxm  = self._dxp,  self._dxm  -- cell shape on right/left
@@ -194,12 +235,25 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
       self._maxsLocal[d] = 0.0 -- Reset to get new values in this step.
    end
 
+   if self._isFirst then
+      for i = #self._updateDirs, 1, -1 do 
+         local dir = self._updateDirs[i]
+	 self._perpRangeDecomp[dir] = LinearDecomp.LinearDecompRange {
+	    range = localRange:shorten(dir), -- range orthogonal to 'dir'
+	    numSplit = grid:numSharedProcs(),
+	    threadComm = self:getSharedComm()
+	 }
+      end
+   end
+
    local tId = grid:subGridSharedId() -- Local thread ID.
 
    -- Clear output field before computing vol/surf increments.
    if self._clearOut then qRhsOut:clear(0.0) end
    -- Accumulate contributions from volume and surface integrals.
    local cflRate
+   -- Booleans indicating if cell is updated or not, and what boundary edge (upper/lower) to update.
+   local isInsideM, isInsideP, boundaryEdge
    -- Iterate through updateDirs backwards so that a zero flux dir is first in kinetics.
    for i = #self._updateDirs, 1, -1 do 
       local dir = self._updateDirs[i]
@@ -214,13 +268,6 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
          if dirUpIdx == dirGlobalUpIdx then dirUpSurfIdx = dirUpIdx-1 end
       end
 
-      if self._isFirst then
-	 self._perpRangeDecomp[dir] = LinearDecomp.LinearDecompRange {
-	    range = localRange:shorten(dir), -- range orthogonal to 'dir'
-	    numSplit = grid:numSharedProcs(),
-	    threadComm = self:getSharedComm()
-	 }
-      end
       local perpRangeDecomp = self._perpRangeDecomp[dir]
 
       -- outer loop is over directions orthogonal to 'dir' and inner
@@ -239,19 +286,21 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
             grid:getDx(dxp)
 	    grid:cellCenter(xcp)
 
-	    qIn:fill(qInIdxr(idxm), qInM)
-	    qIn:fill(qInIdxr(idxp), qInP)
+	    qIn:fill(indxr(idxm), qInM)
+	    qIn:fill(indxr(idxp), qInP)
 
-	    qRhsOut:fill(qRhsOutIdxr(idxm), qRhsOutM)
-	    qRhsOut:fill(qRhsOutIdxr(idxp), qRhsOutP)
-            cflRateByCell:fill(cflRateByCellIdxr(idxm), cflRateByCellM)
-            cflRateByCell:fill(cflRateByCellIdxr(idxp), cflRateByCellP)
+	    qRhsOut:fill(indxr(idxm), qRhsOutM)
+	    qRhsOut:fill(indxr(idxp), qRhsOutP)
+            cflRateByCell:fill(indxrP0(idxm), cflRateByCellM)
+            cflRateByCell:fill(indxrP0(idxp), cflRateByCellP)
 
-	    if firstDir and i<=dirUpIdx-1 and self._updateVolumeTerm then
+            isInsideM, isInsideP = self._areInside(indxrP0, idxm, idxp)
+
+	    if firstDir and i<=dirUpIdx-1 and self._updateVolumeTerm and isInsideP then
 	       cflRate = self._equation:volTerm(xcp, dxp, idxp, qInP, qRhsOutP)
                cflRateByCellP:data()[0] = cflRateByCellP:data()[0] + cflRate
 	    end
-	    if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
+	    if i >= dirLoSurfIdx and i <= dirUpSurfIdx and (isInsideM and isInsideP) then
                local cflp = cflRateByCellP:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
                local cflm = cflRateByCellM:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
                if cflp == 0.0 then cflp = math.min(1.5*cflm, cfl) end
@@ -261,12 +310,11 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
 	       if self._zeroFluxFlags[dir] then
-	          -- we need to give equations a chance to apply partial
-	          -- surface updates even when the zeroFlux BCs have been
-	          -- applied
-                  local edge = i<dirLoSurfIdx and -1 or 1
+	          -- we need to give equations a chance to apply partial surface
+	          -- updates even when the zeroFlux BCs have been applied.
+                  boundaryEdge = self._getBoundaryEdge(i,dirLoSurfIdx,isInsideM,isInsideP)
 	          self._equation:boundarySurfTerm(
-		     dir, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, edge, qInM, qInP, qRhsOutM, qRhsOutP)
+		     dir, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, boundaryEdge, qInM, qInP, qRhsOutM, qRhsOutP)
                end
 	    end
 	 end
@@ -276,10 +324,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
    end
 
    -- Determine largest amax across processors.
-   if self._globalUpwind then
-      Mpi.Allreduce(
-         self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, self:getComm())
-   end
+   self._reduceMaxVelocity(self._maxsLocal, self._maxs)
 
    self._isFirst = false
 end
