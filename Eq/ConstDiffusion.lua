@@ -92,8 +92,8 @@ function ConstDiffusion:init(tbl)
       self.surfTermFunc = function(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
          return ConstDiffusion["surfTermVarInSpace"](self, dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
       end
-      self.boundarySurfTermFunc = function(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
-         return ConstDiffusion["boundarySurfTermVarInSpace"](self, dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+      self.boundarySurfTermFunc = function(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, edge, ql, qr, outl, outr)
+         return ConstDiffusion["boundarySurfTermVarInSpace"](self, dir, wl, wr, dxl, dxr, maxs, idxl, idxr, edge, ql, qr, outl, outr)
       end
    else
       self.volTermFunc = function(w, dx, idx, q, out)
@@ -102,8 +102,8 @@ function ConstDiffusion:init(tbl)
       self.surfTermFunc = function(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
          return ConstDiffusion["surfTermConstInSpace"](self, dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
       end
-      self.boundarySurfTermFunc = function(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
-         return ConstDiffusion["boundarySurfTermConstInSpace"](self, dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+      self.boundarySurfTermFunc = function(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, edge, ql, qr, outl, outr)
+         return ConstDiffusion["boundarySurfTermConstInSpace"](self, dir, wl, wr, dxl, dxr, maxs, idxl, idxr, edge, ql, qr, outl, outr)
       end
    end
 end
@@ -170,17 +170,17 @@ function ConstDiffusion:surfTermVarInSpace(dir, cfll, cflr, wl, wr, dxl, dxr, ma
 end
 
 -- Contribution from surface integral term at the boundaries for use in DG scheme.
-function ConstDiffusion:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
-   return self.boundarySurfTermFunc(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+function ConstDiffusion:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, edge, ql, qr, outl, outr)
+   return self.boundarySurfTermFunc(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, edge, ql, qr, outl, outr)
 end
-function ConstDiffusion:boundarySurfTermConstInSpace(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
-   self._boundarySurfTerms[dir](wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._nu:data(), ql:data(), qr:data(), outl:data(), outr:data())
+function ConstDiffusion:boundarySurfTermConstInSpace(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, edge, ql, qr, outl, outr)
+   self._boundarySurfTerms[dir](wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), edge, self._nu:data(), ql:data(), qr:data(), outl:data(), outr:data())
    return 0
 end
-function ConstDiffusion:boundarySurfTermVarInSpace(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+function ConstDiffusion:boundarySurfTermVarInSpace(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, edge, ql, qr, outl, outr)
    self._nu:fill(self._nuIdxr(idxl), self._nuPtrl)
    self._nu:fill(self._nuIdxr(idxr), self._nuPtrr)
-   self._boundarySurfTerms[dir](wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._nuPtrl:data(), self._nuPtrr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+   self._boundarySurfTerms[dir](wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), edge, self._nuPtrl:data(), self._nuPtrr:data(), ql:data(), qr:data(), outl:data(), outr:data())
    return 0
 end
 

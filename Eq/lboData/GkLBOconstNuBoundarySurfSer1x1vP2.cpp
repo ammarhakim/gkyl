@@ -4,7 +4,7 @@ double GkLBOconstNuBoundarySurf1x1vSer_Vpar_P2(const double m_, const double *wl
   // w[2]:         Cell-center coordinates.
   // dxv[2]:       Cell spacing.
   // idx[2]:       current grid index.
-  // edge:          =-1 for lower boundary, =1 for upper boundary.
+  // edge:         =-1 for lower boundary, =1 for upper boundary.
   // nuSum:        collisionalities added (self and cross species collisionalities). 
   // vMuMidMax:    maximum midpoint value of v-u. 
   // nuUSum[3]:    sum of bulk velocities times their respective collisionalities. 

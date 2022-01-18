@@ -12,27 +12,22 @@ load(stringproc)$
    to allow the user to add diffusion in any subset of directions. */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 2$
+maxPolyOrder_Ser : 3$
 minDim_Ser : 1$
-maxDim_Ser : 2$
-
-/* Maximal order basis. */
-maxPolyOrder_Max : 1$
-minDim_Max : 0$
-maxDim_Max : 0$
+maxDim_Ser : 4$
 
 /* Tensor basis. */
 maxPolyOrder_Tensor : 2$
-minDim_Tensor : 0$
-maxDim_Tensor : 0$
+minDim_Tensor : 2$
+maxDim_Tensor : 4$
 
 /* ...... END OF USER INPUTS........ */
 
 /* To generate other bases, just add corresponding column to arrays below. */
-bName        : ["Ser","Max","Tensor"]$
-maxPolyOrder : [maxPolyOrder_Ser,maxPolyOrder_Max,maxPolyOrder_Tensor]$
-minDim       : [minDim_Ser,minDim_Max,minDim_Tensor]$
-maxDim       : [maxDim_Ser,maxDim_Max,maxDim_Tensor]$
+bName        : ["Ser","Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser,maxPolyOrder_Tensor]$
+minDim       : [minDim_Ser,minDim_Tensor]$
+maxDim       : [maxDim_Ser,maxDim_Tensor]$
 
 for bInd : 1 thru length(bName) do (
   for cD : 1 thru maxDim[bInd] do (
@@ -45,6 +40,7 @@ for bInd : 1 thru length(bName) do (
       /* Kernels without positivity fix. */
       usePositivity : false,
 
+/**
       disp(printf(false,sconcat("Creating surface ConstDiffusion",bName[bInd]," ~axP~a"),cD,polyOrder)),
       fname    : sconcat("~/max-out/ConstDiffusionSurf", bName[bInd], cD, "xP", polyOrder, ".cpp"),
       fh       : openw(fname),
@@ -67,6 +63,7 @@ for bInd : 1 thru length(bName) do (
       funcName  : sconcat("ConstDiffusionVarCoeffSurf", cD, "x", bName[bInd]),
       buildConstDiffusionVarCoeffSurfKernel(fh, funcName, cD, bName[bInd], polyOrder, diffOrder),
       close(fh),
+      **/
   
       /* boundarySurf kernels compute surface contribution that we
          do not want to zero-out at the boundary. */
@@ -91,7 +88,7 @@ for bInd : 1 thru length(bName) do (
       diffOrder : 2,
       funcName  : sconcat("ConstDiffusionVarCoeffBoundarySurf", cD, "x", bName[bInd]),
       buildConstDiffusionVarCoeffBoundarySurfKernel(fh, funcName, cD, bName[bInd], polyOrder, diffOrder),
-      close(fh),
+      close(fh) /**,
     
       /* Positivity preserving kernels. */
       if (bName[bInd]="Ser") and (polyOrder=1) then (
@@ -115,6 +112,7 @@ for bInd : 1 thru length(bName) do (
         close(fh)
         */
       )
+      **/
     )
 
   )

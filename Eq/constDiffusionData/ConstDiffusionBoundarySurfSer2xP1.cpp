@@ -1,9 +1,10 @@
 #include <ConstDiffusionModDecl.h> 
-void ConstDiffusionBoundarySurf2xSerP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionBoundarySurf2xSerP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const int edge, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[2]:      Cell-center coordinates.
   // dx[2]:     Cell spacing.
-  // idx[2]:    current grid index.
+  // idx[vdim+cdim]:    current grid index.
+  // edge:      =-1 for lower boundary, =1 for upper boundary.
   // nu[2]:     diffusion coefficient (collisionality).
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
@@ -13,7 +14,7 @@ void ConstDiffusionBoundarySurf2xSerP1_X1(const double *wl, const double *wr, co
   double incr1[4]; 
   double incr2[4]; 
 
-  if (idxr[0] == 1) {
+  if (edge < 0) {
 
   incr2[1] = 0.8660254037844386*fr[0]-1.5*fr[1]; 
   incr2[3] = 0.8660254037844386*fr[2]-1.5*fr[3]; 
@@ -32,11 +33,12 @@ void ConstDiffusionBoundarySurf2xSerP1_X1(const double *wl, const double *wr, co
   }
 
 } 
-void ConstDiffusionBoundarySurf2xSerP1_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionBoundarySurf2xSerP1_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const int edge, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[2]:      Cell-center coordinates.
   // dx[2]:     Cell spacing.
-  // idx[2]:    current grid index.
+  // idx[vdim+cdim]:    current grid index.
+  // edge:      =-1 for lower boundary, =1 for upper boundary.
   // nu[2]:     diffusion coefficient (collisionality).
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
@@ -46,7 +48,7 @@ void ConstDiffusionBoundarySurf2xSerP1_X2(const double *wl, const double *wr, co
   double incr1[4]; 
   double incr2[4]; 
 
-  if (idxr[1] == 1) {
+  if (edge < 0) {
 
   incr2[2] = 0.8660254037844386*fr[0]-1.5*fr[2]; 
   incr2[3] = 0.8660254037844386*fr[1]-1.5*fr[3]; 
@@ -65,11 +67,12 @@ void ConstDiffusionBoundarySurf2xSerP1_X2(const double *wl, const double *wr, co
   }
 
 } 
-void ConstHyperDiffusion4BoundarySurf2xSerP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstHyperDiffusion4BoundarySurf2xSerP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const int edge, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[2]:      Cell-center coordinates.
   // dx[2]:     Cell spacing.
-  // idx[2]:    current grid index.
+  // idx[vdim+cdim]:    current grid index.
+  // edge:      =-1 for lower boundary, =1 for upper boundary.
   // nu[2]:     diffusion coefficient (collisionality).
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
@@ -81,7 +84,7 @@ void ConstHyperDiffusion4BoundarySurf2xSerP1_X1(const double *wl, const double *
   double incr3[4]; 
   double incr4[4]; 
 
-  if (idxr[0] == 1) {
+  if (edge < 0) {
 
 
   incr2[1] = 1.5*fr[1]; 
@@ -106,11 +109,12 @@ void ConstHyperDiffusion4BoundarySurf2xSerP1_X1(const double *wl, const double *
   }
 
 } 
-void ConstHyperDiffusion4BoundarySurf2xSerP1_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstHyperDiffusion4BoundarySurf2xSerP1_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const int edge, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[2]:      Cell-center coordinates.
   // dx[2]:     Cell spacing.
-  // idx[2]:    current grid index.
+  // idx[vdim+cdim]:    current grid index.
+  // edge:      =-1 for lower boundary, =1 for upper boundary.
   // nu[2]:     diffusion coefficient (collisionality).
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
@@ -122,7 +126,7 @@ void ConstHyperDiffusion4BoundarySurf2xSerP1_X2(const double *wl, const double *
   double incr3[4]; 
   double incr4[4]; 
 
-  if (idxr[1] == 1) {
+  if (edge < 0) {
 
 
   incr2[2] = 1.5*fr[2]; 
@@ -147,11 +151,12 @@ void ConstHyperDiffusion4BoundarySurf2xSerP1_X2(const double *wl, const double *
   }
 
 } 
-void ConstDiffusionVarCoeffBoundarySurf2xSerP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nul, const double *nur, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionVarCoeffBoundarySurf2xSerP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const int edge, const double *nul, const double *nur, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[2]:      Cell-center coordinates.
   // dx[2]:     Cell spacing.
-  // idx[2]:    current grid index.
+  // idx[vdim+cdim]:    current grid index.
+  // edge:      =-1 for lower boundary, =1 for upper boundary.
   // nu[8]:     diffusion coefficient.
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
@@ -161,18 +166,18 @@ void ConstDiffusionVarCoeffBoundarySurf2xSerP1_X1(const double *wl, const double
   double incr1[4]; 
   double incr2[4]; 
 
-  if (idxr[0] == 1) {
+  if (edge < 0) {
 
-  incr2[1] = (-1.299038105676658*fr[3]*nul[3])+0.75*fr[2]*nul[3]-0.75*nul[2]*fr[3]+0.4330127018922193*fr[2]*nul[2]-1.299038105676658*fr[1]*nul[1]+0.75*fr[0]*nul[1]-0.75*nul[0]*fr[1]+0.4330127018922193*fr[0]*nul[0]; 
-  incr2[3] = (-1.299038105676658*fr[1]*nul[3])+0.75*fr[0]*nul[3]-1.299038105676658*nul[1]*fr[3]-0.75*nul[0]*fr[3]-0.75*fr[1]*nul[2]+0.4330127018922193*fr[0]*nul[2]+0.75*nul[1]*fr[2]+0.4330127018922193*nul[0]*fr[2]; 
+  incr2[1] = (-1.299038105676658*fr[1]*nul[1])+0.75*fr[0]*nul[1]-0.75*nul[0]*fr[1]+0.4330127018922193*fr[0]*nul[0]; 
+  incr2[3] = (-1.299038105676658*nul[1]*fr[3])-0.75*nul[0]*fr[3]+0.75*nul[1]*fr[2]+0.4330127018922193*nul[0]*fr[2]; 
 
   outr[1] += incr2[1]*rdxFr; 
   outr[3] += incr2[3]*rdxFr; 
 
   } else {
 
-  incr2[1] = 1.299038105676658*fl[3]*nul[3]+0.75*fl[2]*nul[3]+0.75*nul[2]*fl[3]+0.4330127018922193*fl[2]*nul[2]+1.299038105676658*fl[1]*nul[1]+0.75*fl[0]*nul[1]+0.75*nul[0]*fl[1]+0.4330127018922193*fl[0]*nul[0]; 
-  incr2[3] = 1.299038105676658*fl[1]*nul[3]+0.75*fl[0]*nul[3]+1.299038105676658*nul[1]*fl[3]+0.75*nul[0]*fl[3]+0.75*fl[1]*nul[2]+0.4330127018922193*fl[0]*nul[2]+0.75*nul[1]*fl[2]+0.4330127018922193*nul[0]*fl[2]; 
+  incr2[1] = 1.299038105676658*fl[1]*nul[1]+0.75*fl[0]*nul[1]+0.75*nul[0]*fl[1]+0.4330127018922193*fl[0]*nul[0]; 
+  incr2[3] = 1.299038105676658*nul[1]*fl[3]+0.75*nul[0]*fl[3]+0.75*nul[1]*fl[2]+0.4330127018922193*nul[0]*fl[2]; 
 
   outl[1] += -1.0*incr2[1]*rdxFl; 
   outl[3] += -1.0*incr2[3]*rdxFl; 
@@ -180,11 +185,12 @@ void ConstDiffusionVarCoeffBoundarySurf2xSerP1_X1(const double *wl, const double
   }
 
 } 
-void ConstDiffusionVarCoeffBoundarySurf2xSerP1_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nul, const double *nur, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionVarCoeffBoundarySurf2xSerP1_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const int edge, const double *nul, const double *nur, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[2]:      Cell-center coordinates.
   // dx[2]:     Cell spacing.
-  // idx[2]:    current grid index.
+  // idx[vdim+cdim]:    current grid index.
+  // edge:      =-1 for lower boundary, =1 for upper boundary.
   // nu[8]:     diffusion coefficient.
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
@@ -194,18 +200,18 @@ void ConstDiffusionVarCoeffBoundarySurf2xSerP1_X2(const double *wl, const double
   double incr1[4]; 
   double incr2[4]; 
 
-  if (idxr[1] == 1) {
+  if (edge < 0) {
 
-  incr2[2] = (-1.299038105676658*fr[3]*nul[7])+0.75*fr[1]*nul[7]-1.299038105676658*fr[2]*nul[6]+0.75*fr[0]*nul[6]-0.75*fr[3]*nul[5]+0.4330127018922193*fr[1]*nul[5]-0.75*fr[2]*nul[4]+0.4330127018922193*fr[0]*nul[4]; 
-  incr2[3] = (-1.299038105676658*fr[2]*nul[7])+0.75*fr[0]*nul[7]-1.299038105676658*fr[3]*nul[6]+0.75*fr[1]*nul[6]-0.75*fr[2]*nul[5]+0.4330127018922193*fr[0]*nul[5]-0.75*fr[3]*nul[4]+0.4330127018922193*fr[1]*nul[4]; 
+  incr2[2] = (-1.299038105676658*fr[2]*nul[6])+0.75*fr[0]*nul[6]-0.75*fr[2]*nul[4]+0.4330127018922193*fr[0]*nul[4]; 
+  incr2[3] = (-1.299038105676658*fr[3]*nul[6])+0.75*fr[1]*nul[6]-0.75*fr[3]*nul[4]+0.4330127018922193*fr[1]*nul[4]; 
 
   outr[2] += incr2[2]*rdxFr; 
   outr[3] += incr2[3]*rdxFr; 
 
   } else {
 
-  incr2[2] = 1.299038105676658*fl[3]*nul[7]+0.75*fl[1]*nul[7]+1.299038105676658*fl[2]*nul[6]+0.75*fl[0]*nul[6]+0.75*fl[3]*nul[5]+0.4330127018922193*fl[1]*nul[5]+0.75*fl[2]*nul[4]+0.4330127018922193*fl[0]*nul[4]; 
-  incr2[3] = 1.299038105676658*fl[2]*nul[7]+0.75*fl[0]*nul[7]+1.299038105676658*fl[3]*nul[6]+0.75*fl[1]*nul[6]+0.75*fl[2]*nul[5]+0.4330127018922193*fl[0]*nul[5]+0.75*fl[3]*nul[4]+0.4330127018922193*fl[1]*nul[4]; 
+  incr2[2] = 1.299038105676658*fl[2]*nul[6]+0.75*fl[0]*nul[6]+0.75*fl[2]*nul[4]+0.4330127018922193*fl[0]*nul[4]; 
+  incr2[3] = 1.299038105676658*fl[3]*nul[6]+0.75*fl[1]*nul[6]+0.75*fl[3]*nul[4]+0.4330127018922193*fl[1]*nul[4]; 
 
   outl[2] += -1.0*incr2[2]*rdxFl; 
   outl[3] += -1.0*incr2[3]*rdxFl; 

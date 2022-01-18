@@ -46,6 +46,7 @@ for bInd : 1 thru length(bName) do (
 
       for polyOrder : 1 thru maxPolyOrderB do (
 
+/**
         for gridInd : 1 thru length(gridType) do (
           isNonuniform : gridType[gridInd],
 
@@ -59,6 +60,7 @@ for bInd : 1 thru length(bName) do (
           calcGkLBOconstNuSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, isNonuniform, usePositivity),
           close(fh)
         ),
+        **/
 
         isNonuniform : false,
         /* boundarySurf kernels compute surface contribution that we
@@ -68,7 +70,7 @@ for bInd : 1 thru length(bName) do (
         fh : openw(fname),
         funcName : sconcat("GkLBOconstNuBoundarySurf", c, "x", v, "v", bName[bInd]),
         calcGkLBOconstNuBoundarySurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, usePositivity),
-        close(fh)
+        close(fh) /**,
 
         /* The following create kernels with positivity preserving schemes. */
         if polyOrder = 1 then (
@@ -80,6 +82,7 @@ for bInd : 1 thru length(bName) do (
           calcGkLBOconstNuSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, isNonuniform, usePositivity),
           close(fh)
         )
+        **/
       )
     )
   )

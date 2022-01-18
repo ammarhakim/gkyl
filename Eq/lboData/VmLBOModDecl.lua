@@ -105,7 +105,7 @@ function _M.selectConstNuBoundarySurf(basisNm, CDIM, VDIM, polyOrder)
    for d = 1, VDIM do
       funcNm[d] = string.format("VmLBOconstNuBoundarySurf%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], vvars[d], polyOrder)
    end
-   local funcSign = "(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr)"
+   local funcSign = "(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const int edge, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr)"
 
    local CDefStr = ""
    for d = 1, VDIM do CDefStr = CDefStr .. (funcType .. " " .. funcNm[d] .. funcSign .. ";\n") end

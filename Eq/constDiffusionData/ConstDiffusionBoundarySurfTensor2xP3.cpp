@@ -1,9 +1,9 @@
 #include <ConstDiffusionModDecl.h> 
-void ConstDiffusionBoundarySurf2xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionBoundarySurf2xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int edge, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[2]:      Cell-center coordinates.
   // dx[2]:     Cell spacing.
-  // idx[2]:    current grid index.
+  // edge:      =-1 for lower boundary, =1 for upper boundary.
   // nu[2]:     diffusion coefficient (collisionality).
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
@@ -13,7 +13,7 @@ void ConstDiffusionBoundarySurf2xTensorP3_X1(const double *wl, const double *wr,
   double incr1[16]; 
   double incr2[16]; 
 
-  if (idxr[0] == 1) {
+  if (edge < 0) {
 
   incr2[1] = (-2.29128784747792*fr[8])+1.936491673103708*fr[4]-1.5*fr[1]+0.8660254037844386*fr[0]; 
   incr2[3] = (-2.29128784747792*fr[11])+1.936491673103709*fr[6]-1.5*fr[3]+0.8660254037844386*fr[2]; 
@@ -72,11 +72,11 @@ void ConstDiffusionBoundarySurf2xTensorP3_X1(const double *wl, const double *wr,
   }
 
 } 
-void ConstDiffusionBoundarySurf2xTensorP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionBoundarySurf2xTensorP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int edge, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[2]:      Cell-center coordinates.
   // dx[2]:     Cell spacing.
-  // idx[2]:    current grid index.
+  // edge:      =-1 for lower boundary, =1 for upper boundary.
   // nu[2]:     diffusion coefficient (collisionality).
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
@@ -86,7 +86,7 @@ void ConstDiffusionBoundarySurf2xTensorP3_X2(const double *wl, const double *wr,
   double incr1[16]; 
   double incr2[16]; 
 
-  if (idxr[1] == 1) {
+  if (edge < 0) {
 
   incr2[2] = (-2.29128784747792*fr[9])+1.936491673103708*fr[5]-1.5*fr[2]+0.8660254037844386*fr[0]; 
   incr2[3] = (-2.29128784747792*fr[12])+1.936491673103709*fr[7]-1.5*fr[3]+0.8660254037844386*fr[1]; 
@@ -145,11 +145,11 @@ void ConstDiffusionBoundarySurf2xTensorP3_X2(const double *wl, const double *wr,
   }
 
 } 
-void ConstHyperDiffusion4BoundarySurf2xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstHyperDiffusion4BoundarySurf2xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int edge, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[2]:      Cell-center coordinates.
   // dx[2]:     Cell spacing.
-  // idx[2]:    current grid index.
+  // edge:      =-1 for lower boundary, =1 for upper boundary.
   // nu[2]:     diffusion coefficient (collisionality).
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
@@ -161,7 +161,7 @@ void ConstHyperDiffusion4BoundarySurf2xTensorP3_X1(const double *wl, const doubl
   double incr3[16]; 
   double incr4[16]; 
 
-  if (idxr[0] == 1) {
+  if (edge < 0) {
 
 
   incr2[1] = 11.78376607274358*fr[8]-11.61895003862225*fr[4]+4.5*fr[1]; 
@@ -234,11 +234,11 @@ void ConstHyperDiffusion4BoundarySurf2xTensorP3_X1(const double *wl, const doubl
   }
 
 } 
-void ConstHyperDiffusion4BoundarySurf2xTensorP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstHyperDiffusion4BoundarySurf2xTensorP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int edge, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[2]:      Cell-center coordinates.
   // dx[2]:     Cell spacing.
-  // idx[2]:    current grid index.
+  // edge:      =-1 for lower boundary, =1 for upper boundary.
   // nu[2]:     diffusion coefficient (collisionality).
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
@@ -250,7 +250,7 @@ void ConstHyperDiffusion4BoundarySurf2xTensorP3_X2(const double *wl, const doubl
   double incr3[16]; 
   double incr4[16]; 
 
-  if (idxr[1] == 1) {
+  if (edge < 0) {
 
 
   incr2[2] = 11.78376607274358*fr[9]-11.61895003862225*fr[5]+4.5*fr[2]; 
@@ -323,11 +323,11 @@ void ConstHyperDiffusion4BoundarySurf2xTensorP3_X2(const double *wl, const doubl
   }
 
 } 
-void ConstHyperDiffusion6BoundarySurf2xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstHyperDiffusion6BoundarySurf2xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int edge, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[2]:      Cell-center coordinates.
   // dx[2]:     Cell spacing.
-  // idx[2]:    current grid index.
+  // edge:      =-1 for lower boundary, =1 for upper boundary.
   // nu[2]:     diffusion coefficient (collisionality).
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
@@ -341,7 +341,7 @@ void ConstHyperDiffusion6BoundarySurf2xTensorP3_X1(const double *wl, const doubl
   double incr5[16]; 
   double incr6[16]; 
 
-  if (idxr[0] == 1) {
+  if (edge < 0) {
 
 
   incr2[1] = (-103.1079531365064*fr[8])+76.2493596284585*fr[4]-19.6875*fr[1]; 
@@ -418,11 +418,11 @@ void ConstHyperDiffusion6BoundarySurf2xTensorP3_X1(const double *wl, const doubl
   }
 
 } 
-void ConstHyperDiffusion6BoundarySurf2xTensorP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstHyperDiffusion6BoundarySurf2xTensorP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int edge, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[2]:      Cell-center coordinates.
   // dx[2]:     Cell spacing.
-  // idx[2]:    current grid index.
+  // edge:      =-1 for lower boundary, =1 for upper boundary.
   // nu[2]:     diffusion coefficient (collisionality).
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
@@ -436,7 +436,7 @@ void ConstHyperDiffusion6BoundarySurf2xTensorP3_X2(const double *wl, const doubl
   double incr5[16]; 
   double incr6[16]; 
 
-  if (idxr[1] == 1) {
+  if (edge < 0) {
 
 
   incr2[2] = (-103.1079531365064*fr[9])+76.2493596284585*fr[5]-19.6875*fr[2]; 
@@ -509,6 +509,152 @@ void ConstHyperDiffusion6BoundarySurf2xTensorP3_X2(const double *wl, const doubl
   outl[13] += incr2[13]*rdxFnul; 
   outl[14] += incr4[14]*rdxFnul+incr2[14]*rdxFnul; 
   outl[15] += incr4[15]*rdxFnul+incr2[15]*rdxFnul; 
+
+  }
+
+} 
+void ConstDiffusionVarCoeffBoundarySurf2xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int edge, const double *nul, const double *nur, const double *fl, const double *fr, double *outl, double *outr) 
+{ 
+  // w[2]:      Cell-center coordinates.
+  // dx[2]:     Cell spacing.
+  // edge:      =-1 for lower boundary, =1 for upper boundary.
+  // nu[32]:     diffusion coefficient.
+  // fl/fr:     Distribution function in left/right cells.
+  // outl/outr: Incremented distribution function in left/right cells 
+  double rdxFl = 4.0/(dxl[0]*dxl[0]); 
+  double rdxFr = 4.0/(dxr[0]*dxr[0]); 
+
+  double incr1[16]; 
+  double incr2[16]; 
+
+  if (edge < 0) {
+
+  incr2[1] = (-3.031088913245536*fr[8]*nul[8])+2.561737691489899*fr[4]*nul[8]-1.984313483298443*fr[1]*nul[8]+1.14564392373896*fr[0]*nul[8]-2.561737691489901*nul[4]*fr[8]-1.984313483298443*nul[1]*fr[8]-1.14564392373896*nul[0]*fr[8]+2.165063509461096*fr[4]*nul[4]-1.677050983124842*fr[1]*nul[4]+0.9682458365518543*fr[0]*nul[4]+1.677050983124842*nul[1]*fr[4]+0.9682458365518541*nul[0]*fr[4]-1.299038105676658*fr[1]*nul[1]+0.75*fr[0]*nul[1]-0.75*nul[0]*fr[1]+0.4330127018922193*fr[0]*nul[0]; 
+  incr2[3] = (-3.031088913245535*nul[8]*fr[11])-2.561737691489901*nul[4]*fr[11]-1.984313483298442*nul[1]*fr[11]-1.14564392373896*nul[0]*fr[11]+2.5617376914899*fr[6]*nul[8]-1.984313483298443*fr[3]*nul[8]+1.14564392373896*fr[2]*nul[8]+2.165063509461097*nul[4]*fr[6]+1.677050983124842*nul[1]*fr[6]+0.9682458365518543*nul[0]*fr[6]-1.677050983124842*fr[3]*nul[4]+0.9682458365518543*fr[2]*nul[4]-1.299038105676658*nul[1]*fr[3]-0.75*nul[0]*fr[3]+0.75*nul[1]*fr[2]+0.4330127018922193*nul[0]*fr[2]; 
+  incr2[4] = 11.7393568818739*fr[8]*nul[8]-9.921567416492215*fr[4]*nul[8]+7.685213074469699*fr[1]*nul[8]-4.437059837324712*fr[0]*nul[8]+9.921567416492215*nul[4]*fr[8]+7.685213074469706*nul[1]*fr[8]+4.437059837324713*nul[0]*fr[8]-8.385254915624213*fr[4]*nul[4]+6.495190528383289*fr[1]*nul[4]-3.75*fr[0]*nul[4]-6.495190528383286*nul[1]*fr[4]-3.75*nul[0]*fr[4]+5.031152949374527*fr[1]*nul[1]-2.904737509655563*fr[0]*nul[1]+2.904737509655563*nul[0]*fr[1]-1.677050983124842*fr[0]*nul[0]; 
+  incr2[6] = 11.7393568818739*nul[8]*fr[11]+9.921567416492222*nul[4]*fr[11]+7.685213074469699*nul[1]*fr[11]+4.437059837324712*nul[0]*fr[11]-9.921567416492215*fr[6]*nul[8]+7.6852130744697*fr[3]*nul[8]-4.437059837324712*fr[2]*nul[8]-8.385254915624213*nul[4]*fr[6]-6.495190528383286*nul[1]*fr[6]-3.75*nul[0]*fr[6]+6.49519052838329*fr[3]*nul[4]-3.75*fr[2]*nul[4]+5.031152949374526*nul[1]*fr[3]+2.904737509655563*nul[0]*fr[3]-2.904737509655563*nul[1]*fr[2]-1.677050983124842*nul[0]*fr[2]; 
+  incr2[7] = (-3.031088913245536*nul[8]*fr[13])-2.5617376914899*nul[4]*fr[13]-1.984313483298443*nul[1]*fr[13]-1.14564392373896*nul[0]*fr[13]+2.5617376914899*nul[8]*fr[10]+2.165063509461097*nul[4]*fr[10]+1.677050983124842*nul[1]*fr[10]+0.9682458365518544*nul[0]*fr[10]-1.984313483298443*fr[7]*nul[8]+1.14564392373896*fr[5]*nul[8]-1.677050983124842*nul[4]*fr[7]-1.299038105676658*nul[1]*fr[7]-0.75*nul[0]*fr[7]+0.9682458365518543*nul[4]*fr[5]+0.75*nul[1]*fr[5]+0.4330127018922194*nul[0]*fr[5]; 
+  incr2[8] = (-27.78038876617821*fr[8]*nul[8])+23.47871376374779*fr[4]*nul[8]-18.18653347947321*fr[1]*nul[8]+10.5*fr[0]*nul[8]-23.47871376374781*nul[4]*fr[8]-18.18653347947322*nul[1]*fr[8]-10.5*nul[0]*fr[8]+19.84313483298443*fr[4]*nul[4]-15.3704261489394*fr[1]*nul[4]+8.874119674649425*fr[0]*nul[4]+15.37042614893939*nul[1]*fr[4]+8.874119674649425*nul[0]*fr[4]-11.90588089979066*fr[1]*nul[1]+6.873863542433759*fr[0]*nul[1]-6.873863542433759*nul[0]*fr[1]+3.968626966596886*fr[0]*nul[0]; 
+  incr2[10] = 11.7393568818739*nul[8]*fr[13]+9.921567416492218*nul[4]*fr[13]+7.685213074469701*nul[1]*fr[13]+4.437059837324712*nul[0]*fr[13]-9.921567416492215*nul[8]*fr[10]-8.385254915624213*nul[4]*fr[10]-6.495190528383286*nul[1]*fr[10]-3.75*nul[0]*fr[10]+7.6852130744697*fr[7]*nul[8]-4.437059837324712*fr[5]*nul[8]+6.49519052838329*nul[4]*fr[7]+5.031152949374526*nul[1]*fr[7]+2.904737509655563*nul[0]*fr[7]-3.75*nul[4]*fr[5]-2.904737509655563*nul[1]*fr[5]-1.677050983124842*nul[0]*fr[5]; 
+  incr2[11] = (-27.78038876617821*nul[8]*fr[11])-23.47871376374781*nul[4]*fr[11]-18.18653347947322*nul[1]*fr[11]-10.5*nul[0]*fr[11]+23.47871376374779*fr[6]*nul[8]-18.18653347947321*fr[3]*nul[8]+10.5*fr[2]*nul[8]+19.84313483298443*nul[4]*fr[6]+15.37042614893939*nul[1]*fr[6]+8.874119674649425*nul[0]*fr[6]-15.3704261489394*fr[3]*nul[4]+8.874119674649425*fr[2]*nul[4]-11.90588089979066*nul[1]*fr[3]-6.87386354243376*nul[0]*fr[3]+6.87386354243376*nul[1]*fr[2]+3.968626966596886*nul[0]*fr[2]; 
+  incr2[12] = (-3.031088913245535*nul[8]*fr[15])-2.561737691489901*nul[4]*fr[15]-1.984313483298442*nul[1]*fr[15]-1.14564392373896*nul[0]*fr[15]+2.561737691489899*nul[8]*fr[14]+2.165063509461097*nul[4]*fr[14]+1.677050983124842*nul[1]*fr[14]+0.9682458365518541*nul[0]*fr[14]-1.984313483298443*nul[8]*fr[12]-1.677050983124842*nul[4]*fr[12]-1.299038105676658*nul[1]*fr[12]-0.75*nul[0]*fr[12]+1.14564392373896*nul[8]*fr[9]+0.9682458365518541*nul[4]*fr[9]+0.7499999999999999*nul[1]*fr[9]+0.4330127018922193*nul[0]*fr[9]; 
+  incr2[13] = (-27.78038876617821*nul[8]*fr[13])-23.47871376374781*nul[4]*fr[13]-18.18653347947322*nul[1]*fr[13]-10.5*nul[0]*fr[13]+23.47871376374779*nul[8]*fr[10]+19.84313483298443*nul[4]*fr[10]+15.37042614893939*nul[1]*fr[10]+8.874119674649425*nul[0]*fr[10]-18.18653347947321*fr[7]*nul[8]+10.5*fr[5]*nul[8]-15.3704261489394*nul[4]*fr[7]-11.90588089979066*nul[1]*fr[7]-6.87386354243376*nul[0]*fr[7]+8.874119674649425*nul[4]*fr[5]+6.873863542433759*nul[1]*fr[5]+3.968626966596886*nul[0]*fr[5]; 
+  incr2[14] = 11.7393568818739*nul[8]*fr[15]+9.921567416492218*nul[4]*fr[15]+7.685213074469697*nul[1]*fr[15]+4.437059837324711*nul[0]*fr[15]-9.921567416492215*nul[8]*fr[14]-8.385254915624213*nul[4]*fr[14]-6.495190528383286*nul[1]*fr[14]-3.75*nul[0]*fr[14]+7.685213074469698*nul[8]*fr[12]+6.49519052838329*nul[4]*fr[12]+5.031152949374525*nul[1]*fr[12]+2.904737509655563*nul[0]*fr[12]-4.437059837324712*nul[8]*fr[9]-3.75*nul[4]*fr[9]-2.904737509655562*nul[1]*fr[9]-1.677050983124842*nul[0]*fr[9]; 
+  incr2[15] = (-27.78038876617821*nul[8]*fr[15])-23.47871376374781*nul[4]*fr[15]-18.18653347947322*nul[1]*fr[15]-10.5*nul[0]*fr[15]+23.47871376374779*nul[8]*fr[14]+19.84313483298443*nul[4]*fr[14]+15.37042614893939*nul[1]*fr[14]+8.874119674649425*nul[0]*fr[14]-18.18653347947321*nul[8]*fr[12]-15.3704261489394*nul[4]*fr[12]-11.90588089979066*nul[1]*fr[12]-6.87386354243376*nul[0]*fr[12]+10.5*nul[8]*fr[9]+8.874119674649425*nul[4]*fr[9]+6.873863542433759*nul[1]*fr[9]+3.968626966596886*nul[0]*fr[9]; 
+
+  outr[1] += incr2[1]*rdxFr; 
+  outr[3] += incr2[3]*rdxFr; 
+  outr[4] += incr2[4]*rdxFr; 
+  outr[6] += incr2[6]*rdxFr; 
+  outr[7] += incr2[7]*rdxFr; 
+  outr[8] += incr2[8]*rdxFr; 
+  outr[10] += incr2[10]*rdxFr; 
+  outr[11] += incr2[11]*rdxFr; 
+  outr[12] += incr2[12]*rdxFr; 
+  outr[13] += incr2[13]*rdxFr; 
+  outr[14] += incr2[14]*rdxFr; 
+  outr[15] += incr2[15]*rdxFr; 
+
+  } else {
+
+  incr2[1] = 3.031088913245536*fl[8]*nul[8]+2.561737691489899*fl[4]*nul[8]+1.984313483298443*fl[1]*nul[8]+1.14564392373896*fl[0]*nul[8]+2.561737691489901*nul[4]*fl[8]+1.984313483298443*nul[1]*fl[8]+1.14564392373896*nul[0]*fl[8]+2.165063509461096*fl[4]*nul[4]+1.677050983124842*fl[1]*nul[4]+0.9682458365518543*fl[0]*nul[4]+1.677050983124842*nul[1]*fl[4]+0.9682458365518541*nul[0]*fl[4]+1.299038105676658*fl[1]*nul[1]+0.75*fl[0]*nul[1]+0.75*nul[0]*fl[1]+0.4330127018922193*fl[0]*nul[0]; 
+  incr2[3] = 3.031088913245535*nul[8]*fl[11]+2.561737691489901*nul[4]*fl[11]+1.984313483298442*nul[1]*fl[11]+1.14564392373896*nul[0]*fl[11]+2.5617376914899*fl[6]*nul[8]+1.984313483298443*fl[3]*nul[8]+1.14564392373896*fl[2]*nul[8]+2.165063509461097*nul[4]*fl[6]+1.677050983124842*nul[1]*fl[6]+0.9682458365518543*nul[0]*fl[6]+1.677050983124842*fl[3]*nul[4]+0.9682458365518543*fl[2]*nul[4]+1.299038105676658*nul[1]*fl[3]+0.75*nul[0]*fl[3]+0.75*nul[1]*fl[2]+0.4330127018922193*nul[0]*fl[2]; 
+  incr2[4] = (-11.7393568818739*fl[8]*nul[8])-9.921567416492215*fl[4]*nul[8]-7.685213074469699*fl[1]*nul[8]-4.437059837324712*fl[0]*nul[8]-9.921567416492215*nul[4]*fl[8]-7.685213074469706*nul[1]*fl[8]-4.437059837324713*nul[0]*fl[8]-8.385254915624213*fl[4]*nul[4]-6.495190528383289*fl[1]*nul[4]-3.75*fl[0]*nul[4]-6.495190528383286*nul[1]*fl[4]-3.75*nul[0]*fl[4]-5.031152949374527*fl[1]*nul[1]-2.904737509655563*fl[0]*nul[1]-2.904737509655563*nul[0]*fl[1]-1.677050983124842*fl[0]*nul[0]; 
+  incr2[6] = (-11.7393568818739*nul[8]*fl[11])-9.921567416492222*nul[4]*fl[11]-7.685213074469699*nul[1]*fl[11]-4.437059837324712*nul[0]*fl[11]-9.921567416492215*fl[6]*nul[8]-7.6852130744697*fl[3]*nul[8]-4.437059837324712*fl[2]*nul[8]-8.385254915624213*nul[4]*fl[6]-6.495190528383286*nul[1]*fl[6]-3.75*nul[0]*fl[6]-6.49519052838329*fl[3]*nul[4]-3.75*fl[2]*nul[4]-5.031152949374526*nul[1]*fl[3]-2.904737509655563*nul[0]*fl[3]-2.904737509655563*nul[1]*fl[2]-1.677050983124842*nul[0]*fl[2]; 
+  incr2[7] = 3.031088913245536*nul[8]*fl[13]+2.5617376914899*nul[4]*fl[13]+1.984313483298443*nul[1]*fl[13]+1.14564392373896*nul[0]*fl[13]+2.5617376914899*nul[8]*fl[10]+2.165063509461097*nul[4]*fl[10]+1.677050983124842*nul[1]*fl[10]+0.9682458365518544*nul[0]*fl[10]+1.984313483298443*fl[7]*nul[8]+1.14564392373896*fl[5]*nul[8]+1.677050983124842*nul[4]*fl[7]+1.299038105676658*nul[1]*fl[7]+0.75*nul[0]*fl[7]+0.9682458365518543*nul[4]*fl[5]+0.75*nul[1]*fl[5]+0.4330127018922194*nul[0]*fl[5]; 
+  incr2[8] = 27.78038876617821*fl[8]*nul[8]+23.47871376374779*fl[4]*nul[8]+18.18653347947321*fl[1]*nul[8]+10.5*fl[0]*nul[8]+23.47871376374781*nul[4]*fl[8]+18.18653347947322*nul[1]*fl[8]+10.5*nul[0]*fl[8]+19.84313483298443*fl[4]*nul[4]+15.3704261489394*fl[1]*nul[4]+8.874119674649425*fl[0]*nul[4]+15.37042614893939*nul[1]*fl[4]+8.874119674649425*nul[0]*fl[4]+11.90588089979066*fl[1]*nul[1]+6.873863542433759*fl[0]*nul[1]+6.873863542433759*nul[0]*fl[1]+3.968626966596886*fl[0]*nul[0]; 
+  incr2[10] = (-11.7393568818739*nul[8]*fl[13])-9.921567416492218*nul[4]*fl[13]-7.685213074469701*nul[1]*fl[13]-4.437059837324712*nul[0]*fl[13]-9.921567416492215*nul[8]*fl[10]-8.385254915624213*nul[4]*fl[10]-6.495190528383286*nul[1]*fl[10]-3.75*nul[0]*fl[10]-7.6852130744697*fl[7]*nul[8]-4.437059837324712*fl[5]*nul[8]-6.49519052838329*nul[4]*fl[7]-5.031152949374526*nul[1]*fl[7]-2.904737509655563*nul[0]*fl[7]-3.75*nul[4]*fl[5]-2.904737509655563*nul[1]*fl[5]-1.677050983124842*nul[0]*fl[5]; 
+  incr2[11] = 27.78038876617821*nul[8]*fl[11]+23.47871376374781*nul[4]*fl[11]+18.18653347947322*nul[1]*fl[11]+10.5*nul[0]*fl[11]+23.47871376374779*fl[6]*nul[8]+18.18653347947321*fl[3]*nul[8]+10.5*fl[2]*nul[8]+19.84313483298443*nul[4]*fl[6]+15.37042614893939*nul[1]*fl[6]+8.874119674649425*nul[0]*fl[6]+15.3704261489394*fl[3]*nul[4]+8.874119674649425*fl[2]*nul[4]+11.90588089979066*nul[1]*fl[3]+6.87386354243376*nul[0]*fl[3]+6.87386354243376*nul[1]*fl[2]+3.968626966596886*nul[0]*fl[2]; 
+  incr2[12] = 3.031088913245535*nul[8]*fl[15]+2.561737691489901*nul[4]*fl[15]+1.984313483298442*nul[1]*fl[15]+1.14564392373896*nul[0]*fl[15]+2.561737691489899*nul[8]*fl[14]+2.165063509461097*nul[4]*fl[14]+1.677050983124842*nul[1]*fl[14]+0.9682458365518541*nul[0]*fl[14]+1.984313483298443*nul[8]*fl[12]+1.677050983124842*nul[4]*fl[12]+1.299038105676658*nul[1]*fl[12]+0.75*nul[0]*fl[12]+1.14564392373896*nul[8]*fl[9]+0.9682458365518541*nul[4]*fl[9]+0.7499999999999999*nul[1]*fl[9]+0.4330127018922193*nul[0]*fl[9]; 
+  incr2[13] = 27.78038876617821*nul[8]*fl[13]+23.47871376374781*nul[4]*fl[13]+18.18653347947322*nul[1]*fl[13]+10.5*nul[0]*fl[13]+23.47871376374779*nul[8]*fl[10]+19.84313483298443*nul[4]*fl[10]+15.37042614893939*nul[1]*fl[10]+8.874119674649425*nul[0]*fl[10]+18.18653347947321*fl[7]*nul[8]+10.5*fl[5]*nul[8]+15.3704261489394*nul[4]*fl[7]+11.90588089979066*nul[1]*fl[7]+6.87386354243376*nul[0]*fl[7]+8.874119674649425*nul[4]*fl[5]+6.873863542433759*nul[1]*fl[5]+3.968626966596886*nul[0]*fl[5]; 
+  incr2[14] = (-11.7393568818739*nul[8]*fl[15])-9.921567416492218*nul[4]*fl[15]-7.685213074469697*nul[1]*fl[15]-4.437059837324711*nul[0]*fl[15]-9.921567416492215*nul[8]*fl[14]-8.385254915624213*nul[4]*fl[14]-6.495190528383286*nul[1]*fl[14]-3.75*nul[0]*fl[14]-7.685213074469698*nul[8]*fl[12]-6.49519052838329*nul[4]*fl[12]-5.031152949374525*nul[1]*fl[12]-2.904737509655563*nul[0]*fl[12]-4.437059837324712*nul[8]*fl[9]-3.75*nul[4]*fl[9]-2.904737509655562*nul[1]*fl[9]-1.677050983124842*nul[0]*fl[9]; 
+  incr2[15] = 27.78038876617821*nul[8]*fl[15]+23.47871376374781*nul[4]*fl[15]+18.18653347947322*nul[1]*fl[15]+10.5*nul[0]*fl[15]+23.47871376374779*nul[8]*fl[14]+19.84313483298443*nul[4]*fl[14]+15.37042614893939*nul[1]*fl[14]+8.874119674649425*nul[0]*fl[14]+18.18653347947321*nul[8]*fl[12]+15.3704261489394*nul[4]*fl[12]+11.90588089979066*nul[1]*fl[12]+6.87386354243376*nul[0]*fl[12]+10.5*nul[8]*fl[9]+8.874119674649425*nul[4]*fl[9]+6.873863542433759*nul[1]*fl[9]+3.968626966596886*nul[0]*fl[9]; 
+
+  outl[1] += -1.0*incr2[1]*rdxFl; 
+  outl[3] += -1.0*incr2[3]*rdxFl; 
+  outl[4] += incr2[4]*rdxFl; 
+  outl[6] += incr2[6]*rdxFl; 
+  outl[7] += -1.0*incr2[7]*rdxFl; 
+  outl[8] += -1.0*incr2[8]*rdxFl; 
+  outl[10] += incr2[10]*rdxFl; 
+  outl[11] += -1.0*incr2[11]*rdxFl; 
+  outl[12] += -1.0*incr2[12]*rdxFl; 
+  outl[13] += -1.0*incr2[13]*rdxFl; 
+  outl[14] += incr2[14]*rdxFl; 
+  outl[15] += -1.0*incr2[15]*rdxFl; 
+
+  }
+
+} 
+void ConstDiffusionVarCoeffBoundarySurf2xTensorP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int edge, const double *nul, const double *nur, const double *fl, const double *fr, double *outl, double *outr) 
+{ 
+  // w[2]:      Cell-center coordinates.
+  // dx[2]:     Cell spacing.
+  // edge:      =-1 for lower boundary, =1 for upper boundary.
+  // nu[32]:     diffusion coefficient.
+  // fl/fr:     Distribution function in left/right cells.
+  // outl/outr: Incremented distribution function in left/right cells 
+  double rdxFl = 4.0/(dxl[1]*dxl[1]); 
+  double rdxFr = 4.0/(dxr[1]*dxr[1]); 
+
+  double incr1[16]; 
+  double incr2[16]; 
+
+  if (edge < 0) {
+
+  incr2[2] = (-3.031088913245536*fr[9]*nul[25])+2.561737691489899*fr[5]*nul[25]-1.984313483298443*fr[2]*nul[25]+1.14564392373896*fr[0]*nul[25]-2.561737691489901*fr[9]*nul[21]+2.165063509461096*fr[5]*nul[21]-1.677050983124842*fr[2]*nul[21]+0.9682458365518543*fr[0]*nul[21]-1.984313483298443*fr[9]*nul[18]+1.677050983124842*fr[5]*nul[18]-1.299038105676658*fr[2]*nul[18]+0.75*fr[0]*nul[18]-1.14564392373896*fr[9]*nul[16]+0.9682458365518541*fr[5]*nul[16]-0.75*fr[2]*nul[16]+0.4330127018922193*fr[0]*nul[16]; 
+  incr2[3] = (-3.031088913245535*fr[12]*nul[25])+2.5617376914899*fr[7]*nul[25]-1.984313483298443*fr[3]*nul[25]+1.14564392373896*fr[1]*nul[25]-2.561737691489901*fr[12]*nul[21]+2.165063509461097*fr[7]*nul[21]-1.677050983124842*fr[3]*nul[21]+0.9682458365518543*fr[1]*nul[21]-1.984313483298442*fr[12]*nul[18]+1.677050983124842*fr[7]*nul[18]-1.299038105676658*fr[3]*nul[18]+0.75*fr[1]*nul[18]-1.14564392373896*fr[12]*nul[16]+0.9682458365518543*fr[7]*nul[16]-0.75*fr[3]*nul[16]+0.4330127018922193*fr[1]*nul[16]; 
+  incr2[5] = 11.7393568818739*fr[9]*nul[25]-9.921567416492215*fr[5]*nul[25]+7.685213074469699*fr[2]*nul[25]-4.437059837324712*fr[0]*nul[25]+9.921567416492215*fr[9]*nul[21]-8.385254915624213*fr[5]*nul[21]+6.495190528383289*fr[2]*nul[21]-3.75*fr[0]*nul[21]+7.685213074469706*fr[9]*nul[18]-6.495190528383286*fr[5]*nul[18]+5.031152949374527*fr[2]*nul[18]-2.904737509655563*fr[0]*nul[18]+4.437059837324713*fr[9]*nul[16]-3.75*fr[5]*nul[16]+2.904737509655563*fr[2]*nul[16]-1.677050983124842*fr[0]*nul[16]; 
+  incr2[6] = (-3.031088913245536*fr[14]*nul[25])+2.5617376914899*fr[10]*nul[25]-1.984313483298443*fr[6]*nul[25]+1.14564392373896*fr[4]*nul[25]-2.5617376914899*fr[14]*nul[21]+2.165063509461097*fr[10]*nul[21]-1.677050983124842*fr[6]*nul[21]+0.9682458365518543*fr[4]*nul[21]-1.984313483298443*fr[14]*nul[18]+1.677050983124842*fr[10]*nul[18]-1.299038105676658*fr[6]*nul[18]+0.75*fr[4]*nul[18]-1.14564392373896*fr[14]*nul[16]+0.9682458365518544*fr[10]*nul[16]-0.75*fr[6]*nul[16]+0.4330127018922194*fr[4]*nul[16]; 
+  incr2[7] = 11.7393568818739*fr[12]*nul[25]-9.921567416492215*fr[7]*nul[25]+7.6852130744697*fr[3]*nul[25]-4.437059837324712*fr[1]*nul[25]+9.921567416492222*fr[12]*nul[21]-8.385254915624213*fr[7]*nul[21]+6.49519052838329*fr[3]*nul[21]-3.75*fr[1]*nul[21]+7.685213074469699*fr[12]*nul[18]-6.495190528383286*fr[7]*nul[18]+5.031152949374526*fr[3]*nul[18]-2.904737509655563*fr[1]*nul[18]+4.437059837324712*fr[12]*nul[16]-3.75*fr[7]*nul[16]+2.904737509655563*fr[3]*nul[16]-1.677050983124842*fr[1]*nul[16]; 
+  incr2[9] = (-27.78038876617821*fr[9]*nul[25])+23.47871376374779*fr[5]*nul[25]-18.18653347947321*fr[2]*nul[25]+10.5*fr[0]*nul[25]-23.47871376374781*fr[9]*nul[21]+19.84313483298443*fr[5]*nul[21]-15.3704261489394*fr[2]*nul[21]+8.874119674649425*fr[0]*nul[21]-18.18653347947322*fr[9]*nul[18]+15.37042614893939*fr[5]*nul[18]-11.90588089979066*fr[2]*nul[18]+6.873863542433759*fr[0]*nul[18]-10.5*fr[9]*nul[16]+8.874119674649425*fr[5]*nul[16]-6.873863542433759*fr[2]*nul[16]+3.968626966596886*fr[0]*nul[16]; 
+  incr2[10] = 11.7393568818739*fr[14]*nul[25]-9.921567416492215*fr[10]*nul[25]+7.6852130744697*fr[6]*nul[25]-4.437059837324712*fr[4]*nul[25]+9.921567416492218*fr[14]*nul[21]-8.385254915624213*fr[10]*nul[21]+6.49519052838329*fr[6]*nul[21]-3.75*fr[4]*nul[21]+7.685213074469701*fr[14]*nul[18]-6.495190528383286*fr[10]*nul[18]+5.031152949374526*fr[6]*nul[18]-2.904737509655563*fr[4]*nul[18]+4.437059837324712*fr[14]*nul[16]-3.75*fr[10]*nul[16]+2.904737509655563*fr[6]*nul[16]-1.677050983124842*fr[4]*nul[16]; 
+  incr2[11] = (-3.031088913245535*fr[15]*nul[25])+2.561737691489899*fr[13]*nul[25]-1.984313483298443*fr[11]*nul[25]+1.14564392373896*fr[8]*nul[25]-2.561737691489901*fr[15]*nul[21]+2.165063509461097*fr[13]*nul[21]-1.677050983124842*fr[11]*nul[21]+0.9682458365518541*fr[8]*nul[21]-1.984313483298442*fr[15]*nul[18]+1.677050983124842*fr[13]*nul[18]-1.299038105676658*fr[11]*nul[18]+0.7499999999999999*fr[8]*nul[18]-1.14564392373896*fr[15]*nul[16]+0.9682458365518541*fr[13]*nul[16]-0.75*fr[11]*nul[16]+0.4330127018922193*fr[8]*nul[16]; 
+  incr2[12] = (-27.78038876617821*fr[12]*nul[25])+23.47871376374779*fr[7]*nul[25]-18.18653347947321*fr[3]*nul[25]+10.5*fr[1]*nul[25]-23.47871376374781*fr[12]*nul[21]+19.84313483298443*fr[7]*nul[21]-15.3704261489394*fr[3]*nul[21]+8.874119674649425*fr[1]*nul[21]-18.18653347947322*fr[12]*nul[18]+15.37042614893939*fr[7]*nul[18]-11.90588089979066*fr[3]*nul[18]+6.87386354243376*fr[1]*nul[18]-10.5*fr[12]*nul[16]+8.874119674649425*fr[7]*nul[16]-6.87386354243376*fr[3]*nul[16]+3.968626966596886*fr[1]*nul[16]; 
+  incr2[13] = 11.7393568818739*fr[15]*nul[25]-9.921567416492215*fr[13]*nul[25]+7.685213074469698*fr[11]*nul[25]-4.437059837324712*fr[8]*nul[25]+9.921567416492218*fr[15]*nul[21]-8.385254915624213*fr[13]*nul[21]+6.49519052838329*fr[11]*nul[21]-3.75*fr[8]*nul[21]+7.685213074469697*fr[15]*nul[18]-6.495190528383286*fr[13]*nul[18]+5.031152949374525*fr[11]*nul[18]-2.904737509655562*fr[8]*nul[18]+4.437059837324711*fr[15]*nul[16]-3.75*fr[13]*nul[16]+2.904737509655563*fr[11]*nul[16]-1.677050983124842*fr[8]*nul[16]; 
+  incr2[14] = (-27.78038876617821*fr[14]*nul[25])+23.47871376374779*fr[10]*nul[25]-18.18653347947321*fr[6]*nul[25]+10.5*fr[4]*nul[25]-23.47871376374781*fr[14]*nul[21]+19.84313483298443*fr[10]*nul[21]-15.3704261489394*fr[6]*nul[21]+8.874119674649425*fr[4]*nul[21]-18.18653347947322*fr[14]*nul[18]+15.37042614893939*fr[10]*nul[18]-11.90588089979066*fr[6]*nul[18]+6.873863542433759*fr[4]*nul[18]-10.5*fr[14]*nul[16]+8.874119674649425*fr[10]*nul[16]-6.87386354243376*fr[6]*nul[16]+3.968626966596886*fr[4]*nul[16]; 
+  incr2[15] = (-27.78038876617821*fr[15]*nul[25])+23.47871376374779*fr[13]*nul[25]-18.18653347947321*fr[11]*nul[25]+10.5*fr[8]*nul[25]-23.47871376374781*fr[15]*nul[21]+19.84313483298443*fr[13]*nul[21]-15.3704261489394*fr[11]*nul[21]+8.874119674649425*fr[8]*nul[21]-18.18653347947322*fr[15]*nul[18]+15.37042614893939*fr[13]*nul[18]-11.90588089979066*fr[11]*nul[18]+6.873863542433759*fr[8]*nul[18]-10.5*fr[15]*nul[16]+8.874119674649425*fr[13]*nul[16]-6.87386354243376*fr[11]*nul[16]+3.968626966596886*fr[8]*nul[16]; 
+
+  outr[2] += incr2[2]*rdxFr; 
+  outr[3] += incr2[3]*rdxFr; 
+  outr[5] += incr2[5]*rdxFr; 
+  outr[6] += incr2[6]*rdxFr; 
+  outr[7] += incr2[7]*rdxFr; 
+  outr[9] += incr2[9]*rdxFr; 
+  outr[10] += incr2[10]*rdxFr; 
+  outr[11] += incr2[11]*rdxFr; 
+  outr[12] += incr2[12]*rdxFr; 
+  outr[13] += incr2[13]*rdxFr; 
+  outr[14] += incr2[14]*rdxFr; 
+  outr[15] += incr2[15]*rdxFr; 
+
+  } else {
+
+  incr2[2] = 3.031088913245536*fl[9]*nul[25]+2.561737691489899*fl[5]*nul[25]+1.984313483298443*fl[2]*nul[25]+1.14564392373896*fl[0]*nul[25]+2.561737691489901*fl[9]*nul[21]+2.165063509461096*fl[5]*nul[21]+1.677050983124842*fl[2]*nul[21]+0.9682458365518543*fl[0]*nul[21]+1.984313483298443*fl[9]*nul[18]+1.677050983124842*fl[5]*nul[18]+1.299038105676658*fl[2]*nul[18]+0.75*fl[0]*nul[18]+1.14564392373896*fl[9]*nul[16]+0.9682458365518541*fl[5]*nul[16]+0.75*fl[2]*nul[16]+0.4330127018922193*fl[0]*nul[16]; 
+  incr2[3] = 3.031088913245535*fl[12]*nul[25]+2.5617376914899*fl[7]*nul[25]+1.984313483298443*fl[3]*nul[25]+1.14564392373896*fl[1]*nul[25]+2.561737691489901*fl[12]*nul[21]+2.165063509461097*fl[7]*nul[21]+1.677050983124842*fl[3]*nul[21]+0.9682458365518543*fl[1]*nul[21]+1.984313483298442*fl[12]*nul[18]+1.677050983124842*fl[7]*nul[18]+1.299038105676658*fl[3]*nul[18]+0.75*fl[1]*nul[18]+1.14564392373896*fl[12]*nul[16]+0.9682458365518543*fl[7]*nul[16]+0.75*fl[3]*nul[16]+0.4330127018922193*fl[1]*nul[16]; 
+  incr2[5] = (-11.7393568818739*fl[9]*nul[25])-9.921567416492215*fl[5]*nul[25]-7.685213074469699*fl[2]*nul[25]-4.437059837324712*fl[0]*nul[25]-9.921567416492215*fl[9]*nul[21]-8.385254915624213*fl[5]*nul[21]-6.495190528383289*fl[2]*nul[21]-3.75*fl[0]*nul[21]-7.685213074469706*fl[9]*nul[18]-6.495190528383286*fl[5]*nul[18]-5.031152949374527*fl[2]*nul[18]-2.904737509655563*fl[0]*nul[18]-4.437059837324713*fl[9]*nul[16]-3.75*fl[5]*nul[16]-2.904737509655563*fl[2]*nul[16]-1.677050983124842*fl[0]*nul[16]; 
+  incr2[6] = 3.031088913245536*fl[14]*nul[25]+2.5617376914899*fl[10]*nul[25]+1.984313483298443*fl[6]*nul[25]+1.14564392373896*fl[4]*nul[25]+2.5617376914899*fl[14]*nul[21]+2.165063509461097*fl[10]*nul[21]+1.677050983124842*fl[6]*nul[21]+0.9682458365518543*fl[4]*nul[21]+1.984313483298443*fl[14]*nul[18]+1.677050983124842*fl[10]*nul[18]+1.299038105676658*fl[6]*nul[18]+0.75*fl[4]*nul[18]+1.14564392373896*fl[14]*nul[16]+0.9682458365518544*fl[10]*nul[16]+0.75*fl[6]*nul[16]+0.4330127018922194*fl[4]*nul[16]; 
+  incr2[7] = (-11.7393568818739*fl[12]*nul[25])-9.921567416492215*fl[7]*nul[25]-7.6852130744697*fl[3]*nul[25]-4.437059837324712*fl[1]*nul[25]-9.921567416492222*fl[12]*nul[21]-8.385254915624213*fl[7]*nul[21]-6.49519052838329*fl[3]*nul[21]-3.75*fl[1]*nul[21]-7.685213074469699*fl[12]*nul[18]-6.495190528383286*fl[7]*nul[18]-5.031152949374526*fl[3]*nul[18]-2.904737509655563*fl[1]*nul[18]-4.437059837324712*fl[12]*nul[16]-3.75*fl[7]*nul[16]-2.904737509655563*fl[3]*nul[16]-1.677050983124842*fl[1]*nul[16]; 
+  incr2[9] = 27.78038876617821*fl[9]*nul[25]+23.47871376374779*fl[5]*nul[25]+18.18653347947321*fl[2]*nul[25]+10.5*fl[0]*nul[25]+23.47871376374781*fl[9]*nul[21]+19.84313483298443*fl[5]*nul[21]+15.3704261489394*fl[2]*nul[21]+8.874119674649425*fl[0]*nul[21]+18.18653347947322*fl[9]*nul[18]+15.37042614893939*fl[5]*nul[18]+11.90588089979066*fl[2]*nul[18]+6.873863542433759*fl[0]*nul[18]+10.5*fl[9]*nul[16]+8.874119674649425*fl[5]*nul[16]+6.873863542433759*fl[2]*nul[16]+3.968626966596886*fl[0]*nul[16]; 
+  incr2[10] = (-11.7393568818739*fl[14]*nul[25])-9.921567416492215*fl[10]*nul[25]-7.6852130744697*fl[6]*nul[25]-4.437059837324712*fl[4]*nul[25]-9.921567416492218*fl[14]*nul[21]-8.385254915624213*fl[10]*nul[21]-6.49519052838329*fl[6]*nul[21]-3.75*fl[4]*nul[21]-7.685213074469701*fl[14]*nul[18]-6.495190528383286*fl[10]*nul[18]-5.031152949374526*fl[6]*nul[18]-2.904737509655563*fl[4]*nul[18]-4.437059837324712*fl[14]*nul[16]-3.75*fl[10]*nul[16]-2.904737509655563*fl[6]*nul[16]-1.677050983124842*fl[4]*nul[16]; 
+  incr2[11] = 3.031088913245535*fl[15]*nul[25]+2.561737691489899*fl[13]*nul[25]+1.984313483298443*fl[11]*nul[25]+1.14564392373896*fl[8]*nul[25]+2.561737691489901*fl[15]*nul[21]+2.165063509461097*fl[13]*nul[21]+1.677050983124842*fl[11]*nul[21]+0.9682458365518541*fl[8]*nul[21]+1.984313483298442*fl[15]*nul[18]+1.677050983124842*fl[13]*nul[18]+1.299038105676658*fl[11]*nul[18]+0.7499999999999999*fl[8]*nul[18]+1.14564392373896*fl[15]*nul[16]+0.9682458365518541*fl[13]*nul[16]+0.75*fl[11]*nul[16]+0.4330127018922193*fl[8]*nul[16]; 
+  incr2[12] = 27.78038876617821*fl[12]*nul[25]+23.47871376374779*fl[7]*nul[25]+18.18653347947321*fl[3]*nul[25]+10.5*fl[1]*nul[25]+23.47871376374781*fl[12]*nul[21]+19.84313483298443*fl[7]*nul[21]+15.3704261489394*fl[3]*nul[21]+8.874119674649425*fl[1]*nul[21]+18.18653347947322*fl[12]*nul[18]+15.37042614893939*fl[7]*nul[18]+11.90588089979066*fl[3]*nul[18]+6.87386354243376*fl[1]*nul[18]+10.5*fl[12]*nul[16]+8.874119674649425*fl[7]*nul[16]+6.87386354243376*fl[3]*nul[16]+3.968626966596886*fl[1]*nul[16]; 
+  incr2[13] = (-11.7393568818739*fl[15]*nul[25])-9.921567416492215*fl[13]*nul[25]-7.685213074469698*fl[11]*nul[25]-4.437059837324712*fl[8]*nul[25]-9.921567416492218*fl[15]*nul[21]-8.385254915624213*fl[13]*nul[21]-6.49519052838329*fl[11]*nul[21]-3.75*fl[8]*nul[21]-7.685213074469697*fl[15]*nul[18]-6.495190528383286*fl[13]*nul[18]-5.031152949374525*fl[11]*nul[18]-2.904737509655562*fl[8]*nul[18]-4.437059837324711*fl[15]*nul[16]-3.75*fl[13]*nul[16]-2.904737509655563*fl[11]*nul[16]-1.677050983124842*fl[8]*nul[16]; 
+  incr2[14] = 27.78038876617821*fl[14]*nul[25]+23.47871376374779*fl[10]*nul[25]+18.18653347947321*fl[6]*nul[25]+10.5*fl[4]*nul[25]+23.47871376374781*fl[14]*nul[21]+19.84313483298443*fl[10]*nul[21]+15.3704261489394*fl[6]*nul[21]+8.874119674649425*fl[4]*nul[21]+18.18653347947322*fl[14]*nul[18]+15.37042614893939*fl[10]*nul[18]+11.90588089979066*fl[6]*nul[18]+6.873863542433759*fl[4]*nul[18]+10.5*fl[14]*nul[16]+8.874119674649425*fl[10]*nul[16]+6.87386354243376*fl[6]*nul[16]+3.968626966596886*fl[4]*nul[16]; 
+  incr2[15] = 27.78038876617821*fl[15]*nul[25]+23.47871376374779*fl[13]*nul[25]+18.18653347947321*fl[11]*nul[25]+10.5*fl[8]*nul[25]+23.47871376374781*fl[15]*nul[21]+19.84313483298443*fl[13]*nul[21]+15.3704261489394*fl[11]*nul[21]+8.874119674649425*fl[8]*nul[21]+18.18653347947322*fl[15]*nul[18]+15.37042614893939*fl[13]*nul[18]+11.90588089979066*fl[11]*nul[18]+6.873863542433759*fl[8]*nul[18]+10.5*fl[15]*nul[16]+8.874119674649425*fl[13]*nul[16]+6.87386354243376*fl[11]*nul[16]+3.968626966596886*fl[8]*nul[16]; 
+
+  outl[2] += -1.0*incr2[2]*rdxFl; 
+  outl[3] += -1.0*incr2[3]*rdxFl; 
+  outl[5] += incr2[5]*rdxFl; 
+  outl[6] += -1.0*incr2[6]*rdxFl; 
+  outl[7] += incr2[7]*rdxFl; 
+  outl[9] += -1.0*incr2[9]*rdxFl; 
+  outl[10] += incr2[10]*rdxFl; 
+  outl[11] += -1.0*incr2[11]*rdxFl; 
+  outl[12] += -1.0*incr2[12]*rdxFl; 
+  outl[13] += incr2[13]*rdxFl; 
+  outl[14] += -1.0*incr2[14]*rdxFl; 
+  outl[15] += -1.0*incr2[15]*rdxFl; 
 
   }
 

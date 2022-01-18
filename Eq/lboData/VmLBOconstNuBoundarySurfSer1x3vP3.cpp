@@ -1,9 +1,10 @@
 #include <VmLBOModDecl.h> 
-double VmLBOconstNuBoundarySurf1x3vSer_VX_P3(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double VmLBOconstNuBoundarySurf1x3vSer_VX_P3(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const int edge, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[4]:       Cell-center coordinates.
   // dxv[4]:     Cell spacing.
   // idx[4]:     current grid index.
+  // edge:          =-1 for lower boundary, =1 for upper boundary.
   // nuSum:         collisionalities added (self and cross species collisionalities). 
   // vMuMidMax:     maximum midpoint value of v-u. 
   // nuUSum[12]:     sum of bulk velocities times their respective collisionalities. 
@@ -13,7 +14,7 @@ double VmLBOconstNuBoundarySurf1x3vSer_VX_P3(const double *wl, const double *wr,
   double rdvSq4L = 4.0/(dxvl[1]*dxvl[1]); 
   double rdvSq4R = 4.0/(dxvr[1]*dxvr[1]); 
 
-  if (idxr[1] == 1) {
+  if (edge < 0) {
 
     outr[2] += (-1.620185174601965*nuVtSqSum[1]*fr[49]*rdvSq4R)-1.060660171779821*nuVtSqSum[3]*fr[48]*rdvSq4R-1.620185174601965*nuVtSqSum[0]*fr[32]*rdvSq4R+0.6123724356957944*nuVtSqSum[3]*fr[31]*rdvSq4R+1.369306393762915*nuVtSqSum[1]*fr[20]*rdvSq4R-1.060660171779821*nuVtSqSum[2]*fr[19]*rdvSq4R+1.369306393762915*nuVtSqSum[0]*fr[12]*rdvSq4R+0.6123724356957944*nuVtSqSum[2]*fr[11]*rdvSq4R-1.060660171779821*nuVtSqSum[1]*fr[5]*rdvSq4R-1.060660171779821*nuVtSqSum[0]*fr[2]*rdvSq4R+0.6123724356957944*fr[1]*nuVtSqSum[1]*rdvSq4R+0.6123724356957944*fr[0]*nuVtSqSum[0]*rdvSq4R; 
     outr[5] += (-1.449137674618943*nuVtSqSum[2]*fr[49]*rdvSq4R)-1.620185174601965*nuVtSqSum[0]*fr[49]*rdvSq4R-0.931588505112178*nuVtSqSum[2]*fr[48]*rdvSq4R-1.620185174601965*nuVtSqSum[1]*fr[32]*rdvSq4R+0.537852874200477*nuVtSqSum[2]*fr[31]*rdvSq4R+1.224744871391589*nuVtSqSum[2]*fr[20]*rdvSq4R+1.369306393762915*nuVtSqSum[0]*fr[20]*rdvSq4R-0.931588505112178*nuVtSqSum[3]*fr[19]*rdvSq4R-0.9486832980505138*nuVtSqSum[1]*fr[19]*rdvSq4R+1.369306393762915*nuVtSqSum[1]*fr[12]*rdvSq4R+0.537852874200477*nuVtSqSum[3]*fr[11]*rdvSq4R+0.5477225575051661*nuVtSqSum[1]*fr[11]*rdvSq4R-0.9486832980505137*nuVtSqSum[2]*fr[5]*rdvSq4R-1.060660171779821*nuVtSqSum[0]*fr[5]*rdvSq4R+0.5477225575051661*fr[1]*nuVtSqSum[2]*rdvSq4R-1.060660171779821*nuVtSqSum[1]*fr[2]*rdvSq4R+0.6123724356957944*fr[0]*nuVtSqSum[1]*rdvSq4R+0.6123724356957944*nuVtSqSum[0]*fr[1]*rdvSq4R; 
@@ -118,11 +119,12 @@ double VmLBOconstNuBoundarySurf1x3vSer_VX_P3(const double *wl, const double *wr,
   }
   return 0.0; 
 } 
-double VmLBOconstNuBoundarySurf1x3vSer_VY_P3(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double VmLBOconstNuBoundarySurf1x3vSer_VY_P3(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const int edge, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[4]:       Cell-center coordinates.
   // dxv[4]:     Cell spacing.
   // idx[4]:     current grid index.
+  // edge:          =-1 for lower boundary, =1 for upper boundary.
   // nuSum:         collisionalities added (self and cross species collisionalities). 
   // vMuMidMax:     maximum midpoint value of v-u. 
   // nuUSum[12]:     sum of bulk velocities times their respective collisionalities. 
@@ -132,7 +134,7 @@ double VmLBOconstNuBoundarySurf1x3vSer_VY_P3(const double *wl, const double *wr,
   double rdvSq4L = 4.0/(dxvl[2]*dxvl[2]); 
   double rdvSq4R = 4.0/(dxvr[2]*dxvr[2]); 
 
-  if (idxr[2] == 1) {
+  if (edge < 0) {
 
     outr[3] += (-1.620185174601965*nuVtSqSum[1]*fr[52]*rdvSq4R)-1.060660171779821*nuVtSqSum[3]*fr[50]*rdvSq4R-1.620185174601965*nuVtSqSum[0]*fr[33]*rdvSq4R+0.6123724356957944*nuVtSqSum[3]*fr[31]*rdvSq4R+1.369306393762915*nuVtSqSum[1]*fr[23]*rdvSq4R-1.060660171779821*nuVtSqSum[2]*fr[21]*rdvSq4R+1.369306393762915*nuVtSqSum[0]*fr[13]*rdvSq4R+0.6123724356957944*nuVtSqSum[2]*fr[11]*rdvSq4R-1.060660171779821*nuVtSqSum[1]*fr[6]*rdvSq4R-1.060660171779821*nuVtSqSum[0]*fr[3]*rdvSq4R+0.6123724356957944*fr[1]*nuVtSqSum[1]*rdvSq4R+0.6123724356957944*fr[0]*nuVtSqSum[0]*rdvSq4R; 
     outr[6] += (-1.449137674618943*nuVtSqSum[2]*fr[52]*rdvSq4R)-1.620185174601965*nuVtSqSum[0]*fr[52]*rdvSq4R-0.931588505112178*nuVtSqSum[2]*fr[50]*rdvSq4R-1.620185174601965*nuVtSqSum[1]*fr[33]*rdvSq4R+0.537852874200477*nuVtSqSum[2]*fr[31]*rdvSq4R+1.224744871391589*nuVtSqSum[2]*fr[23]*rdvSq4R+1.369306393762915*nuVtSqSum[0]*fr[23]*rdvSq4R-0.931588505112178*nuVtSqSum[3]*fr[21]*rdvSq4R-0.9486832980505138*nuVtSqSum[1]*fr[21]*rdvSq4R+1.369306393762915*nuVtSqSum[1]*fr[13]*rdvSq4R+0.537852874200477*nuVtSqSum[3]*fr[11]*rdvSq4R+0.5477225575051661*nuVtSqSum[1]*fr[11]*rdvSq4R-0.9486832980505137*nuVtSqSum[2]*fr[6]*rdvSq4R-1.060660171779821*nuVtSqSum[0]*fr[6]*rdvSq4R-1.060660171779821*nuVtSqSum[1]*fr[3]*rdvSq4R+0.5477225575051661*fr[1]*nuVtSqSum[2]*rdvSq4R+0.6123724356957944*fr[0]*nuVtSqSum[1]*rdvSq4R+0.6123724356957944*nuVtSqSum[0]*fr[1]*rdvSq4R; 
@@ -237,11 +239,12 @@ double VmLBOconstNuBoundarySurf1x3vSer_VY_P3(const double *wl, const double *wr,
   }
   return 0.0; 
 } 
-double VmLBOconstNuBoundarySurf1x3vSer_VZ_P3(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double VmLBOconstNuBoundarySurf1x3vSer_VZ_P3(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const int edge, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[4]:       Cell-center coordinates.
   // dxv[4]:     Cell spacing.
   // idx[4]:     current grid index.
+  // edge:          =-1 for lower boundary, =1 for upper boundary.
   // nuSum:         collisionalities added (self and cross species collisionalities). 
   // vMuMidMax:     maximum midpoint value of v-u. 
   // nuUSum[12]:     sum of bulk velocities times their respective collisionalities. 
@@ -251,7 +254,7 @@ double VmLBOconstNuBoundarySurf1x3vSer_VZ_P3(const double *wl, const double *wr,
   double rdvSq4L = 4.0/(dxvl[3]*dxvl[3]); 
   double rdvSq4R = 4.0/(dxvr[3]*dxvr[3]); 
 
-  if (idxr[3] == 1) {
+  if (edge < 0) {
 
     outr[4] += (-1.620185174601965*nuVtSqSum[1]*fr[57]*rdvSq4R)-1.060660171779821*nuVtSqSum[3]*fr[54]*rdvSq4R-1.620185174601965*nuVtSqSum[0]*fr[34]*rdvSq4R+0.6123724356957944*nuVtSqSum[3]*fr[31]*rdvSq4R+1.369306393762915*nuVtSqSum[1]*fr[28]*rdvSq4R-1.060660171779821*nuVtSqSum[2]*fr[25]*rdvSq4R+1.369306393762915*nuVtSqSum[0]*fr[14]*rdvSq4R+0.6123724356957944*nuVtSqSum[2]*fr[11]*rdvSq4R-1.060660171779821*nuVtSqSum[1]*fr[8]*rdvSq4R-1.060660171779821*nuVtSqSum[0]*fr[4]*rdvSq4R+0.6123724356957944*fr[1]*nuVtSqSum[1]*rdvSq4R+0.6123724356957944*fr[0]*nuVtSqSum[0]*rdvSq4R; 
     outr[8] += (-1.449137674618943*nuVtSqSum[2]*fr[57]*rdvSq4R)-1.620185174601965*nuVtSqSum[0]*fr[57]*rdvSq4R-0.931588505112178*nuVtSqSum[2]*fr[54]*rdvSq4R-1.620185174601965*nuVtSqSum[1]*fr[34]*rdvSq4R+0.537852874200477*nuVtSqSum[2]*fr[31]*rdvSq4R+1.224744871391589*nuVtSqSum[2]*fr[28]*rdvSq4R+1.369306393762915*nuVtSqSum[0]*fr[28]*rdvSq4R-0.931588505112178*nuVtSqSum[3]*fr[25]*rdvSq4R-0.9486832980505138*nuVtSqSum[1]*fr[25]*rdvSq4R+1.369306393762915*nuVtSqSum[1]*fr[14]*rdvSq4R+0.537852874200477*nuVtSqSum[3]*fr[11]*rdvSq4R+0.5477225575051661*nuVtSqSum[1]*fr[11]*rdvSq4R-0.9486832980505137*nuVtSqSum[2]*fr[8]*rdvSq4R-1.060660171779821*nuVtSqSum[0]*fr[8]*rdvSq4R-1.060660171779821*nuVtSqSum[1]*fr[4]*rdvSq4R+0.5477225575051661*fr[1]*nuVtSqSum[2]*rdvSq4R+0.6123724356957944*fr[0]*nuVtSqSum[1]*rdvSq4R+0.6123724356957944*nuVtSqSum[0]*fr[1]*rdvSq4R; 

@@ -274,7 +274,7 @@ compWriteIncr(varsIn, basisIn, dirIn, fRecOrd, isBoundSurf, nSpaces) := block([c
   if isBoundSurf then (
     if (diffOrder = 2) then (
       addIncrs : makelist(i,i,2,diffOrder),
-      printf(fh, "  if (idxr[~a] == 1) {~%~%", dir-1),
+      printf(fh, "  if (edge < 0) {~%~%", dir-1),
 
       subList    : cons(pmOne=-1,makelist(fSkin[i]=fr[i],i,0,numB-1)),
       incrOutLst : writeIncr(incr_l,incr_r,subList,addIncrs),
@@ -289,7 +289,7 @@ compWriteIncr(varsIn, basisIn, dirIn, fRecOrd, isBoundSurf, nSpaces) := block([c
       printf(fh, "~%  }~%")
     ) else (
       addIncrs : makelist(i,i,1,diffOrder),
-      printf(fh, "  if (idxr[~a] == 1) {~%~%", dir-1),
+      printf(fh, "  if (edge < 0) {~%~%", dir-1),
 
       subList    : [],
       incrOutLst : writeIncr(incr_r,incr_r,subList,addIncrs),
@@ -544,10 +544,11 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, ap
   h_e    : subst(cv=cv+pmOne,h_e),
   hsol   : cons(subst(cv=0,h_e),makelist(subst(cv=0,diff(h_e,cv,ord)/(ord!)),ord,1,hOrder)),
 
-  printf(fh,"void ~aP~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, polyOrder, surfLabels[dir]),
+  printf(fh,"void ~aP~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const int edge, const double *nu, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, polyOrder, surfLabels[dir]),
   printf(fh,"  // w[~a]:      Cell-center coordinates.~%",dim),
   printf(fh,"  // dx[~a]:     Cell spacing.~%",dim),
-  printf(fh,"  // idx[~a]:    current grid index.~%",dim),
+  printf(fh,"  // idx[~a]:    current grid index.~%", cdim+vdim),
+  printf(fh,"  // edge:      =-1 for lower boundary, =1 for upper boundary.~%"),
   printf(fh,"  // nu[~a]:     diffusion coefficient (collisionality).~%",dim),
   printf(fh,"  // fl/fr:     Distribution function in left/right cells.~%"),
   printf(fh,"  // outl/outr: Incremented distribution function in left/right cells ~%"),

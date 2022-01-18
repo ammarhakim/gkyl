@@ -1,9 +1,10 @@
 #include <ConstDiffusionModDecl.h> 
-void ConstDiffusionBoundarySurf1xSerP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionBoundarySurf1xSerP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const int edge, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[1]:      Cell-center coordinates.
   // dx[1]:     Cell spacing.
-  // idx[1]:    current grid index.
+  // idx[vdim+cdim]:    current grid index.
+  // edge:      =-1 for lower boundary, =1 for upper boundary.
   // nu[1]:     diffusion coefficient (collisionality).
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
@@ -13,7 +14,7 @@ void ConstDiffusionBoundarySurf1xSerP1_X1(const double *wl, const double *wr, co
   double incr1[2]; 
   double incr2[2]; 
 
-  if (idxr[0] == 1) {
+  if (edge < 0) {
 
   incr2[1] = 0.8660254037844386*fr[0]-1.5*fr[1]; 
 
@@ -28,11 +29,12 @@ void ConstDiffusionBoundarySurf1xSerP1_X1(const double *wl, const double *wr, co
   }
 
 } 
-void ConstHyperDiffusion4BoundarySurf1xSerP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstHyperDiffusion4BoundarySurf1xSerP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const int edge, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[1]:      Cell-center coordinates.
   // dx[1]:     Cell spacing.
-  // idx[1]:    current grid index.
+  // idx[vdim+cdim]:    current grid index.
+  // edge:      =-1 for lower boundary, =1 for upper boundary.
   // nu[1]:     diffusion coefficient (collisionality).
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
@@ -44,7 +46,7 @@ void ConstHyperDiffusion4BoundarySurf1xSerP1_X1(const double *wl, const double *
   double incr3[2]; 
   double incr4[2]; 
 
-  if (idxr[0] == 1) {
+  if (edge < 0) {
 
 
   incr2[1] = 1.5*fr[1]; 
@@ -65,11 +67,12 @@ void ConstHyperDiffusion4BoundarySurf1xSerP1_X1(const double *wl, const double *
   }
 
 } 
-void ConstDiffusionVarCoeffBoundarySurf1xSerP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nul, const double *nur, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionVarCoeffBoundarySurf1xSerP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const int edge, const double *nul, const double *nur, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[1]:      Cell-center coordinates.
   // dx[1]:     Cell spacing.
-  // idx[1]:    current grid index.
+  // idx[vdim+cdim]:    current grid index.
+  // edge:      =-1 for lower boundary, =1 for upper boundary.
   // nu[2]:     diffusion coefficient.
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
@@ -79,7 +82,7 @@ void ConstDiffusionVarCoeffBoundarySurf1xSerP1_X1(const double *wl, const double
   double incr1[2]; 
   double incr2[2]; 
 
-  if (idxr[0] == 1) {
+  if (edge < 0) {
 
   incr2[1] = (-1.837117307087383*fr[1]*nul[1])+1.060660171779821*fr[0]*nul[1]-1.060660171779821*nul[0]*fr[1]+0.6123724356957944*fr[0]*nul[0]; 
 

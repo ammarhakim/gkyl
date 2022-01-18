@@ -79,8 +79,8 @@ function _M.selectBoundarySurf(basisNm, DIM, polyOrder, diffDirsIn, diffOrder, s
                                 basisNmMap[basisNm], polyOrder, diffDirsIn[d])
    end
    local funcSign = spatiallyVaryingCoeff
-      and "(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nul, const double *nur, const double *fl, const double *fr, double *outl, double *outr)"
-      or "(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr)"
+      and "(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const int edge, const double *nul, const double *nur, const double *fl, const double *fr, double *outl, double *outr)"
+      or "(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const int edge, const double *nu, const double *fl, const double *fr, double *outl, double *outr)"
 
    local CDefStr = ""
    for d = 1, #diffDirsIn do CDefStr = CDefStr .. (funcType .. " " .. funcNm[d] .. funcSign .. ";\n") end

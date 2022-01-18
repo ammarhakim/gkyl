@@ -4,7 +4,7 @@ double GkLBOconstNuBoundarySurf2x2vSer_Vpar_P2(const double m_, const double *wl
   // w[4]:         Cell-center coordinates.
   // dxv[4]:       Cell spacing.
   // idx[4]:       current grid index.
-  // edge:          =-1 for lower boundary, =1 for upper boundary.
+  // edge:         =-1 for lower boundary, =1 for upper boundary.
   // nuSum:        collisionalities added (self and cross species collisionalities). 
   // vMuMidMax:    maximum midpoint value of v-u. 
   // nuUSum[8]:    sum of bulk velocities times their respective collisionalities. 
@@ -84,7 +84,7 @@ double GkLBOconstNuBoundarySurf2x2vSer_Mu_P2(const double m_, const double *wl, 
   // w[4]:         Cell-center coordinates.
   // dxv[4]:       Cell spacing.
   // idx[4]:       current grid index.
-  // edge:          =-1 for lower boundary, =1 for upper boundary.
+  // edge:         =-1 for lower boundary, =1 for upper boundary.
   // nuSum:        collisionalities added (self and cross species collisionalities). 
   // vMuMidMax:    maximum midpoint value of v-u. 
   // nuUSum[8]:    sum of bulk velocities times their respective collisionalities. 

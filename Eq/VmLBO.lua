@@ -193,7 +193,7 @@ function VmLBO:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql,
 end
 
 -- Contribution from surface integral term at the boundaries for use in DG scheme.
-function VmLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+function VmLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, edge, ql, qr, outl, outr)
    local vMuMidMax = 0.0
    -- Set pointer to u and vthSq fields.
    self._nuUSum:fill(self._nuUSumIdxr(idxl), self._nuUSumPtr)          -- Get pointer to u field.
@@ -209,12 +209,12 @@ function VmLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr,
          local uCrossingNotFound, nuVtSqSum0 = self:checkPrimMomCrossings()
          if (uCrossingNotFound and (nuVtSqSum0>0) and (nuVtSqSum0<(self._vMaxSq*self._inNuSum))) then
             vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-               wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inNuSum, maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+               wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), edge, self._inNuSum, maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
          end
       else
          self._nuSum:fill(self._nuSumIdxr(idxl), self._nuSumPtr) -- Get pointer to nu field.
          vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-            wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._nuSumPtr:data(), maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+            wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), edge, self._nuSumPtr:data(), maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
      end
    end
    return vMuMidMax
