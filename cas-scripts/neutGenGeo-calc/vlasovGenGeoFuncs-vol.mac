@@ -44,7 +44,7 @@ calcVlasovGenGeoVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block
   /* specify a point to evaluate alpha at for use in computing CFL */
   cflPt : makelist(varsP[d]=0, d, 1, length(varsP)),
 
-  printf(fh, "__host__ __device__ double ~aP~a(const double *w, const double *dxv, const double *tvComp, double const *gxx, double const *gxy, double const *gxz, double const *gyz, double const *gzz const double *jacobGeo, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+  printf(fh, "__host__ __device__ double ~aP~a(const double *w, const double *dxv, const double *tvComp, double const *gxx, double const *gxy, double const *gxz, double const *gyz, double const *gzz, const double *jacobGeo, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
   printf(fh, "  // w[NDIM]:   Cell-center coordinates.~%"),
   printf(fh, "  // dxv[NDIM]: Cell spacing.~%"),
   printf(fh, "  // tvComp[~a]: Components for tangent basis vectors.~%", NC*9),
@@ -84,7 +84,7 @@ calcVlasovGenGeoVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block
   ),
   printf(fh, "~%"),
 
-  /* This probably isn't the right expand function? */
+  /* Expand in phase basis. */
   v_x_e : doExpandLst(vTemp_c[1], bP),
   v_y_e : doExpandLst(vTemp_c[2], bP),
   v_z_e : doExpandLst(vTemp_c[3], bP),

@@ -1,4 +1,4 @@
-load("vlasov-calc/vlasovStreamFuncs-surf")$
+load("neutGenGeo-calc/vlasovGenGeoFuncs-surf")$
 load(stringproc)$
 /* This script calls the functions which calculate the
    updates from the surface term due to the streaming
@@ -8,9 +8,9 @@ load(stringproc)$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 2$
-minCdim_Ser : 1$
-minVdim_Ser : 1$    /* see begining of v loop below though. */
+maxPolyOrder_Ser : 1$
+minCdim_Ser : 3$
+minVdim_Ser : 3$    /* see begining of v loop below though. */
 maxCdim_Ser : 3$
 maxVdim_Ser : 3$
 
@@ -30,13 +30,12 @@ maxVdim_Tensor : 0$
 
 /* ...... END OF USER INPUTS........ */
 
-bName        : ["Ser","Max","Tensor"]$
-maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
-minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
-minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
-maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
-maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
-
+bName        : ["Ser"]$
+maxPolyOrder : [maxPolyOrder_Ser]$
+minCdim      : [minCdim_Ser]$
+minVdim      : [minVdim_Ser]$
+maxCdim      : [maxCdim_Ser]$
+maxVdim      : [maxVdim_Ser]$
 
 /* Compute the surface contribution in configuration space from the streaming term */
 for bInd : 1 thru length(bName) do (
@@ -47,12 +46,15 @@ for bInd : 1 thru length(bName) do (
       if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
 
       for polyOrder : 1 thru maxPolyOrderB do (
-        disp(printf(false,sconcat("Creating surface VlasovStream",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
-        fname : sconcat("~/max-out/VlasovSurfStream", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
+        disp(printf(false,sconcat("Creating surface VlasovGenGeo",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
+        fname : sconcat("~/max-out/VlasovSurf", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
         fh : openw(fname),
-        funcName : sconcat("VlasovSurfStream", c, "x", v, "v", bName[bInd]),
-        calcVlasovStreamSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
-        close(fh)
+        funcName : sconcat("VlasovSurf", c, "x", v, "v", bName[bInd]),
+
+	for dir : 1 thru c do (
+          calcVlasovGenGeoSurfUpdater(dir, fh, funcName, c, v, bName[bInd], polyOrder),
+          close(fh)
+	)
       )
     )
   )
