@@ -17,6 +17,7 @@ local Proto        = require "Lib.Proto"
 local UpdaterBase  = require "Updater.Base"
 local lume         = require "Lib.lume"
 local xsys         = require "xsys"
+local DataStruct   = require "DataStruct"
 
 local cudaRunTime
 if GKYL_HAVE_CUDA then cudaRunTime = require "Cuda.RunTime" end
@@ -208,6 +209,18 @@ function DistFuncMomentCalc:init(tbl)
    self.onGhosts = xsys.pickBool(tbl.onGhosts, true)
 
    self.maskField = tbl.maskField   -- Optional mask that excludes (if =-1) part of the domain.
+   if self.maskField then
+      self.maskLoUp = DataStruct.Field {
+         onGrid        = self._onGrid,
+         numComponents = 2*self._vDim,
+         ghost         = {1,1},
+      }
+      self.maskLoUp:clear(0.0)
+      self.maskLoUpIndxr, self.maskLoUpPtr = self.maskLoUp:genIndexer(), self.maskLoUp:get(1)
+      self.getCorrectionBounds = function(vDir, idxP) return self:getCorrectionBoundsMasked(vDir, idxP) end
+   else
+      self.getCorrectionBounds = function(vDir, idxP) return self:getCorrectionBoundsNOmask(vDir, idxP) end
+   end
 
    -- Initialize tools constructed from fields (e.g. ranges).
    self.fldTools = advArgs and self:initFldTools(advArgs[1],advArgs[2]) or nil
@@ -451,6 +464,37 @@ end
 
 local isInside = function(inOutPtr) return inOutPtr:data()[0] > 0. end
 
+function DistFuncMomentCalc:getCorrectionBoundsMasked(vDir, idxP)
+   -- Storing the insideLoIdx and insideUpIdx in a phase-space field is
+   -- inefficient, but we'll stick with it for now.
+   idxP[self._cDim+vDir] = 1
+   self.maskLoUp:fill(self.maskLoUpIndxr(idxP), self.maskLoUpPtr)
+   if self._isFirst then
+      local maskPtr, p0Indexer = self.maskField:get(1), self.maskField:genIndexer()
+      -- Determine the lower and upper indices of region inside of mask.
+      local insideLoIdx, insideUpIdx = -1, -1
+      for i = self.fldTools.dirLoIdx[vDir], self.fldTools.dirUpIdx[vDir] do
+         idxP[self._cDim+vDir] = i
+         self.maskField:fill(p0Indexer(idxP), maskPtr)
+         if insideLoIdx<0 then insideLoIdx = isInside(maskPtr) and self.idxP[self._cDim+vDir] or -1 end
+
+         idxP[self._cDim+vDir] = self.fldTools.dirUpIdx[vDir]-(i-self.fldTools.dirLoIdx[vDir])
+         self.maskField:fill(p0Indexer(idxP), maskPtr)
+         if insideUpIdx<0 then insideUpIdx = isInside(maskPtr) and self.idxP[self._cDim+vDir] or -1 end
+
+         if insideLoIdx>-1 and insideUpIdx>-1 then break end
+      end
+      if insideLoIdx==-1 then insideLoIdx=self.fldTools.dirLoIdx[vDir] end
+      if insideUpIdx==-1 then insideUpIdx=self.fldTools.dirUpIdx[vDir] end
+      self.maskLoUpPtr[(vDir-1)*2+1] = insideLoIdx
+      self.maskLoUpPtr[(vDir-1)*2+2] = insideUpIdx
+   end
+   return self.maskLoUpPtr[(vDir-1)*2+1], self.maskLoUpPtr[(vDir-1)*2+2]
+end
+function DistFuncMomentCalc:getCorrectionBoundsNOmask(vDir, idxP)
+   return self.fldTools.dirLoIdx[vDir], self.fldTools.dirUpIdx[vDir]
+end
+
 function DistFuncMomentCalc:advanceFiveMomentsLBO(tCurr, inFld, outFld)
    -- Compute the first five (Vlasov) or three (GK) moments of the distribution function,
    -- and also calculate the boundary corrections for LBO collisions.
@@ -470,11 +514,6 @@ function DistFuncMomentCalc:advanceFiveMomentsLBO(tCurr, inFld, outFld)
    local grid       = self._onGrid
    local cDim, vDim = self._cDim, self._vDim
 
-   local maskPtr, p0Indexer
-   if self.maskField then
-      maskPtr = self.maskField:get(1)
-      p0Indexer = self.maskField:genIndexer()
-   end
    local insideLoIdx, insideUpIdx
 
    -- Outer loop is threaded and over configuration space.
@@ -513,25 +552,7 @@ function DistFuncMomentCalc:advanceFiveMomentsLBO(tCurr, inFld, outFld)
             vPerpIdx:copyInto(self.idxP)
             for d = 1, cDim do self.idxP[d] = cIdx[d] end
 
-            if self.maskField then
-               -- Determine the lower and upper indices of region inside of mask.
-               insideLoIdx, insideUpIdx = -1, -1
-               for i = self.fldTools.dirLoIdx[vDir], self.fldTools.dirUpIdx[vDir] do
-                  self.idxP[cDim+vDir] = i
-                  self.maskField:fill(p0Indexer(self.idxP), maskPtr)
-                  if insideLoIdx<0 then insideLoIdx = isInside(maskPtr) and self.idxP[cDim+vDir] or -1 end
-
-                  self.idxP[cDim+vDir] = self.fldTools.dirUpIdx[vDir]-(i-self.fldTools.dirLoIdx[vDir])
-                  self.maskField:fill(p0Indexer(self.idxP), maskPtr)
-                  if insideUpIdx<0 then insideUpIdx = isInside(maskPtr) and self.idxP[cDim+vDir] or -1 end
-
-                  if insideLoIdx>-1 and insideUpIdx>-1 then break end
-               end
-               if insideLoIdx==-1 then insideLoIdx=self.fldTools.dirLoIdx[vDir] end
-               if insideUpIdx==-1 then insideUpIdx=self.fldTools.dirUpIdx[vDir] end
-            else
-               insideLoIdx, insideUpIdx = self.fldTools.dirLoIdx[vDir], self.fldTools.dirUpIdx[vDir]
-            end
+            insideLoIdx, insideUpIdx = self.getCorrectionBounds(vDir, self.idxP)
    
             for _, i in ipairs({insideLoIdx, insideUpIdx}) do   -- This loop is over edges.
                self.idxP[cDim+vDir] = i
@@ -552,6 +573,7 @@ function DistFuncMomentCalc:advanceFiveMomentsLBO(tCurr, inFld, outFld)
       end    -- vDir loop.
 
    end    -- Loop over configuration space.
+   self._isFirst = false
 end
 
 function DistFuncMomentCalc:advanceFiveMomentsLBOp1(tCurr, inFld, outFld)
