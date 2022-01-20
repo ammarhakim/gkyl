@@ -104,8 +104,6 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
   printf(fh, "  double alpha[~a]; ~%", length(bSurf)),
   printf(fh, "~%"),
 
-  printf(fh, "  if (~a>0) { ~%",wvr),
-
   /* Project alpha_v onto surface basis, and print resulting coefficients. */
   alpha_c : calcInnerProdList(surfVars, 1, bSurf, subst(cv=1, vComp_e*jacGeo_e)), /* Do I need a subst() here? */
   writeCExprsCollect1lhsc(alpha, radcan(alpha_c)),
@@ -114,7 +112,9 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
   /* Zero out components of alpha which are empty. */
   alphaNoZero : doMakeExprLst(alpha_c, alpha),
   alpha_e     : doExpandLst(alphaNoZero, bSurf),
-  
+
+  printf(fh, "  if (~a>0) { ~%",wvr),
+
   Ghat_c : calcInnerProdList(surfVars, alpha_e, bSurf, subst(cv=1, fL_e)), /* Multiplication by vComp*jacGeo occurs here. */
   clst   : [wvl, dvl],
   writeCExprsCollect1(Ghat, Ghat_c, clst),
