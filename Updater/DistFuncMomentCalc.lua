@@ -664,6 +664,7 @@ function DistFuncMomentCalc:advanceFiveMomentsLBOp1(tCurr, inFld, outFld)
    
       end    -- vDir loop.
    end    -- Loop over configuration space.
+   self._isFirst = false
 end
 
 -- Advance method.

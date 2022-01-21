@@ -29,8 +29,8 @@ nElc    = n0         -- Background electron density.
 vtIon   = math.sqrt(Ti)                -- Ion thermal speed. 
 vtElc   = math.sqrt((mIon/mElc)*Te)    -- Electron thermal speed. 
 
-tFinal  = 500*.10        -- Final simulation time.
-nFrames = 50*1
+tFinal  = .20        -- Final simulation time.
+nFrames = 1
 
 vLower  = {-6.0*vtIon, 0.0}
 vUpper  = { 6.0*vtIon, mIon*((6.0*vtIon)^2)/(2.0*B0)}
@@ -102,7 +102,7 @@ plasmaApp = Plasma.App {
    upper       = {xUpper},         -- Configuration space upper right.
    cells       = {8},              -- Configuration space cells.
    basis       = "serendipity",    -- One of "serendipity" or "maximal-order".
-   polyOrder   = 1,                -- Polynomial order.
+   polyOrder   = 2,                -- Polynomial order.
    timeStepper = "rk3",            -- One of "rk2" or "rk3".
    cflFrac     = 1.0,
 
@@ -139,9 +139,13 @@ plasmaApp = Plasma.App {
          end,
          temperature = function (t, xn) return Ti end,
       },
+      coll = Plasma.LBOCollisions{
+         collideWith = { 'ion' },
+         frequencies = { nuIon },
+      }, 
       evolve = true, -- Evolve species?
       mask = ionMask,
-      diagnostics = {"M0", "M2","intM0","intM1","intM2"},
+      diagnostics = {"M0","M2","intM0","intM1","intM2"},
    },
 
    adiabaticElectron = Plasma.AdiabaticSpecies {
