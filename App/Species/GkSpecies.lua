@@ -208,12 +208,9 @@ function GkSpecies:createSolver(field, externalField)
    if self.vdim > 1 then table.insert(self.zeroFluxDirections, self.cdim+2) end
 
    self.solver = Updater.HyperDisCont {
-      onGrid             = self.grid,
-      basis              = self.basis,
-      cfl                = self.cfl,
-      equation           = self.equation,
-      zeroFluxDirections = self.zeroFluxDirections,
-      updateDirections   = upd,
+      onGrid             = self.grid,   cfl                = self.cfl,
+      basis              = self.basis,  equation           = self.equation,
+      updateDirections   = upd,         zeroFluxDirections = self.zeroFluxDirections,
       clearOut           = false,   -- Continue accumulating into output field.
       globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
       maskField          = self.maskField,

@@ -147,26 +147,20 @@ function VlasovSpecies:createSolver(field, externalField)
    
    -- Create updater to advance solution by one time-step.
    self.equation = VlasovEq {
-      onGrid           = self.grid,
-      phaseBasis       = self.basis,
-      confBasis        = self.confBasis,
-      charge           = self.charge,
-      mass             = self.mass,
-      hasElectricField = hasE,
-      hasMagneticField = hasB,
-      plasmaMagField   = plasmaB,
-      numVelFlux       = self.numVelFlux,
+      onGrid     = self.grid,       hasElectricField = hasE,
+      phaseBasis = self.basis,      hasMagneticField = hasB,
+      confBasis  = self.confBasis,  plasmaMagField   = plasmaB,
+      charge     = self.charge,     numVelFlux       = self.numVelFlux,
+      mass       = self.mass,
    }
 
    -- Must apply zero-flux BCs in velocity directions.
    for d = 1, self.vdim do table.insert(self.zeroFluxDirections, self.cdim+d) end
 
    self.solver = Updater.HyperDisCont {
-      onGrid             = self.grid,
-      basis              = self.basis,
-      cfl                = self.cfl,
-      equation           = self.equation,
-      zeroFluxDirections = self.zeroFluxDirections,
+      onGrid    = self.grid,       cfl                = self.cfl,
+      basis     = self.basis,      equation           = self.equation,
+      maskField = self.maskField,  zeroFluxDirections = self.zeroFluxDirections,
    }
 
    -- Create updaters to compute various moments.
@@ -193,32 +187,25 @@ function VlasovSpecies:createSolver(field, externalField)
    -- Create updater to compute M0, M1i, M2 moments sequentially.
    -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
    self.fiveMomentsCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "FiveMoments",
+      onGrid     = self.grid,   confBasis = self.confBasis,
+      phaseBasis = self.basis,  moment    = "FiveMoments",
    }
    self.calcMaxwell = Updater.MaxwellianOnBasis {
-      onGrid      = self.grid,
-      phaseBasis  = self.basis,
-      confGrid    = self.confGrid,
-      confBasis   = self.confBasis,
+      onGrid     = self.grid,   confGrid  = self.confGrid,
+      phaseBasis = self.basis,  confBasis = self.confBasis,
    }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
       -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
       self.fiveMomentsLBOCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.grid,
-         phaseBasis = self.basis,
-         confBasis  = self.confBasis,
-         moment     = "FiveMomentsLBO",
+         onGrid     = self.grid,   confBasis = self.confBasis,
+         phaseBasis = self.basis,  moment    = "FiveMomentsLBO",
+         maskField  = self.maskField,
       }
       if self.needCorrectedSelfPrimMom then
          self.primMomSelf = Updater.SelfPrimMoments {
-            onGrid     = self.confGrid,
-            phaseBasis = self.basis,
-            confBasis  = self.confBasis,
-            operator   = "VmLBO",
+            onGrid     = self.confGrid,   confBasis = self.confBasis,
+            phaseBasis = self.basis,      operator  = "VmLBO",
          }
       end
 
@@ -241,10 +228,8 @@ function VlasovSpecies:createSolver(field, externalField)
 
    if self.vlasovExtForceFunc then
       self.evalVlasovExtForce = Updater.ProjectOnBasis {
-         onGrid   = self.confGrid,
-         basis    = self.confBasis,
-         evaluate = self.vlasovExtForceFunc,
-         onGhosts = false
+         onGrid = self.confGrid,   evaluate = self.vlasovExtForceFunc,
+         basis  = self.confBasis,  onGhosts = false
       }
    end
 

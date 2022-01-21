@@ -253,21 +253,12 @@ function GkLBOCollisions:createSolver(externalField, mySpecies)
       vParUpper  = self.vParMax,     positivity       = self.usePositivity,
       varyingNu  = self.varNu,       gridID           = self.phaseGrid:id(),
    }
-   if mySpecies.maskField then
-      self.collisionSlvr = Updater.HyperDisContMasked {
-         onGrid             = self.phaseGrid,   cfl       = self.cfl,
-         basis              = self.phaseBasis,  equation  = self.equation,
-         zeroFluxDirections = zfd,              maskField = mySpecies.maskField,
-         updateDirections   = zfd,    -- Only update velocity directions.
-      }
-   else
-      self.collisionSlvr = Updater.HyperDisCont {
-         onGrid             = self.phaseGrid,    cfl      = self.cfl,
-         basis              = self.phaseBasis,   equation = self.equation,
-         zeroFluxDirections = zfd,
-         updateDirections   = zfd,    -- Only update velocity directions.
-      }
-   end
+   self.collisionSlvr = Updater.HyperDisCont {
+      onGrid             = self.phaseGrid,   cfl       = self.cfl,
+      basis              = self.phaseBasis,  equation  = self.equation,
+      zeroFluxDirections = zfd,              maskField = mySpecies.maskField,
+      updateDirections   = zfd,    -- Only update velocity directions.
+   }
    if self.crossCollisions then
       if self.varNu then
          -- Temporary collisionality fields.

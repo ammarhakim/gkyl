@@ -216,7 +216,7 @@ function VmLBOCollisions:setConfGrid(grid) self.confGrid = grid end
 function VmLBOCollisions:setPhaseBasis(basis) self.phaseBasis = basis end
 function VmLBOCollisions:setPhaseGrid(grid) self.phaseGrid = grid end
 
-function VmLBOCollisions:createSolver(extField)
+function VmLBOCollisions:createSolver(extField, mySpecies)
    self.vdim      = self.phaseGrid:ndim() - self.confGrid:ndim()
 
    self.cNumBasis = self.confBasis:numBasis()
@@ -228,68 +228,38 @@ function VmLBOCollisions:createSolver(extField)
    end
    self.vMaxSq = self.vMax[1] 
    for vd = 1,self.vdim do
-      if (self.vMaxSq < self.vMax[vd]) then
-         self.vMaxSq = self.vMax[vd]
-      end
+      if (self.vMaxSq < self.vMax[vd]) then self.vMaxSq = self.vMax[vd] end
    end
    self.vMaxSq = self.vMaxSq^2
 
    -- Intemediate storage for output of collisions.
-   self.collOut = DataStruct.Field {
-      onGrid        = self.phaseGrid,
-      numComponents = self.phaseBasis:numBasis(),
-      ghost         = {1, 1},
-   }
+   self.collOut = mySpecies:allocDistf()
    -- Sum of flow velocities in vdim directions multiplied by respective collisionalities.
-   self.nuUSum = DataStruct.Field {
-      onGrid        = self.confGrid,
-      numComponents = self.cNumBasis*self.vdim,
-      ghost         = {1, 1},
-   }
+   self.nuUSum = mySpecies:allocVectorMoment(self.vdim)
    -- Sum of squared thermal speeds, vthSq=T/m, multiplied by respective collisionalities.
-   self.nuVtSqSum = DataStruct.Field {
-      onGrid        = self.confGrid,
-      numComponents = self.cNumBasis,
-      ghost         = {1, 1},
-   }
+   self.nuVtSqSum = mySpecies:allocMoment()
 
    -- Zero-flux BCs in the velocity dimensions.
    local zfd = { }
-   for d = 1, self.vdim do
-      zfd[d] = self.confGrid:ndim() + d
-   end
+   for d = 1, self.vdim do zfd[d] = self.confGrid:ndim() + d end
 
    if self.varNu then
       -- Self-species collisionality, which varies in space.
-      self.nuVarXSelf = DataStruct.Field {
-         onGrid        = self.confGrid,
-         numComponents = self.cNumBasis,
-         ghost         = {1, 1},
-      }
+      self.nuVarXSelf = mySpecies:allocMoment()
       -- Collisionality, nu, summed over all species pairs.
-      self.nuSum = DataStruct.Field {
-         onGrid        = self.confGrid,
-         numComponents = self.cNumBasis,
-         ghost         = {1, 1},
-      }
+      self.nuSum = mySpecies:allocMoment()
       if self.timeDepNu then 
          -- Updater to compute spatially varying (Spitzer) nu.
          self.spitzerNu = Updater.SpitzerCollisionality {
-            onGrid           = self.confGrid,
-            confBasis        = self.confBasis,
-            useCellAverageNu = self.cellConstNu,
-            willInputNormNu  = self.userInputNormNu,
-            elemCharge       = self.elemCharge,
-            epsilon0         = self.epsilon0,
-            hBar             = self.hBar,
-            nuFrac           = self.nuFrac,
+            onGrid           = self.confGrid,         elemCharge = self.elemCharge,
+            confBasis        = self.confBasis,        epsilon0   = self.epsilon0,
+            useCellAverageNu = self.cellConstNu,      hBar       = self.hBar,
+            willInputNormNu  = self.userInputNormNu,  nuFrac     = self.nuFrac,
          }
       elseif self.selfCollisions then
          local projectUserNu = Updater.ProjectOnBasis {
-            onGrid   = self.confGrid,
-            basis    = self.confBasis,
-            evaluate = self.collFreqSelf,
-            onGhosts = false
+            onGrid = self.confGrid,   evaluate = self.collFreqSelf,
+            basis  = self.confBasis,  onGhosts = false
          }
          projectUserNu:advance(0.0, {}, {self.nuVarXSelf})
       end
@@ -304,59 +274,35 @@ function VmLBOCollisions:createSolver(extField)
    end
    -- Lenard-Bernstein equation.
    self.equation = VmLBOconstNuEq {
-      phaseBasis       = self.phaseBasis,
-      confBasis        = self.confBasis,
-      vUpper           = self.vMax,
-      varyingNu        = self.varNu,
-      useCellAverageNu = self.cellConstNu,
-      gridID           = self.phaseGrid:id(),
-      fluxType         = self.fluxType,
+      phaseBasis = self.phaseBasis,  useCellAverageNu = self.cellConstNu,
+      confBasis  = self.confBasis,   gridID           = self.phaseGrid:id(),
+      vUpper     = self.vMax,        fluxType         = self.fluxType,
+      varyingNu  = self.varNu,
    }
    self.collisionSlvr = Updater.HyperDisCont {
-      onGrid             = self.phaseGrid,
-      basis              = self.phaseBasis,
-      cfl                = self.cfl,
-      equation           = self.equation,
+      onGrid             = self.phaseGrid,   cfl       = self.cfl,
+      basis              = self.phaseBasis,  equation  = self.equation,
       updateDirections   = zfd,    -- Only update velocity directions.
-      zeroFluxDirections = zfd,
+      zeroFluxDirections = zfd,              maskField = mySpecies.maskField,
    }
    if self.crossCollisions then
       if self.varNu then
          -- Temporary collisionality fields.
-         self.nuCrossSelf = DataStruct.Field {
-            onGrid        = self.confGrid,
-            numComponents = self.cNumBasis,
-            ghost         = {1, 1},
-         }
-         self.nuCrossOther = DataStruct.Field {
-            onGrid        = self.confGrid,
-            numComponents = self.cNumBasis,
-            ghost         = {1, 1},
-         }
+         self.nuCrossSelf = mySpecies:allocMoment()
+         self.nuCrossOther = mySpecies:allocMoment()
          -- Cross-collision u and vtSq multiplied by collisionality.
-         self.nuUCross = DataStruct.Field {
-            onGrid        = self.confGrid,
-            numComponents = self.cNumBasis*self.vdim,
-            ghost         = {1, 1},
-         }
-         self.nuVtSqCross = DataStruct.Field {
-            onGrid        = self.confGrid,
-            numComponents = self.confBasis:numBasis(),
-            ghost         = {1, 1},
-         }
+         self.nuUCross = mySpecies:allocVectorMoment(self.vdim)
+         self.nuVtSqCross = mySpecies:allocMoment()
       else
          self.nuCrossSelf  = 0.0
          self.nuCrossOther = 0.0
       end
       -- Updater to compute cross-species primitive moments.
       self.primMomCross = Updater.CrossPrimMoments {
-         onGrid           = self.confGrid,
-         phaseBasis       = self.phaseBasis,
-         confBasis        = self.confBasis,
-         operator         = "VmLBO",
-         betaGreene       = self.betaGreene, 
-         varyingNu        = self.varNu,
-         useCellAverageNu = self.cellConstNu,
+         onGrid     = self.confGrid,    betaGreene       = self.betaGreene, 
+         phaseBasis = self.phaseBasis,  varyingNu        = self.varNu,
+         confBasis  = self.confBasis,   useCellAverageNu = self.cellConstNu,
+         operator   = "VmLBO",
       }
    end
 
