@@ -217,7 +217,14 @@ function DistFuncMomentCalc:init(tbl)
       }
       self.maskLoUp:clear(0.0)
       self.maskLoUpIndxr, self.maskLoUpPtr = self.maskLoUp:genIndexer(), self.maskLoUp:get(1)
-      self.getCorrectionBounds = function(vDir, idxP) return self:getCorrectionBoundsMasked(vDir, idxP) end
+      if self._polyOrder == 1 then
+         self.getCorrectionBounds = function(vDir, idxP)
+            local loIdx, upIdx = self:getCorrectionBoundsMasked(vDir, idxP)
+            return loIdx, upIdx+1
+         end
+      else
+         self.getCorrectionBounds = function(vDir, idxP) return self:getCorrectionBoundsMasked(vDir, idxP) end
+      end
    else
       self.getCorrectionBounds = function(vDir, idxP) return self:getCorrectionBoundsNOmask(vDir, idxP) end
    end
@@ -629,7 +636,6 @@ function DistFuncMomentCalc:advanceFiveMomentsLBOp1(tCurr, inFld, outFld)
             end
 
             insideLoIdx, insideUpIdx = self.getCorrectionBounds(vDir, self.idxP)
-            insideUpIdx = insideUpIdx+1
    
             for i = insideLoIdx, insideUpIdx do     -- This loop is over edges.
                self.idxM[cDim+vDir], self.idxP[cDim+vDir] = i-1, i -- Cell left/right of edge 'i'.
