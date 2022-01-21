@@ -61,6 +61,7 @@ function DiscontGenPoisson:init(tbl)
    end
 
    local writeMatrix = xsys.pickBool(tbl.writeMatrix, false)
+   local use2cell = xsys.pickBool(tbl.use2cell, false)
 
    -- Read boundary conditions
    assert(#tbl.bcLower == self.ndim, "Updater.DiscontGenPoisson: Must provide lower boundary conditions for all the dimesions using 'bcLower'")
@@ -83,21 +84,6 @@ function DiscontGenPoisson:init(tbl)
       end
    end
 
-   -- -- Project on basis functions
-   -- local basis1D = Basis.CartModalSerendipity {
-   --    ndim = 1,
-   --    polyOrder = polyOrder
-   -- }
-   -- self.numBasis1D = basis1D:numBasis()
-   -- self.numQuad = tbl.numQuad and tbl.numQuad or self.basis:polyOrder()+1 -- Number of quadrature points in each direction
-   -- self.ordinates = GaussQuadRules.ordinates[self.numQuad]
-   -- self.weights = GaussQuadRules.weights[self.numQuad]
-   -- self.basisAtOrdinates = Lin.Mat(self.numQuad, self.numBasis1D)
-   -- for n = 1, self.numQuad do
-   --    basis1D:evalBasis({self.ordinates[n]}, self.basisAtOrdinates[n])
-   -- end
-
-
    -- Read the diffusion tensor function
    self.Dxx = tbl.Dxx
    self.Dyy = tbl.Dyy
@@ -113,34 +99,6 @@ function DiscontGenPoisson:init(tbl)
          },
       }
    end
-
-   -- local projectUpd = ProjectOnBasis {
-   --    onGrid = self.grid,
-   --    basis = self.basis,
-   --    numQuad = self.numQuad,
-   --    evaluate = function(t,xn) return 0. end,
-   --    onGhosts = true,
-   -- }
-
-   -- local evaluateUpd = EvaluateOnBasis {
-   --    onGrid = self.grid,
-   --    basis = self.basis,
-   --    numQuad = self.numQuad,
-   --    evaluate = function(t,xn) return 0. end,
-   --    onGhosts = true,
-   -- }
-   
-   -- self.Dxx = getField()
-   -- projectUpd:setFunc(function(t,xn) return self.DxxFn(t,xn) end)
-   -- projectUpd:advance(0.0, {}, {self.Dxx})
-
-   -- self.Dxy = getField()
-   -- projectUpd:setFunc(function(t,xn) return self.DxyFn(t,xn) end)
-   -- projectUpd:advance(0.0, {}, {self.Dxy})
-
-   -- self.Dyy = getField()
-   -- projectUpd:setFunc(function(t,xn) return self.DyyFn(t,xn) end)
-   -- projectUpd:advance(0.0, {}, {self.Dyy})
 
    -- Load the kernels
    if self.basis:id() == 'serendipity' then
@@ -160,37 +118,52 @@ function DiscontGenPoisson:init(tbl)
    local stiffMatrixRange = Range.Range(lower, upper)
    self.stiffMatrixIndexer = Range.makeRowMajorGenIndexer(stiffMatrixRange)
 
+   local use2cellStr = ""
+   if use2cell then
+      use2cellStr = "_2cell"
+   end
+   
    self._matrixFn = require(
-      string.format("Updater.discontGenPoissonData.dg_poisson_anisotropic_%s_%dx_p%d",
-                    basisNm:lower(), self.ndim, polyOrder))
+      string.format(
+         "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_p%d",
+         use2cellStr, basisNm:lower(), self.ndim, polyOrder))
    self._matrixFn_T = require(
-      string.format("Updater.discontGenPoissonData.dg_poisson_anisotropic_%s_%dx_T_p%d",
-                    basisNm:lower(), self.ndim, polyOrder))
+      string.format(
+         "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_T_p%d",
+         use2cellStr, basisNm:lower(), self.ndim, polyOrder))
    self._matrixFn_B = require(
-      string.format("Updater.discontGenPoissonData.dg_poisson_anisotropic_%s_%dx_B_p%d",
-                    basisNm:lower(), self.ndim, polyOrder))
+      string.format(
+         "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_B_p%d",
+         use2cellStr, basisNm:lower(), self.ndim, polyOrder))
    self._matrixFn_L = require(
-      string.format("Updater.discontGenPoissonData.dg_poisson_anisotropic_%s_%dx_L_p%d",
-                    basisNm:lower(), self.ndim, polyOrder))
+      string.format(
+         "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_L_p%d",
+         use2cellStr, basisNm:lower(), self.ndim, polyOrder))
    self._matrixFn_R = require(
-      string.format("Updater.discontGenPoissonData.dg_poisson_anisotropic_%s_%dx_R_p%d",
-                    basisNm:lower(), self.ndim, polyOrder))
+      string.format(
+         "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_R_p%d",
+         use2cellStr, basisNm:lower(), self.ndim, polyOrder))
    self._matrixFn_TL = require(
-      string.format("Updater.discontGenPoissonData.dg_poisson_anisotropic_%s_%dx_T_L_p%d",
-                    basisNm:lower(), self.ndim, polyOrder))
+      string.format(
+         "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_T_L_p%d",
+         use2cellStr, basisNm:lower(), self.ndim, polyOrder))
    self._matrixFn_TR = require(
-      string.format("Updater.discontGenPoissonData.dg_poisson_anisotropic_%s_%dx_T_R_p%d",
-                    basisNm:lower(), self.ndim, polyOrder))
+      string.format(
+         "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_T_R_p%d",
+         use2cellStr, basisNm:lower(), self.ndim, polyOrder))
    self._matrixFn_BL = require(
-      string.format("Updater.discontGenPoissonData.dg_poisson_anisotropic_%s_%dx_B_L_p%d",
-                    basisNm:lower(), self.ndim, polyOrder))
+      string.format(
+         "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_B_L_p%d",
+         use2cellStr, basisNm:lower(), self.ndim, polyOrder))
    self._matrixFn_BR = require(
-      string.format("Updater.discontGenPoissonData.dg_poisson_anisotropic_%s_%dx_B_R_p%d",
-                    basisNm:lower(), self.ndim, polyOrder))
+      string.format(
+         "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_B_R_p%d",
+         use2cellStr, basisNm:lower(), self.ndim, polyOrder))
 
    self.nnonzero = self.numBasis^2
-   self.poisson = ffiC.new_DiscontPoisson(GKYL_OUT_PREFIX, self.ncell, self.ndim, self.numBasis,
-                                          self.nnonzero, polyOrder, writeMatrix)
+   self.poisson = ffiC.new_DiscontPoisson(
+      GKYL_OUT_PREFIX, self.ncell, self.ndim, self.numBasis,
+      self.nnonzero, polyOrder, writeMatrix)
 
    self:buildStiffMatrix()
 
@@ -239,56 +212,6 @@ function DiscontGenPoisson:getBlock(idxs)
    local DxxRPtr = self.Dxx:get(indexer(idxsR))
    local DyyRPtr = self.Dyy:get(indexer(idxsR))
    local DxyRPtr = self.Dxy:get(indexer(idxsR))
-
-   -- local numBasis = self.numBasis1D
-   -- local DxxLF, DxyLF = Lin.Vec(numBasis), Lin.Vec(numBasis)
-   -- local DxxRF, DxyRF = Lin.Vec(numBasis), Lin.Vec(numBasis)
-   -- local DyyBF, DxyBF = Lin.Vec(numBasis), Lin.Vec(numBasis)
-   -- local DyyTF, DxyTF = Lin.Vec(numBasis), Lin.Vec(numBasis)
-
-   local xc = Lin.Vec(self.ndim)
-   local dx = Lin.Vec(self.ndim)
-   self.grid:setIndex(idxs)
-   self.grid:getDx(dx)
-   self.grid:cellCenter(xc)
-   -- local z = Lin.Vec(2)
-   -- for k = 1,numBasis do
-   --    -- Left face
-   --    DxxLF[k], DxyLF[k] = 0.0, 0.0
-   --    z[1] = xc[1] - dx[1]/2
-   --    for i = 1,self.numQuad do
-   --       z[2] = xc[2] + self.ordinates[i]*dx[2]/2
-   --       DxxLF[k] = DxxLF[k] + self.weights[i]*self.basisAtOrdinates[i][k]*self.DxxFn(0, z)
-   --       DxyLF[k] = DxyLF[k] + self.weights[i]*self.basisAtOrdinates[i][k]*self.DxyFn(0, z)
-   --    end
-
-   --    -- Right face
-   --    DxxRF[k], DxyRF[k] = 0.0, 0.0
-   --    z[1] = xc[1] + dx[1]/2
-   --    for i = 1,self.numQuad do
-   --       z[2] = xc[2] + self.ordinates[i]*dx[2]/2
-   --       DxxRF[k] = DxxRF[k] + self.weights[i]*self.basisAtOrdinates[i][k]*self.DxxFn(0, z)
-   --       DxyRF[k] = DxyRF[k] + self.weights[i]*self.basisAtOrdinates[i][k]*self.DxyFn(0, z)
-   --    end
-
-   --    -- Bottom face
-   --    DyyBF[k], DxyBF[k] = 0.0, 0.0
-   --    z[2] = xc[2] - dx[2]/2
-   --    for i = 1,self.numQuad do
-   --       z[1] = xc[1] + self.ordinates[i]*dx[1]/2
-   --       DyyBF[k] = DyyBF[k] + self.weights[i]*self.basisAtOrdinates[i][k]*self.DyyFn(0, z)
-   --       DxyBF[k] = DxyBF[k] + self.weights[i]*self.basisAtOrdinates[i][k]*self.DxyFn(0, z)
-   --    end
-
-   --    -- Top face
-   --    DyyTF[k], DxyTF[k] = 0.0, 0.0
-   --    z[2] = xc[2] + dx[2]/2
-   --    for i = 1,self.numQuad do
-   --       z[1] = xc[1] + self.ordinates[i]*dx[1]/2
-   --       DyyTF[k] = DyyTF[k] + self.weights[i]*self.basisAtOrdinates[i][k]*self.DyyFn(0, z)
-   --       DxyTF[k] = DxyTF[k] + self.weights[i]*self.basisAtOrdinates[i][k]*self.DxyFn(0, z)
-   --    end
-   -- end
 
    -- Fetch blocks base on cell index. We need special blocks for each
    -- corner cell, skin cells and interior cells
@@ -438,7 +361,8 @@ function DiscontGenPoisson:buildStiffMatrix()
                local idxCol = stiffMatrixIndexer(idxsExtCol)
                local val = SMij[k][l]
                if math.abs(val) > 1.e-14 then
-                  ffiC.discontPoisson_pushTriplet(self.poisson, idxRow-1, idxCol-1, val)
+                  ffiC.discontPoisson_pushTriplet(
+                     self.poisson, idxRow-1, idxCol-1, val)
                end
             end
          end
@@ -452,8 +376,10 @@ end
 function DiscontGenPoisson:_advance(tCurr, inFld, outFld)
    local ndim = self.ndim
 
-   local src = assert(inFld[1], "DiscontGenPoisson.advance: Must specify an input field")
-   local sol = assert(outFld[1], "DiscontGenPoisson.advance: Must specify an output field")
+   local src = assert(inFld[1],
+                      "DiscontGenPoisson.advance: Must specify an input field")
+   local sol = assert(outFld[1],
+                      "DiscontGenPoisson.advance: Must specify an output field")
 
    local stiffMatrixIndexer = self.stiffMatrixIndexer
    local srcIndexer = src:genIndexer()
