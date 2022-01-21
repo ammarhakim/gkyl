@@ -34,10 +34,13 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
   printf(fh, "__host__ __device__ void ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *tvComp,  double const *gxx, double const *gxy, double const *gxz, double const *gyz, double const *gzz, const double *jacobGeo, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], p),
   printf(fh, "  // w[NDIM]:   Cell-center coordinates.~%"),
   printf(fh, "  // dxv[NDIM]: Cell spacing.~%"),
-  printf(fh, "  // vComp:     Velocity components.~%"),  
-  printf(fh, "  // jacobGeo:     General geometry Jacobian.~%"),
+  printf(fh, "  // tvComp:    Tangent vector components.~%"),  
+  printf(fh, "  // gij:       Contravariant metric coefficients.~%"), 
+  printf(fh, "  // jacobGeo:  General geometry Jacobian.~%"),
   printf(fh, "  // fl/fr:     Distribution function in left/right cells.~%"),
   printf(fh, "  // outl/outr: Incremented distribution function in left/right cells.~%"),
+
+  printf(fh, "~%"),
 
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),
@@ -50,8 +53,6 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
 
   printf(fh, "  double rdxl2 = 2.0/dxvl[~a]; ~%", cid[dir]),
   printf(fh, "  double rdxr2 = 2.0/dxvr[~a]; ~%~%", cid[dir]),
-
-  printf(fh, "  const double *vComp~a = &vComp[~a]; ~%", dir-1, numC*(dir-1)),
 
   cv : varsP[dir],
   vv : varsV[dir],
