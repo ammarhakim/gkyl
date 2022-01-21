@@ -627,8 +627,11 @@ function DistFuncMomentCalc:advanceFiveMomentsLBOp1(tCurr, inFld, outFld)
             for d = 1, cDim do 
                self.idxM[d] = cIdx[d];  self.idxP[d] = cIdx[d]
             end
+
+            insideLoIdx, insideUpIdx = self.getCorrectionBounds(vDir, self.idxP)
+            insideUpIdx = insideUpIdx+1
    
-            for i = self.fldTools.dirLoIdx[vDir], self.fldTools.dirUpIdx[vDir] do     -- This loop is over edges.
+            for i = insideLoIdx, insideUpIdx do     -- This loop is over edges.
                self.idxM[cDim+vDir], self.idxP[cDim+vDir] = i-1, i -- Cell left/right of edge 'i'.
    
                grid:setIndex(self.idxM);  grid:getDx(self.dxM);  grid:cellCenter(self.xcM);
@@ -637,16 +640,16 @@ function DistFuncMomentCalc:advanceFiveMomentsLBOp1(tCurr, inFld, outFld)
                distf:fill(self.fldTools.phaseIndexer(self.idxM), distfItrM)
                distf:fill(self.fldTools.phaseIndexer(self.idxP), distfItrP)
    
-               if i>self.fldTools.dirLoIdx[vDir] and i<self.fldTools.dirUpIdx[vDir] then
+               if i>insideLoIdx and i<insideUpIdx then
                   self.kernelDriverStarM0(vDir, distfItrM, distfItrP, m0StarItr)
                end
 
-               if firstDir and i<self.fldTools.dirUpIdx[vDir] then
+               if firstDir and i<insideUpIdx then
                   self.kernelDriver(distfItrP, mom0Itr, mom1Itr, mom2Itr)
                   self.kernelDriverStarM1iM2(distfItrP, m1StarItr, m2StarItr)
                end
    
-               if i==self.fldTools.dirLoIdx[vDir] or i==self.fldTools.dirUpIdx[vDir]-1 then
+               if i==insideLoIdx or i==insideUpIdx-1 then
                   -- CAREFUL: for vBound below we assume idxP was set after idxM above.
                   local vBound = isLo and grid:cellLowerInDir(cDim + vDir) or grid:cellUpperInDir(cDim + vDir)
 
