@@ -402,10 +402,11 @@ function KineticSpecies:createSolver(field, externalField)
          {polyOrder=0,self.basis:id(),grid=GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"})
       local p0basis = createBasis(self.basis:id(),self.ndim,0)
       local projMask = Updater.ProjectOnBasis {
-         onGrid = self.grid,   onGhosts = true,
-         basis  = p0basis,     evaluate = self.maskFunc,
+         onGrid = self.grid,  onGhosts = true,
+         basis  = p0basis,    evaluate = self.maskFunc,
       }
       projMask:advance(0.,{},{self.maskField})
+      self.maskField:sync()
       self.distIo:write(self.maskField, string.format("%s_mask_0.bp", self.name, 0), 0., 0)
    end
 
