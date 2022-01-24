@@ -1,0 +1,226 @@
+/* Functions called to generate surface kernels of Hasegawa Wakatani system of
+   equations. We'll use the normalized form in K. Ghantous and O. D. Gurcan,
+   PRE 92, 033107 (2015). */
+
+load("modal-basis")$
+load("out-scripts")$
+load(stringproc)$
+load("nodalOperations/nodalFunctions")$
+load("scifac")$
+fpprec : 24$
+
+doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+
+/* Set up some vector calculus functions. */
+load("vect")$
+fgrad(f) := ev(express(grad(f)),diff)*derivFac$
+
+poissonBracket(f,g) := rdx2*rdy2*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x))$
+
+basisFromVars(basisType, varsIn, pIn) := block(
+  [dimIn,oldVarsC,oldVarsP,basis,vars,replaceList],
+
+  dimIn : length(varsIn),
+
+  /* In case varsP and varsC were already loaded, save them
+     and restore them at the end of this function. */
+  if listp(varsC) then (oldVarsC : copylist(varsC)),
+  if listp(varsP) then (oldVarsP : copylist(varsP)),
+
+  if dimIn > 3 then (
+    load(sconcat("basis-precalc/basis", basisType, dimIn-3, "x", 3, "v")),
+    basis : basisP[pIn],
+    vars  : varsP
+  ) elseif dimIn > 0 then (
+    load(sconcat("basis-precalc/basis", basisType, dimIn, "x")),
+    basis : basisC[pIn],
+    vars  : varsC
+  ) else (
+    basis : [],
+    vars  : []
+  ),
+  replaceList : makelist(vars[i]=varsIn[i],i,1,dimIn),
+  basis : psubst(replaceList,basis),
+
+  /* Restore varsC and varsP. */
+  if listp(oldVarsC) then (varsC : copylist(oldVarsC)),
+  if listp(oldVarsP) then (varsP : copylist(oldVarsP)),
+
+  return(basis)
+)$
+
+genHWsurfKernelInDir(surfDir, fh, funcNm, dim, basisType, polyOrder) := block(
+  [basis,vars,numB,surfVar,surfIntVars,derivFac,rdx2Surf,xcSurf,surFac,d,phi_e,H_e,fInL_c,fInR_c,fInL_e,fInR_e,
+   alpha_e,alphaUp_e,bSurf,numBSurf,alphaSurfAvg_c,alphaSurfAvg_e,alphaSurfAvg_s,alpha_c,alphaNoZero_c,
+   alphaSurf_e,alphaUpSurf_e,surfNodes,numNodescc,fInL_n,fInR_n,alpha_n,fup_n,i,nodToMod,fupwind_c,fhatSurf_e,
+   t,incr_r,incr_s,incr_l,signs],
+  /* Generate surface kernel in surfDir direction for Hasegawa-Wakatani model. */
+
+  numMoments : 2,  /* vorticity and density. */
+
+  /* Load the desired basis. */
+  kill(varsC, varsP, basisC, basisP),
+  load(sconcat("basis-precalc/basis", basisType, dim, "x")),
+  basis : basisC[polyOrder],
+  vars  : varsC,
+  numB  : length(basis),
+
+  /* Get surface variable. */
+  surfVar : vars[surfDir],
+  /* Remove surface variable from integrand of surface integrals. */
+  surfIntVars : delete(surfVar,vars),
+  /* For grad and curl expressions. */
+  scalefactors(vars),
+  derivFac : [rdx2, rdy2],
+  rdx2Surf : derivFac[surfDir], 
+  xcSurf   : xc[surfDir-1],
+
+  /* Remove volume contribution from surface variable, which is not integrated. */
+  surFac : fullratsimp(rdx2Surf),
+
+  printf(fh, "double ~a_~a(const double C_, const double kappa_, const double cflL, const double cflR, const double *xc, const double *dx, const double amax_in, const double *phi, const double *fInL, const double *fInR, double *outL, double *outR) ~%{ ~%", funcNm, surfVar),
+  printf(fh, "  // C_: adiabaticity parameter (T_e*kpar^2/(e^2*n_0*eta*omega_ci)).~%"),
+  printf(fh, "  // kappa_: normalized density gradient (rho_s/L_n).~%"),
+  printf(fh, "  // xc[2]: cell-center coordinates.~%"),
+  printf(fh, "  // dx[2]: cell spacing.~%"),
+  printf(fh, "  // phi[~a]: electrostatic potential.~%", numB),
+  printf(fh, "  // fIn[~a]: input fields (vorticity and density).~%", 2*numB),
+  printf(fh, "  // out[~a]: output increment (dy/dt).~%", 2*numB),
+  printf(fh, "~%"),
+
+  for d : 1 thru dim do (
+    printf(fh, "  double rd~a2 = 2.0/dx[~a]; ~%", vars[d], d-1)
+  ),
+  printf(fh, "~%"),
+
+  /* Expand phi. */
+  phi_e : doExpand1(phi, basis),
+
+  /* Calculate the Hamiltonian (just phi in this case). */
+  H_e : phi_e,
+  
+  /* Project Hamiltonian onto basis functions. */
+  H_c : calcInnerProdList(vars, 1, basis, H_e),
+
+  /* Expand distribution function on basis. */
+  fInL_c : makelist(fInL[momOff+k-1],k,1,numB),
+  fInR_c : makelist(fInR[momOff+k-1],k,1,numB),
+  fInL_e : doExpand(fInL_c,basis),
+  fInR_e : doExpand(fInR_c,basis),
+  /* Add the density gradient term to the second moment. */
+  fInL_e : fInL_e - (momOff/numB)*kappa_*x,
+  fInR_e : fInR_e - (momOff/numB)*kappa_*x,
+
+  /* Calculate velocity alpha in direction of surfVar */
+  /* We assume alpha.n is continuous across boundary. */
+  /* Distinguish between alpha and alphaUp, where alphaUp is the one used to determine upwind direction */
+  alpha_e   : poissonBracket(xcSurf + surfVar/rdx2Surf, H_e),
+  alphaUp_e : alpha_e,
+
+  /* Generate surface basis */
+  bSurf : basisFromVars(basisType,surfIntVars,polyOrder),  /* Surface basis. */
+  numBSurf : length(bSurf),
+
+  /* Calculate expression for surface-averaged alpha, and print to c variable alpha0. */
+  alphaSurfAvg_c : calcInnerProdList(surfIntVars,1,bSurf,subst(surfVar=-1,alphaUp_e)),
+  alphaSurfAvg_e : doExpand(alphaSurfAvg_c,bSurf),
+  alphaSurfAvg_s : fullratsimp(innerProd(surfIntVars, 1, alphaSurfAvg_e, 1)/innerProd(surfIntVars,1,1,1)),
+  printf(fh, "  // Surface-averaged phase velocity in this direction.~%"),
+  printf(fh, "  double alpha0 = ~a; ~%~%", float(alphaSurfAvg_s)),
+  flush_output(fh),
+
+  /* Project full alpha expression evaluatated at interior surface
+     onto surface basis and print to c variable alpha. */
+  printf(fh, "  double alpha[~a]; ~%", numBSurf),
+  alpha_c : fullratsimp(calcInnerProdList(surfIntVars, 1, bSurf, subst(surfVar=-1,alpha_e))),
+  writeCExprsNoExpand1(alpha, alpha_c),
+  printf(fh, "~%"),
+  alphaNoZero_c : doMakeExprLst(alpha_c, alpha),
+  alphaSurf_e : doExpandLst(alphaNoZero_c, bSurf),
+  flush_output(fh),
+
+  alphaUpSurf_e : alphaSurf_e,
+
+  /* Get quadrature nodes on surface. */
+  surfNodes : getNodes(basisType, dim-1, polyOrder),
+  numNodes : length(surfNodes),
+  if polyOrder=1 then (surfNodes:surfNodes*(1/sqrt(3))) elseif polyOrder=2 then (surfNodes:surfNodes*sqrt(3/5)),
+
+  /* Note: alphaSurf_e is already a surface expansion. */
+  alpha_n : gcfac(float(evAtNodes(alphaUpSurf_e,surfNodes,surfIntVars))),
+  /* Evaluate fl, fr, and alpha at surface quadrature nodes. */
+  fup_n : [],
+  for mI : 1 thru numMoments do (
+    fInL_n : gcfac(float(evAtNodes(subst(surfVar=1, subst(momOff=(mI-1)*numB,fInL_e)),surfNodes,surfIntVars))), 
+    fInR_n : gcfac(float(evAtNodes(subst(surfVar=-1,subst(momOff=(mI-1)*numB,fInR_e)),surfNodes,surfIntVars))),
+    /* Determine upwinding at each surface quadrature node. */
+    fup_n : append(fup_n,gcfac(.5*(fInL_n+fInR_n)+.5*sgn(alphaQuad)*(fInL_n-fInR_n)))
+  ),
+
+  printf(fh, "  double alphaQuad;~%"),
+  printf(fh, "  double fupwindQuad[~a];~%", numBSurf*numMoments),
+  for i : 1 thru numNodes do (
+    printf(fh, "  alphaQuad = ~a; ~%", alpha_n[i]),
+    for mI : 1 thru numMoments do (
+      printf(fh, "  fupwindQuad[~a] = ~a; ~%", (mI-1)*numNodes+i-1, fup_n[(mI-1)*numNodes+i])
+    )
+  ),
+  printf(fh, "~%"),
+  flush_output(fh),
+
+  /* Get modal surface expansion from nodal quadrature points. */
+  nodToMod : calcNodToModWithNodes(basisType, dim-1, polyOrder, surfNodes),
+  printf(fh, "  double fupwind[~a];~%", numBSurf*numMoments),
+  for mI : 1 thru numMoments do (
+    fupwind_c : gcfac(fullratsimp(nodToMod . makelist(fupwindQuad[(mI-1)*numNodes+i-1],i,1,numNodes))),
+    fupwind_c : makelist(fupwind_c[i][1],i,1,numNodes),
+    /* Write coefficients of modal surface expansion fupwind. */
+    for k : 1 thru numNodes do (
+      printf(fh, "  fupwind[~a] = ~a;~%",(mI-1)*numNodes+k-1,float(fupwind_c[k]))
+    )
+  ),
+  printf(fh, "~%"),
+  flush_output(fh),
+
+  fupwind_c : makelist(fupwind[momOff+k-1],k,1,numBSurf),
+  fhatSurf_e : doExpand(fupwind_c, bSurf),
+
+  incr_r : [],
+  for mI : 1 thru numMoments do (
+    t : surFac*calcInnerProdList(surfIntVars, alphaSurf_e, subst(surfVar=-1, basis), subst(momOff=(mI-1)*numBSurf,fhatSurf_e)),
+    incr_r : append(incr_r,facsum(fullratsimp(t),dx))
+  ),
+  printf(fh, "  double incr[~a]; ~%", numB*numMoments),
+  writeCExprsNoExpand1(incr, incr_r),
+  printf(fh, "~%"),
+  flush_output(fh),
+
+  incr_s : makelist(incr[i-1], i, 1, numB*numMoments),
+  writeCIncrExprsNoExpand1(outR, incr_s),
+  printf(fh, "~%"),
+  flush_output(fh),
+
+  incr_l : [],
+  for mI : 1 thru numMoments do (
+    t : surFac*calcInnerProdList(surfIntVars, alphaSurf_e, subst(surfVar=1, basis), subst(momOff=(mI-1)*numBSurf,fhatSurf_e)),
+    incr_l : append(incr_l,-t)
+  ),
+  signs  : fullratsimp(incr_l/incr_r),
+  incr_s : makelist(signs[i]*incr[i-1], i, 1, numB*numMoments),
+  writeCIncrExprsNoExpand1(outL, incr_s),
+  printf(fh, "~%"),
+  flush_output(fh),
+
+  printf(fh, "  return std::abs(alpha0); ~%"),
+  printf(fh, "} ~%"),
+  flush_output(fh)
+    
+)$
+
+genHWsurfKernels(fh, funcNm, dim, basisType, p) := block([],
+  for dir : 1 thru dim do (
+    genHWsurfKernelInDir(dir, fh, funcNm, dim, basisType, p)
+  )
+)$
+

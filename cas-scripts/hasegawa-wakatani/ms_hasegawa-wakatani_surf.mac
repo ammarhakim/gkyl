@@ -1,0 +1,42 @@
+/*
+  Generate the surface kernels for Hasegawa-Wakatani model.
+
+  The functions called in this file are in hw_surfModule.mac.
+*/
+load("hasegawa-wakatani/hw_surfModule")$
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 1$
+
+/* Tensor product basis. */
+maxPolyOrder_Tensor : -1$
+
+/* ...... END OF USER INPUTS........ */
+
+/* To generate other bases, just add corresponding column to arrays below. */
+bName        : ["Ser","Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Tensor]$
+
+/* Generate kernels of selected types. */
+for bInd : 1 thru length(bName) do (
+  c : 2, /* HW is 2D. */
+
+  maxPolyOrderB : maxPolyOrder[bInd],
+
+  for polyOrder : 1 thru maxPolyOrderB do (
+
+    fname : sconcat("~/max-out/hasegawa_wakatani_surf_", c, "x_p", polyOrder, "_", bName[bInd], ".cpp"),
+    disp(printf(false,"Creating surface file: ~a",fname)),
+
+    fh : openw(fname),
+    printf(fh, "#include <hasegawa_wakatani_mod_decl.h>~%"),
+    printf(fh, "~%"),
+
+    funcName : sconcat("hasegawa_wakatani_vol_", c, "x_p", polyOrder, "_", bName[bInd]),
+    genHWsurfKernels(fh, funcName, c, bName[bInd], polyOrder),
+
+    close(fh)
+  )
+)$
