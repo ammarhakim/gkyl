@@ -143,7 +143,7 @@ genHWvolKernel(fh, funcNm, dim, basisType, polyOrder) := block(
     fIn_e : doExpand(fIn_c, basis),
     if mI=2 then (
       /* Add the density gradient term to the density equation. */
-      fIn_e : fIn_e - kappa_*x
+      fIn_e : fIn_e - kappa_*(xc[0]+(dx[0]/2)*x)
     ),
     volTerm_c : calcInnerProdList(vars, 1, alphaSum_e, fIn_e),
 

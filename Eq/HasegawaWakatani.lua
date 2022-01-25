@@ -21,7 +21,7 @@ function HasegawaWakatani:init(tbl)
    -- Fet grid and basis.
    self._grid  = assert(tbl.onGrid, "HasegawaWakatani: must specify a grid")
    self._basis = assert(tbl.basis, "HasegawaWakatani: must specify a basis")
-   self._ndim  = assert(self._grid:ndim()==2, "HasegawaWakatani: grid must be 2D")
+   self._ndim  = self._grid:ndim()
    assert(self._ndim == 2, "Incompressible Euler equations only implemented in 2D")
 
    self.adiabatic_C = assert(tbl.adiabaticity, "HasegawaWakatani: must specify the adiabaticity parameter, C.")

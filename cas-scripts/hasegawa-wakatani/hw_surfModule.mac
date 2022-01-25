@@ -108,9 +108,10 @@ genHWsurfKernelInDir(surfDir, fh, funcNm, dim, basisType, polyOrder) := block(
   fInR_c : makelist(fInR[momOff+k-1],k,1,numB),
   fInL_e : doExpand(fInL_c,basis),
   fInR_e : doExpand(fInR_c,basis),
-  /* Add the density gradient term to the second moment. */
-  fInL_e : fInL_e - (momOff/numB)*kappa_*x,
-  fInR_e : fInR_e - (momOff/numB)*kappa_*x,
+  /* Add the density gradient term to the second moment. Below we assume
+     xc and dx belong to the cell on the right. */
+  fInL_e : fInL_e - (momOff/numB)*kappa_*(xc[0]-(dx[0]/2)),
+  fInR_e : fInR_e - (momOff/numB)*kappa_*(xc[0]-(dx[0]/2)),
 
   /* Calculate velocity alpha in direction of surfVar */
   /* We assume alpha.n is continuous across boundary. */

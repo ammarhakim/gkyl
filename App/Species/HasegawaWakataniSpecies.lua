@@ -23,8 +23,29 @@ function HWSpecies:fullInit(appTbl)
 
    self.nMoments = 2
 
+   self.charge = -1.0   -- To interact with GkField.
+
    self.adiabaticity = assert(self.tbl.adiabaticity, "HasegawaWakataniSpecies: must specify the adiabaticity parameter with 'adiabaticity'.")
    self.gradientScale = assert(self.tbl.gradient, "HasegawaWakataniSpecies: must specify the normalized density gradient length scale (rho_s/L_n) parameter with 'gradient'.")
+end
+
+function HWSpecies:alloc(nRkDup)
+   HWSpecies.super.alloc(self, nRkDup)   -- Call the FluidSpecies :alloc method.
+
+   -- Allocate fields to store separate vorticity and density.
+   self.vorticity = self:allocMoment()
+   self.density   = self:allocMoment()
+
+   -- These may be needed for interfacing with GkField.
+   self.vorticityAux = self:allocMoment()
+   self.densityAux   = self:allocMoment()
+
+   -- Offsets needed to fetch specific moments from CartField
+   -- containing the stepped moments (e.g. with :combineOffset).
+   self.vorticityOff = 0
+   self.densityOff   = 1*self.basis:numBasis()
+   -- Package them into a single table for easier access.
+   self.momOff = {self.vorticityOff,self.densityOff}
 end
 
 function HWSpecies:createSolver(field, externalField)
@@ -46,29 +67,36 @@ function HWSpecies:createSolver(field, externalField)
       basis  = self.basis,  equation = self.equation,
    }
 
-   self.advSolver = function(tCurr, fIn, em, fRhsOut)
-      self.solver:advance(tCurr, {fIn, em}, {fRhsOut})
+   self.advSolver = function(tCurr, momIn, em, momRhsOut)
+      self.solver:advance(tCurr, {momIn, em}, {momRhsOut})
    end
+end
+
+function HWSpecies:getMomOff(momIdx)
+   local offOut = momIdx and self.momOff[momIdx] or self.momOff
+   return offOut
 end
 
 -- Nothing to calculate, just copy.
 function HWSpecies:calcCouplingMomentsEvolve(tCurr, rkIdx)
-   local fIn = self:rkStepperFields()[rkIdx]
-   self.couplingMoments:copy(fIn)
+   local momIn = self:rkStepperFields()[rkIdx]
+
+   self.vorticity:combineOffset(1., momIn, self.vorticityOff)
+   self.density:combineOffset(1., momIn, self.densityOff)
 end
 
 function HWSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    self.tCurr = tCurr
-   local fIn     = self:rkStepperFields()[inIdx]
-   local fRhsOut = self:rkStepperFields()[outIdx]
+   local momIn     = self:rkStepperFields()[inIdx]
+   local momRhsOut = self:rkStepperFields()[outIdx]
 
    -- Clear RHS, because HyperDisCont set up with clearOut = false.
-   fRhsOut:clear(0.0)
+   momRhsOut:clear(0.0)
 
    -- Perform the collision (diffusion) update.
    for _, c in pairs(self.collisions) do
       c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      c:advance(tCurr, fIn, species, fRhsOut)
+      c:advance(tCurr, momIn, species, momRhsOut)
    end
 
    -- Complete the field solve.
@@ -77,22 +105,33 @@ function HWSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       local em = emIn[1]:rkStepperFields()[inIdx]
-      self.advSolver(tCurr, fIn, em, fRhsOut)
+      self.advSolver(tCurr, momIn, em, momRhsOut)
    end
 
-   for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
+   for _, src in pairs(self.sources) do src:advance(tCurr, momIn, species, momRhsOut) end
 end
 
-function HWSpecies:fluidMoments() return { self.couplingMoments } end
+function HWSpecies:fluidMoments()
+   return { self.vorticity, self.density }
+end
 
--- For interfacing with GkField.
+-- For interfacing with GkField, which we use to solve nabla^2_\perp(phi) = vorticity.
 function HWSpecies:getNumDensity(rkIdx)
-   if rkIdx == nil then return self.couplingMoments 
-   else 
-      self.couplingMoments:copy(self:rkStepperFields()[rkIdx])
-      return self.couplingMoments
+   -- If no rkIdx specified, assume numDensity has already been calculated.
+   if rkIdx == nil then
+      return self.vorticity
    end
+
+   local momIn = self:rkStepperFields()[rkIdx]
+
+   local tmStart = Time.clock()
+   self.vorticityAux:combineOffset(1., momIn, self.vorticityOff)
+   self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
+
+   return self.vorticityAux
 end
+
+function HWSpecies:getPolarizationWeight(linearized) return 1.0 end
 
 function HWSpecies:suggestDt()
    return math.min(self.cfl/self.cflRateByCell:reduce('max')[1], GKYL_MAX_DOUBLE)

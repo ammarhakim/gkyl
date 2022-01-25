@@ -1,6 +1,6 @@
 #include <hasegawa_wakatani_mod_decl.h>
 
-double hasegawa_wakatani_vol_2x_p1_Ser_x(const double C_, const double kappa_, const double cflL, const double cflR, const double *xc, const double *dx, const double amax_in, const double *phi, const double *fInL, const double *fInR, double *outL, double *outR) 
+double hasegawa_wakatani_surf_2x_p1_Ser_x(const double C_, const double kappa_, const double cflL, const double cflR, const double *xc, const double *dx, const double amax_in, const double *phi, const double *fInL, const double *fInR, double *outL, double *outR) 
 { 
   // C_: adiabaticity parameter (T_e*kpar^2/(e^2*n_0*eta*omega_ci)).
   // kappa_: normalized density gradient (rho_s/L_n).
@@ -23,10 +23,10 @@ double hasegawa_wakatani_vol_2x_p1_Ser_x(const double C_, const double kappa_, c
   double fupwindQuad[4];
   alphaQuad = 0.7071067811865475*alpha[0]; 
   fupwindQuad[0] = 0.5*(((-0.8660254037844386*(fInR[3]+fInL[3]))+0.5*fInR[2]-0.5*fInL[2]+0.8660254037844386*(fInR[1]+fInL[1])-0.5*fInR[0]+0.5*fInL[0])*sgn(alphaQuad)+0.8660254037844386*fInR[3]-0.8660254037844386*fInL[3]-0.5*(fInR[2]+fInL[2])-0.8660254037844386*fInR[1]+0.8660254037844386*fInL[1]+0.5*(fInR[0]+fInL[0])); 
-  fupwindQuad[2] = 0.5*(sgn(alphaQuad)*((-2.0*kappa_)-0.8660254037844386*(fInR[7]+fInL[7])+0.5*fInR[6]-0.5*fInL[6]+0.8660254037844386*(fInR[5]+fInL[5])-0.5*fInR[4]+0.5*fInL[4])+0.8660254037844386*fInR[7]-0.8660254037844386*fInL[7]-0.5*(fInR[6]+fInL[6])-0.8660254037844386*fInR[5]+0.8660254037844386*fInL[5]+0.5*(fInR[4]+fInL[4])); 
+  fupwindQuad[2] = 0.5*((-2.0*(xc[0]-0.5*dx[0])*kappa_)+((-0.8660254037844386*(fInR[7]+fInL[7]))+0.5*fInR[6]-0.5*fInL[6]+0.8660254037844386*(fInR[5]+fInL[5])-0.5*fInR[4]+0.5*fInL[4])*sgn(alphaQuad)+0.8660254037844386*fInR[7]-0.8660254037844386*fInL[7]-0.5*(fInR[6]+fInL[6])-0.8660254037844386*fInR[5]+0.8660254037844386*fInL[5]+0.5*(fInR[4]+fInL[4])); 
   alphaQuad = 0.7071067811865475*alpha[0]; 
   fupwindQuad[1] = 0.5*((0.8660254037844386*(fInR[3]+fInL[3])-0.5*fInR[2]+0.5*fInL[2]+0.8660254037844386*(fInR[1]+fInL[1])-0.5*fInR[0]+0.5*fInL[0])*sgn(alphaQuad)-0.8660254037844386*fInR[3]+0.8660254037844386*fInL[3]+0.5*(fInR[2]+fInL[2])-0.8660254037844386*fInR[1]+0.8660254037844386*fInL[1]+0.5*(fInR[0]+fInL[0])); 
-  fupwindQuad[3] = 0.5*(sgn(alphaQuad)*((-2.0*kappa_)+0.8660254037844386*(fInR[7]+fInL[7])-0.5*fInR[6]+0.5*fInL[6]+0.8660254037844386*(fInR[5]+fInL[5])-0.5*fInR[4]+0.5*fInL[4])-0.8660254037844386*fInR[7]+0.8660254037844386*fInL[7]+0.5*(fInR[6]+fInL[6])-0.8660254037844386*fInR[5]+0.8660254037844386*fInL[5]+0.5*(fInR[4]+fInL[4])); 
+  fupwindQuad[3] = 0.5*((-2.0*(xc[0]-0.5*dx[0])*kappa_)+(0.8660254037844386*(fInR[7]+fInL[7])-0.5*fInR[6]+0.5*fInL[6]+0.8660254037844386*(fInR[5]+fInL[5])-0.5*fInR[4]+0.5*fInL[4])*sgn(alphaQuad)-0.8660254037844386*fInR[7]+0.8660254037844386*fInL[7]+0.5*(fInR[6]+fInL[6])-0.8660254037844386*fInR[5]+0.8660254037844386*fInL[5]+0.5*(fInR[4]+fInL[4])); 
 
   double fupwind[4];
   fupwind[0] = 0.7071067811865475*(fupwindQuad[1]+fupwindQuad[0]);
@@ -64,7 +64,7 @@ double hasegawa_wakatani_vol_2x_p1_Ser_x(const double C_, const double kappa_, c
 
   return std::abs(alpha0); 
 } 
-double hasegawa_wakatani_vol_2x_p1_Ser_y(const double C_, const double kappa_, const double cflL, const double cflR, const double *xc, const double *dx, const double amax_in, const double *phi, const double *fInL, const double *fInR, double *outL, double *outR) 
+double hasegawa_wakatani_surf_2x_p1_Ser_y(const double C_, const double kappa_, const double cflL, const double cflR, const double *xc, const double *dx, const double amax_in, const double *phi, const double *fInL, const double *fInR, double *outL, double *outR) 
 { 
   // C_: adiabaticity parameter (T_e*kpar^2/(e^2*n_0*eta*omega_ci)).
   // kappa_: normalized density gradient (rho_s/L_n).
@@ -87,10 +87,10 @@ double hasegawa_wakatani_vol_2x_p1_Ser_y(const double C_, const double kappa_, c
   double fupwindQuad[4];
   alphaQuad = 0.7071067811865475*alpha[0]; 
   fupwindQuad[0] = 0.5*(((-0.8660254037844386*(fInR[3]+fInL[3]))+0.8660254037844386*(fInR[2]+fInL[2])+0.5*fInR[1]-0.5*(fInL[1]+fInR[0])+0.5*fInL[0])*sgn(alphaQuad)+0.8660254037844386*fInR[3]-0.8660254037844386*(fInL[3]+fInR[2])+0.8660254037844386*fInL[2]-0.5*(fInR[1]+fInL[1])+0.5*(fInR[0]+fInL[0])); 
-  fupwindQuad[2] = 0.5*(1.154700538379252*kappa_+((-0.8660254037844386*(fInR[7]+fInL[7]))+0.8660254037844386*(fInR[6]+fInL[6])+0.5*fInR[5]-0.5*(fInL[5]+fInR[4])+0.5*fInL[4])*sgn(alphaQuad)+0.8660254037844386*fInR[7]-0.8660254037844386*(fInL[7]+fInR[6])+0.8660254037844386*fInL[6]-0.5*(fInR[5]+fInL[5])+0.5*(fInR[4]+fInL[4])); 
+  fupwindQuad[2] = 0.5*((-2.0*(xc[0]-0.5*dx[0])*kappa_)+((-0.8660254037844386*(fInR[7]+fInL[7]))+0.8660254037844386*(fInR[6]+fInL[6])+0.5*fInR[5]-0.5*(fInL[5]+fInR[4])+0.5*fInL[4])*sgn(alphaQuad)+0.8660254037844386*fInR[7]-0.8660254037844386*(fInL[7]+fInR[6])+0.8660254037844386*fInL[6]-0.5*(fInR[5]+fInL[5])+0.5*(fInR[4]+fInL[4])); 
   alphaQuad = 0.7071067811865475*alpha[0]; 
   fupwindQuad[1] = 0.5*((0.8660254037844386*(fInR[3]+fInL[3]+fInR[2]+fInL[2])-0.5*(fInR[1]+fInR[0])+0.5*(fInL[1]+fInL[0]))*sgn(alphaQuad)-0.8660254037844386*(fInR[3]+fInR[2])+0.8660254037844386*(fInL[3]+fInL[2])+0.5*(fInR[1]+fInL[1]+fInR[0]+fInL[0])); 
-  fupwindQuad[3] = 0.5*((-1.154700538379252*kappa_)+(0.8660254037844386*(fInR[7]+fInL[7]+fInR[6]+fInL[6])-0.5*(fInR[5]+fInR[4])+0.5*(fInL[5]+fInL[4]))*sgn(alphaQuad)-0.8660254037844386*(fInR[7]+fInR[6])+0.8660254037844386*(fInL[7]+fInL[6])+0.5*(fInR[5]+fInL[5]+fInR[4]+fInL[4])); 
+  fupwindQuad[3] = 0.5*((-2.0*(xc[0]-0.5*dx[0])*kappa_)+(0.8660254037844386*(fInR[7]+fInL[7]+fInR[6]+fInL[6])-0.5*(fInR[5]+fInR[4])+0.5*(fInL[5]+fInL[4]))*sgn(alphaQuad)-0.8660254037844386*(fInR[7]+fInR[6])+0.8660254037844386*(fInL[7]+fInL[6])+0.5*(fInR[5]+fInL[5]+fInR[4]+fInL[4])); 
 
   double fupwind[4];
   fupwind[0] = 0.7071067811865475*(fupwindQuad[1]+fupwindQuad[0]);

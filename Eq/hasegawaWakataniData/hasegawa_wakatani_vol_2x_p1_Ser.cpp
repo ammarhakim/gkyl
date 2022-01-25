@@ -49,9 +49,9 @@ double hasegawa_wakatani_vol_2x_p1_Ser(const double C_, const double kappa_, con
   out[3] += -0.5*((2.0*fIn[7]-2.0*phi[3])*C_-1.732050807568877*((alpha_y[2]+alpha_x[1])*fIn[3]+alpha_x[0]*fIn[2]+alpha_y[0]*fIn[1])); 
 
   out[4] += -1.0*(fIn[4]-1.0*phi[0])*C_; 
-  out[5] += -0.5*(2.0*alpha_x[1]*kappa_+(2.0*fIn[5]-2.0*phi[1])*C_-1.732050807568877*(alpha_x[1]*fIn[5]+alpha_x[0]*fIn[4])); 
-  out[6] += -0.5*((2.0*fIn[6]-2.0*phi[2])*C_-1.732050807568877*(alpha_y[2]*fIn[6]+alpha_y[0]*fIn[4])); 
-  out[7] += -0.5*(2.0*alpha_y[0]*kappa_+(2.0*fIn[7]-2.0*phi[3])*C_-1.732050807568877*((alpha_y[2]+alpha_x[1])*fIn[7]+alpha_x[0]*fIn[6]+alpha_y[0]*fIn[5])); 
+  out[5] += -0.5*((dx[0]*alpha_x[1]+3.464101615137754*alpha_x[0]*xc[0])*kappa_+(2.0*fIn[5]-2.0*phi[1])*C_-1.732050807568877*(alpha_x[1]*fIn[5]+alpha_x[0]*fIn[4])); 
+  out[6] += -0.5*(3.464101615137754*alpha_y[0]*xc[0]*kappa_+(2.0*fIn[6]-2.0*phi[2])*C_-1.732050807568877*(alpha_y[2]*fIn[6]+alpha_y[0]*fIn[4])); 
+  out[7] += -0.5*(alpha_y[0]*dx[0]*kappa_+(2.0*fIn[7]-2.0*phi[3])*C_-1.732050807568877*((alpha_y[2]+alpha_x[1])*fIn[7]+alpha_x[0]*fIn[6]+alpha_y[0]*fIn[5])); 
 
   return cflFreq; 
 } 
