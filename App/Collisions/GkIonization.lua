@@ -57,7 +57,12 @@ function GkIonization:fullInit(speciesTbl)
    self.plasma      = tbl.plasma
    self.mass        = tbl.elcMass
    self.charge      = tbl.elemCharge
-   self.reactRate   = tbl.voronovReactRate
+   if tbl.voronovReactRate then
+      self.constIz = true
+      self.reactRate   = tbl.voronovReactRate
+   else
+      self.constIz = false
+   end
 
    if self.plasma == "H" then
       self._E = 13.6
@@ -193,7 +198,6 @@ end
 
 function GkIonization:advance(tCurr, fIn, species, fRhsOut)
    local tmNonSlvrStart = Time.clock()
-   local coefIz = self.reactRate --species[self.elcNm].voronovReactRate --:getVoronovReactRate()
    local elcM0  = species[self.elcNm]:fluidMoments()[1]
    
    -- Check whether particle is electron, neutral or ion species.
@@ -205,12 +209,13 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       
       self.sumDistF:combine(2.0,fMaxwellIz,-1.0,elcDistF)
 
-      self.coefM0:copy(self.m0elc)
-      self.coefM0:scale(coefIz)
-      --self.confMult:advance(tCurr, {coefIz, neutM0}, {self.coefM0})
-      self.confPhaseMult:advance(tCurr, {self.coefM0, self.sumDistF}, {self.ionizSrc})
-      -- Uncomment to test without fMaxwellian(Tiz)
-      --self.confPhaseMult:advance(tCurr, {self.coefM0, elcDistF}, {self.ionizSrc})      
+      if self.constIz then
+	 self.coefM0:copy(neutM0)
+	 self.coefM0:scale(self.reactRate)
+      else
+	 self.confMult:advance(tCurr, {species[self.elcNm].voronovReactRate, neutM0}, {self.coefM0})
+      end
+      self.confPhaseMult:advance(tCurr, {self.coefM0, elcDistF}, {self.ionizSrc})      
 
       fRhsOut:accumulate(1.0,self.ionizSrc)
    elseif (species[self.speciesName].charge == 0) then
@@ -219,12 +224,15 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       self.m0elc:copy(elcM0)
 
       -- for constant react rate
-      self.coefM0:copy(self.m0elc)
-      self.coefM0:scale(coefIz)
-      --self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
+      if self.constIz then
+	 self.coefM0:copy(self.m0elc)
+	 self.coefM0:scale(self.reactRate)
+      else
+	 self.confMult:advance(tCurr, {species[self.elcNm].voronovReactRate, self.m0elc}, {self.coefM0})
+      end
       self.confPhaseMult:advance(tCurr, {self.coefM0, neutDistF}, {self.ionizSrc})
 
-      fRhsOut:accumulate(-1.0,self.ionizSrc)  
+      fRhsOut:accumulate(-1.0,self.ionizSrc)
    else
       -- Ions. 
       self.m0elc:copy(elcM0)
@@ -233,9 +241,12 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       local neutVtSq = species[self.neutNm]:selfPrimitiveMoments()[2]
       -- Include only z-component of neutU.
 
-      self.coefM0:copy(self.m0elc)
-      self.coefM0:scale(coefIz)
-      -- self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
+      if self.constIz then
+	 self.coefM0:copy(self.m0elc)
+	 self.coefM0:scale(self.reactRate)
+      else
+	 self.confMult:advance(tCurr, {species[self.elcNm].voronovReactRate, self.m0elc}, {self.coefM0})
+      end
       species[self.speciesName].calcMaxwell:advance(tCurr,
          {neutM0, neutU, neutVtSq, species[self.speciesName].bmag}, {self.fMaxNeut})
       self.confPhaseMult:advance(tCurr, {self.coefM0, self.fMaxNeut}, {self.ionizSrc})
