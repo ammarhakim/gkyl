@@ -47,9 +47,9 @@ for bInd : 1 thru length(bName) do (
 
       for polyOrder : 1 thru maxPolyOrderB do (
         disp(printf(false,sconcat("Creating surface VlasovGenGeo",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
-        fname : sconcat("~/max-out/VlasovSurf", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
+        fname : sconcat("~/max-out/VlasovGenGeoSurf", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
         fh : openw(fname),
-        funcName : sconcat("VlasovSurf", c, "x", v, "v", bName[bInd]),
+        funcName : sconcat("VlasovGenGeoSurf", c, "x", v, "v", bName[bInd]),
 
 	for dir : 1 thru c do (
           calcVlasovGenGeoSurfUpdater(dir, fh, funcName, c, v, bName[bInd], polyOrder)
