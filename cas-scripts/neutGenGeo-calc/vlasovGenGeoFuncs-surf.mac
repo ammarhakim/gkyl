@@ -67,7 +67,6 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
   fR_e : doExpand1(fr, bP),
   alphaGeo_e : doExpand1(alphaFld[dir], bP),
 
-  printf(fh, "~%"),
   /* Ghat is the projection of fL onto the surface basis (if v>0)
      or the projection of fR onto the surface basis (if v<0) */
   printf(fh, "  double Ghat[~a]; ~%", length(bSurf)),
