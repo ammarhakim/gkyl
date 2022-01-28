@@ -67,6 +67,10 @@ function Vlasov:init(tbl)
 	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._genGeoSurfUpdate = VlasovModDecl.selectGenGeoSurf(
 	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+
+      -- Calculate alpha here
+      -- Define geometric quantities
+      
    end
 
    -- Check if we have an electric and magnetic field.
@@ -180,8 +184,9 @@ function Vlasov:volTerm(w, dx, idx, q, out)
          cflFreq = self._volUpdate(w:data(), dx:data(), self._qbym, self._phiPtr:data(), self._emPtr:data(), q:data(), out:data())
       end
    elseif self._isGenGeo then
+      self._alphaGeo(self._alphaIdxr(idx), self._alphaPtr)  -- Get pointer to alphaGeo field.
       -- Update gen geo volume streaming term here
-      cflFreq = self._volUpdate(w:data(), dx:data(), alphaGeo:data(), q:data(), out:data())
+      cflFreq = self._volUpdate(w:data(), dx:data(), self._alphaPtr:data(), q:data(), out:data())
    else
       -- If no force, only update streaming term.
       cflFreq = self._volUpdate(w:data(), dx:data(), q:data(), out:data())
@@ -199,9 +204,10 @@ function Vlasov:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql
            wl:data(), wr:data(), dxl:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
    elseif self._isGenGeo then
+      self._alphaGeo(self._alphaIdxr(idx), self._alphaPtr) -- Get pointer to alphaGeo field.
       -- Update gen geo surface terms here
       self._genGeoSurfUpdate[dir](
-	 wl:data(), wr:data(), dxl:data(), dxr:data(), alphaGeo:data(), ql:data(), qr:data(), outl:data(), outr:data())
+	 wl:data(), wr:data(), dxl:data(), dxr:data(), self._alphaPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
    else
       if self._hasForceTerm then
 	 -- Force term.
@@ -211,7 +217,7 @@ function Vlasov:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql
 	       wl:data(), wr:data(), dxl:data(), dxr:data(), maxs,
 	       self._emPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
          else
-	   self._phiField:fill(self._phiIdxr(idxl), self._phiPtr)   -- Get pointer to the electrostatic potential.
+	    self._phiField:fill(self._phiIdxr(idxl), self._phiPtr)   -- Get pointer to the electrostatic potential.
 	    amax = self._surfForceUpdate[dir-self._cdim](
 	       wl:data(), wr:data(), dxl:data(), dxr:data(), maxs, self._qbym, self._phiPtr:data(),
 	       self._emPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
@@ -235,9 +241,6 @@ function Vlasov:setAuxFields(auxFields)
          end
          self._isFirst = false   -- No longer first time.
       end
-   elseif self._isGenGeo and self._isFirst then
-      -- calculate gen geo alpha here
-      self._isFirst = false
    end
 end
 
