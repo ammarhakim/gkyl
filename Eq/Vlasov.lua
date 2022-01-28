@@ -60,6 +60,15 @@ function Vlasov:init(tbl)
    self._surfStreamUpdate = VlasovModDecl.selectSurfStream(
       self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
 
+   if self._isGenGeo then
+      self._calcAlpha = VlasovModDecl.selectGenGeoAplpha(
+	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._genGeoVolUpdate = VlasovModDecl.selectGenGeoVol(
+	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._genGeoSurfUpdate = VlasovModDecl.selectGenGeoSurf(
+	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+   end
+
    -- Check if we have an electric and magnetic field.
    local hasElcField    = xsys.pickBool(tbl.hasElectricField, true)
    local hasMagField    = xsys.pickBool(tbl.hasMagneticField, true)
@@ -170,6 +179,9 @@ function Vlasov:volTerm(w, dx, idx, q, out)
          self._phiField:fill(self._phiIdxr(idx), self._phiPtr)   -- Get pointer to the electrostatic potential.
          cflFreq = self._volUpdate(w:data(), dx:data(), self._qbym, self._phiPtr:data(), self._emPtr:data(), q:data(), out:data())
       end
+   elseif self._isGenGeo then
+      -- Update gen geo volume streaming term here
+      cflFreq = self._volUpdate(w:data(), dx:data(), alphaGeo:data(), q:data(), out:data())
    else
       -- If no force, only update streaming term.
       cflFreq = self._volUpdate(w:data(), dx:data(), q:data(), out:data())
@@ -186,6 +198,10 @@ function Vlasov:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql
          self._surfStreamUpdate[dir](
            wl:data(), wr:data(), dxl:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
+   elseif self._isGenGeo then
+      -- Update gen geo surface terms here
+      self._genGeoSurfUpdate[dir](
+	 wl:data(), wr:data(), dxl:data(), dxr:data(), alphaGeo:data(), ql:data(), qr:data(), outl:data(), outr:data())
    else
       if self._hasForceTerm then
 	 -- Force term.
@@ -219,6 +235,9 @@ function Vlasov:setAuxFields(auxFields)
          end
          self._isFirst = false   -- No longer first time.
       end
+   elseif self._isGenGeo and self._isFirst then
+      -- calculate gen geo alpha here
+      self._isFirst = false
    end
 end
 

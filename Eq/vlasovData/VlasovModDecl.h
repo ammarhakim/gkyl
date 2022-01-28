@@ -274,7 +274,12 @@ __host__ __device__ double VlasovVolForce2x3vSerP2(const double *w, const double
 __host__ __device__ double VlasovVolStream3x3vSerP1(const double *w, const double *dxv, const double *f, double *out); 
 __host__ __device__ void VlasovSurfStream3x3vSer_X_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr); 
 __host__ __device__ void VlasovSurfStream3x3vSer_Y_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr); 
-__host__ __device__ void VlasovSurfStream3x3vSer_Z_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr); 
+__host__ __device__ void VlasovSurfStream3x3vSer_Z_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr);
+__host__ __device__ void VlasovGenGeoAlphaSer3x3vP1(const double *w, const double *dxv, const double *tvComp, double const *gxx, double const *gxy, double const *gxz, double const *gyz, double const *gzz, const double *jacobGeo, const double *f, double *alphaGeo);
+__host__ __device__ double VlasovGenGeoVol3x3vSerP1(const double *w, const double *dxv, const double *alphaGeo, const double *f, double *out);
+__host__ __device__ void VlasovGenGeoSurf3x3vSer_X_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *alphaGeo, const double *fl, const double *fr, double *outl, double *outr);
+__host__ __device__ void VlasovGenGeoSurf3x3vSer_Y_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *alphaGeo, const double *fl, const double *fr, double *outl, double *outr);
+__host__ __device__ void VlasovGenGeoSurf3x3vSer_Z_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *alphaGeo, const double *fl, const double *fr, double *outl, double *outr);
 __host__ __device__ double VlasovVol3x3vSerP1(const double *w, const double *dxv, const double *EM, const double *f, double *out); 
 __host__ __device__ double VlasovSurfElcMag3x3vSer_VX_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr); 
 __host__ __device__ double VlasovRecoverySurfElcMag3x3vSer_VX_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr); 

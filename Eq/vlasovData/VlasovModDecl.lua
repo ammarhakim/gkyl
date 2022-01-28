@@ -51,6 +51,47 @@ function _M.selectSurfStream(basisNm, CDIM, VDIM, polyOrder)
    return kernels
 end
 
+-- Select function to compute gen geo alpha for streaming terms.
+function _M.selectGenGeoAlpha(basisNm, CDIM, VDIM, polyOrder)
+   local funcType = "double"
+   local funcNm = string.format("VlasovGenGeoAlpha%dx%dv%sP%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   local funcSign = "(const double *w, const double *dxv, const double *tvComp, double const *gxx, double const *gxy, double const *gxz, double const *gyz, double const *gzz, const double *jacobGeo, const double *f, double *alphaGeo)"
+
+   ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
+   return ffi.C[funcNm]
+end
+
+-- Select function to compute gen geo volume streaming terms.
+function _M.selectGenGeoVol(basisNm, CDIM, VDIM, polyOrder)
+   local funcType = "double"
+   local funcNm = string.format("VlasovGenGeoVol%dx%dv%sP%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   local funcSign = "(const double *w, const double *dxv, const double *alphaGeo, const double *f, double *out)"
+
+   ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
+   return ffi.C[funcNm]
+end
+
+-- Select functions to compute gen geo surface streaming terms (output is a table of functions).
+function _M.selectGenGeoSurf(basisNm, CDIM, VDIM, polyOrder)
+   local funcType = "double"
+   local funcNm = {}
+   for d = 1, CDIM do
+      funcNm[d] = string.format("VlasovGenGeoSurf%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], cvars[d], polyOrder)
+   end
+   local funcSign = "(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *alphaGeo, const double *fl, const double *fr, double *outl, double *outr)"
+
+   local CDefStr = ""
+   for d = 1, CDIM do CDefStr = CDefStr .. (funcType .. " " .. funcNm[d] .. funcSign .. ";\n") end
+   ffi.cdef(CDefStr)
+
+   local kernels = {}
+   for d = 1, CDIM do
+      local tmp = ffi.C[funcNm[d]]
+      kernels[d] = tmp
+   end
+   return kernels
+end
+
 -- Select function to compute total volume (streaming + EM field acceleration) term.
 function _M.selectVolElcMag(basisNm, CDIM, VDIM, polyOrder)
    local funcType = "double"
