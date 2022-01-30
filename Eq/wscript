@@ -12,6 +12,7 @@ def build(bld):
     hasegawaWakataniData/hasegawa_wakatani_vol_2x_p1_Ser.cpp
     hasegawaWakataniData/hasegawa_wakatani_vol_2x_p2_Ser.cpp
     hasegawaWakataniData/hasegawa_wakatani_surf_2x_p1_Ser.cpp
+    hasegawaWakataniData/hasegawa_wakatani_surf_2x_p2_Ser.cpp
 
     incompEulerData/IncompEulerSer2xP1.cpp
     incompEulerData/IncompEulerSer2xP2.cpp

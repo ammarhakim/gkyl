@@ -8,7 +8,7 @@ load("hasegawa-wakatani/hw_surfModule")$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 1$
+maxPolyOrder_Ser : 2$
 
 /* Tensor product basis. */
 maxPolyOrder_Tensor : -1$

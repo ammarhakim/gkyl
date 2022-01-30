@@ -6,6 +6,7 @@ load("modal-basis")$
 load("out-scripts")$
 load(stringproc)$
 load("nodalOperations/nodalFunctions")$
+load("nodalOperations/quadratureFuncs")$
 load("scifac")$
 fpprec : 24$
 
@@ -53,7 +54,7 @@ basisFromVars(basisType, varsIn, pIn) := block(
 genHWsurfKernelInDir(surfDir, fh, funcNm, dim, basisType, polyOrder) := block(
   [basis,vars,numB,surfVar,surfIntVars,derivFac,rdx2Surf,xcSurf,surFac,d,phi_e,H_e,fInL_c,fInR_c,fInL_e,fInR_e,
    alpha_e,alphaUp_e,bSurf,numBSurf,alphaSurfAvg_c,alphaSurfAvg_e,alphaSurfAvg_s,alpha_c,alphaNoZero_c,
-   alphaSurf_e,alphaUpSurf_e,surfNodes,numNodescc,fInL_n,fInR_n,alpha_n,fup_n,i,nodToMod,fupwind_c,fhatSurf_e,
+   alphaSurf_e,alphaUpSurf_e,surfNodes,numNodescc,fInL_n,fInR_n,alpha_n,fup_n,i,nodToMod,fupwind_c,fHatSurf_e,
    t,incr_r,incr_s,incr_l,signs],
   /* Generate surface kernel in surfDir direction for Hasegawa-Wakatani model. */
 
@@ -144,9 +145,8 @@ genHWsurfKernelInDir(surfDir, fh, funcNm, dim, basisType, polyOrder) := block(
   alphaUpSurf_e : alphaSurf_e,
 
   /* Get quadrature nodes on surface. */
-  surfNodes : getNodes(basisType, dim-1, polyOrder),
+  [surfNodes, weights] : gaussOrdWeight(polyOrder+1,dim-1),
   numNodes : length(surfNodes),
-  if polyOrder=1 then (surfNodes:surfNodes*(1/sqrt(3))) elseif polyOrder=2 then (surfNodes:surfNodes*sqrt(3/5)),
 
   /* Note: alphaSurf_e is already a surface expansion. */
   alpha_n : gcfac(float(evAtNodes(alphaUpSurf_e,surfNodes,surfIntVars))),
@@ -160,36 +160,37 @@ genHWsurfKernelInDir(surfDir, fh, funcNm, dim, basisType, polyOrder) := block(
   ),
 
   printf(fh, "  double alphaQuad;~%"),
-  printf(fh, "  double fupwindQuad[~a];~%", numBSurf*numMoments),
+  printf(fh, "  double fUpwindQuad[~a];~%", numBSurf*numMoments),
   for i : 1 thru numNodes do (
     printf(fh, "  alphaQuad = ~a; ~%", alpha_n[i]),
     for mI : 1 thru numMoments do (
-      printf(fh, "  fupwindQuad[~a] = ~a; ~%", (mI-1)*numNodes+i-1, fup_n[(mI-1)*numNodes+i])
+      printf(fh, "  fUpwindQuad[~a] = ~a; ~%", (mI-1)*numNodes+i-1, fup_n[(mI-1)*numNodes+i])
     )
   ),
   printf(fh, "~%"),
   flush_output(fh),
 
   /* Get modal surface expansion from nodal quadrature points. */
-  nodToMod : calcNodToModWithNodes(basisType, dim-1, polyOrder, surfNodes),
-  printf(fh, "  double fupwind[~a];~%", numBSurf*numMoments),
+  basisNodal : getVarsNodalBasisWithNodes("Tensor", dim-1, polyOrder, surfIntVars, surfNodes),
+
+  printf(fh, "  double fUpwind[~a];~%", numBSurf*numMoments),
   for mI : 1 thru numMoments do (
-    fupwind_c : gcfac(fullratsimp(nodToMod . makelist(fupwindQuad[(mI-1)*numNodes+i-1],i,1,numNodes))),
-    fupwind_c : makelist(fupwind_c[i][1],i,1,numNodes),
-    /* Write coefficients of modal surface expansion fupwind. */
+    fUpwindNodal_e : sum(fUpwindQuad[(mI-1)*numNodes+i-1]*basisNodal[i], i, 1, numNodes),
+    fUpwindNodal_c : factorsum(fullratsimp(calcInnerProdList(surfIntVars, 1, bSurf, fUpwindNodal_e))),
+    /* Write coefficients of modal surface expansion fUpwind. */
     for k : 1 thru numNodes do (
-      printf(fh, "  fupwind[~a] = ~a;~%",(mI-1)*numNodes+k-1,float(fupwind_c[k]))
+      printf(fh, "  fUpwind[~a] = ~a;~%",(mI-1)*numNodes+k-1,float(fUpwindNodal_c[k]))
     )
   ),
   printf(fh, "~%"),
   flush_output(fh),
 
-  fupwind_c : makelist(fupwind[momOff+k-1],k,1,numBSurf),
-  fhatSurf_e : doExpand(fupwind_c, bSurf),
+  fUpwind_c  : makelist(fUpwind[momOff+k-1],k,1,numBSurf),
+  fHatSurf_e : doExpand(fUpwind_c, bSurf),
 
   incr_r : [],
   for mI : 1 thru numMoments do (
-    t : surFac*calcInnerProdList(surfIntVars, alphaSurf_e, subst(surfVar=-1, basis), subst(momOff=(mI-1)*numBSurf,fhatSurf_e)),
+    t : surFac*calcInnerProdList(surfIntVars, alphaSurf_e, subst(surfVar=-1, basis), subst(momOff=(mI-1)*numBSurf,fHatSurf_e)),
     incr_r : append(incr_r,facsum(fullratsimp(t),dx))
   ),
   printf(fh, "  double incr[~a]; ~%", numB*numMoments),
@@ -204,7 +205,7 @@ genHWsurfKernelInDir(surfDir, fh, funcNm, dim, basisType, polyOrder) := block(
 
   incr_l : [],
   for mI : 1 thru numMoments do (
-    t : surFac*calcInnerProdList(surfIntVars, alphaSurf_e, subst(surfVar=1, basis), subst(momOff=(mI-1)*numBSurf,fhatSurf_e)),
+    t : surFac*calcInnerProdList(surfIntVars, alphaSurf_e, subst(surfVar=1, basis), subst(momOff=(mI-1)*numBSurf,fHatSurf_e)),
     incr_l : append(incr_l,-t)
   ),
   signs  : fullratsimp(incr_l/incr_r),
