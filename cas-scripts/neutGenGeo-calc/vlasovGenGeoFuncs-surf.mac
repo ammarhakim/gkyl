@@ -10,7 +10,7 @@ varsV : [vx, vy, vz]$
 cvars : [X, Y, Z]$
 vvars : [VX, VY, VZ]$
 
-alphaFld : [alpha0, alpha1, alpha2]$
+alphaFld : [ag0, ag1, ag2]$
 
 cidx(cdim)      := makelist(i,i,0,cdim-1)$
 vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
@@ -40,7 +40,7 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
 
   printf(fh, "~%"),
 
-  printf(fh, "  const double *alpha~a = &alphaGeo[~a]; ~%", dir-1, NC*(dir-1)),
+  printf(fh, "  const double *ag~a = &alphaGeo[~a]; ~%", dir-1, NC*(dir-1)),
 
   printf(fh, "~%"),
 
@@ -69,6 +69,7 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
 
   /* Ghat is the projection of fL onto the surface basis (if v>0)
      or the projection of fR onto the surface basis (if v<0) */
+  printf(fh, "  double alpha[~a]; ~%", length(bSurf)),	
   printf(fh, "  double Ghat[~a]; ~%", length(bSurf)),
   printf(fh, "~%"),
 

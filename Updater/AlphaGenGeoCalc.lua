@@ -60,8 +60,6 @@ function AlphaGenGeoCalc:_advance(tCurr, inFld, outFld)
    local tmEvalMomStart = Time.clock()
    local confGrid = self._confGrid
    local phaseGrid = self._phaseGrid
-   local numConfBasis = self._confBasis:numBasis()
-   local numPhaseBasis = self._phaseBasis:numBasis()
    local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
 
    local tvComp = assert(inFld[1], "AlphaGenGo.advance: Must specify tangent vector components as input[1]")
@@ -112,15 +110,15 @@ function AlphaGenGeoCalc:_advance(tCurr, inFld, outFld)
       for vIdx in velRange:rowMajorIter() do
 	 cIdx:copyInto(self.idx)
 	 for d = 1, vDim do self.idx[cDim+d] = vIdx[d] end
-
-	 tvComp:fill(phaseIndexer(self.idx), tvCompItr)
-	 alphaGeo:fill(phaseIndexer(self.idx), alphaItr)
-
+	 
 	 -- Get cell shape, cell center coordinates
          phaseGrid:setIndex(self.idx)
 	 phaseGrid:getDx(self.dx)
 	 phaseGrid:cellCenter(self.xc)
-      
+
+	 tvComp:fill(phaseIndexer(self.idx), tvCompItr)
+	 alphaGeo:fill(phaseIndexer(self.idx), alphaItr)
+	 
 	 self._calcAlphaGenGeo(self.xc:data(), self.dx:data(), tvCompItr:data(), gxxItr:data(), gxyItr:data(), gxzItr:data(), gyyItr:data(), gyzItr:data(), gzzItr:data(), jacGeoItr:data(), alphaItr:data())
       end     
    end

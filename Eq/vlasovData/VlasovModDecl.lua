@@ -51,16 +51,6 @@ function _M.selectSurfStream(basisNm, CDIM, VDIM, polyOrder)
    return kernels
 end
 
--- Select function to compute gen geo alpha for streaming terms.
-function _M.selectGenGeoAlpha(basisNm, CDIM, VDIM, polyOrder)
-   local funcType = "double"
-   local funcNm = string.format("VlasovGenGeoAlpha%dx%dv%sP%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-   local funcSign = "(const double *w, const double *dxv, const double *tvComp, double const *gxx, double const *gxy, double const *gxz, double const *gyz, double const *gzz, const double *jacobGeo, const double *f, double *alphaGeo)"
-
-   ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
-   return ffi.C[funcNm]
-end
-
 -- Select function to compute gen geo volume streaming terms.
 function _M.selectGenGeoVol(basisNm, CDIM, VDIM, polyOrder)
    local funcType = "double"

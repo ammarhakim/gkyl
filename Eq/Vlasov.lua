@@ -60,14 +60,6 @@ function Vlasov:init(tbl)
    self._surfStreamUpdate = VlasovModDecl.selectSurfStream(
       self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
 
-   if self._isGenGeo then
-      self._genGeoVolUpdate = VlasovModDecl.selectGenGeoVol(
-	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      self._genGeoSurfUpdate = VlasovModDecl.selectGenGeoSurf(
-	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      -- How to pass alpha to Vlasov?
-   end
-
    -- Check if we have an electric and magnetic field.
    local hasElcField    = xsys.pickBool(tbl.hasElectricField, true)
    local hasMagField    = xsys.pickBool(tbl.hasMagneticField, true)
@@ -120,6 +112,7 @@ function Vlasov:init(tbl)
 
    -- Flag to indicate if we are being called for first time.
    self._isFirst = true
+   self._isGenGeo = false
 end
 
 function Vlasov:initDevice(tbl)
@@ -179,9 +172,10 @@ function Vlasov:volTerm(w, dx, idx, q, out)
          cflFreq = self._volUpdate(w:data(), dx:data(), self._qbym, self._phiPtr:data(), self._emPtr:data(), q:data(), out:data())
       end
    elseif self._isGenGeo then
-      self._alphaGeo(self._alphaIdxr(idx), self._alphaPtr)  -- Get pointer to alphaGeo field.
+      self._alphaGeo:fill(self._alphaIdxr(idx), self._alphaPtr)  -- Get pointer to alphaGeo field.
       -- Update gen geo volume streaming term here
-      cflFreq = self._volUpdate(w:data(), dx:data(), self._alphaPtr:data(), q:data(), out:data())
+      cflFreq = self._genGeoVolUpdate(w:data(), dx:data(), self._alphaPtr:data(), q:data(), out:data())
+      print(cflFreq)
    else
       -- If no force, only update streaming term.
       cflFreq = self._volUpdate(w:data(), dx:data(), q:data(), out:data())
@@ -197,12 +191,12 @@ function Vlasov:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql
          -- Streaming term (note that surface streaming kernels don't return max speed).
          self._surfStreamUpdate[dir](
            wl:data(), wr:data(), dxl:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+      elseif self._isGenGeo then
+	 self._alphaGeo:fill(self._alphaIdxr(idxl), self._alphaPtr) -- Get pointer to alphaGeo field.
+	 -- Update gen geo surface terms here
+	 self._genGeoSurfUpdate[dir](
+	 	 wl:data(), wr:data(), dxl:data(), dxr:data(), self._alphaPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
-   elseif self._isGenGeo then
-      self._alphaGeo(self._alphaIdxr(idx), self._alphaPtr) -- Get pointer to alphaGeo field.
-      -- Update gen geo surface terms here
-      self._genGeoSurfUpdate[dir](
-	 wl:data(), wr:data(), dxl:data(), dxr:data(), self._alphaPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
    else
       if self._hasForceTerm then
 	 -- Force term.
@@ -238,8 +232,17 @@ function Vlasov:setAuxFields(auxFields)
       end
    end
    if auxFields[3] and self._isFirst then
-      print('alphaGeo detected in Vlasov Equation')
-      self.alphaGeo = auxFields[3]
+      print('Neutrals being evolved in general geometry...')
+      self._isGenGeo = true
+      self._alphaGeo = auxFields[3]
+      self._alphaPtr = self._alphaGeo:get(1)
+      self._alphaIdxr = self._alphaGeo:genIndexer()
+      self._isFirst = false
+
+      self._genGeoVolUpdate = VlasovModDecl.selectGenGeoVol(
+	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._genGeoSurfUpdate = VlasovModDecl.selectGenGeoSurf(
+	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    end
 end
 
