@@ -18,6 +18,8 @@ def build(bld):
 
     aSheathPotentialData/asheath_potential_1x_p1_ser.cpp
 
+    alphaGenGeoCalcData/AlphaGenGeoSer3x3v.cpp
+
     sqrtOnBasisData/sqrt_on_basis_1x_p1_ser.cpp
     sqrtOnBasisData/sqrt_on_basis_1x_p2_ser.cpp
     sqrtOnBasisData/sqrt_on_basis_1x_p3_ser.cpp

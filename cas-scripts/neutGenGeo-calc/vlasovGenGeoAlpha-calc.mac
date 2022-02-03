@@ -33,7 +33,7 @@ calcVlasovGenGeoAlpha(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,
   /* Load basis of dimensionality requested. */
   load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
 
-  printf(fh, "#include <VlasovModDecl.h> ~%"),
+  printf(fh, "#include <AlphaGenGeoModDecl.h> ~%"),
 
   /* Polynomial basis and its derivatives. */
   bP : basisP[polyOrder],
@@ -44,7 +44,7 @@ calcVlasovGenGeoAlpha(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,
   /* specify a point to evaluate alpha at for use in computing CFL */
   cflPt : makelist(varsP[d]=0, d, 1, length(varsP)),
 
-  printf(fh, "__host__ __device__ void ~aP~a(const double *w, const double *dxv, const double *tvComp, double const *gxx, double const *gxy, double const *gxz, double const *gyz, double const *gzz, const double *jacobGeo, double *alphaGeo) ~%{ ~%", funcNm, polyOrder),
+  printf(fh, "void ~aP~a(const double *w, const double *dxv, const double *tvComp, double const *gxx, double const *gxy, double const *gyy, double const *gxz, double const *gyz, double const *gzz, const double *jacobGeo, double *alphaGeo) ~%{ ~%", funcNm, polyOrder),
   printf(fh, "  // w[NDIM]:    Cell-center coordinates.~%"),
   printf(fh, "  // dxv[NDIM]:  Cell spacing.~%"),
   printf(fh, "  // tvComp[~a]: Components for tangent basis vectors.~%", NC*9),
@@ -55,14 +55,8 @@ calcVlasovGenGeoAlpha(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),
 
-  printf(fh, "~%"),	
-
-  /* common expressions in streaming (v dot grad(f)) term */
-  for dir : 1 thru cdim do (
-    printf(fh, "  double dv~adx~a = dxv[~a]/dxv[~a]; ~%", dir-1, dir-1, vid[dir], cid[dir]),
-    printf(fh, "  double w~adx~a = w[~a]/dxv[~a]; ~%", dir-1, dir-1, vid[dir], cid[dir])
-  ),
-
+  printf(fh, "~%"),
+  
   tvComp_e : doExpand1(tvComp, bC),
   gxx_e : doExpand1(gxx, bC),
   gxy_e : doExpand1(gxy, bC),
@@ -97,10 +91,6 @@ calcVlasovGenGeoAlpha(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,
 
   /* alpha_mid is our approximation of sum_i max(abs(alpha_i))/dx_i */
 
-  /* alpha_cdim = vComp */
-  printf(fh, "  double alpha_cdim[~a]; ~%", cdim*length(bP)),
-  printf(fh, "~%"),
-
   /* Expand distribution function f and jacobian in phase basis. */
   f_e : doExpand1(f, bP),
   jacGeo_e : doExpand1(jacobGeo, bC),
@@ -111,7 +101,7 @@ calcVlasovGenGeoAlpha(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,
   for cdir : 1 thru cdim do (
     vc_e : doExpandLst(vc[cdir], bP), 
     alphaGeo_c : calcInnerProdList(varsP, 1, bP, vc_e*jacGeo_e),
-    expr : gcfac(float(expand(radcan(alpha_cdim_c)))),
+    expr : gcfac(float(expand(radcan(alphaGeo_c)))),
 
     /* Write out the component of alpha_cdim's phase space expansion */
     for i : 1 thru NP do (
@@ -134,7 +124,7 @@ for bInd : 1 thru length(bName) do (
   for c : 3 thru 3 do (
       for v : 3 thru 3 do (
       	  disp(printf(false,sconcat("Creating alpha ", bName[bInd]," ~ax~av"),c,v)),
-    	  fname : sconcat("~/max-out/VlasovGenGeoAlpha", bName[bInd], c, "x", v, "v", ".cpp"),
+    	  fname : sconcat("~/max-out/AlphaGenGeo", bName[bInd], c, "x", v, "v", ".cpp"),
     	  fh : openw(fname),
 
     	  printf(fh, "#include <VlasovModDecl.h> ~%"),
@@ -142,7 +132,7 @@ for bInd : 1 thru length(bName) do (
 
 	  print("attempting to print",c,"x",v,"v functions..."),
     	  /*. Calculate velocity components  */
-    	  funcNm : sconcat("VlasovGenGeoAlpha", bName[bInd], c, "x", v, "v"),
+    	  funcNm : sconcat("AlphaGenGeo", bName[bInd], c, "x", v, "v"),
     	  calcVlasovGenGeoAlpha(fh, funcNm, c, v, bName[bInd], maxPolyOrder[bInd]),
     	  close(fh)
   	  )

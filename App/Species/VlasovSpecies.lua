@@ -124,7 +124,33 @@ function VlasovSpecies:createSolver(field, externalField)
    -- Run the KineticSpecies 'createSolver()' to initialize the collisions solver
    VlasovSpecies.super.createSolver(self, field, externalField)
 
-   if self.charge == 0 then self.bHat = externalField.geo.bHat end -- for genGeo with neutrals
+   if externalField.geo.bHat then -- for genGeo with neutrals
+      self._isGenGeo = true
+      self.bHat = externalField.geo.bHat
+      self.gxx = externalField.geo.gxx
+      self.gxy = externalField.geo.gxy
+      self.gxz = externalField.geo.gxz
+      self.gyy = externalField.geo.gyy
+      self.gyz = externalField.geo.gyz
+      self.gzz = externalField.geo.gzz
+      self.jacobGeo = externalField.geo.jacobGeo
+      self.tanVecComp = externalField.geo.tanVecComp
+
+      self.calcAlphaGeo = Updater.AlphaGenGeoCalc {
+	 confGrid = self.confGrid,
+	 onGrid = self.grid,
+	 confBasis = self.confBasis,
+	 phaseBasis = self.basis,
+      }
+      local metadata = {polyOrder = self.basis:polyOrder(),
+                     basisType = self.basis:id(),
+                     charge    = self.charge,
+                     mass      = self.mass}
+      self.alphaGeo = self:allocCartField(self.grid,self.cdim*self.basis:numBasis(),{self.nGhost,self.nGhost},metaData)
+      
+      -- Calculate alphaGeo here. Use an Updater.
+      self.calcAlphaGeo:advance(0.0, {self.tanVecComp, self.gxx, self.gxy, self.gxz, self.gyy, self.gyz, self.gzz, self.jacobGeo}, {self.alphaGeo})
+   end
       
    local plasmaE, plasmaB = field:hasEB()
    local extHasE, extHasB = externalField:hasEB()
@@ -665,7 +691,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solver:advance(tCurr, {fIn, totalEmField, emField}, {fRhsOut})
+      self.solver:advance(tCurr, {fIn, totalEmField, emField, self.alphaGeo}, {fRhsOut})
    else
       fRhsOut:clear(0.0)    -- No RHS.
    end

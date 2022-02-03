@@ -61,16 +61,11 @@ function Vlasov:init(tbl)
       self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
 
    if self._isGenGeo then
-      self._calcAlpha = VlasovModDecl.selectGenGeoAplpha(
-	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._genGeoVolUpdate = VlasovModDecl.selectGenGeoVol(
 	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._genGeoSurfUpdate = VlasovModDecl.selectGenGeoSurf(
 	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-
-      -- Calculate alpha here
-      -- Define geometric quantities
-      
+      -- How to pass alpha to Vlasov?
    end
 
    -- Check if we have an electric and magnetic field.
@@ -241,6 +236,10 @@ function Vlasov:setAuxFields(auxFields)
          end
          self._isFirst = false   -- No longer first time.
       end
+   end
+   if auxFields[3] and self._isFirst then
+      print('alphaGeo detected in Vlasov Equation')
+      self.alphaGeo = auxFields[3]
    end
 end
 
