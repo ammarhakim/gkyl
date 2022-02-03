@@ -80,7 +80,8 @@ function AlphaGenGeoCalc:_advance(tCurr, inFld, outFld)
    local alphaItr = alphaGeo:get(1)
    
    local confIndexer = gxx:genIndexer()
-   local phaseIndexer = tvComp:genIndexer()
+   local phaseIndexer = alphaGeo:genIndexer()
+   local tvPhaseIndexer = tvComp:genIndexer()
    local phaseRange
    if self.onGhosts then
       phaseRange = tvComp:localExtRange()
@@ -116,7 +117,7 @@ function AlphaGenGeoCalc:_advance(tCurr, inFld, outFld)
 	 phaseGrid:getDx(self.dx)
 	 phaseGrid:cellCenter(self.xc)
 
-	 tvComp:fill(phaseIndexer(self.idx), tvCompItr)
+	 tvComp:fill(tvPhaseIndexer(self.idx), tvCompItr)
 	 alphaGeo:fill(phaseIndexer(self.idx), alphaItr)
 	 
 	 self._calcAlphaGenGeo(self.xc:data(), self.dx:data(), tvCompItr:data(), gxxItr:data(), gxyItr:data(), gxzItr:data(), gyyItr:data(), gyzItr:data(), gzzItr:data(), jacGeoItr:data(), alphaItr:data())

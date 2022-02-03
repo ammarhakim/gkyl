@@ -175,7 +175,6 @@ function Vlasov:volTerm(w, dx, idx, q, out)
       self._alphaGeo:fill(self._alphaIdxr(idx), self._alphaPtr)  -- Get pointer to alphaGeo field.
       -- Update gen geo volume streaming term here
       cflFreq = self._genGeoVolUpdate(w:data(), dx:data(), self._alphaPtr:data(), q:data(), out:data())
-      print(cflFreq)
    else
       -- If no force, only update streaming term.
       cflFreq = self._volUpdate(w:data(), dx:data(), q:data(), out:data())
