@@ -134,9 +134,6 @@ function VlasovSpecies:createSolver(field, externalField)
       self.gzz = externalField.geo.gzz
       self.jacobGeo = externalField.geo.jacobGeo
       self.tanVecComp = externalField.geo.tanVecComp
-      self.distIo:write(self.gxz, string.format("%s_gxz_%d.bp", self.name, 0), tm, 0)
-      self.distIo:write(self.jacobGeo, string.format("%s_jacobGeo_%d.bp", self.name, 0), tm, 0)
-      self.distIo:write(self.tanVecComp, string.format("%s_tvComp_%d.bp", self.name, 0), tm, 0)
 
       self.calcAlphaGeo = Updater.AlphaGenGeoCalc {
 	 confGrid = self.confGrid,
@@ -152,9 +149,6 @@ function VlasovSpecies:createSolver(field, externalField)
       
       -- Calculate alphaGeo here. Use an Updater.
       self.calcAlphaGeo:advance(0.0, {self.tanVecComp, self.gxx, self.gxy, self.gxz, self.gyy, self.gyz, self.gzz, self.jacobGeo}, {self.alphaGeo})
-      
-      -- somehow alphaGeo is zero after this calculation...
-      self.distIo:write(self.alphaGeo, string.format("%s_alphaGeo_%d.bp", self.name, 0), tm, 0)
    end
       
    local plasmaE, plasmaB = field:hasEB()

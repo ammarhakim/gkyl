@@ -231,7 +231,6 @@ function Vlasov:setAuxFields(auxFields)
       end
    end
    if auxFields[3] and self._isFirst then
-      print('Neutrals being evolved in general geometry...')
       self._isGenGeo = true
       self._alphaGeo = auxFields[3]
       self._alphaPtr = self._alphaGeo:get(1)
