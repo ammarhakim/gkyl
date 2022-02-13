@@ -1152,7 +1152,7 @@ function GkGeometry:createSolver()
             local gyz = (g_xy*g_xz-g_xx*g_yz)/det
             local gzz = (g_xx*g_yy-g_xy^2)/det
 
-            local bmag    = self.bmagFunc(t, xn)
+            local bmag = self.bmagFunc(t, xn)
             local cmag = jacobian*bmag/math.sqrt(g_zz)
 
             return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
@@ -1181,7 +1181,7 @@ function GkGeometry:createSolver()
             local gyz = (g_xy*g_xz-g_xx*g_yz)/det
             local gzz = (g_xx*g_yy-g_xy^2)/det
 
-            local bmag    = self.bmagFunc(t, xn)
+            local bmag = self.bmagFunc(t, xn)
             local cmag = jacobian*bmag/math.sqrt(g_zz)
 
             return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
