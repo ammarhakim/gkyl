@@ -25,7 +25,7 @@ local MultimomentConstDiffusion = Proto(EqBase)
 -- ctor
 function MultimomentConstDiffusion:init(tbl)
 
-   self.nMoments = assert(numMoments, "Eq.MultimomentConstDiffusion: Must indicate number of moments in 'numMoments'.")
+   self.nMoments = assert(tbl.numMoments, "Eq.MultimomentConstDiffusion: Must indicate number of moments in 'numMoments'.")
 
    self._basis = assert(tbl.basis,
       "Eq.MultimomentConstDiffusion: Must specify basis functions to use using 'basis'")
