@@ -164,17 +164,17 @@ function Diffusion:createSolver(mySpecies, externalField)
       ghost         = {1, 1},
    }
    -- Diffusion equation.
-   if nMoments then
-      self.equation = ConstDiffusionEq {
-         basis         = basis,             positivity = self.usePositivity,
-         coefficient   = self.coefficient,  order      = self.diffOrder,
-         diffusiveDirs = self.diffDirs,
-      }
-   else
+   if nMoments ~= nil and nMoments > 1 then
       self.equation = MultimomentConstDiffusionEq {
          basis         = basis,             positivity = self.usePositivity,
          coefficient   = self.coefficient,  order      = self.diffOrder,
          diffusiveDirs = self.diffDirs,     numMoments = nMoments,
+      }
+   else
+      self.equation = ConstDiffusionEq {
+         basis         = basis,             positivity = self.usePositivity,
+         coefficient   = self.coefficient,  order      = self.diffOrder,
+         diffusiveDirs = self.diffDirs,
       }
    end
    self.collisionSlvr = Updater.HyperDisCont {
