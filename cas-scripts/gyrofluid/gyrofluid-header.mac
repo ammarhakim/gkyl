@@ -9,11 +9,6 @@ maxPolyOrder_Ser : 2$
 minCdim_Ser : 1$
 maxCdim_Ser : 1$
 
-/* Maximal order basis. */
-maxPolyOrder_Max : 2$
-minCdim_Max : 1$
-maxCdim_Max : 0$
-
 /* Tensor product basis. */
 maxPolyOrder_Tensor : 3$
 minCdim_Tensor : 1$
@@ -22,10 +17,10 @@ maxCdim_Tensor : 0$
 /* ...... END OF USER INPUTS........ */
 
 /* To generate other bases, just add corresponding column to arrays below. */
-bName        : ["ser","max","tensor"]$
-maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
-minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
-maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+bName        : ["ser","tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Tensor]$
 
 vars : [x, y, z]$
 

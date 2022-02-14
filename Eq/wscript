@@ -9,6 +9,11 @@ def build(bld):
     bld.shlib(source = r"""
     TenMomentImpl.cpp
 
+    hasegawaWakataniData/hasegawa_wakatani_vol_2x_p1_Ser.cpp
+    hasegawaWakataniData/hasegawa_wakatani_vol_2x_p2_Ser.cpp
+    hasegawaWakataniData/hasegawa_wakatani_surf_2x_p1_Ser.cpp
+    hasegawaWakataniData/hasegawa_wakatani_surf_2x_p2_Ser.cpp
+
     incompEulerData/IncompEulerSer2xP1.cpp
     incompEulerData/IncompEulerSer2xP2.cpp
     incompEulerData/IncompEulerSurfSer2xP1.cpp
@@ -559,7 +564,7 @@ def build(bld):
 
     """,
               name = 'eq',
-              target = 'eq', use='EIGEN CUTOOLS', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData gyrofluidData gfHeatFluxData passiveAdvectionData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct',
+              target = 'eq', use='EIGEN CUTOOLS', includes = '. hasegawaWakataniData incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData gyrofluidData gfHeatFluxData passiveAdvectionData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct',
               vnum = '1.0',
               
     )
