@@ -63,6 +63,7 @@ function Vlasov:init(tbl)
    -- Check if we have an electric and magnetic field.
    local hasElcField    = xsys.pickBool(tbl.hasElectricField, true)
    local hasMagField    = xsys.pickBool(tbl.hasMagneticField, true)
+   local hasExtForce    = xsys.pickBool(tbl.hasExtForce, true)
    self._plasmaMagField = xsys.pickBool(tbl.plasmaMagField, true)
 
    -- Option to perform only the force volume update (e.g. for stochastic forces).
@@ -99,6 +100,15 @@ function Vlasov:init(tbl)
          self._surfForceUpdate = VlasovModDecl.selectSurfPhi(hasMagField,
             self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       end
+   end
+
+   -- Check for no charge + external force
+   if self._qbym == 0. and hasExtForce then
+      self._hasForceTerm = true
+      self._volUpdate = VlasovModDecl.selectVolNeutral(
+         self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._surfForceUpdate = VlasovModDecl.selectSurfNeutral(
+         self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    end
 
    -- EM field object and pointers to cell values.
