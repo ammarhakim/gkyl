@@ -168,7 +168,9 @@ calcAndWrite_upwindIncr_wQuadNodeAlpha(fH,basisType,polyOrder,bP,surfDir,sideStr
   return([incrL_c,incrR_c])
 )$
 
-calcVlasovBodyUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
+calcVlasovBodyUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block(
+  [modNm,bP,bC,varsC,numC,cflPt,cid,vid,vv,surfVars,bSurf,acc_e,
+  alphaV_c,alphaNoZero,alpha_e,amid,incr_s],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
