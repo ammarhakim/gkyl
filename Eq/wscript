@@ -418,23 +418,28 @@ def build(bld):
     vlasovData/VlasovNeutral1x1vTensorP2.cpp
     vlasovData/VlasovNeutral1x2vTensorP1.cpp
     vlasovData/VlasovNeutral1x2vTensorP2.cpp
+    vlasovData/VlasovNeutral1x3vTensorP1.cpp
+    vlasovData/VlasovNeutral1x3vTensorP2.cpp
     vlasovData/VlasovNeutral2x2vTensorP1.cpp
     vlasovData/VlasovNeutral2x2vTensorP2.cpp
+    vlasovData/VlasovNeutral2x3vTensorP1.cpp
+    vlasovData/VlasovNeutral2x3vTensorP2.cpp
+    vlasovData/VlasovNeutral3x3vTensorP1.cpp
 
-    vlasovData/VlasovUpwindSurfNeutral1x1vSerP1.cpp
-    vlasovData/VlasovUpwindSurfNeutral1x1vSerP2.cpp
-    vlasovData/VlasovUpwindSurfNeutral1x2vSerP1.cpp
-    vlasovData/VlasovUpwindSurfNeutral1x2vSerP2.cpp
-    vlasovData/VlasovUpwindSurfNeutral1x3vSerP1.cpp
-    vlasovData/VlasovUpwindSurfNeutral1x3vSerP2.cpp
-    vlasovData/VlasovUpwindSurfNeutral2x2vSerP1.cpp
-    vlasovData/VlasovUpwindSurfNeutral2x2vSerP2.cpp
-    vlasovData/VlasovUpwindSurfNeutral2x3vSerP1.cpp
-    vlasovData/VlasovUpwindSurfNeutral3x3vSerP1.cpp
+    vlasovData/VlasovSurfNeutral1x1vSerP1.cpp
+    vlasovData/VlasovSurfNeutral1x1vSerP2.cpp
+    vlasovData/VlasovSurfNeutral1x2vSerP1.cpp
+    vlasovData/VlasovSurfNeutral1x2vSerP2.cpp
+    vlasovData/VlasovSurfNeutral1x3vSerP1.cpp
+    vlasovData/VlasovSurfNeutral1x3vSerP2.cpp
+    vlasovData/VlasovSurfNeutral2x2vSerP1.cpp
+    vlasovData/VlasovSurfNeutral2x2vSerP2.cpp
+    vlasovData/VlasovSurfNeutral2x3vSerP1.cpp
+    vlasovData/VlasovSurfNeutral3x3vSerP1.cpp
 
-    vlasovData/VlasovUpwindSurfNeutral1x2vTensorP2.cpp
-    vlasovData/VlasovUpwindSurfNeutral1x1vTensorP2.cpp
-    vlasovData/VlasovUpwindSurfNeutral2x2vTensorP2.cpp
+    vlasovData/VlasovSurfNeutral1x1vTensorP2.cpp
+    vlasovData/VlasovSurfNeutral1x2vTensorP2.cpp
+    vlasovData/VlasovSurfNeutral2x2vTensorP2.cpp
 
     pbData/CanonicalSer1x1v.cpp
     pbData/CanonicalSer2x2v.cpp

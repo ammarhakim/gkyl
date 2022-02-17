@@ -90,7 +90,7 @@ end
 function _M.selectVolNeutral(basisNm, CDIM, VDIM, polyOrder)
    local funcType = "double"
    local funcNm = string.format("VlasovNeutralVol%dx%dv%sP%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-   local funcSign = "(const double *w, const double *dxv, const double *E, const double *f, double *out)"
+   local funcSign = "(const double *w, const double *dxv, const double *boA, const double *f, double *out)"
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]
@@ -101,9 +101,9 @@ function _M.selectSurfNeutral(basisNm, CDIM, VDIM, polyOrder)
    local funcType = "double"
    local funcNm = {}
    for d = 1, VDIM do
-      funcNm[d] = string.format("VlasovUpwindSurfNeutral%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], vvars[d], polyOrder)
+      funcNm[d] = string.format("VlasovSurfNeutral%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], vvars[d], polyOrder)
    end
-   local funcSign = "(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *E, const double *fl, const double *fr, double *outl, double *outr)"
+   local funcSign = "(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *boA, const double *fl, const double *fr, double *outl, double *outr)"
 
    local CDefStr = ""
    for d = 1, VDIM do CDefStr = CDefStr .. (funcType .. " " .. funcNm[d] .. funcSign .. ";\n") end

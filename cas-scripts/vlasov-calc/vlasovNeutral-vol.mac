@@ -2,7 +2,7 @@ load("vlasov-calc/vlasovNeutralFuncs-vol")$
 load(stringproc)$
 /* This script calls the functions which calculate the
    updates from the volume term contributions in the
-   Vlasov Maxwell kinetic equation. */
+   Vlasov kinetic equation. */
 
 /* ...... USER INPUTS........ */
 
@@ -43,7 +43,7 @@ for bInd : 1 thru length(bName) do (
         fname : sconcat("~/max-out/VlasovNeutral", c, "x", v, "v", bName[bInd], "P", polyOrder, ".cpp"),
         fh : openw(fname),
         funcName : sconcat("VlasovNeutralVol", c, "x", v, "v", bName[bInd]),
-        calcVlasovMaxwellVolUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
+        calcVlasovBodyVolUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
         close(fh)
       )
     )

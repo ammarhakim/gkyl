@@ -1,5 +1,5 @@
 /* This script generates the kernels for the volume term contribution from 
-   the Vlasov equation (full EM, both streaming and acceleration) */
+   the Vlasov equation (external force acting on neutral species, both streaming and acceleration) */
 
 load("modal-basis");
 load("out-scripts");
@@ -42,7 +42,7 @@ vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[a0+i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
-calcVlasovMaxwellVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,bC,NP,NC,cflPt,cid,vid,dir,f_e,incr_cdim,incr_vdim,cdir,vdir,expr,alpha_cdim_c,alpha_vdim_c,amid],
+calcVlasovBodyVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,bC,NP,NC,cflPt,cid,vid,dir,f_e,incr_cdim,incr_vdim,cdir,vdir,expr,alpha_cdim_c,alpha_vdim_c,amid],
 
   kill(varsC, varsP, basisC, basisP),
   /* Load basis of dimensionality requested. */
@@ -59,10 +59,10 @@ calcVlasovMaxwellVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := bloc
   /* specify a point to evaluate alpha at for use in computing CFL */
   cflPt : makelist(varsP[d]=0, d, 1, length(varsP)),
 
-  printf(fh, "__host__ __device__ double ~aP~a(const double *w, const double *dxv, const double *EM, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+  printf(fh, "__host__ __device__ double ~aP~a(const double *w, const double *dxv, const double *boA, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
   printf(fh, "  // w[NDIM]:   Cell-center coordinates.~%"),
   printf(fh, "  // dxv[NDIM]: Cell spacing.~%"),
-  printf(fh, "  // EM:        Input EM-field.~%"),
+  printf(fh, "  // boA:       Input body acceleration.~%"),
   printf(fh, "  // f:         Input distribution function.~%"),
   printf(fh, "  // out:       Incremented output.~%"),
 
@@ -75,10 +75,10 @@ calcVlasovMaxwellVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := bloc
     printf(fh, "  double w~adx~a = w[~a]/dxv[~a]; ~%", dir-1, dir-1, vid[dir], cid[dir])
   ),
 
-  /* access EM field data */
+  /* access body acceleration field data */
   for dir : 1 thru vdim do (
     printf(fh, "  const double dv1~a = 2/dxv[~a]; ~%", dir-1, vid[dir]),
-    printf(fh, "  const double *Fo~a = &EM[~a]; ~%", dir-1, NC*(dir-1)),
+    printf(fh, "  const double *Fo~a = &boA[~a]; ~%", dir-1, NC*(dir-1)),
     printf(fh, "  const double dv~a = dxv[~a], wv~a = w[~a]; ~%", dir, vid[dir], dir, vid[dir])
   ),
   printf(fh, "~%"),
@@ -114,7 +114,7 @@ calcVlasovMaxwellVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := bloc
   ),
 
   incr_vdim : 0,
-  /* alpha_vdim = Force/m dot grad_v(f) */
+  /* alpha_vdim = boA dot grad_v(f) */
   for vdir : 1 thru vdim do (
     acc : calcAccel(vdir, vdim, bC),
     alpha_vdim_c : calcInnerProdList(varsP, 1, bP, dv11[vdir]*acc),

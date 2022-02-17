@@ -1,15 +1,15 @@
 #include <VlasovModDecl.h> 
-__host__ __device__ double VlasovNeutralVol1x1vSerP2(const double *w, const double *dxv, const double *EM, const double *f, double *out) 
+__host__ __device__ double VlasovNeutralVol1x1vSerP2(const double *w, const double *dxv, const double *boA, const double *f, double *out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
-  // EM:        Input EM-field.
+  // boA:       Input body acceleration.
   // f:         Input distribution function.
   // out:       Incremented output.
   double dv0dx0 = dxv[1]/dxv[0]; 
   double w0dx0 = w[1]/dxv[0]; 
   const double dv10 = 2/dxv[1]; 
-  const double *Fo0 = &EM[0]; 
+  const double *Fo0 = &boA[0]; 
   const double dv1 = dxv[1], wv1 = w[1]; 
 
   double alpha_mid = 0.0; 

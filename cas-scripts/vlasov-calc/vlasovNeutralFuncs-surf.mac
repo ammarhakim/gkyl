@@ -1,5 +1,5 @@
-/* This script generates the kernels for the surface term of the E + v x B 
-   advection in velocity space for the Vlasov equation (full EM) */
+/* This script generates the kernels for the surface term of the body 
+  acceleration advection in velocity space for the Vlasov equation */
 
 load("modal-basis");
 load("out-scripts");
@@ -168,7 +168,7 @@ calcAndWrite_upwindIncr_wQuadNodeAlpha(fH,basisType,polyOrder,bP,surfDir,sideStr
   return([incrL_c,incrR_c])
 )$
 
-calcVlasovLorentzUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
+calcVlasovBodyUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -181,11 +181,11 @@ calcVlasovLorentzUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block(
   /* Specify a point to evaluate alpha at for use global Lax fluxes. */
   cflPt : makelist(varsP[d]=0, d, 1, length(varsP)),
 
-  printf(fh, "__host__ __device__ double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vvars[dir], p),
+  printf(fh, "__host__ __device__ double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *boA, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vvars[dir], p),
   printf(fh, "  // w:         Cell-center coordinates.~%"),
   printf(fh, "  // dxv[NDIM]: Cell spacing.~%"),
   printf(fh, "  // amax:      amax in global lax flux.~%"),
-  printf(fh, "  // EM:        EM field.~%"),
+  printf(fh, "  // boA:       Body acceleration.~%"),
   printf(fh, "  // fl/fr:     Distribution function in left/right cells ~%"),
   printf(fh, "  // outl/outr: output distribution function in left/right cells ~%"),
   printf(fh, "  // returns abs(amid) for use in determining amax in cfl and global lax flux ~%"),
@@ -200,7 +200,7 @@ calcVlasovLorentzUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block(
     printf(fh, "  const double dv~a = dxvr[~a], wv~a = wr[~a]; ~%", d, vid[d], d, vid[d])
   ),
 
-  printf(fh, "  const double *Fo~a = &EM[~a]; ~%", dir-1, numC*(dir-1)),
+  printf(fh, "  const double *Fo~a = &boA[~a]; ~%", dir-1, numC*(dir-1)),
   printf(fh, "~%"),
 
   /* Surface contribution is defined as integral(phi^- Ghat) over the surface. */
@@ -260,7 +260,7 @@ calcVlasovLorentzUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block(
   printf(fh, "} ~%")
 );
 
-calcVlasovLorentzSurfUpdater(fh, funcNm, cdim, vdim, basisFun, p) := block([dir],
+calcVlasovBodySurfUpdater(fh, funcNm, cdim, vdim, basisFun, p) := block([dir],
   printf(fh, "#include <VlasovModDecl.h> ~%"),
-  for dir : 1 thru vdim do ( calcVlasovLorentzUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) )
+  for dir : 1 thru vdim do ( calcVlasovBodyUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) )
 )$

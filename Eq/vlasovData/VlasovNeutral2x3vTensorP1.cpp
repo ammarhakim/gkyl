@@ -1,5 +1,5 @@
 #include <VlasovModDecl.h> 
-__host__ __device__ double VlasovNeutralVol2x3vSerP1(const double *w, const double *dxv, const double *boA, const double *f, double *out) 
+__host__ __device__ double VlasovNeutralVol2x3vTensorP1(const double *w, const double *dxv, const double *boA, const double *f, double *out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.

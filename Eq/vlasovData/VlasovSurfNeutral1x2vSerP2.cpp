@@ -1,10 +1,10 @@
 #include <VlasovModDecl.h> 
-__host__ __device__ double VlasovUpwindSurfNeutral1x2vSer_VX_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
+__host__ __device__ double VlasovSurfNeutral1x2vSer_VX_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *boA, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
   // amax:      amax in global lax flux.
-  // EM:        EM field.
+  // boA:       Body acceleration.
   // fl/fr:     Distribution function in left/right cells 
   // outl/outr: output distribution function in left/right cells 
   // returns abs(amid) for use in determining amax in cfl and global lax flux 
@@ -13,7 +13,7 @@ __host__ __device__ double VlasovUpwindSurfNeutral1x2vSer_VX_P2(const double *wl
 
   const double dv1 = dxvr[1], wv1 = wr[1]; 
   const double dv2 = dxvr[2], wv2 = wr[2]; 
-  const double *Fo0 = &EM[0]; 
+  const double *Fo0 = &boA[0]; 
 
   double alpha[8]; 
   double incr[20]; 
@@ -119,12 +119,12 @@ __host__ __device__ double VlasovUpwindSurfNeutral1x2vSer_VX_P2(const double *wl
 
   return std::abs(amid); 
 } 
-__host__ __device__ double VlasovUpwindSurfNeutral1x2vSer_VY_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
+__host__ __device__ double VlasovSurfNeutral1x2vSer_VY_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *boA, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
   // amax:      amax in global lax flux.
-  // EM:        EM field.
+  // boA:       Body acceleration.
   // fl/fr:     Distribution function in left/right cells 
   // outl/outr: output distribution function in left/right cells 
   // returns abs(amid) for use in determining amax in cfl and global lax flux 
@@ -133,7 +133,7 @@ __host__ __device__ double VlasovUpwindSurfNeutral1x2vSer_VY_P2(const double *wl
 
   const double dv1 = dxvr[1], wv1 = wr[1]; 
   const double dv2 = dxvr[2], wv2 = wr[2]; 
-  const double *Fo1 = &EM[3]; 
+  const double *Fo1 = &boA[3]; 
 
   double alpha[8]; 
   double incr[20]; 
