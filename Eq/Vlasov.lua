@@ -70,7 +70,7 @@ function Vlasov:init(tbl)
    local onlyForceUpdate = xsys.pickBool(tbl.onlyForceUpdate, false)
 
    self._hasForceTerm = false   -- Flag to indicate if we have any force terms at all.
-   -- Turn off force term if the charge is zero. Turn it on if there's an electric or magnetic field.
+   -- Turn on force term if there's an electric or magnetic field or if there's a body force.
    if hasElcField or hasMagField or self._plasmaMagField or hasExtForce then
       self._hasForceTerm = true
    end
@@ -83,7 +83,7 @@ function Vlasov:init(tbl)
    -- default is "penalty," supported options: "penalty," "recovery"
    self._numVelFlux = tbl.numVelFlux and tbl.numVelFlux or "penalty"
    if self._hasForceTerm then
-      if self._qbym == 0. then
+      if self._qbym == 0. and hasExtForce then
          self._volUpdate = VlasovModDecl.selectVolNeutral(
             self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
          self._surfForceUpdate = VlasovModDecl.selectSurfNeutral(

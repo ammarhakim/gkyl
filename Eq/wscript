@@ -424,7 +424,6 @@ def build(bld):
     vlasovData/VlasovNeutral2x2vTensorP2.cpp
     vlasovData/VlasovNeutral2x3vTensorP1.cpp
     vlasovData/VlasovNeutral2x3vTensorP2.cpp
-    vlasovData/VlasovNeutral3x3vTensorP1.cpp
 
     vlasovData/VlasovSurfNeutral1x1vSerP1.cpp
     vlasovData/VlasovSurfNeutral1x1vSerP2.cpp
