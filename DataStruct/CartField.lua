@@ -39,10 +39,10 @@ ffi.cdef [[
         int ndim;
         int elemSize;
         int numComponents;
-        GkylRange_t *localRange, *localExtRange;
-        GkylRange_t *localEdgeRange, *localExtEdgeRange;
-        GkylRange_t *globalRange, *globalExtRange;
-        GkylRectCart_t *grid;
+        struct gkyl_range *localRange, *localExtRange;
+        struct gkyl_range *localEdgeRange, *localExtEdgeRange;
+        struct gkyl_range *globalRange, *globalExtRange;
+        struct gkyl_rect_grid *grid;
         double *_data;
     } GkylCartField_t;
 

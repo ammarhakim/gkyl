@@ -29,36 +29,32 @@ end
 ffi.cdef [[
   void cellCenter(int ndim, double* lower, int* currIdx, double* dx, double* xc);
 
-  // Uniform Cartesian grid C representation
-  typedef struct {
-    int ndim;
-    int cells[6];
-    double lower[6], upper[6];
-    double vol, dx[6];
-  } GkylRectCart_t;
+/**
+ * Rectangular grid object.
+ */
+struct gkyl_rect_grid {
+  int _ndim; // number of dimensions
+  double _lower[7]; // lower-left corner
+  double _upper[7]; // upper-right corner
+  int _cells[7]; // number of cells    
+  double _dx[7]; // cell spacing
+  double _cellVolume; // cell volume
+};
+
+/**
+ * Create new grid object.
+ *
+ * @param grid Grid object to initialize.
+ * @param ndim Dimension of grid
+ * @param lower Coordinates of lower-left corner of grid
+ * @param upper Coordinates of upper-right corner of grid
+ * @param cells Number of cells in each direction
+ */
+void gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
+  const double *lower, const double *upper, const int *cells);
 ]]
 
-local rectCartSz = sizeof("GkylRectCart_t")
-
-local function getDevicePointerToGrid(grid)
-   if not GKYL_HAVE_CUDA then return nil end
-
-   -- first copy stuff to a C-struct
-   local g = ffi.new("GkylRectCart_t")
-   g.ndim = grid:ndim()
-   g.vol = grid:cellVolume()
-   for i = 1, grid:ndim() do
-      g.cells[i-1] = grid:numCells(i)
-      g.lower[i-1] = grid:lower(i)
-      g.upper[i-1] = grid:upper(i)
-      g.dx[i-1] = grid:dx(i)
-   end
-   
-   -- copy stuff to device
-   local cuGrid, err = cuda.Malloc(rectCartSz)
-   cuda.Memcpy(cuGrid, g, rectCartSz, cuda.MemcpyHostToDevice)
-   return cuGrid, err
-end
+local rectCartSz = sizeof("struct gkyl_rect_grid")
 
 -- Determine local domain index. This is complicated by the fact that
 -- when using MPI-SHM the processes that live in shmComm all have the
@@ -111,6 +107,10 @@ function RectCart:init(tbl)
       self._gridVol     = self._gridVol*(up[d]-lo[d])
    end
 
+   -- create gkyl_rect_grid structure for use in g0
+   self._zero = ffi.new("struct gkyl_rect_grid")
+   ffiC.gkyl_rect_grid_init(self._zero, self._ndim, self._lower:data(), self._upper:data(), self._numCells:data())
+
    -- Compute global range.
    local l, u = {}, {}
    for d = 1, #cells do l[d], u[d] = 1, cells[d] end
@@ -148,8 +148,6 @@ function RectCart:init(tbl)
       self._block = 1
       self._cuts  = cuts
    end
-
-   self._onDevice = self:copyHostToDevice()
 end
 
 -- Member functions.
@@ -361,11 +359,6 @@ end
 function RectCart:calcJacobian(xc)
    return 1.0
 end
-
-function RectCart:copyHostToDevice()
-   return getDevicePointerToGrid(self)
-end
-
 
 function RectCart:childGrid(keepDims)
    -- Collect the ingredients needed for a child grid: a grid with a subset of the
