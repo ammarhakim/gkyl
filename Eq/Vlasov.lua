@@ -63,14 +63,15 @@ function Vlasov:init(tbl)
    -- Check if we have an electric and magnetic field.
    local hasElcField    = xsys.pickBool(tbl.hasElectricField, true)
    local hasMagField    = xsys.pickBool(tbl.hasMagneticField, true)
+   local hasExtForce    = xsys.pickBool(tbl.hasExtForce, true)
    self._plasmaMagField = xsys.pickBool(tbl.plasmaMagField, true)
 
    -- Option to perform only the force volume update (e.g. for stochastic forces).
    local onlyForceUpdate = xsys.pickBool(tbl.onlyForceUpdate, false)
 
    self._hasForceTerm = false   -- Flag to indicate if we have any force terms at all.
-   -- Turn off force term if the charge is zero. Turn it on if there's an electric or magnetic field.
-   if self._qbym ~= 0. and (hasElcField or hasMagField or self._plasmaMagField) then
+   -- Turn on force term if there's an electric or magnetic field or if there's a body force.
+   if hasElcField or hasMagField or self._plasmaMagField or hasExtForce then
       self._hasForceTerm = true
    end
 
@@ -82,22 +83,29 @@ function Vlasov:init(tbl)
    -- default is "penalty," supported options: "penalty," "recovery"
    self._numVelFlux = tbl.numVelFlux and tbl.numVelFlux or "penalty"
    if self._hasForceTerm then
-      -- Functions to perform force updates.
-      if self._plasmaMagField then 
-         self._volUpdate = VlasovModDecl.selectVolElcMag(
+      if self._qbym == 0. and hasExtForce then
+         self._volUpdate = VlasovModDecl.selectVolNeutral(
             self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-         self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
-            self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), self._numVelFlux)
-      elseif self._onlyForceUpdate then
-	 self._volUpdate = VlasovModDecl.selectVolForce(
-	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-         self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
-            self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), self._numVelFlux)
+         self._surfForceUpdate = VlasovModDecl.selectSurfNeutral(
+            self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       else
-         self._volUpdate = VlasovModDecl.selectVolPhi(hasMagField,
-            self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-         self._surfForceUpdate = VlasovModDecl.selectSurfPhi(hasMagField,
-            self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+         -- Functions to perform force updates.
+         if self._plasmaMagField then 
+            self._volUpdate = VlasovModDecl.selectVolElcMag(
+               self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+            self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
+               self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), self._numVelFlux)
+         elseif self._onlyForceUpdate then
+   	 self._volUpdate = VlasovModDecl.selectVolForce(
+   	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+            self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
+               self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), self._numVelFlux)
+         else
+            self._volUpdate = VlasovModDecl.selectVolPhi(hasMagField,
+               self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+            self._surfForceUpdate = VlasovModDecl.selectSurfPhi(hasMagField,
+               self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+         end
       end
    end
 
