@@ -58,8 +58,6 @@ struct gkyl_array {
  */
 struct gkyl_array* gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
 
-struct gkyl_array* gkyl_array_new_test();
-
 /**
  * Create new array with data on NV-GPU. Delete using
  * gkyl_array_release method.
@@ -124,6 +122,16 @@ local function getArrayTypeCode(atype)
    return 42 -- user-defined type
 end
 
+local function getType(enum)
+   if enum == 0 then
+      return "int"
+   elseif enum == 1 then
+      return "float"
+   elseif enum == 2 then
+      return "double"
+   end
+end
+
 -- Array ctype
 local ArrayCt = typeof("struct gkyl_array")
 
@@ -132,13 +140,30 @@ local array_fn = {
       return ffiC.gkyl_array_copy(self, src)
    end,
    clone = function (self)
-      return ffiC.gkyl_array_clone(src)
+      return ffiC.gkyl_array_clone(self)
    end,
    aquire = function (self)
       return ffiC.gkyl_array_acquire(self)
    end,
    release = function (self)
       return ffiC.gkyl_array_release(self)
+   end,
+   fetch = function (self, loc)
+      if loc == nil then loc = 0 end
+      return ffi.cast(getType(self.type).."*", self.data) + loc*self.ncomp
+   end,
+   cfetch = function (self, loc)
+      if loc == nil then loc = 0 end
+      return ffi.cast("const "..getType(self.type).."*", self.data) + loc*self.ncomp
+   end,
+   get_size = function (self)
+      return tonumber(self.size)
+   end,
+   get_ncomp = function (self)
+      return tonumber(self.ncomp)
+   end,
+   get_elemsz = function (self)
+      return tonumber(self.elemsz)
    end,
 }
 
@@ -149,7 +174,7 @@ local array_mt = {
    __gc = function(self)
       self:release()
    end,
-   __index = array_fn
+   __index = array_fn,
 }
 local ArrayCtor = metatype(ArrayCt, array_mt)
 
