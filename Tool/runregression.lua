@@ -340,8 +340,12 @@ local function runLuaUnitTest(test)
       numPassedUnitTests = numPassedUnitTests+1
       log("... passed.\n")      
    else
-      log(string.format("... %s FAILED!\n", test))
-      numFailedUnitTests = numFailedUnitTests+1
+      if string.find(outPut, "without CUDA") then
+	 log(string.format(".... skipped as CUDA not present!\n"))
+      else
+	 log(string.format("... %s FAILED!\n", test))
+	 numFailedUnitTests = numFailedUnitTests+1
+      end
    end
 end
 
