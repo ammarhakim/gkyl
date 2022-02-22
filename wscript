@@ -25,7 +25,7 @@ from waflib.Options import options
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkyl luajit mpi adios eigen sqlite3 cutools superlu openblas gkylzero',
+    opt.load('gkyl luajit mpi adios eigen sqlite3 cutools gkylzero superlu openblas',
              tooldir='waf_tools')
 
 def configure(conf):
@@ -246,7 +246,7 @@ def buildExec(bld):
         bld.env.SHLIB_MARKER = '-Wl,-Bdynamic,--no-as-needed'
 
     # list of objects to use
-    useList = ' lib datastruct eq unit comm updater tool proto basis grid LUAJIT ADIOS EIGEN MPI M DL gkylzero '
+    useList = 'lib datastruct eq unit comm updater tool proto basis grid gkylzero LUAJIT ADIOS EIGEN MPI SUPERLU OPENBLAS M DL'
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
     if bld.env['CUTOOLS_FOUND']:
