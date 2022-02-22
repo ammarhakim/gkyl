@@ -101,11 +101,11 @@ function VlasovSpecies:fullInit(appTbl)
 
    local tbl = self.tbl
    -- If there is an external force, get the force function.
+   self.hasExtForce = false
+
    if tbl.vlasovExtForceFunc then
       self.vlasovExtForceFunc = tbl.vlasovExtForceFunc
       self.hasExtForce = true
-   else
-      self.hasExtForce = false
    end
 
    -- vFlux used for selecting which type of numerical flux function to use in velocity space
@@ -154,6 +154,7 @@ function VlasovSpecies:createSolver(field, externalField)
       mass             = self.mass,
       hasElectricField = hasE,
       hasMagneticField = hasB,
+      hasExtForce      = self.hasExtForce,
       plasmaMagField   = plasmaB,
       numVelFlux       = self.numVelFlux,
    }
