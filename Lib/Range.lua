@@ -11,11 +11,6 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
-local cuda
-if GKYL_HAVE_CUDA then
-   cuda = require "Cuda.RunTime"
-end
-
 -- Gkyl libraries
 local Lin = require "Lib.Linalg"
 
@@ -32,12 +27,30 @@ _M.colMajor = 2
 --------------------------------------------------------------------------------
 
 ffi.cdef [[ 
-  typedef struct { int _ndim; int _lower[6]; int _upper[6]; 
-    int _rowMajorIndexerCoeff[7], _colMajorIndexerCoeff[7];
-  } GkylRange_t; 
+/**
+ * Range object, representing an N-dimensional integer index
+ * set. Lower and upper limits are inclusive.
+ */
+struct gkyl_range {
+  int _ndim; // number of dimension
+  int _lower[7]; // lower bound
+  int _upper[7]; // upper bound (inclusive)
+  long _volume; // total volume of range
+    
+  // do not access directly
+  uint32_t flags; // Flags for internal use
+  int ilo[7]; // for use in inverse indexer
+  long ac[8]; // coefficients for indexing
+  long iac[8]; // for use in sub-range inverse indexer
+  long linIdxZero; // linear index of {0,0,...}
+  int nsplit, tid; // number of splits, split ID
+
+  // FOR CUDA ONLY
+  int nthreads, nblocks; // CUDA kernel launch specifiers for range-based ops
+};
 ]]
-local rTy = typeof("GkylRange_t")
-local rSz = sizeof(typeof("GkylRange_t"))
+local rTy = typeof("struct gkyl_range")
+local rSz = sizeof(typeof("struct gkyl_range"))
 
 -- generic iterator function creator: only difference between row- and
 -- col-major order is the order in which the indices are incremented
@@ -361,22 +374,6 @@ local range_mt = {
       genIndexer = function (self, ordering)
 	 return _M.makeGenIndexer(ordering, self)
       end,
-      cloneOnDevice = GKYL_HAVE_CUDA and
-	 function (self)
-	    local r = new(rTy)
-	    ffi.copy(r, self, rSz)
-	    local row_c, col_c = _P.calcRowMajorIndexerCoeff(self), _P.calcColMajorIndexerCoeff(self)
-	    ffi.copy(r._rowMajorIndexerCoeff, row_c, sizeof("int[7]"))
-	    ffi.copy(r._colMajorIndexerCoeff, col_c, sizeof("int[7]"))
-	    
-	    local cuObj, err = cuda.Malloc(rSz)
-	    assert(cuda.Success == err, "Range.cloneOnDevice: unable to allocate device memory!")
-	    cuda.Memcpy(cuObj, r, rSz, cuda.MemcpyHostToDevice)
-	    return cuObj
-	 end or
-	 function (self)
-	    assert(false, "Range.cloneOnDevice: Can't be called without CUDA!")
-	 end      
    }
 }
 -- construct Range object, attaching meta-type to it
@@ -625,28 +622,5 @@ function _M.makeColMajorInvIndexer(range)
    end
 end
 
-if GKYL_HAVE_CUDA then
-   local cuda = require "Cuda.RunTime"
-
-   -- Copy things to device representation of Range object.
-   function _M.copyHostToDevice(range)
-      local hoRange = ffi.new(rTy)
-      local row_c, col_c = calcRowMajorIndexerCoeff(range), calcColMajorIndexerCoeff(range)
-
-      hoRange._ndim = range:ndim()
-      for d = 0, range:ndim()-1 do
-	 hoRange._lower[d] = range._lower[d]
-	 hoRange._upper[d] = range._upper[d]
-      end
-      for d = 0, range:ndim() do
-	 hoRange._rowMajorIndexerCoeff[d] = row_c[d]
-	 hoRange._colMajorIndexerCoeff[d] = col_c[d]
-      end
-
-      local cuRange, err = cuda.Malloc(rSz)
-      cuda.Memcpy(cuRange, hoRange, rSz, cuda.MemcpyHostToDevice)
-      return cuRange, err
-   end
-end
 
 return _M

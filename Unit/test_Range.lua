@@ -14,7 +14,7 @@ local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
 ffi.cdef [[
-  void unit_showRange(GkylRange_t *range);
+  void unit_showRange(struct gkyl_range *range);
 ]]
 
 function test_1()
