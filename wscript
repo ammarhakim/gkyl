@@ -25,7 +25,7 @@ from waflib.Options import options
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkyl luajit mpi adios eigen sqlite3 cutools',
+    opt.load('gkyl luajit mpi adios eigen sqlite3 cutools superlu openblas gkylzero',
              tooldir='waf_tools')
 
 def configure(conf):
@@ -41,6 +41,9 @@ def configure(conf):
     conf.check_eigen()
     conf.check_sqlite3()
     conf.check_cutools()
+    conf.check_superlu()
+    conf.check_openblas()
+    conf.check_gkylzero()
 
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
@@ -243,7 +246,7 @@ def buildExec(bld):
         bld.env.SHLIB_MARKER = '-Wl,-Bdynamic,--no-as-needed'
 
     # list of objects to use
-    useList = ' lib datastruct eq unit comm updater tool proto basis grid LUAJIT ADIOS EIGEN MPI M DL '
+    useList = ' lib datastruct eq unit comm updater tool proto basis grid LUAJIT ADIOS EIGEN MPI M DL gkylzero '
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
     if bld.env['CUTOOLS_FOUND']:
@@ -255,6 +258,7 @@ def buildExec(bld):
     appendToList(fullRpath, bld.env.RPATH) # user specified RPATH
     appendToList(fullRpath, bld.env.LIBDIR)
     appendToList(fullRpath, bld.env.LIBPATH_LUAJIT)
+    appendToList(fullRpath, bld.env.LIBPATH_gkylzero)
 
 
     # build gkyl executable

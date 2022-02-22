@@ -113,6 +113,9 @@ void showVersion() {
 #ifdef HAVE_CUDA_H
   std::cout << " Cuda";
 #endif
+#ifdef HAVE_GKYLZERO_H
+  std::cout << " gkylzero";
+#endif
   std::cout << std::endl;
 }
 
