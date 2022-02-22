@@ -111,37 +111,6 @@ function test_2()
    end
 end
 
-function test_3()
-   local grid = Grid.RectCart {
-      lower = {0.0},
-      upper = {1.0},
-      cells = {10},
-   }
-   local EulerField = DataStruct.new_field_ct(ffi.typeof("struct {double rho, rhou, E;}"))
-   local field = EulerField {
-      onGrid = grid,
-      ghost = {1, 1},
-      createDeviceCopy = false,
-   }
-
-   local localRange = field:localRange()
-   local indexer = field:indexer()
-   for i = localRange:lower(1), localRange:upper(1) do
-      local fitr = field:get(indexer(i))
-      fitr[i].rho = i+1
-      fitr[i].rhou = i+2
-      fitr[i].E = i+3
-   end
-
-   for i = localRange:lower(1), localRange:upper(1) do
-      local fitr = field:get(indexer(i))
-      assert_equal(i+1, fitr[i].rho, "Testing Field of struct")
-      assert_equal(i+2, fitr[i].rhou, "Testing Field of struct")
-      assert_equal(i+3, fitr[i].E, "Testing Field of struct")
-   end
-   
-end
-
 function test_4()
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},
@@ -943,7 +912,6 @@ end
 
 test_1()
 test_2()
-test_3()
 test_4()
 test_5()
 test_6()

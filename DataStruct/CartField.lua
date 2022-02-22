@@ -22,6 +22,7 @@ local Lin              = require "Lib.Linalg"
 local LinearDecomp     = require "Lib.LinearDecomp"
 local Mpi              = require "Comm.Mpi"
 local Range            = require "Lib.Range"
+local ZeroArray        = require "DataStruct.ZeroArray"
 local lume             = require "Lib.lume"
 
 -- Load CUDA allocators (or dummy when CUDA is not found).
@@ -59,37 +60,7 @@ ffi.cdef [[
     // compStart: starting component for offset. nCompInp/nCompOut: input/output field's number of components.
     void gkylCartFieldAccumulateOffset(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out);
     void gkylCartFieldAssignOffset(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out);
-
-    void gkylCartFieldDeviceAccumulate(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out);
-    void gkylCartFieldDeviceAccumulateOffset(int numBlocks, int numThreads, unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out);
-    void gkylCartFieldDeviceAssign(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out);
-    void gkylCartFieldDeviceScale(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, double *out);
-    void gkylCartFieldDeviceAbs(int numBlocks, int numThreads, unsigned s, unsigned nv, double *out);
-
-    // copy periodic boundary conditions when using only one GPU
-    void gkylDevicePeriodicCopy(int numBlocks, int numThreads, GkylRange_t *rangeSkin, GkylRange_t *rangeGhost, GkylCartField_t *f, unsigned numComponents);
-
-    // Assign all elements to specified value.
-    void gkylCartFieldDeviceAssignAll(int numBlocks, int numThreads, unsigned s, unsigned nv, double val, double *out);
 ]]
-
-if GKYL_HAVE_CUDA then
-   ffi.cdef [[
-    // Reduction down to a single value (e.g. min, max, sum).
-    void reductionBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlocks,
-                                   int maxThreads, int &blocks, int &threads);
-    typedef double (*redBinOpFunc_t)(double a, double b);
-    typedef struct {
-      double initValue;
-      redBinOpFunc_t reduceFunc;
-    } baseReduceOp_t; 
-    redBinOpFunc_t getRedMinFuncFromDevice();
-    redBinOpFunc_t getRedMaxFuncFromDevice();
-    redBinOpFunc_t getRedSumFuncFromDevice();
-    void gkylCartFieldDeviceReduce(baseReduceOp_t *redOp, int numCellsTot, int numComponents, int numBlocks, int numThreads, int maxBlocks, int maxThreads, GkDeviceProp *prop, GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out);
-
-   ]]
-end
 
 -- Local definitions.
 local rowMajLayout, colMajLayout = Range.rowMajor, Range.colMajor -- data layout
@@ -238,17 +209,18 @@ local function Field_meta_ctor(elct)
       -- Allocator function.
       local allocator = grid:isShared() and sharedAllocatorFunc or allocatorFunc
       
-      -- Allocate memory: this is NOT managed by the LuaJIT GC, allowing fields to be arbitrarly large.
       local sz = localRange:extend(ghost[1], ghost[2]):volume()*nc -- Amount of data in field.
-      self._allocData = allocator(shmComm, sz) -- Store this so it does not vanish under us.
-      self._data      = self._allocData:data() -- Pointer to data.
-      
       -- Setup object.
       self._grid = grid
       self._ndim = grid:ndim()
       self._lowerGhost, self._upperGhost = ghost[1], ghost[2]
       self._numComponents = nc
       self._size = sz
+
+      -- Underlying ZeroArray data structure, which handles memory allocation
+      self._zero = ZeroArray.Array(ZeroArray.double, self._numComponents, self._size/self._numComponents)
+      -- get pointer to data in ZeroArray
+      self._data = self._zero:fetch(0)
 
       self._globalRange = globalRange
       self._globalExtRange = self._globalRange:extend(
@@ -646,7 +618,7 @@ local function Field_meta_ctor(elct)
 	 return self._devAllocData:data()
       end,
       dataPointer = function (self)
-	 return self._allocData:data()
+	 return self._data
       end,
       clear = function (self, val)
 	 ffiC.gkylCartFieldAssignAll(self:_localLower(), self:_localShape(), val, self._data)
