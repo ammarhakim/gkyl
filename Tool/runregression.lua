@@ -336,12 +336,12 @@ local function runLuaUnitTest(test)
    local runCmd = string.format("%s %s", GKYL_EXEC, test)
    local f = io.popen(runCmd, "r")
    local outPut = f:read("*a")
-   if string.find(outPut, "FAILED") then
+   if string.find(outPut, "PASSED") then
+      numPassedUnitTests = numPassedUnitTests+1
+      log("... passed.\n")      
+   else
       log(string.format("... %s FAILED!\n", test))
       numFailedUnitTests = numFailedUnitTests+1
-   else
-      numPassedUnitTests = numPassedUnitTests+1
-      log("... passed.\n")
    end
 end
 
