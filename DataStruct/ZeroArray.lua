@@ -15,20 +15,11 @@ local new, sizeof, typeof, metatype = xsys.from(ffi,
 
 local Alloc = require "Lib.Alloc"
 local cuda
+require "Lib.ZeroUtil"
 
 _M = {}
 
 ffi.cdef [[
-enum gkyl_elem_type { GKYL_INT, GKYL_FLOAT, GKYL_DOUBLE, GKYL_USER };
-
-/**
- * Object holding use count and pointer to destructor function.
- */
-struct gkyl_ref_count {
-  void (*free)(const struct gkyl_ref_count* );
-  int count;
-};
-
 /**
  * Array object. This is an untype, undimensioned, reference counted
  * array object. All additional structure is provided else where,

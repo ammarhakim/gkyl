@@ -7,6 +7,21 @@
 
 -- Gkyl libraries
 local Proto = require "Lib.Proto"
+local ffi = require "ffi"
+local ffiC = ffi.C
+require "Basis.BasisCdef"
+
+ffi.cdef [[ 
+/**
+ * Create new modal serendipity basis function object.
+ *
+ * @param basis Basis object to initialize
+ * @param ndim Dimension of reference element.
+ * @param poly_order Polynomial order.
+ * @return Pointer to new basis function.
+ */
+void gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order);
+]]
 
 -- CartModalSerendipity -----------------------------------------------------------
 --
@@ -49,6 +64,10 @@ function CartModalSerendipity:init(tbl)
    if (self._polyOrder < 0) or (self._polyOrder > 3) then
       assert(false, "Polynomial order must be between 0 and 3")
    end
+
+   -- create gkylzero gkyl_basis struct
+   self._zero = ffi.new("struct gkyl_basis")
+   ffiC.gkyl_cart_modal_serendip(self._zero, self._ndim, self._polyOrder)
 
    self._numBasis = numBasis(self._ndim, self._polyOrder)
    self._numSurfBasis = numBasis(self._ndim-1, self._polyOrder)

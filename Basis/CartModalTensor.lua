@@ -7,6 +7,21 @@
 
 -- Gkyl libraries
 local Proto = require "Lib.Proto"
+local ffi = require "ffi"
+local ffiC = ffi.C
+require "Basis.BasisCdef"
+
+ffi.cdef [[ 
+/**
+ * Create new modal tensor-product basis function object.
+ *
+ * @param basis Basis object to initialize
+ * @param ndim Dimension of reference element.
+ * @param poly_order Polynomial order.
+ * @return Pointer to new basis function.
+ */
+void gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim, int poly_order);
+]]
 
 -- CartModalTensor -----------------------------------------------------------
 --
@@ -36,6 +51,10 @@ function CartModalTensor:init(tbl)
    -- read data from input table
    self._ndim = assert(tbl.ndim, "Basis.CartModalTensor: Must specify dimension using 'ndim'")
    self._polyOrder = assert(tbl.polyOrder, "Basis.CartModalTensor: Must specify polynonial order with 'polyOrder'")
+
+   -- create gkylzero gkyl_basis struct
+   self._zero = ffi.new("struct gkyl_basis")
+   ffiC.gkyl_cart_modal_tensor(self._zero, self._ndim, self._polyOrder)
 
    self._numBasis = numBasis(self._ndim, self._polyOrder)
    self._numSurfBasis = numBasis(self._ndim-1, self._polyOrder)

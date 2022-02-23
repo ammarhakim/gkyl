@@ -1067,13 +1067,13 @@ for polyOrder = 1, polyOrderMax do
   test_x3v2( polyOrder, basisType)
   test_x4v3( polyOrder, basisType)
   test_x5v3( polyOrder, basisType)
-  test_x6v3( polyOrder, basisType)
+  if polyOrder == 1 then test_x6v3( polyOrder, basisType) end
   test_x1SqxSq( polyOrder, basisType)
   test_x2SqxSq( polyOrder, basisType)
   test_x3SqxSq( polyOrder, basisType)
   test_x4SqxSq( polyOrder, basisType)
   test_x5SqxSq( polyOrder, basisType)
-  test_x6SqxSq( polyOrder, basisType)
+  if polyOrder == 1 then test_x6SqxSq( polyOrder, basisType) end
   test_v1SqvSq( polyOrder, basisType)
   test_v2SqvSq( polyOrder, basisType)
   test_v3SqvSq( polyOrder, basisType)
