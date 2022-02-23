@@ -803,6 +803,28 @@ function test_37()
 
 end
 
+function test_38()
+   local r = Range.Range({1, 2}, {10, 11})
+   local sub = r:subRange({3, 5}, {7, 9})
+
+   assert_equal(1, sub:isSubRange(), "Checking isSubRange")
+end
+
+function test_39()
+   local r = Range.Range({1, 2}, {10, 11})
+   local ext = r:extend(1, 1)
+   local sub = ext:subRange(r:lowerAsVec(), r:upperAsVec())
+
+   assert_equal(1, sub:isSubRange(), "Checking isSubRange")
+   assert_equal(0, ext:isSubRange(), "Checking isSubRange")
+   assert_equal(0, r:isSubRange(), "Checking isSubRange")
+
+   assert_equal(r:lower(1), sub:lower(1))
+   assert_equal(r:lower(2), sub:lower(2))
+   assert_equal(r:upper(1), sub:upper(1))
+   assert_equal(r:upper(2), sub:upper(2))
+end
+
 
 -- Run tests
 test_1()
@@ -845,6 +867,8 @@ if GKYL_HAVE_CUDA then
    test_36()
 end
 test_37()
+test_38()
+test_39()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

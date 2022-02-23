@@ -48,6 +48,39 @@ struct gkyl_range {
   // FOR CUDA ONLY
   int nthreads, nblocks; // CUDA kernel launch specifiers for range-based ops
 };
+
+/**
+ * Initialize new range object.
+ *
+ * @param rng Range object to initialize
+ * @param ndim Dimension of range to create.
+ * @param lower Lower indices of range
+ * @param upper Upper indices of range
+ */
+void gkyl_range_init(struct gkyl_range *rng, int ndim,
+  const int *lower, const int *upper);
+
+/**
+ * Return 1 if range is a sub-range.
+ *
+ * @param rng Range object
+ * @return 1 if true, 0 otherwise
+ */
+int gkyl_range_is_sub_range(const struct gkyl_range *rng);
+
+/**
+ * Create a sub-range from a given range. The sub-range must be fully
+ * contained in the parent range or else it will be truncated. The
+ * sub-range and the parent range will returns the same linear index
+ * for a given index.
+ *
+ * @param rng New range object to initialize
+ * @param bigrng Parent range object 
+ * @param sublower Lower indices of sub-range
+ * @param subupper Upper indices of sub-range
+ */
+void gkyl_sub_range_init(struct gkyl_range *rng,
+  const struct gkyl_range *bigrng, const int *sublower, const int *subupper);
 ]]
 local rTy = typeof("struct gkyl_range")
 local rSz = sizeof(typeof("struct gkyl_range"))
@@ -108,6 +141,7 @@ local range_mt = {
 	    r._upper[d-1] = r._lower[d-1]-1
 	 end
       end
+      ffiC.gkyl_range_init(r, ndim, r._lower, r._upper)
       return r
    end,
    __eq = function (self, r)
@@ -176,6 +210,18 @@ local range_mt = {
 	 end
 	 return r
       end,
+      subRange = function(self, sublower, subupper)
+	 local r = new(rTy)
+         for d = 1, #sublower do
+            r._lower[d-1] = sublower[d]
+            r._upper[d-1] = subupper[d]
+         end
+         ffiC.gkyl_sub_range_init(r, self, r._lower, r._upper)
+	 return r
+      end,
+      isSubRange = function(self)
+         return ffiC.gkyl_range_is_sub_range(self)
+      end, 
       selectFirst = function (self, n)
 	 local r = new(rTy)
 	 r._ndim = n
