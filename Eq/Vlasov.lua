@@ -32,6 +32,28 @@ ffi.cdef [[
   GkylEquation_t *new_VlasovOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType,
     double qbym, bool hasForceTerm);
   void Vlasov_setAuxFields(GkylEquation_t *eqn, GkylCartField_t* em);
+
+// Identifiers for specific field object types
+enum gkyl_field_id {
+  GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
+  GKYL_FIELD_PHI, // Poisson (only phi)  
+  GKYL_FIELD_PHI_A, // Poisson with static B = curl(A) (phi, A)
+  GKYL_FIELD_NULL // no field is present
+};
+
+/**                                                                                         
+ * Create a new Vlasov equation object.                                                     
+ *                                                                                          
+ * @param cbasis Configuration space basis functions                                        
+ * @param pbasis Phase-space basis functions                                                
+ * @param conf_range Configuration space range for use in indexing EM field                 
+ * @param field_id enum to determine what type of EM fields (Vlasov-Maxwell vs. neutrals)   
+ * @return Pointer to Vlasov equation object                                                
+ */                                                                                         
+struct gkyl_dg_eqn* gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis,                     
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, enum gkyl_field_id field_id);
+  
+
 ]]
 
 -- Vlasov equation on a rectangular mesh.
@@ -44,6 +66,9 @@ function Vlasov:init(tbl)
       tbl.phaseBasis, "Eq.Vlasov: Must specify phase-space basis functions to use using 'phaseBasis'")
    self._confBasis = assert(
       tbl.confBasis, "Eq.Vlasov: Must specify configuration-space basis functions to use using 'confBasis'")
+
+   self._confRange = tbl.confRange
+   if self._confRange then assert(self._confRange:isSubRange()==1, "Eq.Vlasov: confRange must be a sub-range") end
    
    local charge = assert(tbl.charge, "Eq.Vlasov: must specify charge using 'charge' ")
    local mass = assert(tbl.mass, "Eq.Vlasov: must specify mass using 'mass' ")
@@ -65,6 +90,15 @@ function Vlasov:init(tbl)
    local hasMagField    = xsys.pickBool(tbl.hasMagneticField, true)
    local hasExtForce    = xsys.pickBool(tbl.hasExtForce, true)
    self._plasmaMagField = xsys.pickBool(tbl.plasmaMagField, true)
+
+   if hasElcField and hasMagField then 
+      self._fieldId = 0 
+   elseif hasElcField then
+      self._fieldId = 1
+   else
+      self._fieldId = 3
+   end
+   self._zero = ffiC.gkyl_dg_vlasov_new(self._confBasis._zero, self._phaseBasis._zero, self._confRange, self._fieldId)
 
    -- Option to perform only the force volume update (e.g. for stochastic forces).
    local onlyForceUpdate = xsys.pickBool(tbl.onlyForceUpdate, false)

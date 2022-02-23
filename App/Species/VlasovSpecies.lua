@@ -150,6 +150,7 @@ function VlasovSpecies:createSolver(field, externalField)
       onGrid           = self.grid,
       phaseBasis       = self.basis,
       confBasis        = self.confBasis,
+      confRange = self.totalEmField:localRange(),
       charge           = self.charge,
       mass             = self.mass,
       hasElectricField = hasE,
