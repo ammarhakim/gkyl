@@ -32,10 +32,10 @@ App = Vlasov.App {
 
       init = Vlasov.MaxwellianProjection {
          density = function (t, xn)
-            local x, y = xn[1], xn[2]
-            return n0*math.exp(-(x*x)/(2*0.5*0.5) + -(y*y)/(2*0.5*0.5))
+            local x = xn[1]
+            return n0*math.exp(-(x*x)/(2*0.5*0.5))
          end,
-         driftSpeed = {0.0,0.0},
+         driftSpeed = {0.0},
          temperature = T0,
          isInit = true,
       },   
