@@ -230,6 +230,10 @@ local function Field_meta_ctor(elct)
       self._localExtRange = self._localRange:extend(
 	 self._lowerGhost, self._upperGhost)
 
+      -- re-initialize localRange and globalRange as sub-ranges of localExtRange and globalExtRange
+      self._localRange = self._localExtRange:subRange(self._localRange:lowerAsVec(), self._localRange:upperAsVec())
+      self._globalRange = self._globalExtRange:subRange(self._globalRange:lowerAsVec(), self._globalRange:upperAsVec())
+
       -- All real-cell edges.
       self._localEdgeRange = self._localRange:extend(1, 0) -- Or (1, 0)?
 
