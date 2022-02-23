@@ -53,7 +53,13 @@ enum gkyl_field_id {
 struct gkyl_dg_eqn* gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis,                     
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, enum gkyl_field_id field_id);
   
-
+/**
+ * Set the q/m*EM field needed in updating the force terms.
+ * 
+ * @param eqn Equation pointer
+ * @param qmem Pointer to EM field scaled by q/m,
+ */
+void gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem);
 ]]
 
 -- Vlasov equation on a rectangular mesh.
@@ -260,6 +266,9 @@ function Vlasov:setAuxFields(auxFields)
             self._phiIdxr = self._phiField:genIndexer()
          end
          self._isFirst = false   -- No longer first time.
+      end
+      if self._zero then
+         ffiC.gkyl_vlasov_set_qmem(self._zero, self._emField._zero)
       end
    end
 end

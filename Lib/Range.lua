@@ -141,7 +141,7 @@ local range_mt = {
 	    r._upper[d-1] = r._lower[d-1]-1
 	 end
       end
-      ffiC.gkyl_range_init(r, ndim, r._lower, r._upper)
+      ffiC.gkyl_range_init(r, r._ndim, r._lower, r._upper)
       return r
    end,
    __eq = function (self, r)
@@ -187,6 +187,7 @@ local range_mt = {
 	 for dir = 1, self:ndim() do
 	    r._lower[dir-1], r._upper[dir-1] = self:lower(dir)-lExt, self:upper(dir)+uExt
 	 end
+         ffiC.gkyl_range_init(r, r._ndim, r._lower, r._upper)
 	 return r
       end,
       extendDir = function (self, extDir, lExt, uExt)
@@ -196,6 +197,7 @@ local range_mt = {
 	    r._lower[dir-1], r._upper[dir-1] = self:lower(dir), self:upper(dir)
 	 end
 	 r._lower[extDir-1], r._upper[extDir-1] = self:lower(extDir)-lExt, self:upper(extDir)+uExt
+         ffiC.gkyl_range_init(r, r._ndim, r._lower, r._upper)
 	 return r
       end,
       extendDirs = function (self, dirList, lExt, uExt)
@@ -208,6 +210,7 @@ local range_mt = {
 	    local extDir = dirList[d]
 	    r._lower[extDir-1], r._upper[extDir-1] = self:lower(extDir)-lExt, self:upper(extDir)+uExt
 	 end
+         ffiC.gkyl_range_init(r, r._ndim, r._lower, r._upper)
 	 return r
       end,
       subRange = function(self, sublower, subupper)
@@ -228,6 +231,7 @@ local range_mt = {
 	 for dir = 1, n do
 	    r._lower[dir-1], r._upper[dir-1] = self:lower(dir), self:upper(dir)
 	 end
+         ffiC.gkyl_range_init(r, r._ndim, r._lower, r._upper)
 	 return r	 
       end,
       selectLast = function (self, n)
@@ -237,6 +241,7 @@ local range_mt = {
 	    local i = self:ndim()-n+dir
 	    r._lower[dir-1], r._upper[dir-1] = self:lower(i), self:upper(i)
 	 end
+         ffiC.gkyl_range_init(r, r._ndim, r._lower, r._upper)
 	 return r	 
       end,      
       lowerSkin = function (self, dir, nGhost)
@@ -246,6 +251,7 @@ local range_mt = {
 	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
 	 end
 	 r._upper[dir-1] = self:lower(dir)+nGhost-1
+         ffiC.gkyl_range_init(r, r._ndim, r._lower, r._upper)
 	 return r
       end,
       upperSkin = function (self, dir, nGhost)
@@ -255,6 +261,7 @@ local range_mt = {
 	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
 	 end
 	 r._lower[dir-1] = self:upper(dir)-nGhost+1
+         ffiC.gkyl_range_init(r, r._ndim, r._lower, r._upper)
 	 return r
       end,
       lowerGhost = function (self, dir, nGhost)
@@ -264,6 +271,7 @@ local range_mt = {
 	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
 	 end
 	 r._lower[dir-1], r._upper[dir-1] = self:lower(dir)-nGhost, self:lower(dir)-1
+         ffiC.gkyl_range_init(r, r._ndim, r._lower, r._upper)
 	 return r
       end,
       upperGhost = function (self, dir, nGhost)
@@ -273,6 +281,7 @@ local range_mt = {
 	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
 	 end
 	 r._lower[dir-1], r._upper[dir-1] = self:upper(dir)+1, self:upper(dir)+nGhost
+         ffiC.gkyl_range_init(r, r._ndim, r._lower, r._upper)
 	 return r
       end,
       shorten = function (self, dir, len)
@@ -283,6 +292,7 @@ local range_mt = {
 	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
 	 end
 	 r._upper[dir-1] = r._lower[dir-1]+len-1
+         ffiC.gkyl_range_init(r, r._ndim, r._lower, r._upper)
 	 return r
       end,
       shortenFromBelow = function (self, dir, len)
@@ -293,6 +303,7 @@ local range_mt = {
 	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
 	 end
 	 r._lower[dir-1] = r._upper[dir-1]-(len-1)
+         ffiC.gkyl_range_init(r, r._ndim, r._lower, r._upper)
 	 return r
       end,
       shift = function (self, offsets)
@@ -301,6 +312,7 @@ local range_mt = {
 	 for d = 1, self:ndim() do
 	    r._lower[d-1], r._upper[d-1] = self:lower(d)+offsets[d], self:upper(d)+offsets[d]
 	 end
+         ffiC.gkyl_range_init(r, r._ndim, r._lower, r._upper)
 	 return r
       end,
       shiftInDir = function (self, dir, offset)
@@ -310,6 +322,7 @@ local range_mt = {
 	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
 	 end	 
 	 r._lower[dir-1], r._upper[dir-1] = self:lower(dir)+offset, self:upper(dir)+offset
+         ffiC.gkyl_range_init(r, r._ndim, r._lower, r._upper)
 	 return r
       end,
       intersect = function (self, rgn)

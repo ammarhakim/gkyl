@@ -818,6 +818,10 @@ function test_39()
    assert_equal(1, sub:isSubRange(), "Checking isSubRange")
    assert_equal(0, ext:isSubRange(), "Checking isSubRange")
    assert_equal(0, r:isSubRange(), "Checking isSubRange")
+   
+   assert_equal(1, r.nsplit)
+   assert_equal(1, ext.nsplit)
+   assert_equal(1, sub.nsplit)
 
    assert_equal(r:lower(1), sub:lower(1))
    assert_equal(r:lower(2), sub:lower(2))
