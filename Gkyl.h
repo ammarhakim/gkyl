@@ -194,8 +194,8 @@ Gkyl::Gkyl(const std::string& luaExpr, const std::string& inpFileNm, const std::
   : hasInpFile(!inpFileNm.empty()), luaExpr(luaExpr), inpFile(inpFileNm), args(args), execPath(findExecPath())
 {
   toolList = {
-    { "man", { "man.lua", "Gkeyll online man page" } },
-    { "woman", { "man.lua", "Gkeyll online man (Woe without man)" } },
+    { "man", { "man.lua", "Gkeyll online manual" } },
+    { "woman", { "man.lua", "Gkeyll online manual (Woe without man)" } },
     { "examples", {"examples.lua", "Example input files"} },
     { "queryrdb", {"queryrdb.lua", "Query/modify regression test DB"} },
     { "runregression", {"runregression.lua", "Run regression/unit tests"} },
