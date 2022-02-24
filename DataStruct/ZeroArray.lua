@@ -73,6 +73,8 @@ struct gkyl_array* gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp,
  */
 bool gkyl_array_is_cu_dev(const struct gkyl_array *arr);
 
+enum gkyl_array_op { GKYL_MIN, GKYL_MAX, GKYL_SUM };
+
 /**
  * Copy into array: pointer to dest array is returned. 'dest' and
  * 'src' must not point to same data.
@@ -91,6 +93,157 @@ struct gkyl_array* gkyl_array_copy(struct gkyl_array* dest,
  * @return Pointer to clone
  */
 struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
+
+/**
+ * Clear out = val. Returns out.
+ *
+ * @param out Output array
+ * @param val Factor to set 
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_clear(struct gkyl_array *out, double val);
+
+/**
+ * Compute out = out + a*inp. Returns out.
+ *
+ * @param out Output array
+ * @param a Factor to multiply input array
+ * @param inp Input array
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_accumulate(struct gkyl_array *out,
+  double a, const struct gkyl_array *inp);
+
+/**
+ * Set out = a*inp. Returns out.
+ *
+ * @param out Output array
+ * @param a Factor to multiply input array
+ * @param inp Input array
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_set(struct gkyl_array *out,
+  double a, const struct gkyl_array *inp);
+
+/**
+ * Scale out = a*out. Returns out.
+ *
+ * @param out Output array
+ * @param a Factor to scale
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_scale(struct gkyl_array *out, double a);
+
+/**
+ * Clear out = val. Returns out.
+ *
+ * @param out Output array
+ * @param val Factor to set 
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_clear_range(struct gkyl_array *out, double val,
+  struct gkyl_range range);
+
+/**
+ * Compute out = out + a*inp over a range of indices.
+ *
+ * @param out Output array
+ * @param a Factor to multiply input array
+ * @param inp Input array
+ * @param range Range specifying region to accumulate
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_accumulate_range(struct gkyl_array *out,
+  double a, const struct gkyl_array *inp, struct gkyl_range range);
+
+/**
+ * Set out = a*inp. Returns out.
+ *
+ * @param out Output array
+ * @param a Factor to multiply input array
+ * @param inp Input array
+ * @return out array
+ * @param range Range specifying region to set
+ */
+struct gkyl_array* gkyl_array_set_range(struct gkyl_array *out,
+  double a, const struct gkyl_array *inp, struct gkyl_range range);
+
+/**
+ * Scale out = a*ut. Returns out.
+ *
+ * @param out Output array
+ * @param a Factor to scale by
+ * @return out array
+ * @param range Range specifying region to scale
+ */
+struct gkyl_array* gkyl_array_scale_range(struct gkyl_array *out,
+  double a, struct gkyl_range range);
+
+/**
+ * Copy out inp. Returns out.
+ *
+ * @param out Output array
+ * @param inp Input array
+ * @param range Range specifying region to copy
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_copy_range(struct gkyl_array *out,
+  const struct gkyl_array *inp, struct gkyl_range range);
+
+/**
+ * Copy out inp over specified ranges. Returns out.
+ * input and output ranges must have the same volume.
+ *
+ * @param out Output array
+ * @param inp Input array
+ * @param out_range Range specifying region to copy to in out array
+ * @param inp_range Range specifying region to copy to from in inp array
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_copy_range_to_range(struct gkyl_array *out,
+  const struct gkyl_array *inp, struct gkyl_range out_range, struct gkyl_range inp_range);
+
+/**
+ * Perform an "reduce" operation of data in the array.
+ *
+ * @param res On output, reduces values (ncomp size)
+ * @param arr Array to perform reduction on.
+ * @param op Reduction operators
+ */
+void gkyl_array_reduce(double *res, const struct gkyl_array *arr, enum gkyl_array_op op);
+
+/**
+ * Perform an "reduce" operation of data in the array. Data is reduced
+ * component-wise.
+ *
+ * @param res On output, reduced values (ncomp size)
+ * @param arr Array to perform reduction on.
+ * @param op Reduction operators
+ * @param range Range specifying region
+ */
+void gkyl_array_reduce_range(double *res,
+  const struct gkyl_array *arr, enum gkyl_array_op op, struct gkyl_range range);
+
+/**
+ * Copy region of array into a buffer. The buffer must be preallocated
+ * and at least of size arr->size*arr->elemSz bytes.
+ *
+ * @param arr Array to copy from
+ * @param data Output data buffer.
+ * @param range Range specifying region to copy from
+ */
+void gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
+  struct gkyl_range range);
+
+/**
+ * Copy buffer into region of array. The array must be preallocated.
+ *
+ * @param arr Array to copy into
+ * @param data Output data buffer.
+ * @param range Range specifying region to copy into
+ */
+void gkyl_array_copy_from_buffer(struct gkyl_array *arr,
+  const void *data, struct gkyl_range range);
 ]]
 
 local longSz = sizeof("long")
@@ -156,6 +309,29 @@ local array_fn = {
    get_elemsz = function (self)
       return tonumber(self.elemsz)
    end,
+   clear = function (self, val)
+      ffiC.gkyl_array_clear(self, val)
+   end,
+   set = function (self, val, fld)
+      ffiC.gkyl_array_set(self, val, fld)
+   end,
+   accumulate = function (self, val, fld)
+      ffiC.gkyl_array_accumulate(self, val, fld)
+   end,
+   scale = function (self, val)
+      ffiC.gkyl_array_scale(self, val)
+   end,
+   reduceRange = function (self, out, op, rng)
+      if op == "min" then 
+         enum = 0 
+      elseif op == "max" then
+         enum = 1
+      elseif op == "sum" then
+         enum = 2
+      end
+      ffiC.gkyl_array_reduce_range(out, self, enum, rng)
+   end,
+  
 }
 
 local array_mt = {

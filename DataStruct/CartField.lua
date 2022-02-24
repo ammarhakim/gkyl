@@ -596,7 +596,7 @@ local function Field_meta_ctor(elct)
 	 return self._numComponents
       end,
       copy = function (self, fIn)
-	 self:_assign(1.0, fIn)
+	 self._zero:copy(fIn._zero)
       end,
       deviceCopy = function (self, fIn)
          if self._devAllocData then
@@ -625,7 +625,7 @@ local function Field_meta_ctor(elct)
 	 return self._data
       end,
       clear = function (self, val)
-	 ffiC.gkylCartFieldAssignAll(self:_localLower(), self:_localShape(), val, self._data)
+         self._zero:clear(val)
       end,
       deviceClear = function (self, val)
          if self._devAllocData then
@@ -646,10 +646,7 @@ local function Field_meta_ctor(elct)
 	 return self._localExtRangeDecomp:shape(self._shmIndex)*self:numComponents()
       end,
       _assign = function(self, fact, fld)
-	 assert(field_compatible(self, fld), "CartField:assign: Can only assign compatible fields")
-	 assert(type(fact) == "number", "CartField:assign: Factor not a number")
-
-	 ffiC.gkylCartFieldAssign(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
+         self._zero:set(fact, fld._zero)
       end,
       _deviceAssign = function(self, fact, fld)
 	 assert(field_compatible(self, fld), "CartField:deviceAssign: Can only accumulate compatible fields")
@@ -680,14 +677,7 @@ local function Field_meta_ctor(elct)
 	 ffiC.gkylCartFieldAssignOffset(fld:_localLower(), self:_localLower(), numCells, compStart, fld:numComponents(), self:numComponents(), fact, fld._data, self._data)
       end,
       _accumulateOneFld = function(self, fact, fld)
-	 assert(field_compatible(self, fld),
-		"CartField:accumulateOneFld: Can only accumulate compatible fields")
-	 assert(type(fact) == "number",
-		"CartField:accumulateOneFld: Factor not a number")
-         assert(self:layout() == fld:layout(),
-		"CartField:accumulateOneFld: Fields should have same layout for sums to make sense")
-
-	 ffiC.gkylCartFieldAccumulate(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
+         self._zero:accumulate(fact, fld._zero)
       end,
       -- accumulateOffsetOneFld assumes that one of the input or output fields have fewer components than the other.
       --   a) nCompOut > nCompIn: accumulates all of the input field w/ part of the output field, the (0-based)
@@ -838,7 +828,7 @@ local function Field_meta_ctor(elct)
 	 end,
       scale = isNumberType and
 	 function (self, fact)
-	    ffiC.gkylCartFieldScale(self:_localLower(), self:_localShape(), fact, self._data)
+            self._zero:scale(fact)
 	 end or
 	 function (self, fact)
 	    assert(false, "CartField:scale: Scale only works on numeric fields")
@@ -1050,24 +1040,10 @@ local function Field_meta_ctor(elct)
       end,
       reduce = isNumberType and
 	 function(self, opIn)
+            self._zero:reduceRange(self.localReductionVal:data(), opIn, self._localRange)
 	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
 	    local grid = self._grid
-	    local tId = grid:subGridSharedId() -- Local thread ID.
-	    local localRangeDecomp = LinearDecomp.LinearDecompRange {
-	       range = self._localRange, numSplit = grid:numSharedProcs() }
-	    local indexer = self:genIndexer()
-	    local itr = self:get(1)
-	    
 	    local localVal = {}
-	    for k = 1, self._numComponents do localVal[k] = reduceInitialVal[opIn] end
-	    for idx in localRangeDecomp:rowMajorIter(tId) do
-	       self:fill(indexer(idx), itr)
-	       for k = 1, self._numComponents do
-		  localVal[k] = binOpFuncs[opIn](localVal[k], itr:data()[k-1])
-	       end
-	    end
-
-	    for k = 1, self._numComponents do self.localReductionVal[k] = localVal[k] end
 	    Mpi.Allreduce(self.localReductionVal:data(), self.globalReductionVal:data(),
 			  self._numComponents, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
 
