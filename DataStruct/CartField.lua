@@ -231,8 +231,8 @@ local function Field_meta_ctor(elct)
 	 self._lowerGhost, self._upperGhost)
 
       -- re-initialize localRange and globalRange as sub-ranges of localExtRange and globalExtRange
-      self._localRange = self._localExtRange:subRange(self._localRange:lowerAsVec(), self._localRange:upperAsVec())
-      self._globalRange = self._globalExtRange:subRange(self._globalRange:lowerAsVec(), self._globalRange:upperAsVec())
+      self._localRange = self._localExtRange:subRange(localRange:lowerAsVec(), localRange:upperAsVec())
+      self._globalRange = self._globalExtRange:subRange(globalRange:lowerAsVec(), globalRange:upperAsVec())
 
       -- All real-cell edges.
       self._localEdgeRange = self._localRange:extend(1, 0) -- Or (1, 0)?
@@ -307,11 +307,11 @@ local function Field_meta_ctor(elct)
 
       -- Construct linear decomposition of various ranges.
       self._localRangeDecomp = LinearDecomp.LinearDecompRange {
-         range    = localRange,
+         range    = self._localRange,
          numSplit = Mpi.Comm_size(shmComm)
       }
       self._localExtRangeDecomp = LinearDecomp.LinearDecompRange {
-         range    = localRange:extend(self._lowerGhost, self._upperGhost),
+         range    = self._localExtRange,
          numSplit = Mpi.Comm_size(shmComm)
       }
 
@@ -342,7 +342,7 @@ local function Field_meta_ctor(elct)
 
       for _, sendId in ipairs(neigIds) do
          local neighRgn = decomposedRange:subDomain(sendId)
-         local sendRgn  = localRange:intersect(
+         local sendRgn  = self._localRange:intersect(
             neighRgn:extend(self._lowerGhost, self._upperGhost))
          local idx      = sendRgn:lowerAsVec()
          -- Set idx to starting point of region you want to recv.
@@ -353,7 +353,7 @@ local function Field_meta_ctor(elct)
 
       for _, recvId in ipairs(neigIds) do
          local neighRgn = decomposedRange:subDomain(recvId)
-         local recvRgn  = localExtRange:intersect(neighRgn)
+         local recvRgn  = self._localExtRange:intersect(neighRgn)
          local idx      = recvRgn:lowerAsVec()
          -- set idx to starting point of region you want to recv
          self._recvMPILoc[recvId]      = (indexer(idx)-1)*self._numComponents
