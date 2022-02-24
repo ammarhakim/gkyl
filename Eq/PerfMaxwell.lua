@@ -13,6 +13,7 @@ local EqBase = require "Eq.EqBase"
 local MaxwellModDecl = require "Eq.maxwellData.MaxwellModDecl"
 local Proto = require "Lib.Proto"
 local ffi = require "ffi"
+local ffiC = ffi.C
 local xsys = require "xsys"
 
 -- Resuffle indices for various direction Riemann problem. The first
@@ -74,6 +75,18 @@ ffi.cdef [[
   GkylEquationFv_t *new_EquationFvPerfMaxwellOnDevice(
       const double lightSpeed, const double elcErrorSpeedFactor,
       const double mgnErrorSpeedFactor);
+
+/**
+ * Create a new Maxwell equation object.
+ *
+ * @param cbasis Configuration space basis functions
+ * @param lightSpeed Speed of light
+ * @param elcErrorSpeedFactor Factor multiplying lightSpeed for div E correction
+ * @param mgnErrorSpeedFactor Factor multiplying lightSpeed for div B correction
+ * @return Pointer to Maxwell equation object
+ */
+struct gkyl_dg_eqn* gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
+  double lightSpeed, double elcErrorSpeedFactor, double mgnErrorSpeedFactor);
 ]]
 
 -- The function to compute fluctuations is implemented as a template
@@ -139,6 +152,8 @@ function PerfMaxwell:init(tbl)
 
    -- store stuff in C struct for use in DG solvers
    self._ceqn = ffi.new("MaxwellEq_t", {self._c, self._ce, self._cb})
+
+   self._zero = ffiC.gkyl_dg_maxwell_new(self._basis._zero, self._c, self._ce, self._cb)
 end
 
 function PerfMaxwell:initDevice(tbl)
