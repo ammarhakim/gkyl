@@ -71,7 +71,7 @@ function Vlasov:init(tbl)
 
    self._hasForceTerm = false   -- Flag to indicate if we have any force terms at all.
    -- Turn on force term if there's an electric or magnetic field or if there's a body force.
-   if hasElcField or hasMagField or self._plasmaMagField or hasExtForce then
+   if (self._qbym ~= 0. and (hasElcField or self._hasMagField or self._plasmaMagField)) or hasExtForce then
       self._hasForceTerm = true
    end
 
