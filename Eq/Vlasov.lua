@@ -61,10 +61,10 @@ function Vlasov:init(tbl)
       self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
 
    -- Check if we have an electric and magnetic field.
-   local hasElcField    = xsys.pickBool(tbl.hasElectricField, true)
-   local hasMagField    = xsys.pickBool(tbl.hasMagneticField, true)
+   local hasElcField    = xsys.pickBool(tbl.hasElectricField and tbl.hasElectricField or false, true)
+   self._hasMagField    = xsys.pickBool(tbl.hasMagneticField and tbl.hasMagneticField or false, true)
    local hasExtForce    = xsys.pickBool(tbl.hasExtForce, true)
-   self._plasmaMagField = xsys.pickBool(tbl.plasmaMagField, true)
+   self._plasmaMagField = xsys.pickBool(tbl.plasmaMagField and tbl.plasmaMagField or false, true)
 
    -- Option to perform only the force volume update (e.g. for stochastic forces).
    local onlyForceUpdate = xsys.pickBool(tbl.onlyForceUpdate, false)
@@ -101,9 +101,9 @@ function Vlasov:init(tbl)
             self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
                self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), self._numVelFlux)
          else
-            self._volUpdate = VlasovModDecl.selectVolPhi(hasMagField,
+            self._volUpdate = VlasovModDecl.selectVolPhi(self._hasMagField,
                self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-            self._surfForceUpdate = VlasovModDecl.selectSurfPhi(hasMagField,
+            self._surfForceUpdate = VlasovModDecl.selectSurfPhi(self._hasMagField,
                self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
          end
       end
@@ -216,7 +216,13 @@ end
 function Vlasov:setAuxFields(auxFields)
    if self._hasForceTerm then   -- No fields for neutral particles.
       self._emField = auxFields[1]   -- Single aux field that has the full EM field
-      if not self._plasmaMagField then self._phiField = auxFields[2] end   -- Electrostatic potential.
+
+      -- Electrostatic potential.
+      if not self._plasmaMagField and self._hasMagField then 
+         self._phiField = auxFields[1] 
+      elseif not self._plasmaMagField then
+         self._phiField = auxFields[2]
+      end
 
       if self._isFirst then
          self._emPtr  = self._emField:get(1)

@@ -875,6 +875,16 @@ return {
       }
    end,
 
+   HasegawaWakatani = function ()
+      App.label = "Hasegawa-Wakatani"
+      return {
+	 App       = App,
+	 Field     = require ("App.Field.GkField").GkField,
+	 Species   = require "App.Species.HasegawaWakataniSpecies",
+	 Diffusion = require "App.Collisions.Diffusion",
+      }
+   end,
+
    VlasovMaxwell = function ()
       App.label = "Vlasov-Maxwell"
       return {

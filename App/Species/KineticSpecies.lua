@@ -453,7 +453,7 @@ function KineticSpecies:createSolver(field, externalField)
    end
 
    -- Create solvers for collisions.
-   for _, c in pairs(self.collisions) do c:createSolver(externalField) end
+   for _, c in pairs(self.collisions) do c:createSolver(self, externalField) end
 
    -- Create BC solvers.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self, field, externalField) end

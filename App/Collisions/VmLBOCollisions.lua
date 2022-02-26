@@ -216,7 +216,7 @@ function VmLBOCollisions:setConfGrid(grid) self.confGrid = grid end
 function VmLBOCollisions:setPhaseBasis(basis) self.phaseBasis = basis end
 function VmLBOCollisions:setPhaseGrid(grid) self.phaseGrid = grid end
 
-function VmLBOCollisions:createSolver(extField)
+function VmLBOCollisions:createSolver(mySpecies, extField)
    self.vdim      = self.phaseGrid:ndim() - self.confGrid:ndim()
 
    self.cNumBasis = self.confBasis:numBasis()

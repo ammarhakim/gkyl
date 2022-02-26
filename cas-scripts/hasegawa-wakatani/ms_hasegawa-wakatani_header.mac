@@ -1,0 +1,63 @@
+/*
+  Generate the header file for Hasegawa-Wakatani kernels.
+*/
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 2$
+
+/* Tensor product basis. */
+maxPolyOrder_Tensor : 2$
+
+/* ...... END OF USER INPUTS........ */
+
+/* To generate other bases, just add corresponding column to arrays below. */
+bName        : ["Ser","Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Tensor]$
+
+vars : [x, y]$
+
+/* Generate kernels of selected types. */
+printPrototypes() := block([],
+  for bInd : 1 thru length(bName) do (
+
+    c : 2,  /* HW is 2D. */
+  
+    maxPolyOrderB : maxPolyOrder[bInd],
+
+    for polyOrder : 1 thru maxPolyOrderB do (
+
+      printf(fh, "  double hasegawa_wakatani_vol_~ax_p~a_~a(const double C_, const double kappa_, const double *xc, const double *dx, const double *phi, const double *fIn, double *out); ~%", c, polyOrder, bName[bInd]),
+
+      for dir : 1 thru c do (
+        printf(fh, "  double hasegawa_wakatani_surf_~ax_p~a_~a_~a(const double C_, const double kappa_, const double cflL, const double cflR, const double *xc, const double *dx, const double amax_in, const double *phi, const double *fInL, const double *fInR, double *outL, double *outR); ~%", c, polyOrder, bName[bInd], vars[dir])
+      ),
+      printf(fh, "~%")
+
+    )
+  )
+)$
+
+fh : openw("~/max-out/hasegawa_wakatani_mod_decl.h")$
+printf(fh, "#ifndef HASEGAWA_WAKATANI_MOD_DECL_H ~%")$
+printf(fh, "#define HASEGAWA_WAKATANI_MOD_DECL_H ~%")$
+printf(fh, "~%")$
+
+printf(fh, "#include <cmath.h> ~%")$  /* For fabs and fmax functions. */
+printf(fh, "~%")$
+
+printf(fh, "template <typename T> int sgn(T val) {~%")$
+printf(fh, "    return (T(0) < val) - (val < T(0));~%")$
+printf(fh, "}~%")$
+printf(fh, "~%")$
+
+printf(fh, "~%")$
+printf(fh, "extern \"C\" { ~%")$
+printf(fh, "~%")$
+printPrototypes()$
+printf(fh, "} ~%")$
+printf(fh, "#endif ~%")$
+close(fh)$

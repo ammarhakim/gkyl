@@ -8,6 +8,7 @@ function CollisionsBase:setName(nm)
    self.name = self.speciesName.."_"..nm
    self.collNm = nm
 end
+function CollisionsBase:createSolver(mySpecies, externalField) end
 function CollisionsBase:setSpeciesName(nm) self.speciesName = nm end
 function CollisionsBase:fullInit(speciesTbl) end
 function CollisionsBase:createDiagnostics(mySpecies, field) return nil end
