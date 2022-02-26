@@ -145,6 +145,8 @@ function PerfMaxwell:init(tbl)
       else
          assert(self._numFLux, "Eq.PerfMaxwell: Incorrect numerical flux specified, options supported: 'central' and 'upwind' ")
       end
+
+      self._zero = ffiC.gkyl_dg_maxwell_new(self._basis._zero, self._c, self._ce, self._cb)
    end
 
    -- maximum characteristic speed
@@ -152,8 +154,6 @@ function PerfMaxwell:init(tbl)
 
    -- store stuff in C struct for use in DG solvers
    self._ceqn = ffi.new("MaxwellEq_t", {self._c, self._ce, self._cb})
-
-   self._zero = ffiC.gkyl_dg_maxwell_new(self._basis._zero, self._c, self._ce, self._cb)
 end
 
 function PerfMaxwell:initDevice(tbl)
