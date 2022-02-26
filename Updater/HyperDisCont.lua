@@ -1,4 +1,3 @@
--- Gkyl ------------------------------------------------------------------------
 --
 -- Updater to compute RHS or forward Euler update for hyperbolic
 -- equations with Discontinuous Galerkin scheme.
@@ -82,7 +81,7 @@ typedef struct gkyl_hyper_dg gkyl_hyper_dg;
 gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
   int num_up_dirs, int update_dirs[7], int zero_flux_flags[7],
-  int update_vol_term);
+  int update_vol_term, bool use_gpu);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -97,6 +96,13 @@ gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
  * @param rhs RHS output
  */
 void gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, struct gkyl_range update_rng,
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs);
+
+void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range update_range,
+  const struct gkyl_array* fIn, struct gkyl_array* cflrate,
+  struct gkyl_array* rhs);
+
+void gkyl_hyper_dg_advance_no_iter(gkyl_hyper_dg *hdg, struct gkyl_range update_range,
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs);
 ]]
 
@@ -167,35 +173,8 @@ function HyperDisCont:init(tbl)
    end
    local zf = ffi.new("int[6]", self._zeroFluxFlags)
    if self._equation._zero then 
-     self._zero = ffiC.gkyl_hyper_dg_new(self._onGrid._zero, self._basis._zero, self._equation._zero, #self._updateDirs, upd, zf, self._updateVolumeTerm)
+     self._zero = ffiC.gkyl_hyper_dg_new(self._onGrid._zero, self._basis._zero, self._equation._zero, #self._updateDirs, upd, zf, self._updateVolumeTerm, GKYL_USE_GPU or 0)
    end
-
-   return self
-end
-
-function HyperDisCont:initDevice(tbl)
-   self.maxsByCell = DataStruct.Field {
-      onGrid = self._onGrid,
-      numComponents = self._ndim,
-      ghost = {1, 1},
-      createDeviceCopy = true,
-   }
-   self.maxs = cuAlloc.Double(self._ndim)
-   local hyper = ffi.new("GkylHyperDisCont_t")
-   hyper.updateDirs = ffi.new("int[6]", self._updateDirs)
-   hyper.zeroFluxFlags = ffi.new("bool[6]", self._zeroFluxFlags)
-   hyper.numUpdateDirs = #self._updateDirs
-   hyper.updateVolumeTerm = self._updateVolumeTerm
-   hyper.equation = self._equation._onDevice
-   hyper.maxsByCell = self.maxsByCell._onDevice
-   hyper.maxs = self.maxs:data()
-   self._onHost = hyper
-   local sz = sizeof("GkylHyperDisCont_t")
-   self._onDevice, err = cuda.Malloc(sz)
-   cuda.Memcpy(self._onDevice, hyper, sz, cuda.MemcpyHostToDevice)
-
-   self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
-   self._useSharedDevice = xsys.pickBool(tbl.useSharedDevice, false)
 
    return self
 end
@@ -203,11 +182,10 @@ end
 -- advance method
 function HyperDisCont:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
-   local dt = self._dt
-   local cflRateByCell = self._cflRateByCell
 
    local qIn = assert(inFld[1], "HyperDisCont.advance: Must specify an input field")
    local qRhsOut = assert(outFld[1], "HyperDisCont.advance: Must specify an output field")
+   local cflRateByCell = assert(outFld[2], "HyperDisCont.advance: Must pass cflRate field in output table")
 
    -- pass aux fields to equation object
    for i = 1, #inFld-1 do
@@ -226,7 +204,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
    local cflRateByCellIdxr = cflRateByCell:genIndexer()
 
    if self._zero then
-      qRhsOut:clear(0.0)
+      if self._clearOut then qRhsOut:clear(0.0) end
       ffiC.gkyl_hyper_dg_advance(self._zero, localRange, qIn._zero, cflRateByCell._zero, qRhsOut._zero)
    else
       -- to store grid info
@@ -318,10 +296,6 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
                   cflRateByCellP:data()[0] = cflRateByCellP:data()[0] + cflRate
                end
                if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
-                  local cflp = cflRateByCellP:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
-                  local cflm = cflRateByCellM:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
-                  if cflp == 0.0 then cflp = math.min(1.5*cflm, cfl) end
-                  if cflm == 0.0 then cflm = math.min(1.5*cflp, cfl) end
                   local maxs = self._equation:surfTerm(
            	  dir, cflm, cflp, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
                   self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
@@ -350,30 +324,22 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 end
 
 function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
-   local qIn = assert(inFld[1], "HyperDisCont.advanceOnDevice: Must specify an input field")
-   local qRhsOut = assert(outFld[1], "HyperDisCont.advanceOnDevice: Must specify an output field")
+   local grid = self._onGrid
 
+   local qIn = assert(inFld[1], "HyperDisCont.advance: Must specify an input field")
+   local qRhsOut = assert(outFld[1], "HyperDisCont.advance: Must specify an output field")
+   local cflRateByCell = assert(outFld[2], "HyperDisCont.advance: Must pass cflRate field in output table")
+
+   -- pass aux fields to equation object
    for i = 1, #inFld-1 do
       self._auxFields[i] = inFld[i+1]
    end
-
    self._equation:setAuxFieldsOnDevice(self._auxFields)
 
-   local numCellsLocal = qRhsOut:localRange():volume()
-   local numThreads = math.min(self.numThreads, numCellsLocal)
-   local numBlocks  = math.ceil(numCellsLocal/numThreads)
+   local localRange = qRhsOut:localRange()
 
-   if self._clearOut then
-      cuda.Memset(qRhsOut:deviceDataPointer(), 0.0, sizeof('double')*qRhsOut:size())
-   end
-
-   if self._useSharedDevice then
-      ffiC.advanceOnDevice_shared(numBlocks, numThreads, qIn:numComponents(), self._onDevice, qIn._onDevice, qRhsOut._onDevice)
-   else
-      ffiC.advanceOnDevice(numBlocks, numThreads, qIn:numComponents(), self._onDevice, qIn._onDevice, qRhsOut._onDevice)
-   end
-
-   self.maxsByCell:deviceReduce('max', self.maxs)  
+   qRhsOut:clear(0.0)
+   ffiC.gkyl_hyper_dg_advance_cu(self._zero, localRange, qIn._zeroDevice, cflRateByCell._zeroDevice, qRhsOut._zeroDevice)
 end
 
 -- set up pointers to dt and cflRateByCell

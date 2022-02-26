@@ -335,6 +335,9 @@ local array_fn = {
    accumulate = function (self, val, fld)
       ffiC.gkyl_array_accumulate(self, val, fld)
    end,
+   accumulateRange = function (self, val, fld, rng)
+      ffiC.gkyl_array_accumulate_range(self, val, fld, rng)
+   end,
    scale = function (self, val)
       ffiC.gkyl_array_scale(self, val)
    end,

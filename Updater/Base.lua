@@ -32,7 +32,7 @@ function _M:init(tbl)
 
    -- store advance method to use
    self._advanceFunc = self._advance
-   if GKYL_USE_DEVICE then
+   if GKYL_USE_GPU then
       if self._advanceOnDevice then
 	 self._advanceFunc = self._advanceOnDevice
       else
@@ -45,11 +45,19 @@ end
 
 function _M:_advanceNoDeviceImpl(tCurr, inFld, outFld)
    -- copy input fields from device -> host
-   for _, fld in ipairs(inFld) do fld:copyDeviceToHost() end
+   for _, fld in ipairs(inFld) do 
+      if fld._zeroDevice then
+         fld:copyDeviceToHost() 
+      end
+   end
    -- do update
    self:_advance(tCurr, inFld, outFld)
    -- copy output fields from host -> device
-   for _, fld in ipairs(outFld) do fld:copyHostToDevice() end
+   for _, fld in ipairs(outFld) do 
+      if fld._zeroDevice then
+         fld:copyHostToDevice() 
+      end
+   end
 end
 
 -- must be provided by derived objects

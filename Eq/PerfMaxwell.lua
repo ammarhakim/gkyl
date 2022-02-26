@@ -86,7 +86,7 @@ ffi.cdef [[
  * @return Pointer to Maxwell equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
-  double lightSpeed, double elcErrorSpeedFactor, double mgnErrorSpeedFactor);
+  double lightSpeed, double elcErrorSpeedFactor, double mgnErrorSpeedFactor, bool use_gpu);
 ]]
 
 -- The function to compute fluctuations is implemented as a template
@@ -146,7 +146,7 @@ function PerfMaxwell:init(tbl)
          assert(self._numFLux, "Eq.PerfMaxwell: Incorrect numerical flux specified, options supported: 'central' and 'upwind' ")
       end
 
-      self._zero = ffiC.gkyl_dg_maxwell_new(self._basis._zero, self._c, self._ce, self._cb)
+      self._zero = ffiC.gkyl_dg_maxwell_new(self._basis._zero, self._c, self._ce, self._cb, GKYL_USE_GPU or 0)
    end
 
    -- maximum characteristic speed

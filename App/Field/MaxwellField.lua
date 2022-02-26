@@ -701,25 +701,27 @@ function MaxwellField:accumulateCurrent(current, emRhs)
    -- If we are to use ghost currents, compute mean current first.
    local ghostCurrent = 0.0
    if self.useGhostCurrent then
-      local nx = self.grid:numCells(1)
-      local localMeanCurrent = ffi.new("double[2]")
-      for idx in emRhs:localRangeIter() do
-	 current:fill(cIdxr(idx), cItr)
-	 localMeanCurrent[0] = localMeanCurrent[0]+cItr[1]
-      end
-      local globalMeanCurrent = ffi.new("double[2]")
-      Mpi.Allreduce(localMeanCurrent, globalMeanCurrent, 1, Mpi.DOUBLE, Mpi.SUM, self.grid:commSet().comm)
-      ghostCurrent = globalMeanCurrent[0]/nx
+      assert(false, "ghost current not yet implemented in g0 merge")
+      --local nx = self.grid:numCells(1)
+      --local localMeanCurrent = ffi.new("double[2]")
+      --for idx in emRhs:localRangeIter() do
+      --   current:fill(cIdxr(idx), cItr)
+      --   localMeanCurrent[0] = localMeanCurrent[0]+cItr[1]
+      --end
+      --local globalMeanCurrent = ffi.new("double[2]")
+      --Mpi.Allreduce(localMeanCurrent, globalMeanCurrent, 1, Mpi.DOUBLE, Mpi.SUM, self.grid:commSet().comm)
+      --ghostCurrent = globalMeanCurrent[0]/nx
    end
 
-   for idx in emRhs:localRangeIter() do
-      current:fill(cIdxr(idx), cItr)
-      emRhs:fill(eIdxr(idx), eItr)
-      eItr[1] = eItr[1]-1.0/self.epsilon0*(cItr[1]-ghostCurrent)
-      for i = 2, current:numComponents() do
-         eItr[i] = eItr[i]-1.0/self.epsilon0*cItr[i]
-      end
-   end
+   --for idx in emRhs:localRangeIter() do
+   --   current:fill(cIdxr(idx), cItr)
+   --   emRhs:fill(eIdxr(idx), eItr)
+   --   --eItr[1] = eItr[1]-1.0/self.epsilon0*(cItr[1]-ghostCurrent)
+   --   for i = 1, current:numComponents() do
+   --      eItr[i] = eItr[i]-1.0/self.epsilon0*cItr[i]
+   --   end
+   --end
+   emRhs:accumulateRange(-1.0/self.epsilon0, current, emRhs:localRange())
    self.tmCurrentAccum = self.tmCurrentAccum + Time.clock()-tmStart
 end
 
@@ -744,8 +746,7 @@ function MaxwellField:advance(tCurr, species, inIdx, outIdx)
       end
 
       if self.evolve then
-         self.fieldSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-         self.fieldSlvr:advance(tCurr, {emIn}, {emRhsOut})
+         self.fieldSlvr:advance(tCurr, {emIn}, {emRhsOut, self.cflRateByCell})
          if self.currentDens then -- No currents for source-free Maxwell.
             self.currentDens:clear(0.0)
             for _, s in lume.orderedIter(species) do

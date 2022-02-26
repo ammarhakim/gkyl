@@ -51,7 +51,7 @@ enum gkyl_field_id {
  * @return Pointer to Vlasov equation object                                                
  */                                                                                         
 struct gkyl_dg_eqn* gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis,                     
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, enum gkyl_field_id field_id);
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, enum gkyl_field_id field_id, bool use_gpu);
   
 /**
  * Set the q/m*EM field needed in updating the force terms.
@@ -104,7 +104,7 @@ function Vlasov:init(tbl)
    else
       self._fieldId = 3
    end
-   self._zero = ffiC.gkyl_dg_vlasov_new(self._confBasis._zero, self._phaseBasis._zero, self._confRange, self._fieldId)
+   self._zero = ffiC.gkyl_dg_vlasov_new(self._confBasis._zero, self._phaseBasis._zero, self._confRange, self._fieldId, GKYL_USE_GPU or 0)
 
    -- Option to perform only the force volume update (e.g. for stochastic forces).
    local onlyForceUpdate = xsys.pickBool(tbl.onlyForceUpdate, false)
@@ -277,8 +277,7 @@ function Vlasov:setAuxFieldsOnDevice(auxFields)
    if self._hasForceTerm then   -- No fields for neutral particles.
       -- Single aux field that has the full EM field.
       self._emField = auxFields[1]
-      --ffiC.setAuxFields(self._onDevice, self._emField._onDevice)
-      ffiC.Vlasov_setAuxFields(self._onDevice, self._emField._onDevice);
+      ffiC.gkyl_vlasov_set_qmem(self._zero, self._emField._zeroDevice);
    end
 end
 

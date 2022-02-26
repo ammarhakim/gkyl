@@ -383,7 +383,7 @@ function DistFuncMomentCalc:advanceSingle(tCurr, inFld, outFld)
 
    local distfItr, momItr = distf:get(1), mom:get(1)
    
-   mom:clear(0.0) -- Zero out moments.
+   mom._zero:clear(0.0) -- Zero out moments.
 
    local grid = self._onGrid
 
@@ -418,7 +418,7 @@ function DistFuncMomentCalc:advanceFiveMoments(tCurr, inFld, outFld)
    local distfItr                  = distf:get(1)
    local mom0Itr, mom1Itr, mom2Itr = mom0:get(1), mom1:get(1), mom2:get(1) 
    
-   mom0:clear(0.0);  mom1:clear(0.0);  mom2:clear(0.0) -- Zero out moments.
+   mom0._zero:clear(0.0);  mom1._zero:clear(0.0);  mom2._zero:clear(0.0) -- Zero out moments.
    
    local grid = self._onGrid
 
@@ -460,8 +460,8 @@ function DistFuncMomentCalc:advanceFiveMomentsLBO(tCurr, inFld, outFld)
    -- For corrections and star moments: distribution functions left/right of a cell-boundary.
    local distfItrP, distfItrM      = distf:get(1), distf:get(1)
    
-   mom0:clear(0.0);  mom1:clear(0.0);  mom2:clear(0.0) -- Zero out moments.
-   cMomB:clear(0.0);  cEnergyB:clear(0.0)
+   mom0._zero:clear(0.0);  mom1._zero:clear(0.0);  mom2._zero:clear(0.0) -- Zero out moments.
+   cMomB._zero:clear(0.0);  cEnergyB._zero:clear(0.0)
    
    local grid       = self._onGrid
    local cDim, vDim = self._cDim, self._vDim
@@ -535,9 +535,9 @@ function DistFuncMomentCalc:advanceFiveMomentsLBOp1(tCurr, inFld, outFld)
    local cMomBItr, cEnergyBItr           = cMomB:get(1), cEnergyB:get(1) 
    local m0StarItr, m1StarItr, m2StarItr = m0Star:get(1), m1Star:get(1), m2Star:get(1)  
    
-   mom0:clear(0.0);  mom1:clear(0.0);  mom2:clear(0.0) -- Zero out moments.
-   cMomB:clear(0.0);  cEnergyB:clear(0.0)
-   m0Star:clear(0.0);  m1Star:clear(0.0);  m2Star:clear(0.0)
+   mom0._zero:clear(0.0);  mom1._zero:clear(0.0);  mom2._zero:clear(0.0) -- Zero out moments.
+   cMomB._zero:clear(0.0);  cEnergyB._zero:clear(0.0)
+   m0Star._zero:clear(0.0);  m1Star._zero:clear(0.0);  m2Star._zero:clear(0.0)
    
    local grid       = self._onGrid
    local cDim, vDim = self._cDim, self._vDim

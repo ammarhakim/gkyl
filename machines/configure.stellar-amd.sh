@@ -3,7 +3,7 @@
 # Edit the paths and options in the following command to suit your system
 module load gcc/8.3.1
 module load cudatoolkit/11.4
-module load openmpi/gcc/4.1.0
+module load openmpi/cuda-11.1/gcc/4.1.1
 module load anaconda3/2020.11
 
 # Build directory

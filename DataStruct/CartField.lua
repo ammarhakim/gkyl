@@ -235,7 +235,7 @@ local function Field_meta_ctor(elct)
       self._size = sz
 
       -- Underlying ZeroArray data structure, which handles memory allocation
-      self._zero = ZeroArray.Array(ZeroArray.double, self._numComponents, self._size/self._numComponents)
+      self._zero = ZeroArray.Array(ZeroArray.double, self._numComponents, self._size/self._numComponents, 0)
       -- get pointer to data in ZeroArray
       self._data = self._zero:data()
 
@@ -654,6 +654,9 @@ local function Field_meta_ctor(elct)
       _accumulateOneFld = function(self, fact, fld)
          self._zeroForOps:accumulate(fact, fld._zeroForOps)
       end,
+      _accumulateOneFldRange = function(self, fact, fld, rng)
+         self._zeroForOps:accumulateRange(fact, fld._zeroForOps, rng)
+      end,
       -- accumulateOffsetOneFld assumes that one of the input or output fields have fewer components than the other.
       --   a) nCompOut > nCompIn: accumulates all of the input field w/ part of the output field, the (0-based)
       --                          offset indicating which is the 1st component in the output field to accumulate to.
@@ -680,6 +683,19 @@ local function Field_meta_ctor(elct)
 	    self:_accumulateOneFld(c1, fld1) -- Accumulate first field.
 	    for i = 1, nFlds do -- Accumulate rest of the fields.
 	       self:_accumulateOneFld(args[2*i-1], args[2*i])
+	    end
+	 end or
+	 function (self, c1, fld1, ...)
+	    assert(false, "CartField:accumulate: Accumulate only works on numeric fields")
+	 end,
+      accumulateRange = isNumberType and
+	 function (self, c1, fld1, ...)
+	    local args = {...} -- Package up rest of args as table.
+	    local nFlds = (#args-1)/2
+	    local rng = args[#args]
+	    self:_accumulateOneFldRange(c1, fld1, rng) -- Accumulate first field.
+	    for i = 1, nFlds do -- Accumulate rest of the fields.
+	       self:_accumulateOneFldRange(args[2*i-1], args[2*i], rng)
 	    end
 	 end or
 	 function (self, c1, fld1, ...)

@@ -651,16 +651,14 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 
    if self.evolveCollisionless then
-      self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solver:advance(tCurr, {fIn, totalEmField, emField}, {fRhsOut})
+      self.solver:advance(tCurr, {fIn, totalEmField, emField}, {fRhsOut, self.cflRateByCell})
    else
       fRhsOut:clear(0.0)    -- No RHS.
    end
 
    -- Perform the collision update.
    for _, c in pairs(self.collisions) do
-      c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      c:advance(tCurr, fIn, species, fRhsOut)   -- 'species' needed for cross-species collisions.
+      c:advance(tCurr, fIn, species, {fRhsOut, self.cflRateByCell})   -- 'species' needed for cross-species collisions.
    end
 
    for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
@@ -749,10 +747,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       local neutM0   = neuts:fluidMoments()[1]
       local neutVtSq = neuts:selfPrimitiveMoments()[2]
       
-      if tCurr == 0.0 then
-	 species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      end
-      species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {species[self.name].collisions[self.collNmIoniz].reactRate})
+      species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {species[self.name].collisions[self.collNmIoniz].reactRate, self.cflRateByCell})
    end
 
    -- For charge exchange.
