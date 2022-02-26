@@ -20,37 +20,37 @@ ffi.cdef [[
 function test_1()
    local range = Range.Range({0, 0}, {1, 5})
 
-   assert_equal(2, range:ndim(), "Checking dimension")
-   assert_equal(12, range:volume(), "Checking volume")   
+   assert_equal(2, range:ndim(), "test_1: Checking dimension")
+   assert_equal(12, range:volume(), "test_1: Checking volume")   
 
-   assert_equal(0, range:lower(1), "Checking lower")
-   assert_equal(0, range:lower(2), "Checking lower")
+   assert_equal(0, range:lower(1), "test_1: Checking lower")
+   assert_equal(0, range:lower(2), "test_1: Checking lower")
 
-   assert_equal(1, range:upper(1), "Checking upper")
-   assert_equal(5, range:upper(2), "Checking upper")
+   assert_equal(1, range:upper(1), "test_1: Checking upper")
+   assert_equal(5, range:upper(2), "test_1: Checking upper")
 
-   assert_equal(2, range:shape(1), "Checking shape")
-   assert_equal(6, range:shape(2), "Checking shape")
+   assert_equal(2, range:shape(1), "test_1: Checking shape")
+   assert_equal(6, range:shape(2), "test_1: Checking shape")
 
 end
 
 function test_2()
    local range = Range.Range({1, 1, 1}, {10, 20, 30})
-   assert_equal(10*20*30, range:volume(), "Checking volume")
+   assert_equal(10*20*30, range:volume(), "test_1: Checking volume")
 
-   assert_equal(3, range:ndim(), "Checking dimension")
+   assert_equal(3, range:ndim(), "test_1: Checking dimension")
 
-   assert_equal(1, range:lower(1), "Checking lower")
-   assert_equal(1, range:lower(2), "Checking lower")
-   assert_equal(1, range:lower(3), "Checking lower")   
+   assert_equal(1, range:lower(1), "test_1: Checking lower")
+   assert_equal(1, range:lower(2), "test_1: Checking lower")
+   assert_equal(1, range:lower(3), "test_1: Checking lower")   
 
-   assert_equal(10, range:upper(1), "Checking upper")
-   assert_equal(20, range:upper(2), "Checking upper")
-   assert_equal(30, range:upper(3), "Checking upper")
+   assert_equal(10, range:upper(1), "test_1: Checking upper")
+   assert_equal(20, range:upper(2), "test_1: Checking upper")
+   assert_equal(30, range:upper(3), "test_1: Checking upper")
 
-   assert_equal(10, range:shape(1), "Checking shape")
-   assert_equal(20, range:shape(2), "Checking shape")
-   assert_equal(30, range:shape(3), "Checking shape")
+   assert_equal(10, range:shape(1), "test_1: Checking shape")
+   assert_equal(20, range:shape(2), "test_1: Checking shape")
+   assert_equal(30, range:shape(3), "test_1: Checking shape")
 end
 
 function test_3()
@@ -58,7 +58,7 @@ function test_3()
 
    local count = range:lower(1)
    for idx in range:colMajorIter() do
-      assert_equal(count, idx[1], "Checking col-major indexer")
+      assert_equal(count, idx[1], "test_3: Checking col-major indexer")
       count = count + 1
    end
 end
@@ -76,8 +76,8 @@ function test_4()
 
    local count = range:lower(1)
    for idx in range:colMajorIter() do
-      assert_equal(indices[count][1], idx[1], "Checking col-major index 1")
-      assert_equal(indices[count][2], idx[2], "Checking col-major index 2")
+      assert_equal(indices[count][1], idx[1], "test_4: Checking col-major index 1")
+      assert_equal(indices[count][2], idx[2], "test_4: Checking col-major index 2")
       count = count + 1
    end
 end
@@ -95,15 +95,15 @@ function test_5()
 
    local count = range:lower(1)
    for idx in range:rowMajorIter() do
-      assert_equal(indices[count][1], idx[1], "Checking col-major index 1")
-      assert_equal(indices[count][2], idx[2], "Checking col-major index 2")
+      assert_equal(indices[count][1], idx[1], "test_5: Checking col-major index 1")
+      assert_equal(indices[count][2], idx[2], "test_5: Checking col-major index 2")
       count = count + 1
    end
 end
 
 function test_6()
    local range = Range.Range( {1, 1}, {0, 10})
-   assert_equal(0, range:volume(), "Checking volume")
+   assert_equal(0, range:volume(), "test_6: Checking volume")
 
    for idx in range:rowMajorIter() do
       print("Should not happen")
@@ -116,52 +116,52 @@ function test_7()
    local rangeCopy = Range.Range({0},{1})
    rangeCopy:copy(range)
 
-   assert_equal(1, rangeCopy:lower(1), "Checking lower copy")
-   assert_equal(1, rangeCopy:lower(2), "Checking lower copy")
-   assert_equal(1, rangeCopy:lower(3), "Checking lower copy")
+   assert_equal(1, rangeCopy:lower(1), "test_7: Checking lower copy")
+   assert_equal(1, rangeCopy:lower(2), "test_7: Checking lower copy")
+   assert_equal(1, rangeCopy:lower(3), "test_7: Checking lower copy")
 
-   assert_equal(10, rangeCopy:upper(1), "Checking upper copy")
-   assert_equal(20, rangeCopy:upper(2), "Checking upper copy")
-   assert_equal(30, rangeCopy:upper(3), "Checking upper copy")
+   assert_equal(10, rangeCopy:upper(1), "test_7: Checking upper copy")
+   assert_equal(20, rangeCopy:upper(2), "test_7: Checking upper copy")
+   assert_equal(30, rangeCopy:upper(3), "test_7: Checking upper copy")
 
    local extRange = range:extend(1, 2)
 
-   assert_equal(0, extRange:lower(1), "Checking lower extended")
-   assert_equal(0, extRange:lower(2), "Checking lower extended")
-   assert_equal(0, extRange:lower(3), "Checking lower extended")
+   assert_equal(0, extRange:lower(1), "test_7: Checking lower extended")
+   assert_equal(0, extRange:lower(2), "test_7: Checking lower extended")
+   assert_equal(0, extRange:lower(3), "test_7: Checking lower extended")
 
-   assert_equal(12, extRange:upper(1), "Checking upper extended")
-   assert_equal(22, extRange:upper(2), "Checking upper extended")
-   assert_equal(32, extRange:upper(3), "Checking upper extended")
+   assert_equal(12, extRange:upper(1), "test_7: Checking upper extended")
+   assert_equal(22, extRange:upper(2), "test_7: Checking upper extended")
+   assert_equal(32, extRange:upper(3), "test_7: Checking upper extended")
 
-   assert_equal(13*23*33, extRange:volume(), "Checking volume extended")
+   assert_equal(13*23*33, extRange:volume(), "test_7: Checking volume extended")
 
    local extRange1 = range:extendDir(1, 1, 2)
-   assert_equal(0, extRange1:lower(1), "Checking lower extended")
-   assert_equal(1, extRange1:lower(2), "Checking lower extended")
-   assert_equal(1, extRange1:lower(3), "Checking lower extended")
+   assert_equal(0, extRange1:lower(1), "test_7: Checking lower extended")
+   assert_equal(1, extRange1:lower(2), "test_7: Checking lower extended")
+   assert_equal(1, extRange1:lower(3), "test_7: Checking lower extended")
 
-   assert_equal(12, extRange1:upper(1), "Checking upper extended")
-   assert_equal(20, extRange1:upper(2), "Checking upper extended")
-   assert_equal(30, extRange1:upper(3), "Checking upper extended")
+   assert_equal(12, extRange1:upper(1), "test_7: Checking upper extended")
+   assert_equal(20, extRange1:upper(2), "test_7: Checking upper extended")
+   assert_equal(30, extRange1:upper(3), "test_7: Checking upper extended")
 
    extRange1 = range:extendDir(2, 1, 2)
-   assert_equal(1, extRange1:lower(1), "Checking lower extended")
-   assert_equal(0, extRange1:lower(2), "Checking lower extended")
-   assert_equal(1, extRange1:lower(3), "Checking lower extended")
+   assert_equal(1, extRange1:lower(1), "test_7: Checking lower extended")
+   assert_equal(0, extRange1:lower(2), "test_7: Checking lower extended")
+   assert_equal(1, extRange1:lower(3), "test_7: Checking lower extended")
 
-   assert_equal(10, extRange1:upper(1), "Checking upper extended")
-   assert_equal(22, extRange1:upper(2), "Checking upper extended")
-   assert_equal(30, extRange1:upper(3), "Checking upper extended")
+   assert_equal(10, extRange1:upper(1), "test_7: Checking upper extended")
+   assert_equal(22, extRange1:upper(2), "test_7: Checking upper extended")
+   assert_equal(30, extRange1:upper(3), "test_7: Checking upper extended")
 
    extRange1 = range:extendDir(3, 1, 2)
-   assert_equal(1, extRange1:lower(1), "Checking lower extended")
-   assert_equal(1, extRange1:lower(2), "Checking lower extended")
-   assert_equal(0, extRange1:lower(3), "Checking lower extended")
+   assert_equal(1, extRange1:lower(1), "test_7: Checking lower extended")
+   assert_equal(1, extRange1:lower(2), "test_7: Checking lower extended")
+   assert_equal(0, extRange1:lower(3), "test_7: Checking lower extended")
 
-   assert_equal(10, extRange1:upper(1), "Checking upper extended")
-   assert_equal(20, extRange1:upper(2), "Checking upper extended")
-   assert_equal(32, extRange1:upper(3), "Checking upper extended")
+   assert_equal(10, extRange1:upper(1), "test_7: Checking upper extended")
+   assert_equal(20, extRange1:upper(2), "test_7: Checking upper extended")
+   assert_equal(32, extRange1:upper(3), "test_7: Checking upper extended")
 end
 
 function test_8()
@@ -170,7 +170,7 @@ function test_8()
 
    local count = 1
    for i = range:lower(1), range:upper(1) do
-      assert_equal(count, indexer(i), "Checking indexer")
+      assert_equal(count, indexer(i), "test_8: Checking indexer")
       count = count + 1
    end
 end
@@ -182,7 +182,7 @@ function test_9()
    local count = 1
    for i = range:lower(1), range:upper(1) do
       for j = range:lower(2), range:upper(2) do
-	 assert_equal(count, indexer(i, j), "Checking row-major indexer")
+	 assert_equal(count, indexer(i, j), "test_9: Checking row-major indexer")
 	 count = count + 1
       end
    end
@@ -196,7 +196,7 @@ function test_10()
    for i = range:lower(1), range:upper(1) do
       for j = range:lower(2), range:upper(2) do
 	 for k = range:lower(3), range:upper(3) do
-	    assert_equal(count, indexer(i, j, k), "Checking row-major indexer")
+	    assert_equal(count, indexer(i, j, k), "test_10: Checking row-major indexer")
 	    count = count + 1
 	 end
       end
@@ -209,7 +209,7 @@ function test_11()
 
    local count = 1
    for i = range:lower(1), range:upper(1) do
-      assert_equal(count, indexer(i), "Checking indexer")
+      assert_equal(count, indexer(i), "test_11: Checking indexer")
       count = count + 1
    end
 end
@@ -221,7 +221,7 @@ function test_12()
    local count = 1
    for j = range:lower(2), range:upper(2) do   
       for i = range:lower(1), range:upper(1) do
-	 assert_equal(count, indexer(i, j), "Checking col-major indexer")
+	 assert_equal(count, indexer(i, j), "test_12: Checking col-major indexer")
 	 count = count + 1
       end
    end
@@ -235,7 +235,7 @@ function test_13()
    for k = range:lower(3), range:upper(3) do
       for j = range:lower(2), range:upper(2) do      
 	 for i = range:lower(1), range:upper(1) do
-	    assert_equal(count, indexer(i, j, k), "Checking col-major indexer")
+	    assert_equal(count, indexer(i, j, k), "test_13: Checking col-major indexer")
 	    count = count + 1
 	 end
       end
@@ -248,13 +248,13 @@ function test_14()
    local r3 = Range.Range({1}, {10})
    local r4 = Range.Range({1, 1}, {10, 10})
    
-   assert_equal(false, r1 == r2, "Checking for range equality")
-   assert_equal(false, r1 == r3, "Checking for range equality")
-   assert_equal(true, r1 == r4, "Checking for range equality")
+   assert_equal(false, r1 == r2, "test_14: Checking for range equality")
+   assert_equal(false, r1 == r3, "test_14: Checking for range equality")
+   assert_equal(true, r1 == r4, "test_14: Checking for range equality")
 
-   assert_equal(true, r1 ~= r2, "Checking for range inequality")
-   assert_equal(true, r1 ~= r3, "Checking for range inequality")
-   assert_equal(false, r1 ~= r4, "Checking for range inequality")
+   assert_equal(true, r1 ~= r2, "test_14: Checking for range inequality")
+   assert_equal(true, r1 ~= r3, "test_14: Checking for range inequality")
+   assert_equal(false, r1 ~= r4, "test_14: Checking for range inequality")
 
 end
 
@@ -262,62 +262,62 @@ function test_15()
    local bigr = Range.Range({1, 1}, {10, 10})
    local range = bigr:shorten(1)
 
-   assert_equal(1, range:lower(1), "Checking shorter range")
-   assert_equal(1, range:upper(1), "Checking shorter range")
-   assert_equal(1, range:shape(1), "Checking shorter range")   
+   assert_equal(1, range:lower(1), "test_15: Checking shorter range")
+   assert_equal(1, range:upper(1), "test_15: Checking shorter range")
+   assert_equal(1, range:shape(1), "test_15: Checking shorter range")   
 
-   assert_equal(1, range:lower(2), "Checking shorter range")
-   assert_equal(10, range:upper(2), "Checking shorter range")
-   assert_equal(10, range:shape(2), "Checking shorter range")
+   assert_equal(1, range:lower(2), "test_15: Checking shorter range")
+   assert_equal(10, range:upper(2), "test_15: Checking shorter range")
+   assert_equal(10, range:shape(2), "test_15: Checking shorter range")
 
-   assert_equal(10*1, range:volume(), "Checking shorter volume")
+   assert_equal(10*1, range:volume(), "test_15: Checking shorter volume")
 
    local range = bigr:shortenFromBelow(1)
 
-   assert_equal(10, range:lower(1), "Checking shorter range")
-   assert_equal(10, range:upper(1), "Checking shorter range")
-   assert_equal(1, range:shape(1), "Checking shorter range")   
+   assert_equal(10, range:lower(1), "test_15: Checking shorter range")
+   assert_equal(10, range:upper(1), "test_15: Checking shorter range")
+   assert_equal(1, range:shape(1), "test_15: Checking shorter range")   
 
-   assert_equal(1, range:lower(2), "Checking shorter range")
-   assert_equal(10, range:upper(2), "Checking shorter range")
-   assert_equal(10, range:shape(2), "Checking shorter range")
+   assert_equal(1, range:lower(2), "test_15: Checking shorter range")
+   assert_equal(10, range:upper(2), "test_15: Checking shorter range")
+   assert_equal(10, range:shape(2), "test_15: Checking shorter range")
 
-   assert_equal(10*1, range:volume(), "Checking shorter volume")
+   assert_equal(10*1, range:volume(), "test_15: Checking shorter volume")
 end
 
 function test_15_b()
    local bigr = Range.Range({1, 1}, {10, 10})
    local range = bigr:shorten(1, 2)
 
-   assert_equal(1, range:lower(1), "Checking shorter range")
-   assert_equal(2, range:upper(1), "Checking shorter range")
-   assert_equal(2, range:shape(1), "Checking shorter range")
+   assert_equal(1, range:lower(1), "test_15_b: Checking shorter range")
+   assert_equal(2, range:upper(1), "test_15_b: Checking shorter range")
+   assert_equal(2, range:shape(1), "test_15_b: Checking shorter range")
 
-   assert_equal(1, range:lower(2), "Checking shorter range")
-   assert_equal(10, range:upper(2), "Checking shorter range")
-   assert_equal(10, range:shape(2), "Checking shorter range")
+   assert_equal(1, range:lower(2), "test_15_b: Checking shorter range")
+   assert_equal(10, range:upper(2), "test_15_b: Checking shorter range")
+   assert_equal(10, range:shape(2), "test_15_b: Checking shorter range")
 
-   assert_equal(10*2, range:volume(), "Checking shorter volume")
+   assert_equal(10*2, range:volume(), "test_15_b: Checking shorter volume")
 
    local range = bigr:shortenFromBelow(1, 2)
 
-   assert_equal(9, range:lower(1), "Checking shorter range")
-   assert_equal(10, range:upper(1), "Checking shorter range")
-   assert_equal(2, range:shape(1), "Checking shorter range")
+   assert_equal(9, range:lower(1), "test_15_b: Checking shorter range")
+   assert_equal(10, range:upper(1), "test_15_b: Checking shorter range")
+   assert_equal(2, range:shape(1), "test_15_b: Checking shorter range")
 
-   assert_equal(1, range:lower(2), "Checking shorter range")
-   assert_equal(10, range:upper(2), "Checking shorter range")
-   assert_equal(10, range:shape(2), "Checking shorter range")
+   assert_equal(1, range:lower(2), "test_15_b: Checking shorter range")
+   assert_equal(10, range:upper(2), "test_15_b: Checking shorter range")
+   assert_equal(10, range:shape(2), "test_15_b: Checking shorter range")
 
-   assert_equal(10*2, range:volume(), "Checking shorter volume")
+   assert_equal(10*2, range:volume(), "test_15_b: Checking shorter volume")
 end
 
 function test_16()
    local r = Range.Range({1, 2, 3}, {10, 11, 12})
    local lv, uv = r:lowerAsVec(), r:upperAsVec()
    for i = 1, 3 do
-      assert_equal(i, lv[i], "Checking lower vector")
-      assert_equal(9+i, uv[i], "Checking upper vector")
+      assert_equal(i, lv[i], "test_16: Checking lower vector")
+      assert_equal(9+i, uv[i], "test_16: Checking upper vector")
    end
 end
 
@@ -326,34 +326,34 @@ function test_17()
 
    local r2 = Range.Range({5, 6}, {12, 13})
    local r3 = r1:intersect(r2)
-   assert_equal(5, r3:lower(1), "Checking intersected range")
-   assert_equal(6, r3:lower(2), "Checking intersected range")
-   assert_equal(10, r3:upper(1), "Checking intersected range")
-   assert_equal(11, r3:upper(2), "Checking intersected range")
+   assert_equal(5, r3:lower(1), "test_17: Checking intersected range")
+   assert_equal(6, r3:lower(2), "test_17: Checking intersected range")
+   assert_equal(10, r3:upper(1), "test_17: Checking intersected range")
+   assert_equal(11, r3:upper(2), "test_17: Checking intersected range")
 
    local r3 = r2:intersect(r1)
-   assert_equal(5, r3:lower(1), "Checking intersected range")
-   assert_equal(6, r3:lower(2), "Checking intersected range")
-   assert_equal(10, r3:upper(1), "Checking intersected range")
-   assert_equal(11, r3:upper(2), "Checking intersected range")
+   assert_equal(5, r3:lower(1), "test_17: Checking intersected range")
+   assert_equal(6, r3:lower(2), "test_17: Checking intersected range")
+   assert_equal(10, r3:upper(1), "test_17: Checking intersected range")
+   assert_equal(11, r3:upper(2), "test_17: Checking intersected range")
 
    local r2 = Range.Range({5, 5}, {10, 10})
    local r3 = r1:intersect(r2)
-   assert_equal(5, r3:lower(1), "Checking intersected range")
-   assert_equal(5, r3:lower(2), "Checking intersected range")
-   assert_equal(10, r3:upper(1), "Checking intersected range")
-   assert_equal(10, r3:upper(2), "Checking intersected range")
+   assert_equal(5, r3:lower(1), "test_17: Checking intersected range")
+   assert_equal(5, r3:lower(2), "test_17: Checking intersected range")
+   assert_equal(10, r3:upper(1), "test_17: Checking intersected range")
+   assert_equal(10, r3:upper(2), "test_17: Checking intersected range")
 
    local r2 = Range.Range({4, 4}, {15, 8})
    local r3 = r1:intersect(r2)
-   assert_equal(4, r3:lower(1), "Checking intersected range")
-   assert_equal(4, r3:lower(2), "Checking intersected range")
-   assert_equal(10, r3:upper(1), "Checking intersected range")
-   assert_equal(8, r3:upper(2), "Checking intersected range")
+   assert_equal(4, r3:lower(1), "test_17: Checking intersected range")
+   assert_equal(4, r3:lower(2), "test_17: Checking intersected range")
+   assert_equal(10, r3:upper(1), "test_17: Checking intersected range")
+   assert_equal(8, r3:upper(2), "test_17: Checking intersected range")
 
    local r2 = Range.Range({20, 20}, {25, 25})
    local r3 = r1:intersect(r2)
-   assert_equal(0, r3:volume(), "Checking volume of empty intersection")
+   assert_equal(0, r3:volume(), "test_17: Checking volume of empty intersection")
 
 end
 
@@ -362,19 +362,19 @@ function test_18()
    local offsets = {10, 12}
    local rshift = r1:shift(offsets)
 
-   assert_equal(r1:volume(), rshift:volume(), "Checking shifted volumes")
+   assert_equal(r1:volume(), rshift:volume(), "test_18: Checking shifted volumes")
    for d = 1, r1:ndim() do
-      assert_equal(rshift:lower(d)-r1:lower(d), offsets[d], "Checking offset")
-      assert_equal(rshift:upper(d)-r1:upper(d), offsets[d], "Checking offset")
+      assert_equal(rshift:lower(d)-r1:lower(d), offsets[d], "test_18: Checking offset")
+      assert_equal(rshift:upper(d)-r1:upper(d), offsets[d], "test_18: Checking offset")
    end
 
    offsets = {-10, -12}
    rshift = r1:shift(offsets)
 
-   assert_equal(r1:volume(), rshift:volume(), "Checking shifted volumes")
+   assert_equal(r1:volume(), rshift:volume(), "test_18: Checking shifted volumes")
    for d = 1, r1:ndim() do
-      assert_equal(rshift:lower(d)-r1:lower(d), offsets[d], "Checking offset")
-      assert_equal(rshift:upper(d)-r1:upper(d), offsets[d], "Checking offset")
+      assert_equal(rshift:lower(d)-r1:lower(d), offsets[d], "test_18: Checking offset")
+      assert_equal(rshift:upper(d)-r1:upper(d), offsets[d], "test_18: Checking offset")
    end
 end
 
@@ -383,16 +383,16 @@ function test_19()
    local offset = 10
    local rshift = r1:shiftInDir(1, offset)
 
-   assert_equal(r1:volume(), rshift:volume(), "Checking shifted volumes")
-   assert_equal(rshift:lower(1)-r1:lower(1), offset, "Checking offset")
-   assert_equal(rshift:upper(1)-r1:upper(1), offset, "Checking offset")
+   assert_equal(r1:volume(), rshift:volume(), "test_19: Checking shifted volumes")
+   assert_equal(rshift:lower(1)-r1:lower(1), offset, "test_19: Checking offset")
+   assert_equal(rshift:upper(1)-r1:upper(1), offset, "test_19: Checking offset")
 
    offset = -12
    rshift = r1:shiftInDir(2, offset)
 
-   assert_equal(r1:volume(), rshift:volume(), "Checking shifted volumes")
-   assert_equal(rshift:lower(2)-r1:lower(2), offset, "Checking offset")
-   assert_equal(rshift:upper(2)-r1:upper(2), offset, "Checking offset")
+   assert_equal(r1:volume(), rshift:volume(), "test_19: Checking shifted volumes")
+   assert_equal(rshift:lower(2)-r1:lower(2), offset, "test_19: Checking offset")
+   assert_equal(rshift:upper(2)-r1:upper(2), offset, "test_19: Checking offset")
 end
 
 function test_20()
@@ -401,13 +401,13 @@ function test_20()
    for idx in r:colMajorIter() do
       count = count+1
    end
-   assert_equal(r:volume(), count, "Checking if iterator bumped over full range")
+   assert_equal(r:volume(), count, "test_20: Checking if iterator bumped over full range")
 
    count = 0
    for idx in r:rowMajorIter() do
       count = count+1
    end
-   assert_equal(r:volume(), count, "Checking if iterator bumped over full range")   
+   assert_equal(r:volume(), count, "test_20: Checking if iterator bumped over full range")   
 end
 
 function test_21()
@@ -423,7 +423,7 @@ function test_21()
    for idx in r:colMajorIter(sidx, r:volume()) do
       count = count+1
    end
-   assert_equal(r:volume(), count, "Checking if iterator bumped over full range")
+   assert_equal(r:volume(), count, "test_21: Checking if iterator bumped over full range")
 
    -- starting at (5,5) over remaining domain
    sidx[1] = 5; sidx[2] = 5
@@ -431,27 +431,27 @@ function test_21()
    for idx in r:rowMajorIter(sidx) do
       count = count+1
    end
-   assert_equal(56, count, "Checking if iterator bumped over full range")
+   assert_equal(56, count, "test_21: Checking if iterator bumped over full range")
 
    count = 0
    for idx in r:colMajorIter(sidx) do
       count = count+1
    end
-   assert_equal(56, count, "Checking if iterator bumped over full range")
+   assert_equal(56, count, "test_21: Checking if iterator bumped over full range")
 
    -- starting at (5,5) over 10 cells
    count = 0
    for idx in r:rowMajorIter(sidx, 10) do
       count = count+1
    end
-   assert_equal(10, count, "Checking if iterator bumped over full range")
+   assert_equal(10, count, "test_21: Checking if iterator bumped over full range")
 
    -- starting at (5,5) over 0 cells
    count = 0
    for idx in r:rowMajorIter(sidx, 0) do
       count = count+1
    end
-   assert_equal(0, count, "Checking if iterator bumped over full range")
+   assert_equal(0, count, "test_21: Checking if iterator bumped over full range")
 end
 
 function test_22()
@@ -462,7 +462,7 @@ function test_22()
    local ix = r:lower(1)
    for loc = 1, r:volume() do
       invIndexer(loc, idx)
-      assert_equal(ix, idx[1], "Checking inverse indexer")
+      assert_equal(ix, idx[1], "test_22: Checking inverse indexer")
       ix = ix+1
    end
 end
@@ -475,8 +475,8 @@ function test_23()
    local invIdx = Lin.IntVec(r:ndim())
    for idx in r:rowMajorIter() do
       invIndexer(indexer(idx), invIdx)
-      assert_equal(idx[1], invIdx[1], "Checking inv indexer")
-      assert_equal(idx[2], invIdx[2], "Checking inv indexer")
+      assert_equal(idx[1], invIdx[1], "test_23: Checking inv indexer")
+      assert_equal(idx[2], invIdx[2], "test_23: Checking inv indexer")
    end
 end
 
@@ -488,9 +488,9 @@ function test_24()
    local invIdx = Lin.IntVec(r:ndim())
    for idx in r:rowMajorIter() do
       invIndexer(indexer(idx), invIdx)
-      assert_equal(idx[1], invIdx[1], "Checking inv indexer")
-      assert_equal(idx[2], invIdx[2], "Checking inv indexer")
-      assert_equal(idx[3], invIdx[3], "Checking inv indexer")
+      assert_equal(idx[1], invIdx[1], "test_24: Checking inv indexer")
+      assert_equal(idx[2], invIdx[2], "test_24: Checking inv indexer")
+      assert_equal(idx[3], invIdx[3], "test_24: Checking inv indexer")
    end
 end
 
@@ -502,7 +502,7 @@ function test_25()
    local ix = r:lower(1)
    for loc = 1, r:volume() do
       invIndexer(loc, idx)
-      assert_equal(ix, idx[1], "Checking inverse indexer")
+      assert_equal(ix, idx[1], "test_25: Checking inverse indexer")
       ix = ix+1
    end
 end
@@ -515,8 +515,8 @@ function test_26()
    local invIdx = Lin.IntVec(r:ndim())
    for idx in r:colMajorIter() do
       invIndexer(indexer(idx), invIdx)
-      assert_equal(idx[1], invIdx[1], "Checking inv indexer")
-      assert_equal(idx[2], invIdx[2], "Checking inv indexer")
+      assert_equal(idx[1], invIdx[1], "test_26: Checking inv indexer")
+      assert_equal(idx[2], invIdx[2], "test_26: Checking inv indexer")
    end
 end
 
@@ -528,9 +528,9 @@ function test_27()
    local invIdx = Lin.IntVec(r:ndim())
    for idx in r:colMajorIter() do
       invIndexer(indexer(idx), invIdx)
-      assert_equal(idx[1], invIdx[1], "Checking inv indexer")
-      assert_equal(idx[2], invIdx[2], "Checking inv indexer")
-      assert_equal(idx[3], invIdx[3], "Checking inv indexer")
+      assert_equal(idx[1], invIdx[1], "test_27: Checking inv indexer")
+      assert_equal(idx[2], invIdx[2], "test_27: Checking inv indexer")
+      assert_equal(idx[3], invIdx[3], "test_27: Checking inv indexer")
    end
 end
 
@@ -538,62 +538,62 @@ function test_28()
    local r = Range.Range({1, 1}, {10, 10})
 
    local lowerSkin = r:lowerSkin(1, 1)
-   assert_equal(10, lowerSkin:volume(), "Checking volume")
-   assert_equal(1, lowerSkin:lower(1), "Checking lower in 1")
-   assert_equal(1, lowerSkin:upper(1), "Checking upper in 1")
-   assert_equal(1, lowerSkin:lower(2), "Checking lower in 2")
-   assert_equal(10, lowerSkin:upper(2), "Checking upper in 2")
+   assert_equal(10, lowerSkin:volume(), "test_28: Checking volume")
+   assert_equal(1, lowerSkin:lower(1), "test_28: Checking lower in 1")
+   assert_equal(1, lowerSkin:upper(1), "test_28: Checking upper in 1")
+   assert_equal(1, lowerSkin:lower(2), "test_28: Checking lower in 2")
+   assert_equal(10, lowerSkin:upper(2), "test_28: Checking upper in 2")
 
    local lowerSkin = r:lowerSkin(2, 1)
-   assert_equal(10, lowerSkin:volume(), "Checking volume")
-   assert_equal(1, lowerSkin:lower(1), "Checking lower in 1")
-   assert_equal(10, lowerSkin:upper(1), "Checking upper in 1")
-   assert_equal(1, lowerSkin:lower(2), "Checking lower in 2")
-   assert_equal(1, lowerSkin:upper(2), "Checking upper in 2")
+   assert_equal(10, lowerSkin:volume(), "test_28: Checking volume")
+   assert_equal(1, lowerSkin:lower(1), "test_28: Checking lower in 1")
+   assert_equal(10, lowerSkin:upper(1), "test_28: Checking upper in 1")
+   assert_equal(1, lowerSkin:lower(2), "test_28: Checking lower in 2")
+   assert_equal(1, lowerSkin:upper(2), "test_28: Checking upper in 2")
 
    local upperSkin = r:upperSkin(1, 1)
-   assert_equal(10, upperSkin:volume(), "Checking volume")
-   assert_equal(10, upperSkin:lower(1), "Checking upper in 1")
-   assert_equal(10, upperSkin:upper(1), "Checking upper in 1")
-   assert_equal(1, upperSkin:lower(2), "Checking upper in 2")
-   assert_equal(10, upperSkin:upper(2), "Checking upper in 2")
+   assert_equal(10, upperSkin:volume(), "test_28: Checking volume")
+   assert_equal(10, upperSkin:lower(1), "test_28: Checking upper in 1")
+   assert_equal(10, upperSkin:upper(1), "test_28: Checking upper in 1")
+   assert_equal(1, upperSkin:lower(2), "test_28: Checking upper in 2")
+   assert_equal(10, upperSkin:upper(2), "test_28: Checking upper in 2")
 
    local upperSkin = r:upperSkin(2, 1)
-   assert_equal(10, upperSkin:volume(), "Checking volume")
-   assert_equal(1, upperSkin:lower(1), "Checking upper in 1")
-   assert_equal(10, upperSkin:upper(1), "Checking upper in 1")
-   assert_equal(10, upperSkin:lower(2), "Checking upper in 2")
-   assert_equal(10, upperSkin:upper(2), "Checking upper in 2")
+   assert_equal(10, upperSkin:volume(), "test_28: Checking volume")
+   assert_equal(1, upperSkin:lower(1), "test_28: Checking upper in 1")
+   assert_equal(10, upperSkin:upper(1), "test_28: Checking upper in 1")
+   assert_equal(10, upperSkin:lower(2), "test_28: Checking upper in 2")
+   assert_equal(10, upperSkin:upper(2), "test_28: Checking upper in 2")
 
    ---
 
    local lowerGhost = r:lowerGhost(1, 1)
-   assert_equal(10, lowerGhost:volume(), "Checking volume")
-   assert_equal(0, lowerGhost:lower(1), "Checking lower in 1")
-   assert_equal(0, lowerGhost:upper(1), "Checking upper in 1")
-   assert_equal(1, lowerGhost:lower(2), "Checking lower in 2")
-   assert_equal(10, lowerGhost:upper(2), "Checking upper in 2")
+   assert_equal(10, lowerGhost:volume(), "test_28: Checking volume")
+   assert_equal(0, lowerGhost:lower(1), "test_28: Checking lower in 1")
+   assert_equal(0, lowerGhost:upper(1), "test_28: Checking upper in 1")
+   assert_equal(1, lowerGhost:lower(2), "test_28: Checking lower in 2")
+   assert_equal(10, lowerGhost:upper(2), "test_28: Checking upper in 2")
 
    local lowerGhost = r:lowerGhost(2, 1)
-   assert_equal(10, lowerGhost:volume(), "Checking volume")
-   assert_equal(1, lowerGhost:lower(1), "Checking lower in 1")
-   assert_equal(10, lowerGhost:upper(1), "Checking upper in 1")
-   assert_equal(0, lowerGhost:lower(2), "Checking lower in 2")
-   assert_equal(0, lowerGhost:upper(2), "Checking upper in 2")
+   assert_equal(10, lowerGhost:volume(), "test_28: Checking volume")
+   assert_equal(1, lowerGhost:lower(1), "test_28: Checking lower in 1")
+   assert_equal(10, lowerGhost:upper(1), "test_28: Checking upper in 1")
+   assert_equal(0, lowerGhost:lower(2), "test_28: Checking lower in 2")
+   assert_equal(0, lowerGhost:upper(2), "test_28: Checking upper in 2")
 
    local upperGhost = r:upperGhost(1, 1)
-   assert_equal(10, upperGhost:volume(), "Checking volume")
-   assert_equal(11, upperGhost:lower(1), "Checking upper in 1")
-   assert_equal(11, upperGhost:upper(1), "Checking upper in 1")
-   assert_equal(1, upperGhost:lower(2), "Checking upper in 2")
-   assert_equal(10, upperGhost:upper(2), "Checking upper in 2")
+   assert_equal(10, upperGhost:volume(), "test_28: Checking volume")
+   assert_equal(11, upperGhost:lower(1), "test_28: Checking upper in 1")
+   assert_equal(11, upperGhost:upper(1), "test_28: Checking upper in 1")
+   assert_equal(1, upperGhost:lower(2), "test_28: Checking upper in 2")
+   assert_equal(10, upperGhost:upper(2), "test_28: Checking upper in 2")
 
    local upperGhost = r:upperGhost(2, 1)
-   assert_equal(10, upperGhost:volume(), "Checking volume")
-   assert_equal(1, upperGhost:lower(1), "Checking upper in 1")
-   assert_equal(10, upperGhost:upper(1), "Checking upper in 1")
-   assert_equal(11, upperGhost:lower(2), "Checking upper in 2")
-   assert_equal(11, upperGhost:upper(2), "Checking upper in 2")
+   assert_equal(10, upperGhost:volume(), "test_28: Checking volume")
+   assert_equal(1, upperGhost:lower(1), "test_28: Checking upper in 1")
+   assert_equal(10, upperGhost:upper(1), "test_28: Checking upper in 1")
+   assert_equal(11, upperGhost:lower(2), "test_28: Checking upper in 2")
+   assert_equal(11, upperGhost:upper(2), "test_28: Checking upper in 2")
 
 end
 
@@ -601,40 +601,40 @@ function test_29()
    local range = Range.Range({1, 1, 1}, {10, 20, 30})
 
    local extRange1 = range:extendDirs({1}, 1, 2)
-   assert_equal(0, extRange1:lower(1), "Checking lower extended")
-   assert_equal(1, extRange1:lower(2), "Checking lower extended")
-   assert_equal(1, extRange1:lower(3), "Checking lower extended")
+   assert_equal(0, extRange1:lower(1), "test_29: Checking lower extended")
+   assert_equal(1, extRange1:lower(2), "test_29: Checking lower extended")
+   assert_equal(1, extRange1:lower(3), "test_29: Checking lower extended")
 
-   assert_equal(12, extRange1:upper(1), "Checking upper extended")
-   assert_equal(20, extRange1:upper(2), "Checking upper extended")
-   assert_equal(30, extRange1:upper(3), "Checking upper extended")
+   assert_equal(12, extRange1:upper(1), "test_29: Checking upper extended")
+   assert_equal(20, extRange1:upper(2), "test_29: Checking upper extended")
+   assert_equal(30, extRange1:upper(3), "test_29: Checking upper extended")
 
    extRange1 = range:extendDirs({2}, 1, 2)
-   assert_equal(1, extRange1:lower(1), "Checking lower extended")
-   assert_equal(0, extRange1:lower(2), "Checking lower extended")
-   assert_equal(1, extRange1:lower(3), "Checking lower extended")
+   assert_equal(1, extRange1:lower(1), "test_29: Checking lower extended")
+   assert_equal(0, extRange1:lower(2), "test_29: Checking lower extended")
+   assert_equal(1, extRange1:lower(3), "test_29: Checking lower extended")
 
-   assert_equal(10, extRange1:upper(1), "Checking upper extended")
-   assert_equal(22, extRange1:upper(2), "Checking upper extended")
-   assert_equal(30, extRange1:upper(3), "Checking upper extended")
+   assert_equal(10, extRange1:upper(1), "test_29: Checking upper extended")
+   assert_equal(22, extRange1:upper(2), "test_29: Checking upper extended")
+   assert_equal(30, extRange1:upper(3), "test_29: Checking upper extended")
 
    extRange1 = range:extendDirs({3}, 1, 2)
-   assert_equal(1, extRange1:lower(1), "Checking lower extended")
-   assert_equal(1, extRange1:lower(2), "Checking lower extended")
-   assert_equal(0, extRange1:lower(3), "Checking lower extended")
+   assert_equal(1, extRange1:lower(1), "test_29: Checking lower extended")
+   assert_equal(1, extRange1:lower(2), "test_29: Checking lower extended")
+   assert_equal(0, extRange1:lower(3), "test_29: Checking lower extended")
 
-   assert_equal(10, extRange1:upper(1), "Checking upper extended")
-   assert_equal(20, extRange1:upper(2), "Checking upper extended")
-   assert_equal(32, extRange1:upper(3), "Checking upper extended")
+   assert_equal(10, extRange1:upper(1), "test_29: Checking upper extended")
+   assert_equal(20, extRange1:upper(2), "test_29: Checking upper extended")
+   assert_equal(32, extRange1:upper(3), "test_29: Checking upper extended")
 
    extRange1 = range:extendDirs({1,3}, 1, 2)
-   assert_equal(0, extRange1:lower(1), "Checking lower extended")
-   assert_equal(1, extRange1:lower(2), "Checking lower extended")
-   assert_equal(0, extRange1:lower(3), "Checking lower extended")
+   assert_equal(0, extRange1:lower(1), "test_29: Checking lower extended")
+   assert_equal(1, extRange1:lower(2), "test_29: Checking lower extended")
+   assert_equal(0, extRange1:lower(3), "test_29: Checking lower extended")
 
-   assert_equal(12, extRange1:upper(1), "Checking upper extended")
-   assert_equal(20, extRange1:upper(2), "Checking upper extended")
-   assert_equal(32, extRange1:upper(3), "Checking upper extended")   
+   assert_equal(12, extRange1:upper(1), "test_29: Checking upper extended")
+   assert_equal(20, extRange1:upper(2), "test_29: Checking upper extended")
+   assert_equal(32, extRange1:upper(3), "test_29: Checking upper extended")   
 end
 
 function test_30()
@@ -642,17 +642,17 @@ function test_30()
 
    local r1 = range:selectFirst(2)
 
-   assert_equal(2, r1:ndim(), "Checking dimensions")
+   assert_equal(2, r1:ndim(), "test_30: Checking dimensions")
    for i = 1, r1:ndim() do
-      assert_equal(range:lower(i), r1:lower(i), "Checking reduced range")
-      assert_equal(range:upper(i), r1:upper(i), "Checking reduced range")
+      assert_equal(range:lower(i), r1:lower(i), "test_30: Checking reduced range")
+      assert_equal(range:upper(i), r1:upper(i), "test_30: Checking reduced range")
    end
 
    local r2 = range:selectLast(3)
-   assert_equal(3, r2:ndim(), "Checking dimensions")
+   assert_equal(3, r2:ndim(), "test_30: Checking dimensions")
    for i = 1, r2:ndim() do
-      assert_equal(range:lower(i+2), r2:lower(i), "Checking reduced range")
-      assert_equal(range:upper(i+2), r2:upper(i), "Checking reduced range")
+      assert_equal(range:lower(i+2), r2:lower(i), "test_30: Checking reduced range")
+      assert_equal(range:upper(i+2), r2:upper(i), "test_30: Checking reduced range")
    end
 end
 
@@ -664,7 +664,7 @@ function test_31()
    local lastIdx = 0
    for idx in range:iter(Range.rowMajor) do
       local currIdx = idxr(idx)
-      assert_equal(1, currIdx-lastIdx, "Checking generic indexer/iterator pair")
+      assert_equal(1, currIdx-lastIdx, "test_31: Checking generic indexer/iterator pair")
       lastIdx = currIdx
    end
 
@@ -673,7 +673,7 @@ function test_31()
    lastIdx = 0
    for idx in range:iter(Range.colMajor) do
       local currIdx = idxr(idx)
-      assert_equal(1, currIdx-lastIdx, "Checking generic indexer/iterator pair")
+      assert_equal(1, currIdx-lastIdx, "test_31: Checking generic indexer/iterator pair")
       lastIdx = currIdx
    end   
 end
@@ -686,7 +686,7 @@ function test_32()
    local lastIdx = 0
    for idx in range:iter(Range.rowMajor) do
       local currIdx = idxr(idx)
-      assert_equal(1, currIdx-lastIdx, "Checking generic indexer/iterator pair")
+      assert_equal(1, currIdx-lastIdx, "test_32: Checking generic indexer/iterator pair")
       lastIdx = currIdx
    end
 
@@ -695,7 +695,7 @@ function test_32()
    lastIdx = 0
    for idx in range:iter(Range.colMajor) do
       local currIdx = idxr(idx)
-      assert_equal(1, currIdx-lastIdx, "Checking generic indexer/iterator pair")
+      assert_equal(1, currIdx-lastIdx, "test_32: Checking generic indexer/iterator pair")
       lastIdx = currIdx
    end   
 end
@@ -710,7 +710,7 @@ function test_33()
    for i = range:lower(1), range:upper(1) do
       for j = range:lower(2), range:upper(2) do
 	 local currIdx = idxr(i,j)
-	 assert_equal(1, currIdx-lastIdx, "Checking generic indexer/iterator pair")
+	 assert_equal(1, currIdx-lastIdx, "test_33: Checking generic indexer/iterator pair")
 	 lastIdx = currIdx
       end
    end
@@ -721,7 +721,7 @@ function test_33()
    for j = range:lower(2), range:upper(2) do   
       for i = range:lower(1), range:upper(1) do
 	 local currIdx = idxr(i, j)
-	 assert_equal(1, currIdx-lastIdx, "Checking generic indexer/iterator pair")
+	 assert_equal(1, currIdx-lastIdx, "test_33: Checking generic indexer/iterator pair")
 	 lastIdx = currIdx
       end
    end   
@@ -732,17 +732,17 @@ function test_34()
 
    local range = Range.Range({0, 0}, {1, 5})
    local cuRange, err = Range.copyHostToDevice(range)
-   assert_equal(0, err, "Checking if range object copied to device")
+   assert_equal(0, err, "test_34: Checking if range object copied to device")
 end
 
 function test_35()
    local range = Range.Range({1,1,1}, {10,20,30})
-   assert_equal(true, range:contains({1,1,1}), "Checking contains")
-   assert_equal(true, range:contains({10,20,30}), "Checking contains")
-   assert_equal(true, range:contains({3,3,3}), "Checking contains")   
+   assert_equal(true, range:contains({1,1,1}), "test_35: Checking contains")
+   assert_equal(true, range:contains({10,20,30}), "test_35: Checking contains")
+   assert_equal(true, range:contains({3,3,3}), "test_35: Checking contains")   
 
-   assert_equal(false, range:contains({0,1,1}), "Checking contains")
-   assert_equal(false, range:contains({10,21,30}), "Checking contains")
+   assert_equal(false, range:contains({0,1,1}), "test_35: Checking contains")
+   assert_equal(false, range:contains({10,21,30}), "test_35: Checking contains")
 		
 end
 
@@ -758,48 +758,48 @@ function test_37()
 
    local r2 = Range.Range({5, 6}, {12, 13})
    local r3 = r1:difference(r2)
-   assert_equal(1, r3:lower(1), "Checking range relative difference")
-   assert_equal(2, r3:lower(2), "Checking range relative difference")
-   assert_equal(4, r3:upper(1), "Checking range relative difference")
-   assert_equal(5, r3:upper(2), "Checking range relative difference")
+   assert_equal(1, r3:lower(1), "test_37: Checking range relative difference")
+   assert_equal(2, r3:lower(2), "test_37: Checking range relative difference")
+   assert_equal(4, r3:upper(1), "test_37: Checking range relative difference")
+   assert_equal(5, r3:upper(2), "test_37: Checking range relative difference")
 
    local r3 = r2:difference(r1)
-   assert_equal(11, r3:lower(1), "Checking range relative difference")
-   assert_equal(12, r3:lower(2), "Checking range relative difference")
-   assert_equal(12, r3:upper(1), "Checking range relative difference")
-   assert_equal(13, r3:upper(2), "Checking range relative difference")
+   assert_equal(11, r3:lower(1), "test_37: Checking range relative difference")
+   assert_equal(12, r3:lower(2), "test_37: Checking range relative difference")
+   assert_equal(12, r3:upper(1), "test_37: Checking range relative difference")
+   assert_equal(13, r3:upper(2), "test_37: Checking range relative difference")
 
    local r2 = Range.Range({5, 5}, {10, 10})
    local r3 = r1:difference(r2)
-   assert_equal(1, r3:lower(1), "Checking range relative difference")
-   assert_equal(2, r3:lower(2), "Checking range relative difference")
-   assert_equal(4, r3:upper(1), "Checking range relative difference")
-   assert_equal(4, r3:upper(2), "Checking range relative difference")
+   assert_equal(1, r3:lower(1), "test_37: Checking range relative difference")
+   assert_equal(2, r3:lower(2), "test_37: Checking range relative difference")
+   assert_equal(4, r3:upper(1), "test_37: Checking range relative difference")
+   assert_equal(4, r3:upper(2), "test_37: Checking range relative difference")
 
    local r2 = Range.Range({4, 4}, {15, 8})
    local r3 = r1:difference(r2)
-   assert_equal(1, r3:lower(1), "Checking range relative difference")
-   assert_equal(2, r3:lower(2), "Checking range relative difference")
-   assert_equal(3, r3:upper(1), "Checking range relative difference")
-   assert_equal(3, r3:upper(2), "Checking range relative difference")
+   assert_equal(1, r3:lower(1), "test_37: Checking range relative difference")
+   assert_equal(2, r3:lower(2), "test_37: Checking range relative difference")
+   assert_equal(3, r3:upper(1), "test_37: Checking range relative difference")
+   assert_equal(3, r3:upper(2), "test_37: Checking range relative difference")
 
    local r2 = Range.Range({1, 2}, {10, 11})
-   assert_equal(true, r1:isDifferenceEmpty(r2), "Checking range relative difference")
+   assert_equal(true, r1:isDifferenceEmpty(r2), "test_37: Checking range relative difference")
 
    local r2 = Range.Range({5, 2}, {16, 11})
    local r3 = r1:difference(r2)
-   assert_equal(1, r3:lower(1), "Checking range relative difference")
-   assert_equal(2, r3:lower(2), "Checking range relative difference")
-   assert_equal(4, r3:upper(1), "Checking range relative difference")
-   assert_equal(11, r3:upper(2), "Checking range relative difference")
+   assert_equal(1, r3:lower(1), "test_37: Checking range relative difference")
+   assert_equal(2, r3:lower(2), "test_37: Checking range relative difference")
+   assert_equal(4, r3:upper(1), "test_37: Checking range relative difference")
+   assert_equal(11, r3:upper(2), "test_37: Checking range relative difference")
 
    local r2 = Range.Range({14, 15}, {21, 22})
    local r3 = r1:difference(r2)
-   assert_equal(1, r3:lower(1), "Checking range relative difference")
-   assert_equal(2, r3:lower(2), "Checking range relative difference")
-   assert_equal(10, r3:upper(1), "Checking range relative difference")
-   assert_equal(11, r3:upper(2), "Checking range relative difference")
-   assert_equal(false, r1:isDifferenceEmpty(r2), "Checking range relative difference")
+   assert_equal(1, r3:lower(1), "test_37: Checking range relative difference")
+   assert_equal(2, r3:lower(2), "test_37: Checking range relative difference")
+   assert_equal(10, r3:upper(1), "test_37: Checking range relative difference")
+   assert_equal(11, r3:upper(2), "test_37: Checking range relative difference")
+   assert_equal(false, r1:isDifferenceEmpty(r2), "test_37: Checking range relative difference")
 
 end
 
@@ -807,7 +807,7 @@ function test_38()
    local r = Range.Range({1, 2}, {10, 11})
    local sub = r:subRange({3, 5}, {7, 9})
 
-   assert_equal(1, sub:isSubRange(), "Checking isSubRange")
+   assert_equal(1, sub:isSubRange(), "test_38: Checking isSubRange")
 end
 
 function test_39()
@@ -815,9 +815,9 @@ function test_39()
    local ext = r:extend(1, 1)
    local sub = ext:subRange(r:lowerAsVec(), r:upperAsVec())
 
-   assert_equal(1, sub:isSubRange(), "Checking isSubRange")
-   assert_equal(0, ext:isSubRange(), "Checking isSubRange")
-   assert_equal(0, r:isSubRange(), "Checking isSubRange")
+   assert_equal(1, sub:isSubRange(), "test_39: Checking isSubRange")
+   assert_equal(0, ext:isSubRange(), "test_39: Checking isSubRange")
+   assert_equal(0, r:isSubRange(), "test_39: Checking isSubRange")
    
    assert_equal(1, r.nsplit)
    assert_equal(1, ext.nsplit)

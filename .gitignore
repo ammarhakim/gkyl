@@ -27,3 +27,4 @@ Regression/*/*.bp
 Benchmarks/*/*.bp
 runregression.config.lua
 waf_tools/__pycache__/
+.nfs*

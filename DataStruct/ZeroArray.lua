@@ -331,12 +331,22 @@ local array_fn = {
       end
       ffiC.gkyl_array_reduce_range(out, self, enum, rng)
    end,
+   copy_to_buffer = function (self, data, rng)  
+      ffiC.gkyl_array_copy_to_buffer(data, self, rng)
+   end,
+   copy_from_buffer = function (self, data, rng)  
+      ffiC.gkyl_array_copy_from_buffer(self, data, rng)
+   end,
   
 }
 
 local array_mt = {
-   __new = function (self, atype, ncomp, size)
-      return ffiC.gkyl_array_new(atype, ncomp, size)
+   __new = function (self, atype, ncomp, size, on_gpu)
+      if on_gpu then
+         return ffiC.gkyl_array_cu_dev_new(atype, ncomp, size)
+      else
+         return ffiC.gkyl_array_new(atype, ncomp, size)
+      end
    end,
    __gc = function(self)
       self:release()
