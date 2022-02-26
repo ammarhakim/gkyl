@@ -31,7 +31,7 @@ struct gkyl_array {
   size_t size; // number of indices
 
   size_t esznc; // elemsz*ncomp
-  void *data; // pointer to data
+  void *_data; // pointer to data
   uint32_t flags;  
   struct gkyl_ref_count ref_count;
 
@@ -66,6 +66,17 @@ struct gkyl_array* gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t
 struct gkyl_array* gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
 
 /**
+ * Create new array with host-pinned data for use with NV-GPU. Delete using
+ * gkyl_array_release method.
+ *
+ * @param type Type of data in array
+ * @param ncomp Number of components at each index
+ * @param size Number of indices
+ * @return Pointer to newly allocated array.
+ */
+struct gkyl_array* gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
+
+/**
  * Returns true if array lives on NV-GPU.
  *
  * @param arr Array to check
@@ -74,6 +85,7 @@ struct gkyl_array* gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp,
 bool gkyl_array_is_cu_dev(const struct gkyl_array *arr);
 
 enum gkyl_array_op { GKYL_MIN, GKYL_MAX, GKYL_SUM };
+
 
 /**
  * Copy into array: pointer to dest array is returned. 'dest' and
@@ -133,6 +145,8 @@ struct gkyl_array* gkyl_array_set(struct gkyl_array *out,
  * @return out array
  */
 struct gkyl_array* gkyl_array_scale(struct gkyl_array *out, double a);
+
+struct gkyl_array* gkyl_array_scale_by_cell(struct gkyl_array *out, const struct gkyl_array *a);
 
 /**
  * Clear out = val. Returns out.
@@ -292,13 +306,16 @@ local array_fn = {
    release = function (self)
       return ffiC.gkyl_array_release(self)
    end,
+   data = function (self)
+      return self:fetch(0)
+   end,
    fetch = function (self, loc)
       if loc == nil then loc = 0 end
-      return ffi.cast(getType(self.type).."*", self.data) + loc*self.ncomp
+      return ffi.cast(getType(self.type).."*", self._data) + loc*self.ncomp
    end,
    cfetch = function (self, loc)
       if loc == nil then loc = 0 end
-      return ffi.cast("const "..getType(self.type).."*", self.data) + loc*self.ncomp
+      return ffi.cast("const "..getType(self.type).."*", self._data) + loc*self.ncomp
    end,
    get_size = function (self)
       return tonumber(self.size)
@@ -321,6 +338,9 @@ local array_fn = {
    scale = function (self, val)
       ffiC.gkyl_array_scale(self, val)
    end,
+   scale_by_cell = function (self, val)
+      ffiC.gkyl_array_scale_by_cell(self, val)
+   end,
    reduceRange = function (self, out, op, rng)
       if op == "min" then 
          enum = 0 
@@ -337,13 +357,17 @@ local array_fn = {
    copy_from_buffer = function (self, data, rng)  
       ffiC.gkyl_array_copy_from_buffer(self, data, rng)
    end,
-  
+   is_cu_dev = function (self)
+      return ffiC.gkyl_array_is_cu_dev(self)
+   end,
 }
 
 local array_mt = {
    __new = function (self, atype, ncomp, size, on_gpu)
-      if on_gpu then
+      if on_gpu==1 then
          return ffiC.gkyl_array_cu_dev_new(atype, ncomp, size)
+      elseif on_gpu==2 then
+         return ffiC.gkyl_array_cu_host_new(atype, ncomp, size)
       else
          return ffiC.gkyl_array_new(atype, ncomp, size)
       end
@@ -356,8 +380,8 @@ local array_mt = {
 local ArrayCtor = metatype(ArrayCt, array_mt)
 
 -- Construct array of given shape and type
-_M.Array = function (atype, ncomp, size)
-   return ArrayCtor(atype, ncomp, size)
+_M.Array = function (atype, ncomp, size, on_gpu)
+   return ArrayCtor(atype, ncomp, size, on_gpu)
 end
 
 return _M

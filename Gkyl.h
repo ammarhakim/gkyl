@@ -40,6 +40,8 @@
 #include <zmq.h>
 #endif
 
+#include <gkyl_util.h>
+
 #ifdef HAVE_CUDA_H
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -309,7 +311,7 @@ std::string Gkyl::createTopLevelDefs() const {
   auto err = cudaGetDevice(&deviceNum);
   if (cudaSuccess == err) {
     varDefs << "GKYL_HAVE_CUDA = true" << std::endl;
-    varDefs << "GKYL_USE_DEVICE = true" << std::endl;
+    //varDefs << "GKYL_USE_DEVICE = true" << std::endl;
     
     varDefs << "GKYL_DEFAULT_NUM_THREADS = 256" << std::endl;  
     int cuDriverVersion;

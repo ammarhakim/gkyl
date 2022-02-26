@@ -162,8 +162,14 @@ function test_5()
       fitr[2] = i+2
       fitr[3] = i+3
    end
+   if GKYL_USE_GPU then
+      field1:copyHostToDevice()
+   end
    -- copy and test
    field2:copy(field1)
+   if GKYL_USE_GPU then
+      field2:copyDeviceToHost()
+   end
    for i = localRange:lower(1), localRange:upper(1) do
       local fitr1 = field1:get(indexer(i))
       local fitr2 = field2:get(indexer(i))
@@ -199,8 +205,14 @@ function test_6()
       fitr[2] = i+2
       fitr[3] = i+3
    end
+   if GKYL_USE_GPU then
+      field1:copyHostToDevice()
+   end
    -- copy and test
    field2:copy(field1)
+   if GKYL_USE_GPU then
+      field2:copyDeviceToHost()
+   end
    for i = localRange:lower(1), localRange:upper(1) do
       local fitr1 = field1:get(indexer(i))
       local fitr2 = field2:get(indexer(i))
@@ -226,6 +238,16 @@ function test_7()
 
    -- clear it
    field:clear(1.5)
+   if GKYL_USE_GPU then
+      for i = localRange:lower(1), localRange:upper(1) do
+         local fitr = field:get(indexer(i))
+
+         assert_equal(0.0, fitr[1], "Checking if clear only happened on device")
+         assert_equal(0.0, fitr[2], "Checking if clear only happened on device")
+         assert_equal(0.0, fitr[3], "Checking if clear only happened on device")
+      end
+      field:copyDeviceToHost()
+   end
    for i = localRange:lower(1), localRange:upper(1) do
       local fitr = field:get(indexer(i))
 
@@ -235,6 +257,9 @@ function test_7()
    end
 
    field:clear(2.5)
+   if GKYL_USE_GPU then
+      field:copyDeviceToHost()
+   end
    for i = localRange:lower(1), localRange:upper(1) do
       local fitr = field:get(indexer(i))
 
@@ -244,6 +269,9 @@ function test_7()
    end
 
    field:clear(0.0)
+   if GKYL_USE_GPU then
+      field:copyDeviceToHost()
+   end
    for i = localRange:lower(1), localRange:upper(1) do
       local fitr = field:get(indexer(i))
 
@@ -307,9 +335,15 @@ function test_9()
       fitr[2] = idx[1]+2*idx[2]+2
       fitr[3] = idx[1]+2*idx[2]+3
    end
+   if GKYL_USE_GPU then
+      field1:copyHostToDevice()
+   end
 
    -- accumulate stuff
    field:accumulate(1.0, field1, 2.0, field1)
+   if GKYL_USE_GPU then
+      field:copyDeviceToHost()
+   end
 
    for idx in field:localExtRangeIter() do
       local fitr = field:get(indexer(idx))
@@ -320,13 +354,16 @@ function test_9()
 
    -- combine stuff
    field:combine(1.0, field1, 2.0, field1)
+   if GKYL_USE_GPU then
+      field:copyDeviceToHost()
+   end
 
    for idx in field:localExtRangeIter() do
       local fitr = field:get(indexer(idx))
       assert_equal(3*(idx[1]+2*idx[2]+1), fitr[1], "Checking field value")
       assert_equal(3*(idx[1]+2*idx[2]+2), fitr[2], "Checking field value")
       assert_equal(3*(idx[1]+2*idx[2]+3), fitr[3], "Checking field value")
-   end   
+   end    
 end
 
 function test_10()
@@ -343,6 +380,9 @@ function test_10()
    field:clear(10.0)
    field:scale(2.5)
 
+   if GKYL_USE_GPU then
+      field:copyDeviceToHost()
+   end
    local indexer = field:genIndexer()
    for idx in field:localExtRangeIter() do
       local fitr = field:get(indexer(idx))
@@ -428,6 +468,9 @@ function test_12()
    assert_equal(2.5, tm, "Checking time-stamp")
    assert_equal(50, fr, "Checking frame")
    
+   if GKYL_USE_GPU then
+      fieldIn:copyDeviceToHost()
+   end
    -- check if fields are identical
    local indexer = field:genIndexer()
    for idx in field:localRangeIter() do
@@ -451,7 +494,7 @@ function test_13()
       ghost         = {1, 1},
       syncCorners   = true,
    }
-   field:clear(10.5)
+   field._zero:clear(10.5)
 
    -- Set corner cells.
    local indexer = field:indexer()
@@ -461,7 +504,13 @@ function test_13()
    fItr = field:get(indexer(1,10));  fItr[1] = 3.0
    fItr = field:get(indexer(10,10)); fItr[1] = 4.0
 
+   if GKYL_USE_GPU then
+      field:copyHostToDevice()
+   end
    field:sync() -- Sync field.
+   if GKYL_USE_GPU then
+      field:copyDeviceToHost()
+   end
 
    -- Check if periodic dirs are sync()-ed properly.
    local fItr = field:get(indexer(11,1))
@@ -498,7 +547,7 @@ function test_14()
       ghost         = {1, 1},
       syncCorners   = true,
    }
-   field:clear(10.5)
+   field._zero:clear(10.5)
 
    local indexer = field:indexer()
    local fItr
@@ -528,7 +577,13 @@ function test_14()
    for i = 2,9 do fItr = field:get(indexer(1,10,i));  fItr[1] = 13.0+i/10. end
    for i = 2,9 do fItr = field:get(indexer(10,10,i)); fItr[1] = 14.0+i/10. end
 
+   if GKYL_USE_GPU then
+      field:copyHostToDevice()
+   end
    field:sync() -- Sync field.
+   if GKYL_USE_GPU then
+      field:copyDeviceToHost()
+   end
 
    -- Check if periodic dirs are sync()-ed properly.
    local fItr = field:get(indexer(11,1,1))
@@ -593,7 +648,7 @@ function test_15()
       ghost         = {1, 1},
       syncCorners   = true,
    }
-   field:clear(10.5)
+   field._zero:clear(10.5)
 
    -- Set corner cells.
    local indexer = field:indexer()
@@ -603,7 +658,13 @@ function test_15()
    fItr = field:get(indexer(1,10));  fItr[1] = 3.0
    fItr = field:get(indexer(10,10)); fItr[1] = 4.0
 
+   if GKYL_USE_GPU then
+      field:copyHostToDevice()
+   end
    field:periodicCopy() -- Copy periodic boundary conditions for field. SyncCorners not implemented for this method yet.
+   if GKYL_USE_GPU then
+      field:copyDeviceToHost()
+   end
 
    -- Check if periodic dirs are sync()-ed properly.
    local fItr = field:get(indexer(11,1))
@@ -637,6 +698,9 @@ function test_16()
    scalar:clear(2.5)
    field:scaleByCell(scalar)
 
+   if GKYL_USE_GPU then
+      field:copyDeviceToHost()
+   end
    local indexer = field:genIndexer()
    for idx in field:localExtRangeIter() do
       local fitr = field:get(indexer(idx))
@@ -649,9 +713,15 @@ function test_16()
       local sitr = scalar:get(indexer(idx))
       sitr[1] = idx[1]
    end   
+   if GKYL_USE_GPU then
+      scalar:copyHostToDevice()
+   end
 
    field:scaleByCell(scalar)
 
+   if GKYL_USE_GPU then
+      field:copyDeviceToHost()
+   end
    for idx in field:localExtRangeIter() do
       local fitr = field:get(indexer(idx))
       assert_equal(25.0*idx[1], fitr[1], "Checking scaled field value")
@@ -694,6 +764,10 @@ function test_16()
       scaMin = math.min(scaMin,scaItr[1])
       scaSum = scaSum + scaItr[1]
    end
+   if GKYL_USE_GPU then
+      field:copyHostToDevice()
+      scalar:copyHostToDevice()
+   end
    cartFldMax, cartFldMin, cartFldSum = field:reduce("max"), field:reduce("min"), field:reduce("sum")
    cartScaMax, cartScaMin, cartScaSum = scalar:reduce("max"), scalar:reduce("min"), scalar:reduce("sum")
    for k = 1, field:numComponents() do
@@ -707,6 +781,10 @@ function test_16()
 end
 
 function test_17()
+   if GKYL_USE_GPU then
+     -- offset methods not yet implemented on gpu
+     return
+   end
    -- Test the :accumulateOffset and :combineOffset methods.
    -- NOTE: the offset in these methods are field component offsets, not vector offsets.
    --       For a CartField with multiple DG fields, selecting the ith DG field would
@@ -849,7 +927,7 @@ function test_18()
       ghost         = {1, 1},
       syncCorners   = false,
    }
-   field:clear(10.5)
+   field._zero:clear(10.5)
 
    -- Set skel cells.
    local indexer = field:indexer()
@@ -860,7 +938,13 @@ function test_18()
    fItr = field:get(indexer(10,10)); fItr[1] = 4.0
 
    grid:setPeriodicDirs({1})
+   if GKYL_USE_GPU then
+      field:copyHostToDevice()
+   end
    field:sync() -- Sync field.
+   if GKYL_USE_GPU then
+      field:copyDeviceToHost()
+   end
    -- Check if periodic dirs are sync()-ed properly.
    local fItr = field:get(indexer(11,1))
    assert_equal(1.0, fItr[1], "Checking non-corner periodic sync")
@@ -879,7 +963,7 @@ function test_18()
    local fItr = field:get(indexer(10,0))
    assert_equal(10.5, fItr[1], "Checking non-corner periodic sync")
 
-   field:clear(10.5)
+   field._zero:clear(10.5)
 
    -- Set skel cells.
    local indexer = field:indexer()
@@ -890,7 +974,13 @@ function test_18()
    fItr = field:get(indexer(10,10)); fItr[1] = 4.0
 
    grid:setPeriodicDirs({2})
+   if GKYL_USE_GPU then
+      field:copyHostToDevice()
+   end
    field:sync() -- Sync field.
+   if GKYL_USE_GPU then
+      field:copyDeviceToHost()
+   end
 
    local fItr = field:get(indexer(1,11))
    assert_equal(1.0, fItr[1], "Checking non-corner periodic sync")
@@ -910,6 +1000,20 @@ function test_18()
    assert_equal(10.5, fItr[1], "Checking non-corner periodic sync")
 end
 
+function test_gpu()
+   local grid = Grid.RectCart {
+      lower = {0.0},
+      upper = {1.0},
+      cells = {10},
+   }
+   local field = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 3,
+      ghost         = {1, 1},
+   }
+   assert_equal(true, field:hasCuDev())
+end
+
 test_1()
 test_2()
 test_4()
@@ -927,6 +1031,9 @@ test_15()
 test_16()
 test_17()
 test_18()
+if GKYL_USE_GPU then
+test_gpu()
+end
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

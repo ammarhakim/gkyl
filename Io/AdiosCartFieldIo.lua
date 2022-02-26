@@ -136,7 +136,12 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
    -- Identify if fieldsIn is a CartField using the self._ndim variable (MF: there ought to be a better way).
    local fieldsTbl = type(fieldsIn._ndim)=="number" and {CartGridField = fieldsIn} or fieldsIn
    local numFields = 0
-   for fldNm, _ in pairs(fieldsTbl) do numFields=numFields+1 end
+   for fldNm, fld in pairs(fieldsTbl) do 
+      numFields=numFields+1 
+      if GKYL_USE_GPU and fld:hasCuDev() then
+         fld:copyDeviceToHost()
+      end
+   end
 
    -- Assume fields are defined on the same grid (and distributed across the same MPI
    -- communicator) and grab grid descriptors from the first field in the table.
@@ -275,7 +280,7 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
       -- Copy field into output buffer (this copy is needed as
       -- field also contains ghost-cell data, and, in addition,
       -- ADIOS expects data to be laid out in row-major order).
-      fld:_copy_from_field_region(localRange, self._outBuff[fldNm])
+      fld._zero:copy_to_buffer(self._outBuff[fldNm]:data(), localRange)
 
       local err = Adios.write(fd, fldNm, self._outBuff[fldNm]:data())
    end
@@ -441,12 +446,16 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
 
       -- Copy output buffer into field.
       for fldNm, fld in pairs(fieldsTbl) do
-         fld:_copy_to_field_region(localRange, self._outBuff[fldNm])
+         fld._zero:copy_from_buffer(self._outBuff[fldNm]:data(), localRange)
+	 if GKYL_USE_GPU and fld:hasCuDev() then
+	    fld:copyHostToDevice()
+	 end
       end
    end
    -- If running with shared memory, need to broadcast time stamp and frame number.
    Mpi.Bcast(tmStampBuff, 1, Mpi.DOUBLE, 0, shmComm)
    Mpi.Bcast(frNumBuff, 1, Mpi.INT, 0, shmComm)
+
    return tmStampBuff[0], frNumBuff[0]
 end
 

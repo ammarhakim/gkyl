@@ -79,6 +79,7 @@ void showUsage() {
   std::cout << "  -e chunk   Execute string 'chunk'" << std::endl;
   std::cout << "  -t         Show list of registered tools" << std::endl;
   std::cout << "  -v         Show version information" << std::endl;
+  std::cout << "  -g         Run on NVIDIA GPU (if available and built with CUDA)" << std::endl;
   std::cout << std::endl;
 
   std::cout << "Most app input files take the following commands:" << std::endl;
@@ -152,7 +153,7 @@ main(int argc, char **argv) {
   // do not support very special need of gkeyll in which app or tool
   // can have complex command parsers of their own
   int c;
-  while ((c = getopt(argc, argv, "+hvte:")) != -1)
+  while ((c = getopt(argc, argv, "+hvte:g")) != -1)
     switch (c)
     {
       case 'h':
@@ -171,6 +172,10 @@ main(int argc, char **argv) {
       case 'e':
           luaExpr.append(optarg);
           break;
+
+      case 'g':
+	  luaExpr.append("GKYL_USE_GPU = true");
+	  break;
 
       case '?':
           return finish(0);

@@ -237,7 +237,21 @@ local function Field_meta_ctor(elct)
       -- Underlying ZeroArray data structure, which handles memory allocation
       self._zero = ZeroArray.Array(ZeroArray.double, self._numComponents, self._size/self._numComponents)
       -- get pointer to data in ZeroArray
-      self._data = self._zero:fetch(0)
+      self._data = self._zero:data()
+
+      -- Create a device copy if needed.
+      if xsys.pickBool(tbl.createDeviceCopy, GKYL_USE_GPU) then
+         createDeviceCopy = 1
+         self._zeroDevice = ZeroArray.Array(ZeroArray.double, self._numComponents, self._size/self._numComponents, 1)
+         self._devAllocData = self._zeroDevice:data()
+
+         self._zeroForOps = self._zeroDevice
+      else
+         self._zeroDevice = nil
+         self._devAllocData = nil
+
+         self._zeroForOps = self._zero
+      end
 
       self._globalRange = globalRange
       self._globalExtRange = self._globalRange:extend(
@@ -276,16 +290,13 @@ local function Field_meta_ctor(elct)
 	 self._lowerGhost-1, self._upperGhost)
 
       -- Local and (MPI) global values of a reduction (reduce method).
-      self.localReductionVal  = ElemVec(self._numComponents)
-      self.globalReductionVal = ElemVec(self._numComponents)
-
-      -- Create a device copy is needed.
-      local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, GKYL_USE_DEVICE)
       if createDeviceCopy then
-         self._zeroDevice = ZeroArray.Array(ZeroArray.double, self._numComponents, self._size/self._numComponents, true)
-         self._devAllocData = self._zeroDevice:fetch(0)
+         self.localReductionVal = ZeroArray.Array(ZeroArray.double, self._numComponents, 1, 2)
+         self.globalReductionVal = ZeroArray.Array(ZeroArray.double, self._numComponents, 1, 2)
+      else
+         self.localReductionVal = ZeroArray.Array(ZeroArray.double, self._numComponents, 1)
+         self.globalReductionVal = ZeroArray.Array(ZeroArray.double, self._numComponents, 1)
       end
-      if not GKYL_HAVE_CUDA then self._zeroDevice = nil end
       
       self._layout = defaultLayout -- Default layout is column-major.
       if tbl.layout then
@@ -381,7 +392,7 @@ local function Field_meta_ctor(elct)
                   local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
                   if Mpi.Comm_size(shmComm) == 1 and Mpi.Comm_size(nodeComm) == 1 then
                      local szSend = rgnSend:volume()*self._numComponents
-                     self._lowerPeriodicBuff[dir] = allocator(shmComm, szSend)
+                     self._lowerPeriodicBuff[dir] = ZeroArray.Array(ZeroArray.double, self._numComponents, rgnSend:volume(), createDeviceCopy)
                   end
                   local idx = rgnSend:lowerAsVec()
                   -- Set idx to starting point of region you want to recv.
@@ -400,7 +411,7 @@ local function Field_meta_ctor(elct)
                   local rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
                   if Mpi.Comm_size(shmComm) == 1 and Mpi.Comm_size(nodeComm) == 1 then
                      local szSend = rgnSend:volume()*self._numComponents
-                     self._upperPeriodicBuff[dir] = allocator(shmComm, szSend)
+                     self._upperPeriodicBuff[dir] = ZeroArray.Array(ZeroArray.double, self._numComponents, rgnSend:volume(), createDeviceCopy)
                   end
                   local idx = rgnSend:lowerAsVec()
                   -- Set idx to starting point of region you want to recv.
@@ -584,8 +595,11 @@ local function Field_meta_ctor(elct)
       numComponents = function (self)
 	 return self._numComponents
       end,
+      hasCuDev = function (self)
+         if self._zeroDevice then return self._zeroDevice:is_cu_dev() else return false end
+      end,
       copy = function (self, fIn)
-	 self._zero:copy(fIn._zero)
+	 self._zeroForOps:copy(fIn._zeroForOps)
       end,
       deviceCopy = function (self, fIn)
 	 self._zeroDevice:copy(fIn._zeroDevice)
@@ -603,7 +617,7 @@ local function Field_meta_ctor(elct)
 	 return self._data
       end,
       clear = function (self, val)
-         self._zero:clear(val)
+         self._zeroForOps:clear(val)
       end,
       fill = function (self, k, fc)
 	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index	 
@@ -616,7 +630,7 @@ local function Field_meta_ctor(elct)
 	 return self._localExtRangeDecomp:shape(self._shmIndex)*self:numComponents()
       end,
       _assign = function(self, fact, fld)
-         self._zero:set(fact, fld._zero)
+         self._zeroForOps:set(fact, fld._zeroForOps)
       end,
       -- assignOffsetOneFld assumes that one of the input or output fields have fewer components than the other.
       --   a) nCompOut > nCompIn: assigns all of the input field w/ part of the output field, the (0-based)
@@ -638,7 +652,7 @@ local function Field_meta_ctor(elct)
 	 ffiC.gkylCartFieldAssignOffset(fld:_localLower(), self:_localLower(), numCells, compStart, fld:numComponents(), self:numComponents(), fact, fld._data, self._data)
       end,
       _accumulateOneFld = function(self, fact, fld)
-         self._zero:accumulate(fact, fld._zero)
+         self._zeroForOps:accumulate(fact, fld._zeroForOps)
       end,
       -- accumulateOffsetOneFld assumes that one of the input or output fields have fewer components than the other.
       --   a) nCompOut > nCompIn: accumulates all of the input field w/ part of the output field, the (0-based)
@@ -718,16 +732,13 @@ local function Field_meta_ctor(elct)
          end,
       scale = isNumberType and
 	 function (self, fact)
-            self._zero:scale(fact)
+            self._zeroForOps:scale(fact)
 	 end or
 	 function (self, fact)
 	    assert(false, "CartField:scale: Scale only works on numeric fields")
 	 end,
       scaleByCell = function (self, factByCell)
-         assert(factByCell:numComponents() == 1, "CartField:scaleByCell: scalar must be a 1-component field")
-         assert(factByCell:localRange() == self:localRange() and factByCell:layout() == self:layout(), "CartField:scaleByCell: scalar and field must be compatible")
-            
-	 ffiC.gkylCartFieldScaleByCell(self:_localLower(), self:_localShape(), self:numComponents(), factByCell._data, self._data)
+         self._zeroForOps:scale_by_cell(factByCell._zeroForOps)
       end,
       abs = isNumberType and
          function (self)
@@ -814,23 +825,9 @@ local function Field_meta_ctor(elct)
 	 -- processors will get to the sync method before others
          -- this is especially troublesome in the RK combine step
 	 Mpi.Barrier(self._grid:commSet().sharedComm)
-	 self._field_sync(self, self:dataPointer())
+	 self._field_sync(self, self._zeroForOps:data())
 	 if self._syncPeriodicDirs and syncPeriodicDirs then
-	    self._field_periodic_sync(self, self:dataPointer())
-	 end
-	 -- this barrier is needed as when using MPI-SHM some
-	 -- processors will not participate in sync()
-	 Mpi.Barrier(self._grid:commSet().sharedComm)
-      end,
-      deviceSync = function (self, syncPeriodicDirs_)
-         local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
-	 -- this barrier is needed as when using MPI-SHM some
-	 -- processors will get to the sync method before others
-         -- this is especially troublesome in the RK combine step
-	 Mpi.Barrier(self._grid:commSet().sharedComm)
-	 self._field_sync(self, self:deviceDataPointer())
-	 if self._syncPeriodicDirs and syncPeriodicDirs then
-	    self._field_periodic_sync(self, self:deviceDataPointer())
+	    self._field_periodic_sync(self, self._zeroForOps:data())
 	 end
 	 -- this barrier is needed as when using MPI-SHM some
 	 -- processors will not participate in sync()
@@ -870,24 +867,26 @@ local function Field_meta_ctor(elct)
       end,
       reduce = isNumberType and
 	 function(self, opIn)
-            self._zero:reduceRange(self.localReductionVal:data(), opIn, self._localRange)
+            self._zeroForOps:reduceRange(self.localReductionVal:data(), opIn, self._localRange)
 	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
 	    local grid = self._grid
 	    local localVal = {}
 	    Mpi.Allreduce(self.localReductionVal:data(), self.globalReductionVal:data(),
 			  self._numComponents, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
 
-	    for k = 1, self._numComponents do localVal[k] = self.globalReductionVal[k] end
+            --self.localReductionVal:copy(self.globalReductionVal)
+            for k = 1, self._numComponents do localVal[k] = self.globalReductionVal:data()[k-1] end
             return localVal
+            --return self.localReductionVal:data()
 	 end or
 	 function (self, opIn)
 	    assert(false, "CartField:reduce: Reduce only works on numeric fields")
 	 end,
       _copy_from_field_region = function (self, rgn, data)
-	 self._zero:copy_to_buffer(data:data(), rgn)
+	 self._zeroForOps:copy_to_buffer(data:data(), rgn)
       end,
       _copy_to_field_region = function (self, rgn, data)
-	 self._zero:copy_from_buffer(data:data(), rgn)
+	 self._zeroForOps:copy_from_buffer(data:data(), rgn)
       end,
       _field_sync = function (self, dataPtr)
          local comm = self._grid:commSet().nodeComm -- communicator to use
