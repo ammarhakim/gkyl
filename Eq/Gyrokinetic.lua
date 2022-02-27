@@ -12,6 +12,22 @@ local Proto      = require "Lib.Proto"
 local Time       = require "Lib.Time"
 local xsys       = require "xsys"
 local GyrokineticModDecl = require "Eq.gkData.GyrokineticModDecl"
+local ffi           = require "ffi"
+local ffiC          = ffi.C
+
+ffi.cdef [[ 
+/**                                                                                         
+ * Create a new Gyrokinetic equation object.                                                     
+ *                                                                                          
+ * @param cbasis Configuration space basis functions                                        
+ * @param pbasis Phase-space basis functions                                                
+ * @param conf_range Configuration space range for use in indexing EM field                 
+ * @return Pointer to Gyrokinetic equation object                                                
+ */                                                                                         
+struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis,                     
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, bool use_gpu);
+  
+]]
 
 local Gyrokinetic = Proto(EqBase)
 
@@ -22,6 +38,9 @@ function Gyrokinetic:init(tbl)
    self._basis     = assert(tbl.phaseBasis, "Gyrokinetic: must specify a phaseBasis")
    self._confGrid  = assert(tbl.confGrid, "Gyrokinetic: must specify confGrid")
    self._confBasis = assert(tbl.confBasis, "Gyrokinetic: must specify confBasis")
+
+   self._confRange = tbl.confRange
+   if self._confRange then assert(self._confRange:isSubRange()==1, "Eq.Gyrokinetic: confRange must be a sub-range") end
 
    self._ndim = self._grid:ndim()
 
@@ -43,6 +62,9 @@ function Gyrokinetic:init(tbl)
    self._vdim = self._ndim - self._cdim
 
    local nm, p = self._basis:id(), self._basis:polyOrder()
+
+   self._zero = ffiC.gkyl_dg_gyrokinetic_new(self._confBasis._zero, self._basis._zero, self._confRange, GKYL_USE_GPU or 0)
+
    self._volTerm  = GyrokineticModDecl.selectVol(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self.Bvars, self.geoType)
    self._surfTerm = GyrokineticModDecl.selectSurf(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self._positivity, self.Bvars, self.geoType)
 
@@ -178,6 +200,9 @@ function Gyrokinetic:setAuxFields(auxFields)
 
       self._isFirst = false -- No longer first time.
    end
+end
+
+function Gyrokinetic:setAuxFieldsOnDevice(auxFields)
 end
 
 -- Volume integral term for use in DG scheme.

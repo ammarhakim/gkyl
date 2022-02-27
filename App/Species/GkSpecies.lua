@@ -199,6 +199,7 @@ function GkSpecies:createSolver(field, externalField)
       confGrid     = self.confGrid,
       phaseBasis   = self.basis,
       confBasis    = self.confBasis,
+      confRange = self.bmag:localRange(),
       charge       = self.charge,
       mass         = self.mass,
       hasPhi       = hasPhi,
@@ -773,8 +774,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    emIn[1]:phiSolve(tCurr, species, inIdx, outIdx)
 
    if self.evolveCollisionless then
-      self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
+      self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut, self.cflRateByCell})
    else
       self.equation:setAuxFields({em, emFunc, dApardtProv})  -- Set auxFields in case they are needed by BCs/collisions.
    end
