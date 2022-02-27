@@ -610,6 +610,12 @@ local function Field_meta_ctor(elct)
       copyDeviceToHost = function (self)
 	 self._zero:copy(self._zeroDevice)
       end,
+      copyDeviceToHostAsync = function (self)
+	 self._zero:copyAsync(self._zeroDevice)
+      end,
+      copyHostToDeviceAsync = function (self)
+	 self._zero:copyAsync(self._zeroDevice)
+      end,
       deviceDataPointer = function (self)
 	 return self._devAllocData
       end,

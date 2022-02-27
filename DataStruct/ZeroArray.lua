@@ -99,6 +99,17 @@ struct gkyl_array* gkyl_array_copy(struct gkyl_array* dest,
   const struct gkyl_array* src);
 
 /**
+ * Copy into array using async methods for cuda arrays: pointer to dest array is returned. 'dest' and
+ * 'src' must not point to same data.
+ *
+ * @param dest Destination for copy.
+ * @param src Srouce to copy from.
+ * @return dest is returned
+ */
+struct gkyl_array* gkyl_array_copy_async(struct gkyl_array* dest,
+  const struct gkyl_array* src);
+
+/**
  * Clone array: pointer to newly created array is returned.
  * 
  * @param arr Array to clone
@@ -296,6 +307,9 @@ local ArrayCt = typeof("struct gkyl_array")
 local array_fn = {
    copy = function (self, src)
       return ffiC.gkyl_array_copy(self, src)
+   end,
+   copyAsync = function (self, src)
+      return ffiC.gkyl_array_copy_async(self, src)
    end,
    clone = function (self)
       return ffiC.gkyl_array_clone(self)

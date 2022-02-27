@@ -139,7 +139,7 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
    for fldNm, fld in pairs(fieldsTbl) do 
       numFields=numFields+1 
       if GKYL_USE_GPU and fld:hasCuDev() then
-         fld:copyDeviceToHost()
+         fld:copyDeviceToHostAsync()
       end
    end
 
