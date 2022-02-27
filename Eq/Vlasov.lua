@@ -22,17 +22,6 @@ local cuda = nil
 if GKYL_HAVE_CUDA then cuda = require "Cuda.RunTime" end
 
 ffi.cdef [[ 
-  typedef struct GkylVlasov GkylVlasov;
-  GkylVlasov* new_Vlasov(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType, double qbym, bool hasForceTerm);
-  GkylVlasov* new_Vlasov_onDevice(GkylVlasov *v);
-  void setAuxFields(GkylVlasov *eq, GkylCartField_t *emField);
-  int getCdim(GkylVlasov *v);
-
-  typedef struct GkylEquation_t GkylEquation_t ;
-  GkylEquation_t *new_VlasovOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType,
-    double qbym, bool hasForceTerm);
-  void Vlasov_setAuxFields(GkylEquation_t *eqn, GkylCartField_t* em);
-
 // Identifiers for specific field object types
 enum gkyl_field_id {
   GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
@@ -160,18 +149,6 @@ function Vlasov:init(tbl)
 
    -- Flag to indicate if we are being called for first time.
    self._isFirst = true
-end
-
-function Vlasov:initDevice(tbl)
-   local bId = self._phaseBasis:id()
-   local b   = 0
-   if bId == "maximal-order" then b = 1 end
-   if bId == "serendipity" then b = 2 end
-   --self._onHost = ffiC.new_Vlasov(self._cdim, self._vdim, self._phaseBasis:polyOrder(), b, self._qbym, self._hasForceTerm) 
-   --self._onDevice = ffiC.new_Vlasov_onDevice(self._onHost)
-   self._onDevice = ffiC.new_VlasovOnDevice(self._cdim, self._vdim, self._phaseBasis:polyOrder(), b, self._qbym, self._hasForceTerm)
-
-   return self
 end
 
 -- Methods.
