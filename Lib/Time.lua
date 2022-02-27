@@ -7,6 +7,29 @@ local ffi = require'ffi'
 local M = {}
 local C = ffi.C
 
+ffi.cdef [[
+typedef struct {
+	long s;
+	long ns;
+} time_timespec;
+
+/**
+ * Gets wall-clock time in secs/nanoseconds.
+ * 
+ * @return Time object.
+ */
+time_timespec gkyl_wall_clock(void);
+
+/**
+ * Compute in secs time stored in timespec object.
+ *
+ * @param tm Timespec object
+ * @return Time in seconds
+ */
+double gkyl_time_sec(time_timespec tm);
+
+]]
+
 if ffi.os == 'Windows' then
 
 	ffi.cdef[[
@@ -28,8 +51,8 @@ if ffi.os == 'Windows' then
 	local inv_qpf = 1 / tonumber(t[0]) --precision loss in e-10
 
 	function M.clock()
-		assert(C.time_QueryPerformanceCounter(t) ~= 0)
-		return tonumber(t[0]) * inv_qpf
+           local tm = C.gkyl_wall_clock()
+           return C.gkyl_time_sec(tm)
 	end
 
 	function M.sleep(s)
@@ -39,10 +62,6 @@ if ffi.os == 'Windows' then
 elseif ffi.os == 'Linux' or ffi.os == 'OSX' then
 
 	ffi.cdef[[
-	typedef struct {
-		long s;
-		long ns;
-	} time_timespec;
 
 	int time_nanosleep(time_timespec*, time_timespec *) asm("nanosleep");
 	]]
@@ -84,8 +103,8 @@ elseif ffi.os == 'Linux' or ffi.os == 'OSX' then
 		end
 
 		function M.clock()
-			assert(clock_gettime(CLOCK_MONOTONIC, t) == 0)
-			return tos(t)
+                   local tm = C.gkyl_wall_clock()
+                   return C.gkyl_time_sec(tm)
 		end
 
 	elseif ffi.os == 'OSX' then
@@ -119,7 +138,8 @@ elseif ffi.os == 'Linux' or ffi.os == 'OSX' then
 		assert(C.time_mach_timebase_info(timebase) == 0)
 		local scale = tonumber(timebase.numer) / tonumber(timebase.denom) / 1e9
 		function M.clock()
-			return tonumber(C.time_mach_absolute_time()) * scale
+                   local tm = C.gkyl_wall_clock()
+                   return C.gkyl_time_sec(tm)
 		end
 
 	end --OSX
