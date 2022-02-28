@@ -240,8 +240,8 @@ local function Field_meta_ctor(elct)
       self._data = self._zero:data()
 
       -- Create a device copy if needed.
-      if xsys.pickBool(tbl.createDeviceCopy, GKYL_USE_GPU) then
-         createDeviceCopy = 1
+      if xsys.pickBool(tbl.useDevice, GKYL_USE_GPU) then
+         self.useDevice = 1
          self._zeroDevice = ZeroArray.Array(ZeroArray.double, self._numComponents, self._size/self._numComponents, 1)
          self._devAllocData = self._zeroDevice:data()
 
@@ -290,7 +290,7 @@ local function Field_meta_ctor(elct)
 	 self._lowerGhost-1, self._upperGhost)
 
       -- Local and (MPI) global values of a reduction (reduce method).
-      if createDeviceCopy then
+      if self.useDevice then
          self.localReductionVal = ZeroArray.Array(ZeroArray.double, self._numComponents, 1, 2)
          self.globalReductionVal = ZeroArray.Array(ZeroArray.double, self._numComponents, 1, 2)
       else
@@ -392,7 +392,7 @@ local function Field_meta_ctor(elct)
                   local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
                   if Mpi.Comm_size(shmComm) == 1 and Mpi.Comm_size(nodeComm) == 1 then
                      local szSend = rgnSend:volume()*self._numComponents
-                     self._lowerPeriodicBuff[dir] = ZeroArray.Array(ZeroArray.double, self._numComponents, rgnSend:volume(), createDeviceCopy)
+                     self._lowerPeriodicBuff[dir] = ZeroArray.Array(ZeroArray.double, self._numComponents, rgnSend:volume(), self.useDevice)
                   end
                   local idx = rgnSend:lowerAsVec()
                   -- Set idx to starting point of region you want to recv.
@@ -411,7 +411,7 @@ local function Field_meta_ctor(elct)
                   local rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
                   if Mpi.Comm_size(shmComm) == 1 and Mpi.Comm_size(nodeComm) == 1 then
                      local szSend = rgnSend:volume()*self._numComponents
-                     self._upperPeriodicBuff[dir] = ZeroArray.Array(ZeroArray.double, self._numComponents, rgnSend:volume(), createDeviceCopy)
+                     self._upperPeriodicBuff[dir] = ZeroArray.Array(ZeroArray.double, self._numComponents, rgnSend:volume(), self.useDevice)
                   end
                   local idx = rgnSend:lowerAsVec()
                   -- Set idx to starting point of region you want to recv.
@@ -597,6 +597,12 @@ local function Field_meta_ctor(elct)
       end,
       hasCuDev = function (self)
          if self._zeroDevice then return self._zeroDevice:is_cu_dev() else return false end
+      end,
+      setHostOps = function (self)
+         self._zeroForOps = self._zero
+      end,
+      setDeviceOps = function (self)
+         self._zeroForOps = self._zeroDevice
       end,
       copy = function (self, fIn)
 	 self._zeroForOps:copy(fIn._zeroForOps)

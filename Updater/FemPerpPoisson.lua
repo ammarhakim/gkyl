@@ -94,6 +94,7 @@ function FemPerpPoisson:init(tbl)
       onGrid        = self._grid,
       numComponents = self._basis:numBasis(),
       ghost         = {1, 1},
+      useDevice = false,
    }
    local initUnit = ProjectOnBasis {
       onGrid   = self._grid,
@@ -108,11 +109,13 @@ function FemPerpPoisson:init(tbl)
       onGrid        = self._grid,
       numComponents = self._basis:numBasis(),
       ghost         = {1, 1},
+      useDevice = false,
    }
    self.modifierWeight = DataStruct.Field {
       onGrid        = self._grid,
       numComponents = self._basis:numBasis(),
       ghost         = {1, 1},
+      useDevice = false,
    }
    -- Initialize these fields to zero.
    self.laplacianWeight:clear(0.0)
@@ -185,16 +188,19 @@ function FemPerpPoisson:init(tbl)
       onGrid        = self._grid,
       numComponents = self._basis:numBasis(),
       ghost         = {1, 1},
+      useDevice = false,
    }
    self.gxy = DataStruct.Field {
       onGrid        = self._grid,
       numComponents = self._basis:numBasis(),
       ghost         = {1, 1},
+      useDevice = false,
    }
    self.gyy = DataStruct.Field {
       onGrid        = self._grid,
       numComponents = self._basis:numBasis(),
       ghost         = {1, 1},
+      useDevice = false,
    }
    if tbl.gxx then 
       self.gxx:copy(tbl.gxx)
