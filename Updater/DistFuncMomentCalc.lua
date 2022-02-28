@@ -18,8 +18,87 @@ local UpdaterBase  = require "Updater.Base"
 local lume         = require "Lib.lume"
 local xsys         = require "xsys"
 
+local ffi = require "ffi"
+local ffiC = ffi.C
+require "Lib.ZeroUtil"
+
 local cudaRunTime
 if GKYL_HAVE_CUDA then cudaRunTime = require "Cuda.RunTime" end
+
+ffi.cdef [[ 
+// Forward declare for use in function pointers
+struct gkyl_mom_type;
+
+/**
+ * Function pointer type to compute the needed moment.
+ */
+typedef void (*momf_t)(const struct gkyl_mom_type *momt,
+  const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param);
+
+struct gkyl_mom_type {
+  int cdim; // config-space dim
+  int pdim; // phase-space dim
+  int poly_order; // polynomal order
+  int num_config; // number of basis functions in config-space
+  int num_phase; // number of basis functions in phase-space
+  int num_mom; // number of components in moment
+  momf_t kernel; // moment calculation kernel
+  struct gkyl_ref_count ref_count; // reference count
+
+  uint32_t flag;
+  struct gkyl_mom_type *on_dev; // pointer to itself or device data
+};
+
+/**
+ * Create new Vlasov moment type object. Valid 'mom' strings are "M0",
+ * "M1i", "M2", "M2ij", "M3i", "M3ijk", "FiveMoments"
+ *
+ * @param cbasis Configuration-space basis-functions
+ * @param pbasis Phase-space basis-functions
+ * @param mom Name of moment to compute.
+ */
+struct gkyl_mom_type* gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis, const char *mom);
+
+struct gkyl_mom_calc {
+  struct gkyl_rect_grid grid;
+  const struct gkyl_mom_type *momt;
+
+  uint32_t flags;
+  struct gkyl_mom_calc *on_dev; // pointer to itself or device data
+};
+
+// Object type
+typedef struct gkyl_mom_calc gkyl_mom_calc;
+
+/**
+ * Create new updater to compute moments of distribution
+ * function. Free using gkyl_mom_calc_new_release.
+ *
+ * @param grid Grid object
+ * @param momt Pointer to moment type object
+ * @return New updater pointer.
+ */
+gkyl_mom_calc* gkyl_mom_calc_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_mom_type *momt);
+
+/**
+ * Compute moment of distribution function. The phase_rng and conf_rng
+ * MUST be a sub-ranges of the range on which the distribution
+ * function and the moments are defined. These ranges must be
+ * on_dev-consistently constructed.
+ *
+ * @param calc Moment calculator updater to run
+ * @param phase_rng Phase-space range
+ * @param conf_rng Config-space range
+ * @param fin Input distribution function array
+ * @param mout Output moment array
+ */
+void gkyl_mom_calc_advance(const gkyl_mom_calc* calc,
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *fin, struct gkyl_array *mout);
+]]
 
 -- Moments updater object.
 local DistFuncMomentCalc = Proto(UpdaterBase)
@@ -290,6 +369,8 @@ function DistFuncMomentCalc:init(tbl)
    -- NOTE: this should not be used if the updater is used to compute several different quantities in the same timestep.
    self.oncePerTime = xsys.pickBool(tbl.oncePerTime, false)
 
+   self._zero_mom_type = ffiC.gkyl_mom_vlasov_new(confBasis._zero, phaseBasis._zero, mom)
+   self._zero_mom_calc = ffiC.gkyl_mom_calc_new(self._onGrid._zero, self._zero_mom_type)
 end
 
 function DistFuncMomentCalc:initDevice(tbl)
@@ -612,13 +693,22 @@ end
 
 -- Advance method.
 function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
-   if self.oncePerTime and self.tCurr == tCurr then return end -- Do nothing, already computed on this step.
+   if self._zero_mom_calc then
+      local distf = inFld[1]
+      local mout = outFld[1]
+      local phaseRange = distf:localRange()
+      local confRange = mout:localRange()
+      mout:clear(0.0)
+      ffiC.gkyl_mom_calc_advance(self._zero_mom_calc, phaseRange, confRange, distf._zero, mout._zero)
+   else
+      if self.oncePerTime and self.tCurr == tCurr then return end -- Do nothing, already computed on this step.
 
-   self.fldTools = self.fldTools or self:initFldTools(inFld,outFld)
+      self.fldTools = self.fldTools or self:initFldTools(inFld,outFld)
 
-   self.advImpl(tCurr, inFld, outFld)
+      self.advImpl(tCurr, inFld, outFld)
 
-   if self.oncePerTime then self.tCurr = tCurr end
+      if self.oncePerTime then self.tCurr = tCurr end
+   end
 end
 
 return DistFuncMomentCalc
