@@ -32,23 +32,6 @@ if GKYL_HAVE_CUDA then
 end
 
 ffi.cdef [[ 
-  typedef struct GkylEquation_t GkylEquation_t ;
-  typedef struct {
-      int updateDirs[6];
-      bool zeroFluxFlags[6];
-      int32_t numUpdateDirs;
-      bool updateVolumeTerm;
-      double dt;
-      GkylEquation_t *equation;
-      GkylCartField_t *cflRateByCell;
-      GkylCartField_t *maxsByCell;
-      double *maxs;
-  } GkylHyperDisCont_t; 
-
-  void advanceOnDevice(const int numBlocks, const int numThreads, const int numComponents, const GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
-  void advanceOnDevice_shared(int numBlocks, int numThreads, int numComponents, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
-  void setDtAndCflRate(GkylHyperDisCont_t *hyper, double dt, GkylCartField_t *cflRate);
-
 // Object type
 struct gkyl_hyper_dg {
   struct gkyl_rect_grid grid; // grid object

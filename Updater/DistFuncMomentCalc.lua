@@ -61,6 +61,9 @@ struct gkyl_mom_type {
 struct gkyl_mom_type* gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const char *mom);
 
+struct gkyl_mom_type* gkyl_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis, const char *mom);
+
 struct gkyl_mom_calc {
   struct gkyl_rect_grid grid;
   const struct gkyl_mom_type *momt;
@@ -84,6 +87,13 @@ gkyl_mom_calc* gkyl_mom_calc_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_mom_type *momt);
 
 /**
+ * Create new updater to compute moments of distribution function on
+ * NV-GPU. See new() method for documentation.
+ */
+gkyl_mom_calc* gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_mom_type *momt);
+
+/**
  * Compute moment of distribution function. The phase_rng and conf_rng
  * MUST be a sub-ranges of the range on which the distribution
  * function and the moments are defined. These ranges must be
@@ -96,6 +106,10 @@ gkyl_mom_calc* gkyl_mom_calc_new(const struct gkyl_rect_grid *grid,
  * @param mout Output moment array
  */
 void gkyl_mom_calc_advance(const gkyl_mom_calc* calc,
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *fin, struct gkyl_array *mout);
+
+void gkyl_mom_calc_advance_cu(const gkyl_mom_calc* calc,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
   const struct gkyl_array *fin, struct gkyl_array *mout);
 ]]
@@ -369,43 +383,12 @@ function DistFuncMomentCalc:init(tbl)
    -- NOTE: this should not be used if the updater is used to compute several different quantities in the same timestep.
    self.oncePerTime = xsys.pickBool(tbl.oncePerTime, false)
 
-   self._zero_mom_type = ffiC.gkyl_mom_vlasov_new(confBasis._zero, phaseBasis._zero, mom)
-   self._zero_mom_calc = ffiC.gkyl_mom_calc_new(self._onGrid._zero, self._zero_mom_type)
-end
-
-function DistFuncMomentCalc:initDevice(tbl)
-   if not self._calcOnHost then 
-      mom = tbl.moment
-   
-      if mom == "FiveMoments" or mom == "GkThreeMoments" or
-         mom == "FiveMomentsLBO" or mom == "GkThreeMomentsLBO" then
-         if mom == "FiveMomentsLBO" or mom == "GkThreeMomentsLBO" then
-            if mom == "FiveMomentsLBO" then
-               mom = "FiveMoments"
-            elseif mom == "GkThreeMomentsLBO" then
-               mom = "GkThreeMoments"
-            end
-         end
-      end
-   
-      local calcOnDevice = true
-      -- Select device functions/kernels.
-      if not self._isGk then
-         self._momCalcFun = MomDecl.selectMomCalc(mom, self._basisID, self._cDim, self._vDim, self._polyOrder, calcOnDevice)
-      else
-         self._momCalcFun = MomDecl.selectGkMomCalc(mom, self._basisID, self._cDim, self._vDim, self._polyOrder)
-      end
-   
-      local vDim = self._vDim
-   
-      local phaseRange    = self._onGrid:localRange()
-      local numCellsLocal = phaseRange:volume()
-   
-      local deviceNumber  = cudaRunTime.GetDevice()
-      self.deviceProps    = cudaRunTime.GetDeviceProperties(deviceNumber)
-   
-      self.distFuncMomThreads = math.min(GKYL_DEFAULT_NUM_THREADS, phaseRange:selectLast(vDim):volume())
-      self.distFuncMomBlocks  = math.floor(numCellsLocal/self.distFuncMomThreads) --+1
+   if GKYL_USE_GPU then
+      self._zero_mom_type = ffiC.gkyl_mom_vlasov_cu_dev_new(confBasis._zero, phaseBasis._zero, mom)
+      self._zero_mom_calc = ffiC.gkyl_mom_calc_cu_dev_new(self._onGrid._zero, self._zero_mom_type)
+   else
+      self._zero_mom_type = ffiC.gkyl_mom_vlasov_new(confBasis._zero, phaseBasis._zero, mom)
+      self._zero_mom_calc = ffiC.gkyl_mom_calc_new(self._onGrid._zero, self._zero_mom_type)
    end
 end
 
@@ -710,5 +693,15 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
       if self.oncePerTime then self.tCurr = tCurr end
    end
 end
+
+function DistFuncMomentCalc:_advanceOnDevice(tCurr, inFld, outFld)
+   local distf = inFld[1]
+   local mout = outFld[1]
+   local phaseRange = distf:localRange()
+   local confRange = mout:localRange()
+   mout:clear(0.0)
+   ffiC.gkyl_mom_calc_advance_cu(self._zero_mom_calc, phaseRange, confRange, distf._zeroDevice, mout._zeroDevice)
+end
+
 
 return DistFuncMomentCalc
