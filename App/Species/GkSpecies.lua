@@ -296,11 +296,6 @@ function GkSpecies:createSolver(field, externalField)
       phaseBasis = self.basis,  gkfacs     = {self.mass, self.bmag},
       moment     = "GkM1", -- GkM1 = < v_parallel f > 
    }
-   self.momProjDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,   confBasis  = self.confBasis,
-      phaseBasis = self.basis,  gkfacs     = {self.mass, self.bmag},
-      moment     = "GkM1proj", -- GkM1proj = < cellavg(v_parallel) f >
-   }
    self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
       onGrid     = self.grid,   confBasis  = self.confBasis,
       phaseBasis = self.basis,  gkfacs     = {self.mass, self.bmag},

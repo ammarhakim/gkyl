@@ -64,6 +64,34 @@ struct gkyl_mom_type* gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
 struct gkyl_mom_type* gkyl_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const char *mom);
 
+/**
+ * Create new Gyrokinetic moment type object. Valid 'mom' strings are "GkM0",
+ * "GkM1", "GkM2", "GkM2par", "GkM2perp", "GkM3par", "GkM3perp", "ThreeMoments"
+ *
+ * @param cbasis Configuration-space basis-functions
+ * @param pbasis Phase-space basis-functions
+ * @param conf_range Configuration-space range
+ * @param mass Mass of species
+ * @param mom Name of moment to compute.
+ */
+struct gkyl_mom_type* gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
+  const struct gkyl_range* conf_range, double mass, const char *mom);
+
+/**
+ * Create new Gyrokinetic moment type object on NV-GPU: see new() method
+ * above for documentation.
+ */
+struct gkyl_mom_type* gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
+  const struct gkyl_range* conf_range, double mass, const char *mom);
+
+/**
+ * Set magnitude of the magnetic field, bmag, needed in computing moments.
+ * 
+ * @param momt Moment type pointer
+ * @param bmag Pointer to magnitude of magnetic field
+ */
+void gkyl_gyrokinetic_set_bmag(const struct gkyl_mom_type *momt, const struct gkyl_array *bmag);
+
 struct gkyl_mom_calc {
   struct gkyl_rect_grid grid;
   const struct gkyl_mom_type *momt;
@@ -384,10 +412,20 @@ function DistFuncMomentCalc:init(tbl)
    self.oncePerTime = xsys.pickBool(tbl.oncePerTime, false)
 
    if GKYL_USE_GPU then
-      self._zero_mom_type = ffiC.gkyl_mom_vlasov_cu_dev_new(confBasis._zero, phaseBasis._zero, mom)
+      if self._isGk then
+         self._zero_mom_type = ffiC.gkyl_mom_gyrokinetic_cu_dev_new(confBasis._zero, phaseBasis._zero, self.bmag:localRange(), self.mass, mom)
+         ffiC.gkyl_gyrokinetic_set_bmag(self._zero_mom_type, self.bmag._zeroDevice)
+      else
+         self._zero_mom_type = ffiC.gkyl_mom_vlasov_cu_dev_new(confBasis._zero, phaseBasis._zero, mom)
+      end
       self._zero_mom_calc = ffiC.gkyl_mom_calc_cu_dev_new(self._onGrid._zero, self._zero_mom_type)
    else
-      self._zero_mom_type = ffiC.gkyl_mom_vlasov_new(confBasis._zero, phaseBasis._zero, mom)
+      if self._isGk then
+         self._zero_mom_type = ffiC.gkyl_mom_gyrokinetic_new(confBasis._zero, phaseBasis._zero, self.bmag:localRange(), self.mass, mom)
+         ffiC.gkyl_gyrokinetic_set_bmag(self._zero_mom_type, self.bmag._zero)
+      else
+         self._zero_mom_type = ffiC.gkyl_mom_vlasov_new(confBasis._zero, phaseBasis._zero, mom)
+      end
       self._zero_mom_calc = ffiC.gkyl_mom_calc_new(self._onGrid._zero, self._zero_mom_type)
    end
 end

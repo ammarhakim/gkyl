@@ -231,12 +231,10 @@ function GkField:alloc(nRkDup)
       self.potentials[i].phiAux = createField(self.grid,self.basis,{1,1})
       self.potentials[i].phi:clear(0.0)
       self.potentials[i].phiAux:clear(0.0)
-      if self.isElectromagnetic then
-         self.potentials[i].apar    = createField(self.grid,self.basis,{1,1})
-         self.potentials[i].dApardt = createField(self.grid,self.basis,{1,1})
-         self.potentials[i].apar:clear(0.0)
-         self.potentials[i].dApardt:clear(0.0)
-      end
+      self.potentials[i].apar    = createField(self.grid,self.basis,{1,1})
+      self.potentials[i].dApardt = createField(self.grid,self.basis,{1,1})
+      self.potentials[i].apar:clear(0.0)
+      self.potentials[i].dApardt:clear(0.0)
    end
 
    self.dApardtProv = createField(self.grid,self.basis,{1,1})
@@ -1016,6 +1014,8 @@ function GkGeometry:alloc()
       self.geo.b_y = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
       -- b_z = sqrt(g_zz)
       self.geo.b_z = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+
+      self.geo.b_i = createField(self.grid,self.basis,ghostNum,3,syncPeriodic)
  
       -- Functions for laplacian, including Jacobian factor.
       self.geo.gxxJ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
@@ -1299,6 +1299,8 @@ function GkGeometry:initField()
              self.geo.bmag, self.geo.bmagInv, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
              self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
       end
+      local numB = self.basis:numBasis()
+      self.geo.b_i:combineOffset(1, self.geo.b_x, 0*numB, 1, self.geo.b_y, 1*numB, 1, self.geo.b_z, 2*numB)
    end
    local confWeakMultiply = Updater.CartFieldBinOp {
       onGrid    = self.grid,   operation = "Multiply",
@@ -1334,6 +1336,7 @@ function GkGeometry:initField()
       self.geo.b_x:sync(false)
       self.geo.b_y:sync(false)
       self.geo.b_z:sync(false)
+      self.geo.b_i:sync(false)
    end
    self.geo.phiWall:sync(false)
 
@@ -1364,7 +1367,7 @@ function GkGeometry:write(tm)
          for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
             self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
                jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-               cmag=self.geo.cmag, b_x=self.geo.b_x, b_y=self.geo.b_y, b_z=self.geo.b_z, gxx=self.geo.gxx,
+               cmag=self.geo.cmag, b_x=self.geo.b_x, b_y=self.geo.b_y, b_z=self.geo.b_z, b_i=self.geo.b_i, gxx=self.geo.gxx,
                gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
                string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
          end

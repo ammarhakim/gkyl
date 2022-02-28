@@ -26,6 +26,29 @@ ffi.cdef [[
  */                                                                                         
 struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis,                     
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, bool use_gpu);
+
+/**
+ * Set the geometry-related fields needed in computing gyrokinetic updates.
+ *
+ * @param eqn Equation pointer.
+ * @param bmag Pointer to magnetic field magnitude.
+ * @param jacobtot_inv Pointer to 1/(total jacobian field).
+ * @param cmag Pointer to field with parallel gradient coefficient.
+ * @param b_i Pointer to field with covariant components of B-field unit vector.
+ */
+void gkyl_gyrokinetic_set_geo_fields(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *bmag,
+  const struct gkyl_array *jacobtot_inv, const struct gkyl_array *cmag, const struct gkyl_array *b_i);
+
+/**
+ * Set the electromanetic field pointers needed in computing gyrokinetic updates.
+ *
+ * @param eqn Equation pointer.
+ * @param phi Pointer to electrostatic potential field.
+ * @param apar Pointer to parallel vector potential field.
+ * @param apardot Pointer to d(apar)/dt field.
+ */
+void gkyl_gyrokinetic_set_em_fields(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *phi,
+  const struct gkyl_array *apar, const struct gkyl_array *apardot);
   
 ]]
 
@@ -119,18 +142,19 @@ function Gyrokinetic:setAuxFields(auxFields)
 
    -- Get the electrostatic potential, phi.
    self.phi = potentials.phi
-   if self._gyavg then 
-      self.gyavgSlvr:advance(0, {self.phi}, {self.phiGy}) 
-      for i=1,self._grid:numCells(self._ndim) do
-         self.phiGy[i]:sync()
-      end
-   end
 
-   if self._isElectromagnetic then
-      -- Get electromagnetic terms.
-      self.apar = potentials.apar
-      self.dApardt = potentials.dApardt
-      self.dApardtProv = auxFields[3]
+   -- Get electromagnetic terms.
+   self.apar = potentials.apar
+   self.dApardt = potentials.dApardt
+   self.dApardtProv = auxFields[3]
+
+   if self._zero then
+      if self._isFirst then
+         ffiC.gkyl_gyrokinetic_set_geo_fields(self._zero, geo.bmag._zero, geo.jacobTotInv._zero, geo.cmag._zero, geo.b_i._zero)
+	 self._isFirst = false
+      end
+      ffiC.gkyl_gyrokinetic_set_em_fields(self._zero, self.phi._zero, self.apar._zero, self.dApardt._zero)
+      return
    end
 
    -- Get magnetic geometry fields.
@@ -147,6 +171,8 @@ function Gyrokinetic:setAuxFields(auxFields)
       self.jacobTotInv = geo.jacobTotInv
    end
    self.phiWall = geo.phiWall  -- For sheath BCs.
+
+
 
    if self._isFirst then
       -- Allocate pointers and indexers to field objects.
@@ -203,6 +229,14 @@ function Gyrokinetic:setAuxFields(auxFields)
 end
 
 function Gyrokinetic:setAuxFieldsOnDevice(auxFields)
+   if self._zero then
+      if self._isFirst then
+         ffiC.gkyl_gyrokinetic_set_geo_fields(self._zero, geo.bmag._zeroDevice, geo.jacobTotInv._zeroDevice, geo.cmag._zeroDevice, geo.b_i._zeroDevice)
+	 self._isFirst = false
+      end
+      ffiC.gkyl_gyrokinetic_set_em_fields(self._zero, self.phi._zeroDevice, self.apar._zeroDevice, self.dApardt._zeroDevice)
+      return
+   end
 end
 
 -- Volume integral term for use in DG scheme.
