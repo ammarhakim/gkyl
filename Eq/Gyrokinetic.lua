@@ -25,7 +25,7 @@ ffi.cdef [[
  * @return Pointer to Gyrokinetic equation object                                                
  */                                                                                         
 struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis,                     
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, bool use_gpu);
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, const double charge, const double mass, bool use_gpu);
 
 /**
  * Set the geometry-related fields needed in computing gyrokinetic updates.
@@ -86,7 +86,7 @@ function Gyrokinetic:init(tbl)
 
    local nm, p = self._basis:id(), self._basis:polyOrder()
 
-   self._zero = ffiC.gkyl_dg_gyrokinetic_new(self._confBasis._zero, self._basis._zero, self._confRange, GKYL_USE_GPU or 0)
+   self._zero = ffiC.gkyl_dg_gyrokinetic_new(self._confBasis._zero, self._basis._zero, self._confRange, self.charge, self.mass, GKYL_USE_GPU or 0)
 
    self._volTerm  = GyrokineticModDecl.selectVol(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self.Bvars, self.geoType)
    self._surfTerm = GyrokineticModDecl.selectSurf(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self._positivity, self.Bvars, self.geoType)
