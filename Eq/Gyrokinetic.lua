@@ -229,6 +229,15 @@ function Gyrokinetic:setAuxFields(auxFields)
 end
 
 function Gyrokinetic:setAuxFieldsOnDevice(auxFields)
+   local potentials = auxFields[1]   -- First auxField is Field object.
+   local geo        = auxFields[2]   -- Second auxField is ExternalField object.
+
+   -- Get the electrostatic potential, phi.
+   self.phi = potentials.phi
+
+   -- Get electromagnetic terms.
+   self.apar = potentials.apar
+   self.dApardt = potentials.dApardt
    if self._zero then
       if self._isFirst then
          ffiC.gkyl_gyrokinetic_set_geo_fields(self._zero, geo.bmag._zeroDevice, geo.jacobTotInv._zeroDevice, geo.cmag._zeroDevice, geo.b_i._zeroDevice)
