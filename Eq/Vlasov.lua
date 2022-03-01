@@ -30,6 +30,11 @@ enum gkyl_field_id {
   GKYL_FIELD_NULL // no field is present
 };
 
+// Struct containing the pointers to auxiliary fields.
+struct gkyl_dg_vlasov_auxfields {
+  const struct gkyl_array *qmem;
+};
+
 /**                                                                                         
  * Create a new Vlasov equation object.                                                     
  *                                                                                          
@@ -43,12 +48,12 @@ struct gkyl_dg_eqn* gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, enum gkyl_field_id field_id, bool use_gpu);
   
 /**
- * Set the q/m*EM field needed in updating the force terms.
+ * Set the auxiliary fields needed in updating the force terms.
  * 
  * @param eqn Equation pointer
- * @param qmem Pointer to EM field scaled by q/m,
+ * @paramauxfields Pointer to struct of aux fields.
  */
-void gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem);
+void gkyl_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin);
 ]]
 
 -- Vlasov equation on a rectangular mesh.
@@ -146,6 +151,8 @@ function Vlasov:init(tbl)
    -- Electrostatic potential (for Vlasov-Poisson).
    self._phiField = nil
    self._phiPtr, self._phiIdxr = nil, nil
+
+   if self._zero then self._auxfieldsC = ffi.new("struct gkyl_dg_vlasov_auxfields") end
 
    -- Flag to indicate if we are being called for first time.
    self._isFirst = true
@@ -245,7 +252,8 @@ function Vlasov:setAuxFields(auxFields)
          self._isFirst = false   -- No longer first time.
       end
       if self._zero then
-         ffiC.gkyl_vlasov_set_qmem(self._zero, self._emField._zero)
+         self._auxfieldsC.qmem = self._emField._zero
+         ffiC.gkyl_vlasov_set_auxfields(self._zero, self._auxfieldsC)
       end
    end
 end
@@ -254,7 +262,8 @@ function Vlasov:setAuxFieldsOnDevice(auxFields)
    if self._hasForceTerm then   -- No fields for neutral particles.
       -- Single aux field that has the full EM field.
       self._emField = auxFields[1]
-      ffiC.gkyl_vlasov_set_qmem(self._zero, self._emField._zeroDevice);
+      self._auxfieldsC.qmem = self._emField._zeroDevice
+      ffiC.gkyl_vlasov_set_auxfields(self._zero, self._auxfieldsC)
    end
 end
 
