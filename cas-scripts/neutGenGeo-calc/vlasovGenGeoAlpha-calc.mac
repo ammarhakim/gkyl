@@ -40,6 +40,7 @@ calcVlasovGenGeoAlpha(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,
   bC : basisC[polyOrder],
   NP : length(bP),
   NC : length(bC),
+  print("phase components", NP),
 
   /* specify a point to evaluate alpha at for use in computing CFL */
   cflPt : makelist(varsP[d]=0, d, 1, length(varsP)),
@@ -68,9 +69,9 @@ calcVlasovGenGeoAlpha(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,
   /* For multiple components, change indices. */
   tvComp_e : psubst(makelist(tvComp[i]=tvComp[a0+i],i,0,NC-1),tvComp_e),
 
-  vTemp_c :  makelist(0, i, 1, cdim), 				 
+  vTemp_c :  makelist(0, i, 1, vdim), 				 
   /* Calculate v_i components: v_x = v_X*dX/dx + v_Y*dY/dx + v_Z*dZ/dx, ...  */
-  for dir1 : 1 thru cdim do (
+  for dir1 : 1 thru vdim do (
     vTemp_c[dir1] : 0,
     for dir2 : 1 thru vdim do (
     	tvi : (dir1 - 1)*cdim + (dir2-1),
@@ -91,21 +92,22 @@ calcVlasovGenGeoAlpha(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,
 
   /* alpha_mid is our approximation of sum_i max(abs(alpha_i))/dx_i */
 
-  /* Expand distribution function f and jacobian in phase basis. */
-  f_e : doExpand1(f, bP),
+  /* Expand distribution jacobian in conf basis. */
   jacGeo_e : doExpand1(jacobGeo, bC),
 
   /* This code eliminates zero coefficients. */
   incr_cdim : 0,
-  /* alpha_cdim = v dot grad(f) */
-  for cdir : 1 thru cdim do (
+  /* alpha_cdim = v dot grad */
+  /* for cdir : 1 thru cdim do ( */
+  for cdir : 3 thru 3 do (
     vc_e : doExpandLst(vc[cdir], bP), 
     alphaGeo_c : calcInnerProdList(varsP, 1, bP, vc_e*jacGeo_e),
     expr : gcfac(float(expand(radcan(alphaGeo_c)))),
 
     /* Write out the component of alpha_cdim's phase space expansion */
     for i : 1 thru NP do (
-      if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", alphaGeo[NP*(cdir-1)+i-1], expr[i])
+      /* if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", alphaGeo[NP*(cdir-1)+i-1], expr[i]) */
+      if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", alphaGeo[i-1], expr[i])
     )
 
   ),
@@ -121,7 +123,7 @@ bName        : ["Ser"]$
 maxPolyOrder : [1]$
 
 for bInd : 1 thru length(bName) do (
-  for c : 3 thru 3 do (
+  for c : 1 thru 1 do (
       for v : 3 thru 3 do (
       	  disp(printf(false,sconcat("Creating alpha ", bName[bInd]," ~ax~av"),c,v)),
     	  fname : sconcat("~/max-out/AlphaGenGeo", bName[bInd], c, "x", v, "v", ".cpp"),

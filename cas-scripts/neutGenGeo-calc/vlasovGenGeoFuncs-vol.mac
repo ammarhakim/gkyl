@@ -59,7 +59,7 @@ calcVlasovGenGeoVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block
   vid : vidx(cdim,vdim),
 
   for dir : 1 thru vdim do (
-    printf(fh, "  const double *alpha~a = &alphaGeo[~a]; ~%", dir-1, NC*(dir-1))
+    printf(fh, "  const double *alpha~a = &alphaGeo[~a]; ~%", dir-1, NP*(dir-1))
   ),
 
   printf(fh, "~%"),

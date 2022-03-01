@@ -236,7 +236,9 @@ def build(bld):
     maxwellData/MaxwellCentralSurfTensor1xP3.cpp
     maxwellData/MaxwellCentralSurfTensor2xP3.cpp
 
+    vlasovData/VlasovGenGeoSer1x3vP1.cpp
     vlasovData/VlasovGenGeoSer3x3vP1.cpp
+    vlasovData/VlasovGenGeoSurfSer1x3vP1.cpp
     vlasovData/VlasovGenGeoSurfSer3x3vP1.cpp
 
     vlasovData/VlasovStreamSer1x1vP1.cpp

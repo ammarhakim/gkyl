@@ -1035,12 +1035,17 @@ function GkGeometry:alloc()
       self.geo.bX = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
       self.geo.bY = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)      
       self.geo.bZ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+
+      -- Some extra functions to calculate source
+      self.geo.g_yz = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+      self.geo.g_zz = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+      self.geo.normGradx = createField(self.grid,self.basis,ghostNum,1,syncPeriodic) 
       
       -- Components of tanget basis vectors
       self.geo.tanVecComp = createField(self.grid,self.basis,ghostNum,9,syncPeriodic)
    
       if self.fromFile == nil then
-         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,22,syncPeriodic)
+         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,24,syncPeriodic)
       end
 
    end
@@ -1169,14 +1174,27 @@ function GkGeometry:createSolver()
             local gyz = (g_xy*g_xz-g_xx*g_yz)/det
             local gzz = (g_xx*g_yy-g_xy^2)/det
 
-            local bmag    = self.bmagFunc(t, xn)
+            local bmag = self.bmagFunc(t, xn)
             local cmag = jacobian*bmag/math.sqrt(g_zz)
 
-	    local bX, bY, bZ = b_x, b_y, b_z
+	    -- Retrieve tangent vector components to calc b_X, b_Y, b_Z
+	    local d = {}	    
+	    self.grid:getTanVecComp(xn, d)
+	    local dXdx, dYdx, dZdx = d[1], d[2], d[3]
+	    local dXdy, dYdy, dZdy = d[4], d[5], d[6]
+	    local dXdz, dYdz, dZdz = d[7], d[8], d[9]
+
+	    local bx = b_x*gxx + b_y*gxy + b_z*gxz     -- b^x
+	    local by = b_x*gxy + b_y*gyy + b_z*gyz     -- b^y
+	    local bz = b_x*gxz + b_y*gyz + b_z*gzz     -- b^z
+
+	    local bX = bx*dXdx + by*dXdy + bz*dXdz     -- b^X = b_X
+	    local bY = bx*dYdx + by*dYdx + bz*dYdz     -- b^Y = b_Y
+	    local bZ = bx*dZdx + by*dYdz + bz*dZdz     -- b^Z = b_Z
 
             return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
 	           b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian,
-		   gxz, gyz, gzz, bX, bY, bZ
+		   gxz, gyz, gzz, bX, bY, bZ, g_yz, g_zz
 	    
          end
       elseif self.ndim == 2 then
@@ -1209,7 +1227,7 @@ function GkGeometry:createSolver()
 
             return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
 	           b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian,
-		   gxz, gyz, gzz, bX, bY, bZ
+		   gxz, gyz, gzz, bX, bY, bZ, g_yz, g_zz
           end
       else
          self.calcAllGeo = function(t, xn)
@@ -1239,17 +1257,21 @@ function GkGeometry:createSolver()
 	    local dXdy, dYdy, dZdy = d[4], d[5], d[6]
 	    local dXdz, dYdz, dZdz = d[7], d[8], d[9]
 
-	    bx = b_x*gxx + b_y*gxy + b_z*gxz     -- b^x
-	    by = b_x*gxy + b_y*gyy + b_z*gyz     -- b^y
-	    bz = b_x*gxz + b_y*gyz + b_z*gzz     -- b^z
+	    -- Calculate | grad{x} |
+	    normGradx = ( (gxx*dXdx + gxy*dXdy + gxz*dXdz)^2 + (gxx*dYdx + gxy*dYdy + gxz*dYdz)^2
+		           + (gxx*dZdx + gxy*dZdy + gxz*dZdz)^2 )^(0.5)
+	       
+	    local bx = b_x*gxx + b_y*gxy + b_z*gxz     -- b^x
+	    local by = b_x*gxy + b_y*gyy + b_z*gyz     -- b^y
+	    local bz = b_x*gxz + b_y*gyz + b_z*gzz     -- b^z
 
-	    bX = bx*dXdx + by*dXdy + bz*dXdz     -- b^X = b_X
-	    bY = bx*dYdx + by*dYdx + bz*dYdz     -- b^Y = b_Y
-	    bZ = bx*dZdx + by*dYdz + bz*dZdz     -- b^Z = b_Z
+	    local bX = bx*dXdx + by*dXdy + bz*dXdz     -- b^X = b_X
+	    local bY = bx*dYdx + by*dYdx + bz*dYdz     -- b^Y = b_Y
+	    local bZ = bx*dZdx + by*dYdz + bz*dZdz     -- b^Z = b_Z
 
             return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
 	           b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian,
-		   gxz, gyz, gzz, bX, bY, bZ
+		   gxz, gyz, gzz, bX, bY, bZ, g_yz, g_zz --, normGradx
 	 end
 	 self.calcTanVecComp = function(t, xn)
 	    local d = {}
@@ -1257,7 +1279,7 @@ function GkGeometry:createSolver()
 	    local dXdx, dYdx, dZdx = d[1], d[2], d[3]
 	    local dXdy, dYdy, dZdy = d[4], d[5], d[6]
 	    local dXdz, dYdz, dZdz = d[7], d[8], d[9]
-
+	    
 	    return dXdx, dYdx, dZdx, dXdy, dYdy, dZdy, dXdz, dYdz, dZdz
 	 end
       end
@@ -1358,7 +1380,7 @@ function GkGeometry:initField()
             {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
              self.geo.bmag, self.geo.bmagInv, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
              self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ, 
-	     self.geo.gxz, self.geo.gyz, self.geo.gzz, bXtemp, bYtemp, bZtemp})
+	     self.geo.gxz, self.geo.gyz, self.geo.gzz, bXtemp, bYtemp, bZtemp, self.geo.g_yz, self.geo.g_zz, self.geo.normGradx})
 	 if self.ndim == 3 then
 	    self.setTanVecComp:advance(0.0, {}, {self.geo.tanVecComp})
 	    self.geo.bHat:combineOffset(1.0, bXtemp, 0, 1.0, bYtemp, self.basis:numBasis(), 1.0, bZtemp, 2*self.basis:numBasis())
@@ -1402,6 +1424,9 @@ function GkGeometry:initField()
       self.geo.b_x:sync(false)
       self.geo.b_y:sync(false)
       self.geo.b_z:sync(false)
+      self.geo.g_yz:sync(false)
+      self.geo.g_zz:sync(false)
+      self.geo.normGradx:sync(false)
       if ndim == 3 then
 	 self.geo.bhat:sync(false)
 	 self.geo.tanVecComp:sync(false)
@@ -1437,7 +1462,7 @@ function GkGeometry:write(tm)
             self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
                jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
                cmag=self.geo.cmag, b_x=self.geo.b_x, b_y=self.geo.b_y, b_z=self.geo.b_z, gxx=self.geo.gxx,
-               gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
+               gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ, g_yz=self.geo.g_yz, g_zz=self.geo.g_zz, normGradx = self.geo.normGradx},
                string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
 	    self.fieldIo:write(self.geo.bHat, "bHat_0.bp", tm, self.ioFrame, false)
          end
