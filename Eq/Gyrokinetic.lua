@@ -16,6 +16,18 @@ local ffi           = require "ffi"
 local ffiC          = ffi.C
 
 ffi.cdef [[ 
+
+// Struct containing the pointers to auxiliary fields.
+struct gkyl_dg_gyrokinetic_auxfields {
+  const struct gkyl_array *bmag; // Pointer to magnetic field magnitude.
+  const struct gkyl_array *jacobtot_inv; // Pointer to 1/(conf Jacobian * gyro-center coords Jacobian).
+  const struct gkyl_array *cmag; // Pointer to parallel gradient coefficient.
+  const struct gkyl_array *b_i; // Pointer to covariant components of B-field unit vector.
+  const struct gkyl_array *phi; // Pointer to electrostatic potential.
+  const struct gkyl_array *apar; // Pointer to A_\parallel.
+  const struct gkyl_array *apardot; // Pointer to d(A_parallel)/dt.
+};
+
 /**                                                                                         
  * Create a new Gyrokinetic equation object.                                                     
  *                                                                                          
@@ -28,28 +40,14 @@ struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, const double charge, const double mass, bool use_gpu);
 
 /**
- * Set the geometry-related fields needed in computing gyrokinetic updates.
+ * Set the auxiliary fields (e.g. geometry & EM fields) needed in computing
+ * gyrokinetic updates.
  *
  * @param eqn Equation pointer.
- * @param bmag Pointer to magnetic field magnitude.
- * @param jacobtot_inv Pointer to 1/(total jacobian field).
- * @param cmag Pointer to field with parallel gradient coefficient.
- * @param b_i Pointer to field with covariant components of B-field unit vector.
+ * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_gyrokinetic_set_geo_fields(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *bmag,
-  const struct gkyl_array *jacobtot_inv, const struct gkyl_array *cmag, const struct gkyl_array *b_i);
+void gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin);
 
-/**
- * Set the electromanetic field pointers needed in computing gyrokinetic updates.
- *
- * @param eqn Equation pointer.
- * @param phi Pointer to electrostatic potential field.
- * @param apar Pointer to parallel vector potential field.
- * @param apardot Pointer to d(apar)/dt field.
- */
-void gkyl_gyrokinetic_set_em_fields(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *phi,
-  const struct gkyl_array *apar, const struct gkyl_array *apardot);
-  
 ]]
 
 local Gyrokinetic = Proto(EqBase)
@@ -114,6 +112,8 @@ function Gyrokinetic:init(tbl)
       self.emMod:clear(0.0)
    end
 
+   if self._zero then self._auxfieldsC = ffi.new("struct gkyl_dg_gyrokinetic_auxfields") end
+
    -- For gyroaveraging.
    self.gyavgSlvr = tbl.gyavgSlvr
    if self.gyavgSlvr then
@@ -149,11 +149,14 @@ function Gyrokinetic:setAuxFields(auxFields)
    self.dApardtProv = auxFields[3]
 
    if self._zero then
-      if self._isFirst then
-         ffiC.gkyl_gyrokinetic_set_geo_fields(self._zero, geo.bmag._zero, geo.jacobTotInv._zero, geo.cmag._zero, geo.b_i._zero)
-	 self._isFirst = false
-      end
-      ffiC.gkyl_gyrokinetic_set_em_fields(self._zero, self.phi._zero, self.apar._zero, self.dApardt._zero)
+      self._auxfieldsC.bmag = geo.bmag._zero
+      self._auxfieldsC.jacobtot_inv = geo.jacobTotInv._zero
+      self._auxfieldsC.cmag = geo.cmag._zero
+      self._auxfieldsC.b_i = geo.b_i._zero
+      self._auxfieldsC.phi = self.phi._zero
+      self._auxfieldsC.apar = self.apar._zero
+      self._auxfieldsC.apardot = self.dApardt._zero
+      ffiC.gkyl_gyrokinetic_set_auxfields(self._zero, self._auxfieldsC)
       return
    end
 
@@ -239,11 +242,14 @@ function Gyrokinetic:setAuxFieldsOnDevice(auxFields)
    self.apar = potentials.apar
    self.dApardt = potentials.dApardt
    if self._zero then
-      if self._isFirst then
-         ffiC.gkyl_gyrokinetic_set_geo_fields(self._zero, geo.bmag._zeroDevice, geo.jacobTotInv._zeroDevice, geo.cmag._zeroDevice, geo.b_i._zeroDevice)
-	 self._isFirst = false
-      end
-      ffiC.gkyl_gyrokinetic_set_em_fields(self._zero, self.phi._zeroDevice, self.apar._zeroDevice, self.dApardt._zeroDevice)
+      self._auxfieldsC.bmag = geo.bmag._zeroDot
+      self._auxfieldsC.jacobtot_inv = geo.jacobTotInv._zeroDot
+      self._auxfieldsC.cmag = geo.cmag._zeroDot
+      self._auxfieldsC.b_i = geo.b_i._zeroDot
+      self._auxfieldsC.phi = self.phi._zeroDot
+      self._auxfieldsC.apar = self.apar._zeroDot
+      self._auxfieldsC.apardot = self.dApardt._zeroDot
+      ffiC.gkyl_gyrokinetic_set_auxfields(self._zero, self._auxfieldsC)
       return
    end
 end
