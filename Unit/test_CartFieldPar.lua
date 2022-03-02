@@ -190,7 +190,17 @@ function test_3(comm)
       fitr[3] = idx[1]+3
    end
 
-   field:sync() -- sync up ghost cells
+   if GKYL_USE_GPU then
+      field:copyHostToDevice()
+   end
+
+   field:sync()
+
+   field._zero:clear(0)
+
+   if GKYL_USE_GPU then
+      field:copyDeviceToHost()
+   end
 
    local localExtRange = field:localExtRange():intersect(field:globalRange())
    for idx in localExtRange:colMajorIter() do
@@ -235,7 +245,17 @@ function test_4(comm)
       fitr[3] = idx[1]+2*idx[2]+3
    end
 
+   if GKYL_USE_GPU then
+      field:copyHostToDevice()
+   end
+
    field:sync()
+
+   field._zero:clear(0)
+
+   if GKYL_USE_GPU then
+      field:copyDeviceToHost()
+   end
 
    local localExtRange = field:localExtRange():intersect(field:globalRange())
    for idx in localExtRange:colMajorIter() do
@@ -269,7 +289,7 @@ function test_5(comm)
       onGrid        = grid,
       numComponents = 1,
       ghost         = {1, 1},
-      syncCorners   = true,
+      syncCorners   = false,
    }
 
    local localRange = field:localRange()
@@ -279,7 +299,17 @@ function test_5(comm)
       fitr[1]    = idx[1]+2*idx[2]+1
    end
 
+   if GKYL_USE_GPU then
+      field:copyHostToDevice()
+   end
+
    field:sync()
+
+   field._zero:clear(0)
+
+   if GKYL_USE_GPU then
+      field:copyDeviceToHost()
+   end
 
    local localExtRange = field:localExtRange():intersect(field:globalRange())
    for idx in localExtRange:colMajorIter() do
@@ -325,7 +355,15 @@ function test_6(comm)
          fitr[1]    = idx[1]+2*idx[2]+1
       end
 
+      if GKYL_USE_GPU then
+         field[tI]:copyHostToDevice()
+      end
+
       field[tI]:sync()
+
+      if GKYL_USE_GPU then
+         field[tI]:copyDeviceToHost()
+      end
 
       local localExtRange = field[tI]:localExtRange():intersect(field[tI]:globalRange())
       for idx in localExtRange:colMajorIter() do
@@ -485,7 +523,15 @@ function test_7(comm)
          fitr[1]    = idx[1]+2*idx[2]+3*idx[3]+1
       end
 
+      if GKYL_USE_GPU then
+         field[tI]:copyHostToDevice()
+      end
+
       field[tI]:sync()
+
+      if GKYL_USE_GPU then
+         field[tI]:copyDeviceToHost()
+      end
 
       local localExtRange = field[tI]:localExtRange():intersect(field[tI]:globalRange())
       for idx in localExtRange:colMajorIter() do
@@ -641,8 +687,16 @@ function test_8(comm)
       fitr[3] = idx[1]+2*idx[2]+3
    end
 
+   if GKYL_USE_GPU then
+      field1:copyHostToDevice()
+   end
+
    -- accumulate stuff
    field:accumulate(1.0, field1, 2.0, field1)
+
+   if GKYL_USE_GPU then
+      field:copyDeviceToHost()
+   end
 
    for idx in field:localExtRangeIter() do
       local fitr = field:get(indexer(idx))
@@ -735,228 +789,18 @@ function test_10(comm)
    end
 end
 
--- This test is a repeat of test 3, but communicating device data using CUDA-aware MPI.
-function test_11(comm)
-   if not GKYL_HAVE_CUDA then return end
-
-   local nz = Mpi.Comm_size(comm)
-   if nz ~= 3 then
-      log("Not running test_11 as numProcs not exactly 3")
-      return
-   end
-
-   local decomp = DecompRegionCalc.CartProd { cuts = {3} }
-   local grid = Grid.RectCart {
-      lower = {0.0},
-      upper = {1.0},
-      cells = {12},
-      decomposition = decomp,
-   }
-   local field = DataStruct.Field {
-      onGrid = grid,
-      numComponents = 3,
-      ghost = {1, 2},
-      createDeviceCopy = true,
-   }
-
-   local localRange = field:localRange()
-   local indexer = field:genIndexer()
-   for idx in localRange:colMajorIter() do
-      local fitr = field:get(indexer(idx))
-      fitr[1] = idx[1]+1
-      fitr[2] = idx[1]+2
-      fitr[3] = idx[1]+3
-   end
-
-   -- copy stuff to device
-   local err = field:copyHostToDevice()
-   assert_equal(0, err, "Checking if copy to device worked")
-
-   -- synchronize ghost cells on device
-   field:deviceSync() -- sync field
-
-   -- copy data back for checking.
-   field:copyDeviceToHost()
-
-   local localExtRange = field:localExtRange():intersect(field:globalRange())
-   for idx in localExtRange:colMajorIter() do
-      local fitr = field:get(indexer(idx))
-      assert_equal(idx[1]+1, fitr[1], "Checking field value")
-      assert_equal(idx[1]+2, fitr[2], "Checking field value")
-      assert_equal(idx[1]+3, fitr[3], "Checking field value")
-   end
-
-   Mpi.Barrier(comm)
-end
-
--- This test is a repeat of test 4, but communicating device data using CUDA-aware MPI.
-function test_12(comm)
-   if not GKYL_HAVE_CUDA then return end
-
-   local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
-   if nz ~= 4 then
-      log("Not running test_12 as numProcs not exactly 4")
-      return
-   end
-
-   local decomp = DecompRegionCalc.CartProd { cuts = {2, 2} }
-   local grid = Grid.RectCart {
-      lower = {0.0, 0.0},
-      upper = {1.0, 1.0},
-      cells = {10, 10},
-      decomposition = decomp,
-   }
-   local field = DataStruct.Field {
-      onGrid = grid,
-      numComponents = 3,
-      ghost = {1, 2},
-      syncCorners = true,
-      createDeviceCopy = true,
-   }
-
-   local localRange = field:localRange()
-   local indexer = field:genIndexer()
-   for idx in localRange:colMajorIter() do
-      local fitr = field:get(indexer(idx))
-      fitr[1] = idx[1]+2*idx[2]+1
-      fitr[2] = idx[1]+2*idx[2]+2
-      fitr[3] = idx[1]+2*idx[2]+3
-   end
-
-   -- copy stuff to device
-   local err = field:copyHostToDevice()
-   assert_equal(0, err, "Checking if copy to device worked")
-
-   -- synchronize ghost cells on device
-   field:deviceSync() -- sync field
-
-   -- copy data back for checking.
-   field:copyDeviceToHost()
-
-   local localExtRange = field:localExtRange():intersect(field:globalRange())
-   for idx in localExtRange:colMajorIter() do
-      local fitr = field:get(indexer(idx))
-      assert_equal(idx[1]+2*idx[2]+1, fitr[1], string.format("Checking field value at (%d, %d)", idx[1], idx[2]))
-      assert_equal(idx[1]+2*idx[2]+2, fitr[2], string.format("Checking field value at (%d, %d)", idx[1], idx[2]))
-      assert_equal(idx[1]+2*idx[2]+3, fitr[3], string.format("Checking field value at (%d, %d)", idx[1], idx[2]))
-   end
-   Mpi.Barrier(comm)
-end
-
--- This test is a repeat of test 5, but communicating device data using CUDA-aware MPI.
-function test_13(comm)
-   if not GKYL_HAVE_CUDA then return end
-
-   local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
-   if nz ~= 2 then
-      log("Not running test_13 as numProcs not exactly 2")
-      return
-   end
-
-   local decomp = DecompRegionCalc.CartProd { cuts = {2, 1} }
-   local grid = Grid.RectCart {
-      lower = {0.0, 0.0},
-      upper = {1.0, 1.0},
-      cells = {500, 500},
-      decomposition = decomp,
-   }
-   local field = DataStruct.Field {
-      onGrid = grid,
-      numComponents = 1,
-      ghost = {1, 1},
-      syncCorners = true,
-      createDeviceCopy = true,
-   }
-
-   local localRange = field:localRange()
-   local indexer = field:genIndexer()
-   for idx in localRange:colMajorIter() do
-      local fitr = field:get(indexer(idx))
-      fitr[1] = idx[1]+2*idx[2]+1
-   end
-
-   -- copy stuff to device
-   local err = field:copyHostToDevice()
-   assert_equal(0, err, "Checking if copy to device worked")
-
-   -- synchronize ghost cells on device
-   field:deviceSync() -- sync field
-
-   -- copy data back for checking.
-   field:copyDeviceToHost()
-
-   local localExtRange = field:localExtRange():intersect(field:globalRange())
-   for idx in localExtRange:colMajorIter() do
-      local fitr = field:get(indexer(idx))
-      assert_equal(idx[1]+2*idx[2]+1, fitr[1], string.format("Checking field value at (%d, %d)", idx[1], idx[2]))
-   end
-   Mpi.Barrier(comm)
-end
-
-function test_14(comm)
-   if not GKYL_HAVE_CUDA then return end
-
-   local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
-   if nz ~= 16 then
-      log("Not running test_14 as numProcs not exactly 16")
-      return
-   end
-
-   local decomp = DecompRegionCalc.CartProd { cuts = {2, 2, 2, 2} }
-   local grid = Grid.RectCart {
-      lower = {0.0, 0.0, 0.0, 0.0},
-      upper = {1.0, 1.0, 1.0, 1.0},
-      cells = {64, 64, 64, 64},
-      decomposition = decomp,
-   }
-   local field = DataStruct.Field {
-      onGrid           = grid,
-      numComponents    = 3,
-      ghost            = {1, 1},
-      syncCorners      = true,
-      createDeviceCopy = true,
-   }
-
-   local localRange = field:localRange()
-   local indexer = field:genIndexer()
-   for idx in localRange:colMajorIter() do
-      local fitr = field:get(indexer(idx))
-      fitr[1] = idx[1]+2*idx[2]+1
-   end
-
-   -- Copy stuff to device.
-   local err = field:copyHostToDevice()
-   assert_equal(0, err, "Checking if copy to device worked")
-
-   -- Synchronize ghost cells on device.
-   field:deviceSync() -- Sync field.
-
-   -- Copy data back for checking.
-   field:copyDeviceToHost()
-
-   local localExtRange = field:localExtRange():intersect(field:globalRange())
-   for idx in localExtRange:colMajorIter() do
-      local fitr = field:get(indexer(idx))
-      assert_equal(idx[1]+2*idx[2]+1, fitr[1], string.format("Checking field value at (%d, %d)", idx[1], idx[2]))
-   end
-   Mpi.Barrier(comm)
-end
 
 comm = Mpi.COMM_WORLD
 test_1(comm)
---test_2(comm)
---test_3(comm)
---test_4(comm)
+test_2(comm)
+test_3(comm)
+test_4(comm)
 test_5(comm)
 test_6(comm)
 test_7(comm)
---test_8(comm)
+test_8(comm)
 --test_9(comm)
 test_10(comm)
---test_11(comm)
---test_12(comm)
-test_13(comm)
---test_14(comm)
 
 totalFail = allReduceOneInt(stats.fail)
 totalPass = allReduceOneInt(stats.pass)
