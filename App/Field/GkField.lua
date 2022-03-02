@@ -1195,7 +1195,7 @@ function GkGeometry:createSolver()
             return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
 	           b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian,
 		   gxz, gyz, gzz, bX, bY, bZ, g_yz, g_zz
-	    
+		   
          end
       elseif self.ndim == 2 then
          self.calcAllGeo = function(t, xn)
@@ -1380,7 +1380,7 @@ function GkGeometry:initField()
             {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
              self.geo.bmag, self.geo.bmagInv, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
              self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ, 
-	     self.geo.gxz, self.geo.gyz, self.geo.gzz, bXtemp, bYtemp, bZtemp, self.geo.g_yz, self.geo.g_zz, self.geo.normGradx})
+	     self.geo.gxz, self.geo.gyz, self.geo.gzz, bXtemp, bYtemp, bZtemp, self.geo.g_yz, self.geo.g_zz})
 	 if self.ndim == 3 then
 	    self.setTanVecComp:advance(0.0, {}, {self.geo.tanVecComp})
 	    self.geo.bHat:combineOffset(1.0, bXtemp, 0, 1.0, bYtemp, self.basis:numBasis(), 1.0, bZtemp, 2*self.basis:numBasis())

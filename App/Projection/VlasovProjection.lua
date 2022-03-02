@@ -14,8 +14,22 @@ local Updater                    = require "Updater"
 local xsys                       = require "xsys"
 
 ----------------------------------------------------------------------
--- Vlasov-specific VlasovProjection.FunctionProjection needs no modifications to FunctionProjection base class.
-local FunctionProjection = FunctionProjectionParent
+-- Vlasov-specific VlasovProjection.FunctionProjection includes Jacobian factors ONLY for neutrals in general geometry.
+local FunctionProjection = Proto(FunctionProjectionParent)
+
+function FunctionProjection:advance(time, inFlds, outFlds)
+   local extField = inFlds[1]
+   local distf    = outFlds[1]
+
+   if self.fromFile then
+      local tm, fr = self.fieldIo:read(distf, self.fromFile)
+   else
+      self.project:advance(t, {}, {distf})
+   end
+   
+   local jacobGeo = extField.geo.jacobGeo
+   if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
+end
 
 ----------------------------------------------------------------------
 -- Vlasov-specific VlasovProjection.MaxwellianProjection extends MaxwellianProjection base class.

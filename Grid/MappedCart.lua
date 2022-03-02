@@ -145,9 +145,15 @@ end
 
 -- Computes partial derivatives for vector components. Only for 3d. 
 function MappedCart:getTanVecComp(xc, dOut)
-   dOut[1], dOut[2], dOut[3] = diff.derivt(self._mapc2p, 1)(xc)
-   dOut[4], dOut[5], dOut[6] = diff.derivt(self._mapc2p, 2)(xc)
-   dOut[7], dOut[8], dOut[9] = diff.derivt(self._mapc2p, 3)(xc)
+   if self._useWorld then
+      -- Complement the computational coordinates xc w/ dimensions not simulated.
+      for d = 1, self:ndim() do self._worldCoord[self._compIdx[d]] = xc[d] end
+   else
+      self._worldCoord = xc
+   end
+   dOut[1], dOut[2], dOut[3] = diff.derivt(self._mapc2p, 1)(self._worldCoord)
+   dOut[4], dOut[5], dOut[6] = diff.derivt(self._mapc2p, 2)(self._worldCoord)
+   dOut[7], dOut[8], dOut[9] = diff.derivt(self._mapc2p, 3)(self._worldCoord)
 end
 
 -- Computes (covariant) metric tensor g_ij.
