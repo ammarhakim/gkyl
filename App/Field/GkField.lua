@@ -278,7 +278,7 @@ function GkField:initField(species)
    else
       -- Solve for initial phi.
       self:advance(0.0, species, 1, 1)
-      self:phiSolve(0.0, species, 1, 1)
+      --self:phiSolve(0.0, species, 1, 1)
    end
 
    if self.isElectromagnetic then
@@ -726,7 +726,12 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
          -- which we denote phiAux, before the final smoothing operation in z.
          -- For now, just initiate the assembling of the left-side matrix and
          -- right-side source vector. The problem is solved in :phiSolve.
-         self.phiSlvr:assemble(tCurr, {self.chargeDens}, {potCurr.phiAux})
+         self.phiSlvr:advance(tCurr, {self.chargeDens}, {potCurr.phiAux})
+         if self.ndim == 3 and not self.discontinuousPhi then
+            self.phiZSmoother:advance(tCurr, {potCurr.phiAux}, {potCurr.phi})
+         else
+            potCurr.phi = potCurr.phiAux
+         end
          self.calcedPhi = false
 
          self._first = false

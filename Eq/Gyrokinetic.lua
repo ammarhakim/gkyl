@@ -242,13 +242,13 @@ function Gyrokinetic:setAuxFieldsOnDevice(auxFields)
    self.apar = potentials.apar
    self.dApardt = potentials.dApardt
    if self._zero then
-      self._auxfieldsC.bmag = geo.bmag._zeroDot
-      self._auxfieldsC.jacobtot_inv = geo.jacobTotInv._zeroDot
-      self._auxfieldsC.cmag = geo.cmag._zeroDot
-      self._auxfieldsC.b_i = geo.b_i._zeroDot
-      self._auxfieldsC.phi = self.phi._zeroDot
-      self._auxfieldsC.apar = self.apar._zeroDot
-      self._auxfieldsC.apardot = self.dApardt._zeroDot
+      self._auxfieldsC.bmag = geo.bmag._zeroDevice
+      self._auxfieldsC.jacobtot_inv = geo.jacobTotInv._zeroDevice
+      self._auxfieldsC.cmag = geo.cmag._zeroDevice
+      self._auxfieldsC.b_i = geo.b_i._zeroDevice
+      self._auxfieldsC.phi = self.phi._zeroDevice
+      self._auxfieldsC.apar = self.apar._zeroDevice
+      self._auxfieldsC.apardot = self.dApardt._zeroDevice
       ffiC.gkyl_gyrokinetic_set_auxfields(self._zero, self._auxfieldsC)
       return
    end
