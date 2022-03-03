@@ -23,6 +23,9 @@ plasmaApp = Plasma.App {
    lower       = {-math.pi/knumber}, -- Configuration space lower left.
    upper       = {math.pi/knumber},  -- Configuration space upper right.
    cells       = {16},               -- Configuration space cells.
+   mapc2p = function (xc)
+      return xc[1]
+   end,
    basis       = "serendipity",      -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                  -- Polynomial order.
    timeStepper = "rk3",              -- One of "rk2" or "rk3".

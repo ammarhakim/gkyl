@@ -323,13 +323,13 @@ function GkSpecies:createSolver(field, externalField)
          moment     = "GkM3perp", -- GkM3perp = < vpar*(mu*B/m) f >
       }
    end
-   self.threeMomentsCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "GkThreeMoments",
-      gkfacs     = {self.mass, self.bmag},
-   }
+--   self.threeMomentsCalc = Updater.DistFuncMomentCalc {
+--      onGrid     = self.grid,
+--      phaseBasis = self.basis,
+--      confBasis  = self.confBasis,
+--      moment     = "GkThreeMoments",
+--      gkfacs     = {self.mass, self.bmag},
+--   }
    self.calcMaxwell = Updater.MaxwellianOnBasis {
       onGrid      = self.grid,
       phaseBasis  = self.basis,
