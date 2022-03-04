@@ -3,7 +3,7 @@
 -- Compares two files and write out max/min differences.
 --
 -- Use:
---   gkyl comparefiles -a fileA.bp -fileB.bp
+--   gkyl comparefiles -a fileA.bp -b fileB.bp
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +

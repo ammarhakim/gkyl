@@ -8,7 +8,7 @@
 --    2) It may only work for (2^a)*(3^b) grids.
 --
 -- Notes:
---    a] It's possible that in the future on wishes to pass a grid, or the nodes of
+--    a] It's possible that in the future one wishes to pass a grid, or the nodes of
 --       some arbitrary grid to interpolate to, instead of passing another field
 --       to interpolate to.
 --
