@@ -106,12 +106,12 @@ local function createBasis(dim, pOrder, bKind)
    return basis
 end
 
-local function createField(grid, basis, comp)
+local function createField(grid, basis, comp, numGhost)
    comp = comp or 1
    local fld = DataStruct.Field {
       onGrid        = grid,
       numComponents = comp,
-      ghost         = {0, 0},
+      ghost         = numGhost,
    }
    return fld
 end
@@ -127,9 +127,13 @@ local interpFile = function(file, simName, nCellsOut, outpath)
    local numCells_do    = frh:getAttr('numCells')._values
    local lowerBounds_do = frh:getAttr('lowerBounds')._values
    local upperBounds_do = frh:getAttr('upperBounds')._values
+   local lowerGhost_do  = frh:getAttr('lowerGhost')._values[1]
+   local upperGhost_do  = frh:getAttr('upperGhost')._values[1]
    local polyOrder_do   = frh:getAttr('polyOrder')._values[1]
    local basisType_do   = frh:getAttr('basisType')._values[1]
    frh:close()
+
+   local onGhosts = lowerGhost_do>0 and upperGhost_do>0
 
    local numCells_tar = {}
    for d =1, #numCells_do do numCells_tar[d] = nCellsOut[d] end
@@ -138,12 +142,6 @@ local interpFile = function(file, simName, nCellsOut, outpath)
                   _tar = createGrid(lowerBounds_do, upperBounds_do, numCells_tar) }
                  
    local basis = createBasis(grid["_do"]:ndim(), polyOrder_do, basisType_do)
-
-   -- Updater to interpolate a CartField from one grid to another.
-   local interpUpd = Updater.CartFieldInterpolate {
-      onGrid   = grid["_tar"],  onBasis   = basis,
-      fromGrid = grid["_do"],   fromBasis = basis,
-   }
 
    -- Make a list of fields to interpolate and obtain the shape of each
    -- (mainly to know the number of components) without reading the field.
@@ -167,27 +165,33 @@ local interpFile = function(file, simName, nCellsOut, outpath)
    local fld_do, fld_tar = {}, {}
    local elemType
    for varNm, varSh in pairs(varShapes) do
-      fld_do[varNm]  = createField(grid["_do"] , basis, varSh[#varSh]) 
-      fld_tar[varNm] = createField(grid["_tar"], basis, varSh[#varSh]) 
+      fld_do[varNm]  = createField(grid["_do"] , basis, varSh[#varSh], {lowerGhost_do,upperGhost_do}) 
+      fld_tar[varNm] = createField(grid["_tar"], basis, varSh[#varSh], {lowerGhost_do,upperGhost_do}) 
       elemType = elemType and elemType or fld_do[varNm]:elemType()
    end
 
-   -- Read in donor field.
+   -- IO updater. Might be able to use one for both donor and target, but use separate ones for now.
    local fieldIo = { _do  = AdiosCartFieldIo{elemType   = elemType,  method = "MPI",
-                                             writeGhost = true,
+                                             writeGhost = onGhosts,
                                              metaData   = { polyOrder = basis:polyOrder(),
                                                             basisType = basis:id()},},
                      _tar = AdiosCartFieldIo{elemType   = elemType,  method = "MPI",
-                                             writeGhost = true,
+                                             writeGhost = onGhosts,
                                              metaData   = { polyOrder = basis:polyOrder(),
                                                             basisType = basis:id()},}, }
+
+   -- Read in donor field.
    -- Change GKYL_OUT_PREFIX and craft outSuffix so that they
    -- work with the way they are used in AdiosCartFieldIo.
    GKYL_OUT_PREFIX = getFilePath(file) .. simName
    local fileSuffix, _ = string.gsub(replaceHyphen(file), replaceHyphen(GKYL_OUT_PREFIX).."_", "")
-   fieldIo["_do"]:read(fld_do, fileSuffix, true)
+   fieldIo["_do"]:read(fld_do, fileSuffix, onGhosts)
 
    -- Interpolate.
+   local interpUpd = Updater.CartFieldInterpolate {
+      onGrid   = grid["_tar"],  onBasis   = basis,
+      fromGrid = grid["_do"],   fromBasis = basis,
+   }
    for varNm, varSh in pairs(varShapes) do
       interpUpd:advance(0.0,{fld_do[varNm]},{fld_tar[varNm]})
    end
@@ -198,7 +202,7 @@ local interpFile = function(file, simName, nCellsOut, outpath)
    -- Also: have to change the name of the file (added _refined) because otherwise
    --       AdiosCartFieldIo uses the same group and therefore the donor grid.
    GKYL_OUT_PREFIX = outpath .. simName
-   fieldIo["_tar"]:write(fld_tar, string.sub(fileSuffix,1,-4).."_refined.bp", time, frame, true)
+   fieldIo["_tar"]:write(fld_tar, string.sub(fileSuffix,1,-4).."_refined.bp", time, frame, onGhosts)
      
 end
 
