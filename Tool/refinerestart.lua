@@ -24,6 +24,9 @@ local Adios       = require "Io.Adios"
 local Updater     = require "Updater"
 local argparse    = require "Lib.argparse"
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
+-- for Ny=1 GK case:
+local LinearDecomp = require "Lib.LinearDecomp"
+local Lin          = require "Lib.Linalg"
 
 local log = Logger { logToFile = true }
 local verboseLog = function (msg) end -- default no messages are written
@@ -116,6 +119,40 @@ local function createField(grid, basis, comp, numGhost)
    return fld
 end
 
+local interpNyeq1 = function(ghost, grid, basis, fldDo, fldTar, filein)
+   -- Interpolate fldDo defined on grid["_do"] to grid["_tar"] and
+   -- obtain fldTar, both using the same 'basis'.
+   -- This assumes that the donor simulation was run with Ny=1,
+   -- and therefore we are just copying the data too all y-cells
+   -- in the target field.
+
+   local onGhosts = ghost[1]>0 and ghost[2]>0
+
+   local ndim = basis:ndim()
+   local idxDo = Lin.IntVec(ndim)
+
+   local fldDoIdxr, fldTarIdxr = fldDo:genIndexer(), fldTar:genIndexer()
+   local fldDoPtr , fldTarPtr  = fldDo:get(1),       fldTar:get(1)
+
+   -- Construct range for shared memory.
+   local fldTarRange = onGhosts and fldTar:localExtRange() or fldTar:localRange()
+   local fldTarRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = fldTarRange:selectFirst(ndim), numSplit = grid["_tar"]:numSharedProcs() }
+   local tId = grid["_tar"]:subGridSharedId()    -- Local thread ID.
+
+   -- Loop, computing integrated moments in each cell.
+   for idxTar in fldTarRangeDecomp:rowMajorIter(tId) do
+      idxTar:copyInto(idxDo)
+      idxDo[2] = 1 -- Donor grid has Ny=1 and periodic along y.
+
+      fldDo:fill(fldDoIdxr(idxDo), fldDoPtr)
+      fldTar:fill(fldTarIdxr(idxTar), fldTarPtr)
+
+      for k = 1,fldTar:numComponents() do fldTarPtr[k] = fldDoPtr[k] end
+   end
+
+end
+
 local interpFile = function(file, simName, nCellsOut, outpath)
    -- Interpolate the CartGridField(s) in 'file' to a grid with
    -- 'nCellsOut' cells and write the new file to 'outpath'.
@@ -133,10 +170,25 @@ local interpFile = function(file, simName, nCellsOut, outpath)
    local basisType_do   = frh:getAttr('basisType')._values[1]
    frh:close()
 
-   local onGhosts = lowerGhost_do>0 and upperGhost_do>0
+   local onGhosts = lowerGhost_do>0 and upperGhost_do>0 -- Assume we always have ghosts on both sides.
+
+   -- Determine the parameters of the physical domain (excluding ghosts).
+   if onGhosts then
+      for d = 1, #numCells_do do
+         local numCells_doEx    = numCells_do[d]   
+         local lowerBounds_doEx = lowerBounds_do[d]
+         local upperBounds_doEx = upperBounds_do[d]
+         local dx = (upperBounds_do[d]-lowerBounds_do[d])/numCells_do[d]
+
+         numCells_do[d] = numCells_doEx-(lowerGhost_do+upperGhost_do)
+         lowerBounds_do[d] = lowerBounds_doEx+lowerGhost_do*dx
+         upperBounds_do[d] = upperBounds_doEx-upperGhost_do*dx
+      end
+   end
 
    local numCells_tar = {}
-   for d =1, #numCells_do do numCells_tar[d] = nCellsOut[d] end
+   for d = 1, #numCells_do do numCells_tar[d] = nCellsOut[d] end
+
 
    local grid = { _do  = createGrid(lowerBounds_do, upperBounds_do, numCells_do),
                   _tar = createGrid(lowerBounds_do, upperBounds_do, numCells_tar) }
@@ -188,12 +240,21 @@ local interpFile = function(file, simName, nCellsOut, outpath)
    fieldIo["_do"]:read(fld_do, fileSuffix, onGhosts)
 
    -- Interpolate.
-   local interpUpd = Updater.CartFieldInterpolate {
-      onGrid   = grid["_tar"],  onBasis   = basis,
-      fromGrid = grid["_do"],   fromBasis = basis,
-   }
-   for varNm, varSh in pairs(varShapes) do
-      interpUpd:advance(0.0,{fld_do[varNm]},{fld_tar[varNm]})
+   if grid["_do"]:ndim() < 3 then
+      local interpUpd = Updater.CartFieldInterpolate {
+         onGrid   = grid["_tar"],  onBasis   = basis,
+         fromGrid = grid["_do"],   fromBasis = basis,
+      }
+      for varNm, varSh in pairs(varShapes) do
+         interpUpd:advance(0.0,{fld_do[varNm]},{fld_tar[varNm]})
+      end
+   else
+      -- Interp kernels for dim>2 are currently too large to commit. For now
+      -- just support the case of GK with sheath BCs (so ghosts are included
+      -- in some files, e.g. distribution function) and a donor grid with Ny=1.
+      for varNm, varSh in pairs(varShapes) do
+         interpNyeq1({lowerGhost_do,upperGhost_do},grid,basis,fld_do[varNm],fld_tar[varNm],file)
+      end
    end
 
    -- Write target field to file:
