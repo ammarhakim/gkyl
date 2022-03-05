@@ -105,6 +105,7 @@ function test_bc(polyOrder, bcDir, bcType, lower, upper, numCells, cdim)
    elseif cdim==3 then m0Func=m0Func_3x
    end
 
+   -- Velocity space function to project
    local maxwellianFunc_1v = function(t, xn)
       local v = xn[cdim+1]
       local fOut = (1./math.sqrt(2.*math.pi*vt^2))*math.exp(-((v-uDrift[1])^2)/(2*(vt^2)))
