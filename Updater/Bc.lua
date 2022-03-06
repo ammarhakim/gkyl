@@ -209,6 +209,7 @@ function Bc:initFldTools(inFld, outFld)
    local tools = {}
 
    local distf = inFld[1]
+   local inGhostRange = inFld[2] -- Optional range on which we wish to apply BCs.
    local qOut  = assert(outFld[1], "Bc.advance: Must-specify an output field")
 
    local grid = self._grid
@@ -217,6 +218,10 @@ function Bc:initFldTools(inFld, outFld)
    local globalExt  = qOut:globalExtRange()
    local localExt   = qOut:localExtRange()
    local ghostRange = localExt:intersect(self:getGhostRange(global, globalExt))   -- Range spanning ghost cells.
+   if inGhostRange then
+      local ghostRangeAll = localExt:intersect(self:getGhostRange(global, globalExt)) 
+      ghostRange = ghostRangeAll:intersect(inGhostRange)
+   end
    -- Decompose ghost region into threads.
    tools.ghostRangeDecomp = LinearDecomp.LinearDecompRange {
       range = ghostRange, numSplit = grid:numSharedProcs() }
