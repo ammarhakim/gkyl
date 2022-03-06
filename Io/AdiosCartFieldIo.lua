@@ -209,6 +209,11 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
       end
       Adios.define_attribute_byvalue(self.grpIds[grpNm], "upperBounds", "", Adios.double, ndim, upper)
       
+      local lowerGhost = new("int[1]", _writeGhost and field:lowerGhost() or 0)
+      Adios.define_attribute_byvalue(self.grpIds[grpNm], "lowerGhost", "", Adios.integer, 1, lowerGhost)
+      local upperGhost = new("int[1]", _writeGhost and field:upperGhost() or 0)
+      Adios.define_attribute_byvalue(self.grpIds[grpNm], "upperGhost", "", Adios.integer, 1, upperGhost)
+      
       -- Write meta-data for this file.
       for attrNm, v in pairs(self._metaData) do
          if v.vType == "integer" then
