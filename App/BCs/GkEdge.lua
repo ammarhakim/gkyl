@@ -1,0 +1,483 @@
+-- Gkyl ------------------------------------------------------------------------
+--
+-- A BC object for the gyrokinetic species that applies twist-shift BCs up to
+-- a given radial location and sheath BCs after that. Inteded to simulate the
+-- tokamak edge with open and closed field lines.
+--
+--    _______     ___
+-- + 6 @ |||| # P ||| +
+--------------------------------------------------------------------------------
+
+local BCsBase      = require "App.BCs.BCsBase"
+local DataStruct   = require "DataStruct"
+local Updater      = require "Updater"
+local Mpi          = require "Comm.Mpi"
+local Proto        = require "Lib.Proto"
+local Range        = require "Lib.Range"
+local Grid         = require "Grid"
+local Lin          = require "Lib.Linalg"
+local LinearDecomp = require "Lib.LinearDecomp"
+local lume         = require "Lib.lume"
+local DiagsApp     = require "App.Diagnostics.SpeciesDiagnostics"
+local GkDiags      = require "App.Diagnostics.GkDiagnostics"
+local xsys         = require "xsys"
+local GyrokineticModDecl = require "Eq.gkData.GyrokineticModDecl"
+
+local GkEdgeBC = Proto(BCsBase)
+
+-- Store table passed to it and defer construction to :fullInit().
+function GkEdgeBC:init(tbl) self.tbl = tbl end
+
+-- Function initialization. This indirection is needed as
+-- we need the app top-level table for proper initialization.
+function GkEdgeBC:fullInit(mySpecies)
+   local tbl = self.tbl -- Previously stored table.
+
+   self.xLCFS = assert(tbl.xLCFS, "GkEdgeBC: must specify x-location of the LCFS in 'xLCFS', and it must be at a cell boundary.")
+
+   self.yShiftFuncIn = assert(tbl.shiftFunction, "GkEdgeBC: must provide the function that computes the y-shift in 'shiftFunction'.")
+
+   self.yShiftPolyOrder = tbl.shiftPolyOrder
+
+   self.bcKind = "sheath"
+   self.phiWallFunc = tbl.phiWall
+   if self.phiWallFunc then assert(type(self.phiWallFunc)=="function", "GkEdgeBC: phiWall must be a function (t, xn).") end
+
+   self.evolve = false
+
+   self.saveFlux = tbl.saveFlux or false
+   self.anyDiagnostics = false
+   if tbl.diagnostics then
+      if #tbl.diagnostics>0 then
+         self.anyDiagnostics = true
+         self.saveFlux       = true
+      end
+   end
+end
+
+function GkEdgeBC:setName(nm) self.name = self.speciesName.."_"..nm end
+
+function GkEdgeBC:bcReflect(dir, tm, idxIn, fIn, fOut)
+   -- Requires skinLoop = "flip".
+   self.basis:flipSign(dir, fIn, fOut)
+   local vparDir = self.cdim+1
+   self.basis:flipSign(vparDir, fOut, fOut)
+end
+function GkEdgeBC:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_, idx, f, fRefl)
+   self.phi:fill(self.phiIdxr(idx), self.phiPtr)
+   self.phiWallFld:fill(self.phiWallFldIdxr(idx), self.phiWallFldPtr)
+   return self._calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_,
+                                     self.phiPtr:data(), self.phiWallFldPtr:data(), f:data(), fRefl:data())
+end
+function GkEdgeBC:bcSheath(dir, tm, idxIn, fIn, fOut)
+   -- Note that GK reflection only valid in z-vpar.
+   -- This is checked when bc is created.
+
+   -- Need to figure out if we are on lower or upper domain edge
+   local edgeVal
+   local globalRange = self.grid:globalRange()
+   if idxIn[dir] == globalRange:lower(dir) then
+      -- This means we are at lower domain edge,
+      -- so we need to evaluate basis functions at z=-1.
+      edgeVal = -1
+   else
+      -- This means we are at upper domain edge
+      -- so we need to evaluate basis functions at z=1.
+      edgeVal = 1
+   end
+   -- Get vpar limits of cell.
+   local vpardir = self.cdim+1
+   local grid    = self.grid
+   grid:setIndex(idxIn)
+   local vL = grid:cellLowerInDir(vpardir)
+   local vR = grid:cellUpperInDir(vpardir)
+   local vlowerSq, vupperSq
+   -- This makes it so that we only need to deal with absolute values of vpar.
+   if math.abs(vR)>=math.abs(vL) then
+      vlowerSq = vL*vL
+      vupperSq = vR*vR
+   else
+      vlowerSq = vR*vR
+      vupperSq = vL*vL
+   end
+   local w  = grid:cellCenterInDir(vpardir)
+   local dv = grid:dx(vpardir)
+   -- calculate reflected distribution function fhat
+   -- note: reflected distribution can be
+   -- 1) fhat=0 (no reflection, i.e. absorb),
+   -- 2) fhat=f (full reflection)
+   -- 3) fhat=c*f (partial reflection)
+   self:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, self.charge, self.mass, idxIn, fIn, self.fhatSheath)
+   -- reflect fhat into skin cells
+   self:bcReflect(dir, tm, nil, self.fhatSheath, fOut)
+end
+
+local function getGhostRange(edge, dir, global, globalExt)
+   local lv, uv = globalExt:lowerAsVec(), globalExt:upperAsVec()
+   if edge == "lower" then
+      uv[dir] = global:lower(dir)-1   -- For ghost cells on "left".
+   else
+      lv[dir] = global:upper(dir)+1   -- For ghost cells on "right".
+   end
+   return Range.Range(lv, uv)
+end
+
+function GkEdgeBC:createSolver(mySpecies, field, externalField)
+
+   self.basis, self.grid = mySpecies.basis, mySpecies.grid
+   self.ndim, self.cdim, self.vdim = self.grid:ndim(), self.confGrid:ndim(), self.grid:ndim()-self.confGrid:ndim()
+
+   -- Sheath BCs use phi and phiWall.
+   self.setPhiWall = {advance = function(tCurr,inFlds,OutFlds) end}
+   self.getPhi     = function(fieldIn, inIdx) return nil end
+
+   assert(self.bcDir==self.cdim, "GkEdgeBC: sheath BC can only be used along the last/parallel configuration space dimension.")
+
+   self.charge, self.mass = mySpecies.charge, mySpecies.mass
+
+   self.fhatSheath = Lin.Vec(self.basis:numBasis())
+
+   self.getPhi = function(fieldIn, inIdx) return fieldIn:rkStepperFields()[inIdx].phi end
+   -- Pre-create pointer and indexer for phi potential.
+   local phi = field:rkStepperFields()[1].phi
+   self.phiPtr, self.phiIdxr = phi:get(1), phi:genIndexer()
+
+   -- Create field and function for calculating wall potential according to user-provided function.
+   self.phiWallFld = DataStruct.Field {
+      onGrid   = field.grid,  numComponents    = field.basis:numBasis(),
+      ghost    = {1,1},       syncPeriodicDirs = false,
+      metaData = {polyOrder = field.basis:polyOrder(),
+                  basisType = field.basis:id()},
+   }
+   self.phiWallFld:clear(0.)
+   self.phiWallFldPtr, self.phiWallFldIdxr = self.phiWallFld:get(1), self.phiWallFld:genIndexer()
+   if self.phiWallFunc then
+      self.setPhiWall = Updater.EvalOnNodes {
+         onGrid = field.grid,   evaluate = self.phiWallFunc,
+         basis  = field.basis,  onGhosts = true,
+      }
+      self.setPhiWall:advance(0.0, {}, {self.phiWallFld})
+   end
+   self.phiWallFld:sync(false)
+
+   self._calcSheathReflection = GyrokineticModDecl.selectSheathReflection(self.basis:id(), self.cdim,
+                                                                          self.vdim, self.basis:polyOrder())
+
+   -- Create ghost range for the sheath BC.
+   local distf             = mySpecies["getDistF"] and mySpecies:getDistF() or mySpecies:getMoments()
+   local global, globalExt = distf:globalRange(), distf:globalExtRange()
+   local localExt          = distf:localExtRange()
+   local ghostRangeAllx    = localExt:intersect(getGhostRange(self.bcEdge, self.bcDir, global, globalExt))
+   -- Reduce this ghost range to the part of the x-domain with sheath BCs.
+   -- Assume the split happens at a cell boundary and within the domain.
+   assert(self.grid:lower(1)<self.xLCFS and self.xLCFS<self.grid:upper(1), "GkEdgeBC: 'xLCFS' coordinate must be within the x-domain.") 
+   local needint = (self.xLCFS-self.grid:lower(1))/self.grid:dx(1)
+   assert(math.floor(math.abs(needint-math.floor(needint))) < 1., "GkEdgeBC: 'xLCFS' must fall on a cell boundary along x.")
+   -- Determine the index of the cell that abuts xLCFS from below.
+   local coordLCFS, idxLCFS = {self.xLCFS-1.e-7}, {-9}
+   local xGridIngr = self.grid:childGrid({1})
+   local xGrid = Grid.RectCart {
+      lower = xGridIngr.lower,  periodicDirs  = xGridIngr.periodicDirs,
+      upper = xGridIngr.upper,  decomposition = xGridIngr.decomposition,
+      cells = xGridIngr.cells,
+   }
+   xGrid:findCell(coordLCFS, idxLCFS) 
+   local ghostRangeSOL = ghostRangeAllx:shortenFromBelow(1, self.grid:numCells(1)-idxLCFS[1]+1)
+
+   -- BC updater for sheath BC.
+   self.bcSolverSOL = Updater.Bc{
+      onGrid   = self.grid,   edge               = self.bcEdge,
+      cdim     = self.cdim,   boundaryConditions = {function(...) return self:bcSheath(...) end},
+      dir      = self.bcDir,  vdir               = self.cdim+1,
+      skinLoop = "flip",      confBasis          = self.confBasis,
+      basis    = self.basis,
+      advanceArgs = {{mySpecies:rkStepperFields()[1], ghostRangeSOL},
+                     {mySpecies:rkStepperFields()[1]}},
+   }
+
+   -- Create the twist-shift BC solver for the closed field lines.
+   if self.yShiftPolyOrder == nil then self.yShiftPolyOrder = self.basis:polyOrder() end
+
+   if self.bcEdge=="lower" then
+      self.yShiftFunc = function(t,xn) return -self.yShiftFuncIn(t,xn) end
+   else
+      self.yShiftFunc = self.yShiftFuncIn
+   end
+
+   self.bcSolverCore = Updater.TwistShiftBC {
+      onGrid    = self.grid,       yShiftFunc      = self.yShiftFunc,
+      basis     = self.basis,      yShiftPolyOrder = self.yShiftPolyOrder,
+      confBasis = self.confBasis,  edge            = self.bcEdge,
+   }
+   self.ghostRangeCore = ghostRangeAllx:shorten(1, self.grid:numCells(1)-idxLCFS[1]+1)
+
+   -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
+   self:createBoundaryGrid()
+
+   -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
+   self.allocCartField = function(self, grid, nComp, ghosts, metaData)
+      local f = DataStruct.Field {
+         onGrid        = grid,   ghost    = ghosts,
+         numComponents = nComp,  metaData = metaData,
+      }
+      f:clear(0.0)
+      return f
+   end
+   local allocDistf = function()
+      return self:allocCartField(self.boundaryGrid, self.basis:numBasis(),
+                                 {distf:lowerGhost(),distf:upperGhost()}, distf:getMetaData())
+   end
+   self.boundaryField    = allocDistf()
+   self.boundaryFieldPtr = self.boundaryField:get(1)
+
+   -- Create the range needed to loop over ghosts.
+   local global, globalExt, localExtRange = distf:globalRange(), distf:globalExtRange(), distf:localExtRange()
+   self.ghostRange = localExtRange:intersect(self:getGhostRange(global, globalExt))
+   -- Decompose ghost region into threads.
+   self.ghostRangeDecomp = LinearDecomp.LinearDecompRange{range=self.ghostRange, numSplit=self.grid:numSharedProcs()}
+
+   self.boundaryIdxr = self.boundaryField:genIndexer()
+
+   self.idxOut = Lin.IntVec(self.grid:ndim())
+
+   -- The saveFlux option is used for boundary diagnostics, or BCs that require
+   -- the fluxes through a boundary (e.g. neutral recycling).
+   if self.saveFlux then
+
+      -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
+      self:createConfBoundaryGrid()
+
+      local numDensity = mySpecies:getNumDensity()
+      self.allocMoment = function(self)
+         return self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
+                                    {numDensity:lowerGhost(),numDensity:upperGhost()}, numDensity:getMetaData())
+      end
+      self.allocVectorMoment = function(self, dim)
+         return self:allocCartField(self.confBoundaryGrid, dim*self.basis:numBasis(),
+                                    {numDensity:lowerGhost(),numDensity:upperGhost()}, numDensity:getMetaData())
+      end
+
+      -- Allocate fields needed.
+      self.boundaryFluxFields = {}  -- Fluxes through the boundary, into ghost region, from each RK stage.
+      self.boundaryPtr        = {}
+      self.distfInIdxr        = distf:genIndexer()
+      for i = 1, #mySpecies:rkStepperFields() do
+         self.boundaryFluxFields[i] = allocDistf()
+         self.boundaryPtr[i]        = self.boundaryFluxFields[i]:get(1)
+      end
+      self.boundaryFluxRate      = allocDistf()
+      self.boundaryFluxFieldPrev = allocDistf()
+
+      self.tId = self.grid:subGridSharedId() -- Local thread ID.
+
+      -- The following are needed to evaluate a conf-space CartField on the confBoundaryGrid.
+      self.confBoundaryField    = self:allocMoment()
+      self.confBoundaryFieldPtr = self.confBoundaryField:get(1)
+      self.confBoundaryIdxr     = self.confBoundaryField:genIndexer()
+      local confGlobal        = numDensity:globalRange()
+      local confGlobalExt     = numDensity:globalExtRange()
+      local confLocalExtRange = numDensity:localExtRange()
+      self.confGhostRange = confLocalExtRange:intersect(self:getGhostRange(confGlobal, confGlobalExt)) -- Range spanning ghost cells.
+      -- Decompose ghost region into threads.
+      self.confGhostRangeDecomp = LinearDecomp.LinearDecompRange {range=self.confGhostRange, numSplit=self.grid:numSharedProcs()}
+
+      -- Evaluate the magnetic field and jacobGeo in the boundary (needed by diagnostics).
+      local bmag = externalField.geo.bmag
+      self.bmag = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
+                                      {bmag:lowerGhost(),bmag:upperGhost()}, bmag:getMetaData())
+      self.bmag:copy(self:evalOnConfBoundary(bmag))
+      local bmagInvSq = externalField.geo.bmagInvSq
+      self.bmagInvSq = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
+                                          {bmagInvSq:lowerGhost(),bmagInvSq:upperGhost()}, bmagInvSq:getMetaData())
+      self.bmagInvSq:copy(self:evalOnConfBoundary(bmagInvSq))
+      local jacobGeo = externalField.geo.jacobGeo
+      if jacobGeo then
+         self.jacobGeo = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
+                                             {jacobGeo:lowerGhost(),jacobGeo:upperGhost()}, jacobGeo:getMetaData())
+         self.jacobGeo:copy(self:evalOnConfBoundary(jacobGeo))
+      end
+      local jacobGeoInv = externalField.geo.jacobGeoInv
+      if jacobGeoInv then
+         self.jacobGeoInv = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
+                                                {jacobGeoInv:lowerGhost(),jacobGeoInv:upperGhost()}, jacobGeoInv:getMetaData())
+         self.jacobGeoInv:copy(self:evalOnConfBoundary(jacobGeoInv))
+      end
+
+      -- Declare methods/functions needed for handling saved fluxes and needed by diagnostics.
+      self.storeBoundaryFluxFunc = function(tCurr, rkIdx, qOut)
+         local ptrOut = qOut:get(1)
+         for idx in self.ghostRangeDecomp:rowMajorIter(self.tId) do
+            idx:copyInto(self.idxOut)
+            qOut:fill(self.distfInIdxr(idx), ptrOut)
+
+            -- Before operating on ghosts, store ghost values for later flux diagnostics
+            self.idxOut[self.bcDir] = 1
+            self.boundaryFluxFields[rkIdx]:fill(self.boundaryIdxr(self.idxOut), self.boundaryPtr[rkIdx])
+            for c = 1, qOut:numComponents() do self.boundaryPtr[rkIdx][c] = ptrOut[c] end
+         end
+      end
+      self.copyBoundaryFluxFieldFunc = function(inIdx, outIdx)
+         self.boundaryFluxFields[outIdx]:copy(self.boundaryFluxFields[inIdx])
+      end
+      self.combineBoundaryFluxFieldFunc = function(outIdx, a, aIdx, ...)
+         local args  = {...} -- Package up rest of args as table.
+         local nFlds = #args/2
+         self.boundaryFluxFields[outIdx]:combine(a, self.boundaryFluxFields[aIdx])
+         for i = 1, nFlds do -- Accumulate rest of the fields.
+            self.boundaryFluxFields[outIdx]:accumulate(args[2*i-1], self.boundaryFluxFields[args[2*i]])
+         end
+      end
+
+      -- Number density calculator. Needed regardless of diagnostics (for recycling BCs).
+      local mass = mySpecies.mass
+      self.numDensityCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
+         phaseBasis = self.basis,         gkfacs    = {mass, self.bmag},
+         moment     = "GkM0", -- GkM0 = < f >
+      }
+
+      if not self.anyDiagnostics then
+         self.calcBoundaryFluxRateFunc = function(dtIn) end
+      else
+         self.calcBoundaryFluxRateFunc = function(dtIn)
+            -- Compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt.
+            self.boundaryFluxRate:combine( 1.0/dtIn, self.boundaryFluxFields[1],
+                                          -1.0/dtIn, self.boundaryFluxFieldPrev)
+            self.boundaryFluxFieldPrev:copy(self.boundaryFluxFields[1])
+         end
+         -- Set up weak multiplication and division operators (for diagnostics).
+         self.confWeakMultiply = Updater.CartFieldBinOp {
+            onGrid    = self.confBoundaryGrid,  operation = "Multiply",
+            weakBasis = self.confBasis,         onGhosts  = true,
+         }
+         self.confWeakDivide = Updater.CartFieldBinOp {
+            onGrid    = self.confBoundaryGrid,  operation = "Divide",
+            weakBasis = self.confBasis,         onGhosts  = true,
+         }
+         -- Volume integral operator (for diagnostics).
+         self.volIntegral = {
+            scalar = Updater.CartFieldIntegratedQuantCalc {
+               onGrid = self.confBoundaryGrid,  numComponents = 1,
+               basis  = self.confBasis,         quantity      = "V",
+            }
+         }
+         -- Moment calculators (for diagnostics).
+         local mass = mySpecies.mass
+         self.momDensityCalc = Updater.DistFuncMomentCalc {
+            onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
+            phaseBasis = self.basis,         gkfacs    = {mass, self.bmag},
+            moment     = "GkM1", -- GkM1 = < v_parallel f >
+         }
+         self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
+            onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
+            phaseBasis = self.basis,         gkfacs    = {mass, self.bmag},
+            moment     = "GkM2", -- GkM2 = < (v_parallel^2 + 2*mu*B/m) f >
+         }
+         self.M2parCalc = Updater.DistFuncMomentCalc {
+            onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
+            phaseBasis = self.basis,         gkfacs    = {mass, self.bmag},
+            moment     = "GkM2par", -- GkM2par = < v_parallel^2 f >
+         }
+         self.M3parCalc = Updater.DistFuncMomentCalc {
+            onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
+            phaseBasis = self.basis,         gkfacs    = {mass, self.bmag},
+            moment     = "GkM3par", -- GkM3par = < v_parallel^3 f >
+         }
+         if self.vdim > 1 then
+            self.M2perpCalc = Updater.DistFuncMomentCalc {
+               onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
+               phaseBasis = self.basis,         gkfacs    = {mass, self.bmag},
+               moment     = "GkM2perp", -- GkM2 = < (mu*B/m) f >
+            }
+            self.M3perpCalc = Updater.DistFuncMomentCalc {
+               onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
+               phaseBasis = self.basis,         gkfacs    = {mass, self.bmag},
+               moment     = "GkM3perp", -- GkM3perp = < vpar*(mu*B/m) f >
+            }
+         end
+         self.divideByJacobGeo = self.jacobGeoInv
+            and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeoInv}, {fldOut}) end
+            or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
+         self.multiplyByJacobGeo = self.jacobGeo
+            and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeo}, {fldOut}) end
+            or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
+      end
+   else
+      self.storeBoundaryFluxFunc        = function(tCurr, rkIdx, qOut) end
+      self.copyBoundaryFluxFieldFunc    = function(inIdx, outIdx) end
+      self.combineBoundaryFluxFieldFunc = function(outIdx, a, aIdx, ...) end
+      self.calcBoundaryFluxRateFunc     = function(dtIn) end
+   end
+end
+
+function GkEdgeBC:storeBoundaryFlux(tCurr, rkIdx, qOut)
+   self.storeBoundaryFluxFunc(tCurr, rkIdx, qOut)
+end
+
+function GkEdgeBC:copyBoundaryFluxField(inIdx, outIdx)
+   self.copyBoundaryFluxFieldFunc(inIdx, outIdx)
+end
+function GkEdgeBC:combineBoundaryFluxField(outIdx, a, aIdx, ...)
+   self.combineBoundaryFluxFieldFunc(outIdx, a, aIdx, ...)
+end
+function GkEdgeBC:computeBoundaryFluxRate(dtIn)
+   self.calcBoundaryFluxRateFunc(dtIn)
+end
+
+function GkEdgeBC:createDiagnostics(mySpecies, field)
+   -- Create BC diagnostics.
+   self.diagnostics = nil
+   if self.tbl.diagnostics then
+      self.diagnostics = DiagsApp{implementation = GkDiags()}
+      self.diagnostics:fullInit(mySpecies, field, self)
+      -- Presently boundary diagnostics are boundary flux diagnostics. Append 'flux' to the diagnostic's
+      -- name so files are named accordingly. Re-design this when non-flux diagnostics are implemented
+      self.diagnostics.name = self.diagnostics.name..'_flux'
+   end
+   return self.diagnostics
+end
+
+-- These are needed to recycle the GkDiagnostics with GkEdgeBC.
+function GkEdgeBC:rkStepperFields() return {self.boundaryFluxRate, self.boundaryFluxRate,
+                                             self.boundaryFluxRate, self.boundaryFluxRate} end
+function GkEdgeBC:getFlucF() return self.boundaryFluxRate end
+
+function GkEdgeBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
+
+   local fIn = mySpecies:rkStepperFields()[outIdx]
+
+   -- .......... Twist-shift BCs in the core (closed-flux region) ............... --
+   -- Apply periodic BCs in z direction, but only on the first edge (lower or upper, whichever is first)
+   -- First check if sync has been called on this step by any BC.
+   local doSync = true
+   for _, bc in lume.orderedIter(mySpecies.nonPeriodicBCs) do
+      if bc.synced then doSync = false end
+   end
+   if doSync then
+      -- Fetch skin cells from opposite z-edge (donor) and copy to ghost cells (target).
+      local fldGrid = fIn:grid()
+      local periodicDirs = fldGrid:getPeriodicDirs()
+      local modifiedPeriodicDirs = {3}
+      fldGrid:setPeriodicDirs(modifiedPeriodicDirs)
+      fIn:sync()
+      fldGrid:setPeriodicDirs(periodicDirs)
+      self.synced = true
+   else
+      -- Don't sync but reset synced flags for next step.
+      for _, bc in lume.orderedIter(mySpecies.nonPeriodicBCs) do bc.synced = false end
+   end
+
+   -- Copy field ghost cells to boundary field (buffer).
+   self:evalOnBoundary(fIn)
+
+   self.bcSolverCore:advance(tCurr, {self.boundaryField, self.ghostRangeCore}, {fIn})
+
+   -- .......... Sheath BCs in the SOL (open field-line region) ............... --
+   self.setPhiWall:advance(tCurr, {}, {self.phiWallFld}) -- Compute wall potential if needed (i.e. sheath BC).
+   self.phi = self.getPhi(field, inIdx)              -- If needed get the current plasma potential (for sheath BC).
+   self.bcSolverSOL:advance(tCurr, {fIn}, {fIn})
+end
+
+function GkEdgeBC:getBoundaryFluxFields() return self.boundaryFluxFields end
+
+return GkEdgeBC

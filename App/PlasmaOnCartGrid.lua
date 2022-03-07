@@ -833,6 +833,7 @@ return {
          BasicBC    = require ("App.BCs.GkBasic").GkBasic,
          AbsorbBC   = require ("App.BCs.GkBasic").GkAbsorb,
          CopyBC     = require ("App.BCs.GkBasic").GkCopy,
+         EdgeBC     = require "App.BCs.GkEdge",
          NeutralRecyclingBC = require "App.BCs.NeutralRecycling",
          OpenBC     = require ("App.BCs.GkBasic").GkOpen,
          ReflectBC  = require ("App.BCs.GkBasic").GkReflect,
