@@ -1107,8 +1107,8 @@ function test_18(comm)
    Mpi.Barrier(comm)
 end
 
--- Test graph creation.
 function test_19(comm)
+   -- Test graph creation.
    -- The graph is connected as follows:
    -- 0 -> 1
    --   -> 3
@@ -1190,69 +1190,145 @@ function test_19(comm)
    end
 
    Mpi.Barrier(comm)
+end
+
+function test_20(comm)
+   -- Test Neighbor_allgather.
+
+   assert_equal(true, Mpi.Is_comm_valid(comm))
+
+   local rank = Mpi.Comm_rank(comm)
+   local sz = Mpi.Comm_size(comm)
+   if sz ~= 4 then
+      log("Test of MPI_Neighbor_allgather not run as number of procs not exactly 4")
+      return
+   end
+
+   -- Use the graph
+   -- 2 -> 1
+   -- 3 -> 1
+
+   local data = Lin.Vec(2)
+   data[1], data[2] = -math.pi*rank, math.pi*rank+1.
+
+   local indeg, outdeg
+   local src, dest
+   if rank==0 then
+      indeg  = 0 
+      src    = Lin.IntVec(0)
+      outdeg = 0
+      dest   = Lin.IntVec(0)
+   elseif rank==1 then
+      indeg  = 2
+      src    = Lin.IntVec(2)
+      src[1], src[2] = 2, 3
+      outdeg = 0
+      dest   = Lin.IntVec(0)
+   elseif rank==2 then
+      indeg  = 0
+      src    = Lin.IntVec(0)
+      outdeg = 1
+      dest   = Lin.IntVec(1)
+      dest[1] = 1
+   elseif rank==3 then
+      indeg  = 0
+      src    = Lin.IntVec(0)
+      outdeg = 1
+      dest   = Lin.IntVec(1)
+      dest[1] = 1
+   end
+
+   local srcw, destw = Lin.IntVec(indeg), Lin.IntVec(outdeg)
+   for d = 1, indeg do srcw[d] = 1 end
+   for d = 1, outdeg do destw[d] = 1 end
+
+   local reorder = 0
+   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, srcw,
+                                                    outdeg, dest, destw, Mpi.INFO_NULL, reorder)
+
+   Mpi.Barrier(comm)
+
+   local dataGlobal = Lin.Vec(#data*2)
+
+   Mpi.Neighbor_allgather(data:data(), #data, Mpi.DOUBLE, dataGlobal:data(), #data, Mpi.DOUBLE, graphComm)
+
+   Mpi.Barrier(comm)
+
+   if rank==1 then
+      assert_equal(dataGlobal[1], -math.pi*2,    "test_20: dataGlobal[1] in rank=1 is erroneous.")
+      assert_equal(dataGlobal[2],  math.pi*2+1., "test_20: dataGlobal[2] in rank=1 is erroneous.")
+      assert_equal(dataGlobal[3], -math.pi*3,    "test_20: dataGlobal[3] in rank=1 is erroneous.")
+      assert_equal(dataGlobal[4],  math.pi*3+1., "test_20: dataGlobal[4] in rank=1 is erroneous.")
+   else
+      assert_equal(dataGlobal[1], 0., "test_20: dataGlobal[1] is erroneous.")
+      assert_equal(dataGlobal[2], 0., "test_20: dataGlobal[2] is erroneous.")
+      assert_equal(dataGlobal[3], 0., "test_20: dataGlobal[3] is erroneous.")
+      assert_equal(dataGlobal[4], 0., "test_20: dataGlobal[4] is erroneous.")
+   end
 
 end
 
 -- Run tests
---test_0(Mpi.COMM_WORLD)
---test_1(Mpi.COMM_WORLD)
---test_2(Mpi.COMM_WORLD)
---test_3(Mpi.COMM_WORLD)
---test_4(Mpi.COMM_WORLD)
---test_5(Mpi.COMM_WORLD)
---test_6(Mpi.COMM_WORLD)
---test_7(Mpi.COMM_WORLD)
---test_8(Mpi.COMM_WORLD)
---test_9(Mpi.COMM_WORLD)
---test_10(Mpi.COMM_WORLD)
---test_11(Mpi.COMM_WORLD)
---
---test_12(Mpi.COMM_WORLD, 1, Range.rowMajor)
---test_12(Mpi.COMM_WORLD, 1, Range.colMajor)
---test_12(Mpi.COMM_WORLD, 2, Range.rowMajor)
---test_12(Mpi.COMM_WORLD, 2, Range.colMajor)
---test_12(Mpi.COMM_WORLD, 3, Range.rowMajor)
---test_12(Mpi.COMM_WORLD, 3, Range.colMajor)
---
---test_13(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
---
---test_14(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
---test_14(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
---
---test_15(Mpi.COMM_WORLD, 0, 1, Range.rowMajor)
---test_15(Mpi.COMM_WORLD, 0, 2, Range.rowMajor)
---test_15(Mpi.COMM_WORLD, 0, 1, Range.colMajor)
---test_15(Mpi.COMM_WORLD, 0, 2, Range.colMajor)
---
---test_15(Mpi.COMM_WORLD, 1, 1, Range.rowMajor)
---test_15(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
---test_15(Mpi.COMM_WORLD, 1, 1, Range.colMajor)
---test_15(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
---
---test_15(Mpi.COMM_WORLD, 2, 1, Range.rowMajor)
---test_15(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
---test_15(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
---test_15(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
---
---test_16(Mpi.COMM_WORLD, 0, 1, Range.rowMajor)
---test_16(Mpi.COMM_WORLD, 0, 2, Range.rowMajor)
---test_16(Mpi.COMM_WORLD, 0, 1, Range.colMajor)
---test_16(Mpi.COMM_WORLD, 0, 2, Range.colMajor)
---
---test_16(Mpi.COMM_WORLD, 1, 1, Range.rowMajor)
---test_16(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
---test_16(Mpi.COMM_WORLD, 1, 1, Range.colMajor)
---test_16(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
---
---test_16(Mpi.COMM_WORLD, 2, 1, Range.rowMajor)
---test_16(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
---test_16(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
---test_16(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
---
---test_17(Mpi.COMM_WORLD)
---test_18(Mpi.COMM_WORLD)
+test_0(Mpi.COMM_WORLD)
+test_1(Mpi.COMM_WORLD)
+test_2(Mpi.COMM_WORLD)
+test_3(Mpi.COMM_WORLD)
+test_4(Mpi.COMM_WORLD)
+test_5(Mpi.COMM_WORLD)
+test_6(Mpi.COMM_WORLD)
+test_7(Mpi.COMM_WORLD)
+test_8(Mpi.COMM_WORLD)
+test_9(Mpi.COMM_WORLD)
+test_10(Mpi.COMM_WORLD)
+test_11(Mpi.COMM_WORLD)
+
+test_12(Mpi.COMM_WORLD, 1, Range.rowMajor)
+test_12(Mpi.COMM_WORLD, 1, Range.colMajor)
+test_12(Mpi.COMM_WORLD, 2, Range.rowMajor)
+test_12(Mpi.COMM_WORLD, 2, Range.colMajor)
+test_12(Mpi.COMM_WORLD, 3, Range.rowMajor)
+test_12(Mpi.COMM_WORLD, 3, Range.colMajor)
+
+test_13(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+
+test_14(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
+test_14(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+
+test_15(Mpi.COMM_WORLD, 0, 1, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 0, 2, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 0, 1, Range.colMajor)
+test_15(Mpi.COMM_WORLD, 0, 2, Range.colMajor)
+
+test_15(Mpi.COMM_WORLD, 1, 1, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 1, 1, Range.colMajor)
+test_15(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
+
+test_15(Mpi.COMM_WORLD, 2, 1, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
+test_15(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
+
+test_16(Mpi.COMM_WORLD, 0, 1, Range.rowMajor)
+test_16(Mpi.COMM_WORLD, 0, 2, Range.rowMajor)
+test_16(Mpi.COMM_WORLD, 0, 1, Range.colMajor)
+test_16(Mpi.COMM_WORLD, 0, 2, Range.colMajor)
+
+test_16(Mpi.COMM_WORLD, 1, 1, Range.rowMajor)
+test_16(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+test_16(Mpi.COMM_WORLD, 1, 1, Range.colMajor)
+test_16(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
+
+test_16(Mpi.COMM_WORLD, 2, 1, Range.rowMajor)
+test_16(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
+test_16(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
+test_16(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
+
+test_17(Mpi.COMM_WORLD)
+test_18(Mpi.COMM_WORLD)
 
 test_19(Mpi.COMM_WORLD)
+test_20(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")

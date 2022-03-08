@@ -594,6 +594,11 @@ function _M.Dist_graph_neighbors_count(comm)
   local _ = ffiC.MPI_Dist_graph_neighbors_count(getObj(comm, "MPI_Comm[1]"), indegree, outdegree, weighted);
   return indegree[0], outdegree[0], weighted[0]==1 and true or false
 end
+-- MPI_Neighbor_allgather.
+function _M.Neighbor_allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm)
+  local _ = ffiC.MPI_Neighbor_allgather(sendbuf, sendcount, sendtype, recvbuf,
+                                        recvcount, recvtype, getObj(comm, "MPI_Comm[1]"));
+end
 
 -- Convenience functions (these are not wrappers over MPI but make
 -- some things a little cleaner)
