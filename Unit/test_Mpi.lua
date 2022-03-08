@@ -1214,27 +1214,19 @@ function test_20(comm)
    local indeg, outdeg
    local src, dest
    if rank==0 then
-      indeg  = 0 
-      src    = Lin.IntVec(0)
-      outdeg = 0
-      dest   = Lin.IntVec(0)
+      indeg, outdeg = 0, 0 
+      src, dest     = Lin.IntVec(indeg), Lin.IntVec(outdeg)
    elseif rank==1 then
-      indeg  = 2
-      src    = Lin.IntVec(2)
+      indeg, outdeg = 2, 0 
+      src, dest     = Lin.IntVec(indeg), Lin.IntVec(outdeg)
       src[1], src[2] = 2, 3
-      outdeg = 0
-      dest   = Lin.IntVec(0)
    elseif rank==2 then
-      indeg  = 0
-      src    = Lin.IntVec(0)
-      outdeg = 1
-      dest   = Lin.IntVec(1)
+      indeg, outdeg = 0, 1
+      src, dest     = Lin.IntVec(indeg), Lin.IntVec(outdeg)
       dest[1] = 1
    elseif rank==3 then
-      indeg  = 0
-      src    = Lin.IntVec(0)
-      outdeg = 1
-      dest   = Lin.IntVec(1)
+      indeg, outdeg = 0, 1
+      src, dest     = Lin.IntVec(indeg), Lin.IntVec(outdeg)
       dest[1] = 1
    end
 
@@ -1265,7 +1257,95 @@ function test_20(comm)
       assert_equal(dataGlobal[3], 0., "test_20: dataGlobal[3] is erroneous.")
       assert_equal(dataGlobal[4], 0., "test_20: dataGlobal[4] is erroneous.")
    end
+end
 
+function test_21(comm)
+   -- Test Neighbor_allgather with an MPI derived datatype.
+
+   assert_equal(true, Mpi.Is_comm_valid(comm))
+
+   local rank = Mpi.Comm_rank(comm)
+   local sz = Mpi.Comm_size(comm)
+   if sz ~= 4 then
+      log("Test of MPI_Neighbor_allgather not run as number of procs not exactly 4")
+      return
+   end
+
+   -- Use the graph
+   -- 2 -> 0
+   -- 3 -> 0
+   -- 2 -> 1
+   -- 3 -> 1
+
+   local indeg, outdeg
+   local src, dest
+   if rank==0 then
+      indeg, outdeg = 2, 0 
+      src, dest     = Lin.IntVec(indeg), Lin.IntVec(outdeg)
+      src[1], src[2] = 2, 3
+   elseif rank==1 then
+      indeg, outdeg = 2, 0 
+      src, dest     = Lin.IntVec(indeg), Lin.IntVec(outdeg)
+      src[1], src[2] = 2, 3
+   elseif rank==2 then
+      indeg, outdeg = 0, 2
+      src, dest     = Lin.IntVec(indeg), Lin.IntVec(outdeg)
+      dest[1], dest[2] = 0, 1
+   elseif rank==3 then
+      indeg, outdeg = 0, 2
+      src, dest     = Lin.IntVec(indeg), Lin.IntVec(outdeg)
+      dest[1], dest[2] = 0, 1
+   end
+
+   local srcw, destw = Lin.IntVec(indeg), Lin.IntVec(outdeg)
+   for d = 1, indeg do srcw[d] = 1 end
+   for d = 1, outdeg do destw[d] = 1 end
+
+   local reorder = 0
+   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, srcw,
+                                                    outdeg, dest, destw, Mpi.INFO_NULL, reorder)
+
+   Mpi.Barrier(comm)
+
+   local data = Lin.Vec(7)
+   for i = 1, #data do data[i] = math.pi*rank+i end
+
+   -- Have ranks 0 and 1 gather elements 2-3 and 5-6 from ranks 2 and 3:
+   -- Construct a vector MPI datatype for this.
+   local sendType = nil
+   local count, blocklength, stride = 2, 2, 3
+   sendType = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
+   Mpi.Type_commit(sendType)
+
+   -- The receiver will put them all in a compressed buffer.
+   local recvType = nil
+   local count, blocklength, stride = 2, 2, 2
+   recvType = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
+   Mpi.Type_commit(recvType)
+
+   local dataGlobal = Lin.Vec(count*blocklength*2)
+
+   Mpi.Neighbor_allgather(data:data()+1, 1, sendType, dataGlobal:data(), 1, recvType, graphComm)
+
+   Mpi.Barrier(comm)
+
+   if rank==0 or rank==1 then
+      assert_equal(math.pi*2+2., dataGlobal[1], "test_21: dataGlobal[1] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*2+3., dataGlobal[2], "test_21: dataGlobal[2] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*2+5., dataGlobal[3], "test_21: dataGlobal[3] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*2+6., dataGlobal[4], "test_21: dataGlobal[4] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*3+2., dataGlobal[5], "test_21: dataGlobal[5] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*3+3., dataGlobal[6], "test_21: dataGlobal[6] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*3+5., dataGlobal[7], "test_21: dataGlobal[7] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*3+6., dataGlobal[8], "test_21: dataGlobal[8] in rank=0,1 is erroneous.")
+   else
+      for i = 1, #dataGlobal do
+        assert_equal(dataGlobal[i], 0., "test_21: dataGlobal is erroneous in rank=2,3.")
+      end
+   end
+
+   Mpi.Type_free(sendType)
+   Mpi.Type_free(recvType)
 end
 
 -- Run tests
@@ -1329,6 +1409,7 @@ test_18(Mpi.COMM_WORLD)
 
 test_19(Mpi.COMM_WORLD)
 test_20(Mpi.COMM_WORLD)
+test_21(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")

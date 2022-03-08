@@ -596,8 +596,13 @@ function _M.Dist_graph_neighbors_count(comm)
 end
 -- MPI_Neighbor_allgather.
 function _M.Neighbor_allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm)
-  local _ = ffiC.MPI_Neighbor_allgather(sendbuf, sendcount, sendtype, recvbuf,
-                                        recvcount, recvtype, getObj(comm, "MPI_Comm[1]"));
+  local _ = ffiC.MPI_Neighbor_allgather(sendbuf, sendcount, getObj(sendtype, "MPI_Datatype[1]"), recvbuf,
+                                        recvcount, getObj(recvtype, "MPI_Datatype[1]"), getObj(comm, "MPI_Comm[1]"));
+end
+-- MPI_Neighbor_allgatherv.
+function _M.Neighbor_allgatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype, comm)
+  local _ = ffiC.MPI_Neighbor_allgatherv(sendbuf, sendcount, getObj(sendtype, "MPI_Datatype[1]"), recvbuf,
+                                         recvcounts, displs, getObj(recvtype, "MPI_Datatype[1]"), comm);
 end
 
 -- Convenience functions (these are not wrappers over MPI but make
