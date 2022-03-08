@@ -1107,64 +1107,152 @@ function test_18(comm)
    Mpi.Barrier(comm)
 end
 
+-- Test graph creation.
+function test_19(comm)
+   -- The graph is connected as follows:
+   -- 0 -> 1
+   --   -> 3
+   -- 1 -> 2
+   -- 2 -> 3
+   -- 3 -> 2
+   -- 4 -> 1
+   --   -> 2
+   --   -> 3
+
+   assert_equal(true, Mpi.Is_comm_valid(comm))
+
+   local rank = Mpi.Comm_rank(comm)
+   local sz = Mpi.Comm_size(comm)
+   if sz ~= 5 then
+      log("Test of MPI_Dist_graph_create_adjacent not run as number of procs not exactly 5")
+      return
+   end
+
+   local indeg, outdeg
+   local src, dest
+   if rank==0 then
+      indeg  = 0 
+      src    = Lin.IntVec(0)
+      outdeg = 2
+      dest   = Lin.IntVec(2)
+      dest[1], dest[2] = 1, 3
+   elseif rank==1 then
+      indeg  = 2
+      src    = Lin.IntVec(2)
+      src[1], src[2] = 0, 4
+      outdeg = 1
+      dest   = Lin.IntVec(1)
+      dest[1] = 2
+   elseif rank==2 then
+      indeg  = 3
+      src    = Lin.IntVec(3)
+      src[1], src[2], src[3] = 1, 3, 4
+      outdeg = 1
+      dest   = Lin.IntVec(1)
+      dest[1] = 3
+   elseif rank==3 then
+      indeg  = 3
+      src    = Lin.IntVec(3)
+      src[1], src[2], src[3] = 0, 2, 4
+      outdeg = 1
+      dest   = Lin.IntVec(1)
+      dest[1] = 2
+   elseif rank==4 then
+      indeg  = 0
+      src    = Lin.IntVec(0)
+      outdeg = 3
+      dest   = Lin.IntVec(3)
+      dest[1], dest[2], dest[3] = 1, 2, 3
+   end
+   local srcw, destw = Lin.IntVec(indeg), Lin.IntVec(outdeg)
+   for d = 1, indeg do srcw[d] = 1 end
+   for d = 1, outdeg do destw[d] = 1 end
+
+   local reorder = 0
+   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, srcw,
+                                                    outdeg, dest, destw, Mpi.INFO_NULL, reorder)
+   Mpi.Barrier(comm)
+
+   -- Check graph:
+   local indegree, outdegree, weighted = Mpi.Dist_graph_neighbors_count(graphComm)
+
+   assert_equal(indeg, indegree, "test_19: indeg != indegree.")
+   assert_equal(outdeg, outdegree, "test_19: indeg != indegree.")
+
+   local sources, sourceweights, destinations, destinationweights = Mpi.Dist_graph_neighbors(graphComm, 4, 4)
+   for d = 1, #src do
+      assert_equal(sources[d], src[d], "test_19: src != sources")
+      assert_equal(sourceweights[d], srcw[d], "test_19: srcw != sourceweights")
+   end
+   for d = 1, #dest do
+      assert_equal(destinations[d], dest[d], "test_19: dest != destinations")
+      assert_equal(destinationweights[d], destw[d], "test_19: destw != destinationweights")
+   end
+
+   Mpi.Barrier(comm)
+
+end
+
 -- Run tests
-test_0(Mpi.COMM_WORLD)
-test_1(Mpi.COMM_WORLD)
-test_2(Mpi.COMM_WORLD)
-test_3(Mpi.COMM_WORLD)
-test_4(Mpi.COMM_WORLD)
-test_5(Mpi.COMM_WORLD)
-test_6(Mpi.COMM_WORLD)
-test_7(Mpi.COMM_WORLD)
-test_8(Mpi.COMM_WORLD)
-test_9(Mpi.COMM_WORLD)
-test_10(Mpi.COMM_WORLD)
-test_11(Mpi.COMM_WORLD)
+--test_0(Mpi.COMM_WORLD)
+--test_1(Mpi.COMM_WORLD)
+--test_2(Mpi.COMM_WORLD)
+--test_3(Mpi.COMM_WORLD)
+--test_4(Mpi.COMM_WORLD)
+--test_5(Mpi.COMM_WORLD)
+--test_6(Mpi.COMM_WORLD)
+--test_7(Mpi.COMM_WORLD)
+--test_8(Mpi.COMM_WORLD)
+--test_9(Mpi.COMM_WORLD)
+--test_10(Mpi.COMM_WORLD)
+--test_11(Mpi.COMM_WORLD)
+--
+--test_12(Mpi.COMM_WORLD, 1, Range.rowMajor)
+--test_12(Mpi.COMM_WORLD, 1, Range.colMajor)
+--test_12(Mpi.COMM_WORLD, 2, Range.rowMajor)
+--test_12(Mpi.COMM_WORLD, 2, Range.colMajor)
+--test_12(Mpi.COMM_WORLD, 3, Range.rowMajor)
+--test_12(Mpi.COMM_WORLD, 3, Range.colMajor)
+--
+--test_13(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+--
+--test_14(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
+--test_14(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+--
+--test_15(Mpi.COMM_WORLD, 0, 1, Range.rowMajor)
+--test_15(Mpi.COMM_WORLD, 0, 2, Range.rowMajor)
+--test_15(Mpi.COMM_WORLD, 0, 1, Range.colMajor)
+--test_15(Mpi.COMM_WORLD, 0, 2, Range.colMajor)
+--
+--test_15(Mpi.COMM_WORLD, 1, 1, Range.rowMajor)
+--test_15(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+--test_15(Mpi.COMM_WORLD, 1, 1, Range.colMajor)
+--test_15(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
+--
+--test_15(Mpi.COMM_WORLD, 2, 1, Range.rowMajor)
+--test_15(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
+--test_15(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
+--test_15(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
+--
+--test_16(Mpi.COMM_WORLD, 0, 1, Range.rowMajor)
+--test_16(Mpi.COMM_WORLD, 0, 2, Range.rowMajor)
+--test_16(Mpi.COMM_WORLD, 0, 1, Range.colMajor)
+--test_16(Mpi.COMM_WORLD, 0, 2, Range.colMajor)
+--
+--test_16(Mpi.COMM_WORLD, 1, 1, Range.rowMajor)
+--test_16(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+--test_16(Mpi.COMM_WORLD, 1, 1, Range.colMajor)
+--test_16(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
+--
+--test_16(Mpi.COMM_WORLD, 2, 1, Range.rowMajor)
+--test_16(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
+--test_16(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
+--test_16(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
+--
+--test_17(Mpi.COMM_WORLD)
+--test_18(Mpi.COMM_WORLD)
 
-test_12(Mpi.COMM_WORLD, 1, Range.rowMajor)
-test_12(Mpi.COMM_WORLD, 1, Range.colMajor)
-test_12(Mpi.COMM_WORLD, 2, Range.rowMajor)
-test_12(Mpi.COMM_WORLD, 2, Range.colMajor)
-test_12(Mpi.COMM_WORLD, 3, Range.rowMajor)
-test_12(Mpi.COMM_WORLD, 3, Range.colMajor)
-
-test_13(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
-
-test_14(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
-test_14(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
-
-test_15(Mpi.COMM_WORLD, 0, 1, Range.rowMajor)
-test_15(Mpi.COMM_WORLD, 0, 2, Range.rowMajor)
-test_15(Mpi.COMM_WORLD, 0, 1, Range.colMajor)
-test_15(Mpi.COMM_WORLD, 0, 2, Range.colMajor)
-
-test_15(Mpi.COMM_WORLD, 1, 1, Range.rowMajor)
-test_15(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
-test_15(Mpi.COMM_WORLD, 1, 1, Range.colMajor)
-test_15(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
-
-test_15(Mpi.COMM_WORLD, 2, 1, Range.rowMajor)
-test_15(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
-test_15(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
-test_15(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
-
-test_16(Mpi.COMM_WORLD, 0, 1, Range.rowMajor)
-test_16(Mpi.COMM_WORLD, 0, 2, Range.rowMajor)
-test_16(Mpi.COMM_WORLD, 0, 1, Range.colMajor)
-test_16(Mpi.COMM_WORLD, 0, 2, Range.colMajor)
-
-test_16(Mpi.COMM_WORLD, 1, 1, Range.rowMajor)
-test_16(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
-test_16(Mpi.COMM_WORLD, 1, 1, Range.colMajor)
-test_16(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
-
-test_16(Mpi.COMM_WORLD, 2, 1, Range.rowMajor)
-test_16(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
-test_16(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
-test_16(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
-
-test_17(Mpi.COMM_WORLD)
-test_18(Mpi.COMM_WORLD)
+test_19(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")

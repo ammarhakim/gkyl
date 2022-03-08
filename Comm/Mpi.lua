@@ -54,6 +54,7 @@ ffi.cdef [[
   int get_MPI_UNDEFINED();
   int get_MPI_ORDER_C();
   int get_MPI_ORDER_FORTRAN();
+  int * get_MPI_UNWEIGHTED();
 
   // Datatypes
   MPI_Datatype get_MPI_CHAR();
@@ -156,6 +157,40 @@ ffi.cdef [[
   int MPI_Cart_sub(MPI_Comm comm, const int remain_dims[], MPI_Comm *comm_new);
   int MPI_Cartdim_get(MPI_Comm comm, int *ndims);
 
+  // Graph constructors and query functions.
+  int MPI_Dist_graph_create(MPI_Comm comm_old, int n, const int sources[],
+                            const int degrees[], const int destinations[], const int weights[],
+                            MPI_Info info, int reorder, MPI_Comm *comm_dist_graph);
+  int MPI_Dist_graph_create_adjacent(MPI_Comm comm_old, int indegree, const int sources[],
+                                     const int sourceweights[], int outdegree, const int destinations[],
+                                     const int destweights[], MPI_Info info, int reorder,
+                                     MPI_Comm *comm_dist_graph);
+  int MPI_Dist_graph_neighbors(MPI_Comm comm, int maxindegree, int sources[],
+                               int sourceweights[], int maxoutdegree, int destinations[],
+                               int destweights[]);
+  int MPI_Dist_graph_neighbors_count(MPI_Comm comm, int *indegree, int *outdegree, int *weighted);
+
+  // Neighbor collectives.
+  int MPI_Neighbor_allgather(const void *sendbuf, int  sendcount, MPI_Datatype sendtype, void *recvbuf,
+                             int recvcount, MPI_Datatype recvtype, MPI_Comm comm);
+  int MPI_Ineighbor_allgather(const void *sendbuf, int  sendcount, MPI_Datatype sendtype, void *recvbuf,
+                              int recvcount, MPI_Datatype recvtype, MPI_Comm comm, MPI_Request req);
+  int MPI_Neighbor_allgatherv(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf,
+                              const int recvcounts[], const int displs[], MPI_Datatype recvtype, MPI_Comm comm);
+  int MPI_Ineighbor_allgatherv(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf,
+                               const int recvcounts[], const int displs[], MPI_Datatype recvtype, MPI_Comm comm,
+                               MPI_Request *request);
+  int MPI_Neighbor_alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, int recvcount,
+                            MPI_Datatype recvtype, MPI_Comm comm);
+  int MPI_Ineighbor_alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, int recvcount,
+                             MPI_Datatype recvtype, MPI_Comm comm, MPI_Request *request);
+  int MPI_Neighbor_alltoallv(const void *sendbuf, const int sendcounts[], const int sdispls[], MPI_Datatype sendtype,
+                             void *recvbuf, const int recvcounts[], const int rdispls[], MPI_Datatype recvtype,
+                             MPI_Comm comm);
+  int MPI_Ineighbor_alltoallv(const void *sendbuf, const int sendcounts[], const int sdispls[], MPI_Datatype sendtype,
+                              void *recvbuf, const int recvcounts[], const int rdispls[], MPI_Datatype recvtype, 
+                              MPI_Comm comm, MPI_Request *request);
+
   // Global operators
   int MPI_Barrier(MPI_Comm comm);
   int MPI_Abort(MPI_Comm comm, int errorcode);
@@ -180,6 +215,7 @@ _M.COMM_TYPE_SHARED = ffiC.get_MPI_COMM_TYPE_SHARED()
 _M.UNDEFINED        = ffiC.get_MPI_UNDEFINED()
 _M.ORDER_C          = ffiC.get_MPI_ORDER_C()
 _M.ORDER_FORTRAN    = ffiC.get_MPI_ORDER_FORTRAN()
+_M.UNWEIGHTED       = ffiC.get_MPI_UNWEIGHTED()
 
 -- Object sizes
 _M.SIZEOF_STATUS = ffiC.sizeof_MPI_Status()
@@ -532,6 +568,31 @@ function _M.Cartdim_get(comm)
    local ndims = int_1()
    local _ = ffiC.MPI_Cartdim_get(getObj(comm, "MPI_Comm[1]"), ndims)
    return ndims[0]
+end
+
+-- MPI_Dist_graph_create_adjacent.
+function _M.Dist_graph_create_adjacent(comm_old, indegree, sources, sourceweights, outdegree, destinations,
+                                       destweights, info, reorder)
+   local comm_dist_graph = new_MPI_Comm()
+   local _ = ffiC.MPI_Dist_graph_create_adjacent(getObj(comm_old, "MPI_Comm[1]"), indegree, sources:data(),
+      sourceweights:data(), outdegree, destinations:data(), destweights:data(), info, reorder,
+      comm_dist_graph)
+   return comm_dist_graph
+end
+-- MPI_Dist_graph_neighbors.
+function _M.Dist_graph_neighbors(comm, maxindegree, maxoutdegree) 
+   local sources, sourceweights = Lin.IntVec(maxindegree), Lin.IntVec(maxindegree)
+   local destinations, destinationweights = Lin.IntVec(maxoutdegree), Lin.IntVec(maxoutdegree)
+   local _ = ffiC.MPI_Dist_graph_neighbors(getObj(comm, "MPI_Comm[1]"),
+     maxindegree, sources:data(), sourceweights:data(),
+     maxoutdegree, destinations:data(), destinationweights:data());
+   return sources, sourceweights, destinations, destinationweights
+end
+-- MPI_Dist_graph_neighbors_count.
+function _M.Dist_graph_neighbors_count(comm)
+  local indegree, outdegree, weighted = int_1(), int_1(), int_1()
+  local _ = ffiC.MPI_Dist_graph_neighbors_count(getObj(comm, "MPI_Comm[1]"), indegree, outdegree, weighted);
+  return indegree[0], outdegree[0], weighted[0]==1 and true or false
 end
 
 -- Convenience functions (these are not wrappers over MPI but make
