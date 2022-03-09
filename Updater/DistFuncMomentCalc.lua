@@ -413,7 +413,7 @@ function DistFuncMomentCalc:init(tbl)
 
    if GKYL_USE_GPU then
       if self._isGk then
-         self._zero_mom_type = ffiC.gkyl_mom_gyrokinetic_cu_dev_new(confBasis._zero, phaseBasis._zero, self.bmag:localRange(), self.mass, mom)
+         self._zero_mom_type = ffiC.gkyl_mom_gyrokinetic_cu_dev_new(confBasis._zero, phaseBasis._zero, self.bmag:localRange(), self.mass, string.sub(mom,3))
          ffiC.gkyl_gyrokinetic_set_bmag(self._zero_mom_type, self.bmag._zeroDevice)
       else
          self._zero_mom_type = ffiC.gkyl_mom_vlasov_cu_dev_new(confBasis._zero, phaseBasis._zero, mom)
@@ -421,7 +421,7 @@ function DistFuncMomentCalc:init(tbl)
       self._zero_mom_calc = ffiC.gkyl_mom_calc_cu_dev_new(self._onGrid._zero, self._zero_mom_type)
    else
       if self._isGk then
-         self._zero_mom_type = ffiC.gkyl_mom_gyrokinetic_new(confBasis._zero, phaseBasis._zero, self.bmag:localRange(), self.mass, mom)
+         self._zero_mom_type = ffiC.gkyl_mom_gyrokinetic_new(confBasis._zero, phaseBasis._zero, self.bmag:localRange(), self.mass, string.sub(mom,3))
          ffiC.gkyl_gyrokinetic_set_bmag(self._zero_mom_type, self.bmag._zero)
       else
          self._zero_mom_type = ffiC.gkyl_mom_vlasov_new(confBasis._zero, phaseBasis._zero, mom)
