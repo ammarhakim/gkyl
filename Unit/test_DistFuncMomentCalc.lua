@@ -14,6 +14,7 @@ local Updater    = require "Updater"
 local Lin        = require "Lib.Linalg"
 
 local assert_equal = Unit.assert_equal
+local assert_close = Unit.assert_close
 local stats        = Unit.stats
 
 local function createGrid(lo, up, nCells, pDirs)
@@ -56,8 +57,7 @@ local function createField(grid, basis, vComp)
    return fld
 end
 
-function test_ser_1x1v()
-   local polyOrder = 2 
+function test_vm_ser_1x1v(polyOrder)
    -- Note that for partial moments the v=0 point has to lie on a cell boundary.
    local lower     = {0.0, -4.0}
    local upper     = {1.0, 12.0}
@@ -147,46 +147,181 @@ function test_ser_1x1v()
    assert_equal(1, momItr[1]/math.sqrt(2), "Checking M1iPvx")
 end
 
-function test_max_1x1v()
+function bmag_1x(t, xn)
+   local x = xn[1]
+   return math.cos((2.*math.pi/(2.*2.*math.pi))*x)
+end
+function distf_1x1v(t, xn)
+   local x, vpar = xn[1], xn[2]
+   local bmag = bmag_1x(t, xn)
+   return bmag*(x^2)*(vpar-0.5)^2
+end
+function distf_1x2v(t, xn)
+   local x, vpar, mu = xn[1], xn[2], xn[3]
+   local bmag = bmag_1x(t, xn)
+   return bmag*(x^2)*(vpar-0.5)^2
+end
+
+function test_gk_ser(lower, upper, numCells, polyOrder, cdim)
+   local mass = 1.0
+   local pdim = #lower
+   local vdim = pdim - cdim
    -- Phase-space and config-space grids.
-   local phaseGrid = Grid.RectCart {
-      lower = {0.0, -6.0},
-      upper = {1.0, 6.0},
-      cells = {1, 16},
-   }
-   local confGrid = Grid.RectCart {
-      lower = { phaseGrid:lower(1) },
-      upper = { phaseGrid:upper(1) },
-      cells = { phaseGrid:numCells(1) },
-   }
-   -- Basis functions
-   local phaseBasis = Basis.CartModalMaxOrder { ndim = 2, polyOrder = 2 }
-   local confBasis  = Basis.CartModalMaxOrder { ndim = 1, polyOrder = 2 }
+   local phaseGrid = createGrid(lower, upper, numCells)
+   local confLower, confUpper, confNumCells = {}, {}, {}
+   for d = 1, cdim do
+      confLower[d], confUpper[d], confNumCells[d] = lower[d], upper[d], numCells[d]
+   end
+   local confGrid = createGrid(confLower, confUpper, confNumCells)
+   -- Basis functions.
+   local phaseBasis = createBasis(phaseGrid:ndim(), polyOrder, "Ser")
+   local confBasis  = createBasis(confGrid:ndim(), polyOrder, "Ser")
    -- Fields.
-   local distf = DataStruct.Field {
-      onGrid        = phaseGrid,
-      numComponents = phaseBasis:numBasis(),
-      ghost         = {0, 0},
+   local distf      = createField(phaseGrid, phaseBasis)
+   local numDensity = createField(confGrid, confBasis)
+   local momDensity = createField(confGrid, confBasis)
+   local keDensity  = createField(confGrid, confBasis)
+   local bmag       = createField(confGrid, confBasis)
+
+   -- Updater to initialize distribution function.
+   local phaseProj = Updater.ProjectOnBasis {
+      onGrid   = phaseGrid,  basis = phaseBasis,
+      evaluate = function (t, xn) return 1 end   -- Set below.
    }
-   local numDensity = DataStruct.Field {
-      onGrid        = confGrid,
-      numComponents = confBasis:numBasis(),
-      ghost         = {0, 0},
+   local distfFunc
+   if pdim == 2     then distfFunc = distf_1x1v
+   elseif pdim == 3 then distfFunc = distf_1x2v
+   elseif pdim == 4 then distfFunc = distf_2x2v
+   elseif pdim == 5 then distfFunc = distf_3x2v end
+   phaseProj:setFunc(distfFunc)
+   phaseProj:advance(0.0, {}, {distf})
+
+   -- Project the magnetic field magnitude onto basis.
+   local confProj = Updater.ProjectOnBasis {
+      onGrid   = confGrid,  basis = confBasis,
+      evaluate = function (t, xn) return 1 end   -- Set below.
    }
+   local distfFunc
+   if cdim == 1     then distfFunc = bmag_1x
+   elseif cdim == 2 then distfFunc = bmag_2x
+   elseif cdim == 3 then distfFunc = bmag_3x end
+   confProj:setFunc(bmag_1x)
+   confProj:advance(0.0, {}, {bmag})
 
    -- Moment updaters.
    local calcNumDensity = Updater.DistFuncMomentCalc {
-      advanceArgs = {{distf}, {numDensity}},
-      onGrid     = phaseGrid,
-      phaseBasis = phaseBasis,
-      confBasis  = confBasis,
-      moment     = "M0",
+      onGrid     = phaseGrid,   confBasis = confBasis,
+      phaseBasis = phaseBasis,  moment    = "GkM0",
+      gkfacs     = {mass, bmag},
    }
-   
+   local calcMomDensity = Updater.DistFuncMomentCalc {
+      onGrid     = phaseGrid,   confBasis = confBasis,
+      phaseBasis = phaseBasis,  moment    = "GkM1",
+      gkfacs     = {mass, bmag},
+   }
+   local calcKeDensity = Updater.DistFuncMomentCalc {
+      onGrid     = phaseGrid,   confBasis = confBasis,
+      phaseBasis = phaseBasis,  moment    = "GkM2",
+      gkfacs     = {mass, bmag},
+   }
+
+   -- Correct answers.
+   local m0Correct, m1Correct, m2Correct
+   if pdim == 2 then
+      -- 1x1v
+      m0Correct = {
+         { 1.52537436025689e+01,  3.57234787161818e+00},
+         { 6.08286277145113e+00, -5.10949091314880e+00},
+         { 6.08286277145113e+00,  5.10949091314880e+00},
+         { 1.52537436025689e+01, -3.57234787161818e+00},
+      }
+      m1Correct = {
+         {-1.28452577705844e+01, -3.00829294452057e+00},
+         {-5.12241075490621e+00,  4.30272919002004e+00},
+         {-5.12241075490621e+00, -4.30272919002004e+00},
+         {-1.28452577705844e+01,  3.00829294452057e+00},
+      }
+      m2Correct = {
+         {3.31835825740096e+01,  7.77142344001148e+00},
+         {1.32328944501744e+01, -1.11153837408851e+01},
+         {1.32328944501744e+01,  1.11153837408851e+01},
+         {3.31835825740096e+01, -7.77142344001148e+00},
+      }
+   elseif pdim == 3 then
+      -- 1x2v
+      m0Correct = {
+         { 191.6841953662915,   44.89144731817122},
+         {  76.4395079823428,   -64.2077564653283},
+         { 76.43950798234282,   64.20775646532829},
+         {191.68419536629153,  -44.89144731817124},
+      }
+      m1Correct = {
+         {-161.41826978214021,   -37.80332405740736},
+         { -64.37011198513079,   54.069689655013306},
+         { -64.37011198513079,   -54.06968965501329},
+         {-161.41826978214021,    37.80332405740738},
+      }
+      m2Correct = {
+         {578.5971330556217,   210.75432886828457},
+         {292.8699479183419,  -242.1332009483718 },
+         {292.8699479183419,   242.13320094837178},
+         {578.5971330556217,  -210.75432886828463},
+      }
+   end
+
+   -- Check M0, number density.
+   calcNumDensity:advance(0.0, {distf}, {numDensity})
+--   numDensity:write("numDensity.bp",0.0)
+   local momIdxr = numDensity:genIndexer()
+   local m0Ptr = numDensity:get(1)
+   for i = 1, confNumCells[1] do
+      numDensity:fill(momIdxr({i}), m0Ptr)
+      for k = 1, confBasis:numBasis() do
+         assert_close(m0Correct[i][k], m0Ptr:data()[k-1], 1.e-13, "Checking M0")
+      end
+   end
+
+   -- Check M1, momentum density.
+   calcMomDensity:advance(0.0, {distf}, {momDensity})
+--   momDensity:write("momDensity.bp",0.0)
+   local momIdxr = momDensity:genIndexer()
+   local m1Ptr = momDensity:get(1)
+   for i = 1, confNumCells[1] do
+      momDensity:fill(momIdxr({i}), m1Ptr)
+      for k = 1, confBasis:numBasis() do
+         assert_close(m1Correct[i][k], m1Ptr:data()[k-1], 1.e-13, "Checking M1")
+      end
+   end
+
+   -- Check M2, momentum density.
+   calcKeDensity:advance(0.0, {distf}, {keDensity})
+--   keDensity:write("keDensity.bp",0.0)
+   local momIdxr = keDensity:genIndexer()
+   local m2Ptr = keDensity:get(1)
+   for i = 1, confNumCells[1] do
+      keDensity:fill(momIdxr({i}), m2Ptr)
+      for k = 1, confBasis:numBasis() do
+         assert_close(m2Correct[i][k], m2Ptr:data()[k-1], 1.e-13, "Checking M1")
+      end
+   end
+
 end
 
-test_ser_1x1v()
---test_max_1x1v()
+test_vm_ser_1x1v(2)
+
+local lower, upper, numcells, polyOrder, cdim
+-- Test 1x1v p=1
+lower    = {-math.pi, -2.0}
+upper    = { math.pi,  2.0}
+numCells = {4, 2}
+polyOrder, cdim = 1, 1 
+test_gk_ser(lower, upper, numCells, polyOrder, cdim)
+-- Test 1x2v p=1
+lower    = {-math.pi, -2.0, 0.0}
+upper    = { math.pi,  2.0, 2.0}
+numCells = {4, 2, 2}
+polyOrder, cdim = 1, 1 
+test_gk_ser(lower, upper, numCells, polyOrder, cdim)
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
