@@ -715,12 +715,23 @@ end
 -- Advance method.
 function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
    if self._zero_mom_calc then
+      if self.oncePerTime and self.tCurr == tCurr then return end -- Do nothing, already computed on this step.
       local distf = inFld[1]
       local mout = outFld[1]
       local phaseRange = distf:localRange()
-      local confRange = mout:localRange()
+      local confRange
+      -- need to use localExtRange for confRange when onGhosts=true
+      -- note that phaseRange does not need to use localExtRange because
+      -- phaseRange is only used to get the velocity-space sub-range,
+      -- which should not include ghosts
+      if self.onGhosts then
+         confRange = mout:localExtRange()
+      else
+         confRange = mout:localRange()
+      end
       mout:clear(0.0)
       ffiC.gkyl_mom_calc_advance(self._zero_mom_calc, phaseRange, confRange, distf._zero, mout._zero)
+      if self.oncePerTime then self.tCurr = tCurr end
    else
       if self.oncePerTime and self.tCurr == tCurr then return end -- Do nothing, already computed on this step.
 
@@ -733,12 +744,19 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
 end
 
 function DistFuncMomentCalc:_advanceOnDevice(tCurr, inFld, outFld)
+   if self.oncePerTime and self.tCurr == tCurr then return end -- Do nothing, already computed on this step.
    local distf = inFld[1]
    local mout = outFld[1]
    local phaseRange = distf:localRange()
-   local confRange = mout:localRange()
+   local confRange
+   if self.onGhosts then
+      confRange = mout:localExtRange()
+   else
+      confRange = mout:localRange()
+   end
    mout:clear(0.0)
    ffiC.gkyl_mom_calc_advance_cu(self._zero_mom_calc, phaseRange, confRange, distf._zeroDevice, mout._zeroDevice)
+   if self.oncePerTime then self.tCurr = tCurr end
 end
 
 
