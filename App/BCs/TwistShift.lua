@@ -68,7 +68,7 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
    }
 
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
-   self:createBoundaryGrid()
+   self:createBoundaryGrid(mySpecies)
 
    local distf = mySpecies["getDistF"] and mySpecies:getDistF() or mySpecies:getMoments()
    -- Define methods to allocate fields defined on boundary grid (used by e.g. diagnostics).

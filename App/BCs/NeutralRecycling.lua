@@ -140,7 +140,7 @@ function NeutralRecyclingBC:createSolver(mySpecies, field, externalField)
    }
 
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
-   self:createBoundaryGrid()
+   self:createBoundaryGrid(mySpecies)
 
    -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
    self:createConfBoundaryGrid()
