@@ -211,19 +211,17 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
    -- the fluxes through a boundary (e.g. neutral recycling).
    if self.saveFlux then
       -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
-      self:createBoundaryGrid()
+      self:createBoundaryGrid(mySpecies)
 
       -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
-      self:createConfBoundaryGrid()
+      self:createConfBoundaryGrid(mySpecies)
 
       local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
       -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
       self.allocCartField = function(self, grid, nComp, ghosts, metaData)
          local f = DataStruct.Field {
-            onGrid        = grid,
-            numComponents = nComp,
-            ghost         = ghosts,
-            metaData      = metaData,
+            onGrid        = grid,   ghost    = ghosts,
+            numComponents = nComp,  metaData = metaData,
          }
          f:clear(0.0)
          return f
