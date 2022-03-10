@@ -750,6 +750,16 @@ function DistFuncMomentCalc:_advanceOnDevice(tCurr, inFld, outFld)
    local phaseRange = distf:localRange()
    local confRange
    if self.onGhosts then
+      -- on GPU, we do need to set up phaseRange with ghosts in conf 
+      -- space but not in v-space as a subrange of phaseExtRange
+      local phaseExtRange = distf:localExtRange()
+      local lower = phaseExtRange:lowerAsVec()
+      local upper = phaseExtRange:upperAsVec()
+      for d=self._cDim+1, self._pDim do
+         lower[d] = lower[d] + distf:lowerGhost()
+         upper[d] = upper[d] - distf:upperGhost()
+      end
+      phaseRange = phaseExtRange:subRange(lower, upper)
       confRange = mout:localExtRange()
    else
       confRange = mout:localRange()

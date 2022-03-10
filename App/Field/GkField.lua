@@ -1305,7 +1305,13 @@ function GkGeometry:initField()
              self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
       end
       local numB = self.basis:numBasis()
+      if GKYL_USE_GPU then
+         self.geo.b_i:copyDeviceToHost()
+      end
       self.geo.b_i:combineOffset(1, self.geo.b_x, 0*numB, 1, self.geo.b_y, 1*numB, 1, self.geo.b_z, 2*numB)
+      if GKYL_USE_GPU then
+         self.geo.b_i:copyHostToDevice()
+      end
    end
    local confWeakMultiply = Updater.CartFieldBinOp {
       onGrid    = self.grid,   operation = "Multiply",
