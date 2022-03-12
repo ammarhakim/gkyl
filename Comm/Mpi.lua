@@ -147,6 +147,7 @@ ffi.cdef [[
   int MPI_Group_incl(MPI_Group group, int n, const int ranks[], MPI_Group *newgroup);
   int MPI_Comm_create(MPI_Comm comm, MPI_Group group, MPI_Comm *newcomm);
   int MPI_Group_translate_ranks(MPI_Group group1, int n, const int ranks1[], MPI_Group group2, int ranks2[]);
+  int MPI_Comm_create_group(MPI_Comm comm, MPI_Group group, int tag, MPI_Comm *newcomm);
 
   // Cartesian communicator functions.
   int MPI_Cart_coords(MPI_Comm comm, int rank, int maxdims, int coords[]);
@@ -523,6 +524,12 @@ function _M.Group_translate_ranks(group1, ranks1, group2)
    local _ = ffiC.MPI_Group_translate_ranks(
       getObj(group1, "MPI_Group[1]"), n, ranks1:data(), getObj(group2, "MPI_Group[1]"), ranks2:data())
    return ranks2
+end
+-- MPI_Comm_create_group.
+function _M.Comm_create_group(comm, group, tag)
+   local c = new_MPI_Comm()
+   local _ = ffiC.MPI_Comm_create_group(getObj(comm, "MPI_Comm[1]"), getObj(group, "MPI_Group[1]"), tag, c)
+   return c
 end
 
 -- MPI_Cart_coords

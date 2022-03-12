@@ -1348,6 +1348,50 @@ function test_21(comm)
    Mpi.Type_free(recvType)
 end
 
+function test_22(comm)
+   -- Test MPI_Comm_create_group
+   assert_equal(true, Mpi.Is_comm_valid(comm))
+
+   local sz, rank = Mpi.Comm_size(comm), Mpi.Comm_rank(comm)
+
+   if sz ~= 5 then
+      log("Test 22 of MPI_Comm_create_group not run as number of procs not exactly 5")
+      return
+   end
+
+   -- Create a communicator with even ranks, and one with odd ranks.
+   local commGroup = Mpi.Comm_group(comm)
+   local subComm, subGroup
+   local subGroupRanks
+   if rank % 2 == 0 then
+      subGroupRanks = Lin.IntVec(3)
+      subGroupRanks[1], subGroupRanks[2], subGroupRanks[3] = 0, 2, 4
+      subGroup = Mpi.Group_incl(commGroup, #subGroupRanks, subGroupRanks:data());
+      subComm = Mpi.Comm_create_group(comm, subGroup, 0);
+   else
+      subGroupRanks = Lin.IntVec(2)
+      subGroupRanks[1], subGroupRanks[2] = 1, 3
+      subGroup = Mpi.Group_incl(commGroup, #subGroupRanks, subGroupRanks:data());
+      subComm = Mpi.Comm_create_group(comm, subGroup, 1);
+   end
+--   -- In this example we could've also called these outside of the if-statement:
+--   subGroup = Mpi.Group_incl(commGroup, #subGroupRanks, subGroupRanks:data());
+--   subComm = Mpi.Comm_create_group(comm, subGroup, 1);
+
+   local data, red = Lin.Vec(1), Lin.Vec(1)
+   data[1] = 0.1+rank
+
+   Mpi.Allreduce(data:data(), red:data(), 1, Mpi.DOUBLE, Mpi.SUM, subComm)
+
+   if rank % 2 == 0 then
+      assert_equal(3*0.1+6, red[1], "test_22: Checking even allReduce sum")
+   else                             
+      assert_equal(2*0.1+4, red[1], "test_22: Checking odd allReduce sum")
+   end
+
+   Mpi.Barrier(comm)
+end
+
 -- Run tests
 test_0(Mpi.COMM_WORLD)
 test_1(Mpi.COMM_WORLD)
@@ -1410,6 +1454,8 @@ test_18(Mpi.COMM_WORLD)
 test_19(Mpi.COMM_WORLD)
 test_20(Mpi.COMM_WORLD)
 test_21(Mpi.COMM_WORLD)
+
+test_22(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
