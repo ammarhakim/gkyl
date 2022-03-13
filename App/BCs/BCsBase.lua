@@ -63,7 +63,7 @@ function BCsBase:createBoundaryGrid()
       local dirRank  = nodeRank
       local cuts     = {}
       for d=1,3 do cuts[d] = self.grid:cuts(d) or 1 end
-      local writeRank = -1
+      -- The following assumes column-major ordering of MPI ranks.
       if self.bcDir == 1 then
          dirRank = nodeRank % (cuts[1]*cuts[2]) % cuts[1]
       elseif self.bcDir == 2 then
@@ -73,6 +73,7 @@ function BCsBase:createBoundaryGrid()
       end
       self._splitComm = Mpi.Comm_split(worldComm, dirRank, nodeRank)
       -- Set up which ranks to write from.
+      local writeRank = -1
       if self.bcEdge == "lower" and dirRank == 0 then
          writeRank = nodeRank
       elseif self.bcEdge == "upper" and dirRank == self.grid:cuts(self.bcDir)-1 then

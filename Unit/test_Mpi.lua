@@ -1124,7 +1124,7 @@ function test_19(comm)
    local rank = Mpi.Comm_rank(comm)
    local sz = Mpi.Comm_size(comm)
    if sz ~= 5 then
-      log("Test of MPI_Dist_graph_create_adjacent not run as number of procs not exactly 5")
+      log("Test of MPI_Dist_graph_create_adjacent (test_19) not run as number of procs not exactly 5")
       return
    end
 
@@ -1267,7 +1267,7 @@ function test_21(comm)
    local rank = Mpi.Comm_rank(comm)
    local sz = Mpi.Comm_size(comm)
    if sz ~= 4 then
-      log("Test of MPI_Neighbor_allgather not run as number of procs not exactly 4")
+      log("Test of MPI_Neighbor_allgather (test_21) not run as number of procs not exactly 4")
       return
    end
 
@@ -1312,15 +1312,13 @@ function test_21(comm)
 
    -- Have ranks 0 and 1 gather elements 2-3 and 5-6 from ranks 2 and 3:
    -- Construct a vector MPI datatype for this.
-   local sendType = nil
    local count, blocklength, stride = 2, 2, 3
-   sendType = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
+   local sendType = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
    Mpi.Type_commit(sendType)
 
    -- The receiver will put them all in a compressed buffer.
-   local recvType = nil
    local count, blocklength, stride = 2, 2, 2
-   recvType = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
+   local recvType = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
    Mpi.Type_commit(recvType)
 
    local dataGlobal = Lin.Vec(count*blocklength*2)
@@ -1355,7 +1353,7 @@ function test_22(comm)
    local sz, rank = Mpi.Comm_size(comm), Mpi.Comm_rank(comm)
 
    if sz ~= 5 then
-      log("Test 22 of MPI_Comm_create_group not run as number of procs not exactly 5")
+      log("Test of MPI_Comm_create_group (test_22) not run as number of procs not exactly 5")
       return
    end
 
@@ -1374,7 +1372,7 @@ function test_22(comm)
       subGroup = Mpi.Group_incl(commGroup, #subGroupRanks, subGroupRanks:data());
       subComm = Mpi.Comm_create_group(comm, subGroup, 1);
    end
---   -- In this example we could've also called these outside of the if-statement:
+--   -- In this example we could've instead called these outside of the if-statement:
 --   subGroup = Mpi.Group_incl(commGroup, #subGroupRanks, subGroupRanks:data());
 --   subComm = Mpi.Comm_create_group(comm, subGroup, 1);
 

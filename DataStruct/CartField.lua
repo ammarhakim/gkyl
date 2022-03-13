@@ -607,6 +607,9 @@ local function Field_meta_ctor(elct)
       elemType = function (self)
 	 return elct
       end,
+      elemTypeMpi = function (self)
+         return elctCommType
+      end,
       elemSize = function (self)
 	 return elctSize
       end,      
