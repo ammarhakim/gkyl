@@ -81,7 +81,7 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
       return f
    end
    local allocDistf = function()
-      return self:allocCartField(self.boundaryGrid, self.basis:numBasis(),
+      return self:allocCartField(self.boundaryGrid, distf:numComponents(),
                                  {distf:lowerGhost(),distf:upperGhost()}, distf:getMetaData())
    end
    self.boundaryField    = allocDistf()
