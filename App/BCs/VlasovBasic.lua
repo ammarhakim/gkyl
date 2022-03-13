@@ -140,7 +140,7 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
                                     {numDensity:lowerGhost(),numDensity:upperGhost()}, numDensity:getMetaData())
       end
       self.allocVectorMoment = function(self, dim)
-         return self:allocCartField(self.confBoundaryGrid, dim*self.basis:numBasis(),
+         return self:allocCartField(self.confBoundaryGrid, dim*self.confBasis:numBasis(),
                                     {numDensity:lowerGhost(),numDensity:upperGhost()}, numDensity:getMetaData())
       end
 
