@@ -100,7 +100,7 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
    self:createGraphComm()
 
    -- Create MPI derived data type or receiving data.
-   self:createSyncMPIdataTypes()
+   self:createSyncMPIdataTypes(distf)
 
    -- Create the range needed to loop over ghosts.
    local global, globalExt, localExtRange = distf:globalRange(), distf:globalExtRange(), distf:localExtRange()
@@ -464,22 +464,20 @@ function TwistShiftBC:createGraphComm()
    end
 end
 
-function TwistShiftBC:createSyncMPIdataTypes()
+function TwistShiftBC:createSyncMPIdataTypes(fIn)
    -- Create the MPI derived data (MPIDD) types to sync the field along z.
 
    if not Mpi.Is_comm_valid(self.graphComm) then return end
 
-   -- For the send we can use the same MPIDD in CartField used for periodic
-   -- syncs. But we need a new MPIDD for the receive since the receive is
-   -- done into a buffer with one cell in z
+   -- Create the receiving MPIDD, which will place the z-skin (including x-ghost
+   -- cells for correct data layout) from all ranks along y into a single buffer
+   -- that is global in Y.
 
-   local myRank          = self.grid:subGridId() -- Grid ID on this processor.
-
-   local indexer         = self.boundaryFieldGlobalY:genIndexer()
-   local numComponents   = self.boundaryField:numComponents()
-   local localExtRange   = self.boundaryField:localExtRange()
-   local layout          = self.boundaryField:layout()
-   local elctCommType    = self.boundaryField:elemTypeMpi()
+   local indexer       = self.boundaryFieldGlobalY:genIndexer()
+   local numComponents = self.boundaryField:numComponents()
+   local localExtRange = self.boundaryField:localExtRange()
+   local layout        = self.boundaryField:layout()
+   local elctCommType  = self.boundaryField:elemTypeMpi()
 
    -- Obtain the subDomain ID of the rank that has the same x-location but it's
    -- the first along y. We'll use a collective call to gather all the data along y
@@ -509,6 +507,7 @@ function TwistShiftBC:createSyncMPIdataTypes()
 
    self.recvPerMPIDataType, self.recvPerMPILoc = self.boundaryFieldGlobalY:elemTypeMpi(), 0
    local skelIds = decompRange:boundarySubDomainIds(self.bcDir)
+--   local myRank        = self.grid:subGridId() -- Whole grid ID on this processor.
    for i = 1, #skelIds do
       local cId = skelIds[i].lower -- Should be = to skelIds[i].upper.
 
@@ -516,7 +515,7 @@ function TwistShiftBC:createSyncMPIdataTypes()
       -- Note that if the node communicator has rank size of 1, then we can access all the
       -- memory needed for periodic boundary conditions and we do not need MPI Datatypes.
       if myId == cId and self.bcEdge == "lower" and self.isRecvRank then
-         local rgnRecv = decompRange:subDomain(yLoId):lowerSkin(self.bcDir, self.boundaryField:lowerGhost())
+         local rgnRecv = decompRange:subDomain(yLoId):lowerSkin(self.bcDir, self.boundaryField:lowerGhost()):extendDir(1,1,1)
          local idx     = rgnRecv:lowerAsVec()
          -- Set idx to starting point of region you want to recv.
          self.recvPerMPILoc      = (indexer(idx)-1)*numComponents
@@ -525,13 +524,51 @@ function TwistShiftBC:createSyncMPIdataTypes()
             rgnRecv, localExtRange, numComponents, layout, elctCommType)
       end
       if myId == cId and self.bcEdge == "upper" and self.isRecvRank then
-         local rgnRecv = decompRange:subDomain(yLoId):upperSkin(self.bcDir, self.boundaryField:upperGhost())
+         local rgnRecv = decompRange:subDomain(yLoId):upperSkin(self.bcDir, self.boundaryField:upperGhost()):extendDir(1,1,1)
          local idx     = rgnRecv:lowerAsVec()
          -- Set idx to starting point of region you want to recv.
          self.recvPerMPILoc      = (indexer(idx)-1)*numComponents
 --         print(string.format("%s r:%d id=%d | rgnRecvLower=(%d,%d,%d) rgnRecvUpper=(%d,%d,%d) | idx=(%d,%d,%d) | loc=%d | yLoId=%d",self.bcEdge,myRank,myId,rgnRecv:lower(1),rgnRecv:lower(2),rgnRecv:lower(3),rgnRecv:upper(1),rgnRecv:upper(2),rgnRecv:upper(3),idx[1],idx[2],idx[3],self.recvPerMPILoc/numComponents,yLoId))
          self.recvPerMPIDataType = Mpi.createDataTypeFromRangeAndSubRange(
             rgnRecv, localExtRange, numComponents, layout, elctCommType)
+      end
+   end
+
+   -- Create sending MPIDDs.
+   -- These have to be slightly different than the CartField's own MPIDDs
+   -- because in order to use Neighborhood_allgather we need to incorporate
+   -- the left x-ghost layer, otherwise when one appends the next chunk of
+   -- data along y it'll be in the wrong place.
+   local myId            = self.grid:subGridId() -- Whole grid ID on this processor.
+   local decomposedRange = self.grid:decomposedRange()
+   local skelIds         = decomposedRange:boundarySubDomainIds(self.bcDir)
+   local indexer                      = fIn:genIndexer()
+   local numComponents, localExtRange = fIn:numComponents(), fIn:localExtRange()
+   local layout, elctCommType         = fIn:layout(), fIn:elemTypeMpi()
+   self.sendPerMPIDataType, self.sendPerMPILoc = fIn:elemTypeMpi(), 0 
+   for i = 1, #skelIds do
+      local loId, upId = skelIds[i].lower, skelIds[i].upper
+
+      -- Only create if we are on proper ranks.
+      -- Note that if the node communicator has rank size of 1, then we can access all the
+      -- memory needed for periodic boundary conditions and we do not need MPI Datatypes.
+      if myId == loId and self.bcEdge == "upper" and (not self.isRecvRank) then
+         local rgnSend = decomposedRange:subDomain(loId):lowerSkin(self.bcDir, fIn:upperGhost()):extendDir(1,1,1)
+         local idx = rgnSend:lowerAsVec()
+         -- Set idx to starting point of region you want to recv.
+         self.sendPerMPILoc      = (indexer(idx)-1)*numComponents
+         self.sendPerMPIDataType = Mpi.createDataTypeFromRangeAndSubRange(
+            rgnSend, localExtRange, numComponents, layout, elctCommType)
+--         print(string.format("%s s:%d | sendLoc=%d",self.bcEdge, myId, self.sendPerMPILoc/numComponents))
+      end
+      if myId == upId and self.bcEdge == "lower" and (not self.isRecvRank) then
+         local rgnSend = decomposedRange:subDomain(upId):upperSkin(self.bcDir, fIn:lowerGhost()):extendDir(1,1,1)
+         local idx = rgnSend:lowerAsVec()
+         -- Set idx to starting point of region you want to recv.
+         self.sendPerMPILoc      = (indexer(idx)-1)*numComponents
+         self.sendPerMPIDataType = Mpi.createDataTypeFromRangeAndSubRange(
+            rgnSend, localExtRange, numComponents, layout, elctCommType)
+--         print(string.format("%s s:%d | sendLoc=%d",self.bcEdge, myId, self.sendPerMPILoc/numComponents))
       end
    end
 end
@@ -544,27 +581,7 @@ function TwistShiftBC:zSync(fIn, bufferOut)
 
    if not Mpi.Is_comm_valid(self.graphComm) then return end
 
-   local sendDataType, sendLoc = fIn:elemTypeMpi(), 0
-   -- Get the send MPI data type from CartField:
-   local decomposedRange = self.grid:decomposedRange()
-   local myId            = self.grid:subGridId() -- Grid ID on this processor.
-   local skelIds         = decomposedRange:boundarySubDomainIds(self.bcDir)
-   for i = 1, #skelIds do
-      local loId, upId = skelIds[i].lower, skelIds[i].upper
-
-      if myId == loId and self.bcEdge == "upper" and (not self.isRecvRank) then
-         sendDataType = fIn._sendLowerPerMPIDataType[self.bcDir]
-         sendLoc      = fIn._sendLowerPerMPILoc[self.bcDir]
---         print(string.format("%s s:%d | sendLoc=%d",self.bcEdge, myId, sendLoc/fIn:numComponents()))
-      end
-      if myId == upId and self.bcEdge == "lower" and (not self.isRecvRank) then
-         sendDataType = fIn._sendUpperPerMPIDataType[self.bcDir]
-         sendLoc      = fIn._sendUpperPerMPILoc[self.bcDir]
---         print(string.format("%s s:%d | sendLoc=%d",self.bcEdge, myId, sendLoc/fIn:numComponents()))
-      end
-   end
-
-   Mpi.Neighbor_allgather(fIn:dataPointer()+sendLoc, 1, sendDataType, 
+   Mpi.Neighbor_allgather(fIn:dataPointer()+self.sendPerMPILoc, 1, self.sendPerMPIDataType, 
                           bufferOut:dataPointer()+self.recvPerMPILoc, 1, self.recvPerMPIDataType,
                           self.graphComm)
 end
