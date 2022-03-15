@@ -375,6 +375,12 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
    local qIn = assert(inFld[1], "WavePropagation.advance: Must-specify an input field")
    local qOut = assert(outFld[1], "WavePropagation.advance: Must-specify an output field")
 
+   if (self._zero and false) then
+      local g0_status = ffi.C.gkyl_wave_prop_advance(
+         self._zero, 0, dt, self._localRange, qIn._zero, qOut._zero)
+      return g0_status.success, g0_status.dt_suggested
+   end
+
    local equation = self._equation -- equation to solve
    local meqn, mwave = equation:numEquations(), equation:numWaves()
    local localRange = self._localRange
