@@ -299,21 +299,7 @@ function WavePropagation:init(tbl)
    self._secondOrderFlux = loadstring( secondOrderFluxTempl {MEQN = meqn} )()
    self._secondOrderUpdate = loadstring( secondOrderUpdateTempl {MEQN = meqn} )()
 
-   if self._equation._zero_wv then
-      local winp = ffi.new("struct gkyl_wave_prop_inp")
-      winp.grid = self._onGrid._zero
-      winp.equation = self._equation._zero_wv
-      winp.limiter = limiter_id[tbl.limiter]
-      winp.num_up_dirs = #self._updateDirs
-      for d = 1, #self._updateDirs do
-         winp.update_dirs[d-1] = self._updateDirs[d]-1
-      end
-      winp.cfl = self._cfl
-      local mapc2p, ctx = nil, nil
-      winp.geom = ffi.C.gkyl_wave_geom_new(
-         winp.grid, self._localRange, mapc2p, ctx);
-      self._zero = ffi.C.gkyl_wave_prop_new(winp)
-   end
+   self._limiter_id = limiter_id[tbl.limiter]
 end
 
 function WavePropagation:initDevice(tbl)
@@ -375,9 +361,29 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
    local qIn = assert(inFld[1], "WavePropagation.advance: Must-specify an input field")
    local qOut = assert(outFld[1], "WavePropagation.advance: Must-specify an output field")
 
-   if (self._zero and false) then
+   if (self._equation._zero_wv and false) then
+      -- TODO move this to init FIXME which grid/range to use?
+      if self._isFirst then
+         local winp = ffi.new("struct gkyl_wave_prop_inp")
+         -- winp.grid = self._onGrid._zero
+         winp.grid = qOut._grid._zero
+         winp.equation = self._equation._zero_wv
+         winp.limiter = self._limiter_id
+         winp.num_up_dirs = #self._updateDirs
+         for d = 1, #self._updateDirs do
+            winp.update_dirs[d-1] = self._updateDirs[d]-1
+         end
+         winp.cfl = self._cfl
+         local mapc2p, ctx = nil, nil
+         winp.geom = ffi.C.gkyl_wave_geom_new(
+            winp.grid, qOut._localRange, mapc2p, ctx);
+         self._zero = ffi.C.gkyl_wave_prop_new(winp)
+
+         self._isFirst = false
+      end
+
       local g0_status = ffi.C.gkyl_wave_prop_advance(
-         self._zero, 0, dt, self._localRange, qIn._zero, qOut._zero)
+         self._zero, 0, dt, qOut._localRange, qIn._zero, qOut._zero)
       return g0_status.success, g0_status.dt_suggested
    end
 
