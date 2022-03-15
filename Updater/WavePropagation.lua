@@ -306,7 +306,7 @@ function WavePropagation:init(tbl)
       winp.limiter = limiter_id[tbl.limiter]
       winp.num_up_dirs = #self._updateDirs
       for d = 1, #self._updateDirs do
-         winp.update_dirs[d-1] = self._updateDirs[d]
+         winp.update_dirs[d-1] = self._updateDirs[d]-1
       end
       winp.cfl = self._cfl
       local mapc2p, ctx = nil, nil
