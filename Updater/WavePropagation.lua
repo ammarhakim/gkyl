@@ -190,6 +190,15 @@ limiterFunctions["zero"] = function (r)
    return 0
 end
 
+limiter_id = {}
+limiter_id["no-limiter"] = ffi.C.GKYL_NO_LIMITER
+limiter_id["min-mod"] = ffi.C.GKYL_MIN_MOD
+limiter_id["superbee"] = ffi.C.GKYL_SUPERBEE
+limiter_id["van-leer"] = ffi.C.GKYL_VAN_LEER
+limiter_id["monotonized-centered"] = ffi.C.GKYL_MONOTONIZED_CENTERED
+limiter_id["beam-warming"] = ffi.C.GKYL_BEAM_WARMING
+limiter_id["zero"] = ffi.C.GKYL_ZERO
+
 -- Helper object for indexing 1D slice data. The slice spans from
 -- [lower, upper] (inclusive) and has `stride` pieces of data stored
 -- at each location.
@@ -286,17 +295,16 @@ function WavePropagation:init(tbl)
 
    if self._equation._zero_wv then
       local winp = ffi.new("struct gkyl_wave_prop_inp")
-      print(self._onGrid._zero, self._equation._zero_wv, ffi.C.GKYL_MIN_MOD, self._cfl)
       winp.grid = self._onGrid._zero
       winp.equation = self._equation._zero_wv
-      winp.limiter = ffi.C.GKYL_MIN_MOD -- FIXME
+      winp.limiter = limiter_id[tbl.limiter]
       winp.num_up_dirs = #self._updateDirs
       for d = 1, #self._updateDirs do
          winp.update_dirs[d-1] = self._updateDirs[d]
       end
       winp.cfl = self._cfl
       winp.geom = ffi.new("struct gkyl_wave_geom")
-      self._zero_wv = ffi.C.gkyl_wave_prop_new(winp)
+      self._zero = ffi.C.gkyl_wave_prop_new(winp)
    end
 end
 
