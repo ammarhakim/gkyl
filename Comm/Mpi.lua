@@ -191,6 +191,12 @@ ffi.cdef [[
   int MPI_Ineighbor_alltoallv(const void *sendbuf, const int sendcounts[], const int sdispls[], MPI_Datatype sendtype,
                               void *recvbuf, const int recvcounts[], const int rdispls[], MPI_Datatype recvtype, 
                               MPI_Comm comm, MPI_Request *request);
+  int MPI_Neighbor_alltoallw(const void *sendbuf, const int sendcounts[], const MPI_Aint sdispls[],
+                             const MPI_Datatype sendtypes[], void *recvbuf, const int recvcounts[],
+                             const MPI_Aint rdispls[], const MPI_Datatype recvtypes[], MPI_Comm comm);
+  int MPI_Ineighbor_alltoallw(const void *sendbuf, const int sendcounts[], const MPI_Aint sdispls[],
+                              const MPI_Datatype sendtypes[], void *recvbuf, const int recvcounts[],
+                              const MPI_Aint rdispls[], const MPI_Datatype recvtypes[], MPI_Comm comm, MPI_Request *request);
 
   // Global operators
   int MPI_Barrier(MPI_Comm comm);
@@ -609,7 +615,12 @@ end
 -- MPI_Neighbor_allgatherv.
 function _M.Neighbor_allgatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype, comm)
   local _ = ffiC.MPI_Neighbor_allgatherv(sendbuf, sendcount, getObj(sendtype, "MPI_Datatype[1]"), recvbuf,
-                                         recvcounts, displs, getObj(recvtype, "MPI_Datatype[1]"), comm);
+                                         recvcounts, displs, getObj(recvtype, "MPI_Datatype[1]"), getObj(comm, "MPI_Comm[1]"));
+end
+-- MPI_Neighbor_alltoall.
+function _M.Neighbor_alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm)
+  local _ = ffiC.MPI_Neighbor_alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount,
+                                       recvtype, getObj(comm, "MPI_Comm[1]"));
 end
 
 -- Convenience functions (these are not wrappers over MPI but make

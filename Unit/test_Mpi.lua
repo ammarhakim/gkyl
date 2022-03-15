@@ -1390,6 +1390,65 @@ function test_22(comm)
    Mpi.Barrier(comm)
 end
 
+function test_23(comm)
+   -- Test Neighbor_alltoall.
+
+   assert_equal(true, Mpi.Is_comm_valid(comm))
+
+   local rank = Mpi.Comm_rank(comm)
+   local sz = Mpi.Comm_size(comm)
+   if sz ~= 4 then
+      log("Test of MPI_Neighbor_alltoall (test_23) not run as number of procs not exactly 4")
+      return
+   end
+
+   -- Use the hourglass graph
+   -- 2----3   0 -> 1
+   --  \  /    1 -> 2
+   --   \/     2 -> 3
+   --   /\     3 -> 0
+   --  /  \
+   -- 0----1
+
+   local indeg, outdeg = 1, 1
+   local src, dest     = Lin.IntVec(indeg), Lin.IntVec(outdeg)
+   if rank==0 then
+      src[1], dest[1] = 3, 1
+   elseif rank==1 then
+      src[1], dest[1] = 0, 2
+   elseif rank==2 then
+      src[1], dest[1] = 1, 3
+   elseif rank==3 then
+      src[1], dest[1] = 2, 0
+   end
+   local srcw, destw = Lin.IntVec(indeg), Lin.IntVec(outdeg)
+   for d = 1, indeg do srcw[d] = 1 end
+   for d = 1, outdeg do destw[d] = 1 end
+   local reorder = 0
+   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, srcw,
+                                                    outdeg, dest, destw, Mpi.INFO_NULL, reorder)
+   Mpi.Barrier(comm)
+
+   local numE = 6
+   local data = Lin.Vec(numE)  -- Assume first and last elements are "ghost" elements.
+   for i = 2, #data-1 do data[i] = math.pi*rank+i end
+
+   -- Send right "skin" element and place it in left "ghost".
+   Mpi.Neighbor_alltoall(data:data()+numE-2, 1, Mpi.DOUBLE, data:data(), 1, Mpi.DOUBLE, graphComm)
+
+   Mpi.Barrier(comm)
+
+   assert_equal(math.pi*rank+2., data[2], "test_23: data[2] is erroneous.")
+   assert_equal(math.pi*rank+3., data[3], "test_23: data[3] is erroneous.")
+   assert_equal(math.pi*rank+4., data[4], "test_23: data[4] is erroneous.")
+   assert_equal(math.pi*rank+5., data[5], "test_23: data[5] is erroneous.")
+   if rank==0 then
+      assert_equal(math.pi*3+5., data[1], "test_23: data[1] is erroneous.")
+   else
+      assert_equal(math.pi*(rank-1)+5., data[1], "test_23: data[1] is erroneous.")
+   end
+end
+
 -- Run tests
 test_0(Mpi.COMM_WORLD)
 test_1(Mpi.COMM_WORLD)
@@ -1454,6 +1513,7 @@ test_20(Mpi.COMM_WORLD)
 test_21(Mpi.COMM_WORLD)
 
 test_22(Mpi.COMM_WORLD)
+test_23(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
