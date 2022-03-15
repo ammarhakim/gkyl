@@ -54,11 +54,17 @@ ffi.cdef [[
 
 
 /* gkylzero components */
+typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
+
 struct gkyl_wave_geom {
   struct gkyl_range range; // range over which geometry is defined
   struct gkyl_array *geom; // geometry in each cell
   struct gkyl_ref_count ref_count;
 };
+
+struct gkyl_wave_geom *gkyl_wave_geom_new(const struct gkyl_rect_grid *grid,
+  struct gkyl_range *range,
+  evalf_t mapc2p, void *ctx);
 
 enum gkyl_wave_limiter {
   GKYL_NO_LIMITER = 1, // to allow default to be 0
@@ -303,7 +309,9 @@ function WavePropagation:init(tbl)
          winp.update_dirs[d-1] = self._updateDirs[d]
       end
       winp.cfl = self._cfl
-      winp.geom = ffi.new("struct gkyl_wave_geom")
+      local mapc2p, ctx = nil, nil
+      winp.geom = ffi.C.gkyl_wave_geom_new(
+         winp.grid, self._localRange, mapc2p, ctx);
       self._zero = ffi.C.gkyl_wave_prop_new(winp)
    end
 end
