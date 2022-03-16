@@ -619,8 +619,15 @@ function _M.Neighbor_allgatherv(sendbuf, sendcount, sendtype, recvbuf, recvcount
 end
 -- MPI_Neighbor_alltoall.
 function _M.Neighbor_alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm)
-  local _ = ffiC.MPI_Neighbor_alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount,
-                                       recvtype, getObj(comm, "MPI_Comm[1]"));
+  local _ = ffiC.MPI_Neighbor_alltoall(sendbuf, sendcount, getObj(sendtype, "MPI_Datatype[1]"),
+                                       recvbuf, recvcount, getObj(recvtype, "MPI_Datatype[1]"),
+                                       getObj(comm, "MPI_Comm[1]"));
+end
+-- MPI_Neighbor_alltoallv.
+function _M.Neighbor_alltoallv(sendbuf, sendcounts, sdispls, sendtype, recvbuf, recvcounts, rdispls, recvtype, comm)
+  local _ = ffiC.MPI_Neighbor_alltoallv(sendbuf, sendcounts, sdispls, getObj(sendtype, "MPI_Datatype[1]"),
+                                        recvbuf, recvcounts, rdispls, getObj(recvtype, "MPI_Datatype[1]"),
+                                        getObj(comm, "MPI_Comm[1]"));
 end
 
 -- Convenience functions (these are not wrappers over MPI but make

@@ -1347,50 +1347,6 @@ function test_21(comm)
 end
 
 function test_22(comm)
-   -- Test MPI_Comm_create_group
-   assert_equal(true, Mpi.Is_comm_valid(comm))
-
-   local sz, rank = Mpi.Comm_size(comm), Mpi.Comm_rank(comm)
-
-   if sz ~= 5 then
-      log("Test of MPI_Comm_create_group (test_22) not run as number of procs not exactly 5")
-      return
-   end
-
-   -- Create a communicator with even ranks, and one with odd ranks.
-   local commGroup = Mpi.Comm_group(comm)
-   local subComm, subGroup
-   local subGroupRanks
-   if rank % 2 == 0 then
-      subGroupRanks = Lin.IntVec(3)
-      subGroupRanks[1], subGroupRanks[2], subGroupRanks[3] = 0, 2, 4
-      subGroup = Mpi.Group_incl(commGroup, #subGroupRanks, subGroupRanks:data());
-      subComm = Mpi.Comm_create_group(comm, subGroup, 0);
-   else
-      subGroupRanks = Lin.IntVec(2)
-      subGroupRanks[1], subGroupRanks[2] = 1, 3
-      subGroup = Mpi.Group_incl(commGroup, #subGroupRanks, subGroupRanks:data());
-      subComm = Mpi.Comm_create_group(comm, subGroup, 1);
-   end
---   -- In this example we could've instead called these outside of the if-statement:
---   subGroup = Mpi.Group_incl(commGroup, #subGroupRanks, subGroupRanks:data());
---   subComm = Mpi.Comm_create_group(comm, subGroup, 1);
-
-   local data, red = Lin.Vec(1), Lin.Vec(1)
-   data[1] = 0.1+rank
-
-   Mpi.Allreduce(data:data(), red:data(), 1, Mpi.DOUBLE, Mpi.SUM, subComm)
-
-   if rank % 2 == 0 then
-      assert_equal(3*0.1+6, red[1], "test_22: Checking even allReduce sum")
-   else                             
-      assert_equal(2*0.1+4, red[1], "test_22: Checking odd allReduce sum")
-   end
-
-   Mpi.Barrier(comm)
-end
-
-function test_23(comm)
    -- Test Neighbor_alltoall.
 
    assert_equal(true, Mpi.Is_comm_valid(comm))
@@ -1398,7 +1354,7 @@ function test_23(comm)
    local rank = Mpi.Comm_rank(comm)
    local sz = Mpi.Comm_size(comm)
    if sz ~= 4 then
-      log("Test of MPI_Neighbor_alltoall (test_23) not run as number of procs not exactly 4")
+      log("Test of MPI_Neighbor_alltoall (test_22) not run as number of procs not exactly 4")
       return
    end
 
@@ -1438,17 +1394,168 @@ function test_23(comm)
 
    Mpi.Barrier(comm)
 
-   assert_equal(math.pi*rank+2., data[2], "test_23: data[2] is erroneous.")
-   assert_equal(math.pi*rank+3., data[3], "test_23: data[3] is erroneous.")
-   assert_equal(math.pi*rank+4., data[4], "test_23: data[4] is erroneous.")
-   assert_equal(math.pi*rank+5., data[5], "test_23: data[5] is erroneous.")
+   assert_equal(math.pi*rank+2., data[2], "test_22: data[2] is erroneous.")
+   assert_equal(math.pi*rank+3., data[3], "test_22: data[3] is erroneous.")
+   assert_equal(math.pi*rank+4., data[4], "test_22: data[4] is erroneous.")
+   assert_equal(math.pi*rank+5., data[5], "test_22: data[5] is erroneous.")
    if rank==0 then
-      assert_equal(math.pi*3+5., data[1], "test_23: data[1] is erroneous.")
+      assert_equal(math.pi*3+5., data[1], "test_22: data[1] is erroneous.")
    else
-      assert_equal(math.pi*(rank-1)+5., data[1], "test_23: data[1] is erroneous.")
+      assert_equal(math.pi*(rank-1)+5., data[1], "test_22: data[1] is erroneous.")
    end
 end
 
+function test_23(comm)
+   -- Test Neighbor_alltoallv.
+
+   assert_equal(true, Mpi.Is_comm_valid(comm))
+
+   local rank = Mpi.Comm_rank(comm)
+   local sz = Mpi.Comm_size(comm)
+   if sz ~= 4 then
+      log("Test of MPI_Neighbor_alltoall (test_22) not run as number of procs not exactly 4")
+      return
+   end
+
+   -- Use the graph
+   -- 2 -> 0
+   -- 3 -> 0
+   -- 2 -> 1
+   -- 3 -> 1
+   -- And perform the an operation similar to that in test_21.
+   local indeg, outdeg
+   local src, dest
+   if rank==0 then
+      indeg, outdeg = 2, 0 
+      src, dest     = Lin.IntVec(indeg), Lin.IntVec(outdeg)
+      src[1], src[2] = 2, 3
+   elseif rank==1 then
+      indeg, outdeg = 2, 0 
+      src, dest     = Lin.IntVec(indeg), Lin.IntVec(outdeg)
+      src[1], src[2] = 2, 3
+   elseif rank==2 then
+      indeg, outdeg = 0, 2
+      src, dest     = Lin.IntVec(indeg), Lin.IntVec(outdeg)
+      dest[1], dest[2] = 0, 1
+   elseif rank==3 then
+      indeg, outdeg = 0, 2
+      src, dest     = Lin.IntVec(indeg), Lin.IntVec(outdeg)
+      dest[1], dest[2] = 0, 1
+   end
+   local srcw, destw = Lin.IntVec(indeg), Lin.IntVec(outdeg)
+   for d = 1, indeg do srcw[d] = 1 end
+   for d = 1, outdeg do destw[d] = 1 end
+   local reorder = 0
+   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, srcw,
+                                                    outdeg, dest, destw, Mpi.INFO_NULL, reorder)
+
+
+   local data = Lin.Vec(7)
+   for i = 1, #data do data[i] = math.pi*rank+i end
+   data[1] = -1*(rank+1)
+   data[4] = -4*(rank+1)
+
+   -- Have ranks 0 and 1 gather elements 1-3 and 4-6 (in 2 blocks) from ranks 2 and 3:
+   -- Construct a vector MPI datatype for this.
+   local count, blocklength, stride = 2, 3, 3
+   local sendType = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
+   Mpi.Type_commit(sendType)
+
+   -- The receiver will put them all in a compressed buffer.
+   local count, blocklength, stride = 2, 3, 3
+   local recvType = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
+   Mpi.Type_commit(recvType)
+
+   local dataGlobal = Lin.Vec(count*blocklength*2)
+
+   local sendCounts, recvCounts = Lin.IntVec(2), Lin.IntVec(2)
+   local sendDispls, recvDispls = Lin.IntVec(2), Lin.IntVec(2)
+
+   sendCounts[1], sendCounts[2] = 1, 1
+   recvCounts[1], recvCounts[2] = 1, 1
+   sendDispls[1], sendDispls[2] = 0, 0
+   -- MF 03/10/2022: Documentation/Examples for combining alltoallv with MPIDDs are terrible.
+   -- They led me to believe that recvDispls[2] below should be count*blocklenth,
+   -- but that leads to a seg fault. It works with 1, which I interpret to mean that
+   -- the displacement should be in terms of some size of the MPIDD. Not totally sure.
+   recvDispls[1], recvDispls[2] = 0, 1
+   Mpi.Neighbor_alltoallv(data:data(), sendCounts:data(), sendDispls:data(), sendType,
+                          dataGlobal:data(), recvCounts:data(), recvDispls:data(), recvType, graphComm)
+
+--   -- Could also do it without MPI data types as follows:
+--   sendCounts[1], sendCounts[2] = 6, 6
+--   recvCounts[1], recvCounts[2] = 6, 6
+--   sendDispls[1], sendDispls[2] = 0, 0
+--   recvDispls[1], recvDispls[2] = 0, count*blocklength
+--   Mpi.Neighbor_alltoallv(data:data(), sendCounts:data(), sendDispls:data(), Mpi.DOUBLE,
+--                          dataGlobal:data(), recvCounts:data(), recvDispls:data(), Mpi.DOUBLE, graphComm)
+
+   Mpi.Barrier(comm)
+
+   if rank==0 or rank==1 then
+      assert_equal(-3          , dataGlobal[1 ], "test_23: dataGlobal[1 ] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*2+2., dataGlobal[2 ], "test_23: dataGlobal[2 ] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*2+3., dataGlobal[3 ], "test_23: dataGlobal[3 ] in rank=0,1 is erroneous.")
+      assert_equal(-12         , dataGlobal[4 ], "test_23: dataGlobal[4 ] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*2+5., dataGlobal[5 ], "test_23: dataGlobal[5 ] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*2+6., dataGlobal[6 ], "test_23: dataGlobal[6 ] in rank=0,1 is erroneous.")
+      assert_equal(-4          , dataGlobal[7 ], "test_23: dataGlobal[7 ] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*3+2., dataGlobal[8 ], "test_23: dataGlobal[8 ] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*3+3., dataGlobal[9 ], "test_23: dataGlobal[9 ] in rank=0,1 is erroneous.")
+      assert_equal(-16         , dataGlobal[10], "test_23: dataGlobal[10] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*3+5., dataGlobal[11], "test_23: dataGlobal[11] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*3+6., dataGlobal[12], "test_23: dataGlobal[12] in rank=0,1 is erroneous.")
+   else
+      for i = 1, #dataGlobal do
+        assert_equal(dataGlobal[i], 0., "test_21: dataGlobal is erroneous in rank=2,3.")
+      end
+   end
+
+end
+
+function test_24(comm)
+   -- Test MPI_Comm_create_group
+   assert_equal(true, Mpi.Is_comm_valid(comm))
+
+   local sz, rank = Mpi.Comm_size(comm), Mpi.Comm_rank(comm)
+
+   if sz ~= 5 then
+      log("Test of MPI_Comm_create_group (test_24) not run as number of procs not exactly 5")
+      return
+   end
+
+   -- Create a communicator with even ranks, and one with odd ranks.
+   local commGroup = Mpi.Comm_group(comm)
+   local subComm, subGroup
+   local subGroupRanks
+   if rank % 2 == 0 then
+      subGroupRanks = Lin.IntVec(3)
+      subGroupRanks[1], subGroupRanks[2], subGroupRanks[3] = 0, 2, 4
+      subGroup = Mpi.Group_incl(commGroup, #subGroupRanks, subGroupRanks:data());
+      subComm = Mpi.Comm_create_group(comm, subGroup, 0);
+   else
+      subGroupRanks = Lin.IntVec(2)
+      subGroupRanks[1], subGroupRanks[2] = 1, 3
+      subGroup = Mpi.Group_incl(commGroup, #subGroupRanks, subGroupRanks:data());
+      subComm = Mpi.Comm_create_group(comm, subGroup, 1);
+   end
+--   -- In this example we could've instead called these outside of the if-statement:
+--   subGroup = Mpi.Group_incl(commGroup, #subGroupRanks, subGroupRanks:data());
+--   subComm = Mpi.Comm_create_group(comm, subGroup, 1);
+
+   local data, red = Lin.Vec(1), Lin.Vec(1)
+   data[1] = 0.1+rank
+
+   Mpi.Allreduce(data:data(), red:data(), 1, Mpi.DOUBLE, Mpi.SUM, subComm)
+
+   if rank % 2 == 0 then
+      assert_equal(3*0.1+6, red[1], "test_24: Checking even allReduce sum")
+   else                             
+      assert_equal(2*0.1+4, red[1], "test_24: Checking odd allReduce sum")
+   end
+
+   Mpi.Barrier(comm)
+end
 -- Run tests
 test_0(Mpi.COMM_WORLD)
 test_1(Mpi.COMM_WORLD)
@@ -1511,9 +1618,10 @@ test_18(Mpi.COMM_WORLD)
 test_19(Mpi.COMM_WORLD)
 test_20(Mpi.COMM_WORLD)
 test_21(Mpi.COMM_WORLD)
-
 test_22(Mpi.COMM_WORLD)
 test_23(Mpi.COMM_WORLD)
+
+test_24(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
