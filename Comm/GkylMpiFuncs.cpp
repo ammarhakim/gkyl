@@ -12,6 +12,7 @@
 
 // Sizeof operators for various objects
 GET_MPI_OBJ_SIZE(MPI_Status);
+GET_MPI_OBJ_SIZE(MPI_Aint);
 
 // Pre-defined objects and constants
 GET_MPI_OBJECT(Comm, MPI_COMM_WORLD);

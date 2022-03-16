@@ -34,13 +34,14 @@ ffi.cdef [[
   typedef struct MPI_Request_type *MPI_Request;
   typedef struct MPI_Info_type *MPI_Info;
   typedef struct MPI_Win_type *MPI_Win;
-  typedef unsigned MPI_Aint; /* Not sure if this is correct, but it seems to work */
+  typedef ptrdiff_t MPI_Aint;
 
   // size of various objects
   int sizeof_MPI_Status();
   int sizeof_MPI_Group();
   int sizeof_MPI_Comm();
   int sizeof_MPI_Request();
+  int sizeof_MPI_Aint();
 
   // Pre-defined objects and constants
   MPI_Comm get_MPI_COMM_WORLD();
@@ -112,6 +113,7 @@ ffi.cdef [[
     oldtype, MPI_Datatype *newtype);
   int MPI_Type_commit(MPI_Datatype * datatype);
   int MPI_Type_free(MPI_Datatype *datatype);
+  int MPI_Get_address(const void *location, MPI_Aint *address);
 
   // Win & SHM calls
   int MPI_Comm_split_type(MPI_Comm comm, int split_type, int key, MPI_Info info, MPI_Comm *newcomm);
@@ -226,6 +228,7 @@ _M.UNWEIGHTED       = ffiC.get_MPI_UNWEIGHTED()
 
 -- Object sizes
 _M.SIZEOF_STATUS = ffiC.sizeof_MPI_Status()
+_M.SIZEOF_AINT   = ffiC.sizeof_MPI_Aint()
 
 -- Datatypes
 _M.CHAR            = ffiC.get_MPI_CHAR()
@@ -294,6 +297,17 @@ end
 local function new_MPI_Datatype()
    return new("MPI_Datatype[1]")
 end
+local function new_MPI_Datatype_vec(sz)
+   local sz = sz or 1
+   return new("MPI_Datatype*[?]", sz)
+end
+local function new_MPI_Aint()
+   return new("MPI_Aint*[1]")
+end
+local function new_MPI_Aint_vec(sz)
+   local sz = sz or 1
+   return new("MPI_Aint[?]", sz)
+end
 
 -- de-reference if object is a pointer
 local function getObj(obj, ptyp)
@@ -322,6 +336,10 @@ function _M.Comm()  return new_MPI_Comm() end
 function _M.Group()  return new_MPI_Group() end
 -- MPI_Datatype object
 function _M.MPI_Datatype() return new_MPI_Datatype() end
+function _M.MPI_Datatype_vec(sz) return new_MPI_Datatype_vec(sz) end
+-- MPI_Aint object
+function _M.MPI_Aint() return new_MPI_Aint() end
+function _M.MPI_Aint_vec(sz) return new_MPI_Aint_vec(sz) end
 
 -- MPI_Comm_rank
 function _M.Comm_rank(comm)
@@ -421,6 +439,12 @@ end
 -- MPI_Type_free
 function _M.Type_free(datatype)
    local _ = ffiC.MPI_Type_free(datatype)
+end
+-- int MPI_Get_address(const void *location, MPI_Aint *address)
+function _M.Get_address(location)
+   local newAddress = new_MPI_Aint()
+   local _ = ffiC.MPI_Get_address(location, getObj(datatype, "MPI_Datatype*[1]"))
+   return newAddress
 end
 
 -- MPI_Get_count
@@ -629,6 +653,13 @@ function _M.Neighbor_alltoallv(sendbuf, sendcounts, sdispls, sendtype, recvbuf, 
                                         recvbuf, recvcounts, rdispls, getObj(recvtype, "MPI_Datatype[1]"),
                                         getObj(comm, "MPI_Comm[1]"));
 end
+-- MPI_Neighbor_alltoallw.
+function _M.Neighbor_alltoallw(sendbuf, sendcounts, sdispls, sendtypes, recvbuf, recvcounts, rdispls, recvtypes, comm)
+  local _ = ffiC.MPI_Neighbor_alltoallw(sendbuf, sendcounts, sdispls, getObj(sendtypes, "MPI_Datatype[1]"),
+                                        recvbuf, recvcounts, rdispls, getObj(recvtypes, "MPI_Datatype[1]"),
+                                        getObj(comm, "MPI_Comm[1]"));
+end
+
 
 -- Convenience functions (these are not wrappers over MPI but make
 -- some things a little cleaner)
