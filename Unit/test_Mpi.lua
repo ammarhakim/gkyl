@@ -1568,6 +1568,7 @@ function test_24(comm)
    -- { 0, data[1] from rank 3, data[2] from rank 3, data[4] from rank 3, data[5] from rank 3}
    -- We will use MPI_Type_vectors for this.
    local dataGlobal = Lin.Vec(10)
+   for i = 1, 10 do dataGlobal[i] = 0. end
 
    -- Construct the send MPI datatype.
    local count, blocklength, stride = 2, 2, 3
@@ -1588,49 +1589,32 @@ function test_24(comm)
 
    local sendCounts, recvCounts = Lin.IntVec(2), Lin.IntVec(2)
    local sendDispls, recvDispls = Mpi.MPI_Aint_vec(2), Mpi.MPI_Aint_vec(2)
---   local sendDispls, recvDispls = Lin.IntVec(2), Lin.IntVec(2)
 
    sendCounts[1], sendCounts[2] = 1, 1
    recvCounts[1], recvCounts[2] = 1, 1
---   sendDispls[1] = Mpi.Get_address(data:data()+1)
---   sendDispls[1], sendDispls[2] = Mpi.Get_address(data:data()+1), 0
---   sendDispls[1], sendDispls[2] = 0, 0
---   recvDispls[1], recvDispls[2] = 0, 5*sizeof(Mpi.DOUBLE)
    sendDispls[0], sendDispls[0] = 0, 0
    recvDispls[0], recvDispls[1] = 0, 5*sizeof(Mpi.DOUBLE)
---   Mpi.Neighbor_alltoallw(data:data()+1, sendCounts:data(), sendDispls:data(), sendType,
---                          dataGlobal:data()+1, recvCounts:data(), recvDispls:data(), recvType, graphComm)
    Mpi.Neighbor_alltoallw(data:data()+1, sendCounts:data(), sendDispls, sendType,
                           dataGlobal:data()+1, recvCounts:data(), recvDispls, recvType, graphComm)
 
- --  -- Could also do it without MPI data types as follows:
- --  sendCounts[1], sendCounts[2] = 6, 6
- --  recvCounts[1], recvCounts[2] = 6, 6
- --  sendDispls[1], sendDispls[2] = 0, 0
- --  recvDispls[1], recvDispls[2] = 0, count*blocklength
- --  Mpi.Neighbor_alltoallv(data:data(), sendCounts:data(), sendDispls:data(), Mpi.DOUBLE,
- --                         dataGlobal:data(), recvCounts:data(), recvDispls:data(), Mpi.DOUBLE, graphComm)
-
    Mpi.Barrier(comm)
 
-   --if rank==0 or rank==1 then
-   --   assert_equal(-3          , dataGlobal[1 ], "test_23: dataGlobal[1 ] in rank=0,1 is erroneous.")
-   --   assert_equal(math.pi*2+2., dataGlobal[2 ], "test_23: dataGlobal[2 ] in rank=0,1 is erroneous.")
-   --   assert_equal(math.pi*2+3., dataGlobal[3 ], "test_23: dataGlobal[3 ] in rank=0,1 is erroneous.")
-   --   assert_equal(-12         , dataGlobal[4 ], "test_23: dataGlobal[4 ] in rank=0,1 is erroneous.")
-   --   assert_equal(math.pi*2+5., dataGlobal[5 ], "test_23: dataGlobal[5 ] in rank=0,1 is erroneous.")
-   --   assert_equal(math.pi*2+6., dataGlobal[6 ], "test_23: dataGlobal[6 ] in rank=0,1 is erroneous.")
-   --   assert_equal(-4          , dataGlobal[7 ], "test_23: dataGlobal[7 ] in rank=0,1 is erroneous.")
-   --   assert_equal(math.pi*3+2., dataGlobal[8 ], "test_23: dataGlobal[8 ] in rank=0,1 is erroneous.")
-   --   assert_equal(math.pi*3+3., dataGlobal[9 ], "test_23: dataGlobal[9 ] in rank=0,1 is erroneous.")
-   --   assert_equal(-16         , dataGlobal[10], "test_23: dataGlobal[10] in rank=0,1 is erroneous.")
-   --   assert_equal(math.pi*3+5., dataGlobal[11], "test_23: dataGlobal[11] in rank=0,1 is erroneous.")
-   --   assert_equal(math.pi*3+6., dataGlobal[12], "test_23: dataGlobal[12] in rank=0,1 is erroneous.")
-   --else
-   --   for i = 1, #dataGlobal do
-   --     assert_equal(dataGlobal[i], 0., "test_21: dataGlobal is erroneous in rank=2,3.")
-   --   end
-   --end
+   if rank==0 or rank==1 then
+      assert_equal(0.          , dataGlobal[1 ], "test_24: dataGlobal[1 ] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*2+2., dataGlobal[2 ], "test_24: dataGlobal[2 ] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*2+3., dataGlobal[3 ], "test_24: dataGlobal[3 ] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*2+5., dataGlobal[4 ], "test_24: dataGlobal[4 ] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*2+6., dataGlobal[5 ], "test_24: dataGlobal[5 ] in rank=0,1 is erroneous.")
+      assert_equal(0.          , dataGlobal[6 ], "test_24: dataGlobal[6 ] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*3+2., dataGlobal[7 ], "test_24: dataGlobal[7 ] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*3+3., dataGlobal[8 ], "test_24: dataGlobal[8 ] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*3+5., dataGlobal[9 ], "test_24: dataGlobal[9 ] in rank=0,1 is erroneous.")
+      assert_equal(math.pi*3+6., dataGlobal[10], "test_24: dataGlobal[10] in rank=0,1 is erroneous.")
+   else
+      for i = 1, #dataGlobal do
+        assert_equal(dataGlobal[i], 0., "test_24: dataGlobal is erroneous in rank=2,3.")
+      end
+   end
 
 end
 

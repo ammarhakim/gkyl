@@ -36,7 +36,7 @@ ffi.cdef [[
   typedef struct MPI_Request_type *MPI_Request;
   typedef struct MPI_Info_type *MPI_Info;
   typedef struct MPI_Win_type *MPI_Win;
-  typedef unsigned MPI_Aint; /* Not sure if this is correct, but it seems to work */
+  typedef ptrdiff_t MPI_Aint; /* Not sure if this is correct, but it seems to work */
 
   // size of various objects
   int sizeof_MPI_Status();
