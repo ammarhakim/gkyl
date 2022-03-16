@@ -657,6 +657,8 @@ function _M.Neighbor_alltoallv(sendbuf, sendcounts, sdispls, sendtype, recvbuf, 
 end
 -- MPI_Neighbor_alltoallw.
 function _M.Neighbor_alltoallw(sendbuf, sendcounts, sdispls, sendtypes, recvbuf, recvcounts, rdispls, recvtypes, comm)
+  -- Here we assume sendtypes and recvtypes is an array of MPI_Datatype, so we don't need to getObj
+  -- as in previous functions, otherwise it would pick the first type only and not the whole array.
   local _ = ffiC.MPI_Neighbor_alltoallw(sendbuf, sendcounts, sdispls, sendtypes,
                                         recvbuf, recvcounts, rdispls, recvtypes,
                                         getObj(comm, "MPI_Comm[1]"));

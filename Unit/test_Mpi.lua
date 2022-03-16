@@ -1563,54 +1563,55 @@ function test_24(comm)
    data[1] = -1*(rank+1)
    data[4] = -4*(rank+1)
 
-   -- Have ranks 0 and 1 gather elements 2-3 and 5-6 from ranks 2 and 3:
-   -- Construct a vector MPI datatype for this.
+   -- We wish ranks 0 and 1 to end with an array that has
+   -- { 0, data[1] from rank 2, data[2] from rank 2, data[4] from rank 2, data[5] from rank 2,
+   -- { 0, data[1] from rank 3, data[2] from rank 3, data[4] from rank 3, data[5] from rank 3}
+   -- We will use MPI_Type_vectors for this.
+   local dataGlobal = Lin.Vec(10)
+
+   -- Construct the send MPI datatype.
    local count, blocklength, stride = 2, 2, 3
-   local sendTypeT = {-1,-1}
-   sendTypeT[1] = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
-   sendTypeT[2] = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
    local sendType = Mpi.MPI_Datatype_vec(2)
-   sendType[0] = sendTypeT[1][0]
-   sendType[1] = sendTypeT[2][0]
+   sendType[0] = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)[0]
+   sendType[1] = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)[0]
    Mpi.Type_commit(sendType)
---   Mpi.Type_commit(sendType[1])
+   Mpi.Type_commit(sendType+1)
 
    -- The receiver will put them all in a compressed buffer, with one empty
    -- element in between what's received from rank 2 and rank 3.
    local count, blocklength, stride = 2, 2, 2
-   local recvTypeT = {-1,-1}
-   recvTypeT[1] = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
-   recvTypeT[2] = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
    local recvType = Mpi.MPI_Datatype_vec(2)
-   recvType[0] = recvTypeT[1][0]
-   recvType[1] = recvTypeT[2][0]
+   recvType[0] = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)[0]
+   recvType[1] = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)[0]
    Mpi.Type_commit(recvType)
---   Mpi.Type_commit(recvType[1])
-
-   local dataGlobal = Lin.Vec(count*blocklength*2+1)
+   Mpi.Type_commit(recvType+1)
 
    local sendCounts, recvCounts = Lin.IntVec(2), Lin.IntVec(2)
---   local sendDispls, recvDispls = Mpi.MPI_Aint_vec(2), Mpi.MPI_Aint_vec(2)
-   local sendDispls, recvDispls = Lin.IntVec(2), Lin.IntVec(2)
+   local sendDispls, recvDispls = Mpi.MPI_Aint_vec(2), Mpi.MPI_Aint_vec(2)
+--   local sendDispls, recvDispls = Lin.IntVec(2), Lin.IntVec(2)
 
    sendCounts[1], sendCounts[2] = 1, 1
    recvCounts[1], recvCounts[2] = 1, 1
 --   sendDispls[1] = Mpi.Get_address(data:data()+1)
 --   sendDispls[1], sendDispls[2] = Mpi.Get_address(data:data()+1), 0
-   sendDispls[1], sendDispls[2] = 0, 0
-   recvDispls[1], recvDispls[2] = 0, 5*sizeof(Mpi.DOUBLE)
-   Mpi.Neighbor_alltoallw(data:data()+1, sendCounts:data(), sendDispls:data(), sendType,
-                          dataGlobal:data()+1, recvCounts:data(), recvDispls:data(), recvType, graphComm)
+--   sendDispls[1], sendDispls[2] = 0, 0
+--   recvDispls[1], recvDispls[2] = 0, 5*sizeof(Mpi.DOUBLE)
+   sendDispls[0], sendDispls[0] = 0, 0
+   recvDispls[0], recvDispls[1] = 0, 5*sizeof(Mpi.DOUBLE)
+--   Mpi.Neighbor_alltoallw(data:data()+1, sendCounts:data(), sendDispls:data(), sendType,
+--                          dataGlobal:data()+1, recvCounts:data(), recvDispls:data(), recvType, graphComm)
+   Mpi.Neighbor_alltoallw(data:data()+1, sendCounts:data(), sendDispls, sendType,
+                          dataGlobal:data()+1, recvCounts:data(), recvDispls, recvType, graphComm)
 
--- --  -- Could also do it without MPI data types as follows:
--- --  sendCounts[1], sendCounts[2] = 6, 6
--- --  recvCounts[1], recvCounts[2] = 6, 6
--- --  sendDispls[1], sendDispls[2] = 0, 0
--- --  recvDispls[1], recvDispls[2] = 0, count*blocklength
--- --  Mpi.Neighbor_alltoallv(data:data(), sendCounts:data(), sendDispls:data(), Mpi.DOUBLE,
--- --                         dataGlobal:data(), recvCounts:data(), recvDispls:data(), Mpi.DOUBLE, graphComm)
+ --  -- Could also do it without MPI data types as follows:
+ --  sendCounts[1], sendCounts[2] = 6, 6
+ --  recvCounts[1], recvCounts[2] = 6, 6
+ --  sendDispls[1], sendDispls[2] = 0, 0
+ --  recvDispls[1], recvDispls[2] = 0, count*blocklength
+ --  Mpi.Neighbor_alltoallv(data:data(), sendCounts:data(), sendDispls:data(), Mpi.DOUBLE,
+ --                         dataGlobal:data(), recvCounts:data(), recvDispls:data(), Mpi.DOUBLE, graphComm)
 
-   --Mpi.Barrier(comm)
+   Mpi.Barrier(comm)
 
    --if rank==0 or rank==1 then
    --   assert_equal(-3          , dataGlobal[1 ], "test_23: dataGlobal[1 ] in rank=0,1 is erroneous.")
