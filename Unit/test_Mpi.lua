@@ -1566,33 +1566,41 @@ function test_24(comm)
    -- Have ranks 0 and 1 gather elements 2-3 and 5-6 from ranks 2 and 3:
    -- Construct a vector MPI datatype for this.
    local count, blocklength, stride = 2, 2, 3
+   local sendTypeT = {-1,-1}
+   sendTypeT[1] = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
+   sendTypeT[2] = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
    local sendType = Mpi.MPI_Datatype_vec(2)
-   sendType[0] = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
-   sendType[1] = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
-   Mpi.Type_commit(sendType[0])
-   Mpi.Type_commit(sendType[1])
+   sendType[0] = sendTypeT[1][0]
+   sendType[1] = sendTypeT[2][0]
+   Mpi.Type_commit(sendType)
+--   Mpi.Type_commit(sendType[1])
 
    -- The receiver will put them all in a compressed buffer, with one empty
    -- element in between what's received from rank 2 and rank 3.
    local count, blocklength, stride = 2, 2, 2
+   local recvTypeT = {-1,-1}
+   recvTypeT[1] = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
+   recvTypeT[2] = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
    local recvType = Mpi.MPI_Datatype_vec(2)
-   recvType[0] = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
-   recvType[1] = Mpi.Type_vector(count, blocklength, stride, Mpi.DOUBLE)
-   Mpi.Type_commit(recvType[0])
-   Mpi.Type_commit(recvType[1])
+   recvType[0] = recvTypeT[1][0]
+   recvType[1] = recvTypeT[2][0]
+   Mpi.Type_commit(recvType)
+--   Mpi.Type_commit(recvType[1])
 
    local dataGlobal = Lin.Vec(count*blocklength*2+1)
 
    local sendCounts, recvCounts = Lin.IntVec(2), Lin.IntVec(2)
-   local sendDispls, recvDispls = Mpi.MPI_Aint_vec(2), Mpi.MPI_Aint_vec(2)
+--   local sendDispls, recvDispls = Mpi.MPI_Aint_vec(2), Mpi.MPI_Aint_vec(2)
+   local sendDispls, recvDispls = Lin.IntVec(2), Lin.IntVec(2)
 
    sendCounts[1], sendCounts[2] = 1, 1
    recvCounts[1], recvCounts[2] = 1, 1
-   sendDispls[1] = Mpi.Get_address(data:data()+1)
+--   sendDispls[1] = Mpi.Get_address(data:data()+1)
 --   sendDispls[1], sendDispls[2] = Mpi.Get_address(data:data()+1), 0
---   recvDispls[1], recvDispls[2] = 0, 5*sizeof(Mpi.DOUBLE)
-   --Mpi.Neighbor_alltoallv(data:data()+1, sendCounts:data(), sendDispls:data(), sendType,
-   --                       dataGlobal:data()+1, recvCounts:data(), recvDispls:data(), recvType, graphComm)
+   sendDispls[1], sendDispls[2] = 0, 0
+   recvDispls[1], recvDispls[2] = 0, 5*sizeof(Mpi.DOUBLE)
+   Mpi.Neighbor_alltoallw(data:data()+1, sendCounts:data(), sendDispls:data(), sendType,
+                          dataGlobal:data()+1, recvCounts:data(), recvDispls:data(), recvType, graphComm)
 
 -- --  -- Could also do it without MPI data types as follows:
 -- --  sendCounts[1], sendCounts[2] = 6, 6

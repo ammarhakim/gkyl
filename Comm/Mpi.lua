@@ -24,6 +24,8 @@ local timeMpiBarrier = 0.0
 
 local _M = {}
 
+--  typedef ptrdiff_t MPI_Aint;
+
 ffi.cdef [[
   // Opaque types
   typedef struct MPI_Comm_type *MPI_Comm;
@@ -34,7 +36,7 @@ ffi.cdef [[
   typedef struct MPI_Request_type *MPI_Request;
   typedef struct MPI_Info_type *MPI_Info;
   typedef struct MPI_Win_type *MPI_Win;
-  typedef ptrdiff_t MPI_Aint;
+  typedef unsigned MPI_Aint; /* Not sure if this is correct, but it seems to work */
 
   // size of various objects
   int sizeof_MPI_Status();
@@ -299,7 +301,7 @@ local function new_MPI_Datatype()
 end
 local function new_MPI_Datatype_vec(sz)
    local sz = sz or 1
-   return new("MPI_Datatype*[?]", sz)
+   return new("MPI_Datatype[?]", sz)
 end
 local function new_MPI_Aint()
    return new("MPI_Aint*[1]")
@@ -655,8 +657,8 @@ function _M.Neighbor_alltoallv(sendbuf, sendcounts, sdispls, sendtype, recvbuf, 
 end
 -- MPI_Neighbor_alltoallw.
 function _M.Neighbor_alltoallw(sendbuf, sendcounts, sdispls, sendtypes, recvbuf, recvcounts, rdispls, recvtypes, comm)
-  local _ = ffiC.MPI_Neighbor_alltoallw(sendbuf, sendcounts, sdispls, getObj(sendtypes, "MPI_Datatype[1]"),
-                                        recvbuf, recvcounts, rdispls, getObj(recvtypes, "MPI_Datatype[1]"),
+  local _ = ffiC.MPI_Neighbor_alltoallw(sendbuf, sendcounts, sdispls, sendtypes,
+                                        recvbuf, recvcounts, rdispls, recvtypes,
                                         getObj(comm, "MPI_Comm[1]"));
 end
 
