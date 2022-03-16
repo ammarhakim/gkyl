@@ -1587,15 +1587,29 @@ function test_24(comm)
    Mpi.Type_commit(recvType)
    Mpi.Type_commit(recvType+1)
 
+   -- Counts =1 since we are using MPI derived data types.
    local sendCounts, recvCounts = Lin.IntVec(2), Lin.IntVec(2)
-   local sendDispls, recvDispls = Mpi.MPI_Aint_vec(2), Mpi.MPI_Aint_vec(2)
-
    sendCounts[1], sendCounts[2] = 1, 1
    recvCounts[1], recvCounts[2] = 1, 1
+
+   local sendDispls, recvDispls = Mpi.MPI_Aint_vec(2), Mpi.MPI_Aint_vec(2)
+   -- Send displacements are 0 since we'll pass globalData[1] as the send
+   -- buffer. Receive displacements are 0 for the first 4 elements received
+   -- but 5*sizeof(double) for the next 4 elements.
    sendDispls[0], sendDispls[0] = 0, 0
    recvDispls[0], recvDispls[1] = 0, 5*sizeof(Mpi.DOUBLE)
    Mpi.Neighbor_alltoallw(data:data()+1, sendCounts:data(), sendDispls, sendType,
                           dataGlobal:data()+1, recvCounts:data(), recvDispls, recvType, graphComm)
+---- ......................................
+--   -- There's another way to set the displacements. One uses MPI_Bottom as the
+--   -- buffer, and places the desired addresses in the displacements.
+--   sendDispls[0] = Mpi.Get_address(data:data()+1)[0]
+--   sendDispls[1] = Mpi.Get_address(data:data()+1)[0]
+--   recvDispls[0] = Mpi.Get_address(dataGlobal:data()+1)[0]
+--   recvDispls[1] = Mpi.Get_address(dataGlobal:data()+6)[0]
+--   Mpi.Neighbor_alltoallw(Mpi.BOTTOM, sendCounts:data(), sendDispls, sendType,
+--                          Mpi.BOTTOM, recvCounts:data(), recvDispls, recvType, graphComm)
+---- ......................................
 
    Mpi.Barrier(comm)
 

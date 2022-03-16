@@ -70,6 +70,7 @@ extern "C" {
     DECL_INT_OBJECT(MPI_ORDER_C);
     DECL_INT_OBJECT(MPI_ORDER_FORTRAN);
     DECL_INT_OBJECT_PTR(MPI_UNWEIGHTED);
+    DECL_VOID_OBJECT_PTR(MPI_BOTTOM);
 
     // Some utility functions to allow accessing non-opaque MPI types
 

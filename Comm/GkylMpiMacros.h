@@ -17,6 +17,8 @@
 #define DECL_INT_OBJECT(value) int get_##value()
 #define GET_INT_OBJECT_PTR(value) int *get_##value() { return value; }
 #define DECL_INT_OBJECT_PTR(value) int *get_##value()
+#define DECL_VOID_OBJECT_PTR(value) void *get_##value()
+#define GET_VOID_OBJECT_PTR(value) void *get_##value() { return value; }
 
 // Macros to declare/define functions to get MPI object pointers
 #define GET_MPI_OBJECT_PTR(type, value) MPI_##type *getPtr_##value() { return value; }

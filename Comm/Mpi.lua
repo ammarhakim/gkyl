@@ -58,6 +58,7 @@ ffi.cdef [[
   int get_MPI_ORDER_C();
   int get_MPI_ORDER_FORTRAN();
   int * get_MPI_UNWEIGHTED();
+  void * get_MPI_BOTTOM();
 
   // Datatypes
   MPI_Datatype get_MPI_CHAR();
@@ -227,6 +228,7 @@ _M.UNDEFINED        = ffiC.get_MPI_UNDEFINED()
 _M.ORDER_C          = ffiC.get_MPI_ORDER_C()
 _M.ORDER_FORTRAN    = ffiC.get_MPI_ORDER_FORTRAN()
 _M.UNWEIGHTED       = ffiC.get_MPI_UNWEIGHTED()
+_M.BOTTOM           = ffiC.get_MPI_BOTTOM()
 
 -- Object sizes
 _M.SIZEOF_STATUS = ffiC.sizeof_MPI_Status()
@@ -304,7 +306,7 @@ local function new_MPI_Datatype_vec(sz)
    return new("MPI_Datatype[?]", sz)
 end
 local function new_MPI_Aint()
-   return new("MPI_Aint*[1]")
+   return new("MPI_Aint[1]")
 end
 local function new_MPI_Aint_vec(sz)
    local sz = sz or 1
@@ -445,7 +447,7 @@ end
 -- int MPI_Get_address(const void *location, MPI_Aint *address)
 function _M.Get_address(location)
    local newAddress = new_MPI_Aint()
-   local _ = ffiC.MPI_Get_address(location, getObj(datatype, "MPI_Datatype*[1]"))
+   local _ = ffiC.MPI_Get_address(location, newAddress)
    return newAddress
 end
 
