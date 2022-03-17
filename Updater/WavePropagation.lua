@@ -376,7 +376,7 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
          winp.cfl = self._cfl
          local mapc2p, ctx = nil, nil
          winp.geom = ffi.C.gkyl_wave_geom_new(
-            winp.grid, qOut._localRange, mapc2p, ctx);
+            winp.grid, qOut._localExtRange, mapc2p, ctx);
          self._zero = ffi.C.gkyl_wave_prop_new(winp)
 
          self._isFirst = false
