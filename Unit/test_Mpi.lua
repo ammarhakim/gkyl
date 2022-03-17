@@ -1169,8 +1169,11 @@ function test_19(comm)
    for d = 1, outdeg do destw[d] = 1 end
 
    local reorder = 0
-   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, srcw,
-                                                    outdeg, dest, destw, Mpi.INFO_NULL, reorder)
+   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, srcw:data(),
+                                                    outdeg, dest, destw:data(), Mpi.INFO_NULL, reorder)
+--   -- Could also use UNWEIGHTED since the weights are not being used.
+--   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, Mpi.UNWEIGHTED,
+--                                                    outdeg, dest, Mpi.UNWEIGHTED, Mpi.INFO_NULL, reorder)
    Mpi.Barrier(comm)
 
    -- Check graph:
@@ -1235,8 +1238,11 @@ function test_20(comm)
    for d = 1, outdeg do destw[d] = 1 end
 
    local reorder = 0
-   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, srcw,
-                                                    outdeg, dest, destw, Mpi.INFO_NULL, reorder)
+   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, srcw:data(),
+                                                    outdeg, dest, destw:data(), Mpi.INFO_NULL, reorder)
+--   -- Could also use UNWEIGHTED since the weights are not being used.
+--   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, Mpi.UNWEIGHTED,
+--                                                    outdeg, dest, Mpi.UNWEIGHTED, Mpi.INFO_NULL, reorder)
 
    Mpi.Barrier(comm)
 
@@ -1302,8 +1308,11 @@ function test_21(comm)
    for d = 1, outdeg do destw[d] = 1 end
 
    local reorder = 0
-   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, srcw,
-                                                    outdeg, dest, destw, Mpi.INFO_NULL, reorder)
+   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, srcw:data(),
+                                                    outdeg, dest, destw:data(), Mpi.INFO_NULL, reorder)
+--   -- Could also use UNWEIGHTED since the weights are not being used.
+--   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, Mpi.UNWEIGHTED,
+--                                                    outdeg, dest, Mpi.UNWEIGHTED, Mpi.INFO_NULL, reorder)
 
    Mpi.Barrier(comm)
 
@@ -1377,12 +1386,9 @@ function test_22(comm)
    elseif rank==3 then
       src[1], dest[1] = 2, 0
    end
-   local srcw, destw = Lin.IntVec(indeg), Lin.IntVec(outdeg)
-   for d = 1, indeg do srcw[d] = 1 end
-   for d = 1, outdeg do destw[d] = 1 end
    local reorder = 0
-   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, srcw,
-                                                    outdeg, dest, destw, Mpi.INFO_NULL, reorder)
+   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, Mpi.UNWEIGHTED,
+                                                    outdeg, dest, Mpi.UNWEIGHTED, Mpi.INFO_NULL, reorder)
    Mpi.Barrier(comm)
 
    local numE = 6
@@ -1442,12 +1448,9 @@ function test_23(comm)
       src, dest     = Lin.IntVec(indeg), Lin.IntVec(outdeg)
       dest[1], dest[2] = 0, 1
    end
-   local srcw, destw = Lin.IntVec(indeg), Lin.IntVec(outdeg)
-   for d = 1, indeg do srcw[d] = 1 end
-   for d = 1, outdeg do destw[d] = 1 end
    local reorder = 0
-   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, srcw,
-                                                    outdeg, dest, destw, Mpi.INFO_NULL, reorder)
+   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, Mpi.UNWEIGHTED,
+                                                    outdeg, dest, Mpi.UNWEIGHTED, Mpi.INFO_NULL, reorder)
 
 
    local data = Lin.Vec(7)
@@ -1554,8 +1557,11 @@ function test_24(comm)
    for d = 1, indeg do srcw[d] = 1 end
    for d = 1, outdeg do destw[d] = 1 end
    local reorder = 0
-   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, srcw,
-                                                    outdeg, dest, destw, Mpi.INFO_NULL, reorder)
+   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, srcw:data(),
+                                                    outdeg, dest, destw:data(), Mpi.INFO_NULL, reorder)
+--   -- Could also use UNWEIGHTED since the weights are not being used.
+--   local graphComm = Mpi.Dist_graph_create_adjacent(comm, indeg, src, Mpi.UNWEIGHTED,
+--                                                    outdeg, dest, Mpi.UNWEIGHTED, Mpi.INFO_NULL, reorder)
 
 
    local data = Lin.Vec(7)

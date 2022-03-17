@@ -616,7 +616,7 @@ function _M.Dist_graph_create_adjacent(comm_old, indegree, sources, sourceweight
                                        destweights, info, reorder)
    local comm_dist_graph = new_MPI_Comm()
    local _ = ffiC.MPI_Dist_graph_create_adjacent(getObj(comm_old, "MPI_Comm[1]"), indegree, sources:data(),
-      sourceweights:data(), outdegree, destinations:data(), destweights:data(), info, reorder,
+      sourceweights, outdegree, destinations:data(), destweights, info, reorder,
       comm_dist_graph)
    return comm_dist_graph
 end

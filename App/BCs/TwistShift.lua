@@ -53,7 +53,6 @@ function TwistShiftBC:setName(nm) self.name = self.speciesName.."_"..nm end
 
 function TwistShiftBC:createSolver(mySpecies, field, externalField)
 
---   print("arrived", self.bcEdge)
    self.basis, self.grid = mySpecies.basis, mySpecies.grid
    self.ndim, self.cdim, self.vdim = self.grid:ndim(), self.confGrid:ndim(), self.grid:ndim()-self.confGrid:ndim()
 
@@ -400,32 +399,41 @@ function TwistShiftBC:createGraphComm()
    -- y range with the same ID along x:
    local yRecvRange = xyRecvRange:extendDir(xDir,-myCutsIdx[xDir]+xyRecvRange:lower(xDir),
                                                   myCutsIdx[xDir]-xyRecvRange:upper(xDir))
-   local srcNum, destNum, isSendRank
+   local srcNum, destNum = 0, 0
+   local isRecvRank, isSendRank
    if xyRecvRange:contains(myCutsIdx) then  -- This is a receiving rank.
-      srcNum, destNum = yRecvRange:volume(), 0
-      isSendRank = false
-   elseif xySendRange:contains(myCutsIdx) then -- This is a sending rank.
-      srcNum, destNum = 0, yRecvRange:volume()
+      srcNum = yRecvRange:volume()
+      isRecvRank = true
+   end
+   if xySendRange:contains(myCutsIdx) then -- This is a sending rank.
+      destNum = yRecvRange:volume()
       isSendRank = true
    end
 
-   if isSendRank ~= nil then  -- Only sending/receiving ranks participate.
+   if isRecvRank or isSendRank then  -- Only sending/receiving ranks participate.
 
       -- List ranks along z boundaries starting with the lower-z boundary.
-      local zSkinGroupRanks = Lin.IntVec(xyRecvRange:volume()+xySendRange:volume())
+      local zSkinRanksNum = decompRange:cuts(self.bcDir) > 1 and xyRecvRange:volume()+xySendRange:volume()
+                                                              or xyRecvRange:volume()
+      local zSkinGroupRanks = Lin.IntVec(zSkinRanksNum)
       local zLoRange = self.bcEdge == "lower" and xyRecvRange or xySendRange
       local zUpRange = self.bcEdge == "upper" and xyRecvRange or xySendRange
       local i = 0
       for idx in zLoRange:colMajorIter() do
          i = i+1;  zSkinGroupRanks[i] = cutsIdxr(idx)-1
       end
-      for idx in zUpRange:colMajorIter() do
-         i = i+1;  zSkinGroupRanks[i] = cutsIdxr(idx)-1
+      if decompRange:cuts(self.bcDir) > 1 then
+         for idx in zUpRange:colMajorIter() do
+            i = i+1;  zSkinGroupRanks[i] = cutsIdxr(idx)-1
+         end
       end
 
       local nodeComm  = self.grid:commSet().comm
       local nodeGroup = Mpi.Comm_group(nodeComm)
       -- Create a group/comm of the ranks along the z-boundary.
+--      local str = ""
+--      for i=1,#zSkinGroupRanks do str=str..tostring(zSkinGroupRanks[i]).."," end
+--      print(string.format("%s r:%d zSkinRanks=%s",self.bcEdge, myId, str))
       self.zSkinGroup = Mpi.Group_incl(nodeGroup, #zSkinGroupRanks, zSkinGroupRanks:data());
       self.zSkinComm  = Mpi.Comm_create_group(nodeComm, self.zSkinGroup, self.bcEdge == "lower" and 0 or 1);
 
@@ -433,35 +441,40 @@ function TwistShiftBC:createGraphComm()
       local j = 0
       local srcIDs  = Lin.IntVec(srcNum)  -- Source rank IDs along y (for this x).
       local destIDs = Lin.IntVec(destNum) -- destination rank IDs along y (for each this x).
+--      print(string.format("%s r:%d | send/recvNum=%d,%d | isSend/Recv=%d %d",self.bcEdge, myId, destNum, srcNum, isSendRank and 1 or 0, isRecvRank and 1 or 0))
       for yIdx in yRecvRange:colMajorIter() do
          local idxRecv, idxSend = yIdx, yIdx:copy()
          idxSend[self.bcDir] = self.bcEdge == "lower" and idxRecv[self.bcDir]+decompRange:cuts(self.bcDir)-1
                                                        or idxRecv[self.bcDir]-decompRange:cuts(self.bcDir)+1
          j = j+1
-         if isSendRank==true then
+         if isSendRank then
             destIDs[j] = cutsIdxr(idxRecv)-1
-         elseif isSendRank==false then
+         end
+         if isRecvRank then
             srcIDs[j]  = cutsIdxr(idxSend)-1
          end
       end
+--      local recvStr = ""
+--      for i=1,#srcIDs do recvStr=recvStr..srcIDs[i].."," end
+--      local sendStr = ""
+--      for i=1,#destIDs do sendStr=sendStr..destIDs[i].."," end
+--      print(string.format("%s r:%d | send/recvNum=%d,%d, sendRanks=%s | recvRanks=%s | isSend/Recv=%d %d",self.bcEdge, myId, destNum,srcNum, sendStr, recvStr, isSendRank and 1 or 0, isRecvRank and 1 or 0))
 
       -- Translate these ranks from the nodeComm to the zSkinComm.
       local destRanks, srcRanks
-      if isSendRank==true then
+      if isSendRank then
          destRanks = Mpi.Group_translate_ranks(nodeGroup, destIDs, self.zSkinGroup)
-         srcRanks  = Lin.IntVec(srcNum)
-      elseif isSendRank==false then
-         destRanks = Lin.IntVec(destNum)
+      end
+      if isRecvRank then
          srcRanks  = Mpi.Group_translate_ranks(nodeGroup, srcIDs, self.zSkinGroup)
       end
+      if srcRanks==nil  then srcRanks  = Lin.IntVec(srcNum)  end -- Needed even if srcNum=0.
+      if destRanks==nil then destRanks = Lin.IntVec(destNum) end -- Needed even if destNum=0.
 
       local reorder = 0
-      local srcW, destW = Lin.IntVec(srcNum), Lin.IntVec(destNum)  -- Weights (not used).
-      for i = 1, srcNum do srcW[i] = 1 end
-      for i = 1, destNum do destW[i] = 1 end
       -- Create a group/comm with only the lower and upper in z ranks.
-      self.graphComm = Mpi.Dist_graph_create_adjacent(self.zSkinComm, srcNum, srcRanks, srcW,
-                                                      destNum, destRanks, destW, Mpi.INFO_NULL, reorder)
+      self.graphComm = Mpi.Dist_graph_create_adjacent(self.zSkinComm, srcNum, srcRanks, Mpi.UNWEIGHTED,
+                                                      destNum, destRanks, Mpi.UNWEIGHTED, Mpi.INFO_NULL, reorder)
 --      local recvStr = ""
 --      for i=1,#srcRanks do recvStr=recvStr..srcRanks[i].."," end
 --      local sendStr = ""
@@ -520,7 +533,8 @@ function TwistShiftBC:createSyncMPIdataTypes(fIn)
    end
 
    local srcNum, destNum, _ = Mpi.Dist_graph_neighbors_count(self.graphComm)
-   self.isRecvRank = srcNum > 0 and true or false
+   isRecvRank = srcNum > 0 and true or false
+   isSendRank = destNum > 0 and true or false
 
    self.recvDataType, self.recvLoc = Mpi.MPI_Datatype_vec(srcNum), 0
    for i = 1, srcNum do self.recvDataType[i-1] = elctCommType end
@@ -539,7 +553,7 @@ function TwistShiftBC:createSyncMPIdataTypes(fIn)
       -- Only create if we are on proper ranks.
       -- Note that if the node communicator has rank size of 1, then we can access all the
       -- memory needed for periodic boundary conditions and we do not need MPI Datatypes.
-      if myId == cId and self.bcEdge == "lower" and self.isRecvRank then
+      if myId == cId and self.bcEdge == "lower" and isRecvRank then
          local rgnRecv = decompRange:subDomain(yLoId):lowerSkin(self.bcDir, self.boundaryField:lowerGhost()):extendDir(1,1,1)
          local idx     = rgnRecv:lowerAsVec()
          -- Set idx to starting point of region you want to recv.
@@ -555,19 +569,19 @@ function TwistShiftBC:createSyncMPIdataTypes(fIn)
          end
 --         print(string.format("%s r:%d id=%d | rgnRecvLower=(%d,%d,%d) rgnRecvUpper=(%d,%d,%d) | idx=(%d,%d,%d) | loc=%d | displ=%s",self.bcEdge,myRank,graphId,rgnRecv:lower(1),rgnRecv:lower(2),rgnRecv:lower(3),rgnRecv:upper(1),rgnRecv:upper(2),rgnRecv:upper(3),idx[1],idx[2],idx[3],self.recvLoc/numComponents,str))
       end
-      if myId == cId and self.bcEdge == "upper" and self.isRecvRank then
+      if myId == cId and self.bcEdge == "upper" and isRecvRank then
          local rgnRecv = decompRange:subDomain(yLoId):upperSkin(self.bcDir, self.boundaryField:upperGhost()):extendDir(1,1,1)
          local idx     = rgnRecv:lowerAsVec()
          -- Set idx to starting point of region you want to recv.
          self.recvLoc      = (indexer(idx)-1)*numComponents
---         local str = ""
+         local str = ""
          for i = 1, srcNum do 
             self.recvDataType[i-1] = Mpi.createDataTypeFromRangeAndSubRange(
                rgnRecv, localExtRange, numComponents, layout, elctCommType)[0]
             idx:copyInto(idxStart)
             idxStart[2] = idx[2]+(i-1)*decompRange:subDomain(yLoId):shape(2)
             self.recvDispl[i-1] = (indexer(idxStart)-1)*numComponents*sizeof(elctCommType)
---            str = str .. tostring((indexer(idxStart)-1)) .. ","
+            str = str .. tostring((indexer(idxStart)-1)) .. ","
          end
 --         print(string.format("%s r:%d id=%d | rgnRecvLower=(%d,%d,%d) rgnRecvUpper=(%d,%d,%d) | idx=(%d,%d,%d) | loc=%d | displ=%s",self.bcEdge,myRank,graphId,rgnRecv:lower(1),rgnRecv:lower(2),rgnRecv:lower(3),rgnRecv:upper(1),rgnRecv:upper(2),rgnRecv:upper(3),idx[1],idx[2],idx[3],self.recvLoc/numComponents,str))
       end
@@ -594,7 +608,7 @@ function TwistShiftBC:createSyncMPIdataTypes(fIn)
       -- Only create if we are on proper ranks.
       -- Note that if the node communicator has rank size of 1, then we can access all the
       -- memory needed for periodic boundary conditions and we do not need MPI Datatypes.
-      if myId == loId and self.bcEdge == "upper" and (not self.isRecvRank) then
+      if myId == loId and self.bcEdge == "upper" and isSendRank then
          local rgnSend = decomposedRange:subDomain(loId):lowerSkin(self.bcDir, fIn:upperGhost()):extendDir(1,1,1)
          local idx = rgnSend:lowerAsVec()
          -- Set idx to starting point of region you want to recv.
@@ -605,7 +619,7 @@ function TwistShiftBC:createSyncMPIdataTypes(fIn)
          end
 --         print(string.format("%s s:%d id=%d | rgnSendLower=(%d,%d,%d) rgnSendUpper=(%d,%d,%d) | idx=(%d,%d,%d) | loc=%d",self.bcEdge,myRank,graphId,rgnSend:lower(1),rgnSend:lower(2),rgnSend:lower(3),rgnSend:upper(1),rgnSend:upper(2),rgnSend:upper(3),idx[1],idx[2],idx[3],self.sendLoc/numComponents))
       end
-      if myId == upId and self.bcEdge == "lower" and (not self.isRecvRank) then
+      if myId == upId and self.bcEdge == "lower" and isSendRank then
          local rgnSend = decomposedRange:subDomain(upId):upperSkin(self.bcDir, fIn:lowerGhost()):extendDir(1,1,1)
          local idx = rgnSend:lowerAsVec()
          -- Set idx to starting point of region you want to recv.
