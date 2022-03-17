@@ -145,9 +145,8 @@ function TwistShiftBC:_advance(tCurr, inFld, outFld)
 
    local cDim = self.cDim
 
-   local indexer   = fldTar:genIndexer()
-   local doIndexer = fldDo:genIndexer()
-   local fldDoItr, fldTarItr = fldDo:get(1), fldTar:get(1)
+   local doIndexer, tarIndexer = fldDo:genIndexer(), fldTar:genIndexer()
+   local fldDoItr, fldTarItr   = fldDo:get(1), fldTar:get(1)
 
    if self.isFirst then
       local global, globalExt, localExtRange = fldTar:globalRange(), fldTar:globalExtRange(), fldTar:localExtRange()
@@ -168,14 +167,14 @@ function TwistShiftBC:_advance(tCurr, inFld, outFld)
 
    for idxTar in self.ghostRangeDecomp:rowMajorIter(tId) do
 
-      fldTar:fill(indexer(idxTar), fldTarItr)
+      fldTar:fill(tarIndexer(idxTar), fldTarItr)
       -- Zero out target cell before operation.
       for k = 1, self.basis:numBasis() do fldTarItr[k] = 0. end
 
       local doCellsC = self.doCells[idxTar[1]][idxTar[2]]
 
       idxTar:copyInto(self.idxDoP)
-      self.idxDoP[3] = 1
+      self.idxDoP[3] = 1  -- Donor is a buffer with one cell in z.
 
       for mI = 1, #doCellsC do
          local idxDo2D = doCellsC[mI]

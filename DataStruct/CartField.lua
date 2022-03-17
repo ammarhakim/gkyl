@@ -908,16 +908,10 @@ local function Field_meta_ctor(elct)
 	    assert(false, "CartField:deviceAbs: Abs only works on numeric fields")
 	 end,
       defaultLayout = function (self)
-	 if defaultLayout == rowMajLayout then
-	    return "row-major"
-	 end
-	 return "col-major"
+	 return defaultLayout
       end,
       layout = function (self)
-	 if self._layout == rowMajLayout then
-	    return "row-major"
-	 end
-	 return "col-major"
+	 return self._layout
       end,
       lowerGhost = function (self)
 	 return self._lowerGhost
