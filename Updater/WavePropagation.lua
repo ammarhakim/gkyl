@@ -101,6 +101,8 @@ struct gkyl_wave_prop_status gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
   const struct gkyl_array *qin, struct gkyl_array *qout);
 
 void gkyl_wave_prop_release(gkyl_wave_prop* up);
+
+void gkyl_wave_geom_release(const struct gkyl_wave_geom* wg);
 ]]
 
 -- Template for function to compute jump
@@ -387,7 +389,10 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
          local mapc2p, ctx = nil, nil
          winp.geom = ffi.C.gkyl_wave_geom_new(
             winp.grid, qOut._localExtRange, mapc2p, ctx);
+
          self._zero = ffi.C.gkyl_wave_prop_new(winp)
+
+         ffi.C.gkyl_wave_geom_release(winp.geom)
 
          self._isFirst = false
       end
