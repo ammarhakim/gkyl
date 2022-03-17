@@ -353,19 +353,19 @@ local array_fn = {
       ffiC.gkyl_array_clear(self.arr, val)
    end,
    set = function (self, val, fld)
-      ffiC.gkyl_array_set(self.arr, val, fld)
+      ffiC.gkyl_array_set(self.arr, val, fld.arr)
    end,
    accumulate = function (self, val, fld)
-      ffiC.gkyl_array_accumulate(self.arr, val, fld)
+      ffiC.gkyl_array_accumulate(self.arr, val, fld.arr)
    end,
    accumulateRange = function (self, val, fld, rng)
-      ffiC.gkyl_array_accumulate_range(self.arr, val, fld, rng)
+      ffiC.gkyl_array_accumulate_range(self.arr, val, fld.arr, rng)
    end,
    scale = function (self, val)
       ffiC.gkyl_array_scale(self.arr, val)
    end,
-   scale_by_cell = function (self, val)
-      ffiC.gkyl_array_scale_by_cell(self.arr, val)
+   scale_by_cell = function (self, a)
+      ffiC.gkyl_array_scale_by_cell(self.arr, a.arr)
    end,
    reduceRange = function (self, out, op, rng)
       if op == "min" then 

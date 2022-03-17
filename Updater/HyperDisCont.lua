@@ -186,7 +186,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 
    if self._zero then
       if self._clearOut then qRhsOut:clear(0.0) end
-      ffiC.gkyl_hyper_dg_advance(self._zero, localRange, qIn._zero, cflRateByCell._zero, qRhsOut._zero)
+      ffiC.gkyl_hyper_dg_advance(self._zero, localRange, qIn._zero.arr, cflRateByCell._zero.arr, qRhsOut._zero.arr)
    else
       -- to store grid info
       local dxp, dxm = Lin.Vec(ndim), Lin.Vec(ndim) -- cell shape on right/left
@@ -320,7 +320,7 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
    local localRange = qRhsOut:localRange()
 
    qRhsOut:clear(0.0)
-   ffiC.gkyl_hyper_dg_advance_cu(self._zero, localRange, qIn._zeroDevice, cflRateByCell._zeroDevice, qRhsOut._zeroDevice)
+   ffiC.gkyl_hyper_dg_advance_cu(self._zero, localRange, qIn._zeroDevice.arr, cflRateByCell._zeroDevice.arr, qRhsOut._zeroDevice.arr)
 end
 
 -- set up pointers to dt and cflRateByCell

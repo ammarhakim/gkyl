@@ -252,7 +252,7 @@ function Vlasov:setAuxFields(auxFields)
          self._isFirst = false   -- No longer first time.
       end
       if self._zero then
-         self._auxfieldsC.qmem = self._emField._zero
+         self._auxfieldsC.qmem = self._emField._zero.arr
          ffiC.gkyl_vlasov_set_auxfields(self._zero, self._auxfieldsC)
       end
    end
