@@ -454,11 +454,6 @@ function TwistShiftBC:createGraphComm()
          destRanks = Lin.IntVec(destNum)
          srcRanks  = Mpi.Group_translate_ranks(nodeGroup, srcIDs, self.zSkinGroup)
       end
---      local recvStr = ""
---      for i=1,#srcRanks do recvStr=recvStr..srcRanks[i].."," end
---      local sendStr = ""
---      for i=1,#destRanks do sendStr=sendStr..destRanks[i].."," end
---      print(string.format("%s r:%d | sendRanks=%s | recvRanks=%s",self.bcEdge, myId-1, sendStr, recvStr))
 
       local reorder = 0
       local srcW, destW = Lin.IntVec(srcNum), Lin.IntVec(destNum)  -- Weights (not used).
@@ -467,12 +462,12 @@ function TwistShiftBC:createGraphComm()
       -- Create a group/comm with only the lower and upper in z ranks.
       self.graphComm = Mpi.Dist_graph_create_adjacent(self.zSkinComm, srcNum, srcRanks, srcW,
                                                       destNum, destRanks, destW, Mpi.INFO_NULL, reorder)
-
-      -- MPI alltoall requires an array with the number of elements sent
-      -- to/received from each rank. Set them to 1 as we use MPIDDs.
-      self.recvCount, self.sendCount = Lin.IntVec(srcNum), Lin.IntVec(destNum)
-      for i = 1, srcNum  do self.recvCount[i] = 1 end
-      for i = 1, destNum do self.sendCount[i] = 1 end
+--      local recvStr = ""
+--      for i=1,#srcRanks do recvStr=recvStr..srcRanks[i].."," end
+--      local sendStr = ""
+--      for i=1,#destRanks do sendStr=sendStr..destRanks[i].."," end
+--      local graphId = Mpi.Comm_rank(self.graphComm)
+--      print(string.format("%s r:%d id=%d | sendRanks=%s | recvRanks=%s",self.bcEdge, myId, graphId, sendStr, recvStr))
    else
       self.zSkinComm, self.graphComm = Mpi.COMM_NULL, Mpi.COMM_NULL
    end
@@ -534,7 +529,8 @@ function TwistShiftBC:createSyncMPIdataTypes(fIn)
    self.recvDispl = Mpi.MPI_Aint_vec(srcNum)
 
    local skelIds = decompRange:boundarySubDomainIds(self.bcDir)
-   local myRank        = self.grid:subGridId() -- Whole grid ID on this processor.
+--   local myRank        = self.grid:subGridId() -- Whole grid ID on this processor.
+--   local graphId = Mpi.Comm_rank(self.graphComm)
    local idxStart = Lin.IntVec(self.boundaryFieldGlobalY:ndim())
    for d = 1,self.boundaryFieldGlobalY:ndim() do idxStart[d] = -9 end
    for i = 1, #skelIds do
@@ -548,32 +544,32 @@ function TwistShiftBC:createSyncMPIdataTypes(fIn)
          local idx     = rgnRecv:lowerAsVec()
          -- Set idx to starting point of region you want to recv.
          self.recvLoc      = (indexer(idx)-1)*numComponents
-         local str = ""
+--         local str = ""
          for i = 1, srcNum do 
             self.recvDataType[i-1] = Mpi.createDataTypeFromRangeAndSubRange(
                rgnRecv, localExtRange, numComponents, layout, elctCommType)[0]
             idx:copyInto(idxStart)
             idxStart[2] = idx[2]+(i-1)*decompRange:subDomain(yLoId):shape(2)
             self.recvDispl[i-1] = (indexer(idxStart)-1)*numComponents*sizeof(elctCommType)
-            str = str .. tostring((indexer(idxStart)-1)) .. ","
+--            str = str .. tostring((indexer(idxStart)-1)) .. ","
          end
---         print(string.format("%s r:%d id=%d | rgnRecvLower=(%d,%d,%d) rgnRecvUpper=(%d,%d,%d) | idx=(%d,%d,%d) | loc=%d | yLoId=%d | displ=%s",self.bcEdge,myRank,myId,rgnRecv:lower(1),rgnRecv:lower(2),rgnRecv:lower(3),rgnRecv:upper(1),rgnRecv:upper(2),rgnRecv:upper(3),idx[1],idx[2],idx[3],self.recvLoc/numComponents,yLoId,str))
+--         print(string.format("%s r:%d id=%d | rgnRecvLower=(%d,%d,%d) rgnRecvUpper=(%d,%d,%d) | idx=(%d,%d,%d) | loc=%d | displ=%s",self.bcEdge,myRank,graphId,rgnRecv:lower(1),rgnRecv:lower(2),rgnRecv:lower(3),rgnRecv:upper(1),rgnRecv:upper(2),rgnRecv:upper(3),idx[1],idx[2],idx[3],self.recvLoc/numComponents,str))
       end
       if myId == cId and self.bcEdge == "upper" and self.isRecvRank then
          local rgnRecv = decompRange:subDomain(yLoId):upperSkin(self.bcDir, self.boundaryField:upperGhost()):extendDir(1,1,1)
          local idx     = rgnRecv:lowerAsVec()
          -- Set idx to starting point of region you want to recv.
          self.recvLoc      = (indexer(idx)-1)*numComponents
-         local str = ""
+--         local str = ""
          for i = 1, srcNum do 
             self.recvDataType[i-1] = Mpi.createDataTypeFromRangeAndSubRange(
                rgnRecv, localExtRange, numComponents, layout, elctCommType)[0]
             idx:copyInto(idxStart)
             idxStart[2] = idx[2]+(i-1)*decompRange:subDomain(yLoId):shape(2)
             self.recvDispl[i-1] = (indexer(idxStart)-1)*numComponents*sizeof(elctCommType)
-            str = str .. tostring((indexer(idxStart)-1)) .. ","
+--            str = str .. tostring((indexer(idxStart)-1)) .. ","
          end
---         print(string.format("%s r:%d id=%d | rgnRecvLower=(%d,%d,%d) rgnRecvUpper=(%d,%d,%d) | idx=(%d,%d,%d) | loc=%d | yLoId=%d | displ=%s",self.bcEdge,myRank,myId,rgnRecv:lower(1),rgnRecv:lower(2),rgnRecv:lower(3),rgnRecv:upper(1),rgnRecv:upper(2),rgnRecv:upper(3),idx[1],idx[2],idx[3],self.recvLoc/numComponents,yLoId,str))
+--         print(string.format("%s r:%d id=%d | rgnRecvLower=(%d,%d,%d) rgnRecvUpper=(%d,%d,%d) | idx=(%d,%d,%d) | loc=%d | displ=%s",self.bcEdge,myRank,graphId,rgnRecv:lower(1),rgnRecv:lower(2),rgnRecv:lower(3),rgnRecv:upper(1),rgnRecv:upper(2),rgnRecv:upper(3),idx[1],idx[2],idx[3],self.recvLoc/numComponents,str))
       end
    end
 
@@ -607,7 +603,7 @@ function TwistShiftBC:createSyncMPIdataTypes(fIn)
             self.sendDataType[i-1] = Mpi.createDataTypeFromRangeAndSubRange(
                rgnSend, localExtRange, numComponents, layout, elctCommType)[0]
          end
---         print(string.format("%s s:%d id=%d | rgnSendLower=(%d,%d,%d) rgnSendUpper=(%d,%d,%d) | idx=(%d,%d,%d) | loc=%d | loId=%d",self.bcEdge,myRank,myId,rgnSend:lower(1),rgnSend:lower(2),rgnSend:lower(3),rgnSend:upper(1),rgnSend:upper(2),rgnSend:upper(3),idx[1],idx[2],idx[3],self.sendLoc/numComponents,loId))
+--         print(string.format("%s s:%d id=%d | rgnSendLower=(%d,%d,%d) rgnSendUpper=(%d,%d,%d) | idx=(%d,%d,%d) | loc=%d",self.bcEdge,myRank,graphId,rgnSend:lower(1),rgnSend:lower(2),rgnSend:lower(3),rgnSend:upper(1),rgnSend:upper(2),rgnSend:upper(3),idx[1],idx[2],idx[3],self.sendLoc/numComponents))
       end
       if myId == upId and self.bcEdge == "lower" and (not self.isRecvRank) then
          local rgnSend = decomposedRange:subDomain(upId):upperSkin(self.bcDir, fIn:lowerGhost()):extendDir(1,1,1)
@@ -618,7 +614,7 @@ function TwistShiftBC:createSyncMPIdataTypes(fIn)
             self.sendDataType[i-1] = Mpi.createDataTypeFromRangeAndSubRange(
                rgnSend, localExtRange, numComponents, layout, elctCommType)[0]
          end
---         print(string.format("%s s:%d id=%d | rgnSendLower=(%d,%d,%d) rgnSendUpper=(%d,%d,%d) | idx=(%d,%d,%d) | loc=%d | upId=%d",self.bcEdge,myRank,myId,rgnSend:lower(1),rgnSend:lower(2),rgnSend:lower(3),rgnSend:upper(1),rgnSend:upper(2),rgnSend:upper(3),idx[1],idx[2],idx[3],self.sendLoc/numComponents,upId))
+--         print(string.format("%s s:%d id=%d | rgnSendLower=(%d,%d,%d) rgnSendUpper=(%d,%d,%d) | idx=(%d,%d,%d) | loc=%d",self.bcEdge,myRank,graphId,rgnSend:lower(1),rgnSend:lower(2),rgnSend:lower(3),rgnSend:upper(1),rgnSend:upper(2),rgnSend:upper(3),idx[1],idx[2],idx[3],self.sendLoc/numComponents))
       end
    end
 
@@ -627,6 +623,11 @@ function TwistShiftBC:createSyncMPIdataTypes(fIn)
    self.sendDispl = Mpi.MPI_Aint_vec(destNum)
    for i = 1, destNum do self.sendDispl[i-1] = 0 end
 
+   -- MPI alltoall requires an array with the number of elements sent
+   -- to/received from each rank. Set them to 1 as we use MPIDDs.
+   self.recvCount, self.sendCount = Lin.IntVec(srcNum), Lin.IntVec(destNum)
+   for i = 1, srcNum  do self.recvCount[i] = 1 end
+   for i = 1, destNum do self.sendCount[i] = 1 end
 end
 
 function TwistShiftBC:zSync(fIn, bufferOut)
@@ -637,55 +638,9 @@ function TwistShiftBC:zSync(fIn, bufferOut)
 
    if not Mpi.Is_comm_valid(self.graphComm) then return end
 
---   Mpi.Neighbor_allgather(fIn:dataPointer()+self.sendLoc, 1, self.sendDataType, 
---                          bufferOut:dataPointer()+self.recvLoc, 1, self.recvDataType,
---                          self.graphComm)
    Mpi.Neighbor_alltoallw(fIn:dataPointer()+self.sendLoc, self.sendCount:data(), self.sendDispl, self.sendDataType, 
                           bufferOut:dataPointer(), self.recvCount:data(), self.recvDispl, self.recvDataType,
                           self.graphComm)
-
-   local comm = self.grid:commSet().nodeComm -- Communicator to use.
-   local myId = self.grid:subGridId() -- Grid ID on this processor.
---   -- The following is a test for decompCuts={1,1,2}.
---   local recvReq
---   if myId==1 and self.bcEdge=="lower"
---      or myId==2 and self.bcEdge=="upper" then
---      local recvId = self.bcEdge=="lower" and 2 or 1
---      recvReq = Mpi.Irecv(bufferOut:dataPointer()+self.recvLoc, 1, self.recvDataType,
---                          recvId-1, 0, comm)
---   else
---      local sendId = self.bcEdge=="lower" and 1 or 2
---      Mpi.Send(fIn:dataPointer()+self.sendLoc, 1, self.sendDataType, sendId-1, 0, comm)
---   end
---
---   if myId==1 and self.bcEdge=="lower"
---      or myId==2 and self.bcEdge=="upper" then
---      Mpi.Wait(recvReq, nil)
---   end
---   -- The following is a test for decompCuts={1,1,2}.
---   local recvReq1, recReq2
---   if (myId<3 and self.bcEdge=="lower")
---      or (myId>2 and self.bcEdge=="upper") then
---      local recvId = self.bcEdge=="lower" and 3 or 1
---      recvReq1 = Mpi.Irecv(bufferOut:dataPointer()+self.recvLoc, 1, self.recvDataType,
---                           recvId-1, 0, comm)
---      local recvId = self.bcEdge=="lower" and 4 or 2
---      recvReq2 = Mpi.Irecv(bufferOut:dataPointer()+self.recvLoc+28, 1, self.recvDataType,
---                           recvId-1, 1, comm)
---   else
---      local sendId = self.bcEdge=="lower" and 1 or 3
---      local sendTag = (myId==1 or myId==3) and 0 or 1
---      Mpi.Send(fIn:dataPointer()+self.sendLoc, 1, self.sendDataType, sendId-1, sendTag, comm)
---      local sendId = self.bcEdge=="lower" and 2 or 4
---      local sendTag = (myId==2 or myId==4) and 1 or 0
---      Mpi.Send(fIn:dataPointer()+self.sendLoc, 1, self.sendDataType, sendId-1, sendTag, comm)
---   end
---
---   if (myId<3 and self.bcEdge=="lower")
---      or (myId>2 and self.bcEdge=="upper") then
---      Mpi.Wait(recvReq1, nil)
---      Mpi.Wait(recvReq2, nil)
---   end
 end
 
 -- These are needed to recycle the GkDiagnostics with TwistShiftBC.
@@ -719,11 +674,11 @@ function TwistShiftBC:advance(tCurr, mySpecies, field, externalField, inIdx, out
 --
 --   -- Copy field ghost cells to boundary field (buffer).
 --   self:evalOnBoundary(fIn)
+--   self.boundaryFieldGlobalY:copy(self.boundaryField)
 --
 --   self.bcSolver:advance(tCurr, {self.boundaryField}, {fIn})
 
    self:zSync(fIn, self.boundaryFieldGlobalY)
---   self.boundaryFieldGlobalY:copy(self.boundaryField)
 --   if self.bcEdge=="upper" then
 --      local comm = self.grid:commSet().nodeComm -- Communicator to use.
 --      local myId = self.grid:subGridId() -- Grid ID on this processor.
