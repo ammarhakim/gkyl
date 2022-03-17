@@ -78,6 +78,8 @@ ffi.cdef [[
 
    struct gkyl_wv_eqn* gkyl_wv_maxwell_new(
       double c, double e_fact, double b_fact);
+
+   void gkyl_wv_eqn_release(const struct gkyl_wv_eqn* eqn);
 /**
  * Create a new Maxwell equation object.
  *
@@ -159,6 +161,14 @@ function PerfMaxwell:init(tbl)
 
    -- gkylzero finite-volume (wave-propaation) equation object
    self._zero_wv = ffi.C.gkyl_wv_maxwell_new(self._c, self._ce, self._cb)
+
+   local prox = newproxy(true)
+   getmetatable(prox).__gc = function()
+      if (self._zero_wv) then
+         ffi.C.gkyl_wv_eqn_release(self._zero_wv)
+      end
+   end
+   self[prox] = true
 end
 
 function PerfMaxwell:initDevice(tbl)

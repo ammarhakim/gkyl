@@ -99,6 +99,8 @@ gkyl_wave_prop* gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp);
 struct gkyl_wave_prop_status gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
   double tm, double dt, const struct gkyl_range *update_range,
   const struct gkyl_array *qin, struct gkyl_array *qout);
+
+void gkyl_wave_prop_release(gkyl_wave_prop* up);
 ]]
 
 -- Template for function to compute jump
@@ -300,6 +302,14 @@ function WavePropagation:init(tbl)
    self._secondOrderUpdate = loadstring( secondOrderUpdateTempl {MEQN = meqn} )()
 
    self._limiter_id = limiter_id[tbl.limiter]
+
+   local prox = newproxy(true)
+   getmetatable(prox).__gc = function()
+      if (self._zero) then
+         ffi.C.gkyl_wave_prop_release(self._zero)
+      end
+   end
+   self[prox] = true
 end
 
 function WavePropagation:initDevice(tbl)
