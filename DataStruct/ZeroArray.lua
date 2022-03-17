@@ -20,6 +20,11 @@ require "Lib.ZeroUtil"
 _M = {}
 
 ffi.cdef [[
+
+struct gkyl_array_container {
+   struct gkyl_array *arr;
+};
+
 /**
  * Array object. This is an untype, undimensioned, reference counted
  * array object. All additional structure is provided else where,
@@ -269,6 +274,8 @@ void gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
  */
 void gkyl_array_copy_from_buffer(struct gkyl_array *arr,
   const void *data, struct gkyl_range range);
+
+void gkyl_array_release(const struct gkyl_array* arr);
 ]]
 
 local longSz = sizeof("long")
@@ -302,61 +309,63 @@ local function getType(enum)
 end
 
 -- Array ctype
-local ArrayCt = typeof("struct gkyl_array")
+local ArrayCt = typeof("struct gkyl_array_container")
 
 local array_fn = {
    copy = function (self, src)
-      return ffiC.gkyl_array_copy(self, src)
+      return ffiC.gkyl_array_copy(self.arr, src.arr)
    end,
    copyAsync = function (self, src)
-      return ffiC.gkyl_array_copy_async(self, src)
+      return ffiC.gkyl_array_copy_async(self.arr, src.arr)
    end,
    clone = function (self)
-      return ffiC.gkyl_array_clone(self)
+      return ffiC.gkyl_array_clone(self.arr)
    end,
    aquire = function (self)
-      return ffiC.gkyl_array_acquire(self)
+      return ffiC.gkyl_array_acquire(self.arr)
    end,
    release = function (self)
-      return ffiC.gkyl_array_release(self)
+      return ffiC.gkyl_array_release(self.arr)
    end,
    data = function (self)
       return self:fetch(0)
    end,
    fetch = function (self, loc)
       if loc == nil then loc = 0 end
-      return ffi.cast(getType(self.type).."*", self._data) + loc*self.ncomp
+      local arr = self.arr
+      return ffi.cast(getType(arr.type).."*", arr._data) + loc*arr.ncomp
    end,
    cfetch = function (self, loc)
       if loc == nil then loc = 0 end
-      return ffi.cast("const "..getType(self.type).."*", self._data) + loc*self.ncomp
+      local arr = self.arr
+      return ffi.cast("const "..getType(arr.type).."*", arr._data) + loc*arr.ncomp
    end,
    get_size = function (self)
-      return tonumber(self.size)
+      return tonumber(self.arr.size)
    end,
    get_ncomp = function (self)
-      return tonumber(self.ncomp)
+      return tonumber(self.arr.ncomp)
    end,
    get_elemsz = function (self)
-      return tonumber(self.elemsz)
+      return tonumber(self.arr.elemsz)
    end,
    clear = function (self, val)
-      ffiC.gkyl_array_clear(self, val)
+      ffiC.gkyl_array_clear(self.arr, val)
    end,
    set = function (self, val, fld)
-      ffiC.gkyl_array_set(self, val, fld)
+      ffiC.gkyl_array_set(self.arr, val, fld)
    end,
    accumulate = function (self, val, fld)
-      ffiC.gkyl_array_accumulate(self, val, fld)
+      ffiC.gkyl_array_accumulate(self.arr, val, fld)
    end,
    accumulateRange = function (self, val, fld, rng)
-      ffiC.gkyl_array_accumulate_range(self, val, fld, rng)
+      ffiC.gkyl_array_accumulate_range(self.arr, val, fld, rng)
    end,
    scale = function (self, val)
-      ffiC.gkyl_array_scale(self, val)
+      ffiC.gkyl_array_scale(self.arr, val)
    end,
    scale_by_cell = function (self, val)
-      ffiC.gkyl_array_scale_by_cell(self, val)
+      ffiC.gkyl_array_scale_by_cell(self.arr, val)
    end,
    reduceRange = function (self, out, op, rng)
       if op == "min" then 
@@ -366,28 +375,30 @@ local array_fn = {
       elseif op == "sum" then
          enum = 2
       end
-      ffiC.gkyl_array_reduce_range(out, self, enum, rng)
+      ffiC.gkyl_array_reduce_range(out, self.arr, enum, rng)
    end,
    copy_to_buffer = function (self, data, rng)  
-      ffiC.gkyl_array_copy_to_buffer(data, self, rng)
+      ffiC.gkyl_array_copy_to_buffer(data, self.arr, rng)
    end,
    copy_from_buffer = function (self, data, rng)  
-      ffiC.gkyl_array_copy_from_buffer(self, data, rng)
+      ffiC.gkyl_array_copy_from_buffer(self.arr, data, rng)
    end,
    is_cu_dev = function (self)
-      return ffiC.gkyl_array_is_cu_dev(self)
+      return ffiC.gkyl_array_is_cu_dev(self.arr)
    end,
 }
 
 local array_mt = {
    __new = function (self, atype, ncomp, size, on_gpu)
+      local container = new(self)
       if on_gpu==1 then
-         return ffiC.gkyl_array_cu_dev_new(atype, ncomp, size)
+         container.arr = ffiC.gkyl_array_cu_dev_new(atype, ncomp, size)
       elseif on_gpu==2 then
-         return ffiC.gkyl_array_cu_host_new(atype, ncomp, size)
+         container.arr = ffiC.gkyl_array_cu_host_new(atype, ncomp, size)
       else
-         return ffiC.gkyl_array_new(atype, ncomp, size)
+         container.arr = ffiC.gkyl_array_new(atype, ncomp, size)
       end
+      return container
    end,
    __gc = function(self)
       self:release()

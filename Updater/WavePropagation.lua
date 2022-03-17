@@ -398,7 +398,7 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
       end
 
       local g0_status = ffi.C.gkyl_wave_prop_advance(
-         self._zero, 0, dt, qOut._localRange, qIn._zero, qOut._zero)
+         self._zero, 0, dt, qOut._localRange, qIn._zero.arr, qOut._zero.arr)
       return g0_status.success, g0_status.dt_suggested
    end
 
