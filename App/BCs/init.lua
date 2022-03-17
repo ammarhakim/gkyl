@@ -10,7 +10,7 @@ local AdiabaticBasic          = require "App.BCs.AdiabaticBasic"
 local BCsBase                 = require "App.BCs.BCsBase"
 local BronoldFehskeReflection = require "App.BCs.BronoldFehskeReflection"
 local GkBasic                 = require "App.BCs.GkBasic"
-local GkEdge                  = require "App.BCs.GkEdge"
+local TokamakEdge             = require "App.BCs.TokamakEdge"
 local GyrofluidBasic          = require "App.BCs.GyrofluidBasic"
 local FluidBasic              = require "App.BCs.FluidBasic"
 local NeutralRecycling        = require "App.BCs.NeutralRecycling"
@@ -22,7 +22,7 @@ return {
    BCsBase                 = BCsBase,
    BronoldFehskeReflection = BronoldFehskeReflection,
    GkBasic                 = GkBasic,
-   GkEdge                  = GkEdge,
+   TokamakEdge             = TokamakEdge,
    GyrofluidBasic          = GyrofluidBasic,
    FluidBasic              = FluidBasic,
    NeutralRecyclingBasic   = NeutralRecyclingBasic,

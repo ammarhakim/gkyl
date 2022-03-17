@@ -23,25 +23,25 @@ local GkDiags      = require "App.Diagnostics.GkDiagnostics"
 local xsys         = require "xsys"
 local GyrokineticModDecl = require "Eq.gkData.GyrokineticModDecl"
 
-local GkEdgeBC = Proto(BCsBase)
+local TokamakEdgeBC = Proto(BCsBase)
 
 -- Store table passed to it and defer construction to :fullInit().
-function GkEdgeBC:init(tbl) self.tbl = tbl end
+function TokamakEdgeBC:init(tbl) self.tbl = tbl end
 
 -- Function initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
-function GkEdgeBC:fullInit(mySpecies)
+function TokamakEdgeBC:fullInit(mySpecies)
    local tbl = self.tbl -- Previously stored table.
 
-   self.xLCFS = assert(tbl.xLCFS, "GkEdgeBC: must specify x-location of the LCFS in 'xLCFS', and it must be at a cell boundary.")
+   self.xLCFS = assert(tbl.xLCFS, "TokamakEdgeBC: must specify x-location of the LCFS in 'xLCFS', and it must be at a cell boundary.")
 
-   self.yShiftFuncIn = assert(tbl.shiftFunction, "GkEdgeBC: must provide the function that computes the y-shift in 'shiftFunction'.")
+   self.yShiftFuncIn = assert(tbl.shiftFunction, "TokamakEdgeBC: must provide the function that computes the y-shift in 'shiftFunction'.")
 
    self.yShiftPolyOrder = tbl.shiftPolyOrder
 
    self.bcKind = "sheath"
    self.phiWallFunc = tbl.phiWall
-   if self.phiWallFunc then assert(type(self.phiWallFunc)=="function", "GkEdgeBC: phiWall must be a function (t, xn).") end
+   if self.phiWallFunc then assert(type(self.phiWallFunc)=="function", "TokamakEdgeBC: phiWall must be a function (t, xn).") end
 
    self.evolve = false
 
@@ -55,21 +55,21 @@ function GkEdgeBC:fullInit(mySpecies)
    end
 end
 
-function GkEdgeBC:setName(nm) self.name = self.speciesName.."_"..nm end
+function TokamakEdgeBC:setName(nm) self.name = self.speciesName.."_"..nm end
 
-function GkEdgeBC:bcReflect(dir, tm, idxIn, fIn, fOut)
+function TokamakEdgeBC:bcReflect(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "flip".
    self.basis:flipSign(dir, fIn, fOut)
    local vparDir = self.cdim+1
    self.basis:flipSign(vparDir, fOut, fOut)
 end
-function GkEdgeBC:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_, idx, f, fRefl)
+function TokamakEdgeBC:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_, idx, f, fRefl)
    self.phi:fill(self.phiIdxr(idx), self.phiPtr)
    self.phiWallFld:fill(self.phiWallFldIdxr(idx), self.phiWallFldPtr)
    return self._calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_,
                                      self.phiPtr:data(), self.phiWallFldPtr:data(), f:data(), fRefl:data())
 end
-function GkEdgeBC:bcSheath(dir, tm, idxIn, fIn, fOut)
+function TokamakEdgeBC:bcSheath(dir, tm, idxIn, fIn, fOut)
    -- Note that GK reflection only valid in z-vpar.
    -- This is checked when bc is created.
 
@@ -122,7 +122,7 @@ local function getGhostRange(edge, dir, global, globalExt)
    return Range.Range(lv, uv)
 end
 
-function GkEdgeBC:createSolver(mySpecies, field, externalField)
+function TokamakEdgeBC:createSolver(mySpecies, field, externalField)
 
    self.basis, self.grid = mySpecies.basis, mySpecies.grid
    self.ndim, self.cdim, self.vdim = self.grid:ndim(), self.confGrid:ndim(), self.grid:ndim()-self.confGrid:ndim()
@@ -131,7 +131,7 @@ function GkEdgeBC:createSolver(mySpecies, field, externalField)
    self.setPhiWall = {advance = function(tCurr,inFlds,OutFlds) end}
    self.getPhi     = function(fieldIn, inIdx) return nil end
 
-   assert(self.bcDir==self.cdim, "GkEdgeBC: sheath BC can only be used along the last/parallel configuration space dimension.")
+   assert(self.bcDir==self.cdim, "TokamakEdgeBC: sheath BC can only be used along the last/parallel configuration space dimension.")
 
    self.charge, self.mass = mySpecies.charge, mySpecies.mass
 
@@ -170,9 +170,9 @@ function GkEdgeBC:createSolver(mySpecies, field, externalField)
    local ghostRangeAllx    = localExt:intersect(getGhostRange(self.bcEdge, self.bcDir, global, globalExt))
    -- Reduce this ghost range to the part of the x-domain with sheath BCs.
    -- Assume the split happens at a cell boundary and within the domain.
-   assert(self.grid:lower(1)<self.xLCFS and self.xLCFS<self.grid:upper(1), "GkEdgeBC: 'xLCFS' coordinate must be within the x-domain.") 
+   assert(self.grid:lower(1)<self.xLCFS and self.xLCFS<self.grid:upper(1), "TokamakEdgeBC: 'xLCFS' coordinate must be within the x-domain.") 
    local needint = (self.xLCFS-self.grid:lower(1))/self.grid:dx(1)
-   assert(math.floor(math.abs(needint-math.floor(needint))) < 1., "GkEdgeBC: 'xLCFS' must fall on a cell boundary along x.")
+   assert(math.floor(math.abs(needint-math.floor(needint))) < 1., "TokamakEdgeBC: 'xLCFS' must fall on a cell boundary along x.")
    -- Determine the index of the cell that abuts xLCFS from below.
    local coordLCFS, idxLCFS = {self.xLCFS-1.e-7}, {-9}
    local xGridIngr = self.grid:childGrid({1})
@@ -214,6 +214,9 @@ function GkEdgeBC:createSolver(mySpecies, field, externalField)
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
    self:createBoundaryGrid()
 
+   -- Create a boundary grid that is global in Y: used to broadcast skin data.
+   self:createBoundaryGridGlobalY()
+
    -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
    self.allocCartField = function(self, grid, nComp, ghosts, metaData)
       local f = DataStruct.Field {
@@ -224,11 +227,22 @@ function GkEdgeBC:createSolver(mySpecies, field, externalField)
       return f
    end
    local allocDistf = function()
-      return self:allocCartField(self.boundaryGrid, self.basis:numBasis(),
+      return self:allocCartField(self.boundaryGrid, distf:numComponents(),
+                                 {distf:lowerGhost(),distf:upperGhost()}, distf:getMetaData())
+   end
+   local allocDistfGlobalY = function()
+      return self:allocCartField(self.boundaryGridGlobalY, distf:numComponents(),
                                  {distf:lowerGhost(),distf:upperGhost()}, distf:getMetaData())
    end
    self.boundaryField    = allocDistf()
    self.boundaryFieldPtr = self.boundaryField:get(1)
+   self.boundaryFieldGlobalY = allocDistfGlobalY()
+
+   -- Create the communicator used to send information along z.
+   self:createGraphComm()
+
+   -- Create MPI derived data type or receiving data.
+   self:createSyncMPIdataTypes(distf)
 
    -- Create the range needed to loop over ghosts.
    local global, globalExt, localExtRange = distf:globalRange(), distf:globalExtRange(), distf:localExtRange()
@@ -410,21 +424,21 @@ function GkEdgeBC:createSolver(mySpecies, field, externalField)
    end
 end
 
-function GkEdgeBC:storeBoundaryFlux(tCurr, rkIdx, qOut)
+function TokamakEdgeBC:storeBoundaryFlux(tCurr, rkIdx, qOut)
    self.storeBoundaryFluxFunc(tCurr, rkIdx, qOut)
 end
 
-function GkEdgeBC:copyBoundaryFluxField(inIdx, outIdx)
+function TokamakEdgeBC:copyBoundaryFluxField(inIdx, outIdx)
    self.copyBoundaryFluxFieldFunc(inIdx, outIdx)
 end
-function GkEdgeBC:combineBoundaryFluxField(outIdx, a, aIdx, ...)
+function TokamakEdgeBC:combineBoundaryFluxField(outIdx, a, aIdx, ...)
    self.combineBoundaryFluxFieldFunc(outIdx, a, aIdx, ...)
 end
-function GkEdgeBC:computeBoundaryFluxRate(dtIn)
+function TokamakEdgeBC:computeBoundaryFluxRate(dtIn)
    self.calcBoundaryFluxRateFunc(dtIn)
 end
 
-function GkEdgeBC:createDiagnostics(mySpecies, field)
+function TokamakEdgeBC:createDiagnostics(mySpecies, field)
    -- Create BC diagnostics.
    self.diagnostics = nil
    if self.tbl.diagnostics then
@@ -437,40 +451,342 @@ function GkEdgeBC:createDiagnostics(mySpecies, field)
    return self.diagnostics
 end
 
--- These are needed to recycle the GkDiagnostics with GkEdgeBC.
-function GkEdgeBC:rkStepperFields() return {self.boundaryFluxRate, self.boundaryFluxRate,
-                                             self.boundaryFluxRate, self.boundaryFluxRate} end
-function GkEdgeBC:getFlucF() return self.boundaryFluxRate end
+function TokamakEdgeBC:createBoundaryGridGlobalY()
+   -- Create a ghost boundary grid with only one cell in the direction of the BC
+   -- and global in y (i.e. not decomposed along y).
 
-function GkEdgeBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
+   if self.grid:ndim() < 3 then return end
+
+   local reducedLower, reducedUpper, reducedNumCells, reducedCuts = {}, {}, {}, {}
+   for d = 1, self.grid:ndim() do
+      if d==self.bcDir then
+         table.insert(reducedLower, -self.grid:dx(d)/2.)
+         table.insert(reducedUpper,  self.grid:dx(d)/2.)
+         table.insert(reducedNumCells, 1)
+         table.insert(reducedCuts, 1)
+      else
+         table.insert(reducedLower,    self.grid:lower(d))
+         table.insert(reducedUpper,    self.grid:upper(d))
+         table.insert(reducedNumCells, self.grid:numCells(d))
+         table.insert(reducedCuts,     self.grid:cuts(d))
+      end
+   end
+   reducedCuts[2] = 1 -- Do not decompose along y.
+   local commSet  = self.grid:commSet()
+   local worldComm, nodeComm = commSet.comm, commSet.nodeComm
+   local nodeRank = Mpi.Comm_rank(nodeComm)
+   local dirRank  = nodeRank
+   local cuts     = {}
+   for d=1,3 do cuts[d] = self.grid:cuts(d) or 1 end
+   -- For self.bcDir == 3 only (assumes column-major ordering of MPI ranks) ...................
+   dirRank = math.floor(nodeRank/(cuts[1]*cuts[2]))*cuts[2]+math.floor((nodeRank % (cuts[1]*cuts[2]))/cuts[1])
+   -- ............................................
+   self._splitCommGlobalY = Mpi.Comm_split(worldComm, dirRank, nodeRank)
+   -- Set up which ranks to write from.
+   local writeRank = -1
+   if self.bcEdge == "lower" and dirRank == 0 then
+      writeRank = nodeRank
+   elseif self.bcEdge == "upper" and dirRank == self.grid:cuts(self.bcDir)-1 then
+      writeRank = nodeRank
+   end
+   self.writeRankGlobalY = writeRank
+   local reducedDecomp = CartDecomp.CartProd {
+      comm      = self._splitCommGlobalY,  cuts      = reducedCuts,
+      writeRank = writeRank,               useShared = self.grid:isShared(),
+   }
+   self.boundaryGridGlobalY = Grid.RectCart {
+      lower = reducedLower,  cells         = reducedNumCells,
+      upper = reducedUpper,  decomposition = reducedDecomp,
+   }
+end
+
+function TokamakEdgeBC:createGraphComm()
+   -- Create a graph communicator which connects all the upper ranks in z (sources)
+   -- with all each lower rank in z (destination) if bcEdge=lower, and another graph
+   -- connecting all the lower ranks in z (sources) with each upper rank in z (destination)
+   -- for bcEdge=upper.
+
+   if self.grid:ndim() < 3 then return end
+
+   local xDir, yDir = 1, 2
+
+   -- Create a list of all the lower/upper ranks in z, but at the same location in x.
+   -- Some of this code follows DecomposedRange in Lib/CartDecomp.
+   local decompRange = self.grid:decomposedRange()
+
+   local cutsIdxr    = decompRange:cutsIndexer()
+   local cutsInvIdxr = decompRange:cutsInvIndexer()
+   local myId        = self.grid:subGridId() -- Grid ID on this processor.
+   local myCutsIdx   = {}
+   for d=1,decompRange:ndim() do myCutsIdx[d] = -9 end
+   cutsInvIdxr(myId, myCutsIdx)
+
+   -- Loop over "shortened" range which are basically
+   -- sub-domains that lie on the lower domain boundary.
+   local ones, upper = {}, {}
+   for d=1,decompRange:ndim() do ones[d], upper[d] = 1, decompRange:cuts(d) end
+   local cutsRange = Range.Range(ones, upper)
+   local xyRecvRange, xySendRange
+   if self.bcEdge == "lower" then
+      xyRecvRange = cutsRange:shorten(self.bcDir)
+      xySendRange = cutsRange:shortenFromBelow(self.bcDir)
+   elseif self.bcEdge == "upper" then
+      xyRecvRange = cutsRange:shortenFromBelow(self.bcDir)
+      xySendRange = cutsRange:shorten(self.bcDir)
+   end
+
+   -- Sources only depend on x, so we can create a single source list for all y ranks.
+   local xLoYRecvRange = xyRecvRange:shorten(yDir)
+   -- y range with the same ID along x:
+   local yRecvRange = xyRecvRange:extendDir(xDir,-myCutsIdx[xDir]+xyRecvRange:lower(xDir),
+                                                  myCutsIdx[xDir]-xyRecvRange:upper(xDir))
+   local srcNum, destNum = 0, 0
+   local isRecvRank, isSendRank
+   if xyRecvRange:contains(myCutsIdx) then  -- This is a receiving rank.
+      srcNum = yRecvRange:volume()
+      isRecvRank = true
+   end
+   if xySendRange:contains(myCutsIdx) then -- This is a sending rank.
+      destNum = yRecvRange:volume()
+      isSendRank = true
+   end
+
+   if isRecvRank or isSendRank then  -- Only sending/receiving ranks participate.
+
+      -- List ranks along z boundaries starting with the lower-z boundary.
+      local zSkinRanksNum = decompRange:cuts(self.bcDir) > 1 and xyRecvRange:volume()+xySendRange:volume()
+                                                              or xyRecvRange:volume()
+      local zSkinGroupRanks = Lin.IntVec(zSkinRanksNum)
+      local zLoRange = self.bcEdge == "lower" and xyRecvRange or xySendRange
+      local zUpRange = self.bcEdge == "upper" and xyRecvRange or xySendRange
+      local i = 0
+      for idx in zLoRange:colMajorIter() do
+         i = i+1;  zSkinGroupRanks[i] = cutsIdxr(idx)-1
+      end
+      if decompRange:cuts(self.bcDir) > 1 then
+         for idx in zUpRange:colMajorIter() do
+            i = i+1;  zSkinGroupRanks[i] = cutsIdxr(idx)-1
+         end
+      end
+
+      local nodeComm  = self.grid:commSet().comm
+      local nodeGroup = Mpi.Comm_group(nodeComm)
+      -- Create a group/comm of the ranks along the z-boundary.
+      self.zSkinGroup = Mpi.Group_incl(nodeGroup, #zSkinGroupRanks, zSkinGroupRanks:data());
+      self.zSkinComm  = Mpi.Comm_create_group(nodeComm, self.zSkinGroup, self.bcEdge == "lower" and 0 or 1);
+
+      -- Determine the sources and destinations in the graph we'll use for the sync.
+      local j = 0
+      local srcIDs  = Lin.IntVec(srcNum)  -- Source rank IDs along y (for this x).
+      local destIDs = Lin.IntVec(destNum) -- destination rank IDs along y (for each this x).
+      for yIdx in yRecvRange:colMajorIter() do
+         local idxRecv, idxSend = yIdx, yIdx:copy()
+         idxSend[self.bcDir] = self.bcEdge == "lower" and idxRecv[self.bcDir]+decompRange:cuts(self.bcDir)-1
+                                                       or idxRecv[self.bcDir]-decompRange:cuts(self.bcDir)+1
+         j = j+1
+         if isSendRank then
+            destIDs[j] = cutsIdxr(idxRecv)-1
+         end
+         if isRecvRank then
+            srcIDs[j]  = cutsIdxr(idxSend)-1
+         end
+      end
+
+      -- Translate these ranks from the nodeComm to the zSkinComm.
+      local destRanks, srcRanks
+      if isSendRank then
+         destRanks = Mpi.Group_translate_ranks(nodeGroup, destIDs, self.zSkinGroup)
+      end
+      if isRecvRank then
+         srcRanks  = Mpi.Group_translate_ranks(nodeGroup, srcIDs, self.zSkinGroup)
+      end
+      if srcRanks==nil  then srcRanks  = Lin.IntVec(srcNum)  end -- Needed even if srcNum=0.
+      if destRanks==nil then destRanks = Lin.IntVec(destNum) end -- Needed even if destNum=0.
+
+      local reorder = 0
+      -- Create a group/comm with only the lower and upper in z ranks.
+      self.graphComm = Mpi.Dist_graph_create_adjacent(self.zSkinComm, srcNum, srcRanks, Mpi.UNWEIGHTED,
+                                                      destNum, destRanks, Mpi.UNWEIGHTED, Mpi.INFO_NULL, reorder)
+   else
+      self.zSkinComm, self.graphComm = Mpi.COMM_NULL, Mpi.COMM_NULL
+   end
+end
+
+function TokamakEdgeBC:createSyncMPIdataTypes(fIn)
+   -- Create the MPI derived data (MPIDD) types to sync the field along z.
+   -- The idea is to use MPI_Neighbor_alltoallw with MPIDDs. The sending MPIDD
+   -- will be the same for all ranks and will be based on the localRange of the
+   -- simulation, as they are all just sending their local data. The receiving
+   -- MPIDD has similar dimensions in x-y, but has different offsets because the
+   -- data will be placed in a buffer with 1 cell in z.
+   -- Futhermore, we'll use the same receiving type for all data received along y
+   -- but we'll use displacements to put the data in the correct place in the
+   -- global-along-y buffer.
+
+   if not Mpi.Is_comm_valid(self.graphComm) then return end
+
+   -- Create the receiving MPIDD, which will place the z-skin (including x-ghost
+   -- cells for correct data layout) from all ranks along y into a single buffer
+   -- that is global in Y.
+
+   local indexer       = self.boundaryFieldGlobalY:genIndexer()
+   local numComponents = self.boundaryFieldGlobalY:numComponents()
+   local localExtRange = self.boundaryFieldGlobalY:localExtRange()
+   local layout        = self.boundaryField:layout()
+   local elctCommType  = self.boundaryField:elemTypeMpi()
+
+   -- Obtain the subDomain ID of the rank that has the same x-location but it's
+   -- the first along y. We'll use a collective call to gather all the data along y
+   -- and the MPIDD should use the data layout of the first-in-y data chunk.
+   local decompRange = self.boundaryGrid:decomposedRange()
+
+   local cutsIdxr, cutsInvIdxr = decompRange:cutsIndexer(), decompRange:cutsInvIndexer()
+   local myId        = self.boundaryGrid:subGridId() -- Grid ID on this processor.
+   local myCutsIdx   = {}
+   for d=1,decompRange:ndim() do myCutsIdx[d] = -9 end
+   cutsInvIdxr(myId, myCutsIdx)
+
+   local ones, upper = {}, {}
+   for d=1,decompRange:ndim() do ones[d], upper[d] = 1, decompRange:cuts(d) end
+   local cutsRange = Range.Range(ones, upper)
+   local xLoYRecvRange = cutsRange:shorten(2)
+   local yLoIdx, yLoId
+   for idx in xLoYRecvRange:colMajorIter() do
+      if myCutsIdx[1]==idx[1] and myCutsIdx[self.bcDir]==idx[self.bcDir] then
+         yLoIdx, yLoId = idx:copy(), cutsIdxr(idx)
+         break
+      end
+   end
+
+   local srcNum, destNum, _ = Mpi.Dist_graph_neighbors_count(self.graphComm)
+   isRecvRank = srcNum > 0 and true or false
+   isSendRank = destNum > 0 and true or false
+
+   self.recvDataType, self.recvLoc = Mpi.MPI_Datatype_vec(srcNum), 0
+   for i = 1, srcNum do self.recvDataType[i-1] = elctCommType end
+
+   -- The receive displacements ensure data is put in the place along y.
+   self.recvDispl = Mpi.MPI_Aint_vec(srcNum)
+
+   local skelIds = decompRange:boundarySubDomainIds(self.bcDir)
+   local idxStart = Lin.IntVec(self.boundaryFieldGlobalY:ndim())
+   for d = 1,self.boundaryFieldGlobalY:ndim() do idxStart[d] = -9 end
+   for i = 1, #skelIds do
+      local cId = skelIds[i].lower -- Should be = to skelIds[i].upper.
+
+      -- Only create if we are on proper ranks.
+      -- Note that if the node communicator has rank size of 1, then we can access all the
+      -- memory needed for periodic boundary conditions and we do not need MPI Datatypes.
+      if myId == cId and self.bcEdge == "lower" and isRecvRank then
+         local rgnRecv = decompRange:subDomain(yLoId):lowerSkin(self.bcDir, self.boundaryField:lowerGhost()):extendDir(1,1,1)
+         local idx     = rgnRecv:lowerAsVec()
+         -- Set idx to starting point of region you want to recv.
+         self.recvLoc      = (indexer(idx)-1)*numComponents
+         for i = 1, srcNum do
+            self.recvDataType[i-1] = Mpi.createDataTypeFromRangeAndSubRange(
+               rgnRecv, localExtRange, numComponents, layout, elctCommType)[0]
+            idx:copyInto(idxStart)
+            idxStart[2] = idx[2]+(i-1)*decompRange:subDomain(yLoId):shape(2)
+            self.recvDispl[i-1] = (indexer(idxStart)-1)*numComponents*sizeof(elctCommType)
+         end
+      end
+      if myId == cId and self.bcEdge == "upper" and isRecvRank then
+         local rgnRecv = decompRange:subDomain(yLoId):upperSkin(self.bcDir, self.boundaryField:upperGhost()):extendDir(1,1,1)
+         local idx     = rgnRecv:lowerAsVec()
+         -- Set idx to starting point of region you want to recv.
+         self.recvLoc      = (indexer(idx)-1)*numComponents
+         local str = ""
+         for i = 1, srcNum do
+            self.recvDataType[i-1] = Mpi.createDataTypeFromRangeAndSubRange(
+               rgnRecv, localExtRange, numComponents, layout, elctCommType)[0]
+            idx:copyInto(idxStart)
+            idxStart[2] = idx[2]+(i-1)*decompRange:subDomain(yLoId):shape(2)
+            self.recvDispl[i-1] = (indexer(idxStart)-1)*numComponents*sizeof(elctCommType)
+            str = str .. tostring((indexer(idxStart)-1)) .. ","
+         end
+      end
+   end
+
+   -- Create sending MPIDDs.
+   -- These have to be slightly different than the CartField's own MPIDDs
+   -- because in order to use Neighborhood_allgather we need to incorporate
+   -- the left x-ghost layer, otherwise when one appends the next chunk of
+   -- data along y it'll be in the wrong place.
+   local myId            = self.grid:subGridId() -- Whole grid ID on this processor.
+   local decomposedRange = self.grid:decomposedRange()
+   local skelIds         = decomposedRange:boundarySubDomainIds(self.bcDir)
+   local indexer                      = fIn:genIndexer()
+   local numComponents, localExtRange = fIn:numComponents(), fIn:localExtRange()
+   local layout, elctCommType         = fIn:layout(), fIn:elemTypeMpi()
+
+   self.sendDataType, self.sendLoc = Mpi.MPI_Datatype_vec(destNum), 0
+   for i = 1, destNum do self.sendDataType[i-1] = elctCommType end
+
+   for i = 1, #skelIds do
+      local loId, upId = skelIds[i].lower, skelIds[i].upper
+
+      -- Only create if we are on proper ranks.
+      -- Note that if the node communicator has rank size of 1, then we can access all the
+      -- memory needed for periodic boundary conditions and we do not need MPI Datatypes.
+      if myId == loId and self.bcEdge == "upper" and isSendRank then
+         local rgnSend = decomposedRange:subDomain(loId):lowerSkin(self.bcDir, fIn:upperGhost()):extendDir(1,1,1)
+         local idx = rgnSend:lowerAsVec()
+         -- Set idx to starting point of region you want to recv.
+         self.sendLoc      = (indexer(idx)-1)*numComponents
+         for i = 1, destNum do
+            self.sendDataType[i-1] = Mpi.createDataTypeFromRangeAndSubRange(
+               rgnSend, localExtRange, numComponents, layout, elctCommType)[0]
+         end
+      end
+      if myId == upId and self.bcEdge == "lower" and isSendRank then
+         local rgnSend = decomposedRange:subDomain(upId):upperSkin(self.bcDir, fIn:lowerGhost()):extendDir(1,1,1)
+         local idx = rgnSend:lowerAsVec()
+         -- Set idx to starting point of region you want to recv.
+         self.sendLoc      = (indexer(idx)-1)*numComponents
+         for i = 1, destNum do
+            self.sendDataType[i-1] = Mpi.createDataTypeFromRangeAndSubRange(
+               rgnSend, localExtRange, numComponents, layout, elctCommType)[0]
+         end
+      end
+   end
+
+   -- The send displacements are zero because the sendLoc will
+   -- place the data pointer in the desired location.
+   self.sendDispl = Mpi.MPI_Aint_vec(destNum)
+   for i = 1, destNum do self.sendDispl[i-1] = 0 end
+
+   -- MPI alltoall requires an array with the number of elements sent
+   -- to/received from each rank. Set them to 1 as we use MPIDDs.
+   self.recvCount, self.sendCount = Lin.IntVec(srcNum), Lin.IntVec(destNum)
+   for i = 1, srcNum  do self.recvCount[i] = 1 end
+   for i = 1, destNum do self.sendCount[i] = 1 end
+end
+
+function TokamakEdgeBC:zSync(fIn, bufferOut)
+   -- bcEdge=lower: each upper-z rank sends their upper-z skin cell data in the fIn field
+   --               to all lower-z ranks who receive them into a buffer with 1-cell in z (+ghosts).
+   -- bcEdge=upper: each lower-z rank sends their lower-z skin cell data in the fIn field
+   --               to all lower-z ranks who receive them into a buffer with 1-cell in z (+ghosts).
+
+   if not Mpi.Is_comm_valid(self.graphComm) then return end
+
+   Mpi.Neighbor_alltoallw(fIn:dataPointer()+self.sendLoc, self.sendCount:data(), self.sendDispl, self.sendDataType,
+                          bufferOut:dataPointer(), self.recvCount:data(), self.recvDispl, self.recvDataType,
+                          self.graphComm)
+end
+
+-- These are needed to recycle the GkDiagnostics with TokamakEdgeBC.
+function TokamakEdgeBC:rkStepperFields() return {self.boundaryFluxRate, self.boundaryFluxRate,
+                                             self.boundaryFluxRate, self.boundaryFluxRate} end
+function TokamakEdgeBC:getFlucF() return self.boundaryFluxRate end
+
+function TokamakEdgeBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
 
    local fIn = mySpecies:rkStepperFields()[outIdx]
 
    -- .......... Twist-shift BCs in the core (closed-flux region) ............... --
-   -- Apply periodic BCs in z direction, but only on the first edge (lower or upper, whichever is first)
-   -- First check if sync has been called on this step by any BC.
-   local doSync = true
-   for _, bc in lume.orderedIter(mySpecies.nonPeriodicBCs) do
-      if bc.synced then doSync = false end
-   end
-   if doSync then
-      -- Fetch skin cells from opposite z-edge (donor) and copy to ghost cells (target).
-      local fldGrid = fIn:grid()
-      local periodicDirs = fldGrid:getPeriodicDirs()
-      local modifiedPeriodicDirs = {3}
-      fldGrid:setPeriodicDirs(modifiedPeriodicDirs)
-      fIn:sync()
-      fldGrid:setPeriodicDirs(periodicDirs)
-      self.synced = true
-   else
-      -- Don't sync but reset synced flags for next step.
-      for _, bc in lume.orderedIter(mySpecies.nonPeriodicBCs) do bc.synced = false end
-   end
-
-   -- Copy field ghost cells to boundary field (buffer).
-   self:evalOnBoundary(fIn)
-
-   self.bcSolverCore:advance(tCurr, {self.boundaryField, self.ghostRangeCore}, {fIn})
+   self:zSync(fIn, self.boundaryFieldGlobalY)
+   self.bcSolverCore:advance(tCurr, {self.boundaryFieldGlobalY, self.ghostRangeCore}, {fIn})
 
    -- .......... Sheath BCs in the SOL (open field-line region) ............... --
    self.setPhiWall:advance(tCurr, {}, {self.phiWallFld}) -- Compute wall potential if needed (i.e. sheath BC).
@@ -478,6 +794,6 @@ function GkEdgeBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
    self.bcSolverSOL:advance(tCurr, {fIn}, {fIn})
 end
 
-function GkEdgeBC:getBoundaryFluxFields() return self.boundaryFluxFields end
+function TokamakEdgeBC:getBoundaryFluxFields() return self.boundaryFluxFields end
 
-return GkEdgeBC
+return TokamakEdgeBC
