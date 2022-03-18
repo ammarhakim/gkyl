@@ -67,6 +67,11 @@ function TwistShiftBC:init(tbl)
       self.cDim, self.vDim = self.basis:ndim(), 0
    end
 
+   if self.cDim > 3 and self.vDim == 0 then  -- For 5x passive advection tests.
+      self.vDim = self.cDim-3
+      self.cDim = 3
+   end
+
    if self.cDim == 3 then
       self.zEdge = assert(
          tbl.edge, "Updater.TwistShift: Must indicate which z-edge to compute (lower/upper) using 'edge'.")
