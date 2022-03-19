@@ -64,11 +64,36 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
       self.yShiftFunc = self.yShiftFuncIn
    end
 
-   self.bcSolver = Updater.TwistShiftBC {
-      onGrid    = self.grid,       yShiftFunc      = self.yShiftFunc,
-      basis     = self.basis,      yShiftPolyOrder = self.yShiftPolyOrder,
-      confBasis = self.confBasis,  edge            = self.bcEdge,
-   }
+   local Ny = self.grid:numCells(2)
+
+   if Ny == 1 then  -- Axisymmetric case. Assume periodicity.
+      self.bcSolver = { advance = function(...) end }
+      self.zSync = function(fIn, bufferOut)
+         -- Apply periodic BCs in z direction, but only on the first edge (lower or upper, whichever is first)
+         -- First check if sync has been called on this step by any BC.
+         local doSync = true
+         for _, bc in lume.orderedIter(mySpecies.nonPeriodicBCs) do
+            if bc.synced then doSync = false end
+         end
+         if doSync then
+            local fldGrid, newPeriodicDirs = fIn:grid(), {3}
+            local periodicDirs = fldGrid:getPeriodicDirs()
+            fldGrid:setPeriodicDirs(newPeriodicDirs)
+            fIn:sync()
+            fldGrid:setPeriodicDirs(periodicDirs)
+            self.synced = true
+         else -- Don't sync but reset synced flags for next step.
+            for _, bc in lume.orderedIter(mySpecies.nonPeriodicBCs) do bc.synced = false end
+         end
+      end
+   else
+      self.bcSolver = Updater.TwistShiftBC {
+         onGrid    = self.grid,       yShiftFunc      = self.yShiftFunc,
+         basis     = self.basis,      yShiftPolyOrder = self.yShiftPolyOrder,
+         confBasis = self.confBasis,  edge            = self.bcEdge,
+      }
+      self.zSync = function(fIn, bufferOut) self:zSyncGlobalY(fIn, bufferOut) end
+   end
 
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
    self:createBoundaryGrid()
@@ -621,7 +646,7 @@ function TwistShiftBC:createSyncMPIdataTypes(fIn)
    for i = 1, destNum do self.sendCount[i] = 1 end
 end
 
-function TwistShiftBC:zSync(fIn, bufferOut)
+function TwistShiftBC:zSyncGlobalY(fIn, bufferOut)
    -- bcEdge=lower: each upper-z rank sends their upper-z skin cell data in the fIn field
    --               to all lower-z ranks who receive them into a buffer with 1-cell in z (+ghosts).
    -- bcEdge=upper: each lower-z rank sends their lower-z skin cell data in the fIn field
@@ -642,7 +667,7 @@ function TwistShiftBC:getFlucF() return self.boundaryFluxRate end
 function TwistShiftBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
    local fIn = mySpecies:rkStepperFields()[outIdx] 
 
-   self:zSync(fIn, self.boundaryFieldGlobalY)
+   self.zSync(fIn, self.boundaryFieldGlobalY)
    self.bcSolver:advance(tCurr, {self.boundaryFieldGlobalY}, {fIn})
 end
 

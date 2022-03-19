@@ -17,11 +17,16 @@ local Range        = require "Lib.Range"
 local Grid         = require "Grid"
 local Lin          = require "Lib.Linalg"
 local LinearDecomp = require "Lib.LinearDecomp"
-local lume         = require "Lib.lume"
+local CartDecomp   = require "Lib.CartDecomp"
+local Grid         = require "Grid"
 local DiagsApp     = require "App.Diagnostics.SpeciesDiagnostics"
 local GkDiags      = require "App.Diagnostics.GkDiagnostics"
 local xsys         = require "xsys"
+local lume         = require "Lib.lume"
+local ffi          = require "ffi"
 local GyrokineticModDecl = require "Eq.gkData.GyrokineticModDecl"
+
+local sizeof = xsys.from(ffi, "sizeof")
 
 local TokamakEdgeBC = Proto(BCsBase)
 
