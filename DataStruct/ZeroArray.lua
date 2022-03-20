@@ -324,9 +324,6 @@ local array_fn = {
    aquire = function (self)
       return ffiC.gkyl_array_acquire(self)
    end,
-   release = function (self)
-      return ffiC.gkyl_array_release(self)
-   end,
    data = function (self)
       return self:fetch(0)
    end,
@@ -398,9 +395,6 @@ local array_mt = {
       else
          return ffi.gc(ffiC.gkyl_array_new(atype, ncomp, size), __gc)
       end
-   end,
-   __gc = function(self)
-      self:release()
    end,
    __index = array_fn,
 }
