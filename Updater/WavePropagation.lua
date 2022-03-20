@@ -304,14 +304,6 @@ function WavePropagation:init(tbl)
    self._secondOrderUpdate = loadstring( secondOrderUpdateTempl {MEQN = meqn} )()
 
    self._limiter_id = limiter_id[tbl.limiter]
-
-   local prox = newproxy(true)
-   getmetatable(prox).__gc = function()
-      if (self._zero) then
-         ffi.C.gkyl_wave_prop_release(self._zero)
-      end
-   end
-   self[prox] = true
 end
 
 function WavePropagation:initDevice(tbl)
@@ -373,7 +365,7 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
    local qIn = assert(inFld[1], "WavePropagation.advance: Must-specify an input field")
    local qOut = assert(outFld[1], "WavePropagation.advance: Must-specify an output field")
 
-   if (self._equation._zero_wv and false) then
+   if (self._equation._zero_wv and true) then
       -- TODO move this to init FIXME which grid/range to use?
       if self._isFirst then
          local winp = ffi.new("struct gkyl_wave_prop_inp")
@@ -390,7 +382,8 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
          winp.geom = ffi.C.gkyl_wave_geom_new(
             winp.grid, qOut._localExtRange, mapc2p, ctx);
 
-         self._zero = ffi.C.gkyl_wave_prop_new(winp)
+         self._zero = ffi.gc(
+            ffi.C.gkyl_wave_prop_new(winp), ffi.C.gkyl_wave_prop_release)
 
          ffi.C.gkyl_wave_geom_release(winp.geom)
 

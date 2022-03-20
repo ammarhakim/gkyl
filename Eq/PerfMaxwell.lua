@@ -160,15 +160,9 @@ function PerfMaxwell:init(tbl)
    self._ceqn = ffi.new("MaxwellEq_t", {self._c, self._ce, self._cb})
 
    -- gkylzero finite-volume (wave-propaation) equation object
-   self._zero_wv = ffi.C.gkyl_wv_maxwell_new(self._c, self._ce, self._cb)
-
-   local prox = newproxy(true)
-   getmetatable(prox).__gc = function()
-      if (self._zero_wv) then
-         ffi.C.gkyl_wv_eqn_release(self._zero_wv)
-      end
-   end
-   self[prox] = true
+   self._zero_wv = ffi.gc(
+      ffi.C.gkyl_wv_maxwell_new(self._c, self._ce, self._cb),
+      ffi.C.gkyl_wv_eqn_release)
 end
 
 function PerfMaxwell:initDevice(tbl)
