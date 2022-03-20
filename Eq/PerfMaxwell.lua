@@ -76,6 +76,10 @@ ffi.cdef [[
       const double lightSpeed, const double elcErrorSpeedFactor,
       const double mgnErrorSpeedFactor);
 
+   struct gkyl_wv_eqn* gkyl_wv_maxwell_new(
+      double c, double e_fact, double b_fact);
+
+   void gkyl_wv_eqn_release(const struct gkyl_wv_eqn* eqn);
 /**
  * Create a new Maxwell equation object.
  *
@@ -154,6 +158,11 @@ function PerfMaxwell:init(tbl)
 
    -- store stuff in C struct for use in DG solvers
    self._ceqn = ffi.new("MaxwellEq_t", {self._c, self._ce, self._cb})
+
+   -- gkylzero finite-volume (wave-propaation) equation object
+   self._zero_wv = ffi.gc(
+      ffi.C.gkyl_wv_maxwell_new(self._c, self._ce, self._cb),
+      ffi.C.gkyl_wv_eqn_release)
 end
 
 function PerfMaxwell:initDevice(tbl)

@@ -51,6 +51,58 @@ ffi.cdef [[
     GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut);
 
   void setDt(GkylWavePropagation_t *hyper, double dt);
+
+
+/* gkylzero components */
+typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
+
+struct gkyl_wave_geom {
+  struct gkyl_range range; // range over which geometry is defined
+  struct gkyl_array *geom; // geometry in each cell
+  struct gkyl_ref_count ref_count;
+};
+
+struct gkyl_wave_geom *gkyl_wave_geom_new(const struct gkyl_rect_grid *grid,
+  struct gkyl_range *range,
+  evalf_t mapc2p, void *ctx);
+
+enum gkyl_wave_limiter {
+  GKYL_NO_LIMITER = 1, // to allow default to be 0
+  GKYL_MIN_MOD,
+  GKYL_SUPERBEE,
+  GKYL_VAN_LEER,
+  GKYL_MONOTONIZED_CENTERED,
+  GKYL_BEAM_WARMING,
+  GKYL_ZERO
+};
+
+struct gkyl_wave_prop_status {
+  int success; // 1 if step worked, 0 otherwise
+  double dt_suggested; // suggested time-step
+};
+
+typedef struct gkyl_wave_prop gkyl_wave_prop;
+
+struct gkyl_wave_prop_inp {
+  const struct gkyl_rect_grid *grid; // grid on which to solve equations
+  const struct gkyl_wv_eqn *equation; // equation solver
+  enum gkyl_wave_limiter limiter; // limiter to use
+  int num_up_dirs; // number of update directions
+  int update_dirs[7]; // directions to update FIXME GKYL_MAX_DIM=7
+  double cfl; // CFL number to use
+
+  const struct gkyl_wave_geom *geom; // geometry
+};
+
+gkyl_wave_prop* gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp);
+
+struct gkyl_wave_prop_status gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
+  double tm, double dt, const struct gkyl_range *update_range,
+  const struct gkyl_array *qin, struct gkyl_array *qout);
+
+void gkyl_wave_prop_release(gkyl_wave_prop* up);
+
+void gkyl_wave_geom_release(const struct gkyl_wave_geom* wg);
 ]]
 
 -- Template for function to compute jump
@@ -148,6 +200,15 @@ limiterFunctions["zero"] = function (r)
    return 0
 end
 
+limiter_id = {}
+limiter_id["no-limiter"] = ffi.C.GKYL_NO_LIMITER
+limiter_id["min-mod"] = ffi.C.GKYL_MIN_MOD
+limiter_id["superbee"] = ffi.C.GKYL_SUPERBEE
+limiter_id["van-leer"] = ffi.C.GKYL_VAN_LEER
+limiter_id["monotonized-centered"] = ffi.C.GKYL_MONOTONIZED_CENTERED
+limiter_id["beam-warming"] = ffi.C.GKYL_BEAM_WARMING
+limiter_id["zero"] = ffi.C.GKYL_ZERO
+
 -- Helper object for indexing 1D slice data. The slice spans from
 -- [lower, upper] (inclusive) and has `stride` pieces of data stored
 -- at each location.
@@ -241,6 +302,8 @@ function WavePropagation:init(tbl)
    self._rescaleWave = loadstring( rescaleWaveTempl {MEQN = meqn} )()
    self._secondOrderFlux = loadstring( secondOrderFluxTempl {MEQN = meqn} )()
    self._secondOrderUpdate = loadstring( secondOrderUpdateTempl {MEQN = meqn} )()
+
+   self._limiter_id = limiter_id[tbl.limiter]
 end
 
 function WavePropagation:initDevice(tbl)
@@ -301,6 +364,37 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
    local dt = self._dt
    local qIn = assert(inFld[1], "WavePropagation.advance: Must-specify an input field")
    local qOut = assert(outFld[1], "WavePropagation.advance: Must-specify an output field")
+
+   if (self._equation._zero_wv and true) then
+      -- TODO move this to init FIXME which grid/range to use?
+      if self._isFirst then
+         local winp = ffi.new("struct gkyl_wave_prop_inp")
+         -- winp.grid = self._onGrid._zero
+         winp.grid = qOut._grid._zero
+         winp.equation = self._equation._zero_wv
+         winp.limiter = self._limiter_id
+         winp.num_up_dirs = #self._updateDirs
+         for d = 1, #self._updateDirs do
+            winp.update_dirs[d-1] = self._updateDirs[d]-1
+         end
+         winp.cfl = self._cfl
+         local mapc2p, ctx = nil, nil
+         winp.geom = ffi.C.gkyl_wave_geom_new(
+            winp.grid, qOut._localExtRange, mapc2p, ctx);
+
+         self._zero = ffi.gc(
+            ffi.C.gkyl_wave_prop_new(winp), ffi.C.gkyl_wave_prop_release)
+
+         ffi.C.gkyl_wave_geom_release(winp.geom)
+
+         self._isFirst = false
+      end
+
+      local g0_status = ffi.C.gkyl_wave_prop_advance(
+         self._zero, 0, dt, qOut._localRange, qIn._zero, qOut._zero)
+      local success = g0_status.success == 1 and true or false
+      return success, g0_status.dt_suggested
+   end
 
    local equation = self._equation -- equation to solve
    local meqn, mwave = equation:numEquations(), equation:numWaves()
