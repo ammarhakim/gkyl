@@ -269,6 +269,13 @@ void gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
  */
 void gkyl_array_copy_from_buffer(struct gkyl_array *arr,
   const void *data, struct gkyl_range range);
+
+/**
+ * Release pointer to array
+ *
+ * @param arr Array to release.
+ */
+void gkyl_array_release(const struct gkyl_array* arr);
 ]]
 
 local longSz = sizeof("long")
@@ -381,12 +388,15 @@ local array_fn = {
 
 local array_mt = {
    __new = function (self, atype, ncomp, size, on_gpu)
+      local __gc = function(gkyl_array_c_pointer)
+         ffiC.gkyl_array_release(gkyl_array_c_pointer)
+      end
       if on_gpu==1 then
-         return ffiC.gkyl_array_cu_dev_new(atype, ncomp, size)
+         return ffi.gc(ffiC.gkyl_array_cu_dev_new(atype, ncomp, size), __gc)
       elseif on_gpu==2 then
-         return ffiC.gkyl_array_cu_host_new(atype, ncomp, size)
+         return ffi.gc(ffiC.gkyl_array_cu_host_new(atype, ncomp, size), __gc)
       else
-         return ffiC.gkyl_array_new(atype, ncomp, size)
+         return ffi.gc(ffiC.gkyl_array_new(atype, ncomp, size), __gc)
       end
    end,
    __gc = function(self)
