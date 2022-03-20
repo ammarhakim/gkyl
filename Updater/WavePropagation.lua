@@ -392,7 +392,8 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
 
       local g0_status = ffi.C.gkyl_wave_prop_advance(
          self._zero, 0, dt, qOut._localRange, qIn._zero, qOut._zero)
-      return g0_status.success, g0_status.dt_suggested
+      local success = g0_status.success == 1 and true or false
+      return success, g0_status.dt_suggested
    end
 
    local equation = self._equation -- equation to solve
