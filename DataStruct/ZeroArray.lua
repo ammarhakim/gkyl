@@ -385,15 +385,15 @@ local array_fn = {
 
 local array_mt = {
    __new = function (self, atype, ncomp, size, on_gpu)
-      local __gc = function(gkyl_array_c_pointer)
-         ffiC.gkyl_array_release(gkyl_array_c_pointer)
-      end
       if on_gpu==1 then
-         return ffi.gc(ffiC.gkyl_array_cu_dev_new(atype, ncomp, size), __gc)
+         return ffi.gc(ffiC.gkyl_array_cu_dev_new(atype, ncomp, size),
+                       ffiC.gkyl_array_release)
       elseif on_gpu==2 then
-         return ffi.gc(ffiC.gkyl_array_cu_host_new(atype, ncomp, size), __gc)
+         return ffi.gc(ffiC.gkyl_array_cu_host_new(atype, ncomp, size),
+                       ffiC.gkyl_array_release)
       else
-         return ffi.gc(ffiC.gkyl_array_new(atype, ncomp, size), __gc)
+         return ffi.gc(ffiC.gkyl_array_new(atype, ncomp, size),
+                       ffiC.gkyl_array_release)
       end
    end,
    __index = array_fn,
