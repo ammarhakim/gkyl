@@ -13,9 +13,9 @@
 
 extern "C" {
 
-    void AlphaGenGeoSer1x3vP1(const double *w, const double *dxv, const double *tvComp, double const *gxx, double const *gxy, double const *gxz, double const *gyy, double const *gyz, double const *gzz, const double *jacobGeo, double *alphaGeo);
+  void AlphaGenGeoSer1x3vP1(const double *w, const double *dxv, const double *tvComp, double const *gxx, double const *gxy, double const *gxz, double const *gyy, double const *gyz, double const *gzz, double *alphaGeo);
 
-  void AlphaGenGeoSer3x3vP1(const double *w, const double *dxv, const double *tvComp, double const *gxx, double const *gxy, double const *gxz, double const *gyy, double const *gyz, double const *gzz, const double *jacobGeo, double *alphaGeo);
+  void AlphaGenGeoSer3x3vP1(const double *w, const double *dxv, const double *tvComp, double const *gxx, double const *gxy, double const *gxz, double const *gyy, double const *gyz, double const *gzz, double *alphaGeo);
 
  
 } 

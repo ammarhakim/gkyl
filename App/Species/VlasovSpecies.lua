@@ -123,7 +123,7 @@ function VlasovSpecies:createSolver(field, externalField)
    -- Run the KineticSpecies 'createSolver()' to initialize the collisions solver
    VlasovSpecies.super.createSolver(self, field, externalField)
 
-   if externalField.geo.bHat then -- for genGeo with neutrals
+   if externalField.geo then -- for genGeo with neutrals
       self._isGenGeo = true
       self.bHat = externalField.geo.bHat
       self.gxx = externalField.geo.gxx
@@ -133,6 +133,7 @@ function VlasovSpecies:createSolver(field, externalField)
       self.gyz = externalField.geo.gyz
       self.gzz = externalField.geo.gzz
       self.jacobGeo = externalField.geo.jacobGeo
+      self.jacobGeoInv = externalField.geo.jacobGeoInv
       self.tanVecComp = externalField.geo.tanVecComp
 
       self.calcAlphaGeo = Updater.AlphaGenGeoCalc {
@@ -148,7 +149,8 @@ function VlasovSpecies:createSolver(field, externalField)
       self.alphaGeo = self:allocCartField(self.grid,self.cdim*self.basis:numBasis(), {self.nGhost,self.nGhost}, metaData)
       
       -- Calculate alphaGeo here. Use an Updater.
-      self.calcAlphaGeo:advance(0.0, {self.tanVecComp, self.gxx, self.gxy, self.gxz, self.gyy, self.gyz, self.gzz, self.jacobGeo}, {self.alphaGeo})
+      self.calcAlphaGeo:advance(0.0, {self.tanVecComp, self.gxx, self.gxy, self.gxz, self.gyy, self.gyz, self.gzz}, {self.alphaGeo})
+      
    end
       
    local plasmaE, plasmaB = field:hasEB()
@@ -744,6 +746,10 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    local tmStart = Time.clock()
    -- Compute moments needed in coupling to fields and collisions.
    local fIn = self:rkStepperFields()[rkIdx]
+
+   if self._isGenGeo then
+      self.confPhaseWeakMultiply:advance(tCurr, {self.jacobGeoInv, fIn}, {fIn})
+   end
    if self.needSelfPrimMom and
       lume.any({unpack(self.momentFlags,1,4)},function(x) return x==false end) then -- No need to recompute if already computed.
       self.fiveMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy, 

@@ -69,14 +69,13 @@ function AlphaGenGeoCalc:_advance(tCurr, inFld, outFld)
    local gyy = assert(inFld[5], "AlphaGenGeo.advance: Must specify gij as input[2]-input[7]")
    local gyz = assert(inFld[6], "AlphaGenGeo.advance: Must specify gij as input[2]-input[7]")
    local gzz = assert(inFld[7], "AlphaGenGeo.advance: Must specify gij as input[2]-input[7]")
-   local jacGeo = assert(inFld[8], "AlphaGenGeo.advance: Must specify geometric jacobian as input[8]")
 
    local alphaGeo = assert(outFld[1], "AlphaGenGeo.advance: Must specify alphaGeo as output")
 
    local tvCompItr = tvComp:get(1)
    local gxxItr, gxyItr, gxzItr = gxx:get(1), gxy:get(1), gxz:get(1)
    local gyyItr, gyzItr, gzzItr = gyy:get(1), gyz:get(1), gzz:get(1)
-   local jacGeoItr = jacGeo:get(1)
+
    local alphaItr = alphaGeo:get(1)
    
    local confIndexer = gxx:genIndexer()
@@ -84,9 +83,9 @@ function AlphaGenGeoCalc:_advance(tCurr, inFld, outFld)
    local tvPhaseIndexer = tvComp:genIndexer()
    local phaseRange
    if self.onGhosts then
-      phaseRange = tvComp:localExtRange()
+      phaseRange = alphaGeo:localExtRange()
    else
-      phaseRange = tvComp:localRange()
+      phaseRange = alphaGeo:localRange()
    end
    
    -- Construct ranges for nested loops.
@@ -105,8 +104,7 @@ function AlphaGenGeoCalc:_advance(tCurr, inFld, outFld)
       gyy:fill(confIndexer(cIdx), gyyItr)
       gyz:fill(confIndexer(cIdx), gyzItr)
       gzz:fill(confIndexer(cIdx), gzzItr)
-      jacGeo:fill(confIndexer(cIdx), jacGeoItr)
-
+      
       -- The velocity space loop
       for vIdx in velRange:rowMajorIter() do
 	 cIdx:copyInto(self.idx)
@@ -120,7 +118,7 @@ function AlphaGenGeoCalc:_advance(tCurr, inFld, outFld)
 	 tvComp:fill(tvPhaseIndexer(self.idx), tvCompItr)
 	 alphaGeo:fill(phaseIndexer(self.idx), alphaItr)
 	 
-	 self._calcAlphaGenGeo(self.xc:data(), self.dx:data(), tvCompItr:data(), gxxItr:data(), gxyItr:data(), gxzItr:data(), gyyItr:data(), gyzItr:data(), gzzItr:data(), jacGeoItr:data(), alphaItr:data())
+	 self._calcAlphaGenGeo(self.xc:data(), self.dx:data(), tvCompItr:data(), gxxItr:data(), gxyItr:data(), gxzItr:data(), gyyItr:data(), gyzItr:data(), gzzItr:data(), alphaItr:data())
       end     
    end
    

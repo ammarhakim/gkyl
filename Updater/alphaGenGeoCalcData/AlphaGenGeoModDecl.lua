@@ -24,7 +24,7 @@ local _M = {}
 function _M.AlphaGenGeo(basisNm, CDIM, VDIM, polyOrder)
    local funcType = "void"
    local funcNm = string.format("AlphaGenGeo%s%dx%dvP%d", basisNmMap[basisNm], CDIM, VDIM, polyOrder)
-   local funcSign = "(const double *w, const double *dxv, const double *tvComp, double const *gxx, double const *gxy, double const *gxz, double const *gyy, double const *gyz, double const *gzz, const double *jacobGeo, double *alphaGeo)"
+   local funcSign = "(const double *w, const double *dxv, const double *tvComp, double const *gxx, double const *gxy, double const *gxz, double const *gyy, double const *gyz, double const *gzz, double *alphaGeo)"
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]

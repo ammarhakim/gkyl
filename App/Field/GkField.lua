@@ -1197,6 +1197,15 @@ function GkGeometry:createSolver()
 		   gxz, gyz, gzz, bX, bY, bZ, g_yz, g_zz
 		   
          end
+	 self.calcTanVecComp = function(t, xn)
+	    local d = {}
+	    self.grid:getTanVecComp(xn, d)
+	    local dXdx, dYdx, dZdx = d[1], d[2], d[3]
+	    local dXdy, dYdy, dZdy = d[4], d[5], d[6]
+	    local dXdz, dYdz, dZdz = d[7], d[8], d[9]
+	    
+	    return dXdx, dYdx, dZdx, dXdy, dYdy, dZdy, dXdz, dYdz, dZdz
+	 end
       elseif self.ndim == 2 then
          self.calcAllGeo = function(t, xn)
             local g = {}
@@ -1294,6 +1303,12 @@ function GkGeometry:createSolver()
 	 }
       else
          self.bmagVars = {"x"}
+	 self.setTanVecComp = Updater.EvalOnNodes {
+            onGrid   = self.grid,
+            basis    = self.basis,
+            evaluate = self.calcTanVecComp,
+            onGhosts = true,
+	 }
       end
 
       if self.fromFile == nil then
@@ -1381,10 +1396,8 @@ function GkGeometry:initField()
              self.geo.bmag, self.geo.bmagInv, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
              self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ, 
 	     self.geo.gxz, self.geo.gyz, self.geo.gzz, bXtemp, bYtemp, bZtemp, self.geo.g_yz, self.geo.g_zz})
-	 if self.ndim == 3 then
-	    self.setTanVecComp:advance(0.0, {}, {self.geo.tanVecComp})
-	    self.geo.bHat:combineOffset(1.0, bXtemp, 0, 1.0, bYtemp, self.basis:numBasis(), 1.0, bZtemp, 2*self.basis:numBasis())
-	 end
+	 self.setTanVecComp:advance(0.0, {}, {self.geo.tanVecComp})
+	 self.geo.bHat:combineOffset(1.0, bXtemp, 0, 1.0, bYtemp, self.basis:numBasis(), 1.0, bZtemp, 2*self.basis:numBasis())
       end
    end
    local confWeakMultiply = Updater.CartFieldBinOp {
