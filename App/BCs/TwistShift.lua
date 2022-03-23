@@ -67,7 +67,6 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
    local Ny = self.grid:numCells(2)
 
    if Ny == 1 then  -- Axisymmetric case. Assume periodicity.
-      self.bcSolver = { advance = function(...) end }
       self.zSync = function(fIn, bufferOut)
          -- Apply periodic BCs in z direction, but only on the first edge (lower or upper, whichever is first)
          -- First check if sync has been called on this step by any BC.
@@ -86,13 +85,14 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
             for _, bc in lume.orderedIter(mySpecies.nonPeriodicBCs) do bc.synced = false end
          end
       end
+      self.bcSolver = { advance = function(...) end }
    else
+      self.zSync = function(fIn, bufferOut) self:zSyncGlobalY(fIn, bufferOut) end
       self.bcSolver = Updater.TwistShiftBC {
          onGrid    = self.grid,       yShiftFunc      = self.yShiftFunc,
          basis     = self.basis,      yShiftPolyOrder = self.yShiftPolyOrder,
          confBasis = self.confBasis,  edge            = self.bcEdge,
       }
-      self.zSync = function(fIn, bufferOut) self:zSyncGlobalY(fIn, bufferOut) end
    end
 
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
