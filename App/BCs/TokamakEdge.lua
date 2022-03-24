@@ -186,7 +186,6 @@ function TokamakEdgeBC:createSolver(mySpecies, field, externalField)
    local global, globalExt = distf:globalRange(), distf:globalExtRange()
    local localExt          = distf:localExtRange()
    local ghostGlobal       = getGhostRange(self.bcEdge, self.bcDir, global, globalExt)
-   local ghostLocal        = localExt:intersect(ghostGlobal)
    -- Reduce this ghost range to the part of the x-domain with sheath BCs.
    -- Assume the split happens at a cell boundary and within the domain.
    assert(self.grid:lower(1)<self.xLCFS and self.xLCFS<self.grid:upper(1), "TokamakEdgeBC: 'xLCFS' coordinate must be within the x-domain.") 
@@ -238,7 +237,7 @@ function TokamakEdgeBC:createSolver(mySpecies, field, externalField)
          confBasis = self.confBasis,  edge            = self.bcEdge,
       }
    end
-   self.ghostGlobalCore = ghostGlobal:shorten(1, self.grid:numCells(1)-self.idxLCFS[1]+1)
+   self.ghostGlobalCore = ghostGlobal:shorten(1, self.idxLCFS[1]+1)
    self.ghostLocalCore  = localExtInDir:intersect(self.ghostGlobalCore)
 
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
@@ -861,7 +860,7 @@ function TokamakEdgeBC:createPeriodicGraphComm(fIn)
       local localExtInDir     = localExtRangeInDir(fIn, self.bcDir)
       local ghostGlobalOppositeZ = getGhostRange(self.bcEdge=="lower" and "upper" or "lower",
                                                  self.bcDir, global, globalExt)
-      local ghostGlobalCoreOppositeZ = ghostGlobalOppositeZ:shorten(xDir, self.grid:numCells(xDir)-self.idxLCFS[xDir]+1)
+      local ghostGlobalCoreOppositeZ = ghostGlobalOppositeZ:shorten(xDir, self.idxLCFS[xDir]+1)
       local ghostLocalCoreOppositeZ  = localExtInDir:intersect(ghostGlobalCoreOppositeZ)
 
       self.hasCoreBC          = self.ghostLocalCore:volume() > 0
@@ -936,7 +935,7 @@ function TokamakEdgeBC:createPeriodicMPIdataTypes(fIn)
    for i = 1, destNum do self.sendDispl[i-1] = 0 end
 
    local skinGlobalOppositeZ = getSkinRange(self.bcEdge=="lower" and "upper" or "lower", self.bcDir, fIn:globalRange())
-   local skinGlobalCoreOppositeZ = skinGlobalOppositeZ:shorten(1, self.grid:numCells(1)-self.idxLCFS[1])
+   local skinGlobalCoreOppositeZ = skinGlobalOppositeZ:shorten(1, self.idxLCFS[1])
 
    for i = 1, #skelIds do
       local loId, upId = skelIds[i].lower, skelIds[i].upper
