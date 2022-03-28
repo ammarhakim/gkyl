@@ -1255,25 +1255,25 @@ function GkGeometry:createSolver()
    self.nonPeriodicBCs = {}   -- List of non-periodic BCs to apply.
 
    -- Function to construct a BC updater.
-   local function makeCopyBcUpdater(dir, edge)
-      local bcCopy = function(dir, tm, idxIn, fIn, fOut)
+   local function makeOpenBcUpdater(dir, edge)
+      local bcOpen = function(dir, tm, idxIn, fIn, fOut)
          -- Requires skinLoop = "pointwise".
-         for i = 1, self.basis:numBasis() do fOut[i] = fIn[i] end
+         self.basis:flipSign(dir, fIn, fOut)
       end
 
       return Updater.Bc {
          onGrid = self.grid,  edge = edge,
-         dir    = dir,        boundaryConditions = {bcCopy},
+         dir    = dir,        boundaryConditions = {bcOpen},
          skinLoop = "pointwise",
       }
    end
 
-   -- For non-periodic dirs, use copy BCs. It's the most sensible choice given that the
+   -- For non-periodic dirs, use open BCs. It's the most sensible choice given that the
    -- coordinate mapping could diverge outside of the interior domain.
    for dir = 1, self.ndim do
       if not lume.any(self.periodicDirs, function(t) return t==dir end) then
-         self.nonPeriodicBCs["lower"] = makeCopyBcUpdater(dir, "lower")
-         self.nonPeriodicBCs["upper"] = makeCopyBcUpdater(dir, "upper")
+         self.nonPeriodicBCs["lower"] = makeOpenBcUpdater(dir, "lower")
+         self.nonPeriodicBCs["upper"] = makeOpenBcUpdater(dir, "upper")
       end
    end
 end
@@ -1332,7 +1332,7 @@ function GkGeometry:initField()
    if self.setPhiWall then self.setPhiWall:advance(0.0, {}, {self.geo.phiWall})
    else self.geo.phiWall:clear(0.0) end
 
-   -- Apply copy BCs and sync ghost cells. These calls do not enforce periodicity because
+   -- Apply open BCs and sync ghost cells. These calls do not enforce periodicity because
    -- these fields were created with syncPeriodicDirs = false.
    local function applyBCsync(fld)
       for _, bc in pairs(self.nonPeriodicBCs) do bc:advance(tCurr, {}, {fld}) end
