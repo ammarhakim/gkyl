@@ -38,25 +38,33 @@ end
 function BCsBase:initCrossSpeciesCoupling(species) end
 function BCsBase:createSolver(thisSpecies, extField) end
 function BCsBase:createCouplingSolver(species, field, externalField) end
-function BCsBase:createBoundaryGrid()
+function BCsBase:createBoundaryGrid(mySpecies)
    -- Create a ghost boundary grid with only one cell in the direction of the BC.
    if self.grid:isShared() then
-      assert(false, "VlasovBasicBC: shared memory implementation of boundary flux diagnostics not ready.")
+      assert(false, "BCsBase: shared memory implementation of boundary flux diagnostics not ready.")
    else
+
       local reducedLower, reducedUpper, reducedNumCells, reducedCuts = {}, {}, {}, {}
       for d = 1, self.grid:ndim() do
          if d==self.bcDir then
-            table.insert(reducedLower, -self.grid:dx(d)/2.)
-            table.insert(reducedUpper,  self.grid:dx(d)/2.)
+            -- Set index and get dx instead of grid:dx() to allow nonuniform grids.
+            local dx, idx = {}, {}
+            for d = 1, self.grid:ndim() do idx[d] = 1 end
+            idx[d] = self.bcEdge == "lower" and 1 or self.grid:numCells(d)
+            self.grid:setIndex(idx);
+            self.grid:getDx(dx)
+            table.insert(reducedLower, -dx[d]/2.)
+            table.insert(reducedUpper,  dx[d]/2.)
             table.insert(reducedNumCells, 1)
             table.insert(reducedCuts, 1)
          else
-            table.insert(reducedLower,    self.grid:lower(d))
-            table.insert(reducedUpper,    self.grid:upper(d))
+            table.insert(reducedLower,    self.grid:logicalLower(d))
+            table.insert(reducedUpper,    self.grid:logicalUpper(d))
             table.insert(reducedNumCells, self.grid:numCells(d))
             table.insert(reducedCuts,     self.grid:cuts(d))
          end
       end
+
       local commSet  = self.grid:commSet()
       local worldComm, nodeComm = commSet.comm, commSet.nodeComm
       local nodeRank = Mpi.Comm_rank(nodeComm)
@@ -84,9 +92,16 @@ function BCsBase:createBoundaryGrid()
          comm      = self._splitComm,  cuts      = reducedCuts,
          writeRank = writeRank,        useShared = self.grid:isShared(),
       }
-      self.boundaryGrid = Grid.RectCart {
+
+      local GridConstructor = Grid.RectCart
+      if mySpecies.phaseCoordinateMap then
+         if #mySpecies.phaseCoordinateMap > 0 then GridConstructor = Grid.NonUniformRectCart end
+      end
+
+      self.boundaryGrid = GridConstructor {
          lower = reducedLower,  cells         = reducedNumCells,
          upper = reducedUpper,  decomposition = reducedDecomp,
+         mappings = mySpecies.phaseCoordinateMap,
       }
    end
 end

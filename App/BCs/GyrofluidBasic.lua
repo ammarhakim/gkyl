@@ -210,7 +210,7 @@ function GyrofluidBasicBC:createSolver(mySpecies, field, externalField)
    -- the fluxes through a boundary (e.g. neutral recycling).
    if self.saveFlux then
       -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
-      self:createBoundaryGrid()
+      self:createBoundaryGrid(mySpecies)
 
       local moms = mySpecies:getMoments()
       -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).

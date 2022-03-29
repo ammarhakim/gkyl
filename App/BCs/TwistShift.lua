@@ -96,7 +96,7 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
    end
 
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
-   self:createBoundaryGrid()
+   self:createBoundaryGrid(mySpecies)
 
    -- Create a boundary grid that is global in Y: used to broadcast skin data.
    self:createBoundaryGridGlobalY()

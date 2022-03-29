@@ -6,7 +6,7 @@ local Plasma = require("App.PlasmaOnCartGrid").HasegawaWakatani()
 
 local L = 2.*math.pi/0.15
 
-math.randomseed(os.time())
+math.randomseed(1234)
 
 plasmaApp = Plasma.App {
    logToFile = true,
