@@ -67,6 +67,11 @@ function TwistShiftBC:init(tbl)
       self.cDim, self.vDim = self.basis:ndim(), 0
    end
 
+   if self.cDim > 3 and self.vDim == 0 then  -- For 5x passive advection tests.
+      self.vDim = self.cDim-3
+      self.cDim = 3
+   end
+
    if self.cDim == 3 then
       self.zEdge = assert(
          tbl.edge, "Updater.TwistShift: Must indicate which z-edge to compute (lower/upper) using 'edge'.")
@@ -145,13 +150,16 @@ function TwistShiftBC:_advance(tCurr, inFld, outFld)
 
    local cDim = self.cDim
 
-   local indexer   = fldTar:genIndexer()
-   local doIndexer = fldDo:genIndexer()
-   local fldDoItr, fldTarItr = fldDo:get(1), fldTar:get(1)
+   local doIndexer, tarIndexer = fldDo:genIndexer(), fldTar:genIndexer()
+   local fldDoItr, fldTarItr   = fldDo:get(1), fldTar:get(1)
 
    if self.isFirst then
       local global, globalExt, localExtRange = fldTar:globalRange(), fldTar:globalExtRange(), fldTar:localExtRange()
-      self.ghostRange = localExtRange:intersect(getGhostRange(global, globalExt, 3, self.zEdge))
+      local ghostRangeAll = localExtRange:intersect(getGhostRange(global, globalExt, 3, self.zEdge))
+
+      local inGhostRange = inFld[2] -- Optional range on which we wish to apply BCs.
+      self.ghostRange = inGhostRange and ghostRangeAll:intersect(inGhostRange) or ghostRangeAll
+
       -- Decompose ghost region into threads.
       self.ghostRangeDecomp = LinearDecomp.LinearDecompRange {
          range      = self.ghostRange,       numSplit = self.grid:numSharedProcs(),  
@@ -164,14 +172,14 @@ function TwistShiftBC:_advance(tCurr, inFld, outFld)
 
    for idxTar in self.ghostRangeDecomp:rowMajorIter(tId) do
 
-      fldTar:fill(indexer(idxTar), fldTarItr)
+      fldTar:fill(tarIndexer(idxTar), fldTarItr)
       -- Zero out target cell before operation.
       for k = 1, self.basis:numBasis() do fldTarItr[k] = 0. end
 
       local doCellsC = self.doCells[idxTar[1]][idxTar[2]]
 
       idxTar:copyInto(self.idxDoP)
-      self.idxDoP[3] = 1
+      self.idxDoP[3] = 1  -- Donor is a buffer with one cell in z.
 
       for mI = 1, #doCellsC do
          local idxDo2D = doCellsC[mI]
@@ -197,7 +205,10 @@ function TwistShiftBC:_advance2x(tCurr, inFld, outFld)
    local indexer = fldTar:genIndexer()
    local fldDoItr, fldTarItr = fldDo:get(1), fldTar:get(1)
 
-   local localRange = fldTar:localRange()
+   local localRangeAll = fldTar:localRange()
+
+   local inRange = inFld[2] -- Optional range on which we wish to apply BCs.
+   local localRange = inRange and localRangeAll:intersect(inRange) or localRangeAll
 
    for idxTar in localRange:rowMajorIter() do
 
@@ -227,7 +238,6 @@ function TwistShiftBC:_advance3xInPlace(tCurr, inFld, outFld)
 
    local cDim = self.cDim
 
-   assert(inFld[1]==nil, "Updater.TwistShift_advance3xInPlace: no separate donor field needed. Just use the outFld to pass a donor/target field.")
    assert(cDim==3, "Updater.TwistShift_advance3xInPlace: performing twist-shift to a single field is only available for 3D fields.")
 
    local indexer = fldTar:genIndexer()
@@ -238,10 +248,14 @@ function TwistShiftBC:_advance3xInPlace(tCurr, inFld, outFld)
    if self.isFirst then
       local globalExt     = fldTar:globalExtRange()
       local localExtRange = fldTar:localExtRange()
-      self.ghostRng = localExtRange:intersect(getGhostRange(global, globalExt, 3, self.zEdge))
+      local ghostRangeAll = localExtRange:intersect(getGhostRange(global, globalExt, 3, self.zEdge))
+
+      local inGhostRange = inFld[1] -- Optional range on which we wish to apply BCs.
+      self.ghostRange = inGhostRange and ghostRangeAll:intersect(inGhostRange) or ghostRangeAll
+
       -- Decompose ghost region into threads.
       self.ghostRangeDecomp = LinearDecomp.LinearDecompRange {
-         range = self.ghostRng, numSplit = self.grid:numSharedProcs() }
+         range = self.ghostRange, numSplit = self.grid:numSharedProcs() }
 
       self.isFirst = false
    end

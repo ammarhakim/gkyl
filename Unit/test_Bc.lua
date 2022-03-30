@@ -56,6 +56,7 @@ local function createField(grid, basis, vComp)
       metaData      = {polyOrder = basis:polyOrder(),
                        basisType = basis:id(),}
    }
+   fld:clear(0.)
    return fld
 end
 
@@ -259,6 +260,229 @@ function test_bc(polyOrder, bcDir, bcType, lower, upper, numCells, cdim)
    end
 end
 
+function test_bcHalfx(polyOrder, bcType, lower, upper, numCells, cdim, xHalf)
+   -- Apply the BCs for just the lower (xHalf="lo") or upper (xHalf="up") half of the x domain.
+   local bcDir = 2
+
+   local confLower, confUpper, confNumCells = {}, {}, {}
+   for d = 1, cdim do
+      confLower[d], confUpper[d], confNumCells[d] = lower[d], upper[d], numCells[d]
+   end
+
+   local phaseGrid  = createGrid(lower, upper, numCells)
+   local phaseBasis = createBasis(phaseGrid:ndim(), polyOrder)
+   local confGrid   = createGrid(confLower, confUpper, confNumCells)
+   local confBasis  = createBasis(confGrid:ndim(), polyOrder)
+
+   local pdim = phaseGrid:ndim()
+   local vdim = pdim-cdim
+
+   local m0Fld = createField(confGrid, confBasis)
+   local distf = createField(phaseGrid, phaseBasis)
+
+   -- Conf space function to project
+   local m0Func_1x = function(t, xn)
+      local x = xn[1]
+      return m0*math.sin(2.*math.pi*x)
+   end
+   local m0Func_2x = function(t, xn)
+      local x, y = xn[1], xn[2]
+      return m0*math.sin(2.*math.pi*x)*math.sin(2.*math.pi*y)
+   end
+   local m0Func_3x = function(t, xn)
+      local x, y = xn[1], xn[2], xn[3]
+      return m0*math.sin(2.*math.pi*x)*math.sin(2.*math.pi*y)*math.exp(-(z^2)/(2.*(0.15^2)))
+   end
+   local m0Func
+   if cdim==1 then m0Func=m0Func_1x
+   elseif cdim==2 then m0Func=m0Func_2x
+   elseif cdim==3 then m0Func=m0Func_3x
+   end
+
+   -- Velocity space function to project
+   local maxwellianFunc_1v = function(t, xn)
+      local v = xn[cdim+1]
+      local fOut = (1./math.sqrt(2.*math.pi*vt^2))*math.exp(-((v-uDrift[1])^2)/(2*(vt^2)))
+      return fOut
+   end
+   local maxwellianFunc_2v = function(t, xn)
+      local vx, vy = xn[cdim+1], xn[cdim+2]
+      local fOut = (1./(2.*math.pi*vt^2))*math.exp(-((vx-uDrift[1])^2+(vy-uDrift[2])^2)/(2*(vt^2)))
+      return fOut
+   end
+   local maxwellianFunc_3v = function(t, xn)
+      local vx, vy, vz = xn[cdim+1], xn[cdim+2], xn[cdim+3]
+      local fOut = (1./((2.*math.pi*vt^2)^(3./2.)))
+                  *math.exp(-((vx-uDrift[1])^2+(vy-uDrift[2])^2+(vz-uDrift[3])^2)/(2*(vt^2)))
+      return fOut
+   end
+   local maxwellianFunc
+   if vdim==1 then maxwellianFunc=maxwellianFunc_1v
+   elseif vdim==2 then maxwellianFunc=maxwellianFunc_2v
+   elseif vdim==3 then maxwellianFunc=maxwellianFunc_3v
+   end
+
+   local projectConf = Updater.ProjectOnBasis {
+      onGrid = confGrid,   evaluate = m0Func,
+      basis  = confBasis,  onGhosts = false,
+   }
+   local projectPhase = Updater.ProjectOnBasis {
+      onGrid = phaseGrid,   evaluate = function(t,xn) return m0Func(t,xn)*maxwellianFunc(t,xn) end,
+      basis  = phaseBasis,  onGhosts = false,
+   }
+
+   -- Do projection.
+   projectConf:advance(0.0, {}, {m0Fld})
+   projectPhase:advance(0.0, {}, {distf})
+
+   -- Conf BC updaters. 
+   local confCopy = function(dir, tm, idxIn, fIn, fOut) -- Use skinLoop = "pointwise".
+      for i = 1, confBasis:numBasis() do fOut[i] = fIn[i] end
+   end
+   local confReflect = function(dir, tm, idxIn, fIn, fOut) -- Use skinLoop = "flip".
+      confBasis:flipSign(bcDir, fIn, fOut)
+      confBasis:flipSign(bcDir+cdim, fOut, fOut)
+   end
+   local bcFunc = bcType == "reflect" and confReflect or confCopy
+   local confBc = {lower=Updater.Bc{onGrid   = confGrid,   edge               = "lower",
+                                    cdim     = cdim,       boundaryConditions = {bcFunc},
+                                    dir      = bcDir,      vdir               = cdim+bcDir,
+                                    basis    = confBasis,  confBasis          = confBasis,
+                                    skinLoop = "pointwise",},
+                   upper=Updater.Bc{onGrid   = confGrid,   edge               = "upper",
+                                    cdim     = cdim,       boundaryConditions = {bcFunc},
+                                    dir      = bcDir,      vdir               = cdim+bcDir,
+                                    basis    = confBasis,  confBasis          = confBasis,
+                                    skinLoop = "pointwise",}
+   }
+
+   -- Phase BC updaters. 
+   local phaseCopy = function(dir, tm, idxIn, fIn, fOut) -- Use skinLoop = "pointwise".
+      for i = 1, phaseBasis:numBasis() do fOut[i] = fIn[i] end
+   end
+   local phaseReflect = function(dir, tm, idxIn, fIn, fOut) -- Use skinLoop = "flip".
+      phaseBasis:flipSign(bcDir, fIn, fOut)
+      phaseBasis:flipSign(bcDir+cdim, fOut, fOut)
+   end
+   local bcFunc = bcType == "reflect" and phaseReflect or phaseCopy
+   local phaseBc = {lower=Updater.Bc{onGrid   = phaseGrid,   edge               = "lower",
+                                     cdim     = cdim,        boundaryConditions = {bcFunc},
+                                     dir      = bcDir,       vdir               = cdim+bcDir,
+                                     basis    = phaseBasis,  confBasis          = confBasis,
+                                     skinLoop = "pointwise",},
+                    upper=Updater.Bc{onGrid   = phaseGrid,   edge               = "upper",
+                                     cdim     = cdim,        boundaryConditions = {bcFunc},
+                                     dir      = bcDir,       vdir               = cdim+bcDir,
+                                     basis    = phaseBasis,  confBasis          = confBasis,
+                                     skinLoop = "pointwise",}
+   }
+
+   -- Create ghost range that only includes half the x domain.
+   -- Assume the middle of the x-domain occurs at a cell boundary.
+   local confGhost, phaseGhost = {}, {}
+   local confGlobal, confGlobalExt = m0Fld:globalRange(), m0Fld:globalExtRange()
+   local confLocalExt = m0Fld:localExtRange()
+   local phaseGlobal, phaseGlobalExt = distf:globalRange(), distf:globalExtRange()
+   local phaseLocalExt = distf:localExtRange()
+   for _, edge in ipairs({"lower","upper"}) do
+      confGhost[edge]  = confLocalExt:intersect(getGhostRange(edge,bcDir,confGlobal,confGlobalExt))   -- Range spanning ghost cells.
+      phaseGhost[edge] = phaseLocalExt:intersect(getGhostRange(edge,bcDir,phaseGlobal,phaseGlobalExt))   -- Range spanning ghost cells.
+      if xHalf == "lo" then
+         confGhost[edge]  = confGhost[edge]:shorten(1,1+numCells[1]/2) 
+         phaseGhost[edge] = phaseGhost[edge]:shorten(1,1+numCells[1]/2) 
+      elseif xHalf == "up" then
+         confGhost[edge]  = confGhost[edge]:shortenFromBelow(1,1+numCells[1]/2) 
+         phaseGhost[edge] = phaseGhost[edge]:shortenFromBelow(1,1+numCells[1]/2) 
+      end
+   end
+
+   -- Apply BCs.
+   for _, edge in ipairs({"lower","upper"}) do
+      confBc[edge]:advance(0., {m0Fld, confGhost[edge]}, {m0Fld})
+      phaseBc[edge]:advance(0., {distf, phaseGhost[edge]}, {distf})
+   end
+
+   local idxSkin = Lin.IntVec(pdim)
+
+   -- Check copy BCs.
+   local m0Ghost = Lin.Vec(confBasis:numBasis())
+   local confGlobal, confGlobalExt = m0Fld:globalRange(), m0Fld:globalExtRange()
+   local confLocalExt = m0Fld:localExtRange()
+   local m0FldIdxr, m0FldPtr, m0FldSkinPtr = m0Fld:genIndexer(), m0Fld:get(1), m0Fld:get(1)
+   for _, edge in ipairs({"lower","upper"}) do
+      local confGhostAllx = confLocalExt:intersect(getGhostRange(edge,bcDir,confGlobal,confGlobalExt))   -- Range spanning ghost cells.
+      -- Decompose ghost region into threads.
+      local confGhostDecomp = LinearDecomp.LinearDecompRange{range = confGhostAllx, numSplit = confGrid:numSharedProcs()}
+
+      local tId = confGrid:subGridSharedId() -- Local thread ID.
+      for idx in confGhostDecomp:rowMajorIter(tId) do
+         m0Fld:fill(m0FldIdxr(idx), m0FldPtr)
+
+         -- Copy out index into in index
+         idx:copyInto(idxSkin)
+         idxSkin[bcDir] = edge=="lower" and confGlobal:lower(bcDir) or confGlobal:upper(bcDir)
+
+         m0Fld:fill(m0FldIdxr(idxSkin), m0FldSkinPtr)
+
+         if confGhost[edge]:contains(idx) then
+            if bcType == "copy" then
+               for k = 1, confBasis:numBasis() do
+                  assert_equal(m0FldPtr[k], m0FldSkinPtr[k], "1x1v_p"..tostring(polyOrder).." "..edge.." edge: Checking m0Fld BC "..bcType)
+               end
+            elseif bcType == "reflect" then
+               confBasis:flipSign(bcDir, m0FldSkinPtr, m0Ghost)
+               for k = 1, confBasis:numBasis() do
+                  assert_equal(m0FldPtr[k], m0Ghost[k], "1x1v_p"..tostring(polyOrder).." "..edge.." edge: Checking m0Fld BC "..bcType)
+               end
+            end
+         else
+            for k = 1, confBasis:numBasis() do
+               assert_equal(0., m0Ghost[k], "1x1v_p"..tostring(polyOrder).." "..edge.." edge: Checking m0Fld BC "..bcType)
+            end
+         end
+      end
+   end
+
+   local distfGhost = Lin.Vec(phaseBasis:numBasis())
+   local phaseGlobal, phaseGlobalExt = distf:globalRange(), distf:globalExtRange()
+   local phaseLocalExt = distf:localExtRange()
+   local distfIdxr, distfPtr, distfSkinPtr = distf:genIndexer(), distf:get(1), distf:get(1)
+   for _, edge in ipairs({"lower","upper"}) do
+      local phaseGhostAllx = phaseLocalExt:intersect(getGhostRange(edge,bcDir,phaseGlobal,phaseGlobalExt))   -- Range spanning ghost cells.
+      -- Decompose ghost region into threads.
+      local phaseGhostDecomp = LinearDecomp.LinearDecompRange{range = phaseGhostAllx, numSplit = phaseGrid:numSharedProcs()}
+
+      local tId = phaseGrid:subGridSharedId() -- Local thread ID.
+      for idx in phaseGhostDecomp:rowMajorIter(tId) do
+         distf:fill(distfIdxr(idx), distfPtr)
+
+         -- Copy out index into in index
+         idx:copyInto(idxSkin)
+         idxSkin[bcDir] = edge=="lower" and phaseGlobal:lower(bcDir) or phaseGlobal:upper(bcDir)
+
+         distf:fill(distfIdxr(idxSkin), distfSkinPtr)
+
+         if phaseGhost[edge]:contains(idx) then
+            if bcType == "copy" then
+               for k = 1, phaseBasis:numBasis() do
+                  assert_equal(distfPtr[k], distfSkinPtr[k], "1x1v_p"..tostring(polyOrder).." "..edge.." edge: Checking distf BC "..bcType)
+               end
+            elseif bcType == "reflect" then
+               phaseBasis:flipSign(bcDir, distfSkinPtr, distfGhost)
+               phaseBasis:flipSign(bcDir+cdim, distfGhost, distfGhost)
+               for k = 1, phaseBasis:numBasis() do
+                  assert_equal(distfPtr[k], distfGhost[k], "1x1v_p"..tostring(polyOrder).." "..edge.." edge: Checking distf BC "..bcType)
+               end
+            end
+         else
+            for k = 1, phaseBasis:numBasis() do
+               assert_equal(0., distfGhost[k], "1x1v_p"..tostring(polyOrder).." "..edge.." edge: Checking distf BC "..bcType)
+            end
+         end
+      end
+   end
+end
+
 -- Run tests 1x1v tests.
 local lower    = {-0.50, -6.0*vt}
 local upper    = { 0.50,  6.0*vt}
@@ -307,6 +531,13 @@ test_bc(1, 2, "copy",    lower, upper, numCells, 2)
 test_bc(1, 2, "reflect", lower, upper, numCells, 2)
 test_bc(2, 2, "copy",    lower, upper, numCells, 2)
 test_bc(2, 2, "reflect", lower, upper, numCells, 2)
+
+-- Apply BCs in only half the domain along x:
+local lower    = {-0.50, -0.50, -6.0*vt, -5.0*vt}
+local upper    = { 0.50,  0.50,  6.0*vt,  5.0*vt}
+local numCells = {8, 8, 8, 8}
+test_bcHalfx(1, "copy", lower, upper, numCells, 2, "lo")
+test_bcHalfx(1, "copy", lower, upper, numCells, 2, "up")
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
