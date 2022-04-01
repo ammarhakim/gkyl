@@ -147,14 +147,17 @@ def build(bld):
     constDiffusionData/ConstDiffusionSer2xP1.cpp
     constDiffusionData/ConstDiffusionSer3xP1.cpp
     constDiffusionData/ConstDiffusionSer4xP1.cpp
+    constDiffusionData/ConstDiffusionSer5xP1.cpp
     constDiffusionData/ConstDiffusionSurfSer1xP1.cpp
     constDiffusionData/ConstDiffusionSurfSer2xP1.cpp
     constDiffusionData/ConstDiffusionSurfSer3xP1.cpp
     constDiffusionData/ConstDiffusionSurfSer4xP1.cpp
+    constDiffusionData/ConstDiffusionSurfSer5xP1.cpp
     constDiffusionData/ConstDiffusionBoundarySurfSer1xP1.cpp
     constDiffusionData/ConstDiffusionBoundarySurfSer2xP1.cpp
     constDiffusionData/ConstDiffusionBoundarySurfSer3xP1.cpp
     constDiffusionData/ConstDiffusionBoundarySurfSer4xP1.cpp
+    constDiffusionData/ConstDiffusionBoundarySurfSer5xP1.cpp
     constDiffusionData/ConstDiffusionSer1xP2.cpp
     constDiffusionData/ConstDiffusionSer2xP2.cpp
     constDiffusionData/ConstDiffusionSer3xP2.cpp

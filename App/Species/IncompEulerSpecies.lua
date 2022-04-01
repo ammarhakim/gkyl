@@ -108,7 +108,9 @@ function IncompEulerSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 
    -- Complete the field solve.
-   emIn[1]:phiSolve(tCurr, species, inIdx, outIdx)
+   if emIn[1]["phiSolve"] then
+      emIn[1]:phiSolve(tCurr, species, inIdx, outIdx)
+   end
 
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)

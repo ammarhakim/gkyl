@@ -98,6 +98,10 @@ function Diffusion:createSolver(mySpecies, externalField)
       for d = 1, dim do self.diffDirs[d] = d end
    end
 
+   -- A function for scaling distribution function by the reciprocal of the
+   -- configuration-space Jacobian, when needed (more below).
+   self.divByJacobGeo = function(tm, distf) self.fNoJacobGeo = distf end
+
    self.coefficient = {}
    if diffCoeffType == "number" then
       -- Set the diffusion coefficient to the same amplitude in all directions.
@@ -149,11 +153,32 @@ function Diffusion:createSolver(mySpecies, externalField)
          numComponents = basis:numBasis()*dim,
          ghost         = {1, 1},
       }
+      local jacDiffCoefFunc = externalField.jacobGeoFunc
+         and function(t,xn) return externalField.jacobGeoFunc(t,xn)*diffCoeffFunc(t,xn) end
+         or diffCoeffFunc
       local projectDiffCoeff = Updater.EvalOnNodes {
          onGrid = grid,   evaluate = diffCoeffFunc,
          basis  = basis,  onGhosts = true
       }
       projectDiffCoeff:advance(0.0, {}, {self.coefficient})
+
+      if externalField.geo then
+         if externalField.geo.jacobGeoInv then
+            self.fNoJacobGeo = DataStruct.Field {
+               onGrid        = grid,
+               numComponents = basis:numBasis()*dim,
+               ghost         = {1, 1},
+            }
+            self.jacobGeoInv = externalField.geo.jacobGeoInv
+            self.confPhaseWeakMultiply = Updater.CartFieldBinOp {
+               onGrid    = grid,   fieldBasis = self.confBasis,
+               weakBasis = basis,  operation  = "Multiply",
+            }
+            self.divByJacobGeo = function(tm, distf)
+               self.confPhaseWeakMultiply:advance(tm, {distf, self.jacobGeoInv}, {self.fNoJacobGeo})
+            end
+         end
+      end
    end
 
    -- Intemediate storage for output of collisions.
@@ -187,7 +212,8 @@ end
 function Diffusion:advance(tCurr, fIn, species, fRhsOut)
 
    -- Compute increment from diffusion and accumulate it into output.
-   self.collisionSlvr:advance(tCurr, {fIn}, {self.collOut})
+   self.divByJacobGeo(tm, fIn)
+   self.collisionSlvr:advance(tCurr, {self.fNoJacobGeo}, {self.collOut})
 
    local tmNonSlvrStart = Time.clock()
    -- Barrier over shared communicator before accumulate

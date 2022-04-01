@@ -12,14 +12,9 @@ load(stringproc)$
    to allow the user to add diffusion in any subset of directions. */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 2$
-minDim_Ser : 1$
-maxDim_Ser : 2$
-
-/* Maximal order basis. */
-maxPolyOrder_Max : 1$
-minDim_Max : 1$
-maxDim_Max : 0$
+maxPolyOrder_Ser : 1$
+minDim_Ser : 5$
+maxDim_Ser : 5$
 
 /* Tensor basis. */
 maxPolyOrder_Tensor : 2$
@@ -29,10 +24,10 @@ maxDim_Tensor : 0$
 /* ...... END OF USER INPUTS........ */
 
 /* To generate other bases, just add corresponding column to arrays below. */
-bName        : ["Ser","Max","Tensor"]$
-maxPolyOrder : [maxPolyOrder_Ser,maxPolyOrder_Max,maxPolyOrder_Tensor]$
-minDim       : [minDim_Ser,minDim_Max,minDim_Tensor]$
-maxDim       : [maxDim_Ser,maxDim_Max,maxDim_Tensor]$
+bName        : ["Ser","Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser,maxPolyOrder_Tensor]$
+minDim       : [minDim_Ser,minDim_Tensor]$
+maxDim       : [maxDim_Ser,maxDim_Tensor]$
 
 
 for bInd : 1 thru length(bName) do (

@@ -852,6 +852,7 @@ return {
 	 Ionization             = require "App.Collisions.GkIonization",
 	 LBOCollisions          = require "App.Collisions.GkLBOCollisions",
 	 LboCollisions          = require "App.Collisions.GkLBOCollisions",
+	 Diffusion              = require "App.Collisions.Diffusion",
 	 MaxwellianProjection   = require ("App.Projection.GkProjection").MaxwellianProjection,
 	 Species                = require "App.Species.GkSpecies",
 	 Source                 = require "App.Sources.GkSource",

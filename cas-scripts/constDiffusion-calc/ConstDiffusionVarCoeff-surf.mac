@@ -151,10 +151,21 @@ compWriteIncrVarCoeff(varsIn, basisIn, dirIn, fRecOrd, isBoundSurf, nSpaces) := 
   diffOrder : fRecOrd[1],
   nuSign    : (-1)^(diffOrder/2+1),
 
-  /* Assume that nu only depends on the variable along that direction. */
   nuL_c : makelist(nul[(dirIn-1)*numB+k-1],k,1,numB),
   nuR_c : makelist(nur[(dirIn-1)*numB+k-1],k,1,numB),
+  /**
+     If the diffusion coefficient is continuous at the cell
+     boundaries we don't need to zero out the dependence on other
+     coordinates, since the integral in the orthogonal directions
+     will be continuous/equal also.
+  **/
+  /* Assume that nu only depends on the variable along that direction. */
   otherVars : delete(cv, varsIn),
+  /**
+     Assume dim=5 and 3x2v (for which this loads a 2x3v basis), and
+     instead delete the dependence on y and velocity coordinates.
+  **/
+  if dim=5 then ( otherVars : [y,vy,vz] ),
   for k : 1 thru numB do (
     keep : true,
     for l : 1 thru length(otherVars) do (
