@@ -261,6 +261,13 @@ local range_mt = {
 	 end
 	 return _M.Range(lo, up)
       end,
+      intersectInDir = function (self, rgn, dir)
+	 local lo, up = Lin.IntVec(self:ndim()), Lin.IntVec(self:ndim())
+	 for d = 1, self:ndim() do lo[d], up[d] = self:lower(d), self:upper(d) end
+	 lo[dir] = math.max(self:lower(dir), rgn:lower(dir))
+	 up[dir] = math.min(self:upper(dir), rgn:upper(dir))
+	 return _M.Range(lo, up)
+      end,
       isIntersectionEmpty = function (self, rgn)
 	 for d = 1, self:ndim() do
 	    if math.min(self:upper(d), rgn:upper(d)) < math.max(self:lower(d), rgn:lower(d)) then

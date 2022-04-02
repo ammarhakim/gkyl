@@ -992,15 +992,17 @@ local subCellInt_sxvORsxvi = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limDo, limT
 end
 
 
-function _M.getDonors(grid, yShift, yShBasis)
+function _M.getDonors(grid, yShift, yShBasis, ghostRangeIn)
    -- Identify the donor cells for each target cell. This only considers
    -- a single 2D plane and returns 2D indices.
-   --   grid:     grid object on which donor/target fields is defined.
-   --   yShift:   1D field with the y-shift.
-   --   yShBasis: 1D basis of yShift.
+   --   grid:         grid object on which donor/target fields is defined.
+   --   yShift:       1D field with the y-shift.
+   --   yShBasis:     1D basis of yShift.
+   --   ghostRangeIn: input ghost range over which to apply TS BCs.
    
    local doCells = {}   -- Donor cells, one table for each target cell.
-   for i = 1, grid:numCells(1) do
+   local nx = ghostRangeIn and ghostRangeIn:shape(1) or grid:numCells(1)
+   for i = 1, nx do
       doCells[i] = {}
       for j = 1, grid:numCells(2) do doCells[i][j] = {} end
    end
@@ -1018,6 +1020,10 @@ function _M.getDonors(grid, yShift, yShBasis)
    local localRange, globalRange = grid:localRange(), grid:globalRange()
    -- Extend the local range to include all y (for parallel in y case):
    localRangeGlobalY = localRange:extendDir(2,localRange:lower(2)-globalRange:lower(2), globalRange:upper(2)-localRange:upper(2))
+   if ghostRangeIn then
+      -- Restrict the range along x to only incoporate the ghost range requested.
+      localRangeGlobalY = localRangeGlobalY:intersectInDir(ghostRangeIn,1)
+   end
    local xyRangeDecomp = LinearDecomp.LinearDecompRange {
       range = localRangeGlobalY:selectFirst(2), numSplit = grid:numSharedProcs(), threadComm = grid:commSet().sharedComm }
    local tId = grid:subGridSharedId()   -- Local thread ID.
@@ -1113,15 +1119,16 @@ function _M.matVec_alloc(yShift, doCells, basis)
    -- we only need to create matrices for a single x-row of cells; all the other x-rows use the
    -- same matrices but multiply fields from other cells in y.
    local matVecAlloc = TwistShiftDecl.selectTwistShiftAlloc()
-   local matVecs     = matVecAlloc(gridX:numCells(1), basis:numBasis())
+   local numCellsInX = #doCells
+   local matVecs     = matVecAlloc(numCellsInX, basis:numBasis())
 
    -- Allocate the matrices that multiply each donor cell.
    local yIdxTar = 1   -- For positive(negative) yShift idx=1(last) might be better.
    local cellMatAlloc = TwistShiftDecl.selectTwistShiftAllocCellMat()
    local xLocalRange  = gridX:localRange()
-   for xIdx in xLocalRange:rowMajorIter() do
-      local doCellsC = doCells[xIdx[1]][yIdxTar]
-      cellMatAlloc(matVecs, xIdx[1], #doCellsC)
+   for xIdx = 1, numCellsInX do
+      local doCellsC = doCells[xIdx][yIdxTar]
+      cellMatAlloc(matVecs, xIdx, #doCellsC)
    end
 
    return matVecs
@@ -1144,17 +1151,22 @@ local missingInterPt = function(x_pq)
   return count, nilIdxs, nonNilIdxs
 end
 
-function _M.preCalcMat(grid, yShift, doCells, tsMatVecs)
+function _M.preCalcMat(grid, yShift, doCells, tsMatVecs, ghostRangeIn)
    -- Pre-calculate the matrices that multiply DG coefficients of each donor cell to obtain their
    -- contribution to each target cell. Based on weak equality between donor and target fields.
-   --   grid:      grid object on which donor/target fields is defined.
-   --   yShift:    1D field with the y-shift.
-   --   doCells:   donor cell 2D indices.
-   --   tsMatVecs: C struct with matrices and vectors.
+   --   grid:         grid object on which donor/target fields is defined.
+   --   yShift:       1D field with the y-shift.
+   --   doCells:      donor cell 2D indices.
+   --   tsMatVecs:    C struct with matrices and vectors.
+   --   ghostRangeIn: input ghost range over which to apply TS BCs.
 
    local dim = grid:ndim()
 
    local localRange = grid:localRange()
+   if ghostRangeIn then
+      -- Restrict the range along x to only incoporate the ghost range requested.
+      localRange = localRange:intersectInDir(ghostRangeIn,1)
+   end
 
    local xRangeDecomp = LinearDecomp.LinearDecompRange {
       range = localRange:selectFirst(1), numSplit = grid:numSharedProcs(), threadComm = grid:commSet().sharedComm }

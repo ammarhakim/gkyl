@@ -218,12 +218,12 @@ for gI, numCells in ipairs(cells) do
       twistShiftUpd[edge] = Updater.TwistShiftBC {
          onGrid = grid,   yShiftFunc      = shiftFuncs[edge], 
          basis  = basis,  yShiftPolyOrder = yShiftPolyOrder, 
-         edge   = edge,
+         edge   = edge,   ghostRange      = ghostRange,
       }
    
       -- Apply the forward shift.
       local t1 = os.clock()
-      twistShiftUpd[edge]:_advance3xInPlace(0., {ghostRange}, {fldTar})
+      twistShiftUpd[edge]:_advance3xInPlace(0., {}, {fldTar})
       local t2 = os.clock()
       --io.write([edge].." shift time: ", t2-t1, " s\n")
 

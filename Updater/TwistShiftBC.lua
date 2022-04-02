@@ -83,6 +83,8 @@ function TwistShiftBC:init(tbl)
    local yShPolyOrder = assert(
       tbl.yShiftPolyOrder, "Updater.TwistShift: Must provide the polyOrder for projecting y-shift using 'yShiftPolyOrder'.")
 
+   self.inGhostRange = tbl.ghostRange -- Optional range on which we wish to apply BCs.
+
    -- Project the y-shift function (of x) onto a 1D grid/basis.
    local yShGridIngr = self.grid:childGrid({1})
    local yShGrid = Grid.RectCart {
@@ -112,7 +114,7 @@ function TwistShiftBC:init(tbl)
    tsFun.set_projData(yShPolyOrder)
 
    -- Call function computing the donor cells.
-   self.doCells = tsFun.getDonors(self.grid, self.yShFld, yShBasis)
+   self.doCells = tsFun.getDonors(self.grid, self.yShFld, yShBasis, self.inGhostRange)
 
    -- Allocate matrices that multiply each donor cell to compute its contribution to a target cell.
    -- Also allocate a temp vector and matrix used in the mat-vec multiply.
@@ -122,7 +124,7 @@ function TwistShiftBC:init(tbl)
    tsFun.selectTwistShiftKernels(self.cDim, self.vDim, self.basis:id(), self.basis:polyOrder(), yShPolyOrder)
 
    -- Pre-compute matrices using weak equalities between donor and target fields.
-   tsFun.preCalcMat(self.grid, self.yShFld, self.doCells, self.matVec)
+   tsFun.preCalcMat(self.grid, self.yShFld, self.doCells, self.matVec, self.inGhostRange)
 
    self.tsMatVecMult = TwistShiftDecl.selectTwistShiftMatVecMult(self.cDim, self.vDim, self.basis:id(), self.basis:polyOrder())
 
@@ -157,8 +159,7 @@ function TwistShiftBC:_advance(tCurr, inFld, outFld)
       local global, globalExt, localExtRange = fldTar:globalRange(), fldTar:globalExtRange(), fldTar:localExtRange()
       local ghostRangeAll = localExtRange:intersect(getGhostRange(global, globalExt, 3, self.zEdge))
 
-      local inGhostRange = inFld[2] -- Optional range on which we wish to apply BCs.
-      self.ghostRange = inGhostRange and ghostRangeAll:intersect(inGhostRange) or ghostRangeAll
+      self.ghostRange = self.inGhostRange and ghostRangeAll:intersect(self.inGhostRange) or ghostRangeAll
 
       -- Decompose ghost region into threads.
       self.ghostRangeDecomp = LinearDecomp.LinearDecompRange {
@@ -250,8 +251,7 @@ function TwistShiftBC:_advance3xInPlace(tCurr, inFld, outFld)
       local localExtRange = fldTar:localExtRange()
       local ghostRangeAll = localExtRange:intersect(getGhostRange(global, globalExt, 3, self.zEdge))
 
-      local inGhostRange = inFld[1] -- Optional range on which we wish to apply BCs.
-      self.ghostRange = inGhostRange and ghostRangeAll:intersect(inGhostRange) or ghostRangeAll
+      self.ghostRange = self.inGhostRange and ghostRangeAll:intersect(self.inGhostRange) or ghostRangeAll
 
       -- Decompose ghost region into threads.
       self.ghostRangeDecomp = LinearDecomp.LinearDecompRange {

@@ -225,6 +225,9 @@ function TokamakEdgeBC:createSolver(mySpecies, field, externalField)
       self.yShiftFunc = self.yShiftFuncIn
    end
 
+   self.ghostGlobalCore = ghostGlobal:shorten(1, self.idxLCFS[1]+1)
+   self.ghostLocalCore  = localExtInDir:intersect(self.ghostGlobalCore)
+
    local Ny = self.grid:numCells(2)
    if Ny == 1 then  -- Axisymmetric case. Assume periodicity in the core.
       self.zSync = function(fIn, bufferOut) self:zSyncCore(fIn) end
@@ -232,13 +235,12 @@ function TokamakEdgeBC:createSolver(mySpecies, field, externalField)
    else
       self.zSync = function(fIn, bufferOut) self:zSyncGlobalY(fIn, bufferOut) end
       self.bcSolverCore = Updater.TwistShiftBC {
-         onGrid    = self.grid,       yShiftFunc      = self.yShiftFunc,
-         basis     = self.basis,      yShiftPolyOrder = self.yShiftPolyOrder,
-         confBasis = self.confBasis,  edge            = self.bcEdge,
+         onGrid     = self.grid,       yShiftFunc      = self.yShiftFunc,
+         basis      = self.basis,      yShiftPolyOrder = self.yShiftPolyOrder,
+         confBasis  = self.confBasis,  edge            = self.bcEdge,
+         ghostRange = self.ghostLocalCore,
       }
    end
-   self.ghostGlobalCore = ghostGlobal:shorten(1, self.idxLCFS[1]+1)
-   self.ghostLocalCore  = localExtInDir:intersect(self.ghostGlobalCore)
 
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
    self:createBoundaryGrid(mySpecies)
@@ -1040,7 +1042,7 @@ function TokamakEdgeBC:advance(tCurr, mySpecies, field, externalField, inIdx, ou
 
    -- .......... Twist-shift BCs in the core (closed-flux region) ............... --
    self.zSync(fIn, self.boundaryFieldGlobalY)
-   self.bcSolverCore:advance(tCurr, {self.boundaryFieldGlobalY, self.ghostRangeCore}, {fIn})
+   self.bcSolverCore:advance(tCurr, {self.boundaryFieldGlobalY}, {fIn})
 
    -- .......... Sheath BCs in the SOL (open field-line region) ............... --
    self.setPhiWall:advance(tCurr, {}, {self.phiWallFld}) -- Compute wall potential if needed (i.e. sheath BC).
