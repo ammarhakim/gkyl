@@ -50,7 +50,7 @@ function Diffusion:fullInit(speciesTbl)
    self.cfl = 0.0   -- Will be replaced.
 
    -- Set these values to be consistent with other collision apps.
-   self.collidingSpecies = self.name 
+   self.collidingSpecies = {self.name}
    self.selfCollisions   = false
    self.crossCollisions  = false
    self.varNu            = false
@@ -153,27 +153,24 @@ function Diffusion:createSolver(mySpecies, externalField)
          numComponents = basis:numBasis()*dim,
          ghost         = {1, 1},
       }
-      local jacDiffCoefFunc = externalField.jacobGeoFunc
-         and function(t,xn) return externalField.jacobGeoFunc(t,xn)*diffCoeffFunc(t,xn) end
-         or diffCoeffFunc
       local projectDiffCoeff = Updater.EvalOnNodes {
          onGrid = grid,   evaluate = diffCoeffFunc,
          basis  = basis,  onGhosts = true
       }
       projectDiffCoeff:advance(0.0, {}, {self.coefficient})
+      self.coefficient:sync()
 
       if externalField.geo then
-         if externalField.geo.jacobGeoInv then
-            self.fNoJacobGeo = DataStruct.Field {
-               onGrid        = grid,
-               numComponents = basis:numBasis()*dim,
-               ghost         = {1, 1},
-            }
+         if externalField.geo.jacobGeo and externalField.geo.jacobGeoInv then
+            self.fNoJacobGeo = mySpecies:allocDistf()
             self.jacobGeoInv = externalField.geo.jacobGeoInv
             self.confPhaseWeakMultiply = Updater.CartFieldBinOp {
                onGrid    = grid,   fieldBasis = self.confBasis,
                weakBasis = basis,  operation  = "Multiply",
+               onGhosts  = true,
             }
+            self.confPhaseWeakMultiply:advance(0., {self.coefficient, externalField.geo.jacobGeo}, {self.coefficient})
+            self.coefficient:sync()
             self.divByJacobGeo = function(tm, distf)
                self.confPhaseWeakMultiply:advance(tm, {distf, self.jacobGeoInv}, {self.fNoJacobGeo})
             end

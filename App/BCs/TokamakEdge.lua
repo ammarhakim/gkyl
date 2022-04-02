@@ -241,7 +241,7 @@ function TokamakEdgeBC:createSolver(mySpecies, field, externalField)
    self.ghostLocalCore  = localExtInDir:intersect(self.ghostGlobalCore)
 
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
-   self:createBoundaryGrid()
+   self:createBoundaryGrid(mySpecies)
 
    -- Create a boundary grid that is global in Y: used to broadcast skin data.
    self:createBoundaryGridGlobalY()

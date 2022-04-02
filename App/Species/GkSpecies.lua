@@ -730,7 +730,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    fRhsOut:clear(0.0)
 
    -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
-   for nm, c in pairs(self.collisions) do
+   for nm, c in lume.orderedIter(self.collisions) do
       c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       c:advance(tCurr, fIn, species, fRhsOut)
    end
