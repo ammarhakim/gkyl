@@ -159,7 +159,7 @@ function DiscontGenPoisson:init(tbl)
       string.format(
          "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_B_R_p%d",
          use2cellStr, basisNm:lower(), self.ndim, polyOrder))
-
+   
    self.nnonzero = self.numBasis^2
    self.poisson = ffiC.new_DiscontPoisson(
       GKYL_OUT_PREFIX, self.ncell, self.ndim, self.numBasis,
