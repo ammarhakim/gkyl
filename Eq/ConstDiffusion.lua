@@ -7,12 +7,12 @@
 --------------------------------------------------------------------------------
 
 -- System libraries.
-local Lin    = require "Lib.Linalg"
-local Proto  = require "Lib.Proto"
-local ffi    = require "ffi"
-local xsys   = require "xsys"
-local EqBase = require "Eq.EqBase"
-local ConstDiffusionModDecl = require "Eq.constDiffusionData.ConstDiffusionModDecl"
+local Lin     = require "Lib.Linalg"
+local Proto   = require "Lib.Proto"
+local ffi     = require "ffi"
+local xsys    = require "xsys"
+local EqBase  = require "Eq.EqBase"
+local ModDecl = require "Eq.constDiffusionData.ConstDiffusionModDecl"
 
 -- ConstDiffusion equation on a rectangular mesh.
 local ConstDiffusion = Proto(EqBase)
@@ -21,14 +21,14 @@ local ConstDiffusion = Proto(EqBase)
 function ConstDiffusion:init(tbl)
 
    self._basis = assert(tbl.basis,
-      "Eq.constDiffusion: Must specify basis functions to use using 'basis'")
+      "Eq.ConstDiffusion: Must specify basis functions to use using 'basis'")
 
    local nm, dim, pOrder = self._basis:id(), self._basis:ndim(), self._basis:polyOrder()
 
    -- Read the directions in which to apply diffusion. 
    local diffDirsIn = tbl.diffusiveDirs
    if diffDirsIn then
-      assert(#diffDirsIn<=dim, "Eq.constDiffusion: 'diffusiveDirs' cannot have more entries than the simulation's dimensions.")
+      assert(#diffDirsIn<=dim, "Eq.ConstDiffusion: 'diffusiveDirs' cannot have more entries than the simulation's dimensions.")
       self.diffDirs = diffDirsIn
    else
       -- Apply diffusion in all directions.
@@ -38,7 +38,7 @@ function ConstDiffusion:init(tbl)
    
    -- Read diffusion coefficient (or vector).
    local nuIn     = assert(tbl.coefficient,
-                           "Eq.constDiffusion: must specify diffusion coefficient (or vector) using 'coefficient' ")
+                           "Eq.ConstDiffusion: must specify diffusion coefficient (or vector) using 'coefficient' ")
    local nuInType = type(nuIn)
    local isVarCoeff = false
    if (nuInType == "number") then
@@ -48,9 +48,9 @@ function ConstDiffusion:init(tbl)
    elseif (nuInType == "table") then
       if #nuIn > 0 then   -- Must be a table of numbers.
          if diffDirsIn then
-            assert(#nuIn==#diffDirsIn, "Eq.constDiffusion: 'coefficient' table must have the same number of entries as 'diffusiveDirs'.")
+            assert(#nuIn==#diffDirsIn, "Eq.ConstDiffusion: 'coefficient' table must have the same number of entries as 'diffusiveDirs'.")
          else
-            assert(#nuIn==dim, "Eq.constDiffusion: 'coefficient' table must have the same number of entries as the simulation's dimensions if 'diffusiveDirs' is not given.")
+            assert(#nuIn==dim, "Eq.ConstDiffusion: 'coefficient' table must have the same number of entries as the simulation's dimensions if 'diffusiveDirs' is not given.")
          end
          self._nu = Lin.Vec(dim)
          for d = 1, dim do self._nu[d] = 0.0 end
@@ -62,13 +62,13 @@ function ConstDiffusion:init(tbl)
          self._nu   = nuIn
       end
    else
-      assert(false, "Eq.constDiffusion: 'coefficient' must be a number or a table.")
+      assert(false, "Eq.ConstDiffusion: 'coefficient' must be a number or a table.")
    end
 
    local diffOrder
    if tbl.order then
       diffOrder = tbl.order
-      assert(not (diffOrder > 4 and pOrder < 2), "Eq.constDiffusion: grad^6 requires polyOrder > 1.")
+      assert(not (diffOrder > 4 and pOrder < 2), "Eq.ConstDiffusion: grad^6 requires polyOrder > 1.")
    else
       diffOrder = 2
    end
@@ -76,9 +76,9 @@ function ConstDiffusion:init(tbl)
    local applyPositivity = xsys.pickBool(tbl.positivity, false)   -- Positivity preserving option.
 
    -- Store pointers to C kernels implementing volume and surface terms.
-   self._volTerm           = ConstDiffusionModDecl.selectVol(nm, dim, pOrder, self.diffDirs, diffOrder, isVarCoeff)
-   self._surfTerms         = ConstDiffusionModDecl.selectSurf(nm, dim, pOrder, self.diffDirs, diffOrder, isVarCoeff, applyPositivity)
-   self._boundarySurfTerms = ConstDiffusionModDecl.selectBoundarySurf(nm, dim, pOrder, self.diffDirs, diffOrder, isVarCoeff, applyPositivity)
+   self._volTerm           = ModDecl.selectVol(nm, dim, pOrder, self.diffDirs, diffOrder, isVarCoeff)
+   self._surfTerms         = ModDecl.selectSurf(nm, dim, pOrder, self.diffDirs, diffOrder, isVarCoeff, applyPositivity)
+   self._boundarySurfTerms = ModDecl.selectBoundarySurf(nm, dim, pOrder, self.diffDirs, diffOrder, isVarCoeff, applyPositivity)
    
    if isVarCoeff then
 

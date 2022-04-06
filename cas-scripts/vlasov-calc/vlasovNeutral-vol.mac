@@ -1,0 +1,52 @@
+load("vlasov-calc/vlasovNeutralFuncs-vol")$
+load(stringproc)$
+/* This script calls the functions which calculate the
+   updates from the volume term contributions in the
+   Vlasov kinetic equation. */
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 3$
+minCdim_Ser : 1$
+minVdim_Ser : 1$    /* see begining of v loop below though. */
+maxCdim_Ser : 3$
+maxVdim_Ser : 3$
+
+/* Tensor product basis. */
+maxPolyOrder_Tensor : 2$
+minCdim_Tensor : 1$
+minVdim_Tensor : 1$    /* see begining of v loop below though. */
+maxCdim_Tensor : 3$
+maxVdim_Tensor : 3$
+
+/* ...... END OF USER INPUTS........ */
+
+bName        : ["Ser", "Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Tensor]$
+minVdim      : [minVdim_Ser, minVdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Tensor]$
+maxVdim      : [maxVdim_Ser, maxVdim_Tensor]$
+
+/* Compute the volume contribution in BOTH real and velocity space (for use in full Vlasov-Maxwell) */
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : max(c,minVdim[bInd]) thru maxVdim[bInd] do (
+
+      maxPolyOrderB : maxPolyOrder[bInd],
+      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
+      for polyOrder : 1 thru maxPolyOrderB do (
+        disp(printf(false,sconcat("Creating volume Vlasov",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
+        fname : sconcat("~/max-out/VlasovNeutral", c, "x", v, "v", bName[bInd], "P", polyOrder, ".cpp"),
+        fh : openw(fname),
+        funcName : sconcat("VlasovNeutralVol", c, "x", v, "v", bName[bInd]),
+        calcVlasovBodyVolUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
+        close(fh)
+      )
+    )
+  )
+);
+

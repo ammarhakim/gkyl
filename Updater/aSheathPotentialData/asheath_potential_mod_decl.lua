@@ -17,7 +17,7 @@ local _M = {}
 -- Select kernel function to compute expansion coefficients of nu. 
 function _M.selectPhiSheathQuad(basisNm, CDIM, polyOrder, quadType)
    local funcType = "void"
-   local funcSign = "(const double sheathDirDx, const double q_e, const double m_e, const double T_e, const int dirSign, const double *jacInv, const double *Gamma_i, const double *m0Ion, double *m0IonS, double *phiS)"
+   local funcSign = "(const double sheathDirDx, const double q_e, const double m_e, const double T_e, const int dirSign, const double *jacInv, const double *GammaJac_i, const double *m0JacIon, double *m0IonS, double *phiS)"
    local funcNm = {}
    for i, b in ipairs({"lower","upper"}) do
       funcNm[i] = string.format("asheath_potential_gauss_phi_sheath_%s_%dx_p%d_%s", b, CDIM, polyOrder, basisNmMap[basisNm])

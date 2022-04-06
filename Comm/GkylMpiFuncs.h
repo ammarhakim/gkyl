@@ -13,6 +13,7 @@
 extern "C" {
     // Sizes of various objects
     DECL_GET_MPI_OBJ_SIZE(MPI_Status);
+    DECL_GET_MPI_OBJ_SIZE(MPI_Aint);
     
     // Pre-defined objects and constants
     DECL_GET_MPI_OBJECT(Comm, MPI_COMM_WORLD);
@@ -68,6 +69,8 @@ extern "C" {
     DECL_INT_OBJECT(MPI_UNDEFINED);
     DECL_INT_OBJECT(MPI_ORDER_C);
     DECL_INT_OBJECT(MPI_ORDER_FORTRAN);
+    DECL_INT_OBJECT_PTR(MPI_UNWEIGHTED);
+    DECL_VOID_OBJECT_PTR(MPI_BOTTOM);
 
     // Some utility functions to allow accessing non-opaque MPI types
 

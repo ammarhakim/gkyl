@@ -269,7 +269,7 @@ end
 --
 --end
 
-function GkBGKCollisions:createSolver(externalField)
+function GkBGKCollisions:createSolver(mySpecies, externalField)
    -- Background magnetic field. Needed for spatially varying nu
    -- or to project Maxwellians with vdim>1.
    self.bmag = externalField.geo.bmag

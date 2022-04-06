@@ -538,9 +538,8 @@ local subCellInt_sN = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, atUpperYce
    --   atUpperYcell: boolean to indicate if this donor is the upper Y cell.
    --   yShPtrIn:     pointer to y-shift field in current cell.
    --   tsMatVecs:    pre-allocated matrices and vectors.
-   local etaBounds = {lo=-1., up=1.}   -- Logical-space y-limits of the subcell integral.
-
    printDebug("    scenario sN")
+   local etaBounds = {lo=-1., up=1.}   -- Logical-space y-limits of the subcell integral.
    local yTar      = {lo=nil, up=nil}  -- yTar-yShift defines the x-limits of the subcell integral.
    -- Lo/up limits of x-logical space of lo/up limits of integral.
    local xiBounds = {lo={lo=nil, up=nil}, up={lo=nil, up=nil}}
@@ -1016,9 +1015,11 @@ function _M.getDonors(grid, yShift, yShBasis)
 
    local yShIndexer, yShItr = yShift:genIndexer(), yShift:get(1)
 
-   local localRange = grid:localRange()
+   local localRange, globalRange = grid:localRange(), grid:globalRange()
+   -- Extend the local range to include all y (for parallel in y case):
+   localRangeGlobalY = localRange:extendDir(2,localRange:lower(2)-globalRange:lower(2), globalRange:upper(2)-localRange:upper(2))
    local xyRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = localRange:selectFirst(2), numSplit = grid:numSharedProcs(), threadComm = grid:commSet().sharedComm }
+      range = localRangeGlobalY:selectFirst(2), numSplit = grid:numSharedProcs(), threadComm = grid:commSet().sharedComm }
    local tId = grid:subGridSharedId()   -- Local thread ID.
 
    local yShNumB    = yShift:numComponents()

@@ -39,6 +39,8 @@ loadBasis(basisType, cdim, vdim, pIn) := block([modNm,allLabels,vSub,vSubInv,var
 )$
 
 basisFromVars(basisType, varsIn, pIn) := block(
+  [dimIn,oldVarsC,oldVarsP,basis,vars,replaceList],
+
   dimIn : length(varsIn),
 
   /* In case varsP and varsC were already loaded, save them

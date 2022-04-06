@@ -833,6 +833,7 @@ return {
          BasicBC    = require ("App.BCs.GkBasic").GkBasic,
          AbsorbBC   = require ("App.BCs.GkBasic").GkAbsorb,
          CopyBC     = require ("App.BCs.GkBasic").GkCopy,
+         TokamakEdgeBC      = require "App.BCs.TokamakEdge",
          NeutralRecyclingBC = require "App.BCs.NeutralRecycling",
          OpenBC     = require ("App.BCs.GkBasic").GkOpen,
          ReflectBC  = require ("App.BCs.GkBasic").GkReflect,
@@ -872,6 +873,16 @@ return {
 	 Field      = require ("App.Field.GkField").GkField,
          Source     = require "App.Sources.FluidSource",
 	 Species    = require "App.Species.IncompEulerSpecies",
+      }
+   end,
+
+   HasegawaWakatani = function ()
+      App.label = "Hasegawa-Wakatani"
+      return {
+	 App       = App,
+	 Field     = require ("App.Field.GkField").GkField,
+	 Species   = require "App.Species.HasegawaWakataniSpecies",
+	 Diffusion = require "App.Collisions.Diffusion",
       }
    end,
 
