@@ -1,4 +1,4 @@
-module purge
+module reset
 module load gcc/7.3.0
 module load openmpi/3.0.0
 # if we are in machines directory, go up a directory
