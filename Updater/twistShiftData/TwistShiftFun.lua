@@ -1001,7 +1001,7 @@ function _M.getDonors(grid, yShift, yShBasis, ghostRangeIn)
    --   ghostRangeIn: input ghost range over which to apply TS BCs.
    
    local doCells = {}   -- Donor cells, one table for each target cell.
-   local nx = ghostRangeIn and ghostRangeIn:shape(1) or grid:numCells(1)
+   local nx = grid:numCells(1)  -- Inserts extra tables when ghostRangeIn exists, but otherwise the indexing would be wrong. 
    for i = 1, nx do
       doCells[i] = {}
       for j = 1, grid:numCells(2) do doCells[i][j] = {} end

@@ -336,7 +336,7 @@ function TokamakEdgeBC:createSolver(mySpecies, field, externalField)
       self.bmag:copy(self:evalOnConfBoundary(bmag))
       local bmagInvSq = externalField.geo.bmagInvSq
       self.bmagInvSq = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
-                                          {bmagInvSq:lowerGhost(),bmagInvSq:upperGhost()}, bmagInvSq:getMetaData())
+                                           {bmagInvSq:lowerGhost(),bmagInvSq:upperGhost()}, bmagInvSq:getMetaData())
       self.bmagInvSq:copy(self:evalOnConfBoundary(bmagInvSq))
       local jacobGeo = externalField.geo.jacobGeo
       if jacobGeo then
