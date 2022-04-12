@@ -838,6 +838,7 @@ return {
          OpenBC     = require ("App.BCs.GkBasic").GkOpen,
          ReflectBC  = require ("App.BCs.GkBasic").GkReflect,
          SheathBC   = require ("App.BCs.GkBasic").GkSheath,
+         LogicalSheathBC    = require "App.BCs.GkLogicalSheath",
          ZeroFluxBC = require ("App.BCs.GkBasic").GkZeroFlux,
          TwistShiftBC = require "App.BCs.TwistShift",
 	 VmAbsorbBC   = require ("App.BCs.VlasovBasic").VlasovAbsorb,

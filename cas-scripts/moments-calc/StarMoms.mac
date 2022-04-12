@@ -249,7 +249,7 @@ calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun, isNonuniform, applyPos) := 
 
     iM0star : calcInnerProdList(surfVars, 1, bC, hsol[1]),
 
-    quants : [dxvl,dxvr],
+    quants : [makelist(dxvl[d-1],d,1,pDim),makelist(dxvr[d-1],d,1,pDim)],
     tempVars : [],
     tempVars : writeCIncrExprsCollect1noPowers(out, dS*iM0star, [dS], quants, tempVars)
 

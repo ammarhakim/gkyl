@@ -20,6 +20,8 @@ extern "C" {
   __host__ __device__ void GkMomentCalc1x1vSer_M2par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
   __host__ __device__ void GkMomentCalc1x1vSer_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
   __host__ __device__ void GkMomentCalc1x1vSer_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
+  __host__ __device__ void GkMomentCalc1x1vSer_M0partial_lower_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out); 
+  __host__ __device__ void GkMomentCalc1x1vSer_M0partial_upper_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out); 
   __host__ __device__ void IntMomentCalc1x1vSer_P1(const double *w, const double *dxv, const double *f, double *out); 
   __host__ __device__ void VmM0Star1x1vSer_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
   __host__ __device__ void VmM0StarNonuniform1x1vSer_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
@@ -46,6 +48,8 @@ extern "C" {
   __host__ __device__ void GkMomentCalc1x1vSer_M2par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
   __host__ __device__ void GkMomentCalc1x1vSer_M3par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
   __host__ __device__ void GkMomentCalc1x1vSer_ThreeMoments_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
+  __host__ __device__ void GkMomentCalc1x1vSer_M0partial_lower_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out); 
+  __host__ __device__ void GkMomentCalc1x1vSer_M0partial_upper_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out); 
   __host__ __device__ void IntMomentCalc1x1vSer_P2(const double *w, const double *dxv, const double *f, double *out); 
   __host__ __device__ void GkBoundaryIntegral1x1vSer_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
   __host__ __device__ void VmBoundaryIntegral1x1vSer_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
@@ -80,6 +84,8 @@ extern "C" {
   __host__ __device__ void GkMomentCalc1x2vSer_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
   __host__ __device__ void GkMomentCalc1x2vSer_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
   __host__ __device__ void GkMomentCalc1x2vSer_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
+  __host__ __device__ void GkMomentCalc1x2vSer_M0partial_lower_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out); 
+  __host__ __device__ void GkMomentCalc1x2vSer_M0partial_upper_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out); 
   __host__ __device__ void IntMomentCalc1x2vSer_P1(const double *w, const double *dxv, const double *f, double *out); 
   __host__ __device__ void VmM0Star1x2vSer_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
   __host__ __device__ void VmM0StarNonuniform1x2vSer_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
@@ -113,6 +119,8 @@ extern "C" {
   __host__ __device__ void GkMomentCalc1x2vSer_M3par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
   __host__ __device__ void GkMomentCalc1x2vSer_M3perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
   __host__ __device__ void GkMomentCalc1x2vSer_ThreeMoments_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
+  __host__ __device__ void GkMomentCalc1x2vSer_M0partial_lower_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out); 
+  __host__ __device__ void GkMomentCalc1x2vSer_M0partial_upper_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out); 
   __host__ __device__ void IntMomentCalc1x2vSer_P2(const double *w, const double *dxv, const double *f, double *out); 
   __host__ __device__ void GkBoundaryIntegral1x2vSer_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
   __host__ __device__ void VmBoundaryIntegral1x2vSer_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
@@ -452,6 +460,8 @@ extern "C" {
   __host__ __device__ void GkMomentCalc1x1vTensor_M2par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
   __host__ __device__ void GkMomentCalc1x1vTensor_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
   __host__ __device__ void GkMomentCalc1x1vTensor_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
+  __host__ __device__ void GkMomentCalc1x1vTensor_M0partial_lower_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out); 
+  __host__ __device__ void GkMomentCalc1x1vTensor_M0partial_upper_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out); 
   __host__ __device__ void IntMomentCalc1x1vTensor_P1(const double *w, const double *dxv, const double *f, double *out); 
   __host__ __device__ void VmM0Star1x1vTensor_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
   __host__ __device__ void VmM0StarNonuniform1x1vTensor_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
@@ -477,6 +487,8 @@ extern "C" {
   __host__ __device__ void GkMomentCalc1x1vTensor_M2par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
   __host__ __device__ void GkMomentCalc1x1vTensor_M3par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
   __host__ __device__ void GkMomentCalc1x1vTensor_ThreeMoments_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
+  __host__ __device__ void GkMomentCalc1x1vTensor_M0partial_lower_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out); 
+  __host__ __device__ void GkMomentCalc1x1vTensor_M0partial_upper_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out); 
   __host__ __device__ void IntMomentCalc1x1vTensor_P2(const double *w, const double *dxv, const double *f, double *out); 
   __host__ __device__ void GkBoundaryIntegral1x1vTensor_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
   __host__ __device__ void VmBoundaryIntegral1x1vTensor_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
@@ -511,6 +523,8 @@ extern "C" {
   __host__ __device__ void GkMomentCalc1x2vTensor_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
   __host__ __device__ void GkMomentCalc1x2vTensor_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
   __host__ __device__ void GkMomentCalc1x2vTensor_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
+  __host__ __device__ void GkMomentCalc1x2vTensor_M0partial_lower_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out); 
+  __host__ __device__ void GkMomentCalc1x2vTensor_M0partial_upper_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out); 
   __host__ __device__ void IntMomentCalc1x2vTensor_P1(const double *w, const double *dxv, const double *f, double *out); 
   __host__ __device__ void VmM0Star1x2vTensor_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
   __host__ __device__ void VmM0StarNonuniform1x2vTensor_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
@@ -543,6 +557,8 @@ extern "C" {
   __host__ __device__ void GkMomentCalc1x2vTensor_M3par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
   __host__ __device__ void GkMomentCalc1x2vTensor_M3perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
   __host__ __device__ void GkMomentCalc1x2vTensor_ThreeMoments_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
+  __host__ __device__ void GkMomentCalc1x2vTensor_M0partial_lower_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out); 
+  __host__ __device__ void GkMomentCalc1x2vTensor_M0partial_upper_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out); 
   __host__ __device__ void IntMomentCalc1x2vTensor_P2(const double *w, const double *dxv, const double *f, double *out); 
   __host__ __device__ void GkBoundaryIntegral1x2vTensor_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
   __host__ __device__ void VmBoundaryIntegral1x2vTensor_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 

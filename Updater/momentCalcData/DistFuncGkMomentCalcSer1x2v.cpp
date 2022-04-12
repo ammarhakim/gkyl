@@ -396,3 +396,43 @@ __host__ __device__ void GkMomentCalc1x2vSer_M0_step2_P3(const double *w, const 
   out[2] += 2.828427124746191*f[4]*volFact; 
   out[3] += 2.828427124746191*f[8]*volFact; 
 } 
+__host__ __device__ void GkMomentCalc1x2vSer_M0partial_lower_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out) 
+{ 
+  const double volFact = 2.0*M_PI/m_*dxv[1]*dxv[2]/4; 
+  const double vparLimLogical = (2.0*(vparLim-1.0*w[1]))/dxv[1];
+  const double vparLimLogicalR2 = pow(vparLimLogical,2);
+
+  out[0] += volFact*(0.8660254037844386*f[2]*vparLimLogicalR2+f[0]*vparLimLogical-0.8660254037844386*f[2]+f[0]); 
+  out[1] += volFact*(0.8660254037844386*f[4]*vparLimLogicalR2+f[1]*vparLimLogical-0.8660254037844386*f[4]+f[1]); 
+} 
+__host__ __device__ void GkMomentCalc1x2vSer_M0partial_lower_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out) 
+{ 
+  const double volFact = 2.0*M_PI/m_*dxv[1]*dxv[2]/4; 
+  const double vparLimLogical = (2.0*(vparLim-1.0*w[1]))/dxv[1];
+  const double vparLimLogicalR2 = pow(vparLimLogical,2);
+  const double vparLimLogicalR3 = pow(vparLimLogical,3);
+
+  out[0] += volFact*(1.118033988749895*f[8]*vparLimLogicalR3+0.8660254037844386*f[2]*vparLimLogicalR2-1.118033988749895*f[8]*vparLimLogical+f[0]*vparLimLogical-0.8660254037844386*f[2]+f[0]); 
+  out[1] += volFact*(1.118033988749895*f[12]*vparLimLogicalR3+0.8660254037844386*f[4]*vparLimLogicalR2-1.118033988749895*f[12]*vparLimLogical+f[1]*vparLimLogical-0.8660254037844386*f[4]+f[1]); 
+  out[2] += volFact*(0.8660254037844387*f[11]*vparLimLogicalR2+f[7]*vparLimLogical-0.8660254037844387*f[11]+f[7]); 
+} 
+__host__ __device__ void GkMomentCalc1x2vSer_M0partial_upper_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out) 
+{ 
+  const double volFact = 2.0*M_PI/m_*dxv[1]*dxv[2]/4; 
+  const double vparLimLogical = (2.0*(vparLim-1.0*w[1]))/dxv[1];
+  const double vparLimLogicalR2 = pow(vparLimLogical,2);
+
+  out[0] += volFact*((-0.8660254037844386*f[2]*vparLimLogicalR2)-1.0*f[0]*vparLimLogical+0.8660254037844386*f[2]+f[0]); 
+  out[1] += volFact*((-0.8660254037844386*f[4]*vparLimLogicalR2)-1.0*f[1]*vparLimLogical+0.8660254037844386*f[4]+f[1]); 
+} 
+__host__ __device__ void GkMomentCalc1x2vSer_M0partial_upper_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out) 
+{ 
+  const double volFact = 2.0*M_PI/m_*dxv[1]*dxv[2]/4; 
+  const double vparLimLogical = (2.0*(vparLim-1.0*w[1]))/dxv[1];
+  const double vparLimLogicalR2 = pow(vparLimLogical,2);
+  const double vparLimLogicalR3 = pow(vparLimLogical,3);
+
+  out[0] += volFact*((-1.118033988749895*f[8]*vparLimLogicalR3)-0.8660254037844386*f[2]*vparLimLogicalR2+1.118033988749895*f[8]*vparLimLogical-1.0*f[0]*vparLimLogical+0.8660254037844386*f[2]+f[0]); 
+  out[1] += volFact*((-1.118033988749895*f[12]*vparLimLogicalR3)-0.8660254037844386*f[4]*vparLimLogicalR2+1.118033988749895*f[12]*vparLimLogical-1.0*f[1]*vparLimLogical+0.8660254037844386*f[4]+f[1]); 
+  out[2] += volFact*((-0.8660254037844387*f[11]*vparLimLogicalR2)-1.0*f[7]*vparLimLogical+0.8660254037844387*f[11]+f[7]); 
+} 
