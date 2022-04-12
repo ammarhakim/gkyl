@@ -166,26 +166,18 @@ function GkSpecies:createSolver(field, externalField)
 
       -- Create solver for gyroaveraging potentials.
       self.emGyavgSlvr = Updater.FemGyroaverage {
-         onGrid     = self.confGrid,
-         confBasis  = self.confBasis,
-         phaseGrid  = self.grid,
-         phaseBasis = self.basis,
-         rho1       = self.rho1,
-         rho2       = self.rho2,
-         rho3       = self.rho3,
-         muOrder0   = true, -- Cell-average in mu.
+         onGrid     = self.confGrid,     rho1     = self.rho1,
+         confBasis  = self.confBasis,    rho2     = self.rho2,
+         phaseGrid  = self.grid,         rho3     = self.rho3,
+         phaseBasis = self.basis,        muOrder0 = true, -- Cell-average in mu.
       }
 
       -- Create solver for gyroaveraging distribution function.
       self.distfGyavgSlvr = Updater.FemGyroaverage {
-         onGrid     = self.confGrid,
-         confBasis  = self.confBasis,
-         phaseGrid  = self.grid,
-         phaseBasis = self.basis,
-         rho1       = self.rho1,
-         rho2       = self.rho2,
-         rho3       = self.rho3,
-         integrate  = true,
+         onGrid     = self.confGrid,     rho1      = self.rho1,
+         confBasis  = self.confBasis,    rho2      = self.rho2,
+         phaseGrid  = self.grid,         rho3      = self.rho3,
+         phaseBasis = self.basis,        integrate = true,
       }
    end
 
@@ -197,28 +189,19 @@ function GkSpecies:createSolver(field, externalField)
    -- Create updater to advance solution by one time-step.
    if not self.useEparGK then
       self.equation = GyrokineticEq.GkEq {
-         onGrid       = self.grid,
-         confGrid     = self.confGrid,
-         phaseBasis   = self.basis,
-         confBasis    = self.confBasis,
-         charge       = self.charge,
-         mass         = self.mass,
-         hasPhi       = hasPhi,
-         hasApar      = hasApar,
-         Bvars        = externalField.bmagVars,
-         hasSheathBCs = self.hasSheathBCs,
-         positivity   = self.positivity,
-         gyavgSlvr    = self.emGyavgSlvr,
-         geometry     = externalField.geo.name,
+         onGrid     = self.grid,       hasApar      = hasApar,
+         confGrid   = self.confGrid,   Bvars        = externalField.bmagVars,
+         phaseBasis = self.basis,      hasSheathBCs = self.hasSheathBCs,
+         confBasis  = self.confBasis,  positivity   = self.positivity,
+         charge     = self.charge,     gyavgSlvr    = self.emGyavgSlvr,
+         mass       = self.mass,       geometry     = externalField.geo.name,
+         hasPhi     = hasPhi,
       }
    else
       self.equation = EparGKEq.GkEq {
-         onGrid     = self.grid,
-         confGrid   = self.confGrid,
-         phaseBasis = self.basis,
-         confBasis  = self.confBasis,
-         charge     = self.charge,
-         mass       = self.mass,
+         onGrid     = self.grid,      confBasis = self.confBasis,
+         confGrid   = self.confGrid,  charge    = self.charge,
+         phaseBasis = self.basis,     mass      = self.mass,
       }
    end
 
@@ -234,64 +217,44 @@ function GkSpecies:createSolver(field, externalField)
    if self.vdim > 1 then table.insert(self.zeroFluxDirections, self.cdim+2) end
 
    self.solver = Updater.HyperDisCont {
-      onGrid             = self.grid,
-      basis              = self.basis,
-      cfl                = self.cfl,
-      equation           = self.equation,
-      zeroFluxDirections = self.zeroFluxDirections,
-      updateDirections   = upd,
-      clearOut           = false,   -- Continue accumulating into output field.
-      globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
+      onGrid   = self.grid,      zeroFluxDirections = self.zeroFluxDirections,
+      basis    = self.basis,     updateDirections   = upd,
+      cfl      = self.cfl,       clearOut           = false,   -- Continue accumulating into output field.
+      equation = self.equation,  globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
    }
    
    if hasApar then
       -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
       self.equationStep2 = GyrokineticEq.GkEqStep2 {
-         onGrid     = self.grid,
-         phaseBasis = self.basis,
-         confBasis  = self.confBasis,
-         charge     = self.charge,
-         mass       = self.mass,
-         Bvars      = externalField.bmagVars,
-         positivity = self.positivity,
-         geometry   = externalField.geo.name,
+         onGrid     = self.grid,       mass       = self.mass,
+         phaseBasis = self.basis,      Bvars      = externalField.bmagVars,
+         confBasis  = self.confBasis,  positivity = self.positivity,
+         charge     = self.charge,     geometry   = externalField.geo.name,
       }
 
       if self.basis:polyOrder()==1 then 
          -- This solver calculates vpar surface terms for Ohm's law. p=1 only!
          self.solverStep2 = Updater.HyperDisCont {
-            onGrid             = self.grid,
-            basis              = self.basis,
-            cfl                = self.cfl,
-            equation           = self.equation,
+            onGrid   = self.grid,      updateDirections = {self.cdim+1},    -- Only vpar terms.
+            basis    = self.basis,     updateVolumeTerm = false,            -- No volume term.
+            cfl      = self.cfl,       clearOut         = false,            -- Continue accumulating into output field.
+            equation = self.equation,  globalUpwind     = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
             zeroFluxDirections = self.zeroFluxDirections,
-            updateDirections   = {self.cdim+1},    -- Only vpar terms.
-            updateVolumeTerm   = false,            -- No volume term.
-            clearOut           = false,            -- Continue accumulating into output field.
-            globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
          }
          -- Note that the surface update for this term only involves the vpar direction.
          self.solverStep3 = Updater.HyperDisCont {
-            onGrid             = self.grid,
-            basis              = self.basis,
-            cfl                = self.cfl,
-            equation           = self.equationStep2,
-            zeroFluxDirections = self.zeroFluxDirections,
-            updateDirections   = {self.cdim+1}, -- Only vpar terms.
-            clearOut           = false,   -- Continue accumulating into output field.
-            globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
+            onGrid   = self.grid,           zeroFluxDirections = self.zeroFluxDirections,
+            basis    = self.basis,          updateDirections   = {self.cdim+1}, -- Only vpar terms.
+            cfl      = self.cfl,            clearOut           = false,   -- Continue accumulating into output field.
+            equation = self.equationStep2,  globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
          }
       else
          -- Note that the surface update for this term only involves the vpar direction.
          self.solverStep2 = Updater.HyperDisCont {
-            onGrid             = self.grid,
-            basis              = self.basis,
-            cfl                = self.cfl,
-            equation           = self.equationStep2,
-            zeroFluxDirections = self.zeroFluxDirections,
-            updateDirections   = {self.cdim+1},
-            clearOut           = false,   -- Continue accumulating into output field.
-            globalUpwind       = false,   -- Don't reduce max speed.
+            onGrid   = self.grid,           zeroFluxDirections = self.zeroFluxDirections,
+            basis    = self.basis,          updateDirections   = {self.cdim+1},
+            cfl      = self.cfl,            clearOut           = false,   -- Continue accumulating into output field.
+            equation = self.equationStep2,  globalUpwind       = false,   -- Don't reduce max speed.
          }
       end
    end
@@ -794,6 +757,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    for _, bc in pairs(self.nonPeriodicBCs) do
       bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)   -- Save boundary fluxes.
    end
+   emIn[1]:useBoundaryFlux(tCurr, outIdx)  -- Some field objects need to use the boundary fluxes right away.
 
    for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
 end

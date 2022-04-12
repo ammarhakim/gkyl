@@ -98,8 +98,8 @@ function test_3()
 end
 
 function test_4()
---   local decomp        = CartDecomp.CartProd { cuts = {2, 1}, __serTesting = true }
-   local decomp        = CartDecomp.CartProd { cuts = {2, 1} }
+   local decomp        = CartDecomp.CartProd { cuts = {2, 1}, __serTesting = true }
+   --local decomp        = CartDecomp.CartProd { cuts = {2, 1} }
    local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {10, 10}))
 
    local grid = Grid.RectCart {
@@ -445,13 +445,13 @@ end
 
 
 -- Run tests
---test_1()
---test_2()
---test_3()
+test_1()
+test_2()
+test_3()
 test_4()
---test_5()
---test_6()
---test_7()
+test_5()
+test_6()
+test_7()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

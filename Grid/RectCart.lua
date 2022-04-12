@@ -172,6 +172,9 @@ function RectCart:ndim() return self._ndim end
 function RectCart:lower(dir) return self._lower[dir] end
 function RectCart:mid(dir) return self._lower[dir] + (self._upper[dir]-self._lower[dir])/2 end
 function RectCart:upper(dir) return self._upper[dir] end
+function RectCart:logicalLower(dir) return self:lower(dir) end
+function RectCart:logicalMid(dir) return self:mid(dir) end
+function RectCart:logicalUpper(dir) return self:upper(dir) end
 function RectCart:numCells(dir) return self._numCells[dir] end
 function RectCart:totalNumCells()
    total = 1

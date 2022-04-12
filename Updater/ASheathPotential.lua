@@ -108,6 +108,16 @@ function ASheathPotential:init(tbl)
                        upper=DataStruct.Field{onGrid = self.boundaryGrids["upper"], 
                                               numComponents = self.basis:numBasis(),
                                               ghost = {1,1},}}
+   self.phiSheathAvg = DataStruct.Field{onGrid = self.boundaryGrids["lower"],
+                                        numComponents = self.basis:numBasis(),
+                                        ghost = {1,1},}
+   self.m0IonSheathAvg = DataStruct.Field{onGrid = self.boundaryGrids["lower"],
+                                          numComponents = self.basis:numBasis(),
+                                          ghost = {1,1},}
+   -- Range decomp to loop over boundary grid.
+   self.lowerBoundaryRangeDecomp = LinearDecomp.LinearDecompRange {
+        range = self.boundaryGrids["lower"]:localRange(), numSplit = self.grid:numSharedProcs() }
+
    -- Pre-define some pointers and indexers.
    self.m0IonSheathPtr = {lower=0, upper=0}
    self.phiSheathPtr   = {lower=0, upper=0}
@@ -122,6 +132,8 @@ function ASheathPotential:init(tbl)
 
       self.boundaryIdxr[b] = self.phiSheath[b]:genIndexer()
    end
+   self.phiSheathAvgPtr   = self.phiSheathAvg:get(1)
+   self.m0IonSheathAvgPtr = self.m0IonSheathAvg:get(1)
 
    if GKYL_HAVE_MPI then
       -- Need a communicator to broadcast the sheath potential and density along z.
@@ -162,13 +174,13 @@ function ASheathPotential:_advance(tCurr, inFlds, outFlds)
 
    local grid = self.grid
    local globalRange = phi:globalRange()
+   local tId = grid:subGridSharedId()    -- Local thread ID.
 
    for _, b in ipairs(self.boundary) do
       -- Loop over boundary grid and compute phi_s in each cell using quadrature.
       local skinRange = b=="lower" and globalRange:lowerSkin(self.sheathDir,1) or globalRange:upperSkin(self.sheathDir,1)
       local skinRangeDecomp = LinearDecomp.LinearDecompRange {
             range = skinRange, numSplit = grid:numSharedProcs() }
-      local tId = grid:subGridSharedId()    -- Local thread ID.
       for idx in skinRangeDecomp:rowMajorIter(tId) do
          idx:copyInto(self.idxB)
          self.idxB[self.sheathDir] = 1  -- Boundary grid has 1 cell in this direction.
@@ -186,19 +198,39 @@ function ASheathPotential:_advance(tCurr, inFlds, outFlds)
 
       -- Broadcast the sheath potential and density to other ranks along z.
       self.bcastSheathQuants(b)
+   end
 
+   -- Average left and right sheath density and potential.
+   for idx in self.lowerBoundaryRangeDecomp:rowMajorIter(tId) do
+      self.phiSheathAvg:fill(self.boundaryIdxr["lower"](idx), self.phiSheathAvgPtr)
+      self.m0IonSheathAvg:fill(self.boundaryIdxr["lower"](idx), self.m0IonSheathAvgPtr)
+      for k = 1, self.basis:numBasis() do
+         self.phiSheathAvgPtr[k], self.m0IonSheathAvgPtr[k] = 0., 0.
+      end
+
+      for _, enm in ipairs({"lower","upper"}) do
+         self.phiSheath[enm]:fill(self.boundaryIdxr[enm](idx), self.phiSheathPtr[enm])
+         self.m0IonSheath[enm]:fill(self.boundaryIdxr[enm](idx), self.m0IonSheathPtr[enm])
+         for k = 1, self.basis:numBasis() do
+            self.phiSheathAvgPtr[k]   = self.phiSheathAvgPtr[k]+0.5*self.phiSheathPtr[enm][k]
+            self.m0IonSheathAvgPtr[k] = self.m0IonSheathAvgPtr[k]+0.5*self.m0IonSheathPtr[enm][k]
+         end
+      end
+   end
+
+   for _, b in ipairs(self.boundary) do
       -- Loop over the half grid and compute phi.
       for idx in self.halfDomRangeDecomp[b]:rowMajorIter(tId) do
          idx:copyInto(self.idxB)
          self.idxB[self.sheathDir] = 1  -- Boundary grid has 1 cell in this direction.
 
-         self.phiSheath[b]:fill(self.boundaryIdxr[b](self.idxB), self.phiSheathPtr[b])
-         self.m0IonSheath[b]:fill(self.boundaryIdxr[b](self.idxB), self.m0IonSheathPtr[b])
          m0Ion:fill(innerIdxr(idx), m0IonPtr)
          phi:fill(innerIdxr(idx), phiPtr)
          jacobGeoInv:fill(innerIdxr(idx), jacobGeoInvPtr)
+         self.phiSheathAvg:fill(self.boundaryIdxr["lower"](self.idxB), self.phiSheathAvgPtr)
+         self.m0IonSheathAvg:fill(self.boundaryIdxr["lower"](self.idxB), self.m0IonSheathAvgPtr)
 
-         self._phiKer(self.qElc, self.tempElc, jacobGeoInvPtr:data(), m0IonPtr:data(), self.m0IonSheathPtr[b]:data(), self.phiSheathPtr[b]:data(), phiPtr:data())
+         self._phiKer(self.qElc, self.tempElc, jacobGeoInvPtr:data(), m0IonPtr:data(), self.m0IonSheathAvgPtr:data(), self.phiSheathAvgPtr:data(), phiPtr:data())
       end
    end
 end

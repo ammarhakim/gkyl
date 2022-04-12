@@ -203,7 +203,7 @@ function VmBGKCollisions:setPhaseGrid(grid)
    self.phaseGrid = grid
 end
 
-function VmBGKCollisions:createSolver(externalField)
+function VmBGKCollisions:createSolver(mySpecies, externalField)
    self.numVelDims = self.phaseGrid:ndim() - self.confGrid:ndim()
 
    local function createConfFieldCompV()

@@ -149,17 +149,17 @@ function AmbipolarSheathField:createSolver(species, externalField)
    local ndim = self.grid:ndim()
    local ionSpec = species[self.ionName]
    self.ionBC = {}
-   local hasSheath = false 
+   local hasNonPeriodic = false 
    for _, bc in lume.orderedIter(ionSpec.nonPeriodicBCs) do
-      if bc.bcKind=="sheath" then
+      if bc.bcKind=="sheath" or bc.bcKind=="absorb" then
          if (ndim==3 and bc:getDir()==3) or ndim==1 then
             self.ionBC[bc:getEdge()] = bc
             self.ionBC[bc:getEdge()]:setSaveFlux(true)
-            hasSheath = true
+            hasNonPeriodic = true
          end
       end
    end
-   assert(hasSheath, "App.Field.AmbipolarSheathField: has to have sheath BCs.")
+   assert(hasNonPeriodic, "App.Field.AmbipolarSheathField: has to have sheath BCs.")
    lume.setOrder(self.ionBC)
 
    self.bcIonM0flux = {}
@@ -270,13 +270,13 @@ end
 function AmbipolarSheathField:advance(tCurr, species, inIdx, outIdx)
    local tmStart = Time.clock()
 
-   local potCurr = self:rkStepperFields()[inIdx]
-   local potRhs  = self:rkStepperFields()[outIdx]
+   --local potCurr = self:rkStepperFields()[inIdx]
+   --local potRhs  = self:rkStepperFields()[outIdx]
 
-   -- Compute the flux of outgoing ions.
-   for _, bc in lume.orderedIter(self.ionBC) do
-      bc.numDensityCalc:advance(tCurr, {bc:getBoundaryFluxFields()[inIdx]}, {self.bcIonM0flux[bc:getEdge()]})
-   end
+   ---- Compute the flux of outgoing ions (need to do this in :useBoundaryFlux).
+   --for _, bc in lume.orderedIter(self.ionBC) do
+   --   bc.numDensityCalc:advance(tCurr, {bc:getBoundaryFluxFields()[inIdx]}, {self.bcIonM0flux[bc:getEdge()]})
+   --end
    self.calcedPhi = false
 
    self.timers.advTime[1] = self.timers.advTime[1] + Time.clock() - tmStart
@@ -295,14 +295,21 @@ function AmbipolarSheathField:phiSolve(tCurr, species, inIdx, outIdx)
          potCurr.phi = potCurr.phiAux
       end
 
-      -- Apply BCs.
+      -- Apply BCs. Make sure phi is continuous across skin-ghost boundary.
       local tmStart = Time.clock()
-      -- Make sure phi is continuous across skin-ghost boundary.
       for _, bc in ipairs(self.boundaryConditions) do bc:advance(tCurr, {}, {potCurr.phi}) end
       potCurr.phi:sync(true)
       self.bcTime = self.bcTime + (Time.clock()-tmStart)
 
       self.calcedPhi = true
+   end
+end
+
+function AmbipolarSheathField:useBoundaryFlux(tCurr, outIdx)
+   -- Immediately after boundary fluxes are stored, use them to compute the particle
+   -- flux to the boundary. Otherwise they get altered by :combineRk and multiplied by dt.
+   for _, bc in lume.orderedIter(self.ionBC) do
+      bc.numDensityCalc:advance(tCurr, {bc:getBoundaryFluxFields()[outIdx]}, {self.bcIonM0flux[bc:getEdge()]})
    end
 end
 

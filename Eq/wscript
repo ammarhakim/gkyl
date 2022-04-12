@@ -9,6 +9,11 @@ def build(bld):
     bld.shlib(source = r"""
     TenMomentImpl.cpp
 
+    hasegawaWakataniData/hasegawa_wakatani_vol_2x_p1_Ser.cpp
+    hasegawaWakataniData/hasegawa_wakatani_vol_2x_p2_Ser.cpp
+    hasegawaWakataniData/hasegawa_wakatani_surf_2x_p1_Ser.cpp
+    hasegawaWakataniData/hasegawa_wakatani_surf_2x_p2_Ser.cpp
+
     incompEulerData/IncompEulerSer2xP1.cpp
     incompEulerData/IncompEulerSer2xP2.cpp
     incompEulerData/IncompEulerSurfSer2xP1.cpp
@@ -398,6 +403,49 @@ def build(bld):
     vlasovData/VlasovUpwindSurfElcMagTensor1x3vP2.cpp
     vlasovData/VlasovUpwindSurfElcMagTensor2x2vP2.cpp
 
+    vlasovData/VlasovNeutral1x1vSerP1.cpp
+    vlasovData/VlasovNeutral1x1vSerP2.cpp
+    vlasovData/VlasovNeutral1x1vSerP3.cpp
+    vlasovData/VlasovNeutral1x2vSerP1.cpp
+    vlasovData/VlasovNeutral1x2vSerP2.cpp
+    vlasovData/VlasovNeutral1x2vSerP3.cpp
+    vlasovData/VlasovNeutral1x3vSerP1.cpp
+    vlasovData/VlasovNeutral1x3vSerP2.cpp
+    vlasovData/VlasovNeutral1x3vSerP3.cpp
+    vlasovData/VlasovNeutral2x2vSerP1.cpp
+    vlasovData/VlasovNeutral2x2vSerP2.cpp
+    vlasovData/VlasovNeutral2x2vSerP3.cpp
+    vlasovData/VlasovNeutral2x3vSerP1.cpp
+    vlasovData/VlasovNeutral2x3vSerP2.cpp
+    vlasovData/VlasovNeutral3x3vSerP1.cpp
+
+    vlasovData/VlasovNeutral1x1vTensorP1.cpp
+    vlasovData/VlasovNeutral1x1vTensorP2.cpp
+    vlasovData/VlasovNeutral1x2vTensorP1.cpp
+    vlasovData/VlasovNeutral1x2vTensorP2.cpp
+    vlasovData/VlasovNeutral1x3vTensorP1.cpp
+    vlasovData/VlasovNeutral1x3vTensorP2.cpp
+    vlasovData/VlasovNeutral2x2vTensorP1.cpp
+    vlasovData/VlasovNeutral2x2vTensorP2.cpp
+    vlasovData/VlasovNeutral2x3vTensorP1.cpp
+    vlasovData/VlasovNeutral2x3vTensorP2.cpp
+
+    vlasovData/VlasovSurfNeutral1x1vSerP1.cpp
+    vlasovData/VlasovSurfNeutral1x1vSerP2.cpp
+    vlasovData/VlasovSurfNeutral1x2vSerP1.cpp
+    vlasovData/VlasovSurfNeutral1x2vSerP2.cpp
+    vlasovData/VlasovSurfNeutral1x3vSerP1.cpp
+    vlasovData/VlasovSurfNeutral1x3vSerP2.cpp
+    vlasovData/VlasovSurfNeutral2x2vSerP1.cpp
+    vlasovData/VlasovSurfNeutral2x2vSerP2.cpp
+    vlasovData/VlasovSurfNeutral2x3vSerP1.cpp
+    vlasovData/VlasovSurfNeutral2x3vSerP2.cpp
+    vlasovData/VlasovSurfNeutral3x3vSerP1.cpp
+
+    vlasovData/VlasovSurfNeutral1x1vTensorP2.cpp
+    vlasovData/VlasovSurfNeutral1x2vTensorP2.cpp
+    vlasovData/VlasovSurfNeutral2x2vTensorP2.cpp
+
     pbData/CanonicalSer1x1v.cpp
     pbData/CanonicalSer2x2v.cpp
     pbData/CanonicalSurfSer1x1v.cpp
@@ -562,7 +610,7 @@ def build(bld):
 
     """,
               name = 'eq',
-              target = 'eq', use='EIGEN CUTOOLS', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData gyrofluidData gfHeatFluxData passiveAdvectionData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct eparGkData',
+              target = 'eq', use='EIGEN CUTOOLS', includes = '. hasegawaWakataniData incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData gyrofluidData gfHeatFluxData passiveAdvectionData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct eparGkData',
               vnum = '1.0',
               
     )

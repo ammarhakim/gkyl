@@ -216,6 +216,9 @@ genPhiGaussQuad(fh, funcNm, dim, basisNm, polyOrder) := block(
     cSub : makelist(vars[d]=normOrds[i][d],d,1,dim),
 
     m0Ion_n[i]  : subst(cSub, m0Ion_e),
+    /* In principle the following two should be evaluated at the boundary like
+         m0IonS_n[i] : subst(cSub, subst(sheathVar=skinEvSign[bS],m0IonS_e)),
+       but the second DG coefficient in m0IonS_e (for 1x p=1) is zero anyway. */
     m0IonS_n[i] : subst(cSub, m0IonS_e),
     phiS_n[i]   : subst(cSub, phiS_e)
   ),

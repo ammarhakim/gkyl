@@ -76,14 +76,13 @@ function VlasovSpecies:alloc(nRkDup)
    -- Allocate distribution function.
    VlasovSpecies.super.alloc(self, nRkDup)
 
+   self.qbym = self.charge/self.mass
+
    -- Allocate fields to store coupling moments (for use in coupling
    -- to field and collisions).
    self.numDensity = self:allocMoment()
    self.momDensity = self:allocVectorMoment(self.vdim)
    self.ptclEnergy = self:allocMoment()
-
-   -- Allocate field to accumulate externalField if any.
-   --self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
 
    -- Allocate field for external forces if any.
    if self.hasExtForce then 
@@ -101,11 +100,11 @@ function VlasovSpecies:fullInit(appTbl)
 
    local tbl = self.tbl
    -- If there is an external force, get the force function.
+   self.hasExtForce = false
+
    if tbl.vlasovExtForceFunc then
       self.vlasovExtForceFunc = tbl.vlasovExtForceFunc
       self.hasExtForce = true
-   else
-      self.hasExtForce = false
    end
 
    -- vFlux used for selecting which type of numerical flux function to use in velocity space
@@ -132,10 +131,7 @@ function VlasovSpecies:createSolver(field, externalField)
 
    -- External forces are accumulated to the electric field part of
    -- totalEmField
-   if self.hasExtForce then
-      hasE = true
-      hasB = true
-   end
+   if self.hasExtForce then hasE, hasB = true, true end
 
    if hasB then
       self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
@@ -147,25 +143,19 @@ function VlasovSpecies:createSolver(field, externalField)
    
    -- Create updater to advance solution by one time-step.
    self.equation = VlasovEq {
-      onGrid           = self.grid,
-      phaseBasis       = self.basis,
-      confBasis        = self.confBasis,
-      charge           = self.charge,
-      mass             = self.mass,
-      hasElectricField = hasE,
-      hasMagneticField = hasB,
-      plasmaMagField   = plasmaB,
-      numVelFlux       = self.numVelFlux,
+      onGrid     = self.grid,       hasElectricField = hasE,
+      phaseBasis = self.basis,      hasMagneticField = hasB,
+      confBasis  = self.confBasis,  hasExtForce      = self.hasExtForce,
+      charge     = self.charge,     plasmaMagField   = plasmaB,
+      mass       = self.mass,       numVelFlux       = self.numVelFlux,
    }
 
    -- Must apply zero-flux BCs in velocity directions.
    for d = 1, self.vdim do table.insert(self.zeroFluxDirections, self.cdim+d) end
 
    self.solver = Updater.HyperDisCont {
-      onGrid             = self.grid,
-      basis              = self.basis,
-      cfl                = self.cfl,
-      equation           = self.equation,
+      onGrid = self.grid,   cfl      = self.cfl,
+      basis  = self.basis,  equation = self.equation,
       zeroFluxDirections = self.zeroFluxDirections,
    }
 
@@ -193,32 +183,24 @@ function VlasovSpecies:createSolver(field, externalField)
    -- Create updater to compute M0, M1i, M2 moments sequentially.
    -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
    self.fiveMomentsCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "FiveMoments",
+      onGrid     = self.grid,   confBasis = self.confBasis,
+      phaseBasis = self.basis,  moment    = "FiveMoments",
    }
    self.calcMaxwell = Updater.MaxwellianOnBasis {
-      onGrid      = self.grid,
-      phaseBasis  = self.basis,
-      confGrid    = self.confGrid,
-      confBasis   = self.confBasis,
+      onGrid      = self.grid,   confGrid  = self.confGrid,
+      phaseBasis  = self.basis,  confBasis = self.confBasis,
    }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
       -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
       self.fiveMomentsLBOCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.grid,
-         phaseBasis = self.basis,
-         confBasis  = self.confBasis,
-         moment     = "FiveMomentsLBO",
+         onGrid     = self.grid,   confBasis  = self.confBasis,
+         phaseBasis = self.basis,  moment     = "FiveMomentsLBO",
       }
       if self.needCorrectedSelfPrimMom then
          self.primMomSelf = Updater.SelfPrimMoments {
-            onGrid     = self.confGrid,
-            phaseBasis = self.basis,
-            confBasis  = self.confBasis,
-            operator   = "VmLBO",
+            onGrid     = self.confGrid,  confBasis = self.confBasis,
+            phaseBasis = self.basis,     operator  = "VmLBO",
          }
       end
 
@@ -241,10 +223,8 @@ function VlasovSpecies:createSolver(field, externalField)
 
    if self.vlasovExtForceFunc then
       self.evalVlasovExtForce = Updater.ProjectOnBasis {
-         onGrid   = self.confGrid,
-         basis    = self.confBasis,
-         evaluate = self.vlasovExtForceFunc,
-         onGhosts = false
+         onGrid = self.confGrid,   evaluate = self.vlasovExtForceFunc,
+         basis  = self.confBasis,  onGhosts = false
       }
    end
 
@@ -625,9 +605,8 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local totalEmField    = self.totalEmField
    totalEmField:clear(0.0)
 
-   local qbym = self.charge/self.mass
-   if emField and self.computePlasmaB then totalEmField:accumulate(qbym, emField) end
-   if emExternalField then totalEmField:accumulate(qbym, emExternalField) end
+   if emField and self.computePlasmaB then totalEmField:accumulate(self.qbym, emField) end
+   if emExternalField then totalEmField:accumulate(self.qbym, emExternalField) end
 
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
    if self.hasExtForce then

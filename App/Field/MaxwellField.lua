@@ -378,10 +378,8 @@ function MaxwellField:createSolver()
       end
 
       self.emEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.grid,
-         basis = self.basis,
-         numComponents = 8,
-         quantity = "V2"
+         onGrid = self.grid,   numComponents = 8,
+         basis  = self.basis,  quantity      = "V2",
       }
       self.emEnergyCalc = function(tCurr, inFld, outDynV) self.emEnergyUpd:advance(tCurr, inFld, outDynV) end
 
@@ -395,14 +393,12 @@ function MaxwellField:createSolver()
       if self.basis:polyOrder()>1 or isParallel then
          self.isSlvrMG = false
          self.fieldSlvr = Updater.FemPoisson {
-            onGrid = self.grid,
-            basis = self.basis,
-            bcLower = self.bcLowerPhi,
-            bcUpper = self.bcUpperPhi,
+            onGrid = self.grid,  bcLower = self.bcLowerPhi,
+            basis = self.basis,  bcUpper = self.bcUpperPhi,
          }
          self.esEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
             onGrid = self.grid,
-            basis = self.basis,
+            basis  = self.basis,
             quantity = "V2"
          }
          self.emEnergyCalc = function(tCurr, inFld, outDynV) self:esEnergy(tCurr, inFld, outDynV) end
@@ -444,10 +440,8 @@ function MaxwellField:createSolver()
    -- Function to construct a BC updater.
    local function makeBcUpdater(dir, edge, bcList)
       return Updater.Bc {
-	 onGrid             = self.grid,
-	 boundaryConditions = bcList,
-	 dir                = dir,
-	 edge               = edge,
+         onGrid             = self.grid,  dir  = dir,
+         boundaryConditions = bcList,     edge = edge,
       }
    end
 

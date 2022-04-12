@@ -1,0 +1,143 @@
+/* Functions called to generate volume kernel of Hasegawa Wakatani system of
+   equations. We'll use the normalized form in K. Ghantous and O. D. Gurcan,
+   PRE 92, 033107 (2015). */
+
+load("modal-basis")$
+load("out-scripts")$
+load(stringproc)$
+load("nodalOperations/nodalFunctions")$
+load("scifac")$
+fpprec : 24$
+
+doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+
+/* Set up some vector calculus functions. */
+load("vect")$
+
+poissonBracket(f,g) := rDx2*rDy2*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x))$
+
+genHWvolKernel(fh, funcNm, dim, basisType, polyOrder) := block(
+  [nMoments, basis, vars, numB, derivFac, dir, phi_e, H_e, H_c, alphaSum_e, d, xc_d, rdxw_d,
+   alpha_e, alpha_c, alphaLabel, alphaNoZero_c, surfNodes, surfIntVars, alphaL, alphaR, 
+   alphaL0, alphaR0, alphaL_n, alphaR_n, i, vort_e, den_e, mI, fIn_c, fIn_e, volTerm_c, k],
+  /* Generate volume kernel for Hasegawa-Wakatani model. */
+
+  nMoments : 2,  /* phi and n. */
+
+  /* Load the desired basis. */
+  kill(varsC, varsP, basisC, basisP),
+  load(sconcat("basis-precalc/basis", basisType, dim, "x")),
+  basis : basisC[polyOrder],
+  vars  : varsC,
+  numB  : length(basis),
+
+  printf(fh, "double ~a(const double C_, const double kappa_, const double *xc, const double *dx, const double *phi, const double *fIn, double *out) ~%{ ~%", funcNm),
+  printf(fh, "  // C_: adiabaticity parameter (T_e*kpar^2/(e^2*n_0*eta*omega_ci)).~%"),
+  printf(fh, "  // kappa_: normalized density gradient (rho_s/L_n).~%"),
+  printf(fh, "  // xc[2]: cell-center coordinates.~%"),
+  printf(fh, "  // dx[2]: cell spacing.~%"),
+  printf(fh, "  // phi[~a]: electrostatic potential.~%", numB),
+  printf(fh, "  // fIn[~a]: input fields (vorticity and density).~%",2*numB),
+  printf(fh, "  // out[~a]: output increment (dy/dt).~%", 2*numB),
+  printf(fh, "~%"),
+
+  /* For grad and curl expressions. */
+  scalefactors(vars),
+
+  derivFac : [rDx2, rDy2],
+  for dir : 1 thru dim do (
+    printf(fh, "  double rD~a2 = 2.0/dx[~a]; ~%", vars[dir], dir-1)
+  ),
+
+  /* Expand phi. */
+  phi_e : doExpand1(phi, basis),
+
+  /* Calculate the Hamiltonian (just phi in this case). */
+  H_e: phi_e,
+
+  /* Project Hamiltonian onto basis functions */
+  H_c : calcInnerProdList(vars, 1, basis, H_e),
+
+  /* Calculate cflFreq = sum_d alpha_d / dx[d] */
+  printf(fh, "  double cflFreq = 0.0;~%"), 
+  printf(fh, "  double alphaL  = 0.0;~%"), 
+  printf(fh, "  double alphaR  = 0.0;~%"), 
+  
+  /* Note: no contribution from mu. */
+  alphaSum_e : 0,
+  for d : 1 thru dim do (
+    xc_d : xc[d-1],
+    rdx2_d : derivFac[d],
+    /* Calculate velocity alpha_d = {x[d], H} = dx[d]/dt. */
+    alpha_e : poissonBracket(xc_d + vars[d]/rdx2_d, H_e),
+
+    /* Project alpha on basis and write to array. */
+    printf(fh, "  double alpha_~a[~a]; ~%", vars[d], numB),
+    alpha_c    : rdx2_d*calcInnerProdList(vars, 1, basis, alpha_e),
+    alphaLabel : eval_string(sconcat(alpha, "_", vars[d])),
+    writeCExprsNoExpand1(alphaLabel, gcfac(expand(facsum(alpha_c,derivFac)))),
+    
+    alphaNoZero_c : doMakeExprLst(alpha_c, alphaLabel),
+    alpha_e       : doExpandLst(alphaNoZero_c, basis),
+
+    /* Note: factor of rdx2_d already included in alpha_e. */
+    alphaDotGradBasis_e : alpha_e*diff(basis, vars[d]),
+
+    /* Accumulate alpha.grad(w) in this direction to the direction-summed alpha.grad(w) */
+    alphaSum_e : alphaSum_e + alphaDotGradBasis_e,
+
+    /* CFL calculation. */
+    /* Get quadrature nodes on surface. */
+    surfNodes : getNodes(basisType, dim-1, polyOrder),
+    if polyOrder=1 then (surfNodes:surfNodes*(1/sqrt(3))) elseif polyOrder=2 then (surfNodes:surfNodes*sqrt(3/5)),
+    surfIntVars : delete(vars[d],vars),  /* Surface integral variables. */
+
+    /* Evaluate alpha at left and right edge. */
+    alphaL : subst(vars[d]=-1, alpha_e),
+    alphaR : subst(vars[d]=1, alpha_e),
+
+    /* Evaluate cfl by surface averaging. */
+    alphaL_n : float(evAtNodes(alphaL,surfNodes,surfIntVars)),
+    alphaR_n : float(evAtNodes(alphaR,surfNodes,surfIntVars)),
+    printf(fh, "  // Evaluate alpha at left surface quadrature points. ~%"),
+    for i:1 thru length(alphaL_n) do (
+      printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaL_n[i]))),
+      printf(fh, "  cflFreq += -0.5*(alphaL-std::abs(alphaL)); ~%")
+    ),
+    printf(fh, "  // Evaluate alpha at right surface quadrature points. ~%"),
+    for i:1 thru length(alphaR_n) do (
+      printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaR_n[i]))),
+      printf(fh, "  cflFreq += 0.5*(alphaR+std::abs(alphaR)); ~%")
+    ),
+    printf(fh, "~%")
+    
+  ),
+
+  vort_e : doExpand(makelist(fIn[0*numB+k-1],k,1,numB), basis),
+  den_e  : doExpand(makelist(fIn[1*numB+k-1],k,1,numB), basis),
+
+  for mI : 1 thru nMoments do (
+
+    /* Expand moments on basis and add the Poisson bracket term. */
+    fIn_c : makelist(fIn[(mI-1)*numB+k-1],k,1,numB),
+    fIn_e : doExpand(fIn_c, basis),
+    if mI=2 then (
+      /* Add the density gradient term to the density equation. */
+      fIn_e : fIn_e - kappa_*(xc[0]+(dx[0]/2)*x)
+    ),
+    volTerm_c : calcInnerProdList(vars, 1, alphaSum_e, fIn_e),
+
+    /* Add the adiabaticity term. */
+    volTerm_c : volTerm_c + calcInnerProdList(vars, 1, basis, C_*(phi_e-den_e)),
+    for k : 1 thru numB do (
+      printf(fh, "  out[~a] += ~a; ~%", (mI-1)*numB+k-1, gcfac(float(facsum(volTerm_c[k],derivFac))))
+    ),
+    printf(fh, "~%")
+
+  ),
+
+  printf(fh, "  return cflFreq; ~%"),
+  printf(fh, "} ~%")
+)$
+

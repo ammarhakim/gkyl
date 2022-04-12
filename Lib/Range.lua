@@ -269,6 +269,12 @@ local range_mt = {
 	 end
 	 return false
       end,
+      isIntersectionInDirEmpty = function (self, rgn, dir)
+	 if math.min(self:upper(dir), rgn:upper(dir)) < math.max(self:lower(dir), rgn:lower(dir)) then
+	    return true
+	 end
+	 return false
+      end,
       isDifferenceInDirEmpty = function (self, rgn, dir)
          -- Difference = relative complement = self\rgn. See the difference method below.
          -- The difference is empty if the ranges are the same.
