@@ -231,14 +231,15 @@ function GkLogicalSheathBC:createSolver(mySpecies, field, externalField)
    -- Lower/upper limits of velocity space loops when searching for vcut.
    -- Here we assume the vpar grid has even number of cells and is symmetric about vpar=0.
    self.vLoIdx, self.vUpIdx, self.vStep = {}, {}, {}
+   self.vUpIdxPartial = {}
    if self.bcEdge == "lower" then
       self.vLoIdx[1], self.vUpIdx[1] = phaseRange:lower(self.cdim+1), phaseRange:shape(self.cdim+1)/2
       self.vStep[1] = 1
-      self.set_vUpIdx = function(cutIdx) self.vUpIdx[1] = cutIdx-1 end
+      self.set_vUpIdxPartial = function(cutIdx) self.vUpIdxPartial[1] = cutIdx-1 end
    elseif self.bcEdge == "upper" then
       self.vLoIdx[1], self.vUpIdx[1] = phaseRange:upper(self.cdim+1), phaseRange:shape(self.cdim+1)/2+1
       self.vStep[1] = -1
-      self.set_vUpIdx = function(cutIdx) self.vUpIdx[1] = cutIdx+1 end
+      self.set_vUpIdxPartial = function(cutIdx) self.vUpIdxPartial[1] = cutIdx+1 end
    end
    if self.vdim == 1 then
       self.vLoIdx[2], self.vUpIdx[2] = 1, 1
@@ -446,8 +447,13 @@ function GkLogicalSheathBC:evalBoundaryConfFieldAtBcEdge(fPtrIn)
    -- Given a conf-space field 'fIn' defined confBoundaryGrid, with the pointer 'fPtrIn' to
    -- the field in a particular cell, evaluate such field at the lower/upper boundary
    -- of the cell depending on the value of bcEdge.
+   -- Note: recall that the boundary flux needs to be multiplied by dx/2 in the direction of the BC.
+   self.boundaryGrid:getDx(self.dxP)
    local fInAtBcEdge = 0.
-   for k = 1,self.confBasis:numBasis() do fInAtBcEdge = fInAtBcEdge + fPtrIn[k]*self.confBasisAtBcEdgeGhost[k] end
+   for k = 1,self.confBasis:numBasis() do
+      fInAtBcEdge = fInAtBcEdge
+         + (0.5*self.dxP[self.cdim])*fPtrIn[k]*self.confBasisAtBcEdgeGhost[k]
+   end
    return fInAtBcEdge
 end
 
@@ -473,9 +479,11 @@ local function stop(tol)
    end
 end
 
-function GkLogicalSheathBC:calcCouplingMoments(tCurr, rkIdx, species)
-   -- Given the ion flux M0, compute the cutoff velocity and thus the
-   -- sheath potential.
+function GkLogicalSheathBC:calcCouplingMoments(tCurr, rkIdx, species) end
+
+function GkLogicalSheathBC:calcDeltaPhi(rkIdx)
+   -- Compute the change in the potential across the sheath:
+   --   DeltaPhi = phi_s - phi_wall = 0.5*m*vcut^2/q - phi_wall
 
    -- Relative tolerance (relative to the particle flux of the absorbed species)
    -- used when trying to find the cutoff velocity.
@@ -496,13 +504,13 @@ function GkLogicalSheathBC:calcCouplingMoments(tCurr, rkIdx, species)
       local fFlux    = self:getBoundaryFluxFields()[rkIdx]
       local fFluxPtr = fFlux:get(1)
       for k = 1,self.confBasis:numBasis() do self.fluxM0partial[k] = 0. end
+--      print("at first search ",self.speciesName,self.vLoIdx[1], self.vUpIdx[1], self.vStep[1])
       for j = self.vLoIdx[1], self.vUpIdx[1], self.vStep[1] do
 
          self:m0Integral_at_vparCell(j, fFlux, fFluxPtr)
 
          -- Evaluate particle flux at the boundary:
          local fluxM0partialAtBcEdge = self:evalBoundaryConfFieldAtBcEdge(self.fluxM0partial)
---         print("inside ",fluxM0partialAtBcEdge, self.fluxM0atBcEdge["other"])
 
          if math.abs(fluxM0partialAtBcEdge-self.fluxM0atBcEdge["other"]) < relTol*self.fluxM0atBcEdge["other"] then
             -- The cutoff velocity is the upper boundary along vpar of this cell.
@@ -513,7 +521,9 @@ function GkLogicalSheathBC:calcCouplingMoments(tCurr, rkIdx, species)
             break
          elseif j == self.vUpIdx[1] then
             -- The cutoff velocity is above the maximum vpar. Set it to something slightly above.
-            vcut = 1.5*(self.xcP[2]+0.5*self.dxP[2])
+--            print("end ",self.name, j, " partialFlux=",fluxM0partialAtBcEdge)
+--            print("end ",self.name, j, " partialFlux=",self.fluxM0partial[1], self.fluxM0partial[2])
+            vcut = self.bcEdge=="lower" and 1.5*self.boundaryGrid:lower(2) or 1.5*self.boundaryGrid:upper(2)
          end
       end
    
@@ -522,9 +532,9 @@ function GkLogicalSheathBC:calcCouplingMoments(tCurr, rkIdx, species)
          -- Find it with a root finding method.
 
          -- Integrate up to vcutIdx-1 if bcEdge=lower or vcutIdx+1 if bcEdge=upper:
-         self.set_vUpIdx(vcutIdx)
+         self.set_vUpIdxPartial(vcutIdx)
          for k = 1,self.confBasis:numBasis() do self.fluxM0partial[k] = 0. end
-         for j = self.vLoIdx[1], self.vUpIdx[1], self.vStep[1] do
+         for j = self.vLoIdx[1], self.vUpIdxPartial[1], self.vStep[1] do
             self:m0Integral_at_vparCell(j, fFlux, fFluxPtr)
          end
 
@@ -560,7 +570,7 @@ function GkLogicalSheathBC:calcCouplingMoments(tCurr, rkIdx, species)
       end
       
       -- Having found vcut comput DeltaPhi = phiSheath-phiWall = m*vcut^2/2
---      print(string.format("%s mass,charge = %g,%g | vcut = %g",self.speciesName,self.mass,self.charge,vcut))
+--      print(string.format("%s vcutIdx = %d | vcut = %g",self.name,vcutIdx==nil and -99 or vcutIdx,vcut))
       self.DeltaPhi = 0.5*self.mass*(vcut^2)/math.abs(self.charge)
 
       -- Set DeltaPhi in other other species, which will use it to apply
@@ -572,6 +582,9 @@ end
 function GkLogicalSheathBC:advanceCrossSpeciesCoupling(tCurr, species, outIdx)
    -- Compute the 0th moment of the boundary flux.
    self.numDensityCalc:advance(tCurr, {self:getBoundaryFluxFields()[outIdx]}, {self.fluxM0["self"]})
+   self.otherSpeciesBC.numDensityCalc:advance(tCurr, {self.otherSpeciesBC:getBoundaryFluxFields()[outIdx]}, {self.fluxM0["other"]})
+
+   self:calcDeltaPhi(outIdx)  -- Compute change in phi across the sheath.
 end
 
 function GkLogicalSheathBC:copyBoundaryFluxField(inIdx, outIdx)
