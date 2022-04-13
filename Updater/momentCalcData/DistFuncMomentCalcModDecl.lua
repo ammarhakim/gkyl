@@ -48,6 +48,30 @@ function _M.selectGkMomCalc(mom, basisNm, CDIM, VDIM, polyOrder)
    return ffi.C[funcNm]
 end
 
+-- Select function to compute partial gyrokinetic moment (partial integration in vpar).
+function _M.selectGkMomPartialCalc(mom, basisNm, CDIM, VDIM, polyOrder)
+   local sides = {"lower","upper"}
+   local funcType = "void"
+   local funcNm = {}
+   for _, edge in ipairs(sides) do
+      funcNm[edge] = string.format("GkMomentCalc%dx%dv%s_%spartial_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], string.sub(mom,3), edge, polyOrder)
+   end
+   local funcSign = "(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out)"
+
+   local CDefStr = ""
+   for _, edge in ipairs(sides) do
+      CDefStr = CDefStr .. (funcType .. " " .. funcNm[edge] .. funcSign .. ";\n")
+   end
+
+   ffi.cdef(CDefStr)
+   local kernels = {}
+   for _, edge in ipairs(sides) do
+      local tmp = ffi.C[funcNm[edge]]
+      kernels[edge] = tmp
+   end
+   return kernels
+end
+
 -- Select function to compute integrated moments.
 function _M.selectIntMomCalc(basisNm, CDIM, VDIM, polyOrder)
    local funcType = "void"

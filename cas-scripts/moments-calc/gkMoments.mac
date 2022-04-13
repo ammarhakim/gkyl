@@ -86,6 +86,84 @@ calcGkM0_step2(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
     printf(fh, "} ~%")
 ))$
 
+/**
+  Partial M0 kernels, integrating vpar upto a vparLim only, or from vparLim only.
+    M0partial_lower = int_{-1}^{1} dmu int_{-1}^{0.5*(vparLim-vpar_c)/(Delta vpar)} dvpar f >
+    M0partialUp = int_{-1}^{1} dmu int_{0.5*(vparLim-vpar_c)/(Delta vpar)}^{1} dvpar f >
+  where (Delta vpar) is the cell length in vpar, and vpar_c is the cell center.
+**/
+calcGkM0partial(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [modNm,p,bP,bC,fl,M],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+  side : ["lower","upper"],
+  for sI : 1 thru 2 do ( /* Loop over lower/upper. */
+    for p : 1 thru 2 do ( /* Kernels might be too complicated for p=3. */
+      bP : basisP[p],
+      bC : basisC[p],
+    
+      printf(fh, "__host__ __device__ void ~a_M0partial_~a_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double vparLim, const double *f, double *out) ~%{ ~%", funcNm, side[sI], p),
+      if vdim = 1 then printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim)
+      else printf(fh, "  const double volFact = 2.0*M_PI/m_*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+      fl : doExpand1(f, bP),
+      intLims : makelist([-1,1],d,1,cdim+vdim),
+      printf(fh, "  const double vparLimLogical = ~a;~%",float((vparLim-w[cdim])/(dxv[cdim]/2))),
+      if side[sI] = "lower" then (
+        intLims[cdim+1][2] : vparLimLogical
+      ) else (
+        intLims[cdim+1][1] : vparLimLogical
+      ),
+      M : calcInnerProdListGen(varsP, intLims, 1, bC, fl),
+
+      /**
+      /* MF 04/11/2022: There appears to be a limitation in the noPowers
+         functions in out-scripts, in that they don't accept a scalar quantity (to search powers of).
+         This could be fixed but we need regression/unit tests to make sure we don't break other Maxima scripts. */
+      quants : [vparLimLogical],
+      tempVars : [],
+      tempVars : writeCIncrExprs1noPowers(out, volFact*expand(M), quants, tempVars),
+      **/
+      /* Find and replace powers of vparLimLogical. */
+      maxPower : 8,
+      lhs : out,
+      rhs : volFact*expand(M),
+      subList : [],
+      for q : 2 thru maxPower do (
+        powerPresent : false,
+        for k : 1 thru length(rhs) do (
+          if ((not freeof(vparLimLogical^q,rhs[k])) and (not powerPresent)) then powerPresent : true
+        ),
+        if powerPresent then (
+          lhsS : sconcat("  const double vparLimLogicalR",q),
+          rhsS : sconcat("pow(vparLimLogical,",q,");~%"),
+          printf(fh, sconcat(lhsS," = ",rhsS)),
+          subList : append(subList,[[sconcat("vparLimLogical^",q), sconcat("vparLimLogicalR",q)]])
+        )
+      ),
+      printf(fh, "~%"),
+
+      expr : float(rhs),
+      for i : 1 thru length(rhs) do (
+        if expr[i] # 0.0 then (
+          ep : string(expr[i]),
+          if (length(subList) > 0) then (
+            outStr : ssubst(subList[1][2],subList[1][1],ep),
+            for s : 2 thru length(subList) do (
+              outStr : ssubst(subList[s][2],subList[s][1],outStr)
+            )
+          ) else (
+            outStr : ep
+          ),
+          printf(fh, "  ~a += ~a; ~%", lhs[i-1], outStr)
+        )
+      ),
+    
+      printf(fh, "} ~%")
+    )
+  )
+)$
+
 /* Parallel Momentum Density */
 /* M1 = < v_par f > */
 calcGkM1(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
@@ -383,7 +461,7 @@ calcGkThreeMoments(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
     printf(fh, "} ~%")
 ))$
 
-calcGkMoments(fh, funcNm, cdim, vdim, basisFun, polyOrderMax) := block([],
+calcGkMoments(fh, funcNm, cdim, vdim, basisFun, polyOrderMax) := block([pMax],
   printf(fh, "#include <math.h> ~%"),
   printf(fh, "#include <DistFuncMomentCalcModDecl.h> ~%"),
   calcGkM0(fh, funcNm, cdim, vdim, basisFun, polyOrderMax),
@@ -396,7 +474,11 @@ calcGkMoments(fh, funcNm, cdim, vdim, basisFun, polyOrderMax) := block([],
   if vdim > 1 then calcGkM3perp(fh, funcNm, cdim, vdim, basisFun, polyOrderMax),
   calcGkThreeMoments(fh, funcNm, cdim, vdim, basisFun, polyOrderMax),
   if vdim > 1 then (
-     calcGkM0_step1(fh, funcNm, cdim, vdim, basisFun, polyOrderMax),
-     calcGkM0_step2(fh, funcNm, cdim, vdim, basisFun, polyOrderMax)
+    calcGkM0_step1(fh, funcNm, cdim, vdim, basisFun, polyOrderMax),
+    calcGkM0_step2(fh, funcNm, cdim, vdim, basisFun, polyOrderMax)
+  ),
+  if cdim = 1 then (
+    pMax : polyOrderMax,  if polyOrderMax > 2 then pMax : 2,
+    calcGkM0partial(fh, funcNm, cdim, vdim, basisFun, pMax)
   )
 )$

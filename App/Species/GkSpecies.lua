@@ -796,6 +796,13 @@ function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
    end
 end
 
+function GkSpecies:advanceCrossSpeciesCoupling(tCurr, species, emIn, inIdx, outIdx)
+   -- Perform some operations after the updates have been computed, but before
+   -- the combine RK (in PlasmaOnCartGrid) is called.
+
+   for _, bc in pairs(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
+end
+
 function GkSpecies:createDiagnostics(field)
    -- Run the KineticSpecies 'createDiagnostics()' (e.g. to create divideByJacobGeo()).
    GkSpecies.super.createDiagnostics(self, field)
@@ -891,6 +898,9 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
+
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:calcCouplingMoments(tCurr, rkIdx, species) end
+
    if not self.evolve then self._firstMomentCalc = false end
 end
 
