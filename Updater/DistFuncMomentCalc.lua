@@ -38,7 +38,11 @@ local goodPartialMomNames = {
    "M0Pvx",  "M0Pvy",  "M0Pvz", "M0Nvx",  "M0Nvy",  "M0Nvz",
    "M1iPvx", "M1iPvy", "M1iPvz","M1iNvx", "M1iNvy", "M1iNvz",
    "M2Pvx",  "M2Pvy",  "M2Pvz", "M2Nvx",  "M2Nvy",  "M2Nvz",
-   "M3iPvx", "M3iPvy", "M3iPvz","M3iNvx", "M3iNvy", "M3iNvz"
+   "M3iPvx", "M3iPvy", "M3iPvz","M3iNvx", "M3iNvy", "M3iNvz",
+   --
+   "GkM0Pvx", "GkM0Nvx", "GkM1Pvx", "GkM1Nvx", "GkM2parPvx", "GkM2parNvx",
+   "GkM2perpPvx", "GkM2perpNvx", "GkM2Pvx", "GkM2Nvx",
+   "GkM3parPvx", "GkM3parNvx", "GkM3perpPvx", "GkM3perpNvx",
 }
 
 function DistFuncMomentCalc:isMomentNameGood(nm)
@@ -119,9 +123,16 @@ function DistFuncMomentCalc:init(tbl)
 
    if self.isPartialMom then
       local baseMom
-      for _, nm in ipairs(goodMomNames) do 
+      -- Check GK names before VM names. This might need to change if the names change.
+      for _, nm in ipairs(goodGkMomNames) do 
          baseMom = nm
          if string.find(mom, baseMom) then break end
+      end
+      if baseMom==nil then
+         for _, nm in ipairs(goodMomNames) do 
+            baseMom = nm
+            if string.find(mom, baseMom) then break end
+         end
       end
       -- Extract the direction and whether to integrate over the positive or negative region 
       local velTrans       = {vx=1, vy=2, vz=3}

@@ -354,6 +354,12 @@ function GkLogicalSheathBC:createSolver(mySpecies, field, externalField)
          phaseBasis = self.basis,         gkfacs    = {mass, self.bmag},
          moment     = "GkM0", -- GkM0 = < f >
       }
+      local partialMom = self.bcEdge=="lower" and "GkM0Nvx" or "GkM0Pvx"
+      self.numDensityPartialCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
+         phaseBasis = self.basis,         gkfacs    = {mass, self.bmag},
+         moment     = partialMom,
+      }
 
       if not self.anyDiagnostics then
          self.calcBoundaryFluxRateFunc = function(dtIn) end
@@ -487,7 +493,7 @@ function GkLogicalSheathBC:calcDeltaPhi(rkIdx)
 
    -- Relative tolerance (relative to the particle flux of the absorbed species)
    -- used when trying to find the cutoff velocity.
-   local relTol = 1.e-11
+   local relTol = 1.e-10
 
    -- Establish the partially reflected species:
    for _, sp in ipairs({"self","other"}) do
@@ -505,16 +511,18 @@ function GkLogicalSheathBC:calcDeltaPhi(rkIdx)
       local fFluxPtr = fFlux:get(1)
       for k = 1,self.confBasis:numBasis() do self.fluxM0partial[k] = 0. end
 --      print("at first search ",self.speciesName,self.vLoIdx[1], self.vUpIdx[1], self.vStep[1])
+--	 local fluxM0partialAtBcEdgeP  -- For debugging.
       for j = self.vLoIdx[1], self.vUpIdx[1], self.vStep[1] do
 
          self:m0Integral_at_vparCell(j, fFlux, fFluxPtr)
 
          -- Evaluate particle flux at the boundary:
          local fluxM0partialAtBcEdge = self:evalBoundaryConfFieldAtBcEdge(self.fluxM0partial)
+--	  fluxM0partialAtBcEdgeP = fluxM0partialAtBcEdge  -- For debugging.
 
          if math.abs(fluxM0partialAtBcEdge-self.fluxM0atBcEdge["other"]) < relTol*self.fluxM0atBcEdge["other"] then
-            -- The cutoff velocity is the upper boundary along vpar of this cell.
-            vcut = self.xcP[2]+0.5*self.dxP[2]
+            -- The cutoff velocity is the upper/lower boundary along vpar of this cell.
+            vcut = self.bcEdge=="lower" and self.xcP[2]+0.5*self.dxP[2] or self.xcP[2]-0.5*self.dxP[2]
          elseif fluxM0partialAtBcEdge > self.fluxM0atBcEdge["other"] then
             -- We just passed vcut, so this is the cell containing vcut.
             vcutIdx = j
@@ -566,8 +574,21 @@ function GkLogicalSheathBC:calcDeltaPhi(rkIdx)
          self.boundaryGrid:cellCenter(self.xcP)
          local vpar_c, DvparD2 = self.xcP[self.cdim+1], self.dxP[self.cdim+1]/2.
 
+--	 local yl = rootEq(vpar_c-DvparD2)
+--	 local yu = rootEq(vpar_c+DvparD2)
+--	 local check = yl*yu
+--	 if not (check <= 0) then
+--            if (not (math.abs(yl)<relTol*self.fluxM0atBcEdge["other"])) and (not (math.abs(yu)<relTol*self.fluxM0atBcEdge["other"])) then
+----		    fFlux:write(self.name .. "_flux.bp", 0., 0)
+----      local fFluxOther    = self.otherSpeciesBC:getBoundaryFluxFields()[rkIdx]
+----		    fFluxOther:write(self.otherSpeciesBC.name .. "_flux.bp", 0., 0)
+--               print(string.format("%s vcutIdx=%d | fluxes: %s = %g , %s = %g | fluxM0partialAtBcEdge = %g | vcutPrev = %g | vcutIdxPrev = %d",self.name, vcutIdx, self.speciesName, self.fluxM0atBcEdge["self"],self.otherSpeciesName,self.fluxM0atBcEdge["other"],fluxM0partialAtBcEdgeP,self.vcutP, self.vcutIdxP))
+--            end
+--	 end
+
          vcut = root.ridders(rootEq, vpar_c-DvparD2, vpar_c+DvparD2, stop(relTol*self.fluxM0atBcEdge["other"]))
       end
+--      self.vcutP, self.vcutIdxP = vcut, vcutIdx  -- For debugging.
       
       -- Having found vcut comput DeltaPhi = phiSheath-phiWall = m*vcut^2/2
 --      print(string.format("%s vcutIdx = %d | vcut = %g",self.name,vcutIdx==nil and -99 or vcutIdx,vcut))
@@ -581,10 +602,15 @@ end
 
 function GkLogicalSheathBC:advanceCrossSpeciesCoupling(tCurr, species, outIdx)
    -- Compute the 0th moment of the boundary flux.
-   self.numDensityCalc:advance(tCurr, {self:getBoundaryFluxFields()[outIdx]}, {self.fluxM0["self"]})
-   self.otherSpeciesBC.numDensityCalc:advance(tCurr, {self.otherSpeciesBC:getBoundaryFluxFields()[outIdx]}, {self.fluxM0["other"]})
+   self.numDensityPartialCalc:advance(tCurr, {self:getBoundaryFluxFields()[outIdx]}, {self.fluxM0["self"]})
+   self.otherSpeciesBC.numDensityPartialCalc:advance(tCurr, {self.otherSpeciesBC:getBoundaryFluxFields()[outIdx]}, {self.fluxM0["other"]})
 
    self:calcDeltaPhi(outIdx)  -- Compute change in phi across the sheath.
+
+--    local fFlux    = self:getBoundaryFluxFields()[outIdx]
+--    fFlux:write(self.name .. "_flux.bp",tCurr, 0)
+--    local fFluxOther    = self.otherSpeciesBC:getBoundaryFluxFields()[outIdx]
+--    fFluxOther:write(self.otherSpeciesBC.name .. "_flux.bp", tCurr, 0)
 end
 
 function GkLogicalSheathBC:copyBoundaryFluxField(inIdx, outIdx)

@@ -265,8 +265,8 @@ function GkZeroCurrentField:advance(tCurr, species, inIdx, outIdx)
    self.chargeDens:clear(0.0)
    self.divP:clear(0.0)
    for _, s in lume.orderedIter(species) do
-      -- Add contribution to the total (q/m) weighted charge density.
-      self.chargeDens:accumulate(-(s:getCharge()^2)/s:getMass(), s:getNumDensity())
+      -- Add contribution to the total (q^2/m) weighted charge density.
+      self.chargeDens:accumulate((s:getCharge()^2)/s:getMass(), s:getNumDensity())
       -- Compute the M2par and M2perp moments of this species.
       s.M2parCalc:advance(tCurr, {s:rkStepperFields()[inIdx]}, {self.M2par})
       s.M2perpCalc:advance(tCurr, {s:rkStepperFields()[inIdx]}, {self.M2perp})

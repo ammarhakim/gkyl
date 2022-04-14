@@ -40,7 +40,7 @@ genDivPressure(fh, funcNm, dim, basisNm, polyOrder) := block(
   /* z derivative of cmag*M2par/(J*BparStar). */
   Ppar_c    : calcInnerProdList(vars, delparFac_e, basis, m2par_e),
   Ppar_e    : doExpand(Ppar_c, basis),
-  divPpar_c : calcInnerProdList(vars, 1, basis, (dz/2)*diff(Ppar_e, x)),
+  divPpar_c : calcInnerProdList(vars, 1, basis, (2/dz)*diff(Ppar_e, x)),
 
   printf(fh,"  double divPpar[~a];~%", numB),
   writeCExprs1(divPpar, divPpar_c),

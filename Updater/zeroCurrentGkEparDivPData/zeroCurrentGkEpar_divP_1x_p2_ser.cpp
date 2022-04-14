@@ -10,8 +10,8 @@ void zeroCurrentGkEpar_divP_1x_p2_ser(const double dz, const double charge, cons
   // m2perp: mu*B/m moment of the distribution function.
 
   double divPpar[3];
-  divPpar[0] = 0.5477225575051661*delparFac[1]*m2par[2]*dz+0.5477225575051661*m2par[1]*delparFac[2]*dz+0.6123724356957944*delparFac[0]*m2par[1]*dz+0.6123724356957944*m2par[0]*delparFac[1]*dz; 
-  divPpar[1] = 0.8748177652797062*delparFac[2]*m2par[2]*dz+1.369306393762915*delparFac[0]*m2par[2]*dz+1.369306393762915*m2par[0]*delparFac[2]*dz+1.224744871391589*delparFac[1]*m2par[1]*dz; 
+  divPpar[0] = (2.190890230020665*delparFac[1]*m2par[2])/dz+(2.190890230020665*m2par[1]*delparFac[2])/dz+(2.449489742783178*delparFac[0]*m2par[1])/dz+(2.449489742783178*m2par[0]*delparFac[1])/dz;
+  divPpar[1] = (3.499271061118827*delparFac[2]*m2par[2])/dz+(5.477225575051662*delparFac[0]*m2par[2])/dz+(5.477225575051662*m2par[0]*delparFac[2])/dz+(4.898979485566357*delparFac[1]*m2par[1])/dz;
 
   double divPperp[3];
   divPperp[0] = 0.31943828249997*delparFac[2]*dlnbmagdz[2]*m2perp[2]+0.5*delparFac[0]*dlnbmagdz[2]*m2perp[2]+0.5*dlnbmagdz[0]*delparFac[2]*m2perp[2]+0.4472135954999579*delparFac[1]*dlnbmagdz[1]*m2perp[2]+0.5*m2perp[0]*delparFac[2]*dlnbmagdz[2]+0.4472135954999579*delparFac[1]*m2perp[1]*dlnbmagdz[2]+0.4472135954999579*dlnbmagdz[1]*m2perp[1]*delparFac[2]+0.5*delparFac[0]*dlnbmagdz[1]*m2perp[1]+0.5*dlnbmagdz[0]*delparFac[1]*m2perp[1]+0.5*m2perp[0]*delparFac[1]*dlnbmagdz[1]+0.5*delparFac[0]*dlnbmagdz[0]*m2perp[0]; 

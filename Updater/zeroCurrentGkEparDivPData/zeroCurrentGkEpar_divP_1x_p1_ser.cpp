@@ -10,7 +10,7 @@ void zeroCurrentGkEpar_divP_1x_p1_ser(const double dz, const double charge, cons
   // m2perp: mu*B/m moment of the distribution function.
 
   double divPpar[2];
-  divPpar[0] = 0.6123724356957944*delparFac[0]*m2par[1]*dz+0.6123724356957944*m2par[0]*delparFac[1]*dz; 
+  divPpar[0] = (2.449489742783178*delparFac[0]*m2par[1])/dz+(2.449489742783178*m2par[0]*delparFac[1])/dz;
 
   double divPperp[2];
   divPperp[0] = 0.5*delparFac[0]*dlnbmagdz[1]*m2perp[1]+0.5*dlnbmagdz[0]*delparFac[1]*m2perp[1]+0.5*m2perp[0]*delparFac[1]*dlnbmagdz[1]+0.5*delparFac[0]*dlnbmagdz[0]*m2perp[0]; 
