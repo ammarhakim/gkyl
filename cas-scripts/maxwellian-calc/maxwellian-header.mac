@@ -12,13 +12,6 @@ minVdim_Ser : 1$    /* see beginning of v loop below though. */
 maxCdim_Ser : 3$
 maxVdim_Ser : 3$
 
-/* Maximal order basis. */
-maxPolyOrder_Max : 2$
-minCdim_Max : 1$
-minVdim_Max : 1$    /* see begining of v loop below though. */
-maxCdim_Max : 2$
-maxVdim_Max : 2$
-
 /* Tensor product basis. */
 maxPolyOrder_Tensor : 2$
 minCdim_Tensor : 1$
@@ -28,12 +21,12 @@ maxVdim_Tensor : 2$
 
 /* ...... END OF USER INPUTS........ */
 
-bName        : ["Ser","Max","Tensor"]$
-maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
-minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
-minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
-maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
-maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
+bName        : ["Ser","Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Tensor]$
+minVdim      : [minVdim_Ser, minVdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Tensor]$
+maxVdim      : [maxVdim_Ser, maxVdim_Tensor]$
 
 /* Open new header file. */
 fh : openw("~/max-out/MaxwellianOnBasisModDecl.h")$

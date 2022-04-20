@@ -855,6 +855,7 @@ return {
 	 LBOCollisions          = require "App.Collisions.GkLBOCollisions",
 	 LboCollisions          = require "App.Collisions.GkLBOCollisions",
 	 MaxwellianProjection   = require ("App.Projection.GkProjection").MaxwellianProjection,
+	 BiMaxwellianProjection = require ("App.Projection.GkProjection").BiMaxwellianProjection,
 	 Species                = require "App.Species.GkSpecies",
 	 Source                 = require "App.Sources.GkSource",
 	 Vlasov                 = require ("App.Species.VlasovSpecies"),
