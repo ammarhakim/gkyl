@@ -151,10 +151,8 @@ function GkSpecies:createSolver(field, externalField)
          return math.sqrt(2*mu*self.mass*(externalField.gxxFunc(t,xn)*externalField.gyyFunc(t,xn)-externalField.gxyFunc(t,xn)^2)/(self.charge^2*externalField.gxxFunc(t, xn)*externalField.bmagFunc(t, xn)))
       end
       local project = Updater.ProjectOnBasis {
-         onGrid   = self.grid,
-         basis    = self.basis,
-         evaluate = function(t,xn) return 0. end,   -- Set below.
-         onGhosts = true
+         onGrid = self.grid,   evaluate = function(t,xn) return 0. end,   -- Set below.
+         basis  = self.basis,  onGhosts = true
       }
       project:setFunc(function(t,xn) return rho1Func(t,xn) end)
       project:advance(0.0, {}, {self.rho1})
@@ -669,10 +667,8 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       local projectNuX = nil
       if userInputNuProfile then
          projectNuX = Updater.ProjectOnBasis {
-            onGrid   = self.confGrid,
-            basis    = self.confBasis,
-            evaluate = function(t,xn) return 0.0 end, -- Function is set below.
-            onGhosts = false,
+            onGrid = self.confGrid,   evaluate = function(t,xn) return 0.0 end, -- Function is set below.
+            basis  = self.confBasis,  onGhosts = false,
          }
       end
       for sN, _ in lume.orderedIter(species) do
