@@ -8,7 +8,7 @@ double EparGyrokineticVol1x2vSerP1(const double q_, const double m_, const doubl
   // dxv[NDIM]: cell length.
   // bmag: magnetic field amplitude.
   // cmag: coefficient multiplying parallel gradient.
-  // phi: electrostatic potential .
+  // Epar: parallel electric field, d(phi)/dz.
   // f: Distribution function.
   // out: output increment.
 
@@ -76,11 +76,11 @@ double EparGyrokineticVol1x2vSerP1(const double q_, const double m_, const doubl
 #endif 
 
   double alphavpar[8]; 
-  alphavpar[0] = (0.3535533905932737*(BstarZdBmag[0]*(2.0*Epar[0]*q_-1.732050807568877*hamil[1])+2.0*BstarZdBmag[1]*Epar[1]*q_)*rdvpar2*rdx2)/m_; 
-  alphavpar[1] = (0.3535533905932737*(BstarZdBmag[1]*(2.0*Epar[0]*q_-1.732050807568877*hamil[1])+2.0*BstarZdBmag[0]*Epar[1]*q_)*rdvpar2*rdx2)/m_; 
-  alphavpar[2] = (0.3535533905932737*(BstarZdBmag[2]*(2.0*Epar[0]*q_-1.732050807568877*hamil[1])+2.0*Epar[1]*BstarZdBmag[4]*q_)*rdvpar2*rdx2)/m_; 
+  alphavpar[0] = -(0.3535533905932737*rdvpar2*(1.732050807568877*BstarZdBmag[0]*hamil[1]*rdx2-2.0*(BstarZdBmag[1]*Epar[1]+BstarZdBmag[0]*Epar[0])*q_))/m_; 
+  alphavpar[1] = -(0.3535533905932737*rdvpar2*(1.732050807568877*BstarZdBmag[1]*hamil[1]*rdx2-2.0*(BstarZdBmag[0]*Epar[1]+Epar[0]*BstarZdBmag[1])*q_))/m_; 
+  alphavpar[2] = -(0.3535533905932737*rdvpar2*(1.732050807568877*hamil[1]*BstarZdBmag[2]*rdx2-2.0*(Epar[1]*BstarZdBmag[4]+Epar[0]*BstarZdBmag[2])*q_))/m_; 
   alphavpar[3] = -(0.6123724356957944*BstarZdBmag[0]*hamil[5]*rdvpar2*rdx2)/m_; 
-  alphavpar[4] = (0.3535533905932737*(2.0*(Epar[0]*BstarZdBmag[4]+Epar[1]*BstarZdBmag[2])*q_-1.732050807568877*hamil[1]*BstarZdBmag[4])*rdvpar2*rdx2)/m_; 
+  alphavpar[4] = -(0.3535533905932737*rdvpar2*(1.732050807568877*hamil[1]*BstarZdBmag[4]*rdx2-2.0*(Epar[0]*BstarZdBmag[4]+Epar[1]*BstarZdBmag[2])*q_))/m_; 
   alphavpar[5] = -(0.6123724356957944*BstarZdBmag[1]*hamil[5]*rdvpar2*rdx2)/m_; 
   alphavpar[6] = -(0.6123724356957944*BstarZdBmag[2]*hamil[5]*rdvpar2*rdx2)/m_; 
   alphavpar[7] = -(0.6123724356957944*BstarZdBmag[4]*hamil[5]*rdvpar2*rdx2)/m_; 

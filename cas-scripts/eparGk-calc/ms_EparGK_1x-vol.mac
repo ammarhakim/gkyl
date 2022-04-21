@@ -4,7 +4,7 @@
 
   The functions called in this file are in gEparGK_1x_volModule.mac.
 */
-load("gk-calc/EparGK_1x_volModule")$
+load("eparGk-calc/EparGK_1x_volModule")$
 
 /* ...... USER INPUTS........ */
 

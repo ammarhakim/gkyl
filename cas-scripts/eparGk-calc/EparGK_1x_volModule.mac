@@ -8,7 +8,7 @@ load("modal-basis")$
 load("out-scripts")$
 load(stringproc)$
 load("scifac")$
-load("gk-calc/EparGkUtil")$
+load("eparGk-calc/EparGkUtil")$
 fpprec : 24$
 
 doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
@@ -111,7 +111,7 @@ buildGKVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
       /* Function that computes the gradient. */
       vparPhys : wDir+dirVar/rdDirVar2,
       Epar_e   : inFlds_e[3],
-      alphaEpar : (1/m_)*BstardBmagR_e . (rdv2vec[1]*([q_*Epar_e]*rdx2vec*diff(vparPhys,vpar))),
+      alphaEpar : (1/m_)*BstardBmagR_e . (rdv2vec[1]*([q_*Epar_e]*diff(vparPhys,vpar))),
 
       alpha_e : alpha_e + alphaEpar
     ),

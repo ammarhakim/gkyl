@@ -86,6 +86,7 @@ end
 
 function GkZeroCurrentField:alloc(nRkDup)
    self.Epar = createField(self.grid,self.basis,{1,1})
+   self.EparAux = createField(self.grid,self.basis,{1,1})
 
    -- Allocate fields needed in RK update.
    -- nField is related to number of RK stages.
@@ -93,6 +94,7 @@ function GkZeroCurrentField:alloc(nRkDup)
    for i = 1, nRkDup do
       self.fields[i] = {}
       self.fields[i].Epar = self.Epar
+      self.fields[i].EparAux = self.EparAux
    end
 
    -- Create fields for total charge density and div{P}.
@@ -200,6 +202,14 @@ function GkZeroCurrentField:createSolver(species, externalField)
    self.delparFac = createField(self.grid,self.basis,{1,1})
    self.weakMult:advance(0., {cmag,jacobTotInv}, {self.delparFac})
 
+   -- The simulation appears to be unstable if we don't smooth Epar.
+   -- MF: I expected discontinuous Epar to be ok since it only appears
+   --     in the vpar surface term, but maybe I missed something.
+   self.EparZSmoother = Updater.FemParPoisson {
+      onGrid = self.grid,   bcLower = {{T="N",V=0.0}},
+      basis  = self.basis,  bcUpper = {{T="N",V=0.0}},
+      smooth = true,
+   }
 end
 
 function GkZeroCurrentField:createDiagnostics()
@@ -275,8 +285,10 @@ function GkZeroCurrentField:advance(tCurr, species, inIdx, outIdx)
                                        self.M2par,self.M2perp},{self.divP})
    end
    -- Divide hat{b} . div{ P } by delparFac*sum_s(q_s^2*J*n_s/m_s) 
-   self.weakMult:advance(0., {self.chargeDens,self.delparFac}, {self.chargeDens})
-   self.weakDiv:advance(0., {self.chargeDens,self.divP}, {fieldsCurr.Epar})
+   self.weakMult:advance(tCurr, {self.chargeDens,self.delparFac}, {self.chargeDens})
+   self.weakDiv:advance(tCurr, {self.chargeDens,self.divP}, {fieldsCurr.EparAux})
+
+   self.EparZSmoother:advance(tCurr, {fieldsCurr.EparAux}, {fieldsCurr.Epar})
 
    fieldsCurr.Epar:sync(true)
 

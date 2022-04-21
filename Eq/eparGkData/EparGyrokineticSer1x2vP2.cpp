@@ -8,7 +8,7 @@ double EparGyrokineticVol1x2vSerP2(const double q_, const double m_, const doubl
   // dxv[NDIM]: cell length.
   // bmag: magnetic field amplitude.
   // cmag: coefficient multiplying parallel gradient.
-  // phi: electrostatic potential .
+  // Epar: parallel electric field, d(phi)/dz.
   // f: Distribution function.
   // out: output increment.
 
@@ -101,16 +101,16 @@ double EparGyrokineticVol1x2vSerP2(const double q_, const double m_, const doubl
 #endif 
 
   double alphavpar[20]; 
-  alphavpar[0] = (0.3535533905932737*(2.0*(Epar[2]*BstarZdBmag[7]+BstarZdBmag[1]*Epar[1]+BstarZdBmag[0]*Epar[0])*q_-1.732050807568877*(2.23606797749979*BstarZdBmag[1]*hamil[7]+BstarZdBmag[0]*hamil[1]))*rdvpar2*rdx2)/m_; 
-  alphavpar[1] = ((0.3535533905932737*(2.0*(BstarZdBmag[0]*Epar[1]+Epar[0]*BstarZdBmag[1])*q_-1.732050807568877*((2.0*BstarZdBmag[7]+2.23606797749979*BstarZdBmag[0])*hamil[7]+BstarZdBmag[1]*hamil[1]))+0.6324555320336759*(Epar[1]*BstarZdBmag[7]+BstarZdBmag[1]*Epar[2])*q_)*rdvpar2*rdx2)/m_; 
-  alphavpar[2] = (0.3535533905932737*(2.0*(1.0*Epar[2]*BstarZdBmag[11]+Epar[1]*BstarZdBmag[4]+Epar[0]*BstarZdBmag[2])*q_-1.732050807568877*(2.23606797749979*BstarZdBmag[4]*hamil[7]+hamil[1]*BstarZdBmag[2]))*rdvpar2*rdx2)/m_; 
+  alphavpar[0] = -(0.3535533905932737*rdvpar2*(1.732050807568877*(2.23606797749979*BstarZdBmag[1]*hamil[7]+BstarZdBmag[0]*hamil[1])*rdx2-2.0*(Epar[2]*BstarZdBmag[7]+BstarZdBmag[1]*Epar[1]+BstarZdBmag[0]*Epar[0])*q_))/m_; 
+  alphavpar[1] = -(1.0*rdvpar2*(0.6123724356957944*((2.0*BstarZdBmag[7]+2.23606797749979*BstarZdBmag[0])*hamil[7]+BstarZdBmag[1]*hamil[1])*rdx2-1.0*(0.6324555320336759*(Epar[1]*BstarZdBmag[7]+BstarZdBmag[1]*Epar[2])+0.7071067811865475*(BstarZdBmag[0]*Epar[1]+Epar[0]*BstarZdBmag[1]))*q_))/m_; 
+  alphavpar[2] = -(0.3535533905932737*rdvpar2*(1.732050807568877*(2.23606797749979*BstarZdBmag[4]*hamil[7]+hamil[1]*BstarZdBmag[2])*rdx2-1.0*(2.0*Epar[2]*BstarZdBmag[11]+2.0*(Epar[1]*BstarZdBmag[4]+Epar[0]*BstarZdBmag[2]))*q_))/m_; 
   alphavpar[3] = -(0.3535533905932737*(3.872983346207417*BstarZdBmag[1]*hamil[13]+1.732050807568877*BstarZdBmag[0]*hamil[5])*rdvpar2*rdx2)/m_; 
-  alphavpar[4] = ((0.3535533905932737*(2.0*(Epar[0]*BstarZdBmag[4]+Epar[1]*BstarZdBmag[2])*q_-1.0*(3.464101615137755*hamil[7]*BstarZdBmag[11]+1.732050807568877*(2.23606797749979*BstarZdBmag[2]*hamil[7]+hamil[1]*BstarZdBmag[4])))+1.414213562373095*(0.447213595499958*Epar[1]*BstarZdBmag[11]+0.4472135954999579*Epar[2]*BstarZdBmag[4])*q_)*rdvpar2*rdx2)/m_; 
+  alphavpar[4] = -(1.0*rdvpar2*(0.3535533905932737*(3.464101615137755*hamil[7]*BstarZdBmag[11]+1.732050807568877*(2.23606797749979*BstarZdBmag[2]*hamil[7]+hamil[1]*BstarZdBmag[4]))*rdx2-1.0*(0.632455532033676*Epar[1]*BstarZdBmag[11]+0.7071067811865475*(Epar[0]*BstarZdBmag[4]+Epar[1]*BstarZdBmag[2])+0.6324555320336759*Epar[2]*BstarZdBmag[4])*q_))/m_; 
   alphavpar[5] = -(0.3535533905932737*(3.872983346207417*(0.8944271909999159*BstarZdBmag[7]+BstarZdBmag[0])*hamil[13]+1.732050807568877*BstarZdBmag[1]*hamil[5])*rdvpar2*rdx2)/m_; 
   alphavpar[6] = -(0.3535533905932737*(3.872983346207417*BstarZdBmag[4]*hamil[13]+1.732050807568877*BstarZdBmag[2]*hamil[5])*rdvpar2*rdx2)/m_; 
-  alphavpar[7] = (((1.414213562373095*(0.31943828249997*Epar[2]*BstarZdBmag[7]+0.4472135954999579*BstarZdBmag[1]*Epar[1])+0.7071067811865475*(Epar[0]*BstarZdBmag[7]+BstarZdBmag[0]*Epar[2]))*q_-0.6123724356957944*(2.0*BstarZdBmag[1]*hamil[7]+hamil[1]*BstarZdBmag[7]))*rdvpar2*rdx2)/m_; 
+  alphavpar[7] = -(1.0*rdvpar2*(0.6123724356957944*(2.0*BstarZdBmag[1]*hamil[7]+hamil[1]*BstarZdBmag[7])*rdx2-1.0*(1.414213562373095*(0.31943828249997*Epar[2]*BstarZdBmag[7]+0.4472135954999579*BstarZdBmag[1]*Epar[1])+0.7071067811865475*(Epar[0]*BstarZdBmag[7]+BstarZdBmag[0]*Epar[2]))*q_))/m_; 
   alphavpar[10] = -(0.3535533905932737*((3.464101615137754*BstarZdBmag[11]+3.872983346207417*BstarZdBmag[2])*hamil[13]+1.732050807568877*BstarZdBmag[4]*hamil[5])*rdvpar2*rdx2)/m_; 
-  alphavpar[11] = ((0.3535533905932737*(2.0*BstarZdBmag[2]*Epar[2]*q_-1.0*(1.732050807568877*hamil[1]*BstarZdBmag[11]+3.464101615137755*BstarZdBmag[4]*hamil[7]))+((0.4517539514526256*Epar[2]+0.7071067811865475*Epar[0])*BstarZdBmag[11]+0.632455532033676*Epar[1]*BstarZdBmag[4])*q_)*rdvpar2*rdx2)/m_; 
+  alphavpar[11] = -(1.0*rdvpar2*(0.3535533905932737*(1.732050807568877*hamil[1]*BstarZdBmag[11]+3.464101615137755*BstarZdBmag[4]*hamil[7])*rdx2-1.0*((0.4517539514526256*Epar[2]+0.7071067811865475*Epar[0])*BstarZdBmag[11]+2.23606797749979*(0.2828427124746191*Epar[1]*BstarZdBmag[4]+0.3162277660168379*BstarZdBmag[2]*Epar[2]))*q_))/m_; 
   alphavpar[13] = -(0.3535533905932737*(3.464101615137754*BstarZdBmag[1]*hamil[13]+1.732050807568877*hamil[5]*BstarZdBmag[7])*rdvpar2*rdx2)/m_; 
   alphavpar[17] = -(0.6123724356957944*(2.0*BstarZdBmag[4]*hamil[13]+hamil[5]*BstarZdBmag[11])*rdvpar2*rdx2)/m_; 
 #if cflType == SURFAVG 
