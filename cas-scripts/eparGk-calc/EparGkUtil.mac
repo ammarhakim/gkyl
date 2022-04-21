@@ -252,7 +252,7 @@ calcAndWrite_alpha(fH,surfDir,bP,polyOrder,basisType,mass,charge,rdx2,rdv2,
     /* Function that computes the gradient. */
     vparPhys  : wSurf+surfVar/rdSurfVar2,
     Epar_e    : inFlds[3],
-    alphaEpar : (1/mass)*BstardBmag_e . (rdv2[1]*([charge*Epar_e]*rdx2*diff(vparPhys,vpar))),
+    alphaEpar : (1/mass)*BstardBmag_e . (rdv2[1]*([charge*Epar_e]*diff(vparPhys,vpar))),
 
     alpha_e : alpha_e + alphaEpar
   ),

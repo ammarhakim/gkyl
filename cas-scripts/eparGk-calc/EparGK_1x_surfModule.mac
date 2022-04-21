@@ -6,7 +6,7 @@ load("modal-basis")$
 load("out-scripts")$
 load(stringproc)$
 load("scifac")$
-load("gk-calc/EparGkUtil")$
+load("eparGk-calc/EparGkUtil")$
 fpprec : 24$
 
 calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(

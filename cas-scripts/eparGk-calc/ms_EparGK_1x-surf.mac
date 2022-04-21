@@ -4,7 +4,7 @@
 
   The functions called in this file are in EparGK_1x_surfModule.mac.
 */
-load("gk-calc/EparGK_1x_surfModule")$
+load("eparGk-calc/EparGK_1x_surfModule")$
 
 /* ...... USER INPUTS........ */
 
