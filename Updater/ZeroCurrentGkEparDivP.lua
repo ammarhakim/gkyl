@@ -41,10 +41,10 @@ end
 function ZeroJGkEparDivP:_advance(tCurr, inFlds, outFlds)
 
    local charge = assert(inFlds[1], "ZeroJGkEparDivP: Must specify the charge in 'inFld[1]'.")
-   local delparFac = assert(inFlds[2], "ZeroJGkEparDivP: Must specify delparFac=cmag/(J*B) in 'inFld[3]'.")
-   local dlnbmagdz = assert(inFlds[3], "ZeroJGkEparDivP: Must specify dlnbmagdz in 'inFld[4]'.")
-   local m2par = assert(inFlds[4], "ZeroJGkEparDivP: Must specify m2par in 'inFld[5]'.")
-   local m2perp = assert(inFlds[5], "ZeroJGkEparDivP: Must specify m2perp in 'inFld[6]'.")
+   local delparFac = assert(inFlds[2], "ZeroJGkEparDivP: Must specify delparFac=cmag/(J*B) in 'inFld[2]'.")
+   local dlnbmagdz = assert(inFlds[3], "ZeroJGkEparDivP: Must specify dlnbmagdz in 'inFld[3]'.")
+   local m2par = assert(inFlds[4], "ZeroJGkEparDivP: Must specify m2par in 'inFld[4]'.")
+   local m2perp = assert(inFlds[5], "ZeroJGkEparDivP: Must specify m2perp in 'inFld[5]'.")
    local divPFld = assert(outFlds[1], "ZeroJGkEparDivP: Must specify an output field 'outFld[1]'.")
 
    local indexer = divPFld:genIndexer()
