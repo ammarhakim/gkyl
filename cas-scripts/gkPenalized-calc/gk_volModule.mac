@@ -1,0 +1,266 @@
+/*
+   Create kernels for the volume term of the gyrokinetic equation.
+   To be used in simplified helical geometry (or slab?).
+*/
+
+load("modal-basis")$
+load("out-scripts")$
+load(stringproc)$
+load("scifac")$
+load("gkPenalized-calc/penalizedGkUtil")$
+fpprec : 24$
+
+doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+
+buildGKVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, varsInB, useGenGeo) := block(
+  [i,d,pDim,varsC,bC,varsP,bP,vSub,vSubInv,numC,numP,varLabel,BvarsLabel,rdx2vec,rdv2vec,bmagBasis,
+   ignoreVars,bmag_e,bmagInv_e,b_x_e,b_y_e,b_z_e,jacobTotInv_e,phi_e,Apar_e,dAdt_e,dAdtPrev_e,hamil_e,
+   BstardBmagL_e,BstardBmagR_e,replaceList,pbAuxFlds,alphaSum_e,vd,dir,dirLabel,wDir,rdDirVar2,dirVar,alpha_e,alpha_c,
+   alphaLabel,alphaNoZero_c,alphaDotGradBasis_e,alphaSurfAvgL_s,alphaSurfAvgR_s,surfNodes,numNodes,surfIntVars,
+   bSurf,numSurf,alphaSurfL_c,alphaSurfL_e,alphaSurfL_n,alphaSurfR_c,alphaSurfR_e,alphaSurfR_n,f_e,volTerm_c],
+
+  kill(varsC, varsP, basisC, basisP),
+
+  pDim : cdim+vdim,
+
+  genGenGeoKernel : useGenGeo, /* Set global variable in gkUtil.mac. */
+
+  [varsC,bC,varsP,bP,vSub,vSubInv] : loadBasis(basisFun, cdim, vdim, polyOrder),
+  numC : length(bC), numP : length(bP),
+
+  varLabel : makelist(string(varsP[d]),d,1,pDim),
+
+  BvarsLabel : "",
+  for i : 1 thru length(varsInB) do (BvarsLabel : sconcat(BvarsLabel,varsInB[i])),
+
+  print("Working on ", funcNm, "_P", polyOrder, "_Bvars", BvarsLabel),
+  if useGenGeo then (
+    if wApar then (
+      printf(fh, "double ~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyPi, const double *phi, const double *Apar, const double* dApardt, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, BvarsLabel),
+      printf(fh, "  // Apar: parallel component of magnetic vector potential.~%"),
+      printf(fh, "  // dApardt: time derivative of Apar.~%")
+    ) else (
+      printf(fh, "double ~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyPi, const double *phi, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, BvarsLabel)
+    ),
+    printf(fh, "  // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.~%"),
+    printf(fh, "  // b_x,b_y,b_z: covariant components of the field aligned unit vector.~%")
+  ) else (
+    if wApar then (
+      printf(fh, "double ~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *penaltyPi, const double *phi, const double *Apar, const double *dApardt, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, BvarsLabel),
+      printf(fh, "  // Apar: parallel component of magnetic vector potential.~%"),
+      printf(fh, "  // dApardt: time derivative of Apar.~%")
+    ) else (
+      printf(fh, "double ~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *penaltyPi, const double *phi, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, BvarsLabel)
+    ),
+    printf(fh, "  // bmagInv: 1/bmag.~%"),
+    printf(fh, "  // BdriftX,BdriftY: x,y components of gradB/curvature drift.~%")
+  ),
+  printf(fh, "  // q_,m_: species charge and mass.~%"),
+  printf(fh, "  // w[NDIM]: cell-center.~%"),
+  printf(fh, "  // dxv[NDIM]: cell length.~%"),
+  printf(fh, "  // bmag: magnetic field amplitude.~%"),
+  printf(fh, "  // cmag: coefficient multiplying parallel gradient.~%"),
+  printf(fh, "  // penaltyPi: penalization factor multiplying mu*B term in the Hamiltonian.~%"),
+  printf(fh, "  // phi: electrostatic potential .~%"),
+  printf(fh, "  // f: Distribution function.~%"),
+  printf(fh, "  // out: output increment.~%"),
+  printf(fh, "~%"),
+
+  /* Declare cell-center variables and variables multiplying gradients. */
+  for d : 1 thru pDim do (
+    printf(fh, "  double w~a = w[~a];~%", varLabel[d], d-1),
+    printf(fh, "  double rd~a2 = 2.0/dxv[~a];~%", varLabel[d], d-1)
+  ),
+  printf(fh, "~%"),
+  rdx2vec : makelist(eval_string(sconcat("rd",varLabel[i],"2")),i,1,cdim),
+  rdv2vec : makelist(eval_string(sconcat("rd",varLabel[i],"2")),i,cdim+1,pDim),
+
+  /* Declare variables with squared of cell centers and rdx2 variables. */
+  for d : 1 thru pDim do (
+    printf(fh, "  double w~aSq = w[~a]*w[~a];~%", varLabel[d], d-1, d-1),
+    printf(fh, "  double rd~a2Sq = rd~a2*rd~a2;~%", varLabel[d], varLabel[d], varLabel[d])
+  ),
+  printf(fh, "~%"),
+
+  /* Load a basis that only has the variables B depends on, but has the right
+     normalization and dimensionality for the dimensionality of interest. */
+  bmagBasis  : copylist(bC),
+  ignoreVars : listify(setdifference(setify(varsC),setify(varsInB))),
+  for i : 1 thru numC do (
+    for v : 1 thru length(ignoreVars) do (
+      if not freeof(ignoreVars[v],bC[i]) then (
+        bmagBasis[i] : 0
+  ))),
+
+  inFlds_e : expandInputFields(bC,bP,bmagBasis,wApar),
+
+  /* Compute electrostatic Hamiltonian and write it out. */
+  hamil_e : calcAndWrite_HamilES(fh,q_,m_,[wvpar,wmu],rdv2vec,bP,inFlds_e,""),
+
+  /* Compute B* divided by B and write it out. */
+  [BstardBmagR_e, BstardBmagL_e] : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,0,m_,q_,
+                                                           wvpar,rdx2vec,rdv2vec,inFlds_e,""),
+
+  /* Calculate cflFreq = sum_d alpha_d / dxv[d]. */
+  printf(fh, "  double cflFreq = 0.0; ~%"),
+  printf(fh, "  double alphaL = 0.0; ~%"),
+  printf(fh, "  double alphaR = 0.0; ~%"),
+
+  replaceList : [wvpar^2=wvparSq, rdvpar2^2=rdvpar2Sq, rdx2^2=rdx2Sq, m_^2=mSq, q_^2=qSq],
+
+  pbAuxFlds : [BstardBmagR_e],
+  if useGenGeo then (
+    b_x_e : inFlds_e[7],  b_y_e : inFlds_e[8],  b_z_e : inFlds_e[9],
+    jacobTotInv_e : inFlds_e[10],
+    pbAuxFlds : append(pbAuxFlds,[b_x_e,b_y_e,b_z_e,jacobTotInv_e])
+  ) else (
+    bmagInv_e : inFlds_e[7],
+    pbAuxFlds : append(pbAuxFlds,[bmagInv_e])
+  ),
+
+  alphaSum_e : 0,
+  /* Note: no contribution from mu. */
+  if vdim = 0 then (vd : 0) else (vd : 1),
+  for dir : 1 thru cdim+vd do (
+
+    dirLabel : varLabel[dir],
+
+    wDir      : eval_string(sconcat("w",dirLabel)),
+    rdDirVar2 : eval_string(sconcat("rd",dirLabel,"2")),
+  
+    dirVar    : varsP[dir],         /* Variable in current direction. */
+
+    /* Calculate phase space velocity alpha_d = {z[d], H} = dz[d]/dt. */
+    alpha_e : poissonBracket(wDir+dirVar/rdDirVar2,hamil_e,m_,q_,rdx2vec,rdv2vec,pbAuxFlds),
+
+    /* Project alpha on basis and write to array. */
+    printf(fh, "  double alpha~a[~a]; ~%", dirLabel, numP),
+    alpha_c    : fullratsimp(calcInnerProdList(varsP, 1, bP, alpha_e)*rdDirVar2),
+    alphaLabel : eval_string(sconcat(alpha, dirLabel)),
+    writeCExprsNoExpand1(alphaLabel, gcfac(expand(facsum(subst(replaceList, alpha_c),append(rdx2vec,rdv2vec))))),
+    flush_output(fh),
+    alphaNoZero_c : doMakeExprLst(alpha_c, alphaLabel),
+    alpha_e       : doExpandLst(alphaNoZero_c, bP),
+
+    /* Note: factor of 2/dxv already included in alpha_e. */
+    alphaDotGradBasis_e : alpha_e*diff(bP, dirVar),
+
+    /* Accumulate alpha.grad(w) in this direction to the direction-summed alpha.grad(w). */
+    alphaSum_e : alphaSum_e + alphaDotGradBasis_e,
+
+    /* CFL calculation. */
+
+    printf(fh, "#if cflType == SURFAVG ~%"),
+
+    /* Evaluate CFL by surface averaging. */
+    /* Note: factor of 2/dxv already included in alpha_e. */
+    alphaSurfAvgL_s : calc_surfAvgAlpha(bP,dirVar,alpha_e,true),
+    printf(fh, "  // Evaluate surface-averaged alpha on left.~%"),
+    printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaSurfAvgL_s))),
+    printf(fh, "  cflFreq += -0.5*(alphaL-std::abs(alphaL)); ~%"),
+    /* Note: factor of 2/dxv already included in alpha_e. */
+    alphaSurfAvgR_s : calc_surfAvgAlpha(bP,dirVar,alpha_e,false),
+    printf(fh, "  // Evaluate surface-averaged alpha on right.~%"),
+    printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaSurfAvgR_s))),
+    printf(fh, "  cflFreq += 0.5*(alphaR+std::abs(alphaR)); ~%"),
+    flush_output(fh),
+
+    printf(fh, "#elif cflType == QUAD ~%"),
+
+    /* Evaluate cfl by evaluating at all surface quadrature points. */
+    calcAndWrite_quadCFLfreq_wPhaseAlpha(basisFun,polyOrder,bP,dir,alpha_e),
+
+    printf(fh, "#endif ~%"),
+    printf(fh, "~%")
+  ),
+
+  /* Expand distribution function on basis. */
+  f_e : doExpand1(f,bP),
+
+  volTerm_c : fullratsimp(innerProd(varsP, 1, f_e, alphaSum_e)),
+  writeCIncrExprsNoExpand(gcfac(float(subst(replaceList, facsum(volTerm_c,append(rdx2vec,rdv2vec)))))),
+  flush_output(fh),
+
+  printf(fh, "  return cflFreq; ~%"),
+  printf(fh, "} ~%"),
+  flush_output(fh)
+)$
+
+buildGKStep2VolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder,useGenGeo) := block(
+  [pDim,varsC,bC,varsP,bP,vSub,vSubInv,numC,numP,f_e,dApardt_e,
+   volTerm_c,replaceList,alpha_e,dir,dirVar,alphaSurfAvgL_s],
+  /* Generate the volume kernel for the 2nd step in gyrokinetics with Apar. */
+
+  kill(varsC, varsP, basisC, basisP),
+
+  pDim : cdim+vdim,
+
+  genGenGeoKernel : useGenGeo, /* Set global variable in gkUtil.mac. */
+
+  [varsC,bC,varsP,bP,vSub,vSubInv] : loadBasis(basisFun, cdim, vdim, polyOrder),
+  numC : length(bC), numP : length(bP),
+
+  print("Working on ", funcNm, "_P", polyOrder),
+  printf(fh, "double ~aP~a(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+  printf(fh, "  // q_,m_: species charge and mass.~%"),
+  printf(fh, "  // w[NDIM]: cell-center.~%"),
+  printf(fh, "  // dxv[NDIM]: cell length.~%"),
+  printf(fh, "  // dApardt: time derivative of Apar.~%"),
+  printf(fh, "  // f: Distribution function.~%"),
+  printf(fh, "  // out: output increment.~%"),
+  printf(fh, "~%"),
+
+  printf(fh, "  double rdvpar2 = 2.0/dxv[~a]; ~%", cdim),
+
+  /* Expand distribution function on basis. */
+  f_e : doExpand1(f,bP),
+
+  /* Expand dApar/dt. */
+  dApardt_e : doExpand1(dApardt,bC),
+
+  /* Calculate volume term, which is inner product
+     < - f (q/m) dApar/dt d/dvpar(bP) > */
+  volTerm_c : fullratsimp(calcInnerProdList(varsP, 1, diff(bP,vpar), -(q_/m_)*dApardt_e*rdvpar2*f_e)),
+
+  replaceList : [wvpar^2=wvparSq, rdvpar2^2=rdvpar2Sq, rdx2^2=rdx2Sq, m_^2=mSq, q_^2=qSq],
+  /* Write C increment expressions for volume term. */
+  writeCIncrExprsNoExpand(float(subst(replaceList, facsum(volTerm_c,rdvpar2)))),
+
+  alpha_e : - (q_/m_)*dApardt_e*rdvpar2,
+
+  /* CFL calculation. */
+  /* Calculate cflFreq = sum_d alpha_d / dxv[d]. */
+  printf(fh, "  double cflFreq = 0.0; ~%"),
+  printf(fh, "  double alphaL = 0.0; ~%"),
+  printf(fh, "  double alphaR = 0.0; ~%"),
+
+  dir    : cdim+1,
+  dirVar : varsP[dir],         /* Variable in current direction. */
+
+  printf(fh, "#if cflType == SURFAVG ~%"),
+
+  /* Evaluate CFL by surface averaging. */
+  /* Note: factor of 2/dxv already included in alpha_e. */
+  alphaSurfAvgL_s : calc_surfAvgAlpha(bP,dirVar,alpha_e,true),
+  printf(fh, "  // Evaluate surface-averaged alpha on left.~%"),
+  printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaSurfAvgL_s))),
+  printf(fh, "  cflFreq += -0.5*(alphaL-std::abs(alphaL)); ~%"),
+  /* Note: factor of 2/dxv already included in alpha_e. */
+  alphaSurfAvgR_s : calc_surfAvgAlpha(bP,dirVar,alpha_e,false),
+  printf(fh, "  // Evaluate surface-averaged alpha on right.~%"),
+  printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaSurfAvgR_s))),
+  printf(fh, "  cflFreq += 0.5*(alphaR+std::abs(alphaR)); ~%"),
+  flush_output(fh),
+
+  printf(fh, "#elif cflType == QUAD ~%"),
+
+  /* Evaluate cfl by evaluating at all surface quadrature points. */
+  calcAndWrite_quadCFLfreq_wPhaseAlpha(basisFun,polyOrder,bP,dir,alpha_e),
+
+  printf(fh, "#endif ~%"),
+  printf(fh, "~%"),
+
+  printf(fh, "return cflFreq; ~%"),
+  printf(fh, "} ~%")
+)$
