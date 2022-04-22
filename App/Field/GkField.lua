@@ -263,10 +263,8 @@ end
 function GkField:initField(species)
    if self.externalPhi then
       local evalOnNodes = Updater.EvalOnNodes {
-         onGrid   = self.grid,
-         basis    = self.basis,
-         evaluate = self.externalPhi,
-         onGhosts = true
+         onGrid = self.grid,   evaluate = self.externalPhi,
+         basis  = self.basis,  onGhosts = true
       }
       self.externalPhiFld = createField(self.grid,self.basis,{1,1})
       evalOnNodes:advance(0.0, {}, {self.externalPhiFld})

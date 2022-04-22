@@ -95,6 +95,39 @@ function GkSpecies:alloc(nRkDup)
       self.rho3 = self:allocDistf()
    end
 
+   if self.tbl.muBpenalty then
+      local penaltyFunc = self.tbl.muBpenalty
+      assert(type(penaltyFunc) == "function", "GkSpecies:muBpenalty must be a function.")
+
+      -- Penalize the mu*B term in the Hamiltonian.
+      self.penalty = self:allocDistf()
+      local evOnNodes = Updater.EvalOnNodes {
+         onGrid = self.grid,   evaluate = penaltyFunc,
+         basis  = self.basis,  onGhosts = false,
+      }
+      evOnNodes:advance(0., {}, {self.penalty})
+      -- Apply open BCs:
+      local function makeOpenBcUpdater(dir, edge)
+         local bcOpen = function(dir, tm, idxIn, fIn, fOut)
+            self.basis:flipSign(dir, fIn, fOut)   -- Requires skinLoop = "pointwise".
+         end
+         return Updater.Bc {
+            onGrid = self.grid,  edge = edge,
+            dir    = dir,        boundaryConditions = {bcOpen},
+            skinLoop = "pointwise",
+         }
+      end
+      openBCupdaters = {}
+      for dir = 1, self.cdim do
+         if not lume.any(self.confGrid:getPeriodicDirs(), function(t) return t==dir end) then
+            openBCupdaters["lower"] = makeOpenBcUpdater(dir, "lower")
+            openBCupdaters["upper"] = makeOpenBcUpdater(dir, "upper")
+         end
+      end
+      for _, bc in pairs(openBCupdaters) do bc:advance(0., {}, {self.penalty}) end
+      self.penalty:sync(true)
+   end
+
    if self.vdim == 1 then
       self.vDegFreedom = 1.0
    else
@@ -184,15 +217,25 @@ function GkSpecies:createSolver(field, externalField)
    end
 
    -- Create updater to advance solution by one time-step.
-   self.equation = GyrokineticEq.GkEq {
-      onGrid     = self.grid,        hasApar      = hasApar,
-      confGrid   = self.confGrid,    Bvars        = externalField.bmagVars,
-      phaseBasis = self.basis,       hasSheathBCs = self.hasSheathBCs,
-      confBasis  = self.confBasis,   positivity   = self.positivity,
-      charge     = self.charge,      gyavgSlvr    = self.emGyavgSlvr,
-      mass       = self.mass,        geometry     = externalField.geo.name,
-      hasPhi     = hasPhi,
-   }
+   if self.penalty == nil then
+      self.equation = GyrokineticEq.GkEq {
+         onGrid     = self.grid,        hasApar      = hasApar,
+         confGrid   = self.confGrid,    Bvars        = externalField.bmagVars,
+         phaseBasis = self.basis,       hasSheathBCs = self.hasSheathBCs,
+         confBasis  = self.confBasis,   positivity   = self.positivity,
+         charge     = self.charge,      gyavgSlvr    = self.emGyavgSlvr,
+         mass       = self.mass,        geometry     = externalField.geo.name,
+         hasPhi     = hasPhi,
+      }
+   else   -- Use gyrokinetic equation with mu*B term in Hamiltonian penalized.
+      self.equation = GyrokineticEq.GkEq {
+         onGrid     = self.grid,       hasApar = hasApar,
+         confGrid   = self.confGrid,   Bvars   = externalField.bmagVars,
+         phaseBasis = self.basis,      charge  = self.charge,
+         confBasis  = self.confBasis,  mass    = self.mass,
+         penalty    = self.penalty, 
+      }
+   end
 
    -- No update in mu direction (last velocity direction if present)
    local upd = {}

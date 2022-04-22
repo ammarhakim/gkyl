@@ -567,6 +567,15 @@ def build(bld):
     gkData/EmGyrokineticGenGeoSurfTensor1x1vP2.cpp
     gkData/EmGyrokineticGenGeoSurfTensor1x2vP2.cpp
 
+    penalizedGkData/PenalizedGyrokineticGenGeoSer1x2vP1.cpp
+    penalizedGkData/PenalizedGyrokineticGenGeoSer1x2vP2.cpp
+    penalizedGkData/PenalizedGyrokineticGenGeoSurfSer1x2vP1.cpp
+    penalizedGkData/PenalizedGyrokineticGenGeoSurfSer1x2vP2.cpp
+    penalizedGkData/PenalizedEmGyrokineticGenGeoSer1x2vP1.cpp
+    penalizedGkData/PenalizedEmGyrokineticGenGeoSer1x2vP2.cpp
+    penalizedGkData/PenalizedEmGyrokineticGenGeoSurfSer1x2vP1.cpp
+    penalizedGkData/PenalizedEmGyrokineticGenGeoSurfSer1x2vP2.cpp
+
     gkData/GkSheathFuncsSerP1.cpp
     gkData/GkSheathFuncsSerP2.cpp
 
@@ -607,7 +616,7 @@ def build(bld):
 
     """,
               name = 'eq',
-              target = 'eq', use='EIGEN CUTOOLS', includes = '. hasegawaWakataniData incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData gyrofluidData gfHeatFluxData passiveAdvectionData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct',
+              target = 'eq', use='EIGEN CUTOOLS', includes = '. hasegawaWakataniData incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData penalizedGkData gyrofluidData gfHeatFluxData passiveAdvectionData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct',
               vnum = '1.0',
               
     )
