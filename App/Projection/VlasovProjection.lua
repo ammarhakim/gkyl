@@ -98,6 +98,7 @@ end
 
 function MaxwellianProjection:advance(t, inFlds, outFlds)
    local distf = outFlds[1]
+   local extField = inFlds[1]
    self.project:advance(t, {}, {distf})
    if self.exactScaleM0 then
       self:scaleDensity(distf)
@@ -105,6 +106,9 @@ function MaxwellianProjection:advance(t, inFlds, outFlds)
    if self.exactLagFixM012 then
       self:lagrangeFix(distf)
    end
+
+   local jacobGeo = extField.geo.jacobGeo
+   if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
 end
 
 ----------------------------------------------------------------------

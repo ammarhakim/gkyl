@@ -91,11 +91,15 @@ end
 
 function FunctionProjection:advance(t, inFlds, outFlds)
    local distf = outFlds[1]
+   local extField = inFlds[1]
    if self.fromFile then
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
       self.project:advance(t, {}, {distf})
    end
+
+   local jacobGeo = extField.geo.jacobGeo
+   if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
 end
 
 ----------------------------------------------------------------------
@@ -187,6 +191,8 @@ end
 
 function MaxwellianProjection:advance(t, inFlds, outFlds)
    local distf = outFlds[1]
+   local extField = inFlds[1]
+      
    if self.fromFile then
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
@@ -196,6 +202,9 @@ function MaxwellianProjection:advance(t, inFlds, outFlds)
       self:scaleDensity(distf)
    end
    assert(self.exactLagFixM012 == false, "MaxwellianProjection: Specialized version of 'MaxwellianProjection' is required. Use 'VlasovProjection.MaxwellianProjection' or 'GkProjection.MaxwellianProjection'")
+
+   local jacobGeo = extField.geo.jacobGeo
+   if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
 end
 
 
