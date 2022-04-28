@@ -47,7 +47,7 @@ calcVlasovGenGeoAlpha(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,
   printf(fh, "  // w[NDIM]:    Cell-center coordinates.~%"),
   printf(fh, "  // dxv[NDIM]:  Cell spacing.~%"),
   printf(fh, "  // tvComp[~a]: Components for tangent basis vectors.~%", NC*9),
-  printf(fh, "  // gij[~a]:    Contravariant components of metric tensor.~%", NC),  
+  printf(fh, "  // gij[~a]:    Contravariant components of metric tensor.~%", NC),
   printf(fh, "  // alpha:      Output alpha field.~%"),
 
   cid : cidx(cdim),
@@ -69,14 +69,12 @@ calcVlasovGenGeoAlpha(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,
   vTemp_c :  makelist(0, i, 1, vdim), 				 
   /* Calculate v_i components: v_x = v_X*dX/dx + v_Y*dY/dx + v_Z*dZ/dx, ...  */
   for dir1 : 1 thru vdim do (
-    /*vTemp_c[dir1] : calcInnerProdList(varsP, 1, bP, dxv[vid[dir1]]/2*varsV[dir1] + w[vid[dir1]])*/
-    vTemp_c[dir1] : 0,
+    vTemp_c[dir1] : 0,    
     for dir2 : 1 thru vdim do (
     	tvi : (dir1 - 1)*cdim + (dir2-1),
     	vTemp_c[dir1] : vTemp_c[dir1]
              +calcInnerProdList(varsP, 1, bP, (dxv[vid[dir2]]/2*varsV[dir2] + w[vid[dir2]])*subst(a0=NC*(tvi),tvComp_e)))
-  ),
-  printf(fh, "~%"),
+  ),  printf(fh, "~%"),
 
   /* Expand in phase basis. */
   v_x_e : doExpandLst(vTemp_c[1], bP),
@@ -87,16 +85,14 @@ calcVlasovGenGeoAlpha(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,
   vx_c : calcInnerProdList(varsP, 1, bP, (gxx_e*v_x_e + gxy_e*v_y_e + gxz_e*v_z_e)),
   vy_c : calcInnerProdList(varsP, 1, bP, (gxy_e*v_x_e + gyy_e*v_y_e + gyz_e*v_z_e)),
   vz_c : calcInnerProdList(varsP, 1, bP, (gxz_e*v_x_e + gyz_e*v_y_e + gzz_e*v_z_e)),
-  /*vx_c : calcInnerProdList(varsP, 1, bP, v_x_e),
-  vy_c : calcInnerProdList(varsP, 1, bP, v_y_e),
-  vz_c : calcInnerProdList(varsP, 1, bP, v_z_e),*/
-
-  /* alpha_mid is our approximation of sum_i max(abs(alpha_i))/dx_i */
+  /*vx_c : calcInnerProdList(varsP, 1, bP, gxx_e*v_x_e),
+  vy_c : calcInnerProdList(varsP, 1, bP, gyy_e*v_y_e),
+  vz_c : calcInnerProdList(varsP, 1, bP, gzz_e*v_z_e),*/
 
   /* This code eliminates zero coefficients. */
   incr_cdim : 0,
   /* alpha_cdim = v dot grad */
-  for cdir : 1 thru cdim do ( 
+  for cdir : 1 thru cdim do (
     vc_e : doExpandLst(vc[cdir], bP), 
     alphaGeo_c : calcInnerProdList(varsP, 1, bP, vc_e),
     expr : gcfac(float(expand(radcan(alphaGeo_c)))),
@@ -104,7 +100,7 @@ calcVlasovGenGeoAlpha(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,
     /* Write out the component of alpha_cdim's phase space expansion */
     for i : 1 thru NP do (
       if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", alphaGeo[NP*(cdir-1)+i-1], expr[i])
-      /*if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", alphaGeo[i-1], expr[i])*/
+      /* if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", alphaGeo[i-1], expr[i]) */
     )
 
   ),
@@ -120,7 +116,7 @@ bName        : ["Ser"]$
 maxPolyOrder : [1]$
 
 for bInd : 1 thru length(bName) do (
-  for c : 3 thru 3 do (
+  for c : 1 thru 1 do (
       for v : 3 thru 3 do (
       	  disp(printf(false,sconcat("Creating alpha ", bName[bInd]," ~ax~av"),c,v)),
     	  fname : sconcat("~/max-out/AlphaGenGeo", bName[bInd], c, "x", v, "v", ".cpp"),

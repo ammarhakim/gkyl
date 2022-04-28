@@ -337,7 +337,7 @@ function GkField:createSolver(species, externalField)
    -- Metric coefficients in the Poisson and Ampere equations for phi and Apar.
    local gxxPoisson, gxyPoisson, gyyPoisson, jacobGeo
    local gxxAmpere, gxyAmpere, gyyAmpere
-   if externalField.geo then 
+   if externalField.geo then
       if externalField.geo.name=="SimpleHelical" then
          -- Metric coefficients alone.
          gxxPoisson = externalField.geo.gxx
@@ -1475,7 +1475,9 @@ function GkGeometry:write(tm)
             self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
                jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
                cmag=self.geo.cmag, b_x=self.geo.b_x, b_y=self.geo.b_y, b_z=self.geo.b_z, gxx=self.geo.gxx,
-               gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ, g_yz=self.geo.g_yz, g_zz=self.geo.g_zz, normGradx = self.geo.normGradx},
+               gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ,
+	       g_yz=self.geo.g_yz, g_zz=self.geo.g_zz, normGradx = self.geo.normGradx, gxz=self.geo.gxz,
+	       gyz=self.geo.gyz, gzz=self.geo.gzz},
                string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
 	    self.fieldIo:write(self.geo.bHat, "bHat_0.bp", tm, self.ioFrame, false)
          end

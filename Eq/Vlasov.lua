@@ -175,6 +175,7 @@ function Vlasov:volTerm(w, dx, idx, q, out)
       self._alphaGeo:fill(self._alphaIdxr(idx), self._alphaPtr)  -- Get pointer to alphaGeo field.
       -- Update gen geo volume streaming term here
       cflFreq = self._genGeoVolUpdate(w:data(), dx:data(), self._alphaPtr:data(), q:data(), out:data())
+      -- cflFreq = self._volUpdate(w:data(), dx:data(), q:data(), out:data()) -- for testing
    else
       -- If no force, only update streaming term.
       cflFreq = self._volUpdate(w:data(), dx:data(), q:data(), out:data())
@@ -194,7 +195,10 @@ function Vlasov:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql
 	 self._alphaGeo:fill(self._alphaIdxr(idxl), self._alphaPtr) -- Get pointer to alphaGeo field.
 	 -- Update gen geo surface terms here
 	 self._genGeoSurfUpdate[dir](
-	 	 wl:data(), wr:data(), dxl:data(), dxr:data(), self._alphaPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+	    wl:data(), wr:data(), dxl:data(), dxr:data(), self._alphaPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+	 -- self._surfStreamUpdate[dir](
+            -- wl:data(), wr:data(), dxl:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data()) -- for testing
+
       end
    else
       if self._hasForceTerm then
