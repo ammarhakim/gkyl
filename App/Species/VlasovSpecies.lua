@@ -747,9 +747,6 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    -- Compute moments needed in coupling to fields and collisions.
    local fIn = self:rkStepperFields()[rkIdx]
 
-   if self._isGenGeo then
-      self.confPhaseWeakMultiply:advance(tCurr, {self.jacobGeoInv, fIn}, {fIn})
-   end
    if self.needSelfPrimMom and
       lume.any({unpack(self.momentFlags,1,4)},function(x) return x==false end) then -- No need to recompute if already computed.
       self.fiveMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy, 
