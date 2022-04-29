@@ -40,7 +40,7 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
 
   printf(fh, "~%"),
 
-  printf(fh, "  const double *ag~a = &alphaGeo[~a]; ~%", dir-1, NC*(dir-1)),
+  printf(fh, "  const double *ag~a = &alphaGeo[~a]; ~%", dir-1, numBasisP*(dir-1)),
 
   printf(fh, "~%"),
 
@@ -73,7 +73,7 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
   printf(fh, "  double Ghat[~a]; ~%", length(bSurf)),
   printf(fh, "~%"),
 
-  /* Project alpha_v onto surface basis, and print resulting coefficients. */
+  /* Project alpha onto surface basis, and print resulting coefficients. */
   alpha_c : calcInnerProdList(surfVars, 1, bSurf, subst(cv=1, alphaGeo_e)), /* Do I need a subst() here? */
   writeCExprsCollect1lhsc(alpha, radcan(alpha_c)),
   printf(fh, "~%"),
@@ -107,7 +107,8 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
 
   printf(fh, "  } else { ~%"),
   
-  Ghat_c : calcInnerProdList(surfVars, subst(cv=1, alpha_e), bSurf, subst(cv=-1, fR_e)),
+  /* Ghat_c : calcInnerProdList(surfVars, subst(cv=1, alpha_e), bSurf, subst(cv=-1, fR_e)), */
+  Ghat_c : calcInnerProdList(surfVars, alpha_e, bSurf, subst(cv=-1, fR_e)),
   clst   : [wvr, dvr],
   writeCExprsCollect1(Ghat, Ghat_c, clst),
   printf(fh, "~%"),

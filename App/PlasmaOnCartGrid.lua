@@ -292,7 +292,7 @@ local function buildApplication(self, tbl)
    if externalField == nil then externalField = NoField {} end
    externalField:createSolver()
    externalField:initField()
-   
+
    -- Initialize species solvers and diagnostics.
    for _, s in lume.orderedIter(species) do
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
@@ -851,6 +851,7 @@ return {
 	 Ionization             = require "App.Collisions.GkIonization",
 	 LBOCollisions          = require "App.Collisions.GkLBOCollisions",
 	 LboCollisions          = require "App.Collisions.GkLBOCollisions",
+	 VmLBOCollisions = require "App.Collisions.VmLBOCollisions",
 	 MaxwellianProjection   = require ("App.Projection.GkProjection").MaxwellianProjection,
 	 Species                = require "App.Species.GkSpecies",
 	 Source                 = require "App.Sources.GkSource",

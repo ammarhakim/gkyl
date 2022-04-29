@@ -28,6 +28,7 @@ vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 /* For example, alpha, the phase space flow only depends on a few phase space coordinates */
 doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[a0+i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+doExpandLst1(lst, basis) := sum(lst[i-1]*basis[i], i, 1, length(basis))$
 
 calcVlasovGenGeoVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,bC,NP,NC,cflPt,cid,vid,dir,f_e,incr_cdim,incr_vdim,cdir,vdir,expr,alpha_cdim_c,alpha_vdim_c,amid],
 
@@ -58,6 +59,15 @@ calcVlasovGenGeoVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),
 
+  wDdx  : makelist(eval_string(sconcat("w",vid[i],"Ddx",cid[i])),i,1,cdim),
+  dvDdx : makelist(eval_string(sconcat("dv",vid[i],"Ddx",cid[i])),i,1,cdim),
+
+  /* Cell center and cell length divided by velocity cell length. */
+  for dir : 1 thru cdim do (
+    printf(fh, "  double w~aDdx~a  = w[~a]/dxv[~a]; ~%", vid[dir], dir-1, vid[dir], cid[dir]),
+    printf(fh, "  double dv~aDdx~a = dxv[~a]/dxv[~a]; ~%", vid[dir], dir-1, vid[dir], cid[dir])
+  ),
+  
   for dir : 1 thru vdim do (
     printf(fh, "  const double *alpha~a = &alphaGeo[~a]; ~%", dir-1, NP*(dir-1))
   ),
@@ -72,15 +82,15 @@ calcVlasovGenGeoVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block
 
   /* This code eliminates zero coefficients. */
   incr_cdim : 0,
-  /* alpha_cdim = v dot grad(f) */
+  /* alpha_cdim = v dot grad */
   for cdir : 1 thru cdim do (
-    alpha_cdim_e : doExpandLst(alphaFld[cdir], bP),
+    alpha_cdim_e : doExpandLst1(alphaFld[cdir], bP),
 
-    amid : float(expand(subst(cflPt,alpha_cdim_e))),
+    amid : float(expand(subst(cflPt,2*alpha_cdim_e/dxv[cdir-1]))),
     printf(fh, "  alpha_mid += std::abs(~a); ~%", amid),
 
     /* Volume increment from configuration space. */
-    incr_cdim : incr_cdim+subst(a0=NP*(cdir-1),calcInnerProdList(varsP, 1, diff(bP,varsP[cdir]), alpha_cdim_e*f_e))
+    incr_cdim : incr_cdim+calcInnerProdList(varsP, 2/dxv[cdir-1]*alpha_cdim_e, diff(bP,varsP[cdir]), f_e)
   ),
   printf(fh, "~%"),
 
@@ -89,6 +99,11 @@ calcVlasovGenGeoVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block
   writeCExprsCollect1c(radcan(incr_cdim)),
 
   printf(fh, "~%"),
-  printf(fh, "  return alpha_mid; ~%"),
+  strOut : sconcat("std::abs(w",vid[1],"Ddx",0,")+0.5*dv",vid[1],"Ddx",0),
+  for d : 2 thru cdim do (
+    strOut : sconcat(strOut,"+std::abs(w",vid[d],"Ddx",d-1,")+0.5*dv",vid[d],"Ddx",d-1)
+  ),
+  printf(fh, "  return ~a;~%",strOut),
+  /*printf(fh, "  return alpha_mid;~%"),*/
   printf(fh, "} ~%")
 )$
