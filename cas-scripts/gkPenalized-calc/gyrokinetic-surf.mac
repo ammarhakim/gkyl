@@ -9,7 +9,7 @@ load("gkPenalized-calc/gk_surfModule")$
 /* ...... USER INPUTS........ */
 
 /* Generate kernels for "ES", "EM" gyrokinetics or "both". */
-ESorEM : "both"$ 
+ESorEM : "ES"$ 
 
 /* Generate kernels for "simple" (helical), "general" or "both" geometries. */
 geo : "general"$ 

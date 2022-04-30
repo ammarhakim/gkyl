@@ -571,10 +571,6 @@ def build(bld):
     penalizedGkData/PenalizedGyrokineticGenGeoSer1x2vP2.cpp
     penalizedGkData/PenalizedGyrokineticGenGeoSurfSer1x2vP1.cpp
     penalizedGkData/PenalizedGyrokineticGenGeoSurfSer1x2vP2.cpp
-    penalizedGkData/PenalizedEmGyrokineticGenGeoSer1x2vP1.cpp
-    penalizedGkData/PenalizedEmGyrokineticGenGeoSer1x2vP2.cpp
-    penalizedGkData/PenalizedEmGyrokineticGenGeoSurfSer1x2vP1.cpp
-    penalizedGkData/PenalizedEmGyrokineticGenGeoSurfSer1x2vP2.cpp
 
     gkData/GkSheathFuncsSerP1.cpp
     gkData/GkSheathFuncsSerP2.cpp

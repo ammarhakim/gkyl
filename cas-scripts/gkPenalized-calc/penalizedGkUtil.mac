@@ -71,8 +71,8 @@ basisFromVars(basisType, varsIn, pIn) := block(
 )$
 
 expandInputFields(bC,bP,bmagBasis,hasApar) := block(
-  [bmag_e,bmagInv_e,phi_e,Apar_e,dApardt_e,dApardtPrev_e,cdim,varsC,varsP,vdim,PiBasis,
-   Pi_e,i,v,ignoreVars,AparL_e,b_x_e,b_y_e,b_z_e,jacobTotInv_e,BdriftX_e,BdriftY_e],
+  [bmag_e,bmagInv_e,phi_e,Apar_e,dApardt_e,dApardtPrev_e,cdim,varsC,varsP,vdim,chiBasis,
+   chi_e,i,v,ignoreVars,AparL_e,b_x_e,b_y_e,b_z_e,jacobTotInv_e,BdriftX_e,BdriftY_e],
   /* Expand background magnetic field and potentials. */
   bmag_e    : doExpand1(bmag,bmagBasis),
   phi_e     : doExpand1(phi,bC),
@@ -126,27 +126,27 @@ expandInputFields(bC,bP,bmagBasis,hasApar) := block(
     expOut : append(expOut,[bmagInv_e,BdriftX_e,BdriftY_e])
   ),
 
-  /* Penalty factor Pi(z,mu). */
+  /* Penalty factor chi(z,mu). */
   varsP : listofvars(bP),
   vdim : length(varsP)-cdim,
   if vdim = 2 then (
-    PiBasis : copylist(bP),
+    chiBasis : copylist(bP),
     ignoreVars : listify(setdifference(setify(varsP),setify([varsC[cdim],varsP[cdim+2]]))),
     for i : 1 thru length(bP) do (
       for v : 1 thru length(ignoreVars) do (
         if not freeof(ignoreVars[v],bP[i]) then (
-          PiBasis[i] : 0
+          chiBasis[i] : 0
     ))),
-    Pi_e : doExpand1(penaltyPi, PiBasis),
-    expOut : append(expOut,[Pi_e])
+    chi_e : doExpand1(penaltyChi, chiBasis),
+    expOut : append(expOut,[chi_e])
   ),
 
   return(expOut)
 )$
 
-calcAndWrite_HamilES(fH,charge,mass,wv,rdv2,bP,inFlds,sideStr) := block(
+calcAndWrite_HamilNoMuB(fH,charge,mass,wv,rdv2,bP,inFlds,sideStr) := block(
   [varsP,numP,hamil_c,subList,hamilNoZero_c],
-  /* Expand the Hamiltonian, and write them out. */
+  /* Expand the Hamiltonian without the mu*B term, and write them out. */
 
   /* Extract magnetic field and electrostatic potential. */
   bmag_e : inFlds[1],
@@ -154,10 +154,6 @@ calcAndWrite_HamilES(fH,charge,mass,wv,rdv2,bP,inFlds,sideStr) := block(
 
   hamil_e : charge*phi_e,
   if vdim > 0 then ( hamil_e : hamil_e + (1/2)*mass*(wv[1] + vpar/rdv2[1])^2 ),
-  if vdim > 1 then ( 
-    Pi_e : inFlds[length(inFlds)],
-    hamil_e : hamil_e + Pi_e*(wv[2]+mu/rdv2[2])*bmag_e
-  ),
 
   varsP : listofvars(bP),
   numP  : length(bP),
@@ -166,11 +162,44 @@ calcAndWrite_HamilES(fH,charge,mass,wv,rdv2,bP,inFlds,sideStr) := block(
   hamil_c : calcInnerProdList(varsP, 1, bP, hamil_e),
 
   /* Write Hamiltonian. */
-  printf(fh, "  double hamil~a[~a]; ~%", sideStr, numP),
+  printf(fh, "  double hamilNoMuB~a[~a]; ~%", sideStr, numP),
   replaceList : [wvpar^2=wvparSq, rdvpar2^2=rdvpar2Sq, rdx2^2=rdx2Sq,
                  wvparL^2=wvparSqL, rdvpar2L^2=rdvpar2SqL, rdx2L^2=rdx2SqL,
                  wvparR^2=wvparSqR, rdvpar2R^2=rdvpar2SqR, rdx2R^2=rdx2SqR, m_^2=mSq, q_^2=qSq],
-  hamilCvar : eval_string(sconcat("hamil",sideStr)),
+  hamilCvar : eval_string(sconcat("hamilNoMuB",sideStr)),
+  writeCExprsNoExpand1(hamilCvar, gcfac(subst(replaceList, hamil_c))),
+  printf(fH, "~%"),
+  flush_output(fH),
+
+  hamilNoZero_c : doMakeExprLst(hamil_c, hamilCvar),
+  /* Expand projected Hamiltonian on basis. */
+  hamil_e : hamilNoZero_c . bP,
+
+  return(hamil_e)
+)$
+
+calcAndWrite_HamilMuB(fH,charge,mass,wv,rdv2,bP,inFlds,sideStr) := block(
+  [varsP,numP,hamil_c,subList,hamilNoZero_c],
+  /* Expand the Hamiltonian mu*B term, and write them out. */
+
+  /* Extract magnetic field and electrostatic potential. */
+  bmag_e : inFlds[1],
+  phi_e  : inFlds[3],
+
+  hamil_e : (wv[2]+mu/rdv2[2])*bmag_e,
+
+  varsP : listofvars(bP),
+  numP  : length(bP),
+
+  /* Project Hamiltonian onto basis functions */
+  hamil_c : calcInnerProdList(varsP, 1, bP, hamil_e),
+
+  /* Write Hamiltonian. */
+  printf(fh, "  double hamilMuB~a[~a]; ~%", sideStr, numP),
+  replaceList : [wvpar^2=wvparSq, rdvpar2^2=rdvpar2Sq, rdx2^2=rdx2Sq,
+                 wvparL^2=wvparSqL, rdvpar2L^2=rdvpar2SqL, rdx2L^2=rdx2SqL,
+                 wvparR^2=wvparSqR, rdvpar2R^2=rdvpar2SqR, rdx2R^2=rdx2SqR, m_^2=mSq, q_^2=qSq],
+  hamilCvar : eval_string(sconcat("hamilMuB",sideStr)),
   writeCExprsNoExpand1(hamilCvar, gcfac(subst(replaceList, hamil_c))),
   printf(fH, "~%"),
   flush_output(fH),
@@ -348,8 +377,10 @@ poissonBracket(f,g,mass,charge,rdx2,rdv2,pbFacs) := block(
   return(pb_e)
 )$
 
+/*  chi_e : inFlds[length(inFlds)], */
+
 calcAndWrite_alpha(fH,surfDir,bP,polyOrder,basisType,mass,charge,rdx2,rdv2,
-                   inFlds,hamil_e,BstardBmag_e,BstardBmagExt_e,sideStr,isStep2) := block(
+                   inFlds,hamil_e,BstardBmag_e,BstardBmagExt_e,sideStr,isStep2,alphaStr) := block(
   [varsP,varLabel,dirLabel,wSurf,rdSurfVar2,surfVar,surfIntVars,pbAuxFlds,bmagInv_e,b_x_e,
    b_y_e,b_z_e,jacobTotInv_e,alpha_e,Apar_e,hasApar,dApardt_e,dApardtPrev_e,alphaL_e,
    bSurf,numSurf,evPoint,alpha_c,alphaCvar,alphaNoZero_c,alphaUpCvar,alphaUpNoZero_c],
@@ -416,8 +447,8 @@ calcAndWrite_alpha(fH,surfDir,bP,polyOrder,basisType,mass,charge,rdx2,rdv2,
   /* Project full alpha expression evaluated at interior surface
      onto surface basis and print to C variable alpha. */
   alpha_c : calcInnerProdList(surfIntVars, 1, bSurf, subst(surfVar=evPoint,alpha_e)),
-  printf(fh, "  double alpha~a[~a]; ~%", sideStr, numSurf),
-  alphaCvar : eval_string(sconcat("alpha",sideStr)),
+  printf(fh, "  double alpha~a~a[~a]; ~%", sideStr, alphaStr, numSurf),
+  alphaCvar : eval_string(sconcat("alpha",sideStr,alphaStr)),
   writeCExprsNoExpand1(alphaCvar, subst(replaceList,alpha_c)),
   printf(fh, "~%"),
   flush_output(fh),
@@ -427,8 +458,8 @@ calcAndWrite_alpha(fH,surfDir,bP,polyOrder,basisType,mass,charge,rdx2,rdv2,
   if surfVar=vpar and hasApar and polyOrder=1 then (
     /* Print alphaUp. */
     alphaUp_c : calcInnerProdList(surfIntVars, 1, bSurf, subst(surfVar=evPoint,alphaUp_e)),
-    printf(fh, "  double alphaUp~a[~a]; ~%", sideStr, numSurf),
-    alphaUpCvar : eval_string(sconcat("alphaUp",sideStr)),
+    printf(fh, "  double alphaUp~a~a[~a]; ~%", sideStr, alphaStr, numSurf),
+    alphaUpCvar : eval_string(sconcat("alphaUp",sideStr,alphaStr)),
     writeCExprsNoExpand1(alphaUpCvar, subst(replaceList,alphaUp_c)),
     printf(fh, "~%"),
     flush_output(fh),

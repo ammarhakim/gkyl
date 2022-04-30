@@ -37,21 +37,21 @@ buildGKVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, varsInB, us
   print("Working on ", funcNm, "_P", polyOrder, "_Bvars", BvarsLabel),
   if useGenGeo then (
     if wApar then (
-      printf(fh, "double ~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyPi, const double *phi, const double *Apar, const double* dApardt, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, BvarsLabel),
+      printf(fh, "double ~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyChi, const double *phi, const double *Apar, const double* dApardt, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, BvarsLabel),
       printf(fh, "  // Apar: parallel component of magnetic vector potential.~%"),
       printf(fh, "  // dApardt: time derivative of Apar.~%")
     ) else (
-      printf(fh, "double ~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyPi, const double *phi, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, BvarsLabel)
+      printf(fh, "double ~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyChi, const double *phi, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, BvarsLabel)
     ),
     printf(fh, "  // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.~%"),
     printf(fh, "  // b_x,b_y,b_z: covariant components of the field aligned unit vector.~%")
   ) else (
     if wApar then (
-      printf(fh, "double ~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *penaltyPi, const double *phi, const double *Apar, const double *dApardt, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, BvarsLabel),
+      printf(fh, "double ~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *penaltyChi, const double *phi, const double *Apar, const double *dApardt, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, BvarsLabel),
       printf(fh, "  // Apar: parallel component of magnetic vector potential.~%"),
       printf(fh, "  // dApardt: time derivative of Apar.~%")
     ) else (
-      printf(fh, "double ~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *penaltyPi, const double *phi, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, BvarsLabel)
+      printf(fh, "double ~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *penaltyChi, const double *phi, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, BvarsLabel)
     ),
     printf(fh, "  // bmagInv: 1/bmag.~%"),
     printf(fh, "  // BdriftX,BdriftY: x,y components of gradB/curvature drift.~%")
@@ -61,7 +61,7 @@ buildGKVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, varsInB, us
   printf(fh, "  // dxv[NDIM]: cell length.~%"),
   printf(fh, "  // bmag: magnetic field amplitude.~%"),
   printf(fh, "  // cmag: coefficient multiplying parallel gradient.~%"),
-  printf(fh, "  // penaltyPi: penalization factor multiplying mu*B term in the Hamiltonian.~%"),
+  printf(fh, "  // penaltyChi: penalization factor multiplying the mirror force.~%"),
   printf(fh, "  // phi: electrostatic potential .~%"),
   printf(fh, "  // f: Distribution function.~%"),
   printf(fh, "  // out: output increment.~%"),
@@ -96,7 +96,8 @@ buildGKVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, varsInB, us
   inFlds_e : expandInputFields(bC,bP,bmagBasis,wApar),
 
   /* Compute electrostatic Hamiltonian and write it out. */
-  hamil_e : calcAndWrite_HamilES(fh,q_,m_,[wvpar,wmu],rdv2vec,bP,inFlds_e,""),
+  hamilNoMuB_e : calcAndWrite_HamilNoMuB(fh,q_,m_,[wvpar,wmu],rdv2vec,bP,inFlds_e,""),
+  hamilMuB_e  : calcAndWrite_HamilMuB(fh,q_,m_,[wvpar,wmu],rdv2vec,bP,inFlds_e,""),
 
   /* Compute B* divided by B and write it out. */
   [BstardBmagR_e, BstardBmagL_e] : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,0,m_,q_,
@@ -132,7 +133,14 @@ buildGKVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, varsInB, us
     dirVar    : varsP[dir],         /* Variable in current direction. */
 
     /* Calculate phase space velocity alpha_d = {z[d], H} = dz[d]/dt. */
-    alpha_e : poissonBracket(wDir+dirVar/rdDirVar2,hamil_e,m_,q_,rdx2vec,rdv2vec,pbAuxFlds),
+    alphaNoMuB_e : poissonBracket(wDir+dirVar/rdDirVar2,hamilNoMuB_e,m_,q_,rdx2vec,rdv2vec,pbAuxFlds),
+    if dir = cdim+vd then (
+      alphaMuB_e : poissonBracket(wDir+dirVar/rdDirVar2,hamilMuB_e,m_,q_,rdx2vec,rdv2vec,pbAuxFlds),
+      chi_e      : inFlds_e[length(inFlds_e)],
+      alpha_e    : alphaNoMuB_e+chi_e*alphaMuB_e
+    ) else (
+      alpha_e : alphaNoMuB_e
+    ),
 
     /* Project alpha on basis and write to array. */
     printf(fh, "  double alpha~a[~a]; ~%", dirLabel, numP),

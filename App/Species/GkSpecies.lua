@@ -10,6 +10,7 @@ local Proto          = require "Lib.Proto"
 local KineticSpecies = require "App.Species.KineticSpecies"
 local Mpi            = require "Comm.Mpi"
 local GyrokineticEq  = require "Eq.Gyrokinetic"
+local PenalizedGyrokineticEq = require "Eq.PenalizedGyrokinetic"
 local Updater        = require "Updater"
 local DataStruct     = require "DataStruct"
 local Time           = require "Lib.Time"
@@ -95,37 +96,12 @@ function GkSpecies:alloc(nRkDup)
       self.rho3 = self:allocDistf()
    end
 
-   if self.tbl.muBpenalty then
-      local penaltyFunc = self.tbl.muBpenalty
-      assert(type(penaltyFunc) == "function", "GkSpecies:muBpenalty must be a function.")
+   if self.tbl.mirrorPenalty then
+      local penaltyFunc = self.tbl.mirrorPenalty
+      assert(type(penaltyFunc) == "function", "GkSpecies: 'mirrorPenalty' must be a function.")
 
       -- Penalize the mu*B term in the Hamiltonian.
       self.penalty = self:allocDistf()
-      local evOnNodes = Updater.EvalOnNodes {
-         onGrid = self.grid,   evaluate = penaltyFunc,
-         basis  = self.basis,  onGhosts = false,
-      }
-      evOnNodes:advance(0., {}, {self.penalty})
-      -- Apply open BCs:
-      local function makeOpenBcUpdater(dir, edge)
-         local bcOpen = function(dir, tm, idxIn, fIn, fOut)
-            self.basis:flipSign(dir, fIn, fOut)   -- Requires skinLoop = "pointwise".
-         end
-         return Updater.Bc {
-            onGrid = self.grid,  edge = edge,
-            dir    = dir,        boundaryConditions = {bcOpen},
-            skinLoop = "pointwise",
-         }
-      end
-      openBCupdaters = {}
-      for dir = 1, self.cdim do
-         if not lume.any(self.confGrid:getPeriodicDirs(), function(t) return t==dir end) then
-            openBCupdaters["lower"] = makeOpenBcUpdater(dir, "lower")
-            openBCupdaters["upper"] = makeOpenBcUpdater(dir, "upper")
-         end
-      end
-      for _, bc in pairs(openBCupdaters) do bc:advance(0., {}, {self.penalty}) end
-      self.penalty:sync(true)
    end
 
    if self.vdim == 1 then
@@ -216,6 +192,39 @@ function GkSpecies:createSolver(field, externalField)
       self.hasSheathBCs = self.hasSheathBCs or (bc.bcKind=="sheath" and true or false)
    end
 
+   if self.tbl.mirrorPenalty then
+      local penaltyFunc = self.tbl.mirrorPenalty
+
+      -- Penalize the mu*B term in the Hamiltonian.
+      local evOnNodes = Updater.EvalOnNodes {
+         onGrid = self.grid,   evaluate = penaltyFunc,
+         basis  = self.basis,  onGhosts = false,
+      }
+      evOnNodes:advance(0., {}, {self.penalty})
+      -- Apply open BCs:
+      local function makeOpenBcUpdater(dir, edge)
+         local bcOpen = function(dir, tm, idxIn, fIn, fOut)
+            self.basis:flipSign(dir, fIn, fOut)   -- Requires skinLoop = "pointwise".
+         end
+         return Updater.Bc {
+            onGrid = self.grid,  edge = edge,
+            dir    = dir,        boundaryConditions = {bcOpen},
+            skinLoop = "pointwise",
+         }
+      end
+      openBCupdaters = {}
+      for dir = 1, self.cdim do
+         if not lume.any(self.confGrid:getPeriodicDirs(), function(t) return t==dir end) then
+            openBCupdaters["lower"] = makeOpenBcUpdater(dir, "lower")
+            openBCupdaters["upper"] = makeOpenBcUpdater(dir, "upper")
+         end
+      end
+      for _, bc in pairs(openBCupdaters) do bc:advance(0., {}, {self.penalty}) end
+      self.penalty:sync(true)
+
+      self.distIo:write(self.penalty, string.format("%s_mirrorPenalty_%d.bp", self.name, self.diagIoFrame), 0., self.diagIoFrame)
+   end
+
    -- Create updater to advance solution by one time-step.
    if self.penalty == nil then
       self.equation = GyrokineticEq.GkEq {
@@ -228,7 +237,7 @@ function GkSpecies:createSolver(field, externalField)
          hasPhi     = hasPhi,
       }
    else   -- Use gyrokinetic equation with mu*B term in Hamiltonian penalized.
-      self.equation = GyrokineticEq.GkEq {
+      self.equation = PenalizedGyrokineticEq.GkEq {
          onGrid     = self.grid,       hasApar = hasApar,
          confGrid   = self.confGrid,   Bvars   = externalField.bmagVars,
          phaseBasis = self.basis,      charge  = self.charge,
