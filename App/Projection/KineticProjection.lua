@@ -90,6 +90,7 @@ function FunctionProjection:fullInit(species)
 end
 
 function FunctionProjection:advance(t, inFlds, outFlds)
+   local extField = inFlds[1]
    local distf = outFlds[1]
    local extField = inFlds[1]
    if self.fromFile then
@@ -190,6 +191,7 @@ end
 
 
 function MaxwellianProjection:advance(t, inFlds, outFlds)
+   local extField = inFlds[1]
    local distf = outFlds[1]
    local extField = inFlds[1]
       
