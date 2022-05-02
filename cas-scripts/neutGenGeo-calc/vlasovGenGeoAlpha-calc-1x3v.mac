@@ -71,7 +71,8 @@ calcVlasovGenGeoAlpha(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,
   for dir1 : 1 thru vdim do (
     vTemp_c[dir1] : 0,    
     for dir2 : 1 thru vdim do (
-    	tvi : (dir1 - 1)*cdim + (dir2-1),
+    	tvi : (dir1 - 1)*vdim + (dir2-1),
+	print("dir1, dir2, tvi", dir1, dir2, tvi),
     	vTemp_c[dir1] : vTemp_c[dir1]
              +calcInnerProdList(varsP, 1, bP, (dxv[vid[dir2]]/2*varsV[dir2] + w[vid[dir2]])*subst(a0=NC*(tvi),tvComp_e)))
   ),  printf(fh, "~%"),

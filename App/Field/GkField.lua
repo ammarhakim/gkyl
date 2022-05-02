@@ -1480,6 +1480,7 @@ function GkGeometry:write(tm)
 	       gyz=self.geo.gyz, gzz=self.geo.gzz},
                string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
 	    self.fieldIo:write(self.geo.bHat, "bHat_0.bp", tm, self.ioFrame, false)
+	    self.fieldIo:write(self.geo.tanVecComp, "tanVecComp_0.bp", tm, self.ioFrame, false)
          end
 
          -- Write a grid file.

@@ -108,7 +108,10 @@ function MaxwellianProjection:advance(t, inFlds, outFlds)
    end
 
    local jacobGeo = extField.geo.jacobGeo
-   if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
+   if jacobGeo then
+      print('multiply by jacobGeo')
+      self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf})
+   end
 end
 
 ----------------------------------------------------------------------
