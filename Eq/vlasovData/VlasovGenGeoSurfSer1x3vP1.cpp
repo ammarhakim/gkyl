@@ -1,4 +1,4 @@
-#include <VlasovModDecl.h>
+#include <VlasovModDecl.h> 
 __host__ __device__ void VlasovGenGeoSurf1x3vSer_X_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *alphaGeo, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[NDIM]:   Cell-center coordinates.
@@ -68,14 +68,14 @@ __host__ __device__ void VlasovGenGeoSurf1x3vSer_X_P1(const double *wl, const do
   outl[14] += -0.7071067811865475*Ghat[7]*rdxl2; 
   outl[15] += -1.224744871391589*Ghat[7]*rdxl2; 
   } else { 
-  Ghat[0] = Ghat[0]; 
-  Ghat[1] = Ghat[1]; 
-  Ghat[2] = Ghat[2]; 
-  Ghat[3] = Ghat[3]; 
-  Ghat[4] = Ghat[4]; 
-  Ghat[5] = Ghat[5]; 
-  Ghat[6] = Ghat[6]; 
-  Ghat[7] = Ghat[7]; 
+  Ghat[0] = (-0.4330127018922193*alpha[7]*fr[15])+0.25*alpha[7]*fr[14]-0.4330127018922193*alpha[6]*fr[13]-0.4330127018922193*alpha[5]*fr[12]-0.4330127018922193*alpha[4]*fr[11]+0.25*alpha[6]*fr[10]+0.25*alpha[5]*fr[9]-0.4330127018922193*alpha[3]*fr[8]+0.25*alpha[4]*fr[7]-0.4330127018922193*alpha[2]*fr[6]-0.4330127018922193*alpha[1]*fr[5]+0.25*alpha[3]*fr[4]+0.25*alpha[2]*fr[3]+0.25*alpha[1]*fr[2]-0.4330127018922193*alpha[0]*fr[1]+0.25*alpha[0]*fr[0]; 
+  Ghat[1] = (-0.4330127018922193*alpha[6]*fr[15])+0.25*alpha[6]*fr[14]-0.4330127018922193*alpha[7]*fr[13]-0.4330127018922193*alpha[3]*fr[12]-0.4330127018922193*alpha[2]*fr[11]+0.25*alpha[7]*fr[10]+0.25*alpha[3]*fr[9]-0.4330127018922193*alpha[5]*fr[8]+0.25*alpha[2]*fr[7]-0.4330127018922193*alpha[4]*fr[6]-0.4330127018922193*alpha[0]*fr[5]+0.25*fr[4]*alpha[5]+0.25*fr[3]*alpha[4]+0.25*alpha[0]*fr[2]-0.4330127018922193*alpha[1]*fr[1]+0.25*fr[0]*alpha[1]; 
+  Ghat[2] = (-0.4330127018922193*alpha[5]*fr[15])+0.25*alpha[5]*fr[14]-0.4330127018922193*alpha[3]*fr[13]-0.4330127018922193*alpha[7]*fr[12]-0.4330127018922193*alpha[1]*fr[11]+0.25*alpha[3]*fr[10]+0.25*alpha[7]*fr[9]-0.4330127018922193*alpha[6]*fr[8]+0.25*alpha[1]*fr[7]-0.4330127018922193*alpha[0]*fr[6]+0.25*fr[4]*alpha[6]-0.4330127018922193*alpha[4]*fr[5]+0.25*fr[2]*alpha[4]+0.25*alpha[0]*fr[3]-0.4330127018922193*fr[1]*alpha[2]+0.25*fr[0]*alpha[2]; 
+  Ghat[3] = (-0.4330127018922193*alpha[4]*fr[15])+0.25*alpha[4]*fr[14]-0.4330127018922193*alpha[2]*fr[13]-0.4330127018922193*alpha[1]*fr[12]-0.4330127018922193*alpha[7]*fr[11]+0.25*alpha[2]*fr[10]+0.25*alpha[1]*fr[9]-0.4330127018922193*alpha[0]*fr[8]+0.25*alpha[7]*fr[7]-0.4330127018922193*alpha[6]*fr[6]+0.25*fr[3]*alpha[6]-0.4330127018922193*alpha[5]*fr[5]+0.25*fr[2]*alpha[5]+0.25*alpha[0]*fr[4]-0.4330127018922193*fr[1]*alpha[3]+0.25*fr[0]*alpha[3]; 
+  Ghat[4] = (-0.4330127018922193*alpha[3]*fr[15])+0.25*alpha[3]*fr[14]-0.4330127018922193*alpha[5]*fr[13]-0.4330127018922193*alpha[6]*fr[12]-0.4330127018922193*alpha[0]*fr[11]+0.25*alpha[5]*fr[10]+0.25*alpha[6]*fr[9]-0.4330127018922193*alpha[7]*fr[8]+0.25*alpha[0]*fr[7]+0.25*fr[4]*alpha[7]-0.4330127018922193*alpha[1]*fr[6]-0.4330127018922193*alpha[2]*fr[5]-0.4330127018922193*fr[1]*alpha[4]+0.25*fr[0]*alpha[4]+0.25*alpha[1]*fr[3]+0.25*alpha[2]*fr[2]; 
+  Ghat[5] = (-0.4330127018922193*alpha[2]*fr[15])+0.25*alpha[2]*fr[14]-0.4330127018922193*alpha[4]*fr[13]-0.4330127018922193*alpha[0]*fr[12]-0.4330127018922193*alpha[6]*fr[11]+0.25*alpha[4]*fr[10]+0.25*alpha[0]*fr[9]-0.4330127018922193*alpha[1]*fr[8]+0.25*alpha[6]*fr[7]-0.4330127018922193*fr[6]*alpha[7]+0.25*fr[3]*alpha[7]-0.4330127018922193*alpha[3]*fr[5]-0.4330127018922193*fr[1]*alpha[5]+0.25*fr[0]*alpha[5]+0.25*alpha[1]*fr[4]+0.25*fr[2]*alpha[3]; 
+  Ghat[6] = (-0.4330127018922193*alpha[1]*fr[15])+0.25*alpha[1]*fr[14]-0.4330127018922193*alpha[0]*fr[13]-0.4330127018922193*alpha[4]*fr[12]-0.4330127018922193*alpha[5]*fr[11]+0.25*alpha[0]*fr[10]+0.25*alpha[4]*fr[9]-0.4330127018922193*alpha[2]*fr[8]+0.25*alpha[5]*fr[7]-0.4330127018922193*fr[5]*alpha[7]+0.25*fr[2]*alpha[7]-0.4330127018922193*alpha[3]*fr[6]-0.4330127018922193*fr[1]*alpha[6]+0.25*fr[0]*alpha[6]+0.25*alpha[2]*fr[4]+0.25*alpha[3]*fr[3]; 
+  Ghat[7] = (-0.4330127018922193*alpha[0]*fr[15])+0.25*alpha[0]*fr[14]-0.4330127018922193*alpha[1]*fr[13]-0.4330127018922193*alpha[2]*fr[12]-0.4330127018922193*alpha[3]*fr[11]+0.25*alpha[1]*fr[10]+0.25*alpha[2]*fr[9]-0.4330127018922193*alpha[4]*fr[8]+0.25*alpha[3]*fr[7]-0.4330127018922193*fr[1]*alpha[7]+0.25*fr[0]*alpha[7]-0.4330127018922193*alpha[5]*fr[6]-0.4330127018922193*fr[5]*alpha[6]+0.25*fr[2]*alpha[6]+0.25*fr[3]*alpha[5]+0.25*alpha[4]*fr[4]; 
 
   outr[0] += 0.7071067811865475*Ghat[0]*rdxr2; 
   outr[1] += -1.224744871391589*Ghat[0]*rdxr2; 

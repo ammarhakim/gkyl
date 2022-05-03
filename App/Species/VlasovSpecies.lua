@@ -146,7 +146,7 @@ function VlasovSpecies:createSolver(field, externalField)
                      basisType = self.basis:id(),
                      charge    = self.charge,
                      mass      = self.mass}
-      self.alphaGeo = self:allocCartField(self.grid,self.vdim*self.basis:numBasis(), {self.nGhost,self.nGhost}, metadata)
+      self.alphaGeo = self:allocCartField(self.grid,self.cdim*self.basis:numBasis(), {self.nGhost,self.nGhost}, metadata)
       
       -- Calculate alphaGeo here. Use an Updater.
       self.calcAlphaGeo:advance(0.0, {self.tanVecComp, self.gxx, self.gxy, self.gxz, self.gyy, self.gyz, self.gzz}, {self.alphaGeo})
