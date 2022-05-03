@@ -31,6 +31,8 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
   NC        : length(bC),
   numBasisP : length(bP),
 
+  printf(fh, "#include <VlasovModDecl.h> ~%"),
+
   printf(fh, "__host__ __device__ void ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *alphaGeo, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], p),
   printf(fh, "  // w[NDIM]:   Cell-center coordinates.~%"),
   printf(fh, "  // dxv[NDIM]: Cell spacing.~%"),
@@ -41,6 +43,10 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
   printf(fh, "~%"),
 
   printf(fh, "  const double *ag~a = &alphaGeo[~a]; ~%", dir-1, numBasisP*(dir-1)),
+
+  /*for dir : 1 thru vdim do (
+    printf(fh, "  const double *ag~a = &alphaGeo[~a]; ~%", dir-1, numBasisP*(dir-1))
+  ),*/
 
   printf(fh, "~%"),
 

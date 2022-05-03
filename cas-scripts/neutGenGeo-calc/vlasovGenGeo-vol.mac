@@ -8,9 +8,9 @@ load(stringproc)$
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 1$
-minCdim_Ser : 3$
+minCdim_Ser : 1$
 minVdim_Ser : 3$    /* see begining of v loop below though. */
-maxCdim_Ser : 3$
+maxCdim_Ser : 1$
 maxVdim_Ser : 3$
 
 /* Maximal order basis. */

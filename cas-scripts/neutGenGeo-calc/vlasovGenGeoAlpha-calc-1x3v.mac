@@ -93,15 +93,15 @@ calcVlasovGenGeoAlpha(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,
   /* This code eliminates zero coefficients. */
   incr_cdim : 0,
   /* alpha_cdim = v dot grad */
-  for cdir : 1 thru cdim do (
+  for cdir : vdim thru vdim do (
     vc_e : doExpandLst(vc[cdir], bP), 
     alphaGeo_c : calcInnerProdList(varsP, 1, bP, vc_e),
     expr : gcfac(float(expand(radcan(alphaGeo_c)))),
 
     /* Write out the component of alpha_cdim's phase space expansion */
     for i : 1 thru NP do (
-      if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", alphaGeo[NP*(cdir-1)+i-1], expr[i])
-      /* if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", alphaGeo[i-1], expr[i]) */
+      /* if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", alphaGeo[NP*(cdir-1)+i-1], expr[i]) */
+      if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", alphaGeo[i-1], expr[i])
     )
 
   ),
