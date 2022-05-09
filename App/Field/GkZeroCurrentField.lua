@@ -35,6 +35,8 @@ function GkZeroCurrentField:fullInit(appTbl)
 
    self.ioMethod = "MPI"
 
+   if appTbl.periodicDirs then self.periodicDirs = appTbl.periodicDirs else self.periodicDirs = {} end
+
    -- Create triggers to write diagnostics.
    local nFrame = tbl.nFrame or appTbl.nFrame
    self.ioTrigger = LinearTrigger(0, appTbl.tEnd, nFrame)
@@ -131,7 +133,9 @@ function GkZeroCurrentField:createSolver(species, externalField)
       if Species.AdiabaticSpecies.is(s) then
          self.adiabatic, self.adiabSpec = true, s
       end
-      if s.charge > 0. then self.ionName = nm else self.elcName = nm end
+      -- Save ion and electron species names to be used later
+      -- in re-scaling ions to enforce quasineutrality.
+      if s.charge > 0. then self.ionName = nm elseif s.charge < 0. then self.elcName = nm end
    end
 
    self.EparDivPSlvr = Updater.ZeroCurrentGkEparDivP {
@@ -210,6 +214,34 @@ function GkZeroCurrentField:createSolver(species, externalField)
       basis  = self.basis,  bcUpper = {{T="N",V=0.0}},
       smooth = true,
    }
+
+   self.denRat = createField(self.grid,self.basis,{1,1})
+
+   self.nonPeriodicBCs = {}   -- List of non-periodic BCs to apply.
+
+   -- Function to construct a BC updater.
+   local function makeOpenBcUpdater(dir, edge)
+      local bcOpen = function(dir, tm, idxIn, fIn, fOut)
+         -- Requires skinLoop = "pointwise".
+         self.basis:flipSign(dir, fIn, fOut)
+      end
+
+      return Updater.Bc {
+         onGrid = self.grid,  edge = edge,
+         dir    = dir,        boundaryConditions = {bcOpen},
+         skinLoop = "pointwise",
+      }
+   end
+
+   -- For non-periodic dirs, use open BCs. It's the most sensible choice given that the
+   -- coordinate mapping could diverge outside of the interior domain.
+   for dir = 1, self.ndim do
+      if not lume.any(self.periodicDirs, function(t) return t==dir end) then
+         self.nonPeriodicBCs["lower"] = makeOpenBcUpdater(dir, "lower")
+         self.nonPeriodicBCs["upper"] = makeOpenBcUpdater(dir, "upper")
+      end
+   end
+
 end
 
 function GkZeroCurrentField:createDiagnostics()
@@ -272,6 +304,33 @@ function GkZeroCurrentField:advance(tCurr, species, inIdx, outIdx)
    local fieldsCurr = self:rkStepperFields()[inIdx]
    local fieldsRhs  = self:rkStepperFields()[outIdx]
 
+   -- ............................................................... --
+--   -- Rescale the ion density to match the electron density:
+--   self.weakDiv:advance(tCurr, {species[self.ionName]:getNumDensity(),species[self.elcName]:getNumDensity()}, {self.denRat}) 
+--   species[self.ionName].confPhaseWeakMultiply:advance(tCurr, {species[self.ionName]:rkStepperFields()[inIdx],self.denRat},
+--                                                       {species[self.ionName]:rkStepperFields()[inIdx]})
+--   -- Recompute coupling and primitive moments:
+--   species[self.ionName].threeMomentsLBOCalc:advance(tCurr, {species[self.ionName]:rkStepperFields()[inIdx]}, { species[self.ionName].numDensity, species[self.ionName].momDensity, species[self.ionName].ptclEnergy,
+--                                              species[self.ionName].m1Correction, species[self.ionName].m2Correction,
+--                                              species[self.ionName].m0Star, species[self.ionName].m1Star, species[self.ionName].m2Star })
+--   -- Also compute species[self.ionName].primitive moments uPar and vtSq.
+--   species[self.ionName].primMomSelf:advance(tCurr, {species[self.ionName].numDensity, species[self.ionName].momDensity, species[self.ionName].ptclEnergy,
+--                                      species[self.ionName].m1Correction, species[self.ionName].m2Correction,
+--                                      species[self.ionName].m0Star, species[self.ionName].m1Star, species[self.ionName].m2Star}, {species[self.ionName].uParSelf, species[self.ionName].vtSqSelf})
+   -- Rescale the electron density to match the ion density:
+   self.weakDiv:advance(tCurr, {species[self.elcName]:getNumDensity(),species[self.ionName]:getNumDensity()}, {self.denRat}) 
+   species[self.elcName].confPhaseWeakMultiply:advance(tCurr, {species[self.elcName]:rkStepperFields()[inIdx],self.denRat},
+                                                       {species[self.elcName]:rkStepperFields()[inIdx]})
+   -- Recompute coupling and primitive moments:
+   species[self.elcName].threeMomentsLBOCalc:advance(tCurr, {species[self.elcName]:rkStepperFields()[inIdx]}, { species[self.elcName].numDensity, species[self.elcName].momDensity, species[self.elcName].ptclEnergy,
+                                              species[self.elcName].m1Correction, species[self.elcName].m2Correction,
+                                              species[self.elcName].m0Star, species[self.elcName].m1Star, species[self.elcName].m2Star })
+   -- Also compute species[self.elcName].primitive moments uPar and vtSq.
+   species[self.elcName].primMomSelf:advance(tCurr, {species[self.elcName].numDensity, species[self.elcName].momDensity, species[self.elcName].ptclEnergy,
+                                      species[self.elcName].m1Correction, species[self.elcName].m2Correction,
+                                      species[self.elcName].m0Star, species[self.elcName].m1Star, species[self.elcName].m2Star}, {species[self.elcName].uParSelf, species[self.elcName].vtSqSelf})
+   -- ............. Finished rescaling to enforce ni=ne ............. --
+   
    self.chargeDens:clear(0.0)
    self.divP:clear(0.0)
    for _, s in lume.orderedIter(species) do
@@ -290,6 +349,7 @@ function GkZeroCurrentField:advance(tCurr, species, inIdx, outIdx)
 
    self.EparZSmoother:advance(tCurr, {fieldsCurr.EparAux}, {fieldsCurr.Epar})
 
+   for _, bc in pairs(self.nonPeriodicBCs) do bc:advance(tCurr, {}, {fieldsCurr.Epar}) end
    fieldsCurr.Epar:sync(true)
 
    self.timers.advTime[1] = self.timers.advTime[1] + Time.clock() - tmStart

@@ -325,6 +325,12 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
          phaseBasis = self.basis,         gkfacs    = {mass, self.bmag},
          moment     = "GkM0", -- GkM0 = < f >
       }
+      local partialMom = self.bcEdge=="lower" and "GkM0Nvx" or "GkM0Pvx"
+      self.numDensityPartialCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
+         phaseBasis = self.basis,         gkfacs    = {mass, self.bmag},
+         moment     = partialMom,
+      }
 
       if not self.anyDiagnostics then
          self.calcBoundaryFluxRateFunc = function(dtIn) end

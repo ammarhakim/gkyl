@@ -9,12 +9,12 @@ load("scifac")$
 load("eparGk-calc/EparGkUtil")$
 fpprec : 24$
 
-calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
+calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder, side) := block(
   [i,d,v,step2,pDim,varsC,bC,varsP,bP,vSub,vSubInv,numC,numP,surfVar,varLabel,dirLabel,
    BvarsLabel,rdx2vecL,rdx2vecR,rdv2vecL,rdv2vecR,rdSurfVar2L,rdSurfVar2R,bmagBasis,ignoreVars,
    bmag_e,bmagInv_e,Epar_e,Apar_e,dAdt_e,dAdtPrev_e,hamilNoPhiL_e,hamilNoPhiR_e,BstardBmagL_e,BstardBmagR_e,
    alphaUpL_e,alphaSurfL_e,alphaUpSurfL_e,alphaUpR_e,alphaSurfR_e,alphaUpSurfR_e,alphaSurfAvgR_s,
-   incrL_c,incrR_c,incr_s,signs,incrEmMod_s],
+   incrL_c,incrR_c,incr_s,signs,incrEmMod_s,mySide],
 
   kill(varsC, varsP, basisC, basisP),
 
@@ -27,8 +27,11 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   varLabel : makelist(string(varsP[d]),d,1,pDim),
   dirLabel : varLabel[surfDir],
 
+  mySide : "",
+  if surfDir=1 then ( mySide : side ),
+
   print("Working on ", funcNm, "_", dirLabel, "_P", polyOrder),
-  printf(fh, "double ~a_~a_P~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *Epar, const double *fL, const double *fR, double *outL, double *outR) ~%{ ~%", funcNm, dirLabel, polyOrder),
+  printf(fh, "double ~a_~a~a_P~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *Epar, const double *fL, const double *fR, double *outL, double *outR) ~%{ ~%", funcNm, dirLabel, mySide, polyOrder),
   printf(fh, "  // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.~%"),
   printf(fh, "  // b_x,b_y,b_z: covariant components of the field aligned unit vector.~%"),
   printf(fh, "  // q_,m_: species charge and mass.~%"),
@@ -83,33 +86,40 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
 
   /* Compute Hamiltonian (w/o the q*phi term) and write it out. Since alpha.n is
      continuous we need only deal with the left or right alpha. */
-  /*
-  hamilNoPhiL_e : calcAndWrite_HamilNoPhi(fh,q_,m_,[wvparL,wmuL],rdv2vecL,bP,inFlds_e,"L"),
-  */
-  hamilNoPhiR_e : calcAndWrite_HamilNoPhi(fh,q_,m_,[wvparR,wmuR],rdv2vecR,bP,inFlds_e,"R"),
+  if side="L" then (
+    hamilNoPhiL_e : calcAndWrite_HamilNoPhi(fh,q_,m_,[wvparL,wmuL],rdv2vecL,bP,inFlds_e,side)
+  ) else (
+    hamilNoPhiR_e : calcAndWrite_HamilNoPhi(fh,q_,m_,[wvparR,wmuR],rdv2vecR,bP,inFlds_e,side)
+  ),
 
   /* Compute B* divided by B and write it out. */
-  /*
-  [BstardBmagL_e, BstardBmagR_e] : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
-                                                 wvparR,rdx2vecL,rdv2vecL,inFlds_e,"L"),
-  */
-  [BstardBmagR_e, BstardBmagL_e] : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
-                                                           wvparR,rdx2vecR,rdv2vecR,inFlds_e,"R"),
+  if side="L" then (
+    [BstardBmagL_e, BstardBmagR_e] : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
+                                                             wvparL,rdx2vecL,rdv2vecL,inFlds_e,"L")
+  ) else (
+    [BstardBmagR_e, BstardBmagL_e] : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
+                                                             wvparR,rdx2vecR,rdv2vecR,inFlds_e,"R")
+  ),
 
 
   /* Calculate phase space velocity alpha in direction of surfVar. */
   /* We assume alpha.n is continuous across boundary, although H may not be. */
   /* Distinguish between alpha and alphaUp, where alphaUp is the one used to
      determine upwind direction. */
-  /*
-  [alphaUpL_e,alphaSurfL_e,alphaUpSurfL_e] = calcAndWrite_alpha(fh,surfDir,bP,polyOrder,basisType,
-    m_,q_,rdx2vecL,rdv2vecL,inFlds_e,hamilNoPhiL_e,BstardBmagL_e,BstardBmagR_e,"L",false),
-  */
-  [alphaUpR_e,alphaSurfR_e,alphaUpSurfR_e] : calcAndWrite_alpha(fh,surfDir,bP,polyOrder,basisFun,
-    m_,q_,rdx2vecR,rdv2vecR,inFlds_e,hamilNoPhiR_e,BstardBmagR_e,BstardBmagL_e,"R",false),
+  if side="L" then (
+    [alphaUpL_e,alphaSurfL_e,alphaUpSurfL_e] : calcAndWrite_alpha(fh,surfDir,bP,polyOrder,basisFun,
+      m_,q_,rdx2vecL,rdv2vecL,inFlds_e,hamilNoPhiL_e,BstardBmagL_e,BstardBmagL_e,side,false)
+  ) else (
+    [alphaUpR_e,alphaSurfR_e,alphaUpSurfR_e] : calcAndWrite_alpha(fh,surfDir,bP,polyOrder,basisFun,
+      m_,q_,rdx2vecR,rdv2vecR,inFlds_e,hamilNoPhiR_e,BstardBmagR_e,BstardBmagR_e,side,false)
+  ),
 
   /* Calculate and write out the surface-averaged alpha. */
-  alphaSurfAvgR_s : calcAndWrite_surfAvgAlpha(fh,bP,surfDir,alphaUpR_e,"R"),
+  if side="L" then (
+    alphaSurfAvgL_s : calcAndWrite_surfAvgAlpha(fh,bP,surfDir,alphaUpL_e,"L")
+  ) else (
+    alphaSurfAvgR_s : calcAndWrite_surfAvgAlpha(fh,bP,surfDir,alphaUpR_e,"R")
+  ),
 
   printf(fh, "  double incr[~a]; ~%", numP),
 
@@ -127,13 +137,22 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
     printf(fh, "#if upwindType == SURFAVG ~%"),
 
     /* Upwinded fluxes based on surface-averaged phase-velocity. */
-    [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wSurfAvgAlpha(fh,bP,polyOrder,surfDir,"R",alphaSurfR_e,wApar,false),
+    if side="L" then (
+      [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wSurfAvgAlpha(fh,bP,polyOrder,surfDir,"L",alphaSurfL_e,wApar,false)
+    ) else (
+      [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wSurfAvgAlpha(fh,bP,polyOrder,surfDir,"R",alphaSurfR_e,wApar,false)
+    ),
 
     printf(fh, "#elif upwindType == QUAD ~%"),
 
     /* Upwinded fluxes based on quadrature-node values of phase-velocity. */
-    [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wQuadNodeAlpha(fh,basisFun,polyOrder,bP,surfDir,"R",
-                                                                alphaSurfR_e,alphaUpSurfR_e,wApar,false),
+    if side="L" then (
+      [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wQuadNodeAlpha(fh,basisFun,polyOrder,bP,surfDir,"L",
+                                                                  alphaSurfL_e,alphaUpSurfL_e,wApar,false)
+    ) else (
+      [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wQuadNodeAlpha(fh,basisFun,polyOrder,bP,surfDir,"R",
+                                                                  alphaSurfR_e,alphaUpSurfR_e,wApar,false)
+    ),
 
     printf(fh, "#endif ~%"),
     flush_output(fh),
@@ -151,7 +170,11 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
     printf(fh, "~%"),
     flush_output(fh),
 
-    printf(fh, "  return std::abs(alphaSurfAvgR); ~%"),
+    if side="L" then (
+      printf(fh, "  return std::abs(alphaSurfAvgL); ~%")
+    ) else (
+      printf(fh, "  return std::abs(alphaSurfAvgR); ~%")
+    ),
     printf(fh, "} ~%"),
     flush_output(fh)
 
@@ -187,7 +210,10 @@ calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([vd,dir,
 
   for dir : 1 thru cdim+vd do (
 
-    calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder)
+    if dir=1 then (
+      calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, "L")
+    ),
+    calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, "R")
 
   )
 )$

@@ -27,6 +27,7 @@ local lume         = require "Lib.lume"
 local root         = require "sci.root"
 local GyrokineticModDecl = require "Eq.gkData.GyrokineticModDecl"
 local DistFuncMomentCalcDecl = require "Updater.momentCalcData.DistFuncMomentCalcModDecl"
+local DiagsImplBase = require "App.Diagnostics.DiagnosticsImplBase"
 
 local GkLogicalSheathBC = Proto(BCsBase)
 
@@ -73,7 +74,7 @@ function GkLogicalSheathBC:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeV
       phiWallAtBcEdge = phiWallAtBcEdge
          + self.phiWallFldPtr[k]*self.confBasisAtBcEdgeSkin[k]
    end
-   local phi_s = self.DeltaPhi + phiWallAtBcEdge
+   local phi_s = self.DeltaPhi[1] + phiWallAtBcEdge
    self:cellAvTo0thDGcoeff(phi_s, self.phiPtr)
 
    return self._calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_,
@@ -170,7 +171,8 @@ function GkLogicalSheathBC:createSolver(mySpecies, field, externalField)
    end
    self.phiWallFld:sync(false)
 
-   self.DeltaPhi = 0.
+   self.DeltaPhi    = Lin.Vec(1)
+   self.DeltaPhi[1] = 0.
 
    self._calcSheathReflection = GyrokineticModDecl.selectSheathReflection(self.basis:id(), self.cdim, 
                                                                           self.vdim, self.basis:polyOrder())
@@ -592,11 +594,12 @@ function GkLogicalSheathBC:calcDeltaPhi(rkIdx)
       
       -- Having found vcut comput DeltaPhi = phiSheath-phiWall = m*vcut^2/2
 --      print(string.format("%s vcutIdx = %d | vcut = %g",self.name,vcutIdx==nil and -99 or vcutIdx,vcut))
-      self.DeltaPhi = 0.5*self.mass*(vcut^2)/math.abs(self.charge)
+      self.DeltaPhi[1] = 0.5*self.mass*(vcut^2)/math.abs(self.charge)
 
       -- Set DeltaPhi in other other species, which will use it to apply
       -- sheath BCs but due to its charge it will not be reflected at all.
       self.otherSpeciesBC.DeltaPhi = self.DeltaPhi
+
    end
 end
 
@@ -627,7 +630,30 @@ function GkLogicalSheathBC:createDiagnostics(mySpecies, field)
    -- Create BC diagnostics.
    self.diagnostics = nil
    if self.tbl.diagnostics then
-      self.diagnostics = DiagsApp{implementation = GkDiags()}
+
+      local impl = GkDiags()
+      -- ~~~~ Add a sheath potential diagnostic ~~~~~~~~
+      local _sheathDeltaPhi = Proto(DiagsImplBase)
+      function _sheathDeltaPhi:fullInit(diagApp, specIn, fieldIn, owner)
+         self.field = DataStruct.DynVector {numComponents = 1,}
+         self.owner = owner
+         self.done  = false
+         self.DeltaPhiG    = Lin.Vec(1)
+         self.DeltaPhiG[1] = 0.
+      end
+      function _sheathDeltaPhi:getType() return "integrated" end
+      function _sheathDeltaPhi:advance(tm, inFlds, outFlds)
+         -- Broadcast DeltaPhi for diagnostics
+         self.DeltaPhiG[1] = self.owner.DeltaPhi[1]
+         Mpi.Bcast(self.DeltaPhiG:data(), 1, Mpi.DOUBLE,
+	           self.owner.bcEdge=="lower" and 0 or self.owner.grid:cuts()-1, Mpi.COMM_WORLD) 
+         self.field:appendData(tm, self.DeltaPhiG)
+      end
+      impl.sheathDeltaPhi = _sheathDeltaPhi
+      -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+      self.diagnostics = DiagsApp{implementation = impl}
+
       self.diagnostics:fullInit(mySpecies, field, self)
       -- Presently boundary diagnostics are boundary flux diagnostics. Append 'flux' to the diagnostic's
       -- name so files are named accordingly. Re-design this when non-flux diagnostics are implemented
@@ -643,6 +669,7 @@ function GkLogicalSheathBC:getFlucF() return self.boundaryFluxRate end
 
 function GkLogicalSheathBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
 
+--      print(string.format("%s | deltaPhi = %g",self.name, self.DeltaPhi))
    self.setPhiWall:advance(tCurr, {}, {self.phiWallFld}) -- Compute wall potential if needed (i.e. sheath BC).
 
    local fIn = mySpecies:rkStepperFields()[outIdx] 

@@ -31,8 +31,9 @@ function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder)
    local funcSign = "(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *Epar, const double *fL, const double *fR, double *outL, double *outR)"
    local funcNm = {}
    if CDIM == 1 and VDIM <= 2 then
-      funcNm[1] = string.format("EparGyrokineticSurf%dx%dv%s_x_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      funcNm[2] = string.format("EparGyrokineticSurf%dx%dv%s_vpar_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      funcNm[1] = string.format("EparGyrokineticSurf%dx%dv%s_xL_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      funcNm[2] = string.format("EparGyrokineticSurf%dx%dv%s_xR_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      funcNm[3] = string.format("EparGyrokineticSurf%dx%dv%s_vpar_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
    elseif CDIM == 2 and VDIM == 2 then
       assert(false, "EparGyrokinetic equation not implemented for this dimensionality!")
    elseif CDIM == 3 and VDIM == 2 then
