@@ -187,18 +187,17 @@ end
 function Vlasov:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local amax = 0.0
    if dir <= self._cdim then
-      if not self._onlyForceUpdate then
-         -- Streaming term (note that surface streaming kernels don't return max speed).
-         self._surfStreamUpdate[dir](
-           wl:data(), wr:data(), dxl:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data())
-      elseif self._isGenGeo then
+      if self._isGenGeo then
 	 self._alphaGeo:fill(self._alphaIdxr(idxl), self._alphaPtr) -- Get pointer to alphaGeo field.
 	 -- Update gen geo surface terms here
 	 self._genGeoSurfUpdate[dir](
 	    wl:data(), wr:data(), dxl:data(), dxr:data(), self._alphaPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
 	 -- self._surfStreamUpdate[dir](
             -- wl:data(), wr:data(), dxl:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data()) -- for testing
-
+      elseif not self._onlyForceUpdate then
+         -- Streaming term (note that surface streaming kernels don't return max speed).
+         self._surfStreamUpdate[dir](
+           wl:data(), wr:data(), dxl:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
    else
       if self._hasForceTerm then

@@ -54,10 +54,18 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
   vid : vidx(cdim,vdim),
 
   /* Cell centers and lengths along velocity space. */
-  wvl : wl[vid[dir]],
-  wvr : wr[vid[dir]],
-  dvl : dxvl[vid[dir]],
-  dvr : dxvr[vid[dir]],
+  if (cdim=1) then (
+    /* In 1x3v we assume vz is along the field line. */
+    wvl : wl[vid[3]],
+    wvr : wr[vid[3]],
+    dvl : dxvl[vid[3]],
+    dvr : dxvr[vid[3]]
+  ) else (
+    wvl : wl[vid[dir]],
+    wvr : wr[vid[dir]],
+    dvl : dxvl[vid[dir]],
+    dvr : dxvr[vid[dir]]
+  ),
 
   printf(fh, "  double rdxl2 = 2.0/dxvl[~a]; ~%", cid[dir]),
   printf(fh, "  double rdxr2 = 2.0/dxvr[~a]; ~%~%", cid[dir]),

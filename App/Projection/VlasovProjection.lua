@@ -108,7 +108,7 @@ function MaxwellianProjection:advance(t, inFlds, outFlds)
       self:lagrangeFix(distf)
    end
 
-   local jacobGeo = extField.geo.jacobGeo
+   local jacobGeo = extField.geo and extField.geo.jacobGeo or nil
    if jacobGeo then
       print('multiply by jacobGeo')
       self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf})

@@ -141,6 +141,7 @@ function VlasovSpecies:createSolver(field, externalField)
 	 onGrid = self.grid,
 	 confBasis = self.confBasis,
 	 phaseBasis = self.basis,
+         onGhosts = true,
       }
       local metadata = {polyOrder = self.basis:polyOrder(),
                      basisType = self.basis:id(),
