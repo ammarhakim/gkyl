@@ -138,6 +138,12 @@ function GkZeroCurrentField:createSolver(species, externalField)
       if s.charge > 0. then self.ionName = nm elseif s.charge < 0. then self.elcName = nm end
    end
 
+   self.recomputeElcPrimMom = false
+   if species[self.elcName].needSelfPrimMom then
+      self.recomputeElcPrimMom = true
+      species[self.elcName].needSelfPrimMom = false -- So that electron self-prim mom are only computed once.
+   end
+
    self.EparDivPSlvr = Updater.ZeroCurrentGkEparDivP {
       onGrid = self.grid,
       basis  = self.basis,
@@ -305,30 +311,27 @@ function GkZeroCurrentField:advance(tCurr, species, inIdx, outIdx)
    local fieldsRhs  = self:rkStepperFields()[outIdx]
 
    -- ............................................................... --
---   -- Rescale the ion density to match the electron density:
---   self.weakDiv:advance(tCurr, {species[self.ionName]:getNumDensity(),species[self.elcName]:getNumDensity()}, {self.denRat}) 
---   species[self.ionName].confPhaseWeakMultiply:advance(tCurr, {species[self.ionName]:rkStepperFields()[inIdx],self.denRat},
---                                                       {species[self.ionName]:rkStepperFields()[inIdx]})
---   -- Recompute coupling and primitive moments:
---   species[self.ionName].threeMomentsLBOCalc:advance(tCurr, {species[self.ionName]:rkStepperFields()[inIdx]}, { species[self.ionName].numDensity, species[self.ionName].momDensity, species[self.ionName].ptclEnergy,
---                                              species[self.ionName].m1Correction, species[self.ionName].m2Correction,
---                                              species[self.ionName].m0Star, species[self.ionName].m1Star, species[self.ionName].m2Star })
---   -- Also compute species[self.ionName].primitive moments uPar and vtSq.
---   species[self.ionName].primMomSelf:advance(tCurr, {species[self.ionName].numDensity, species[self.ionName].momDensity, species[self.ionName].ptclEnergy,
---                                      species[self.ionName].m1Correction, species[self.ionName].m2Correction,
---                                      species[self.ionName].m0Star, species[self.ionName].m1Star, species[self.ionName].m2Star}, {species[self.ionName].uParSelf, species[self.ionName].vtSqSelf})
    -- Rescale the electron density to match the ion density:
    self.weakDiv:advance(tCurr, {species[self.elcName]:getNumDensity(),species[self.ionName]:getNumDensity()}, {self.denRat}) 
    species[self.elcName].confPhaseWeakMultiply:advance(tCurr, {species[self.elcName]:rkStepperFields()[inIdx],self.denRat},
                                                        {species[self.elcName]:rkStepperFields()[inIdx]})
    -- Recompute coupling and primitive moments:
-   species[self.elcName].threeMomentsLBOCalc:advance(tCurr, {species[self.elcName]:rkStepperFields()[inIdx]}, { species[self.elcName].numDensity, species[self.elcName].momDensity, species[self.elcName].ptclEnergy,
-                                              species[self.elcName].m1Correction, species[self.elcName].m2Correction,
-                                              species[self.elcName].m0Star, species[self.elcName].m1Star, species[self.elcName].m2Star })
-   -- Also compute species[self.elcName].primitive moments uPar and vtSq.
-   species[self.elcName].primMomSelf:advance(tCurr, {species[self.elcName].numDensity, species[self.elcName].momDensity, species[self.elcName].ptclEnergy,
-                                      species[self.elcName].m1Correction, species[self.elcName].m2Correction,
-                                      species[self.elcName].m0Star, species[self.elcName].m1Star, species[self.elcName].m2Star}, {species[self.elcName].uParSelf, species[self.elcName].vtSqSelf})
+   if self.recomputeElcPrimMom then
+      species[self.elcName].threeMomentsLBOCalc:advance(tCurr, {species[self.elcName]:rkStepperFields()[inIdx]}, { species[self.elcName].numDensity, species[self.elcName].momDensity, species[self.elcName].ptclEnergy,
+                                                 species[self.elcName].m1Correction, species[self.elcName].m2Correction,
+                                                 species[self.elcName].m0Star, species[self.elcName].m1Star, species[self.elcName].m2Star })
+      -- Also compute species[self.elcName].primitive moments uPar and vtSq.
+      species[self.elcName].primMomSelf:advance(tCurr, {species[self.elcName].numDensity, species[self.elcName].momDensity, species[self.elcName].ptclEnergy,
+                                         species[self.elcName].m1Correction, species[self.elcName].m2Correction,
+                                         species[self.elcName].m0Star, species[self.elcName].m1Star, species[self.elcName].m2Star}, {species[self.elcName].uParSelf, species[self.elcName].vtSqSelf})
+      -- Indicate that moments, boundary corrections, star moments
+      -- and self-primitive moments have been computed.
+      for iF=1,4 do species[self.elcName].momentFlags[iF] = true end
+   else
+      species[self.elcName].numDensityCalc:advance(tCurr, {species[self.elcName]:rkStepperFields()[inIdx]}, { species[self.elcName].numDensity })
+      -- Indicate that first moment has been computed.
+      species[self.elcName].momentFlags[1] = true
+   end
    -- ............. Finished rescaling to enforce ni=ne ............. --
    
    self.chargeDens:clear(0.0)
