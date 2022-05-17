@@ -13,8 +13,8 @@ maxVdim_Ser : 2$
 maxPolyOrder_Tensor : 2$
 minCdim_Tensor : 1$
 minVdim_Tensor : 1$
-maxCdim_Tensor : 0$
-maxVdim_Tensor : 0$
+maxCdim_Tensor : 1$
+maxVdim_Tensor : 2$
 
 /* Number of velocity dimensions allowed for each
    configuration-space dimension. */
@@ -49,9 +49,15 @@ printPrototypes() := block([],
           if v=0 then (vd : 0) else (vd : 1),
   
           for surfDir : 1 thru c+vd do (
-            if surfDir<=c then (dirlabel : varsC[surfDir]) else (dirlabel : varsV[surfDir-c]),
+            if surfDir<=c then (
+              dirlabel : varsC[surfDir],
+              printf(fh, "  double EparGyrokineticSurf~ax~av~a_~aL_P~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *Epar, const double *fL, const double *fR, double *outL, double *outR); ~%", c, v, bName[bInd], dirlabel, polyOrder),
+              printf(fh, "  double EparGyrokineticSurf~ax~av~a_~aR_P~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *Epar, const double *fL, const double *fR, double *outL, double *outR); ~%", c, v, bName[bInd], dirlabel, polyOrder)
+            ) else (
+              dirlabel : varsV[surfDir-c],
+              printf(fh, "  double EparGyrokineticSurf~ax~av~a_~a_P~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *Epar, const double *fL, const double *fR, double *outL, double *outR); ~%", c, v, bName[bInd], dirlabel, polyOrder)
+            )
   
-            printf(fh, "  double EparGyrokineticSurf~ax~av~a_~a_P~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *Epar, const double *fL, const double *fR, double *outL, double *outR); ~%", c, v, bName[bInd], dirlabel, polyOrder)
           ),
           printf(fh, "~%")
         ),

@@ -16,8 +16,12 @@ def build(bld):
     AxisymmetricPhMaxwellSrcImpl.cpp
     FiveMomentFrictionSrcImpl.cpp
 
-    zeroCurrentGkEparDivPData/zeroCurrentGkEpar_divP_1x_p1_ser.cpp
-    zeroCurrentGkEparDivPData/zeroCurrentGkEpar_divP_1x_p2_ser.cpp
+    zeroCurrentGkEparData/zeroCurrentGkEpar_divP_1x_p1_ser.cpp
+    zeroCurrentGkEparData/zeroCurrentGkEpar_divP_1x_p2_ser.cpp
+    zeroCurrentGkEparData/zeroCurrentGkEpar_divP_1x_p2_tensor.cpp
+    zeroCurrentGkEparData/zeroCurrentGkEpar_M1scale_1x2v_p1_ser.cpp
+    zeroCurrentGkEparData/zeroCurrentGkEpar_M1scale_1x2v_p2_ser.cpp
+    zeroCurrentGkEparData/zeroCurrentGkEpar_M1scale_1x2v_p2_tensor.cpp
 
     aSheathPotentialData/asheath_potential_1x_p1_ser.cpp
     aSheathPotentialData/asheath_potential_1x_p2_ser.cpp
@@ -413,7 +417,7 @@ def build(bld):
 
     bld.shlib(source = sources,
 
-              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData maxwellianOnBasisData twistShiftData projectFluxOnGhostsData sqrtOnBasisData aSheathPotentialData zeroCurrentGkEparDivPData', 
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData maxwellianOnBasisData twistShiftData projectFluxOnGhostsData sqrtOnBasisData aSheathPotentialData zeroCurrentGkEparData', 
 
               use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     

@@ -18,6 +18,9 @@ local FieldBase        = require "App.Field.FieldBase"
 local Species          = require "App.Species"
 local Time             = require "Lib.Time"
 local lume             = require "Lib.lume"
+local ffi              = require "ffi"
+local LinearDecomp     = require "Lib.LinearDecomp"
+local Lin              = require "Lib.Linalg"
 -- In order to compute dBdz.
 local math = require("sci.math").generic
 local diff = require("sci.diff")
@@ -101,7 +104,9 @@ function GkZeroCurrentField:alloc(nRkDup)
 
    -- Create fields for total charge density and div{P}.
    self.chargeDens = createField(self.grid,self.basis,{1,1})
+   self.momDens    = createField(self.grid,self.basis,{1,1})
    self.divP       = createField(self.grid,self.basis,{1,1})
+   self.alphaM1    = createField(self.grid,self.basis,{1,1})
    -- Fields to store M2par and M2perp moments of a distribution function.
    self.M2par  = createField(self.grid,self.basis,{1,1})
    self.M2perp = createField(self.grid,self.basis,{1,1})
@@ -248,6 +253,15 @@ function GkZeroCurrentField:createSolver(species, externalField)
       end
    end
 
+   -- Select kernel used in rescaling f_e to enforce M1e=M1i.
+   local funcType = "void"
+   local basisNm  = self.basis:id()=="serendipity" and "ser" or "tensor"
+   local funcNm   = string.format("zeroCurrentGkEpar_M1scale_1x2v_p%d_%s", self.basis:polyOrder(), basisNm)
+   local funcSign = "(const double *xvc, const double *dxv, const double vparMax, const double *alpha, double *distf)"
+   ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
+   self._m1scaleKer = ffi.C[funcNm]
+
+   self.xvc, self.dxv = Lin.Vec(3), Lin.Vec(3)
 end
 
 function GkZeroCurrentField:createDiagnostics()
@@ -275,6 +289,7 @@ function GkZeroCurrentField:write(tm, force)
 
    if self.ioTrigger(tm) or force then
       self.fieldIo:write(self.fields[1].Epar, string.format("Epar_%d.bp", self.ioFrame), tm, self.ioFrame)
+--      self.fieldIo:write(self.alphaM1, string.format("alphaM1_%d.bp", self.ioFrame), tm, self.ioFrame)
       self.EparSq:write(string.format("EparSq.bp"), tm, self.ioFrame)
  
       self.ioFrame = self.ioFrame+1
@@ -303,6 +318,38 @@ function GkZeroCurrentField:readRestart()
    self.ioTrigger(tm)
 end
 
+function GkZeroCurrentField:momentumScale(tCurr, species, inIdx)
+
+   local fIn = species[self.elcName]:rkStepperFields()[inIdx]
+
+   self.momDens:combine(1., species[self.ionName]:getMomDensity(inIdx), -1., species[self.elcName]:getMomDensity(inIdx))
+   species[self.elcName].M2parCalc:advance(tCurr, {fIn}, {self.M2par})
+   self.weakDiv:advance(tCurr, {self.M2par,self.momDens}, {self.alphaM1}) 
+
+   local confIndexer  = self.alphaM1:genIndexer()
+   local phaseIndexer = fIn:genIndexer() 
+
+   local grid = species[self.elcName].grid
+   local rangeDecomp = LinearDecomp.LinearDecompRange {
+         range = fIn:localRange(), numSplit = grid:numSharedProcs() }
+
+   local alphaM1Ptr = self.alphaM1:get(1)
+   local distfPtr = fIn:get(1)
+
+   local tId = grid:subGridSharedId()   -- Local thread ID.
+   for idx in rangeDecomp:rowMajorIter(tId) do
+      grid:setIndex(idx)
+      grid:getDx(self.dxv)
+      grid:cellCenter(self.dxv)
+
+      self.alphaM1:fill(confIndexer(idx), alphaM1Ptr)
+      fIn:fill(phaseIndexer(idx), distfPtr)
+
+      self._m1scaleKer(self.xvc:data(), self.dxv:data(), grid:upper(2), alphaM1Ptr:data(), distfPtr:data())
+   end
+   fIn:sync()
+end
+
 -- Solve for electrostatic potential Epar.
 function GkZeroCurrentField:advance(tCurr, species, inIdx, outIdx)
    local tmStart = Time.clock()
@@ -312,9 +359,13 @@ function GkZeroCurrentField:advance(tCurr, species, inIdx, outIdx)
 
    -- ............................................................... --
    -- Rescale the electron density to match the ion density:
-   self.weakDiv:advance(tCurr, {species[self.elcName]:getNumDensity(),species[self.ionName]:getNumDensity()}, {self.denRat}) 
+   self.weakDiv:advance(tCurr, {species[self.elcName]:getNumDensity(inIdx),species[self.ionName]:getNumDensity(inIdx)}, {self.denRat}) 
    species[self.elcName].confPhaseWeakMultiply:advance(tCurr, {species[self.elcName]:rkStepperFields()[inIdx],self.denRat},
                                                        {species[self.elcName]:rkStepperFields()[inIdx]})
+
+   -- Rescale the electron distribution function to match the ion momentum density:
+--   self:momentumScale(tCurr, species, inIdx)
+
    -- Recompute coupling and primitive moments:
    if self.recomputeElcPrimMom then
       species[self.elcName].threeMomentsLBOCalc:advance(tCurr, {species[self.elcName]:rkStepperFields()[inIdx]}, { species[self.elcName].numDensity, species[self.elcName].momDensity, species[self.elcName].ptclEnergy,
@@ -332,7 +383,7 @@ function GkZeroCurrentField:advance(tCurr, species, inIdx, outIdx)
       -- Indicate that first moment has been computed.
       species[self.elcName].momentFlags[1] = true
    end
-   -- ............. Finished rescaling to enforce ni=ne ............. --
+   -- ............. Finished rescaling to enforce ni=ne and M1i=M1e ............. --
    
    self.chargeDens:clear(0.0)
    self.divP:clear(0.0)

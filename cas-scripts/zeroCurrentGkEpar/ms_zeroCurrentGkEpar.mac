@@ -16,7 +16,7 @@ maxDim_Ser : 1$
 /* Tensor basis. */
 maxPolyOrder_Tensor : 2$
 minDim_Tensor : 1$
-maxDim_Tensor : 0$
+maxDim_Tensor : 1$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -36,10 +36,19 @@ for bInd : 1 thru length(bName) do (
 
       fname : sconcat("~/max-out/zeroCurrentGkEpar_divP_", cD, "x_p", polyOrder, "_", bName[bInd], ".cpp"),
       fh : openw(fname),
-      printf(fh, "#include <zeroCurrentGkEpar_divP_mod_decl.h>~%~%"),
+      printf(fh, "#include <zeroCurrentGkEpar_mod_decl.h>~%~%"),
 
       funcName : sconcat("zeroCurrentGkEpar_divP_", cD, "x_p", polyOrder, "_", bName[bInd]),
       genDivPressure(fh, funcName, cD, bName[bInd], polyOrder),
+
+      close(fh),
+
+      fname : sconcat("~/max-out/zeroCurrentGkEpar_M1scale_", cD, "x", 2, "v_p", polyOrder, "_", bName[bInd], ".cpp"),
+      fh : openw(fname),
+      printf(fh, "#include <zeroCurrentGkEpar_mod_decl.h>~%~%"),
+
+      funcName : sconcat("zeroCurrentGkEpar_M1scale_", cD, "x", 2, "v_p", polyOrder, "_", bName[bInd]),
+      genM1scale(fh, funcName, cD, 2, bName[bInd], polyOrder),
 
       close(fh)
     )

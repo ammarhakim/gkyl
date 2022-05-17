@@ -574,6 +574,10 @@ def build(bld):
 
     eparGkData/EparGyrokineticSer1x2vP1.cpp
     eparGkData/EparGyrokineticSurfSer1x2vP1.cpp
+    eparGkData/EparGyrokineticSer1x2vP2.cpp
+    eparGkData/EparGyrokineticSurfSer1x2vP2.cpp
+    eparGkData/EparGyrokineticTensor1x2vP2.cpp
+    eparGkData/EparGyrokineticSurfTensor1x2vP2.cpp
 
     gyrofluidData/gyrofluid_surf_1x_p0_ser.cpp
     gyrofluidData/gyrofluid_surf_1x_p1_ser.cpp

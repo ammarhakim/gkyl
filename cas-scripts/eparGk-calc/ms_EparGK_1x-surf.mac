@@ -16,7 +16,7 @@ maxCdim_Ser : 1$
 /* Tensor order basis. */
 maxPolyOrder_Tensor : 2$
 minCdim_Tensor : 1$
-maxCdim_Tensor : 0$
+maxCdim_Tensor : 1$
 
 /* Vdim possibilities. */
 gkVdims : [[2]]$

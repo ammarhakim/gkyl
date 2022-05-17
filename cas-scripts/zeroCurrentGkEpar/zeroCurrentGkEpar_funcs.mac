@@ -69,3 +69,44 @@ genDivPressure(fh, funcNm, dim, basisNm, polyOrder) := block(
   printf(fh, "}~%"),
   printf(fh, "~%")
 )$
+
+genM1scale(fh, funcNm, cdim, vdim, basisNm, polyOrder) := block(
+  [bP,bC,f_e,alpha_e,f_c],
+  /* Generate a kernel that scales the electron distribution function by
+       1+alpha*vpar
+     where alpha=(M1i-M1e)/M2pare in order to preserve upare=upari. */
+
+  printf(fh,sconcat("void ",funcNm,"(const double *xvc, const double *dxv, const double vparMax, const double *alpha, double *distf) ~%{ ~%")),
+  printf(fh,"  // xvc: cell center.~%"),
+  printf(fh,"  // dxv: cell length.~%"),
+  printf(fh,"  // vparmax: maximum vpar of the grid.~%"),
+  printf(fh,"  // alpha: vpar scaling factor.~%"),
+  printf(fh,"  // distf: distribution function (electron).~%"),
+
+  kill(varsC, varsP, basisC, basisP),
+
+  load(sconcat("basis-precalc/basis", basisNm, cdim, "x", vdim, "v")),
+  bP : basisP[polyOrder],
+  bC : basisC[polyOrder],
+
+  f_e : doExpand1(distf, bP),
+  alpha_e : doExpand1(alpha, bC),
+
+  /* Evaluate alpha_e and cap it the re-scaling. */
+  alphaLo : subst(x=-1, alpha_e),
+  alphaCC : subst(x=0, alpha_e),
+  alphaUp : subst(x=1, alpha_e),
+  printf(fh, "  if ((fabs(~a) < 1./vparMax) && (fabs(~a) < 1./vparMax) && (fabs(~a) < 1./vparMax)) {~%", float(alphaLo), float(alphaCC), float(alphaUp)),
+  printf(fh, "~%"),
+
+  f_c : calcInnerProdList(varsP, 1+alpha_e*(xvc[cdim]+0.5*dxv[cdim]*varsP[cdim+1]), bP, f_e), 
+
+  writeCExprs1(distf, f_c),
+  printf(fh, "~%"),
+
+  printf(fh, "  }~%"),
+  printf(fh, "~%"),
+
+  printf(fh, "}~%"),
+  printf(fh, "~%")
+)$
