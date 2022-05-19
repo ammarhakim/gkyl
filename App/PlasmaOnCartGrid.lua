@@ -374,6 +374,7 @@ local function buildApplication(self, tbl)
 
    local tStart = 0.0 -- By default start at t=0.
    if GKYL_COMMANDS[1] == "restart" then
+      log(string.format("restart requested. reading restart files to continue simulation from previous one.\n"))
       -- Give everyone a chance to adjust ICs based on restart frame
       -- and adjust tStart accordingly.
       tStart = readRestart()
