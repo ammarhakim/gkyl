@@ -9,7 +9,7 @@ load("scifac")$
 load("gk-calc/gkUtil")$
 fpprec : 24$
 
-calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, varsInB, useGenGeo) := block(
+calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, varsInB, useGenGeo, side) := block(
   [i,d,v,step2,pDim,varsC,bC,varsP,bP,vSub,vSubInv,numC,numP,surfVar,varLabel,dirLabel,
    BvarsLabel,rdx2vecL,rdx2vecR,rdv2vecL,rdv2vecR,rdSurfVar2L,rdSurfVar2R,bmagBasis,ignoreVars,
    bmag_e,bmagInv_e,phi_e,Apar_e,dAdt_e,dAdtPrev_e,hamilL_e,hamilR_e,BstardBmagL_e,BstardBmagR_e,
@@ -29,32 +29,34 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, var
   varLabel : makelist(string(varsP[d]),d,1,pDim),
   dirLabel : varLabel[surfDir],
 
+  sideLabel : "",
+  if surfDir<cdim+1 then ( sideLabel : side ),
+
   BvarsLabel : "",
   for i : 1 thru length(varsInB) do (BvarsLabel : sconcat(BvarsLabel,varsInB[i])),
 
-  print("Working on ", funcNm, "_", dirLabel, "_P", polyOrder, "_Bvars", BvarsLabel),
+  print("Working on ", funcNm, "_", dirLabel, "_P", polyOrder, "_Bvars", BvarsLabel, sideLabel),
   if useGenGeo then (
     if wApar then (
-      printf(fh, "double ~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *AparL, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR) ~%{ ~%", funcNm, dirLabel, polyOrder, BvarsLabel),
+      printf(fh, "double ~a_~a~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR) ~%{ ~%", funcNm, dirLabel, sideLabel, polyOrder, BvarsLabel),
       printf(fh, "  // Apar: parallel component of magnetic vector potential.~%"),
-      printf(fh, "  // AparL: Apar in the left cell.~%"),
       printf(fh, "  // dApardt: time derivative of Apar.~%"),
       printf(fh, "  // dApardtPrev: previous dApardt.~%"),
       printf(fh, "  // emModL,emModR: .~%")
     ) else (
-      printf(fh, "double ~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR) ~%{ ~%", funcNm, dirLabel, polyOrder, BvarsLabel)
+      printf(fh, "double ~a_~a~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR) ~%{ ~%", funcNm, dirLabel, sideLabel, polyOrder, BvarsLabel)
     ),
     printf(fh, "  // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.~%"),
     printf(fh, "  // b_x,b_y,b_z: covariant components of the field aligned unit vector.~%")
   ) else (
     if wApar then (
-      printf(fh, "double ~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR) ~%{ ~%", funcNm, dirLabel, polyOrder, BvarsLabel),
+      printf(fh, "double ~a_~a~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR) ~%{ ~%", funcNm, dirLabel, sideLabel, polyOrder, BvarsLabel),
       printf(fh, "  // Apar: parallel component of magnetic vector potential.~%"),
       printf(fh, "  // dApardt: time derivative of Apar.~%"),
       printf(fh, "  // dApardtPrev: previous dApardt.~%"),
       printf(fh, "  // emModL,emModR: .~%")
     ) else (
-      printf(fh, "double ~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *fL, const double *fR, double *outL, double *outR) ~%{ ~%", funcNm, dirLabel, polyOrder, BvarsLabel)
+      printf(fh, "double ~a_~a~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *fL, const double *fR, double *outL, double *outR) ~%{ ~%", funcNm, dirLabel, sideLabel, polyOrder, BvarsLabel)
     ),
     printf(fh, "  // bmagInv: 1/bmag.~%"),
     printf(fh, "  // BdriftX,BdriftY: x,y components of gradB/curvature drift.~%")
@@ -110,33 +112,40 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, var
 
   /* Compute electrostatic Hamiltonian and write it out. Since alpha.n is
      continuous we need only deal with the left or right alpha. */
-  /*
-  hamilL_e : calcAndWrite_HamilES(fh,q_,m_,[wvparL,wmuL],rdv2vecL,bP,inFlds_e,"L"),
-  */
-  hamilR_e : calcAndWrite_HamilES(fh,q_,m_,[wvparR,wmuR],rdv2vecR,bP,inFlds_e,"R"),
+  if side="L" then (
+    hamilL_e : calcAndWrite_HamilES(fh,q_,m_,[wvparL,wmuL],rdv2vecL,bP,inFlds_e,"L")
+  ) else (
+    hamilR_e : calcAndWrite_HamilES(fh,q_,m_,[wvparR,wmuR],rdv2vecR,bP,inFlds_e,"R")
+  ),
 
   /* Compute B* divided by B and write it out. */
-  /*
-  [BstardBmagL_e, BstardBmagR_e] : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
-                                                 wvparR,rdx2vecL,rdv2vecL,inFlds_e,"L"),
-  */
-  [BstardBmagR_e, BstardBmagL_e] : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
-                                                           wvparR,rdx2vecR,rdv2vecR,inFlds_e,"R"),
+  if side="L" then (
+    BstardBmagL_e : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
+                                            wvparL,rdx2vecL,rdv2vecL,inFlds_e,"L")
+  ) else (
+    BstardBmagR_e : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
+                                            wvparR,rdx2vecR,rdv2vecR,inFlds_e,"R")
+  ),
 
 
   /* Calculate phase space velocity alpha in direction of surfVar. */
   /* We assume alpha.n is continuous across boundary, although H may not be. */
   /* Distinguish between alpha and alphaUp, where alphaUp is the one used to
      determine upwind direction. */
-  /*
-  [alphaUpL_e,alphaSurfL_e,alphaUpSurfL_e] = calcAndWrite_alpha(fh,surfDir,bP,polyOrder,basisType,
-    m_,q_,rdx2vecL,rdv2vecL,inFlds_e,hamilL_e,BstardBmagL_e,BstardBmagR_e,"L",false),
-  */
-  [alphaUpR_e,alphaSurfR_e,alphaUpSurfR_e] : calcAndWrite_alpha(fh,surfDir,bP,polyOrder,basisFun,
-    m_,q_,rdx2vecR,rdv2vecR,inFlds_e,hamilR_e,BstardBmagR_e,BstardBmagL_e,"R",false),
+  if side="L" then (
+    [alphaUpL_e,alphaSurfL_e,alphaUpSurfL_e] : calcAndWrite_alpha(fh,surfDir,bP,polyOrder,basisFun,
+      m_,q_,rdx2vecL,rdv2vecL,inFlds_e,hamilL_e,BstardBmagL_e,"L",false)
+  ) else (
+    [alphaUpR_e,alphaSurfR_e,alphaUpSurfR_e] : calcAndWrite_alpha(fh,surfDir,bP,polyOrder,basisFun,
+      m_,q_,rdx2vecR,rdv2vecR,inFlds_e,hamilR_e,BstardBmagR_e,"R",false)
+  ),
 
   /* Calculate and write out the surface-averaged alpha. */
-  alphaSurfAvgR_s : calcAndWrite_surfAvgAlpha(fh,bP,surfDir,alphaUpR_e,"R"),
+  if side="L" then (
+    alphaSurfAvgL_s : calcAndWrite_surfAvgAlpha(fh,bP,surfDir,alphaUpL_e,"L")
+  ) else (
+    alphaSurfAvgR_s : calcAndWrite_surfAvgAlpha(fh,bP,surfDir,alphaUpR_e,"R")
+  ),
 
   printf(fh, "  double incr[~a]; ~%", numP),
   if surfVar=vpar and wApar and polyOrder=1 then printf(fh, "  double incrEmMod[~a]; ~%", numP),
@@ -145,76 +154,88 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, var
   if (surfDir=cdim and cdim#2) then (pureUpwind : true) else (pureUpwind : false),
 
   /* Note: always use pureUpwind for p=1. */
-  if (alphaSurfR_e = 0) then (
-    printf(fh, "  // alpha == 0, so nothing to do.~%"),
-    printf(fh, "  return std::abs(alphaSurfAvgR);~%"),
-    printf(fh, "}~%"),
-    flush_output(fh)
-  ) else if pureUpwind or polyOrder=1 then (
+  if (alphaSurfR_e # 0) then (
+    if pureUpwind or polyOrder=1 then (
 
-    printf(fh, "#if upwindType == SURFAVG ~%"),
-
-    /* Upwinded fluxes based on surface-averaged phase-velocity. */
-    [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wSurfAvgAlpha(fh,bP,polyOrder,surfDir,"R",alphaSurfR_e,wApar,false),
-
-    printf(fh, "#elif upwindType == QUAD ~%"),
-
-    /* Upwinded fluxes based on quadrature-node values of phase-velocity. */
-    [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wQuadNodeAlpha(fh,basisFun,polyOrder,bP,surfDir,"R",
-                                                                alphaSurfR_e,alphaUpSurfR_e,wApar,false),
-
-    printf(fh, "#endif ~%"),
-    flush_output(fh),
-
-    /* Write the actual increments to the left and right cells, which are
-       built with incr, dxv factors and some sign changes. */
-    incr_s : makelist(incr[i-1], i, 1, numP),
-    writeCIncrExprsNoExpand1(outR, rdSurfVar2R*incr_s),
-    printf(fh, "~%"),
-    flush_output(fh),
-
-    signs  : fullratsimp(incrL_c/incrR_c),
-    incr_s : makelist(signs[i]*incr[i-1], i, 1, numP),
-    writeCIncrExprsNoExpand1(outL, rdSurfVar2L*incr_s),
-    printf(fh, "~%"),
-    flush_output(fh),
-
-    if surfVar=vpar and wApar and polyOrder=1 then (
-      incrEmMod_s : rdSurfVar2R*makelist(incrEmMod[i-1], i, 1, numP),
-      writeCIncrExprsNoExpand1(emModR, incrEmMod_s),
-      incrEmMod_s : rdSurfVar2L*makelist(signs[i]*incrEmMod[i-1], i, 1, numP),
-      writeCIncrExprsNoExpand1(emModL, incrEmMod_s),
+      printf(fh, "#if upwindType == SURFAVG ~%"),
+  
+      /* Upwinded fluxes based on surface-averaged phase-velocity. */
+      if side="L" then (
+        [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wSurfAvgAlpha(fh,bP,polyOrder,surfDir,"L",alphaSurfL_e,wApar,false)
+      ) else (
+        [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wSurfAvgAlpha(fh,bP,polyOrder,surfDir,"R",alphaSurfR_e,wApar,false)
+      ),
+  
+      printf(fh, "#elif upwindType == QUAD ~%"),
+  
+      /* Upwinded fluxes based on quadrature-node values of phase-velocity. */
+      if side="L" then (
+        [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wQuadNodeAlpha(fh,basisFun,polyOrder,bP,surfDir,"L",
+                                                                    alphaSurfL_e,alphaUpSurfL_e,wApar,false)
+      ) else (
+        [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wQuadNodeAlpha(fh,basisFun,polyOrder,bP,surfDir,"R",
+                                                                    alphaSurfR_e,alphaUpSurfR_e,wApar,false)
+      ),
+  
+      printf(fh, "#endif ~%"),
+      flush_output(fh),
+  
+      /* Write the actual increments to the left and right cells, which are
+         built with incr, dxv factors and some sign changes. */
+      incr_s : makelist(incr[i-1], i, 1, numP),
+      writeCIncrExprsNoExpand1(outR, rdSurfVar2R*incr_s),
+      printf(fh, "~%"),
+      flush_output(fh),
+  
+      signs  : fullratsimp(incrL_c/incrR_c),
+      incr_s : makelist(signs[i]*incr[i-1], i, 1, numP),
+      writeCIncrExprsNoExpand1(outL, rdSurfVar2L*incr_s),
+      printf(fh, "~%"),
+      flush_output(fh),
+  
+      if surfVar=vpar and wApar and polyOrder=1 then (
+        incrEmMod_s : rdSurfVar2R*makelist(incrEmMod[i-1], i, 1, numP),
+        writeCIncrExprsNoExpand1(emModR, incrEmMod_s),
+        incrEmMod_s : rdSurfVar2L*makelist(signs[i]*incrEmMod[i-1], i, 1, numP),
+        writeCIncrExprsNoExpand1(emModL, incrEmMod_s),
+        printf(fh, "~%"),
+        flush_output(fh)
+      )
+  
+    ) else (
+  
+      /* Compute the common increments to left/right cell using Lax-Friedrichs
+         fluxes. The actual output of the kernel should be these increments times
+         some cell-length factor. */
+      if side="L" then (
+        [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wLFfluxes(fh,basisFun,polyOrder,bP,surfDir,alphaSurfL_e)
+      ) else (
+        [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wLFfluxes(fh,basisFun,polyOrder,bP,surfDir,alphaSurfR_e)
+      ),
+      
+      incr_s : rdSurfVar2R*makelist(incr[i-1], i, 1, numP),
+      writeCIncrExprsNoExpand1(outR, incr_s),
+      printf(fh, "~%"),
+      flush_output(fh),
+  
+      /* Contribution to left cell (surfVar=1) is same except for signs. */
+      signs  : fullratsimp(incrL_c/incrR_c),
+      incr_s : rdSurfVar2L*makelist(signs[i]*incr[i-1], i, 1, numP),
+      writeCIncrExprsNoExpand1(outL, incr_s),
       printf(fh, "~%"),
       flush_output(fh)
-    ),
+  
+    )
+  ),
 
-    printf(fh, "  return std::abs(alphaSurfAvgR); ~%"),
-    printf(fh, "} ~%"),
-    flush_output(fh)
-
+  /* Return alphaSurfAvgR so that we can find global value. */
+  if side="L" then (
+    printf(fh, "  return std::abs(alphaSurfAvgL);~%")
   ) else (
-
-    /* Compute the common increments to left/right cell using Lax-Friedrichs
-       fluxes. The actual output of the kernel should be these increments times
-       some cell-length factor. */
-    [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wLFfluxes(fh,basisFun,polyOrder,bP,surfDir,alphaSurfR_e),
-    
-    incr_s : rdSurfVar2R*makelist(incr[i-1], i, 1, numP),
-    writeCIncrExprsNoExpand1(outR, incr_s),
-    printf(fh, "~%"),
-    flush_output(fh),
-
-    /* Contribution to left cell (surfVar=1) is same except for signs. */
-    signs  : fullratsimp(incrL_c/incrR_c),
-    incr_s : rdSurfVar2L*makelist(signs[i]*incr[i-1], i, 1, numP),
-    writeCIncrExprsNoExpand1(outL, incr_s),
-
-    /* Return alphaSurfAvgR so that we can find global value. */
-    printf(fh, "return std::abs(alphaSurfAvgR); ~%"),
-
-    printf(fh, "} ~%"),
-    flush_output(fh)
-  )
+    printf(fh, "  return std::abs(alphaSurfAvgR);~%")
+  ),
+  printf(fh, "} ~%"),
+  flush_output(fh)
 
 )$
 
@@ -249,7 +270,7 @@ calcStep2Update(fh, funcNm, cdim, vdim, basisFun, polyOrder, varsInB, useGenGeo)
   for i : 1 thru length(varsInB) do (BvarsLabel : sconcat(BvarsLabel,varsInB[i])),
 
   if useGenGeo then (
-    printf(fh, "double ~aStep2_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *AparL, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR) ~%{ ~%", funcNm, dirLabel, polyOrder, BvarsLabel),
+    printf(fh, "double ~aStep2_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR) ~%{ ~%", funcNm, dirLabel, polyOrder, BvarsLabel),
     printf(fh, "  // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.~%"),
     printf(fh, "  // b_x,b_y,b_z: covariant components of the field aligned unit vector.~%")
   ) else (
@@ -319,11 +340,11 @@ calcStep2Update(fh, funcNm, cdim, vdim, basisFun, polyOrder, varsInB, useGenGeo)
 
   /* Compute B* divided by B and write it out. */
   /*
-  [BstardBmagL_e, BstardBmagR_e] : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
-                                                           wvparL,rdx2vecL,rdv2vecL,inFlds_e,"L"),
+  BstardBmagL_e : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
+                                          wvparL,rdx2vecL,rdv2vecL,inFlds_e,"L"),
   */
-  [BstardBmagR_e, BstardBmagL_e] : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
-                                                           wvparR,rdx2vecR,rdv2vecR,inFlds_e,"R"),
+  BstardBmagR_e : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,surfDir,m_,q_,
+                                          wvparR,rdx2vecR,rdv2vecR,inFlds_e,"R"),
 
   /* Calculate phase space velocity alpha in direction of surfVar. */
   /* We assume alpha.n is continuous across boundary, although H may not be. */
@@ -331,10 +352,10 @@ calcStep2Update(fh, funcNm, cdim, vdim, basisFun, polyOrder, varsInB, useGenGeo)
      determine upwind direction. */
   /*
   [alphaUpL_e,alphaSurfL_e,alphaUpSurfL_e] : calcAndWrite_alpha(fh,surfDir,bP,polyOrder,basisFun,
-    m_,q_,rdx2vecL,rdv2vecL,inFlds_e,hamilL_e,BstardBmagL_e,BstardBmagR_e,"L",step2),
+    m_,q_,rdx2vecL,rdv2vecL,inFlds_e,hamilL_e,BstardBmagL_e,"L",step2),
   */
   [alphaUpR_e,alphaSurfR_e,alphaUpSurfR_e] : calcAndWrite_alpha(fh,surfDir,bP,polyOrder,basisFun,
-    m_,q_,rdx2vecR,rdv2vecR,inFlds_e,hamilR_e,BstardBmagR_e,BstardBmagL_e,"R",step2),
+    m_,q_,rdx2vecR,rdv2vecR,inFlds_e,hamilR_e,BstardBmagR_e,"R",step2),
 
   /* Calculate and write out the surface-averaged alpha. */
   alphaSurfAvgR_s : calcAndWrite_surfAvgAlpha(fh,bP,surfDir,alphaUpR_e,"R"),
@@ -390,7 +411,10 @@ calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder, hasApar, varsInB,
 
   for dir : 1 thru cdim+vd do (
 
-    calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, hasApar, varsInB, useGenGeo),
+    if dir < cdim+vd then (
+      calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, hasApar, varsInB, useGenGeo, "L")
+    ),
+    calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, hasApar, varsInB, useGenGeo, "R"),
 
     if dir = cdim+1 and polyOrder=1 and hasApar then (
       calcStep2Update(fh, funcNm, cdim, vdim, basisFun, polyOrder, varsInB, useGenGeo)

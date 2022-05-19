@@ -86,7 +86,11 @@ printPrototypes() := block([],
                 isGenGeo : geoType[geoInd],
 
                 if isGenGeo then (
-                  bVarsList : [[], [x], [z], [x,z]]
+                  if c<3 then (
+                    bVarsList : [[], [x]]
+                  ) else (
+                    bVarsList : [[], [x], [z], [x,z]]
+                  )
                 ) else (
                   bVarsList : [[], [x]]
                 ),
@@ -118,29 +122,38 @@ printPrototypes() := block([],
                   if v=0 then (vd : 0) else (vd : 1),
   
                   for surfDir : 1 thru c+vd do (
-                    if surfDir<=c then (dirlabel : varsC[surfDir]) else (dirlabel : varsV[surfDir-c]),
-  
-                    if isGenGeo then ( 
-                      if wApar then (
-                        if wPos then (
-                          printf(fh, "  double EmGyrokineticGenGeo~aSurf~ax~av~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *AparL, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR); ~%", posStr, c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel)
-                        ) else (
-                          printf(fh, "  double EmGyrokineticGenGeoSurf~ax~av~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *AparL, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR); ~%", c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel),
-                          printf(fh, "  double EmGyrokineticGenGeoSurf~ax~av~aStep2_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *AparL, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR); ~%", c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel)
-                        )
-                      ) else (
-                        printf(fh, "  double GyrokineticGenGeoSurf~a~ax~av~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR); ~%", posStr, c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel)
-                      )
+                    if surfDir<=c then (
+                      dirSideLabel : [sconcat(varsC[surfDir],"L"), sconcat(varsC[surfDir],"R")]
                     ) else (
-                      if wApar then (
-                        if wPos then (
-                          printf(fh, "  double EmGyrokineticSimpleHelical~aSurf~ax~av~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR); ~%", posStr, c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel)
+                      dirSideLabel : [varsV[surfDir-c]]
+                    ),
+  
+                    for side : 1 thru length(dirSideLabel) do (
+
+                      dirlabel : dirSideLabel[side],
+
+                      if isGenGeo then ( 
+                        if wApar then (
+                          if wPos then (
+                            printf(fh, "  double EmGyrokineticGenGeo~aSurf~ax~av~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR); ~%", posStr, c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel)
+                          ) else (
+                            printf(fh, "  double EmGyrokineticGenGeoSurf~ax~av~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR); ~%", c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel),
+                            printf(fh, "  double EmGyrokineticGenGeoSurf~ax~av~aStep2_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR); ~%", c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel)
+                          )
                         ) else (
-                          printf(fh, "  double EmGyrokineticSimpleHelicalSurf~ax~av~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR); ~%", c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel),
-                          printf(fh, "  double EmGyrokineticSimpleHelicalSurf~ax~avSerStep2_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR); ~%", c, v, dirlabel, polyOrder, BvarsLabel)
+                          printf(fh, "  double GyrokineticGenGeoSurf~a~ax~av~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR); ~%", posStr, c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel)
                         )
                       ) else (
-                        printf(fh, "  double GyrokineticSimpleHelicalSurf~a~ax~av~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *fL, const double *fR, double *outL, double *outR); ~%", posStr, c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel)
+                        if wApar then (
+                          if wPos then (
+                            printf(fh, "  double EmGyrokineticSimpleHelical~aSurf~ax~av~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR); ~%", posStr, c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel)
+                          ) else (
+                            printf(fh, "  double EmGyrokineticSimpleHelicalSurf~ax~av~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR); ~%", c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel),
+                            printf(fh, "  double EmGyrokineticSimpleHelicalSurf~ax~avSerStep2_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR); ~%", c, v, dirlabel, polyOrder, BvarsLabel)
+                          )
+                        ) else (
+                          printf(fh, "  double GyrokineticSimpleHelicalSurf~a~ax~av~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *fL, const double *fR, double *outL, double *outR); ~%", posStr, c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel)
+                        )
                       )
                     )
                   ),

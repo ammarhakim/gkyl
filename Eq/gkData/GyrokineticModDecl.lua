@@ -64,12 +64,12 @@ function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic, positi
       funcSign = "(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR)"
       if isElectromagnetic then
          emString = "Em"
-         funcSign = "(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *AparL, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR)"
+         funcSign = "(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR)"
       end
       if positivity then
          posString = "Positivity"
          if isElectromagnetic then
-            funcSign = "(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *AparL, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR)"
+            funcSign = "(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR)"
          end
       end
    end
@@ -77,33 +77,48 @@ function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic, positi
    for k, v in ipairs(Bvars) do bvarString = bvarString .. v end
 
    local funcNm = {}
+   for d=1,CDIM+VDIM do funcNm[d] = {} end
    if CDIM == 1 and VDIM <= 2 then
-      funcNm[1] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_x_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
-      funcNm[2] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_vpar_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[1][1] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_xL_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[1][2] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_xR_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[2][1] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_vpar_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
    elseif CDIM == 2 and VDIM == 2 then
-      funcNm[1] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_x_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
-      funcNm[2] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_y_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
-      funcNm[3] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_vpar_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[1][1] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_xL_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[1][2] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_xR_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[2][1] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_yL_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[2][2] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_yR_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[3][1] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_vpar_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
    elseif CDIM == 3 and VDIM == 2 then
-      funcNm[1] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_x_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
-      funcNm[2] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_y_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
-      funcNm[3] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_z_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
-      funcNm[4] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_vpar_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[1][1] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_xL_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[1][2] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_xR_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[2][1] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_yL_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[2][2] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_yR_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[3][1] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_zL_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[3][2] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_zR_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[4][1] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_vpar_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
    elseif CDIM == 2 and VDIM == 0 then 
-      funcNm[1] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_x_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
-      funcNm[2] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_y_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[1][1] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_xL_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[1][2] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_xR_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[2][1] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_yL_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[2][2] = string.format("%sGyrokinetic%sSurf%s%dx%dv%s_yR_P%d", emString, geoType, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
    else
       assert(false, "Gyrokinetic equation not implemented for this dimensionality!")
    end
 
    local CDefStr = ""
-   for d = 1, #funcNm do CDefStr = CDefStr .. (funcType .. " " .. funcNm[d] .. funcSign .. ";\n") end
+   for d = 1, #funcNm do
+      for s = 1, #funcNm[d] do CDefStr = CDefStr .. (funcType .. " " .. funcNm[d][s] .. funcSign .. ";\n") end
+   end
    ffi.cdef(CDefStr)
 
    local kernels = {}
    for d = 1, #funcNm do
-      local tmp = ffi.C[funcNm[d]]
-      kernels[d] = tmp
+      kernels[d] = {}
+      for s = 1, #funcNm[d] do
+         local tmp = ffi.C[funcNm[d][s]]
+         kernels[d][s] = tmp
+      end
+      if d>CDIM then kernels[d][2] = kernels[d][1] end
    end
    return kernels
 end
@@ -129,10 +144,10 @@ function _M.selectStep2Surf(basisNm, CDIM, VDIM, polyOrder, positivity, Bvars, g
          funcSign = "(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR)"
       end
    elseif geoType == "GenGeo" then
-      funcSign = "(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *AparL, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR)"
+      funcSign = "(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR)"
       if positivity then
          posString = "Positivity"
-         funcSign = "(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *AparL, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR)"
+         funcSign = "(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR)"
       end
    end
 

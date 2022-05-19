@@ -1,5 +1,99 @@
 #include <GyrokineticModDecl.h>
-double EmGyrokineticSimpleHelicalSurf1x1vTensor_x_P1_Bvars(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR) 
+double EmGyrokineticSimpleHelicalSurf1x1vTensor_xL_P1_Bvars(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR) 
+{ 
+  // Apar: parallel component of magnetic vector potential.
+  // dApardt: time derivative of Apar.
+  // dApardtPrev: previous dApardt.
+  // emModL,emModR: .
+  // bmagInv: 1/bmag.
+  // BdriftX,BdriftY: x,y components of gradB/curvature drift.
+  // q_,m_: species charge and mass.
+  // cflL,cflR: CFL rate in left and right cells.
+  // wL[NDIM],wR[NDIM]: cell-center in left and right cells.
+  // dxvL[NDIM],dxvR[NDIM]: Cell length in left and right cells.
+  // amax_in: maximum phase-space speed.
+  // bmag: magnetic field amplitude.
+  // cmag: coefficient multiplying parallel gradient.
+  // phi: electrostatic potential .
+  // fL,fR: Distribution function in left and right cells.
+  // outL/outR: Output increment in left and right cells.
+
+  double wxL = wL[0];
+  double wxR = wR[0];
+  double rdx2L = 2.0/dxvL[0];
+  double rdx2R = 2.0/dxvR[0];
+  double wvparL = wL[1];
+  double wvparR = wR[1];
+  double rdvpar2L = 2.0/dxvL[1];
+  double rdvpar2R = 2.0/dxvR[1];
+
+  double wxSqL = wL[0]*wL[0];
+  double wxSqR = wR[0]*wR[0];
+  double rdx2SqL = rdx2L*rdx2L;
+  double rdx2SqR = rdx2R*rdx2R;
+  double wvparSqL = wL[1]*wL[1];
+  double wvparSqR = wR[1]*wR[1];
+  double rdvpar2SqL = rdvpar2L*rdvpar2L;
+  double rdvpar2SqR = rdvpar2R*rdvpar2R;
+
+  double hamilL[4]; 
+  hamilL[0] = (0.3333333333333333*(3.0*rdvpar2SqL*(m_*wvparSqL+1.414213562373095*phi[0]*q_)+m_))/rdvpar2SqL; 
+  hamilL[1] = 1.414213562373095*phi[1]*q_; 
+  hamilL[2] = (1.154700538379252*m_*wvparL)/rdvpar2L; 
+
+  double BstarZdBmagL[4]; 
+  BstarZdBmagL[0] = 1.414213562373095*cmag[0]; 
+
+  double alphaL[2]; 
+  alphaL[0] = (0.6123724356957944*BstarZdBmagL[0]*hamilL[2]*rdvpar2L)/m_; 
+
+  // Surface-averaged phase velocity in this direction.
+  double alphaSurfAvgL = (0.2165063509461096*BstarZdBmagL[0]*hamilL[2]*rdvpar2L)/m_; 
+
+  double incr[4]; 
+#if upwindType == SURFAVG 
+  if (alphaSurfAvgL>0) { 
+  incr[0] = 0.3535533905932737*alphaL[0]*(1.732050807568877*fL[1]+fL[0]); 
+  incr[1] = -0.3535533905932737*alphaL[0]*(3.0*fL[1]+1.732050807568877*fL[0]); 
+  incr[2] = 0.3535533905932737*alphaL[0]*(1.732050807568877*fL[3]+fL[2]); 
+  incr[3] = -0.3535533905932737*alphaL[0]*(3.0*fL[3]+1.732050807568877*fL[2]); 
+  } else { 
+  incr[0] = -0.3535533905932737*alphaL[0]*(1.732050807568877*fR[1]-1.0*fR[0]); 
+  incr[1] = 0.3535533905932737*alphaL[0]*(3.0*fR[1]-1.732050807568877*fR[0]); 
+  incr[2] = -0.3535533905932737*alphaL[0]*(1.732050807568877*fR[3]-1.0*fR[2]); 
+  incr[3] = 0.3535533905932737*alphaL[0]*(3.0*fR[3]-1.732050807568877*fR[2]); 
+  }
+#elif upwindType == QUAD 
+  double alphaOrdL;
+  double fUpOrd[2];
+  alphaOrdL = 0.7071067811865475*alphaL[0]; 
+  fUpOrd[0] = 0.5*(((-0.8660254037844386*(fR[3]+fL[3]))+0.5*fR[2]-0.5*fL[2]+0.8660254037844386*(fR[1]+fL[1])-0.5*fR[0]+0.5*fL[0])*sgn(alphaOrdL)+0.8660254037844386*fR[3]-0.8660254037844386*fL[3]-0.5*(fR[2]+fL[2])-0.8660254037844386*fR[1]+0.8660254037844386*fL[1]+0.5*(fR[0]+fL[0])); 
+  alphaOrdL = 0.7071067811865475*alphaL[0]; 
+  fUpOrd[1] = 0.5*((0.8660254037844386*(fR[3]+fL[3])-0.5*fR[2]+0.5*fL[2]+0.8660254037844386*(fR[1]+fL[1])-0.5*fR[0]+0.5*fL[0])*sgn(alphaOrdL)-0.8660254037844386*fR[3]+0.8660254037844386*fL[3]+0.5*(fR[2]+fL[2])-0.8660254037844386*fR[1]+0.8660254037844386*fL[1]+0.5*(fR[0]+fL[0])); 
+
+  double fUp[2];
+  fUp[0] = 0.7071067811865475*(fUpOrd[1]+fUpOrd[0]); 
+  fUp[1] = 0.7071067811865475*(fUpOrd[1]-1.0*fUpOrd[0]); 
+
+  incr[0] = 0.5*alphaL[0]*fUp[0]; 
+  incr[1] = -0.8660254037844386*alphaL[0]*fUp[0]; 
+  incr[2] = 0.5*alphaL[0]*fUp[1]; 
+  incr[3] = -0.8660254037844386*alphaL[0]*fUp[1]; 
+
+#endif 
+  outR[0] += incr[0]*rdx2R; 
+  outR[1] += incr[1]*rdx2R; 
+  outR[2] += incr[2]*rdx2R; 
+  outR[3] += incr[3]*rdx2R; 
+
+  outL[0] += -1.0*incr[0]*rdx2L; 
+  outL[1] += incr[1]*rdx2L; 
+  outL[2] += -1.0*incr[2]*rdx2L; 
+  outL[3] += incr[3]*rdx2L; 
+
+  return std::abs(alphaSurfAvgL); 
+} 
+double EmGyrokineticSimpleHelicalSurf1x1vTensor_xR_P1_Bvars(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR) 
 { 
   // Apar: parallel component of magnetic vector potential.
   // dApardt: time derivative of Apar.
@@ -314,7 +408,102 @@ double EmGyrokineticSimpleHelicalSurf1x1vTensorStep2_vpar_P1_Bvars(const double 
 
   return std::abs(alphaSurfAvgR); 
 } 
-double EmGyrokineticSimpleHelicalSurf1x1vTensor_x_P1_Bvarsx(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR) 
+double EmGyrokineticSimpleHelicalSurf1x1vTensor_xL_P1_Bvarsx(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR) 
+{ 
+  // Apar: parallel component of magnetic vector potential.
+  // dApardt: time derivative of Apar.
+  // dApardtPrev: previous dApardt.
+  // emModL,emModR: .
+  // bmagInv: 1/bmag.
+  // BdriftX,BdriftY: x,y components of gradB/curvature drift.
+  // q_,m_: species charge and mass.
+  // cflL,cflR: CFL rate in left and right cells.
+  // wL[NDIM],wR[NDIM]: cell-center in left and right cells.
+  // dxvL[NDIM],dxvR[NDIM]: Cell length in left and right cells.
+  // amax_in: maximum phase-space speed.
+  // bmag: magnetic field amplitude.
+  // cmag: coefficient multiplying parallel gradient.
+  // phi: electrostatic potential .
+  // fL,fR: Distribution function in left and right cells.
+  // outL/outR: Output increment in left and right cells.
+
+  double wxL = wL[0];
+  double wxR = wR[0];
+  double rdx2L = 2.0/dxvL[0];
+  double rdx2R = 2.0/dxvR[0];
+  double wvparL = wL[1];
+  double wvparR = wR[1];
+  double rdvpar2L = 2.0/dxvL[1];
+  double rdvpar2R = 2.0/dxvR[1];
+
+  double wxSqL = wL[0]*wL[0];
+  double wxSqR = wR[0]*wR[0];
+  double rdx2SqL = rdx2L*rdx2L;
+  double rdx2SqR = rdx2R*rdx2R;
+  double wvparSqL = wL[1]*wL[1];
+  double wvparSqR = wR[1]*wR[1];
+  double rdvpar2SqL = rdvpar2L*rdvpar2L;
+  double rdvpar2SqR = rdvpar2R*rdvpar2R;
+
+  double hamilL[4]; 
+  hamilL[0] = (0.3333333333333333*(3.0*rdvpar2SqL*(m_*wvparSqL+1.414213562373095*phi[0]*q_)+m_))/rdvpar2SqL; 
+  hamilL[1] = 1.414213562373095*phi[1]*q_; 
+  hamilL[2] = (1.154700538379252*m_*wvparL)/rdvpar2L; 
+
+  double BstarZdBmagL[4]; 
+  BstarZdBmagL[0] = 1.414213562373095*cmag[0]; 
+  BstarZdBmagL[1] = 1.414213562373095*cmag[1]; 
+
+  double alphaL[2]; 
+  alphaL[0] = (0.3535533905932737*(3.0*BstarZdBmagL[1]+1.732050807568877*BstarZdBmagL[0])*hamilL[2]*rdvpar2L)/m_; 
+
+  // Surface-averaged phase velocity in this direction.
+  double alphaSurfAvgL = (0.125*(3.0*BstarZdBmagL[1]+1.732050807568877*BstarZdBmagL[0])*hamilL[2]*rdvpar2L)/m_; 
+
+  double incr[4]; 
+#if upwindType == SURFAVG 
+  if (alphaSurfAvgL>0) { 
+  incr[0] = 0.3535533905932737*alphaL[0]*(1.732050807568877*fL[1]+fL[0]); 
+  incr[1] = -0.3535533905932737*alphaL[0]*(3.0*fL[1]+1.732050807568877*fL[0]); 
+  incr[2] = 0.3535533905932737*alphaL[0]*(1.732050807568877*fL[3]+fL[2]); 
+  incr[3] = -0.3535533905932737*alphaL[0]*(3.0*fL[3]+1.732050807568877*fL[2]); 
+  } else { 
+  incr[0] = -0.3535533905932737*alphaL[0]*(1.732050807568877*fR[1]-1.0*fR[0]); 
+  incr[1] = 0.3535533905932737*alphaL[0]*(3.0*fR[1]-1.732050807568877*fR[0]); 
+  incr[2] = -0.3535533905932737*alphaL[0]*(1.732050807568877*fR[3]-1.0*fR[2]); 
+  incr[3] = 0.3535533905932737*alphaL[0]*(3.0*fR[3]-1.732050807568877*fR[2]); 
+  }
+#elif upwindType == QUAD 
+  double alphaOrdL;
+  double fUpOrd[2];
+  alphaOrdL = 0.7071067811865475*alphaL[0]; 
+  fUpOrd[0] = 0.5*(((-0.8660254037844386*(fR[3]+fL[3]))+0.5*fR[2]-0.5*fL[2]+0.8660254037844386*(fR[1]+fL[1])-0.5*fR[0]+0.5*fL[0])*sgn(alphaOrdL)+0.8660254037844386*fR[3]-0.8660254037844386*fL[3]-0.5*(fR[2]+fL[2])-0.8660254037844386*fR[1]+0.8660254037844386*fL[1]+0.5*(fR[0]+fL[0])); 
+  alphaOrdL = 0.7071067811865475*alphaL[0]; 
+  fUpOrd[1] = 0.5*((0.8660254037844386*(fR[3]+fL[3])-0.5*fR[2]+0.5*fL[2]+0.8660254037844386*(fR[1]+fL[1])-0.5*fR[0]+0.5*fL[0])*sgn(alphaOrdL)-0.8660254037844386*fR[3]+0.8660254037844386*fL[3]+0.5*(fR[2]+fL[2])-0.8660254037844386*fR[1]+0.8660254037844386*fL[1]+0.5*(fR[0]+fL[0])); 
+
+  double fUp[2];
+  fUp[0] = 0.7071067811865475*(fUpOrd[1]+fUpOrd[0]); 
+  fUp[1] = 0.7071067811865475*(fUpOrd[1]-1.0*fUpOrd[0]); 
+
+  incr[0] = 0.5*alphaL[0]*fUp[0]; 
+  incr[1] = -0.8660254037844386*alphaL[0]*fUp[0]; 
+  incr[2] = 0.5*alphaL[0]*fUp[1]; 
+  incr[3] = -0.8660254037844386*alphaL[0]*fUp[1]; 
+
+#endif 
+  outR[0] += incr[0]*rdx2R; 
+  outR[1] += incr[1]*rdx2R; 
+  outR[2] += incr[2]*rdx2R; 
+  outR[3] += incr[3]*rdx2R; 
+
+  outL[0] += -1.0*incr[0]*rdx2L; 
+  outL[1] += incr[1]*rdx2L; 
+  outL[2] += -1.0*incr[2]*rdx2L; 
+  outL[3] += incr[3]*rdx2L; 
+
+  return std::abs(alphaSurfAvgL); 
+} 
+double EmGyrokineticSimpleHelicalSurf1x1vTensor_xR_P1_Bvarsx(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR) 
 { 
   // Apar: parallel component of magnetic vector potential.
   // dApardt: time derivative of Apar.
