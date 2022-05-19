@@ -9,6 +9,7 @@ double EmGyrokineticSimpleHelicalVol1x2vSerP1_Bvars(const double q_, const doubl
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
   // bmag: magnetic field amplitude.
+  // cmag: coefficient multiplying parallel gradient.
   // phi: electrostatic potential .
   // f: Distribution function.
   // out: output increment.
@@ -117,6 +118,7 @@ double EmGyrokineticSimpleHelicalVol1x2vSerP1_Bvarsx(const double q_, const doub
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
   // bmag: magnetic field amplitude.
+  // cmag: coefficient multiplying parallel gradient.
   // phi: electrostatic potential .
   // f: Distribution function.
   // out: output increment.
