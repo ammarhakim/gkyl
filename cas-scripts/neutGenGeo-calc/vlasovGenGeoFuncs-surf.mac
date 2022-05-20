@@ -3,12 +3,18 @@
 load("modal-basis")$
 load("out-scripts")$
 load(stringproc)$
+load("nodalOperations/nodalFunctions")$
 load("scifac")$
 fpprec : 24$
 
 varsV : [vx, vy, vz]$
 cvars : [X, Y, Z]$
 vvars : [VX, VY, VZ]$
+
+dvdx  : [dv0dx0, dv1dx1, dv2dx2]$
+wdx   : [w0dx0, w1dx1, w2dx2]$
+dv11l : [dv10l, dv11l, dv12l]$
+dv11r : [dv10r, dv11r, dv12r]$
 
 alphaFld : [ag0, ag1, ag2]$
 
@@ -19,6 +25,131 @@ vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 /* For example, alpha, the phase space flow only depends on a few phase space coordinates */
 doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+
+basisFromVars(basisType, varsIn, pIn) := block(
+  dimIn : length(varsIn),
+
+  /* In case varsP and varsC were already loaded, save them
+     and restore them at the end of this function. */
+  if listp(varsC) then (oldVarsC : copylist(varsC)),
+  if listp(varsP) then (oldVarsP : copylist(varsP)),
+
+  if dimIn > 3 then (
+    load(sconcat("basis-precalc/basis", basisType, dimIn-3, "x", 3, "v")),
+    basis : basisP[pIn],
+    vars  : varsP
+  ) elseif dimIn > 0 then (
+    load(sconcat("basis-precalc/basis", basisType, dimIn, "x")),
+    basis : basisC[pIn],
+    vars  : varsC
+  ) else (
+    basis : [],
+    vars  : []
+  ),
+  replaceList : makelist(vars[i]=varsIn[i],i,1,dimIn),
+  basis : psubst(replaceList,basis),
+
+  /* Restore varsC and varsP. */
+  if listp(oldVarsC) then (varsC : copylist(oldVarsC)),
+  if listp(oldVarsP) then (varsP : copylist(oldVarsP)),
+
+  return(basis)
+)$
+
+calcAndWrite_upwindIncr_wQuadNodeAlpha(fH,basisType,polyOrder,bP,surfDir,sideStr,alphaSurf_e) := block(
+  [varsP,numP,pDim,surfIntVars,surfNodes,numNodes,fL_e,fR_e,fOrdL_n,fOrdR_n,alphaOrd_n,
+   fUpOrd_n,nodToMod,fUp_c,fhatSurf_e,replaceList,tMod,incrModR_c,fhatAlpha_c],
+  /* Compute the common increment to left/right cells with upwinding based on
+     the quadrature-node values of the phase-space velocity alpha. Write them
+     out. The actual output should be these increments scaled by some
+     cell-length factor. */
+
+  varsP       : listofvars(bP),
+  numP        : length(bP),
+  surfVar     : varsP[surfDir],         /* Surface variable. */
+  surfIntVars : delete(surfVar,varsP),  /* Surface integral variables. */
+  pDim        : length(varsP),
+
+  surfNodes : getNodes(basisType, pDim-1, polyOrder),
+  if polyOrder=1 then (surfNodes:surfNodes*(1/sqrt(3))) elseif polyOrder=2 then (surfNodes:surfNodes*sqrt(3/5)),
+  if cdim=1 and vdim=2 and polyOrder=2 and basisType="Ser" then (
+    /* We found that the 1x2v p=2 Ser LBO does not conserve energy if we used
+       sqrt(3/5) nodes. But it does with sqrt(1/3) nodes, or some an arrangement
+       where corner cells are sqrt(3/5) nodes, and the other four nodes are sqrt(1/3)
+       nodes. We use a similar trick here for the collisionless terms. */
+    p1Nodes : args(getNodes(basisType, pDim-1, 1)),
+    p2Nodes : args(getNodes(basisType, pDim-1, 2)),
+    extraNodeInd : [],  p1NodeInd : [],
+    for i : 1 thru length(p2Nodes) do (
+      idx : sublist_indices(p1Nodes,lambda([x], x=p2Nodes[i])),
+      if length(idx)=0 then (
+        extraNodeInd : endcons(i,extraNodeInd)
+      ) else (
+        p1NodeInd : endcons(i,p1NodeInd)
+      )
+    ),
+    surfNodes : copylist(p2Nodes),
+    for i : 1 thru length(p1NodeInd) do (
+      surfNodes[p1NodeInd[i]] : p2Nodes[p1NodeInd[i]]*sqrt(3/5)
+    ),
+    for i : 1 thru length(extraNodeInd) do (
+      surfNodes[extraNodeInd[i]] : p2Nodes[extraNodeInd[i]]*sqrt(1/3)
+    )
+  ),
+  numNodes : length(surfNodes),
+
+  /* Expand distribution function. */
+  fL_e : doExpand1(fl,bP),  fR_e : doExpand1(fr,bP),
+
+  /* Evaluate fL, fR, and alpha at surface quadrature nodes. */
+  fOrdL_n : gcfac(float(evAtNodes(subst(surfVar=+1,fL_e),surfNodes,surfIntVars))),
+  fOrdR_n : gcfac(float(evAtNodes(subst(surfVar=-1,fR_e),surfNodes,surfIntVars))),
+  /* Evaluate alpha at ordinates.
+     Note: alphaSurf_e is already a surface expansion. */
+  alphaOrd_n : gcfac(float(evAtNodes(alphaSurf_e,surfNodes,surfIntVars))),
+  /* Determine upwinding at each surface quadrature node. */
+  fUpOrd_n : gcfac(.5*(fOrdL_n+fOrdR_n)+.5*sgn(eval_string(sconcat("alphaOrd",sideStr)))*(fOrdL_n-fOrdR_n)),
+  printf(fH, "  double alphaOrd~a;~%", sideStr),
+  printf(fH, "  double fUpOrd[~a];~%", numNodes),
+  for i : 1 thru numNodes do (
+    printf(fH, "  alphaOrd~a = ~a; ~%", sideStr, alphaOrd_n[i]),
+    printf(fH, "  fUpOrd[~a] = ~a; ~%", i-1, fUpOrd_n[i])
+  ),
+  printf(fH, "~%"),
+  flush_output(fH),
+
+  /* Get modal surface expansion from nodal quadrature points. */
+  nodToMod : calcNodToModWithNodes(basisType, pDim-1, polyOrder, surfNodes),
+  fUp_c : gcfac(fullratsimp(nodToMod . makelist(fUpOrd[i-1],i,1,numNodes))),
+  fUp_c : makelist(fUp_c[i][1],i,1,numNodes),
+  /* Write coefficients of modal surface expansion fupwind. */
+  printf(fH, "  double fUp[~a];~%", numNodes),
+  writeCExprsNoExpand1(fUp, fUp_c),
+  printf(fH, "~%"),
+  flush_output(fH),
+
+  bSurf : basisFromVars(basisType,surfIntVars,polyOrder),  /* Surface basis. */
+
+  fhatSurf_e : doExpand1(fUp,bSurf),
+
+  replaceList : [wvparL^2=wvparSqL, rdvpar2L^2=rdvpar2SqL, rdx2L^2=rdx2SqL,
+                 wvparR^2=wvparSqR, rdvpar2R^2=rdvpar2SqR, rdx2R^2=rdx2SqR, m_^2=mSq, q_^2=qSq],
+
+  print("before fhatAlpha_c"),
+  print(surfIntVars),
+  fhatAlpha_c : calcInnerProdList(surfIntVars, alphaSurf_e, subst(surfVar=-1, bP), fhatSurf_e),
+  incrR_c     : fullratsimp(fhatAlpha_c),
+  print("after fhatAlpha_c"),
+
+  fhatAlpha_c : calcInnerProdList(surfIntVars, alphaSurf_e, subst(surfVar=1, bP), fhatSurf_e),
+  incrL_c     : -fullratsimp(fhatAlpha_c),
+
+  writeCExprsNoExpand1(incr, subst(replaceList, incrR_c)),
+  printf(fH, "~%"),
+  flush_output(fH),
+
+  return([incrL_c,incrR_c])
+)$
 
 calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([bP,numBasisP,cid,vid,wvl,wvr,dvl,dvr,cv,vv,surfVars,fL_e,fR_e,fhat,surfTerm,incr_r,clst,incr_s],
 
@@ -40,18 +171,23 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
   printf(fh, "  // fl/fr:     Distribution function in left/right cells.~%"),
   printf(fh, "  // outl/outr: Incremented distribution function in left/right cells.~%"),
 
-  printf(fh, "~%"),
-
-  printf(fh, "  const double *ag~a = &alphaGeo[~a]; ~%", dir-1, numBasisP*(dir-1)),
-
-  /*for dir : 1 thru vdim do (
-    printf(fh, "  const double *ag~a = &alphaGeo[~a]; ~%", dir-1, numBasisP*(dir-1))
-  ),*/
-
-  printf(fh, "~%"),
-
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),
+
+  printf(fh, "~%"),
+
+  printf(fh, "  double dv1~al = 2/dxvl[~a]; ~%", dir-1, vid[dir]),
+  printf(fh, "  double dv1~ar = 2/dxvr[~a]; ~%", dir-1, vid[dir]),
+
+  printf(fh, "~%"),      
+
+  /*printf(fh, "  const double *ag~a = &alphaGeo[~a]; ~%", dir-1, numBasisP*(dir-1)),*/
+
+  for dir : 1 thru cdim do (
+    printf(fh, "  const double *ag~a = &alphaGeo[~a]; ~%", dir-1, numBasisP*(dir-1))
+  ),
+
+  printf(fh, "~%"),
 
   /* Cell centers and lengths along velocity space. */
   if (cdim=1) then (
@@ -67,12 +203,10 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
     dvr : dxvr[vid[dir]]
   ),
 
-  printf(fh, "  double rdxl2 = 2.0/dxvl[~a]; ~%", cid[dir]),
-  printf(fh, "  double rdxr2 = 2.0/dxvr[~a]; ~%~%", cid[dir]),
-
   cv : varsP[dir],
-  vv : varsV[dir],
+  vv : varsV[dir], /* Is this correct or not?? */
   surfVars : delete(cv,varsP),
+  print(surfVars),
 
   /* Generate surface basis. this produces the ndim-1 orthogonal basis with no vv dependence. */
   bSurf : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst([cv^2=var2,var2=1/3,cv=0],bP)))*bP),
@@ -84,7 +218,7 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
   /* Ghat is the projection of fL onto the surface basis (if v>0)
      or the projection of fR onto the surface basis (if v<0) */
   printf(fh, "  double alpha[~a]; ~%", length(bSurf)),	
-  printf(fh, "  double Ghat[~a]; ~%", length(bSurf)),
+  printf(fh, "  double incr[~a]; ~%", length(bP)),
   printf(fh, "~%"),
 
   /* Project alpha onto surface basis, and print resulting coefficients. */
@@ -96,55 +230,27 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
   alphaNoZero : doMakeExprLst(alpha_c, alpha),
   alpha_e     : doExpandLst(alphaNoZero, bSurf),
 
-  printf(fh, "  if (~a>0) { ~%",wvr),
+  print("about to calc upwind"),
+  /* Upwinded fluxes based on quadrature-node values of phase-velocity. */
+  [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wQuadNodeAlpha(fh,basisFun,polyOrder,bP,dir,"R",alpha_e),
 
-  Ghat_c : calcInnerProdList(surfVars, alpha_e, bSurf, subst(cv=1, fL_e)), /* Multiplication by vComp*jacGeo occurs here. */
-  clst   : [wvl, dvl],
-  writeCExprsCollect1(Ghat, Ghat_c, clst),
-  printf(fh, "~%"),
-  Ghat_c : doMakeExprLst(Ghat_c, Ghat),
-  Ghat_e : doExpandLst(Ghat_c, bSurf),
   flush_output(fh),
 
-  incr_r : calcInnerProdList(surfVars, 1, subst(cv=-1, bP), Ghat_e),
-
-  writeCIncrExprs1(outr, incr_r*rdxr2),
+  /* Write the actual increments to the left and right cells, which are
+     built with incr, dxv factors and some sign changes. */
+  incr_s : makelist(incr[i-1], i, 1, length(bP)),
+  writeCIncrExprsNoExpand1(outr, dv11r[dir]*incr_s),
   printf(fh, "~%"),
-  
-  incr_l : calcInnerProdList(surfVars, -1, subst(cv=1, bP), Ghat_e),
-
-  /* Left contribution is the same as the right contribution up to sign changes.
-     Can exploit this fact that reduce the number of multiplications. */
-  signs    : fullratsimp(incr_l/incr_r),
-  incr_new : makelist(signs[i]*incr_r[i], i, 1, length(bP)),
-  writeCIncrExprs1(outl, rdxl2*incr_new),
-
-  printf(fh, "  } else { ~%"),
-  
-  /* Ghat_c : calcInnerProdList(surfVars, subst(cv=1, alpha_e), bSurf, subst(cv=-1, fR_e)), */
-  Ghat_c : calcInnerProdList(surfVars, alpha_e, bSurf, subst(cv=-1, fR_e)),
-  clst   : [wvr, dvr],
-  writeCExprsCollect1(Ghat, Ghat_c, clst),
-  printf(fh, "~%"),
-  Ghat_c : doMakeExprLst(Ghat_c, Ghat),
-  Ghat_e : doExpandLst(Ghat_c, bSurf),
   flush_output(fh),
 
-  incr_r : calcInnerProdList(surfVars, 1, subst(cv=-1, bP), Ghat_e),
-
-  clst   : [wvr, dvr],
-  writeCIncrExprs1(outr, incr_r*rdxr2),
+  signs  : fullratsimp(incrL_c/incrR_c),
+  incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
+  writeCIncrExprsNoExpand1(outl, dv11l[dir]*incr_s),
   printf(fh, "~%"),
+  flush_output(fh),
 
-  incr_l : calcInnerProdList(surfVars, -1, subst(cv=1, bP), Ghat_e),
-
-  /* Left contribution is the same as the right contribution up to sign changes.
-     Can exploit this fact that reduce the number of multiplications. */
-  signs    : fullratsimp(incr_l/incr_r),
-  incr_new : makelist(signs[i]*incr_r[i], i, 1, length(bP)),
-  writeCIncrExprs1(outl, rdxl2*incr_new),
-  
-  printf(fh, "  } ~%"),
+  printf(fh, "~%"),
+  /* Return a local estimate of amax. */
   printf(fh, "} ~%")
 );
 
