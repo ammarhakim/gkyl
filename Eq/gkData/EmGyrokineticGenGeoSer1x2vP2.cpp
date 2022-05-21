@@ -9,6 +9,7 @@ double EmGyrokineticGenGeoVol1x2vSerP2_Bvars(const double q_, const double m_, c
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
   // bmag: magnetic field amplitude.
+  // cmag: coefficient multiplying parallel gradient.
   // phi: electrostatic potential .
   // f: Distribution function.
   // out: output increment.
@@ -168,6 +169,7 @@ double EmGyrokineticGenGeoVol1x2vSerP2_Bvarsx(const double q_, const double m_, 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
   // bmag: magnetic field amplitude.
+  // cmag: coefficient multiplying parallel gradient.
   // phi: electrostatic potential .
   // f: Distribution function.
   // out: output increment.
@@ -346,6 +348,7 @@ double EmGyrokineticGenGeoVol1x2vSerP2_Bvarsz(const double q_, const double m_, 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
   // bmag: magnetic field amplitude.
+  // cmag: coefficient multiplying parallel gradient.
   // phi: electrostatic potential .
   // f: Distribution function.
   // out: output increment.
@@ -505,6 +508,7 @@ double EmGyrokineticGenGeoVol1x2vSerP2_Bvarsxz(const double q_, const double m_,
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
   // bmag: magnetic field amplitude.
+  // cmag: coefficient multiplying parallel gradient.
   // phi: electrostatic potential .
   // f: Distribution function.
   // out: output increment.

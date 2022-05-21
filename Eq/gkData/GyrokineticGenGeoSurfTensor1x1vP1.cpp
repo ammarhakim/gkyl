@@ -1,5 +1,95 @@
 #include <GyrokineticModDecl.h>
-double GyrokineticGenGeoSurf1x1vTensor_x_P1_Bvars(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
+double GyrokineticGenGeoSurf1x1vTensor_xL_P1_Bvars(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
+{ 
+  // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.
+  // b_x,b_y,b_z: covariant components of the field aligned unit vector.
+  // q_,m_: species charge and mass.
+  // cflL,cflR: CFL rate in left and right cells.
+  // wL[NDIM],wR[NDIM]: cell-center in left and right cells.
+  // dxvL[NDIM],dxvR[NDIM]: Cell length in left and right cells.
+  // amax_in: maximum phase-space speed.
+  // bmag: magnetic field amplitude.
+  // cmag: coefficient multiplying parallel gradient.
+  // phi: electrostatic potential .
+  // fL,fR: Distribution function in left and right cells.
+  // outL/outR: Output increment in left and right cells.
+
+  double wxL = wL[0];
+  double wxR = wR[0];
+  double rdx2L = 2.0/dxvL[0];
+  double rdx2R = 2.0/dxvR[0];
+  double wvparL = wL[1];
+  double wvparR = wR[1];
+  double rdvpar2L = 2.0/dxvL[1];
+  double rdvpar2R = 2.0/dxvR[1];
+
+  double wxSqL = wL[0]*wL[0];
+  double wxSqR = wR[0]*wR[0];
+  double rdx2SqL = rdx2L*rdx2L;
+  double rdx2SqR = rdx2R*rdx2R;
+  double wvparSqL = wL[1]*wL[1];
+  double wvparSqR = wR[1]*wR[1];
+  double rdvpar2SqL = rdvpar2L*rdvpar2L;
+  double rdvpar2SqR = rdvpar2R*rdvpar2R;
+
+  double hamilL[4]; 
+  hamilL[0] = (0.3333333333333333*(3.0*rdvpar2SqL*(m_*wvparSqL+1.414213562373095*phi[0]*q_)+m_))/rdvpar2SqL; 
+  hamilL[1] = 1.414213562373095*phi[1]*q_; 
+  hamilL[2] = (1.154700538379252*m_*wvparL)/rdvpar2L; 
+
+  double BstarZdBmagL[4]; 
+  BstarZdBmagL[0] = cmag[0]*jacobTotInv[0]; 
+
+  double alphaL[2]; 
+  alphaL[0] = (0.6123724356957944*BstarZdBmagL[0]*hamilL[2]*rdvpar2L)/m_; 
+
+  // Surface-averaged phase velocity in this direction.
+  double alphaSurfAvgL = (0.2165063509461096*BstarZdBmagL[0]*hamilL[2]*rdvpar2L)/m_; 
+
+  double incr[4]; 
+#if upwindType == SURFAVG 
+  if (alphaSurfAvgL>0) { 
+  incr[0] = 0.3535533905932737*alphaL[0]*(1.732050807568877*fL[1]+fL[0]); 
+  incr[1] = -0.3535533905932737*alphaL[0]*(3.0*fL[1]+1.732050807568877*fL[0]); 
+  incr[2] = 0.3535533905932737*alphaL[0]*(1.732050807568877*fL[3]+fL[2]); 
+  incr[3] = -0.3535533905932737*alphaL[0]*(3.0*fL[3]+1.732050807568877*fL[2]); 
+  } else { 
+  incr[0] = -0.3535533905932737*alphaL[0]*(1.732050807568877*fR[1]-1.0*fR[0]); 
+  incr[1] = 0.3535533905932737*alphaL[0]*(3.0*fR[1]-1.732050807568877*fR[0]); 
+  incr[2] = -0.3535533905932737*alphaL[0]*(1.732050807568877*fR[3]-1.0*fR[2]); 
+  incr[3] = 0.3535533905932737*alphaL[0]*(3.0*fR[3]-1.732050807568877*fR[2]); 
+  }
+#elif upwindType == QUAD 
+  double alphaOrdL;
+  double fUpOrd[2];
+  alphaOrdL = 0.7071067811865475*alphaL[0]; 
+  fUpOrd[0] = 0.5*(((-0.8660254037844386*(fR[3]+fL[3]))+0.5*fR[2]-0.5*fL[2]+0.8660254037844386*(fR[1]+fL[1])-0.5*fR[0]+0.5*fL[0])*sgn(alphaOrdL)+0.8660254037844386*fR[3]-0.8660254037844386*fL[3]-0.5*(fR[2]+fL[2])-0.8660254037844386*fR[1]+0.8660254037844386*fL[1]+0.5*(fR[0]+fL[0])); 
+  alphaOrdL = 0.7071067811865475*alphaL[0]; 
+  fUpOrd[1] = 0.5*((0.8660254037844386*(fR[3]+fL[3])-0.5*fR[2]+0.5*fL[2]+0.8660254037844386*(fR[1]+fL[1])-0.5*fR[0]+0.5*fL[0])*sgn(alphaOrdL)-0.8660254037844386*fR[3]+0.8660254037844386*fL[3]+0.5*(fR[2]+fL[2])-0.8660254037844386*fR[1]+0.8660254037844386*fL[1]+0.5*(fR[0]+fL[0])); 
+
+  double fUp[2];
+  fUp[0] = 0.7071067811865475*(fUpOrd[1]+fUpOrd[0]); 
+  fUp[1] = 0.7071067811865475*(fUpOrd[1]-1.0*fUpOrd[0]); 
+
+  incr[0] = 0.5*alphaL[0]*fUp[0]; 
+  incr[1] = -0.8660254037844386*alphaL[0]*fUp[0]; 
+  incr[2] = 0.5*alphaL[0]*fUp[1]; 
+  incr[3] = -0.8660254037844386*alphaL[0]*fUp[1]; 
+
+#endif 
+  outR[0] += incr[0]*rdx2R; 
+  outR[1] += incr[1]*rdx2R; 
+  outR[2] += incr[2]*rdx2R; 
+  outR[3] += incr[3]*rdx2R; 
+
+  outL[0] += -1.0*incr[0]*rdx2L; 
+  outL[1] += incr[1]*rdx2L; 
+  outL[2] += -1.0*incr[2]*rdx2L; 
+  outL[3] += incr[3]*rdx2L; 
+
+  return std::abs(alphaSurfAvgL); 
+} 
+double GyrokineticGenGeoSurf1x1vTensor_xR_P1_Bvars(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
 { 
   // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.
   // b_x,b_y,b_z: covariant components of the field aligned unit vector.
@@ -179,7 +269,101 @@ double GyrokineticGenGeoSurf1x1vTensor_vpar_P1_Bvars(const double q_, const doub
 
   return std::abs(alphaSurfAvgR); 
 } 
-double GyrokineticGenGeoSurf1x1vTensor_x_P1_Bvarsx(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
+double GyrokineticGenGeoSurf1x1vTensor_xL_P1_Bvarsx(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
+{ 
+  // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.
+  // b_x,b_y,b_z: covariant components of the field aligned unit vector.
+  // q_,m_: species charge and mass.
+  // cflL,cflR: CFL rate in left and right cells.
+  // wL[NDIM],wR[NDIM]: cell-center in left and right cells.
+  // dxvL[NDIM],dxvR[NDIM]: Cell length in left and right cells.
+  // amax_in: maximum phase-space speed.
+  // bmag: magnetic field amplitude.
+  // cmag: coefficient multiplying parallel gradient.
+  // phi: electrostatic potential .
+  // fL,fR: Distribution function in left and right cells.
+  // outL/outR: Output increment in left and right cells.
+
+  double wxL = wL[0];
+  double wxR = wR[0];
+  double rdx2L = 2.0/dxvL[0];
+  double rdx2R = 2.0/dxvR[0];
+  double wvparL = wL[1];
+  double wvparR = wR[1];
+  double rdvpar2L = 2.0/dxvL[1];
+  double rdvpar2R = 2.0/dxvR[1];
+
+  double wxSqL = wL[0]*wL[0];
+  double wxSqR = wR[0]*wR[0];
+  double rdx2SqL = rdx2L*rdx2L;
+  double rdx2SqR = rdx2R*rdx2R;
+  double wvparSqL = wL[1]*wL[1];
+  double wvparSqR = wR[1]*wR[1];
+  double rdvpar2SqL = rdvpar2L*rdvpar2L;
+  double rdvpar2SqR = rdvpar2R*rdvpar2R;
+
+  double hamilL[4]; 
+  hamilL[0] = (0.3333333333333333*(3.0*rdvpar2SqL*(m_*wvparSqL+1.414213562373095*phi[0]*q_)+m_))/rdvpar2SqL; 
+  hamilL[1] = 1.414213562373095*phi[1]*q_; 
+  hamilL[2] = (1.154700538379252*m_*wvparL)/rdvpar2L; 
+
+  double BstarZdBmagL[4]; 
+  BstarZdBmagL[0] = (1.732050807568877*jacobTotInv[0]*b_y[1]*m_*rdx2L*wvparL+(cmag[1]*jacobTotInv[1]+cmag[0]*jacobTotInv[0])*q_)/q_; 
+  BstarZdBmagL[1] = (1.732050807568877*b_y[1]*jacobTotInv[1]*m_*rdx2L*wvparL+(cmag[0]*jacobTotInv[1]+jacobTotInv[0]*cmag[1])*q_)/q_; 
+  BstarZdBmagL[2] = (jacobTotInv[0]*b_y[1]*m_*rdx2L)/(q_*rdvpar2L); 
+  BstarZdBmagL[3] = (b_y[1]*jacobTotInv[1]*m_*rdx2L)/(q_*rdvpar2L); 
+
+  double alphaL[2]; 
+  alphaL[0] = (0.3535533905932737*(3.0*BstarZdBmagL[1]+1.732050807568877*BstarZdBmagL[0])*hamilL[2]*rdvpar2L)/m_; 
+  alphaL[1] = (0.3535533905932737*hamilL[2]*(3.0*BstarZdBmagL[3]+1.732050807568877*BstarZdBmagL[2])*rdvpar2L)/m_; 
+
+  // Surface-averaged phase velocity in this direction.
+  double alphaSurfAvgL = (0.125*(3.0*BstarZdBmagL[1]+1.732050807568877*BstarZdBmagL[0])*hamilL[2]*rdvpar2L)/m_; 
+
+  double incr[4]; 
+#if upwindType == SURFAVG 
+  if (alphaSurfAvgL>0) { 
+  incr[0] = 0.25*(alphaL[1]*(2.449489742783178*fL[3]+1.414213562373095*fL[2])+alphaL[0]*(2.449489742783178*fL[1]+1.414213562373095*fL[0])); 
+  incr[1] = -0.25*(alphaL[1]*(4.242640687119286*fL[3]+2.449489742783178*fL[2])+alphaL[0]*(4.242640687119286*fL[1]+2.449489742783178*fL[0])); 
+  incr[2] = 0.25*(alphaL[0]*(2.449489742783178*fL[3]+1.414213562373095*fL[2])+alphaL[1]*(2.449489742783178*fL[1]+1.414213562373095*fL[0])); 
+  incr[3] = -0.25*(alphaL[0]*(4.242640687119286*fL[3]+2.449489742783178*fL[2])+alphaL[1]*(4.242640687119286*fL[1]+2.449489742783178*fL[0])); 
+  } else { 
+  incr[0] = -0.25*(alphaL[1]*(2.449489742783178*fR[3]-1.414213562373095*fR[2])+alphaL[0]*(2.449489742783178*fR[1]-1.414213562373095*fR[0])); 
+  incr[1] = 0.25*(alphaL[1]*(4.242640687119286*fR[3]-2.449489742783178*fR[2])+alphaL[0]*(4.242640687119286*fR[1]-2.449489742783178*fR[0])); 
+  incr[2] = -0.25*(alphaL[0]*(2.449489742783178*fR[3]-1.414213562373095*fR[2])+alphaL[1]*(2.449489742783178*fR[1]-1.414213562373095*fR[0])); 
+  incr[3] = 0.25*(alphaL[0]*(4.242640687119286*fR[3]-2.449489742783178*fR[2])+alphaL[1]*(4.242640687119286*fR[1]-2.449489742783178*fR[0])); 
+  }
+#elif upwindType == QUAD 
+  double alphaOrdL;
+  double fUpOrd[2];
+  alphaOrdL = 0.7071067811865475*alphaL[0]-0.7071067811865475*alphaL[1]; 
+  fUpOrd[0] = 0.5*(((-0.8660254037844386*(fR[3]+fL[3]))+0.5*fR[2]-0.5*fL[2]+0.8660254037844386*(fR[1]+fL[1])-0.5*fR[0]+0.5*fL[0])*sgn(alphaOrdL)+0.8660254037844386*fR[3]-0.8660254037844386*fL[3]-0.5*(fR[2]+fL[2])-0.8660254037844386*fR[1]+0.8660254037844386*fL[1]+0.5*(fR[0]+fL[0])); 
+  alphaOrdL = 0.7071067811865475*(alphaL[1]+alphaL[0]); 
+  fUpOrd[1] = 0.5*((0.8660254037844386*(fR[3]+fL[3])-0.5*fR[2]+0.5*fL[2]+0.8660254037844386*(fR[1]+fL[1])-0.5*fR[0]+0.5*fL[0])*sgn(alphaOrdL)-0.8660254037844386*fR[3]+0.8660254037844386*fL[3]+0.5*(fR[2]+fL[2])-0.8660254037844386*fR[1]+0.8660254037844386*fL[1]+0.5*(fR[0]+fL[0])); 
+
+  double fUp[2];
+  fUp[0] = 0.7071067811865475*(fUpOrd[1]+fUpOrd[0]); 
+  fUp[1] = 0.7071067811865475*(fUpOrd[1]-1.0*fUpOrd[0]); 
+
+  incr[0] = 0.5*(alphaL[1]*fUp[1]+alphaL[0]*fUp[0]); 
+  incr[1] = -0.8660254037844386*(alphaL[1]*fUp[1]+alphaL[0]*fUp[0]); 
+  incr[2] = 0.5*(alphaL[0]*fUp[1]+fUp[0]*alphaL[1]); 
+  incr[3] = -0.8660254037844386*(alphaL[0]*fUp[1]+fUp[0]*alphaL[1]); 
+
+#endif 
+  outR[0] += incr[0]*rdx2R; 
+  outR[1] += incr[1]*rdx2R; 
+  outR[2] += incr[2]*rdx2R; 
+  outR[3] += incr[3]*rdx2R; 
+
+  outL[0] += -1.0*incr[0]*rdx2L; 
+  outL[1] += incr[1]*rdx2L; 
+  outL[2] += -1.0*incr[2]*rdx2L; 
+  outL[3] += incr[3]*rdx2L; 
+
+  return std::abs(alphaSurfAvgL); 
+} 
+double GyrokineticGenGeoSurf1x1vTensor_xR_P1_Bvarsx(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
 { 
   // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.
   // b_x,b_y,b_z: covariant components of the field aligned unit vector.
@@ -367,7 +551,97 @@ double GyrokineticGenGeoSurf1x1vTensor_vpar_P1_Bvarsx(const double q_, const dou
 
   return std::abs(alphaSurfAvgR); 
 } 
-double GyrokineticGenGeoSurf1x1vTensor_x_P1_Bvarsz(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
+double GyrokineticGenGeoSurf1x1vTensor_xL_P1_Bvarsz(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
+{ 
+  // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.
+  // b_x,b_y,b_z: covariant components of the field aligned unit vector.
+  // q_,m_: species charge and mass.
+  // cflL,cflR: CFL rate in left and right cells.
+  // wL[NDIM],wR[NDIM]: cell-center in left and right cells.
+  // dxvL[NDIM],dxvR[NDIM]: Cell length in left and right cells.
+  // amax_in: maximum phase-space speed.
+  // bmag: magnetic field amplitude.
+  // cmag: coefficient multiplying parallel gradient.
+  // phi: electrostatic potential .
+  // fL,fR: Distribution function in left and right cells.
+  // outL/outR: Output increment in left and right cells.
+
+  double wxL = wL[0];
+  double wxR = wR[0];
+  double rdx2L = 2.0/dxvL[0];
+  double rdx2R = 2.0/dxvR[0];
+  double wvparL = wL[1];
+  double wvparR = wR[1];
+  double rdvpar2L = 2.0/dxvL[1];
+  double rdvpar2R = 2.0/dxvR[1];
+
+  double wxSqL = wL[0]*wL[0];
+  double wxSqR = wR[0]*wR[0];
+  double rdx2SqL = rdx2L*rdx2L;
+  double rdx2SqR = rdx2R*rdx2R;
+  double wvparSqL = wL[1]*wL[1];
+  double wvparSqR = wR[1]*wR[1];
+  double rdvpar2SqL = rdvpar2L*rdvpar2L;
+  double rdvpar2SqR = rdvpar2R*rdvpar2R;
+
+  double hamilL[4]; 
+  hamilL[0] = (0.3333333333333333*(3.0*rdvpar2SqL*(m_*wvparSqL+1.414213562373095*phi[0]*q_)+m_))/rdvpar2SqL; 
+  hamilL[1] = 1.414213562373095*phi[1]*q_; 
+  hamilL[2] = (1.154700538379252*m_*wvparL)/rdvpar2L; 
+
+  double BstarZdBmagL[4]; 
+  BstarZdBmagL[0] = cmag[0]*jacobTotInv[0]; 
+
+  double alphaL[2]; 
+  alphaL[0] = (0.6123724356957944*BstarZdBmagL[0]*hamilL[2]*rdvpar2L)/m_; 
+
+  // Surface-averaged phase velocity in this direction.
+  double alphaSurfAvgL = (0.2165063509461096*BstarZdBmagL[0]*hamilL[2]*rdvpar2L)/m_; 
+
+  double incr[4]; 
+#if upwindType == SURFAVG 
+  if (alphaSurfAvgL>0) { 
+  incr[0] = 0.3535533905932737*alphaL[0]*(1.732050807568877*fL[1]+fL[0]); 
+  incr[1] = -0.3535533905932737*alphaL[0]*(3.0*fL[1]+1.732050807568877*fL[0]); 
+  incr[2] = 0.3535533905932737*alphaL[0]*(1.732050807568877*fL[3]+fL[2]); 
+  incr[3] = -0.3535533905932737*alphaL[0]*(3.0*fL[3]+1.732050807568877*fL[2]); 
+  } else { 
+  incr[0] = -0.3535533905932737*alphaL[0]*(1.732050807568877*fR[1]-1.0*fR[0]); 
+  incr[1] = 0.3535533905932737*alphaL[0]*(3.0*fR[1]-1.732050807568877*fR[0]); 
+  incr[2] = -0.3535533905932737*alphaL[0]*(1.732050807568877*fR[3]-1.0*fR[2]); 
+  incr[3] = 0.3535533905932737*alphaL[0]*(3.0*fR[3]-1.732050807568877*fR[2]); 
+  }
+#elif upwindType == QUAD 
+  double alphaOrdL;
+  double fUpOrd[2];
+  alphaOrdL = 0.7071067811865475*alphaL[0]; 
+  fUpOrd[0] = 0.5*(((-0.8660254037844386*(fR[3]+fL[3]))+0.5*fR[2]-0.5*fL[2]+0.8660254037844386*(fR[1]+fL[1])-0.5*fR[0]+0.5*fL[0])*sgn(alphaOrdL)+0.8660254037844386*fR[3]-0.8660254037844386*fL[3]-0.5*(fR[2]+fL[2])-0.8660254037844386*fR[1]+0.8660254037844386*fL[1]+0.5*(fR[0]+fL[0])); 
+  alphaOrdL = 0.7071067811865475*alphaL[0]; 
+  fUpOrd[1] = 0.5*((0.8660254037844386*(fR[3]+fL[3])-0.5*fR[2]+0.5*fL[2]+0.8660254037844386*(fR[1]+fL[1])-0.5*fR[0]+0.5*fL[0])*sgn(alphaOrdL)-0.8660254037844386*fR[3]+0.8660254037844386*fL[3]+0.5*(fR[2]+fL[2])-0.8660254037844386*fR[1]+0.8660254037844386*fL[1]+0.5*(fR[0]+fL[0])); 
+
+  double fUp[2];
+  fUp[0] = 0.7071067811865475*(fUpOrd[1]+fUpOrd[0]); 
+  fUp[1] = 0.7071067811865475*(fUpOrd[1]-1.0*fUpOrd[0]); 
+
+  incr[0] = 0.5*alphaL[0]*fUp[0]; 
+  incr[1] = -0.8660254037844386*alphaL[0]*fUp[0]; 
+  incr[2] = 0.5*alphaL[0]*fUp[1]; 
+  incr[3] = -0.8660254037844386*alphaL[0]*fUp[1]; 
+
+#endif 
+  outR[0] += incr[0]*rdx2R; 
+  outR[1] += incr[1]*rdx2R; 
+  outR[2] += incr[2]*rdx2R; 
+  outR[3] += incr[3]*rdx2R; 
+
+  outL[0] += -1.0*incr[0]*rdx2L; 
+  outL[1] += incr[1]*rdx2L; 
+  outL[2] += -1.0*incr[2]*rdx2L; 
+  outL[3] += incr[3]*rdx2L; 
+
+  return std::abs(alphaSurfAvgL); 
+} 
+double GyrokineticGenGeoSurf1x1vTensor_xR_P1_Bvarsz(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
 { 
   // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.
   // b_x,b_y,b_z: covariant components of the field aligned unit vector.
@@ -547,7 +821,101 @@ double GyrokineticGenGeoSurf1x1vTensor_vpar_P1_Bvarsz(const double q_, const dou
 
   return std::abs(alphaSurfAvgR); 
 } 
-double GyrokineticGenGeoSurf1x1vTensor_x_P1_Bvarsxz(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
+double GyrokineticGenGeoSurf1x1vTensor_xL_P1_Bvarsxz(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
+{ 
+  // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.
+  // b_x,b_y,b_z: covariant components of the field aligned unit vector.
+  // q_,m_: species charge and mass.
+  // cflL,cflR: CFL rate in left and right cells.
+  // wL[NDIM],wR[NDIM]: cell-center in left and right cells.
+  // dxvL[NDIM],dxvR[NDIM]: Cell length in left and right cells.
+  // amax_in: maximum phase-space speed.
+  // bmag: magnetic field amplitude.
+  // cmag: coefficient multiplying parallel gradient.
+  // phi: electrostatic potential .
+  // fL,fR: Distribution function in left and right cells.
+  // outL/outR: Output increment in left and right cells.
+
+  double wxL = wL[0];
+  double wxR = wR[0];
+  double rdx2L = 2.0/dxvL[0];
+  double rdx2R = 2.0/dxvR[0];
+  double wvparL = wL[1];
+  double wvparR = wR[1];
+  double rdvpar2L = 2.0/dxvL[1];
+  double rdvpar2R = 2.0/dxvR[1];
+
+  double wxSqL = wL[0]*wL[0];
+  double wxSqR = wR[0]*wR[0];
+  double rdx2SqL = rdx2L*rdx2L;
+  double rdx2SqR = rdx2R*rdx2R;
+  double wvparSqL = wL[1]*wL[1];
+  double wvparSqR = wR[1]*wR[1];
+  double rdvpar2SqL = rdvpar2L*rdvpar2L;
+  double rdvpar2SqR = rdvpar2R*rdvpar2R;
+
+  double hamilL[4]; 
+  hamilL[0] = (0.3333333333333333*(3.0*rdvpar2SqL*(m_*wvparSqL+1.414213562373095*phi[0]*q_)+m_))/rdvpar2SqL; 
+  hamilL[1] = 1.414213562373095*phi[1]*q_; 
+  hamilL[2] = (1.154700538379252*m_*wvparL)/rdvpar2L; 
+
+  double BstarZdBmagL[4]; 
+  BstarZdBmagL[0] = (1.732050807568877*jacobTotInv[0]*b_y[1]*m_*rdx2L*wvparL+(cmag[1]*jacobTotInv[1]+cmag[0]*jacobTotInv[0])*q_)/q_; 
+  BstarZdBmagL[1] = (1.732050807568877*b_y[1]*jacobTotInv[1]*m_*rdx2L*wvparL+(cmag[0]*jacobTotInv[1]+jacobTotInv[0]*cmag[1])*q_)/q_; 
+  BstarZdBmagL[2] = (jacobTotInv[0]*b_y[1]*m_*rdx2L)/(q_*rdvpar2L); 
+  BstarZdBmagL[3] = (b_y[1]*jacobTotInv[1]*m_*rdx2L)/(q_*rdvpar2L); 
+
+  double alphaL[2]; 
+  alphaL[0] = (0.3535533905932737*(3.0*BstarZdBmagL[1]+1.732050807568877*BstarZdBmagL[0])*hamilL[2]*rdvpar2L)/m_; 
+  alphaL[1] = (0.3535533905932737*hamilL[2]*(3.0*BstarZdBmagL[3]+1.732050807568877*BstarZdBmagL[2])*rdvpar2L)/m_; 
+
+  // Surface-averaged phase velocity in this direction.
+  double alphaSurfAvgL = (0.125*(3.0*BstarZdBmagL[1]+1.732050807568877*BstarZdBmagL[0])*hamilL[2]*rdvpar2L)/m_; 
+
+  double incr[4]; 
+#if upwindType == SURFAVG 
+  if (alphaSurfAvgL>0) { 
+  incr[0] = 0.25*(alphaL[1]*(2.449489742783178*fL[3]+1.414213562373095*fL[2])+alphaL[0]*(2.449489742783178*fL[1]+1.414213562373095*fL[0])); 
+  incr[1] = -0.25*(alphaL[1]*(4.242640687119286*fL[3]+2.449489742783178*fL[2])+alphaL[0]*(4.242640687119286*fL[1]+2.449489742783178*fL[0])); 
+  incr[2] = 0.25*(alphaL[0]*(2.449489742783178*fL[3]+1.414213562373095*fL[2])+alphaL[1]*(2.449489742783178*fL[1]+1.414213562373095*fL[0])); 
+  incr[3] = -0.25*(alphaL[0]*(4.242640687119286*fL[3]+2.449489742783178*fL[2])+alphaL[1]*(4.242640687119286*fL[1]+2.449489742783178*fL[0])); 
+  } else { 
+  incr[0] = -0.25*(alphaL[1]*(2.449489742783178*fR[3]-1.414213562373095*fR[2])+alphaL[0]*(2.449489742783178*fR[1]-1.414213562373095*fR[0])); 
+  incr[1] = 0.25*(alphaL[1]*(4.242640687119286*fR[3]-2.449489742783178*fR[2])+alphaL[0]*(4.242640687119286*fR[1]-2.449489742783178*fR[0])); 
+  incr[2] = -0.25*(alphaL[0]*(2.449489742783178*fR[3]-1.414213562373095*fR[2])+alphaL[1]*(2.449489742783178*fR[1]-1.414213562373095*fR[0])); 
+  incr[3] = 0.25*(alphaL[0]*(4.242640687119286*fR[3]-2.449489742783178*fR[2])+alphaL[1]*(4.242640687119286*fR[1]-2.449489742783178*fR[0])); 
+  }
+#elif upwindType == QUAD 
+  double alphaOrdL;
+  double fUpOrd[2];
+  alphaOrdL = 0.7071067811865475*alphaL[0]-0.7071067811865475*alphaL[1]; 
+  fUpOrd[0] = 0.5*(((-0.8660254037844386*(fR[3]+fL[3]))+0.5*fR[2]-0.5*fL[2]+0.8660254037844386*(fR[1]+fL[1])-0.5*fR[0]+0.5*fL[0])*sgn(alphaOrdL)+0.8660254037844386*fR[3]-0.8660254037844386*fL[3]-0.5*(fR[2]+fL[2])-0.8660254037844386*fR[1]+0.8660254037844386*fL[1]+0.5*(fR[0]+fL[0])); 
+  alphaOrdL = 0.7071067811865475*(alphaL[1]+alphaL[0]); 
+  fUpOrd[1] = 0.5*((0.8660254037844386*(fR[3]+fL[3])-0.5*fR[2]+0.5*fL[2]+0.8660254037844386*(fR[1]+fL[1])-0.5*fR[0]+0.5*fL[0])*sgn(alphaOrdL)-0.8660254037844386*fR[3]+0.8660254037844386*fL[3]+0.5*(fR[2]+fL[2])-0.8660254037844386*fR[1]+0.8660254037844386*fL[1]+0.5*(fR[0]+fL[0])); 
+
+  double fUp[2];
+  fUp[0] = 0.7071067811865475*(fUpOrd[1]+fUpOrd[0]); 
+  fUp[1] = 0.7071067811865475*(fUpOrd[1]-1.0*fUpOrd[0]); 
+
+  incr[0] = 0.5*(alphaL[1]*fUp[1]+alphaL[0]*fUp[0]); 
+  incr[1] = -0.8660254037844386*(alphaL[1]*fUp[1]+alphaL[0]*fUp[0]); 
+  incr[2] = 0.5*(alphaL[0]*fUp[1]+fUp[0]*alphaL[1]); 
+  incr[3] = -0.8660254037844386*(alphaL[0]*fUp[1]+fUp[0]*alphaL[1]); 
+
+#endif 
+  outR[0] += incr[0]*rdx2R; 
+  outR[1] += incr[1]*rdx2R; 
+  outR[2] += incr[2]*rdx2R; 
+  outR[3] += incr[3]*rdx2R; 
+
+  outL[0] += -1.0*incr[0]*rdx2L; 
+  outL[1] += incr[1]*rdx2L; 
+  outL[2] += -1.0*incr[2]*rdx2L; 
+  outL[3] += incr[3]*rdx2L; 
+
+  return std::abs(alphaSurfAvgL); 
+} 
+double GyrokineticGenGeoSurf1x1vTensor_xR_P1_Bvarsxz(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
 { 
   // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.
   // b_x,b_y,b_z: covariant components of the field aligned unit vector.
