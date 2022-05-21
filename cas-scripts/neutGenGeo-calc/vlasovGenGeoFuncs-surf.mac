@@ -179,6 +179,9 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
   printf(fh, "  double dv1~al = 2/dxvl[~a]; ~%", dir-1, vid[dir]),
   printf(fh, "  double dv1~ar = 2/dxvr[~a]; ~%", dir-1, vid[dir]),
 
+  printf(fh, "  double rdxl2 = 2.0/dxvl[~a]; ~%", cid[dir]),
+  printf(fh, "  double rdxr2 = 2.0/dxvr[~a]; ~%~%", cid[dir]),
+
   printf(fh, "~%"),      
 
   /*printf(fh, "  const double *ag~a = &alphaGeo[~a]; ~%", dir-1, numBasisP*(dir-1)),*/
@@ -214,9 +217,6 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
   fL_e : doExpand1(fl, bP),
   fR_e : doExpand1(fr, bP),
   alphaGeo_e : doExpand1(alphaFld[dir], bP),
-
-  /* Ghat is the projection of fL onto the surface basis (if v>0)
-     or the projection of fR onto the surface basis (if v<0) */
   printf(fh, "  double alpha[~a]; ~%", length(bSurf)),	
   printf(fh, "  double incr[~a]; ~%", length(bP)),
   printf(fh, "~%"),
@@ -231,7 +231,7 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
   alpha_e     : doExpandLst(alphaNoZero, bSurf),
 
   print("about to calc upwind"),
-  /* Upwinded fluxes based on quadrature-node values of phase-velocity. */
+  /* Upwinded fluxes based on quadrature-node values of alphaGeo velocity. */
   [incrL_c, incrR_c] : calcAndWrite_upwindIncr_wQuadNodeAlpha(fh,basisFun,polyOrder,bP,dir,"R",alpha_e),
 
   flush_output(fh),
@@ -239,15 +239,17 @@ calcVlasovGenGeoSurfUpdater(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([
   /* Write the actual increments to the left and right cells, which are
      built with incr, dxv factors and some sign changes. */
   incr_s : makelist(incr[i-1], i, 1, length(bP)),
-  writeCIncrExprsNoExpand1(outr, dv11r[dir]*incr_s),
+  writeCIncrExprsNoExpand1(outr, rdxr2*incr_s),
   printf(fh, "~%"),
   flush_output(fh),
 
   signs  : fullratsimp(incrL_c/incrR_c),
   incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
-  writeCIncrExprsNoExpand1(outl, dv11l[dir]*incr_s),
+  writeCIncrExprsNoExpand1(outl, rdxl2*incr_s),
   printf(fh, "~%"),
   flush_output(fh),
+
+
 
   printf(fh, "~%"),
   /* Return a local estimate of amax. */
