@@ -1,0 +1,237 @@
+/* This script generates the streaming kernels for the volume term contribution from 
+   the Vlasov equation for neutral species in general geometry. */
+
+load("modal-basis");
+load("out-scripts");
+load ("scifac")$
+load(stringproc)$
+load("vect")$
+load("nodalOperations/nodalFunctions")$
+fpprec : 24$
+
+varsV : [vx, vy, vz]$
+cvars : [X, Y, Z]$
+vvars : [VX, VY, VZ]$
+
+dvdx : [dv0dx0, dv1dx1, dv2dx2]$
+wdx  : [w0dx0, w1dx1, w2dx2]$
+dv11 : [dv10, dv11, dv12]$
+vc   : [vx_c, vy_c, vz_c]$
+
+alphaFld : [alpha0, alpha1, alpha2]$
+
+/* Helper function for switching to eta = (v - w)/(dv/2) coordinates */
+vTransSubs : [vvx=vx*dv1/2+wv1, vvy=vy*dv2/2+wv2, vvz=vz*dv3/2+wv3]$
+
+cidx(cdim)      := makelist(i,i,0,cdim-1)$
+vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
+
+/* Helper functions for expanding in basis functions a quantity we know should be sparse  */
+/* For example, alpha, the phase space flow only depends on a few phase space coordinates */
+doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+doExpandLst1(lst, basis) := sum(lst[i-1]*basis[i], i, 1, length(basis))$
+
+basisFromVars(basisType, varsIn, pIn) := block(
+  dimIn : length(varsIn),
+
+  /* In case varsP and varsC were already loaded, save them
+     and restore them at the end of this function. */
+  if listp(varsC) then (oldVarsC : copylist(varsC)),
+  if listp(varsP) then (oldVarsP : copylist(varsP)),
+
+  if dimIn > 3 then (
+    load(sconcat("basis-precalc/basis", basisType, dimIn-3, "x", 3, "v")),
+    basis : basisP[pIn],
+    vars  : varsP
+  ) elseif dimIn > 0 then (
+    load(sconcat("basis-precalc/basis", basisType, dimIn, "x")),
+    basis : basisC[pIn],
+    vars  : varsC
+  ) else (
+    basis : [],
+    vars  : []
+  ),
+  replaceList : makelist(vars[i]=varsIn[i],i,1,dimIn),
+  basis : psubst(replaceList,basis),
+
+  /* Restore varsC and varsP. */
+  if listp(oldVarsC) then (varsC : copylist(oldVarsC)),
+  if listp(oldVarsP) then (varsP : copylist(oldVarsP)),
+
+  return(basis)
+)$
+
+calcAndWrite_quadCFLfreq_wPhaseAlpha(basisType,polyOrder,bP,surfDir,alpha_e) := block(
+  [i,varsP,numP,pDim,surfVar,surfIntVars,surfNodes,numNodes,bSurf,numSurf,surfBasis,
+   ignoreVars,alphaSurfL_c,alphaSurfL_e,alphaSurfL_n,alphaSurfR_c,alphaSurfR_e,alphaSurfR_n],
+  /* Compute the CFL frequency from quadrature node contributions on the
+     surfaces in the dir dimension, given a phase-space volume expansion
+     of the speed (i.e. coming from doExpand(alpha,bP)). */
+
+  varsP       : listofvars(bP),
+  numP        : length(bP),
+  pDim        : length(varsP),
+  surfVar     : varsP[surfDir],         /* Surface variable. */
+  surfIntVars : delete(surfVar,varsP),  /* Surface integral variables. */
+  print(surfVar),
+  print(surfIntVars),
+
+  /* Evaluate cfl by evaluating at all surface quadrature points. */
+  /* Get quadrature nodes on surface. */
+  surfNodes : getNodes(basisType, pDim-1, polyOrder),
+  if polyOrder=1 then (surfNodes:surfNodes*(1/sqrt(3))) elseif polyOrder=2 then (surfNodes:surfNodes*sqrt(3/5)),
+  numNodes : length(surfNodes),
+
+  bSurf       : basisFromVars(basisType,surfIntVars,polyOrder),  /* Surface basis. */
+  numSurf     : length(bSurf),
+  print(bSurf),
+
+  surfBasis  : copylist(bP),
+  ignoreVars : listify(setdifference(setify(varsP),setify(surfIntVars))),
+  for i : 1 thru numP do (
+    for v : 1 thru length(ignoreVars) do (
+      if not freeof(ignoreVars[v],bP[i]) then ( surfBasis[i] : 0 )
+  )),
+
+  /* Coefficients of alpha written out to the file above are phase-space volume
+     expansion coefficients. Need to evaluate at the surface and project onto
+     surface basis, before (expanding and) evaluating at surface nodes. */
+  /*
+  alphaSurfL_c : calcInnerProdList(surfIntVars, 1, bSurf, subst(surfVar=-1,alpha_e)),
+  alphaSurfL_e : doExpand(alphaSurfL_c, bSurf),
+  */
+  /*
+  alphaSurfL_c : calcInnerProdList(surfIntVars,1,surfBasis,subst(surfVar=-1,alpha_e)),
+  alphaSurfL_e : doExpand(alphaSurfL_c,surfBasis),
+  alphaSurfL_n : gcfac(float(evAtNodes(alphaSurfL_e,surfNodes,surfIntVars))),
+  */
+  /* The extra factor of bP[1] below remains unexplained. NRM might've
+     stumbled up one it by trial and error. */
+  alphaSurfL_n : gcfac(float(evAtNodes(subst(surfVar=-1,alpha_e)*bP[1],surfNodes,surfIntVars)*bP[1])),
+  printf(fh, "  // Evaluate alpha at left surface quadrature points.~%"),
+  for i : 1 thru numNodes do (
+    printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaSurfL_n[i]))),
+    printf(fh, "  cflFreq += -0.5*(alphaL-std::abs(alphaL)); ~%")
+  ),
+
+  /*
+  alphaSurfR_c : calcInnerProdList(surfIntVars,1,surfBasis,subst(surfVar=+1,alpha_e)),
+  alphaSurfR_e : doExpand(alphaSurfR_c,surfBasis),
+  alphaSurfR_n : gcfac(float(evAtNodes(alphaSurfR_e,surfNodes,surfIntVars))),
+  */
+  alphaSurfR_n : gcfac(float(evAtNodes(subst(surfVar=+1,alpha_e)*bP[1],surfNodes,surfIntVars)*bP[1])),
+  printf(fh, "  // Evaluate alpha at right surface quadrature points.~%"),
+  for i : 1 thru numNodes do (
+    printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaSurfR_n[i]))),
+    printf(fh, "  cflFreq += 0.5*(alphaR+std::abs(alphaR)); ~%")
+  )
+)$
+
+calcVlasovGenGeoVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,bC,NP,NC,cflPt,cid,vid,dir,f_e,incr_cdim,incr_vdim,cdir,vdir,expr,alpha_cdim_c,alpha_vdim_c,amid],
+
+  kill(varsC, varsP, basisC, basisP),
+  /* Load basis of dimensionality requested. */
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+
+  printf(fh, "#include <VlasovModDecl.h> ~%"),
+
+  /* Polynomial basis and its derivatives. */
+  bP : basisP[polyOrder],
+  bC : basisC[polyOrder],
+  NP : length(bP),
+  NC : length(bC),
+
+  pDim : cdim + vdim,
+  varLabel : makelist(string(varsP[d]),d,1,pDim),
+
+  /* specify a point to evaluate alpha at for use in computing CFL */
+  cflPt : makelist(varsP[d]=0, d, 1, length(varsP)),
+
+  printf(fh, "__host__ __device__ double ~aP~a(const double *w, const double *dxv, const double *alphaGeo, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+  printf(fh, "  // w[NDIM]:   Cell-center coordinates.~%"),
+  printf(fh, "  // dxv[NDIM]: Cell spacing.~%"),
+  printf(fh, "  // alphaGeo:  Components for tangent basis vectors.~%"),
+  printf(fh, "  // f:         Input distribution function.~%"),
+  printf(fh, "  // out:       Incremented output.~%"),
+
+  printf(fh, "~%"),
+
+  cid : cidx(cdim),
+  vid : vidx(cdim,vdim),
+
+  wDdx  : makelist(eval_string(sconcat("w",vid[i],"Ddx",cid[i])),i,1,cdim),
+  dvDdx : makelist(eval_string(sconcat("dv",vid[i],"Ddx",cid[i])),i,1,cdim),
+
+  /* Cell center and cell length divided by velocity cell length. */
+  for dir : 1 thru cdim do (
+    printf(fh, "  double w~aDdx~a  = w[~a]/dxv[~a]; ~%", vid[dir], dir-1, vid[dir], cid[dir]),
+    printf(fh, "  double dv~aDdx~a = dxv[~a]/dxv[~a]; ~%", vid[dir], dir-1, vid[dir], cid[dir])
+  ),	
+
+  for dir : 1 thru cdim do (
+    printf(fh, "  const double *alpha~a = &alphaGeo[~a]; ~%", dir-1, NP*(dir-1))
+  ),
+
+  printf(fh, "  double cflFreq = 0.0; ~%"),
+  printf(fh, "  double alphaL = 0.0; ~%"),
+  printf(fh, "  double alphaR = 0.0; ~%"),
+
+  /* Expand distribution function f and jacobian in phase basis. */
+  f_e : doExpand1(f, bP),
+
+  /* This code eliminates zero coefficients. */
+  incr_cdim : 0,
+  /* alpha_cdim = v dot grad */
+  for cdir : 1 thru cdim do (
+    alpha_cdim_e : doExpandLst1(alphaFld[cdir], bP), /* for 1x3v */
+
+    /* Volume increment from configuration space. */
+    incr_cdim : incr_cdim+calcInnerProdList(varsP, 2/dxv[cdir-1]*alpha_cdim_e, diff(bP,varsP[cdir]), f_e)
+  ),
+  printf(fh, "~%"),  
+
+  /* write out first attempts to simplify the radicals with radcan, e.g. force sqrt(3)*sqrt(5) = sqrt(15) */
+  /* outscripts loads scifac and uses the aggressive factorization routine "gcfac" */
+  writeCExprsCollect1c(radcan(incr_cdim)),
+
+  /* Calculate and return quadCFLfreq. */
+  alphaSum_e : 0,
+  for dir : 1 thru cdim do (
+
+    dirLabel : varLabel[dir],
+
+    wDir      : eval_string(sconcat("w",dirLabel)),
+    rdDirVar2 : eval_string(sconcat("rd",dirLabel,"2")),
+  
+    dirVar    : varsP[dir],         /* Variable in current direction. */
+
+    /* Expand alphaGeo */
+    alpha_e : doExpandLst1(alphaFld[dir], bP),
+
+    /* Project alpha on basis and write to array. */
+    printf(fh, "~%"),	
+    printf(fh, "  double alpha~a[~a]; ~%", dirLabel, NP),
+    alpha_c    : calcInnerProdList(varsP, 2/dxv[dir-1], bP, alpha_e),
+    alphaLabel : eval_string(sconcat(alpha, dirLabel)),
+
+    writeCExprsNoExpand1(alphaLabel, alpha_c),
+    flush_output(fh),
+    alphaNoZero_c : doMakeExprLst(alpha_c, alphaLabel),
+    alpha_e       : doExpandLst(alphaNoZero_c, bP),
+
+    /* Note: factor of 2/dxv already included in alpha_e. */
+    alphaDotGradBasis_e : alpha_e*diff(bP, dirVar),
+
+    /* Accumulate alpha.grad(w) in this direction to the direction-summed alpha.grad(w). */
+    alphaSum_e : alphaSum_e + alphaDotGradBasis_e,
+
+    /* CFL calculation. */
+    /* Evaluate cfl by evaluating at all surface quadrature points. */
+    calcAndWrite_quadCFLfreq_wPhaseAlpha(basisFun,polyOrder,bP,dir,alpha_e),
+    printf(fh, "~%")
+  ),
+
+  printf(fh, "  return cflFreq;~%"),
+  printf(fh, "} ~%")
+)$

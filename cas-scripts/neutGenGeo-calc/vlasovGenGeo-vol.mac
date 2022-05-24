@@ -1,4 +1,4 @@
-load("neutGenGeo-calc/vlasovGenGeoFuncs-vol")$
+load("neutGenGeo-calc/vlasovGenGeoFuncs-vol-cfl")$
 load(stringproc)$
 /* This script calls the functions which calculate the
    updates from the volume term contributions in the
