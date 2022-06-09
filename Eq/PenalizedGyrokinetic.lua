@@ -50,9 +50,10 @@ function PenalizedGyrokinetic:init(tbl)
    self._surfTerm = ModDecl.selectSurf(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self.Bvars)
 
    -- Select the appropriate volume and surface term functions to call.
-   self.volTermFunc  = function(w, dx, idx, f, out) return PenalizedGyrokinetic["volTermGenGeo"](self, w, dx, idx, f, out) end
+   local ESorEMstr = self._isElectromagnetic and "EM" or "ES"
+   self.volTermFunc  = function(w, dx, idx, f, out) return PenalizedGyrokinetic["volTermGenGeo" .. ESorEMstr](self, w, dx, idx, f, out) end
    self.surfTermFunc = function(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
-      return PenalizedGyrokinetic["surfTermGenGeo"](self, dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
+      return PenalizedGyrokinetic["surfTermGenGeo" .. ESorEMstr](self, dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    end
 
    if self._isElectromagnetic then
@@ -88,15 +89,15 @@ function PenalizedGyrokinetic:setAuxFields(auxFields)
       self.dApardtProv = auxFields[3]
    end
 
-   -- Get magnetic geometry fields.
-   self.bmag = geo.bmag
-   self.cmag = geo.cmag
-   self.b_x = geo.b_x
-   self.b_y = geo.b_y
-   self.b_z = geo.b_z
-   self.jacobTotInv = geo.jacobTotInv
-
    if self._isFirst then
+      -- Get magnetic geometry fields. Inside _isFirst because they are time independent.
+      self.bmag = geo.bmag
+      self.cmag = geo.cmag
+      self.b_x = geo.b_x
+      self.b_y = geo.b_y
+      self.b_z = geo.b_z
+      self.jacobTotInv = geo.jacobTotInv
+
       -- Allocate pointers and indexers to field objects.
 
       -- Potentials.
@@ -114,10 +115,8 @@ function PenalizedGyrokinetic:setAuxFields(auxFields)
       -- Geometry.
       self.bmagPtr     = self.bmag:get(1)
       self.cmagPtr     = self.cmag:get(1)
-      self.phiWallPtr  = self.phiWall:get(1)
       self.bmagIdxr    = self.bmag:genIndexer()
       self.cmagIdxr    = self.cmag:genIndexer()
-      self.phiWallIdxr = self.phiWall:genIndexer()
       self.jacobTotInvPtr  = self.jacobTotInv:get(1)
       self.b_xPtr         = self.b_x:get(1)
       self.b_yPtr         = self.b_y:get(1)
@@ -135,7 +134,7 @@ end
 function PenalizedGyrokinetic:volTerm(w, dx, idx, f, out)
    return self.volTermFunc(w, dx, idx, f, out)
 end
-function PenalizedGyrokinetic:volTermGenGeo(w, dx, idx, f, out)
+function PenalizedGyrokinetic:volTermGenGeoES(w, dx, idx, f, out)
    local tmStart = Time.clock()
    self.phi:fill(self.phiIdxr(idx), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idx), self.bmagPtr)
@@ -145,14 +144,23 @@ function PenalizedGyrokinetic:volTermGenGeo(w, dx, idx, f, out)
    self.b_y:fill(self.b_yIdxr(idx), self.b_yPtr)
    self.b_z:fill(self.b_zIdxr(idx), self.b_zPtr)
    self.penalty:fill(self.penaltyIdxr(idx), self.penaltyPtr)
-   local res
-   if self._isElectromagnetic then
-     self.apar:fill(self.aparIdxr(idx), self.aparPtr)
-     self.dApardtProv:fill(self.dApardtIdxr(idx), self.dApardtProvPtr)
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.penaltyPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtProvPtr:data(), f:data(), out:data())
-   else 
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.penaltyPtr:data(), self.phiPtr:data(), f:data(), out:data())
-   end
+   local res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.penaltyPtr:data(), self.phiPtr:data(), f:data(), out:data())
+   self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
+   return res
+end
+function PenalizedGyrokinetic:volTermGenGeoEM(w, dx, idx, f, out)
+   local tmStart = Time.clock()
+   self.phi:fill(self.phiIdxr(idx), self.phiPtr)
+   self.bmag:fill(self.bmagIdxr(idx), self.bmagPtr)
+   self.jacobTotInv:fill(self.jacobTotInvIdxr(idx), self.jacobTotInvPtr)
+   self.cmag:fill(self.cmagIdxr(idx), self.cmagPtr)
+   self.b_x:fill(self.b_xIdxr(idx), self.b_xPtr)
+   self.b_y:fill(self.b_yIdxr(idx), self.b_yPtr)
+   self.b_z:fill(self.b_zIdxr(idx), self.b_zPtr)
+   self.penalty:fill(self.penaltyIdxr(idx), self.penaltyPtr)
+   self.apar:fill(self.aparIdxr(idx), self.aparPtr)
+   self.dApardtProv:fill(self.dApardtIdxr(idx), self.dApardtProvPtr)
+   local res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.penaltyPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtProvPtr:data(), f:data(), out:data())
    self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
    return res
 end
@@ -161,7 +169,7 @@ end
 function PenalizedGyrokinetic:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    return self.surfTermFunc(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
 end
-function PenalizedGyrokinetic:surfTermGenGeo(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
+function PenalizedGyrokinetic:surfTermGenGeoES(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    local tmStart = Time.clock()
    self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
@@ -171,17 +179,26 @@ function PenalizedGyrokinetic:surfTermGenGeo(dir, cfll, cflr, wl, wr, dxl, dxr, 
    self.b_y:fill(self.b_yIdxr(idxr), self.b_yPtr)
    self.b_z:fill(self.b_zIdxr(idxr), self.b_zPtr)
    self.penalty:fill(self.penaltyIdxr(idxr), self.penaltyPtr)
-   local res
-   if self._isElectromagnetic then
-     self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
-     self.apar:fill(self.aparIdxr(idxl), self.aparLPtr)
-     self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProvPtr)
-     self.emMod:fill(self.emModIdxr(idxl), self.emModPtrL)
-     self.emMod:fill(self.emModIdxr(idxr), self.emModPtrR)
-     res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.penaltyPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.aparLPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
-   else 
-     res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.penaltyPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
-   end
+   local res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.penaltyPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+   self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
+   return res
+end
+function PenalizedGyrokinetic:surfTermGenGeoEM(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
+   local tmStart = Time.clock()
+   self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
+   self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
+   self.jacobTotInv:fill(self.jacobTotInvIdxr(idxr), self.jacobTotInvPtr)
+   self.cmag:fill(self.cmagIdxr(idxr), self.cmagPtr)
+   self.b_x:fill(self.b_xIdxr(idxr), self.b_xPtr)
+   self.b_y:fill(self.b_yIdxr(idxr), self.b_yPtr)
+   self.b_z:fill(self.b_zIdxr(idxr), self.b_zPtr)
+   self.penalty:fill(self.penaltyIdxr(idxr), self.penaltyPtr)
+   self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
+   self.apar:fill(self.aparIdxr(idxl), self.aparLPtr)
+   self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProvPtr)
+   self.emMod:fill(self.emModIdxr(idxl), self.emModPtrL)
+   self.emMod:fill(self.emModIdxr(idxr), self.emModPtrR)
+   local res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.penaltyPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.aparLPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res
 end

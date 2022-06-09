@@ -49,20 +49,20 @@ function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic, Bvars)
 
    local funcNm = {}
    if CDIM == 1 and VDIM <= 2 then
-      funcNm[1] = string.format("Penalized%sGyrokineticGenGeoSurf%s%dx%dv%s_x_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
-      funcNm[2] = string.format("Penalized%sGyrokineticGenGeoSurf%s%dx%dv%s_vpar_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[1] = string.format("Penalized%sGyrokineticGenGeoSurf%dx%dv%s_x_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[2] = string.format("Penalized%sGyrokineticGenGeoSurf%dx%dv%s_vpar_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
    elseif CDIM == 2 and VDIM == 2 then
-      funcNm[1] = string.format("Penalized%sGyrokineticGenGeoSurf%s%dx%dv%s_x_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
-      funcNm[2] = string.format("Penalized%sGyrokineticGenGeoSurf%s%dx%dv%s_y_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
-      funcNm[3] = string.format("Penalized%sGyrokineticGenGeoSurf%s%dx%dv%s_vpar_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[1] = string.format("Penalized%sGyrokineticGenGeoSurf%dx%dv%s_x_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[2] = string.format("Penalized%sGyrokineticGenGeoSurf%dx%dv%s_y_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[3] = string.format("Penalized%sGyrokineticGenGeoSurf%dx%dv%s_vpar_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
    elseif CDIM == 3 and VDIM == 2 then
-      funcNm[1] = string.format("Penalized%sGyrokineticGenGeoSurf%s%dx%dv%s_x_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
-      funcNm[2] = string.format("Penalized%sGyrokineticGenGeoSurf%s%dx%dv%s_y_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
-      funcNm[3] = string.format("Penalized%sGyrokineticGenGeoSurf%s%dx%dv%s_z_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
-      funcNm[4] = string.format("Penalized%sGyrokineticGenGeoSurf%s%dx%dv%s_vpar_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[1] = string.format("Penalized%sGyrokineticGenGeoSurf%dx%dv%s_x_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[2] = string.format("Penalized%sGyrokineticGenGeoSurf%dx%dv%s_y_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[3] = string.format("Penalized%sGyrokineticGenGeoSurf%dx%dv%s_z_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[4] = string.format("Penalized%sGyrokineticGenGeoSurf%dx%dv%s_vpar_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
    elseif CDIM == 2 and VDIM == 0 then 
-      funcNm[1] = string.format("Penalized%sGyrokineticGenGeoSurf%s%dx%dv%s_x_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
-      funcNm[2] = string.format("Penalized%sGyrokineticGenGeoSurf%s%dx%dv%s_y_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[1] = string.format("Penalized%sGyrokineticGenGeoSurf%dx%dv%s_x_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm[2] = string.format("Penalized%sGyrokineticGenGeoSurf%dx%dv%s_y_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
    else
       assert(false, "PenalizedGyrokinetic equation not implemented for this dimensionality!")
    end
