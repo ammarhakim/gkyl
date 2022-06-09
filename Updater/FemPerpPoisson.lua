@@ -63,10 +63,36 @@ ffi.cdef[[
   void solve(FemPerpPoisson* f);
   void getSolution(FemPerpPoisson* f, double* ptr, int idx, int idy);
   void getNodalSolution(FemPerpPoisson* f, double* ptr, int idx, int idy);
+
+// Boundary condition types.                                                       
+enum gkyl_poisson_bc_type {                                                        
+  GKYL_POISSON_PERIODIC,                                                           
+  GKYL_POISSON_DIRICHLET,  // sets the value.                                      
+  GKYL_POISSON_NEUMANN,  // sets the slope normal to the boundary.                 
+  GKYL_POISSON_ROBIN,  // a combination of dirichlet and neumann.                  
+};                                                                                 
+                                                                                   
+// Boundary condition values. Dirichlet and Neumann use only one value,            
+// Robin uses 3, and periodic ignores the value.                                   
+struct gkyl_poisson_bc_value { double v[3]; };                                     
+                                                                                   
+struct gkyl_poisson_bc {                                                           
+  enum gkyl_poisson_bc_type lo_type[6], up_type[6];    
+  struct gkyl_poisson_bc_value lo_value[6], up_value[6];  
+};  
+
+typedef struct gkyl_fem_poisson gkyl_fem_poisson;
+
+gkyl_fem_poisson* gkyl_fem_poisson_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
+  struct gkyl_poisson_bc *bcs, const double epsilon, bool use_gpu);
+
 ]]
-local DIRICHLET = 0
-local NEUMANN   = 1
-local DIRICHLET_VARIABLE = 2
+local GKYL_POISSON_PERIODIC = 0
+local GKYL_POISSON_DIRICHLET = 1
+local GKYL_POISSON_NEUMANN = 2
+local GKYL_POISSON_ROBIN = 3
+local GKYL_POISSON_DIRICHLET_VARIABLE = 4
 --local bcdata
 --local mt = {}
 --bcdata = ffi.metatype("bcdata_t", mt)
@@ -130,9 +156,9 @@ function FemPerpPoisson:init(tbl)
 
    local function getBcData(tbl)
       local bc = ffi.new("bcdata_t")
-      if tbl.T == "D" then bc.type = DIRICHLET
-      elseif tbl.T == "N" then bc.type = NEUMANN
-      elseif tbl.T == "D_VAR" then bc.type = DIRICHLET_VARIABLE
+      if tbl.T == "D" then bc.type = GKYL_POISSON_DIRICHLET
+      elseif tbl.T == "N" then bc.type = GKYL_POISSON_NEUMANN
+      elseif tbl.T == "D_VAR" then bc.type = GKYL_POISSON_DIRICHLET_VARIABLE
       else assert(false, "Updater.FemPerpPoisson: boundary condition type must be specified by one of 'D', 'N', or 'D_VAR'")
       end
       bc.value = tbl.V
@@ -275,6 +301,14 @@ function FemPerpPoisson:init(tbl)
                        zDiscontToCont = "FemPerpPoisson... Solve: do z smoothing solve",
                        --completeNsolve = "FemPerpPoisson... Total solve",
                        }
+
+   
+   local bc_zero = ffi.new("struct gkyl_poisson_bc")
+   bc_zero.lo_type[0] = GKYL_POISSON_PERIODIC
+   bc_zero.up_type[0] = GKYL_POISSON_PERIODIC
+   bc_zero.lo_type[1] = GKYL_POISSON_PERIODIC
+   bc_zero.up_type[1] = GKYL_POISSON_PERIODIC
+   --self._zero_fem = ffiC.gkyl_fem_poisson_new(self._grid._zero, self._basis._zero, bc_zero, 1.0, false)
 
    return self
 end
