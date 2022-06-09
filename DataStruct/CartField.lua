@@ -291,11 +291,13 @@ local function Field_meta_ctor(elct)
 
       -- Local and (MPI) global values of a reduction (reduce method).
       if self.useDevice then
-         self.localReductionVal = ZeroArray.Array(ZeroArray.double, self._numComponents, 1, 2)
-         self.globalReductionVal = ZeroArray.Array(ZeroArray.double, self._numComponents, 1, 2)
+         self.localReductionVal = ZeroArray.Array(ZeroArray.double, self._numComponents, 1, 1)
+         self.globalReductionVal = ZeroArray.Array(ZeroArray.double, self._numComponents, 1)
+         self.localReductionVal_h = ZeroArray.Array(ZeroArray.double, self._numComponents, 1)
       else
          self.localReductionVal = ZeroArray.Array(ZeroArray.double, self._numComponents, 1)
          self.globalReductionVal = ZeroArray.Array(ZeroArray.double, self._numComponents, 1)
+	 self.localReductionVal_h = self.localReductionVal
       end
       
       self._layout = defaultLayout -- Default layout is column-major.
@@ -896,10 +898,14 @@ local function Field_meta_ctor(elct)
       reduce = isNumberType and
 	 function(self, opIn)
             self._zeroForOps:reduceRange(self.localReductionVal:data(), opIn, self._localRange)
+	    if self.useDevice then
+	      self.localReductionVal_h:copy(self.localReductionVal)
+	    end
+	      
 	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
 	    local grid = self._grid
 	    local localVal = {}
-	    Mpi.Allreduce(self.localReductionVal:data(), self.globalReductionVal:data(),
+	    Mpi.Allreduce(self.localReductionVal_h:data(), self.globalReductionVal:data(),
 			  self._numComponents, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
 
             --self.localReductionVal:copy(self.globalReductionVal)

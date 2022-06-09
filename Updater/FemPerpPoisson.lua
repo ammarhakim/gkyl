@@ -87,6 +87,8 @@ gkyl_fem_poisson* gkyl_fem_poisson_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
   struct gkyl_poisson_bc *bcs, const double epsilon, bool use_gpu);
 
+void gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhs);
+void gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *sol);
 ]]
 local GKYL_POISSON_PERIODIC = 0
 local GKYL_POISSON_DIRICHLET = 1
@@ -308,7 +310,7 @@ function FemPerpPoisson:init(tbl)
    bc_zero.up_type[0] = GKYL_POISSON_PERIODIC
    bc_zero.lo_type[1] = GKYL_POISSON_PERIODIC
    bc_zero.up_type[1] = GKYL_POISSON_PERIODIC
-   --self._zero_fem = ffiC.gkyl_fem_poisson_new(self._grid._zero, self._basis._zero, bc_zero, 1.0, false)
+   self._zero_fem = ffiC.gkyl_fem_poisson_new(self._grid._zero, self._basis._zero, bc_zero, 1.0, false)
 
    return self
 end
@@ -518,6 +520,12 @@ function FemPerpPoisson:_advance(tCurr, inFld, outFld)
 
    local src = assert(inFld[1], "FemPerpPoisson.advance: Must specify an input field")
    local sol = assert(outFld[1], "FemPerpPoisson.advance: Must specify an output field")
+
+   if self._zero_fem then
+      ffiC.gkyl_fem_poisson_set_rhs(self._zero_fem, src._zero)
+      ffiC.gkyl_fem_poisson_solve(self._zero_fem, sol._zero)
+      return
+   end
 
    -- Assemble the right-side source vector and, if needed, the stiffness matrix.
    self:beginAssembly(tCurr, src)
