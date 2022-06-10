@@ -66,7 +66,7 @@ ffi.cdef[[
 
 // Boundary condition types.                                                       
 enum gkyl_poisson_bc_type {                                                        
-  GKYL_POISSON_PERIODIC,                                                           
+  GKYL_POISSON_PERIODIC=0,
   GKYL_POISSON_DIRICHLET,  // sets the value.                                      
   GKYL_POISSON_NEUMANN,  // sets the slope normal to the boundary.                 
   GKYL_POISSON_ROBIN,  // a combination of dirichlet and neumann.                  
@@ -77,8 +77,8 @@ enum gkyl_poisson_bc_type {
 struct gkyl_poisson_bc_value { double v[3]; };                                     
                                                                                    
 struct gkyl_poisson_bc {                                                           
-  enum gkyl_poisson_bc_type lo_type[6], up_type[6];    
-  struct gkyl_poisson_bc_value lo_value[6], up_value[6];  
+  enum gkyl_poisson_bc_type lo_type[3], up_type[3];    
+  struct gkyl_poisson_bc_value lo_value[3], up_value[3];  
 };  
 
 typedef struct gkyl_fem_poisson gkyl_fem_poisson;
@@ -158,12 +158,13 @@ function FemPerpPoisson:init(tbl)
 
    local function getBcData(tbl)
       local bc = ffi.new("bcdata_t")
-      if tbl.T == "D" then bc.type = GKYL_POISSON_DIRICHLET
+      if tbl.T == "P" then bc.type = GKYL_POISSON_PERIODIC
+      elseif tbl.T == "D" then bc.type = GKYL_POISSON_DIRICHLET
       elseif tbl.T == "N" then bc.type = GKYL_POISSON_NEUMANN
       elseif tbl.T == "D_VAR" then bc.type = GKYL_POISSON_DIRICHLET_VARIABLE
       else assert(false, "Updater.FemPerpPoisson: boundary condition type must be specified by one of 'D', 'N', or 'D_VAR'")
       end
-      bc.value = tbl.V
+      if tbl.T ~= "P" then bc.value = tbl.V else bc.value = 0 end
       bc.isSet = true
       return bc
    end
@@ -185,9 +186,9 @@ function FemPerpPoisson:init(tbl)
          else
             assert(tbl.bcLower[d].T~="P" and tbl.bcUpper[d].T~="P",
                    "Updater.FemPerpPoisson: both or neither 'bcLower.T' and 'bcUpper.T' have to be 'P' (periodic).")
-            self._bc[d-1][0] = getBcData(tbl.bcLower[d])
-            self._bc[d-1][1] = getBcData(tbl.bcUpper[d])
          end
+         self._bc[d-1][0] = getBcData(tbl.bcLower[d])
+         self._bc[d-1][1] = getBcData(tbl.bcUpper[d])
          self._allPeriodic = self._allPeriodic and self._isDirPeriodic[d-1]
       end
    else
@@ -306,11 +307,15 @@ function FemPerpPoisson:init(tbl)
 
    
    local bc_zero = ffi.new("struct gkyl_poisson_bc")
-   bc_zero.lo_type[0] = GKYL_POISSON_PERIODIC
-   bc_zero.up_type[0] = GKYL_POISSON_PERIODIC
-   bc_zero.lo_type[1] = GKYL_POISSON_PERIODIC
-   bc_zero.up_type[1] = GKYL_POISSON_PERIODIC
-   self._zero_fem = ffiC.gkyl_fem_poisson_new(self._grid._zero, self._basis._zero, bc_zero, 1.0, false)
+   bc_zero.lo_type[0] = self._bc[0][0].type
+   bc_zero.up_type[0] = self._bc[0][1].type
+   bc_zero.lo_type[1] = self._bc[1][0].type
+   bc_zero.up_type[1] = self._bc[1][1].type
+   bc_zero.lo_value[0].v[0] = self._bc[0][0].value
+   bc_zero.up_value[0].v[0] = self._bc[0][1].value
+   bc_zero.lo_value[1].v[0] = self._bc[1][0].value
+   bc_zero.up_value[1].v[0] = self._bc[1][1].value
+   self._zero_fem = ffiC.gkyl_fem_poisson_new(self._grid._zero, self._basis._zero, bc_zero, 1.0, GKYL_USE_GPU or 0)
 
    return self
 end
@@ -532,6 +537,15 @@ function FemPerpPoisson:_advance(tCurr, inFld, outFld)
 
    -- Compute and obtain the local solution.
    self:completeAssemblyAndSolve(tCurr, sol)
+end
+
+function FemPerpPoisson:_advanceOnDevice(tCurr, inFld, outFld) 
+   local src = assert(inFld[1], "FemPerpPoisson.advance: Must specify an input field")
+   local sol = assert(outFld[1], "FemPerpPoisson.advance: Must specify an output field")
+
+   assert(self._zero_fem, "FemPerpPoisson: advanceOnDevice requires gkyl_fem_poisson from g0")
+   ffiC.gkyl_fem_poisson_set_rhs(self._zero_fem, src._zeroDevice)
+   ffiC.gkyl_fem_poisson_solve(self._zero_fem, sol._zeroDevice)
 end
 
 function FemPerpPoisson:setLaplacianWeight(weight)
