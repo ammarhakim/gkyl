@@ -315,7 +315,7 @@ function FemPerpPoisson:init(tbl)
    bc_zero.up_value[0].v[0] = self._bc[0][1].value
    bc_zero.lo_value[1].v[0] = self._bc[1][0].value
    bc_zero.up_value[1].v[0] = self._bc[1][1].value
-   self._zero_fem = ffiC.gkyl_fem_poisson_new(self._grid._zero, self._basis._zero, bc_zero, 1.0, GKYL_USE_GPU or 0)
+   self._zero_fem = ffiC.gkyl_fem_poisson_new(self._grid._zero, self._basis._zero, bc_zero, -1.0, GKYL_USE_GPU or 0)
 
    return self
 end

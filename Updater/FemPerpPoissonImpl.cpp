@@ -13,8 +13,8 @@
 #include <vector>
 
 using namespace Eigen;
-static const int DIRICHLET_BC = 0;
-static const int DIRICHLET_VARIABLE_BC = 2;
+static const int DIRICHLET_BC = 1;
+static const int DIRICHLET_VARIABLE_BC = 4;
 static const int DX = 0;
 static const int DY = 1;
 static const int LO = 0;
