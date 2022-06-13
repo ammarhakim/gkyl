@@ -16,6 +16,9 @@ def build(bld):
     AxisymmetricPhMaxwellSrcImpl.cpp
     FiveMomentFrictionSrcImpl.cpp
 
+    averageDimsCalcData/avg_over_dims_2x_ser.cpp
+    averageDimsCalcData/avg_over_dims_3x_ser.cpp
+
     aSheathPotentialData/asheath_potential_1x_p1_ser.cpp
     aSheathPotentialData/asheath_potential_1x_p2_ser.cpp
 
@@ -410,7 +413,7 @@ def build(bld):
 
     bld.shlib(source = sources,
 
-              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData maxwellianOnBasisData twistShiftData projectFluxOnGhostsData sqrtOnBasisData aSheathPotentialData', 
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData maxwellianOnBasisData twistShiftData projectFluxOnGhostsData sqrtOnBasisData aSheathPotentialData averageDimsCalcData', 
 
               use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     

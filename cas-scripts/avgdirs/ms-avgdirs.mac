@@ -1,0 +1,44 @@
+/* Create kernels to average a field over some dimensions. */
+load("avgdirs/avgdirs-funcs.mac")$
+load(stringproc)$
+
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 2$
+minDim_Ser : 2$
+maxDim_Ser : 3$
+
+/* Tensor basis. */
+maxPolyOrder_Tensor : 2$
+minDim_Tensor : 2$
+maxDim_Tensor : 0$
+
+/* ...... END OF USER INPUTS........ */
+
+/* To generate other bases, just add corresponding column to arrays below. */
+bName        : ["ser","tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser,maxPolyOrder_Tensor]$
+minDim       : [minDim_Ser,minDim_Tensor]$
+maxDim       : [maxDim_Ser,maxDim_Tensor]$
+
+
+for bInd : 1 thru length(bName) do (
+  for cD : max(2,minDim[bInd]) thru maxDim[bInd] do (
+    maxPolyOrderB : maxPolyOrder[bInd],
+    if (cD>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+    if (cD=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
+    disp(printf(false,sconcat("Creating avg_over_dims ~ax ",bName[bInd]),cD)),
+
+    fname : sconcat("~/max-out/avg_over_dims_", cD, "x_", bName[bInd], ".cpp"),
+    fh : openw(fname),
+    printf(fh, "#include <avg_over_dims_mod_decl.h>~%~%"),
+
+    funcName : sconcat("avg_over_dims_", cD, "x_p~a_", bName[bInd]),
+    genAvgDimsKernels(fh, funcName, cD, bName[bInd], maxPolyOrderB),
+
+    close(fh)
+  )
+);

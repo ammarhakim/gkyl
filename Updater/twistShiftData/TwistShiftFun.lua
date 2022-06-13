@@ -1017,7 +1017,7 @@ function _M.getDonors(grid, yShift, yShBasis)
 
    local localRange, globalRange = grid:localRange(), grid:globalRange()
    -- Extend the local range to include all y (for parallel in y case):
-   localRangeGlobalY = localRange:extendDir(2,localRange:lower(2)-globalRange:lower(2), globalRange:upper(2)-localRange:upper(2))
+   local localRangeGlobalY = localRange:extendDir(2,localRange:lower(2)-globalRange:lower(2), globalRange:upper(2)-localRange:upper(2))
    local xyRangeDecomp = LinearDecomp.LinearDecompRange {
       range = localRangeGlobalY:selectFirst(2), numSplit = grid:numSharedProcs(), threadComm = grid:commSet().sharedComm }
    local tId = grid:subGridSharedId()   -- Local thread ID.

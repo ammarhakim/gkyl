@@ -1,0 +1,86 @@
+/* Generate the header file for the CartFieldAverageOverDims kernels. */
+
+/* ...... USER INPUTS........ */
+
+/* Indicate the mininimum and maximum dimensionality for which
+   you wish to generate kernels. The smallest possible is 2 and
+   the largest 6. This will generate a multitude of kernels
+   to allow the user to average in any subset of directions
+   excluding the set of all directions. */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 2$
+minDim_Ser : 2$
+maxDim_Ser : 3$
+
+/* Tensor basis. */
+maxPolyOrder_Tensor : 2$
+minDim_Tensor : 1$
+maxDim_Tensor : 0$
+
+/* ...... END OF USER INPUTS (maybe)........ */
+
+/* To generate other bases, just add corresponding column to arrays below. */
+bName        : ["ser","tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser,maxPolyOrder_Tensor]$
+minDim       : [minDim_Ser,minDim_Tensor]$
+maxDim       : [maxDim_Ser,maxDim_Tensor]$
+
+/* Functions loadBasisX and getDirCombos ought to match those in the
+   kernel-generating scripts. */
+
+getDirCombos(dimIn) := block([dirCombosSet,dirCombos,d,dir],
+  dirCombosSet : setify([]),
+  for dir : 1 thru dimIn do (
+    dirCombosSet : union(dirCombosSet,powerset(setify(makelist(d,d,1,dimIn)),dir))
+  ),
+  dirCombos : full_listify(dirCombosSet),
+  dirCombos : makelist(sort(dirCombos[i],lambda([a,b],slength(string(a)) < slength(string(b)))),i,1,length(dirCombos)),
+  dirCombos : sort(dirCombos,lambda([a,b],length(a) < length(b))),
+  /* Remove the combination that contains all dimensions. */
+  dirCombos : makelist(dirCombos[i],i,1,length(dirCombos)-1),
+  return(dirCombos)
+)$
+
+/* Open new header file. */
+fh : openw("~/max-out/avg_over_dims_mod_decl.h")$
+
+printf(fh, "#ifndef CARTFIELD_AVERAGE_OVER_DIMS_MOD_DECL_H~%")$
+printf(fh, "#define CARTFIELD_AVERAGE_OVER_DIMS_MOD_DECL_H~%")$
+printf(fh, "~%"),
+printf(fh, "extern \"C\" { ~%")$
+printf(fh, "~%"),
+
+for bInd : 1 thru length(bName) do (
+  for cD : minDim[bInd] thru maxDim[bInd] do (
+
+    maxPolyOrderB : maxPolyOrder[bInd],
+    if (cD>3 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+    if (cD=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
+    for polyOrder : 1 thru maxPolyOrderB do (
+
+      /* For a given dimensionality get the combinations of
+         directions in which to average. */
+      avgDirCombos : getDirCombos(cD),
+
+      for avgDirs in avgDirCombos do (
+
+        avgDirsStr :"",
+        for dI in avgDirs do (avgDirsStr : sconcat(avgDirsStr,string(dI))),
+
+        printf(fh, "void avg_over_dims_~ax_p~a_~a_avgDirs~a(double rNumCells, const double *fIn, double *fAvgOut); ~%", cD, polyOrder, bName[bInd], avgDirsStr)
+      ),
+      printf(fh, "~%")
+    ),
+    printf(fh, "~%")
+  ),
+  printf(fh, "~%")
+)$
+
+printf(fh, "} ~%")$
+printf(fh, "~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$

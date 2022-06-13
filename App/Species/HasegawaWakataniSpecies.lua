@@ -27,6 +27,8 @@ function HWSpecies:fullInit(appTbl)
 
    self.adiabaticity = assert(self.tbl.adiabaticity, "HasegawaWakataniSpecies: must specify the adiabaticity parameter with 'adiabaticity'.")
    self.gradientScale = assert(self.tbl.gradient, "HasegawaWakataniSpecies: must specify the normalized density gradient length scale (rho_s/L_n) parameter with 'gradient'.")
+   -- Optional flag to use modified Hasegawa-Wakatani.
+   self.isModHW = self.tbl.modifiedHW and self.tbl.modifiedHW or false
 end
 
 function HWSpecies:alloc(nRkDup)

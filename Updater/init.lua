@@ -11,6 +11,7 @@ local Bc = require "Updater.Bc"
 local BgkCollisions = require "Updater.BgkCollisions"
 local BiMaxwellianOnBasis = require "Updater.BiMaxwellianOnBasis"
 local CartFieldBinOp = require "Updater.CartFieldBinOp"
+local CartFieldAverageOverDims = require "Updater.CartFieldAverageOverDims"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local CartFieldInterpolate = require "Updater.CartFieldInterpolate"
 local CellAveMaxwellian = require "Updater.CellAveMaxwellian"
@@ -59,6 +60,7 @@ local BraginskiiViscosityDiffusion = require "Updater.BraginskiiViscosityDiffusi
 local AnisotropicDiffusion = require "Updater.AnisotropicDiffusion"
 
 return {
+   CartFieldAverageOverDims = CartFieldAverageOverDims,
    ASheathPotential = ASheathPotential,
    Bc = Bc,
    BgkCollisions = BgkCollisions,

@@ -1,0 +1,83 @@
+/*
+  Functions to generate kernels that compute averages of a
+  field over some dimensions (fewer than all dimensions).
+*/
+
+load("out-scripts")$
+load("modal-basis")$
+
+loadBasisX(dimTot, basisType, pOrder) := block([basis,vars],
+  /* Load a basis based on dimensionality and basis type alone. */
+  kill(varsC, varsP, basisC, basisP),
+  if (dimTot < 4) then (
+    load(sconcat("basis-precalc/basis", basisType, dimTot, "x"))
+  ) else (
+    load(sconcat("basis-precalc/basis", basisType, dimTot-3, "x", 3, "v"))
+  ),
+
+  if (dimTot < 4) then (
+    basis : basisC[pOrder],
+    vars  : varsC
+  ) else (
+    basis : basisP[pOrder],
+    vars  : varsP
+  ),
+  return([basis,vars])
+)$
+
+genAvgDimsKernels(fh, funcNm, dim, basisNm, polyOrderMax) := block(
+  [],
+
+  /* All possible combinations of dimensions to average over. */
+  dirCombosSet : setify([]),
+  for dir : 1 thru dim do (
+    dirCombosSet : union(dirCombosSet,powerset(setify(makelist(d,d,1,dim)),dir))
+  ),
+  dirCombos : full_listify(dirCombosSet),
+  dirCombos : makelist(sort(dirCombos[i],lambda([a,b],slength(string(a)) < slength(string(b)))),i,1,length(dirCombos)),
+  dirCombos : sort(dirCombos,lambda([a,b],length(a) < length(b))),
+  /* Remove the combination that contains all dimensions. */  
+  dirCombos : makelist(dirCombos[i],i,1,length(dirCombos)-1),
+
+  for polyOrder : 1 thru polyOrderMax do (
+
+    /* Load the parent basis. */
+    [basis, vars] : loadBasisX(dim, basisNm, polyOrder),
+    numB : length(basis),
+
+    fIn_e : doExpand1(fIn, basis),
+  
+    for avgDirs in dirCombos do (
+  
+      avgDim   : length(avgDirs),
+      avgVars  : makelist(vars[avgDirs[d]],d,1,avgDim),
+  
+      /* Load the child basis. */
+      childDim : dim-avgDim,
+      [childBasis, jnkVars] : loadBasisX(childDim, basisNm, polyOrder),
+      childVars  : copylist(vars),
+      for v in avgVars do ( childVars : delete(v, childVars) ),
+      childBasis : subst(makelist(jnkVars[d]=childVars[d],d,1,childDim), childBasis),
+      childNumB  : length(childBasis),
+  
+      avgDirsStr :"",
+      for dI in avgDirs do (avgDirsStr : sconcat(avgDirsStr,string(dI))),
+  
+      printf(fh,sconcat("void ",funcNm,"_avgDirs~a(double rNumCells, const double *fIn, double *fAvgOut) ~%{~%"), polyOrder, avgDirsStr),
+      printf(fh,"  // rNumCells: reciprocal of the number of cells over which we will average.~%"),
+      printf(fh,"  // fIn: input field to average.~%"),
+      printf(fh,"  // fAvgOut: output field average.~%"),
+      printf(fh,"~%"),
+
+      fAvgOut_e : rNumCells*innerProd(avgVars, 1, 1, fIn_e)/innerProd(avgVars, 1, 1, 1),
+      fAvgOut_c : calcInnerProdList(childVars, 1, childBasis, fAvgOut_e),
+
+      writeCIncrExprs1(fAvgOut, fAvgOut_c),
+      printf(fh,"~%"),
+  
+      printf(fh,"}~%"),
+      printf(fh,"~%")
+    ),
+    printf(fh,"~%")
+  )
+)$
