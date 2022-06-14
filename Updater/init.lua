@@ -50,6 +50,7 @@ local TenMomentRelax = require "Updater.TenMomentRelax"
 local TenMomentSrc = require "Updater.TenMomentSrc"
 local TwistShiftBC = require "Updater.TwistShiftBC"
 local WavePropagation = require "Updater.WavePropagation"
+local VlasovDG = require "Updater.VlasovDG"
 local AxisymmetricFiveMomentSrc = require "Updater.AxisymmetricFiveMomentSrc"
 local AxisymmetricPhMaxwellSrc = require "Updater.AxisymmetricPhMaxwellSrc"
 local FiveMomentFrictionSrc = require "Updater.FiveMomentFrictionSrc"
@@ -102,6 +103,7 @@ return {
    TenMomentSrc = TenMomentSrc,
    TwistShiftBC = TwistShiftBC,
    WavePropagation = WavePropagation,
+   VlasovDG = VlasovDG,
    AxisymmetricFiveMomentSrc = AxisymmetricFiveMomentSrc,
    AxisymmetricPhMaxwellSrc = AxisymmetricPhMaxwellSrc,
    FiveMomentFrictionSrc = FiveMomentFrictionSrc,

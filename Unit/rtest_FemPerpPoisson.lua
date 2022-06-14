@@ -365,7 +365,7 @@ function test_solve2d_periodic(nx, ny, p)
                  end
               end
               f = f/50.0
-              return f-.6
+              return f
            end
    local initExactSolModal = Updater.ProjectOnBasis {
       onGrid   = grid,
@@ -1048,16 +1048,16 @@ local t1 = os.clock()
 --test_init_errorcheck()
 test_solve2d_p1()
 test_solve2d_p2()
-test_smooth2d_p1()
-test_smooth2d_p2()
-test_solve3d_p1()
-test_solve3d_p2()
+--test_smooth2d_p1()
+--test_smooth2d_p2()
+--test_solve3d_p1()
+--test_solve3d_p2()
 test_periodic2d_p1()
 test_periodic2d_p2()
-test_smooth_periodic2d_p1()
-test_smooth_periodic2d_p2()
-test_periodic3d_p1()
-test_periodic3d_p2()
+--test_smooth_periodic2d_p1()
+--test_smooth_periodic2d_p2()
+--test_periodic3d_p1()
+--test_periodic3d_p2()
 --test_periodic3d_metric_p1()
 local t2 = os.clock()
 

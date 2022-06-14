@@ -291,7 +291,8 @@ local function Field_meta_ctor(elct)
 
       -- Local and (MPI) global values of a reduction (reduce method).
       if self.useDevice then
-         self.localReductionVal = ZeroArray.Array(ZeroArray.double, self._numComponents, 1, 1)
+	 local on_gpu = 1
+         self.localReductionVal = ZeroArray.Array(ZeroArray.double, self._numComponents, 1, on_gpu)
          self.globalReductionVal = ZeroArray.Array(ZeroArray.double, self._numComponents, 1)
          self.localReductionVal_h = ZeroArray.Array(ZeroArray.double, self._numComponents, 1)
       else

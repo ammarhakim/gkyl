@@ -210,6 +210,9 @@ function MaxwellField:esEnergy(tCurr, fldIn, outDynV)
    -- Compute the electrostatic field energy given the potential. Here outDynV must
    -- be a DynVector with the same number of components as there are dimensions.
    local phiIn, esE = fldIn[1], outDynV[1]
+   if GKYL_USE_GPU then
+      phiIn:copyDeviceToHost()
+   end
 
    local grid, dim = phiIn:grid(), phiIn:grid():ndim()
 
@@ -392,7 +395,7 @@ function MaxwellField:createSolver()
       local isParallel = false
       for d=1,self.grid:ndim() do if self.grid:cuts(d)>1 then isParallel=true end end
 
-      if self.basis:polyOrder()>1 or isParallel then
+      if self.basis:polyOrder()>1 or isParallel or GKYL_USE_GPU then
          self.isSlvrMG = false
          self.fieldSlvr = Updater.FemPoisson {
             onGrid = self.grid,
@@ -800,7 +803,7 @@ function MaxwellField:advance(tCurr, species, inIdx, outIdx)
       end
 
       -- Solve for the potential.
-      self.fieldSlvr:advance(tCurr, {self.chargeDens,emIn}, {emIn})
+      self.fieldSlvr:advance(tCurr, {self.chargeDens, emIn}, {emIn})
    end
 end
 

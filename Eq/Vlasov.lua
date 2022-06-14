@@ -25,9 +25,11 @@ ffi.cdef [[
 // Identifiers for specific field object types
 enum gkyl_field_id {
   GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
-  GKYL_FIELD_PHI, // Poisson (only phi)  
+  GKYL_FIELD_SR_E_B, // Maxwell (E, B) with special relativity
+  GKYL_FIELD_PHI, // Poisson (only phi)
   GKYL_FIELD_PHI_A, // Poisson with static B = curl(A) (phi, A)
-  GKYL_FIELD_NULL // no field is present
+  GKYL_FIELD_NULL, // no field is present
+  GKYL_FIELD_SR_NULL // no field is present, special relativistic Vlasov
 };
 
 // Struct containing the pointers to auxiliary fields.
@@ -240,7 +242,7 @@ end
 function Vlasov:setAuxFields(auxFields)
    if self._hasForceTerm then   -- No fields for neutral particles.
       self._emField = auxFields[1]   -- Single aux field that has the full EM field
-      if not self._plasmaMagField then self._phiField = auxFields[2] end   -- Electrostatic potential.
+      if not self._plasmaMagField then self._phiField = auxFields[1] end   -- Electrostatic potential.
 
       if self._isFirst then
          self._emPtr  = self._emField:get(1)

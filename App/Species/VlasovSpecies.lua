@@ -140,35 +140,47 @@ function VlasovSpecies:createSolver(field, externalField)
    if hasB then
       self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
    else
-      self.totalEmField = self:allocVectorMoment(3)     -- Electric field only.
+      --self.totalEmField = self:allocVectorMoment(3)     -- Electric field only.
+      self.totalEmField = self:allocMoment()  -- Phi only (Vlasov-Poisson)
    end
 
    self.computePlasmaB = true and plasmaB   -- Differentiate plasma B from external B.
    
-   -- Create updater to advance solution by one time-step.
-   self.equation = VlasovEq {
-      onGrid           = self.grid,
-      phaseBasis       = self.basis,
-      confBasis        = self.confBasis,
+   ---- Create updater to advance solution by one time-step.
+   --self.equation = VlasovEq {
+   --   onGrid           = self.grid,
+   --   phaseBasis       = self.basis,
+   --   confBasis        = self.confBasis,
+   --   confRange = self.totalEmField:localRange(),
+   --   charge           = self.charge,
+   --   mass             = self.mass,
+   --   hasElectricField = hasE,
+   --   hasMagneticField = hasB,
+   --   hasExtForce      = self.hasExtForce,
+   --   plasmaMagField   = plasmaB,
+   --   numVelFlux       = self.numVelFlux,
+   --}
+
+   ---- Must apply zero-flux BCs in velocity directions.
+   --for d = 1, self.vdim do table.insert(self.zeroFluxDirections, self.cdim+d) end
+
+   --self.solver = Updater.HyperDisCont {
+   --   onGrid             = self.grid,
+   --   basis              = self.basis,
+   --   cfl                = self.cfl,
+   --   equation           = self.equation,
+   --   zeroFluxDirections = self.zeroFluxDirections,
+   --}
+
+   self.solver = Updater.VlasovDG {
+      onGrid = self.grid,
+      confBasis = self.confBasis,
+      phaseBasis = self.basis,
       confRange = self.totalEmField:localRange(),
-      charge           = self.charge,
-      mass             = self.mass,
       hasElectricField = hasE,
       hasMagneticField = hasB,
       hasExtForce      = self.hasExtForce,
-      plasmaMagField   = plasmaB,
-      numVelFlux       = self.numVelFlux,
-   }
-
-   -- Must apply zero-flux BCs in velocity directions.
-   for d = 1, self.vdim do table.insert(self.zeroFluxDirections, self.cdim+d) end
-
-   self.solver = Updater.HyperDisCont {
-      onGrid             = self.grid,
-      basis              = self.basis,
-      cfl                = self.cfl,
-      equation           = self.equation,
-      zeroFluxDirections = self.zeroFluxDirections,
+      plasmaMagField   = plasmaB
    }
 
    -- Create updaters to compute various moments.
@@ -628,7 +640,9 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    totalEmField:clear(0.0)
 
    local qbym = self.charge/self.mass
-   if emField and self.computePlasmaB then totalEmField:accumulate(qbym, emField) end
+   if emField then 
+      totalEmField:accumulate(qbym, emField) 
+   end
    if emExternalField then totalEmField:accumulate(qbym, emExternalField) end
 
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
@@ -666,6 +680,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    for _, bc in pairs(self.nonPeriodicBCs) do
       bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)   -- Save boundary fluxes.
    end
+
 end
 
 function VlasovSpecies:advanceCrossSpeciesCoupling(tCurr, species, emIn, inIdx, outIdx)

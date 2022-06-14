@@ -126,6 +126,20 @@ function FemPoisson:_advance(tCurr, inFld, outFld)
    end
 end
 
+function FemPoisson:_advanceOnDevice(tCurr, inFld, outFld)
+   -- Advance method. This assembles the right-side source vector and, if needed,
+   -- the stiffness matrix. Then it solves the linear problem.
+   if self.ndim == 1 and not self.zContinuous and self.slvr._hasLaplacian == false then
+      -- Special case where solve is just algebraic.
+      local src = inFld[1]
+      local sol = outFld[1]
+
+      self.weakDivide:advance(0, {self.slvr:getModifierWeight(), src}, {sol})
+   else
+      self.slvr:advance(tCurr, inFld, outFld)
+   end
+end
+
 function FemPoisson:setLaplacianWeight(weight)
    self.slvr:setLaplacianWeight(weight)
 end
