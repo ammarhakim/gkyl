@@ -19,7 +19,6 @@ local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
-local Vlasov = require "Eq.Vlasov"
 local ffi = require "ffi"
 local ffiC = ffi.C
 local xsys = require "xsys"
@@ -27,6 +26,16 @@ local new, sizeof, typeof, metatype = xsys.from(ffi,
      "new, sizeof, typeof, metatype")
 
 ffi.cdef [[ 
+// Identifiers for specific field object types
+enum gkyl_field_id {
+  GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
+  GKYL_FIELD_SR_E_B, // Maxwell (E, B) with special relativity
+  GKYL_FIELD_PHI, // Poisson (only phi)
+  GKYL_FIELD_PHI_A, // Poisson with static B = curl(A) (phi, A)
+  GKYL_FIELD_NULL, // no field is present
+  GKYL_FIELD_SR_NULL // no field is present, special relativistic Vlasov
+};
+
 typedef struct gkyl_dg_updater_vlasov gkyl_dg_updater_vlasov;
 
 gkyl_dg_updater_vlasov*
