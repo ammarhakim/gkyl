@@ -1,9 +1,11 @@
 #!/bin/bash
 
 # Edit the paths and options in the following command to suit your system
-module load intel/2021.1.2
-module load openmpi/intel-2021.1/4.1.0
-module load anaconda3/2020.11
+module load PrgEnv-gnu/8.3.3
+module load nvhpc-mixed/21.11
+#module load cray-mpich/8.1.15
+module load python/3.9-anaconda-2021.11
+module load craype-x86-milan
 
 # Build directory
 OUT=build
@@ -11,8 +13,10 @@ OUT=build
 PREFIX=$HOME/gkylsoft/gkyl
 
 # Compile flags (set optimization/debug flags here)
-CC=mpicc
-CXX=mpicxx
+CC=cc
+CXX=CC
+MPICC=cc
+MPICXX=CC
 CXXFLAGS='-O3,-std=c++17'
 
 # LuaJIT options
@@ -21,13 +25,10 @@ LUAJIT_LIB_DIR=$HOME/gkylsoft/luajit/lib
 LUAJIT_SHARE_DIR=$HOME/gkylsoft/luajit/share/luajit-2.1.0-beta3
 
 ## MPI options
-MPICC=mpicc
-MPICXX=mpicxx
 ENABLE_MPI="--enable-mpi"
-I_MPI_ROOT=/usr/local/openmpi/4.1.0/intel20211
-MPI_INC_DIR=$I_MPI_ROOT/include
-MPI_LIB_DIR=$I_MPI_ROOT/lib64
-MPI_LINK_LIBS="mpi"
+MPI_INC_DIR= #$MPI_DIR/include
+MPI_LIB_DIR= #$MPI_DIR/lib
+MPI_LINK_LIBS="mpi" #"mpich"
 
 # ADIOS options
 ENABLE_ADIOS="--enable-adios" # set to blank to disable ADIOS
