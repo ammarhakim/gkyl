@@ -30,7 +30,7 @@ printPrototypes() := block([],
 
     for polyOrder : 1 thru maxPolyOrderB do (
 
-      printf(fh, "  double hasegawa_wakatani_vol_~ax_p~a_~a(const double C_, const double kappa_, const double *xc, const double *dx, const double *phi, const double *fIn, double *out); ~%", c, polyOrder, bName[bInd]),
+      printf(fh, "  double hasegawa_wakatani_vol_~ax_p~a_~a(const double C_, const double kappa_, const double *xc, const double *dx, const double *phi, const double *fIn, const double *phiZonal, const double *nZonal, double *out); ~%", c, polyOrder, bName[bInd]),
 
       for dir : 1 thru c do (
         printf(fh, "  double hasegawa_wakatani_surf_~ax_p~a_~a_~a(const double C_, const double kappa_, const double cflL, const double cflR, const double *xc, const double *dx, const double amax_in, const double *phi, const double *fInL, const double *fInR, double *outL, double *outR); ~%", c, polyOrder, bName[bInd], vars[dir])
@@ -46,7 +46,7 @@ printf(fh, "#ifndef HASEGAWA_WAKATANI_MOD_DECL_H ~%")$
 printf(fh, "#define HASEGAWA_WAKATANI_MOD_DECL_H ~%")$
 printf(fh, "~%")$
 
-printf(fh, "#include <cmath.h> ~%")$  /* For fabs and fmax functions. */
+printf(fh, "#include <cmath> ~%")$  /* For fabs and fmax functions. */
 printf(fh, "~%")$
 
 printf(fh, "template <typename T> int sgn(T val) {~%")$

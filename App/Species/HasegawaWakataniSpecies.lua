@@ -15,6 +15,22 @@ local Mpi          = require "Comm.Mpi"
 local Proto        = require "Lib.Proto"
 local BasicBC      = require ("App.BCs.FluidBasic").FluidBasic
 local lume         = require "Lib.lume"
+local Grid         = require "Grid"
+local Basis        = require "Basis"
+
+local function createBasis(dim, pOrder, bKind)
+   local basis
+   if (bKind=="serendipity") then
+      basis = Basis.CartModalSerendipity { ndim = dim, polyOrder = pOrder }
+   elseif (bKind=="maximal-order") then
+      basis = Basis.CartModalMaxOrder { ndim = dim, polyOrder = pOrder }
+   elseif (bKind=="tensor") then
+      basis = Basis.CartModalTensor { ndim = dim, polyOrder = pOrder }
+   else
+      assert(false,"Invalid basis")
+   end
+   return basis
+end
 
 local HWSpecies = Proto(FluidSpecies)
 
@@ -69,8 +85,52 @@ function HWSpecies:createSolver(field, externalField)
       basis  = self.basis,  equation = self.equation,
    }
 
-   self.advSolver = function(tCurr, momIn, em, momRhsOut)
-      self.solver:advance(tCurr, {momIn, em}, {momRhsOut})
+   -- Create zonal average fields on lower dimensional grid.
+   local xGridIngr = self.grid:childGrid({1})
+   self.xGrid = Grid.RectCart {
+      lower = xGridIngr.lower,  periodicDirs  = xGridIngr.periodicDirs,
+      upper = xGridIngr.upper,  decomposition = xGridIngr.decomposition,
+      cells = xGridIngr.cells,
+   }
+   local xBasis = createBasis(self.xGrid:ndim(), self.basis:polyOrder(), self.basis:id())
+   self.densityZonal = DataStruct.Field {
+      onGrid        = self.xGrid,
+      numComponents = xBasis:numBasis(),
+      ghost         = {1,1},
+      metaData      = {polyOrder = xBasis:polyOrder(), basisType = xBasis:id()},
+   }
+   self.densityZonal:clear(0.0)
+   self.phiZonal = DataStruct.Field {
+      onGrid        = self.xGrid,
+      numComponents = xBasis:numBasis(),
+      ghost         = {1,1},
+      metaData      = {polyOrder = xBasis:polyOrder(), basisType = xBasis:id()},
+   }
+   self.phiZonal:clear(0.0)
+
+   -- Updater to compute y average:
+   self.yAvgUpd = Updater.CartFieldAverageOverDims {
+      onGrid      = self.grid,   onBasis    = self.basis,
+      childGrid   = self.xGrid,  childBasis = xBasis,
+      averageDirs = {2},
+   }
+
+   if self.isModHW then
+      -- Use modified HW model.
+      self.advSolver = function(tCurr, momIn, em, momRhsOut)
+         -- Compute the y average of the potential and the density.
+         self.densityAux:combineOffset(1., momIn, self.densityOff)
+
+         self.yAvgUpd:advance(tCurr, {em.phi}, {self.phiZonal})
+         self.yAvgUpd:advance(tCurr, {self.densityAux}, {self.densityZonal})
+
+         self.solver:advance(tCurr, {momIn, em, self.phiZonal, self.densityZonal}, {momRhsOut})
+      end
+   else
+      -- Use HW model (without zonal correction to adiabatic response).
+      self.advSolver = function(tCurr, momIn, em, momRhsOut)
+         self.solver:advance(tCurr, {momIn, em, self.phiZonal, self.densityZonal}, {momRhsOut})
+      end
    end
 end
 
@@ -126,9 +186,7 @@ function HWSpecies:getNumDensity(rkIdx)
 
    local momIn = self:rkStepperFields()[rkIdx]
 
-   local tmStart = Time.clock()
    self.vorticityAux:combineOffset(1., momIn, self.vorticityOff)
-   self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
 
    return self.vorticityAux
 end

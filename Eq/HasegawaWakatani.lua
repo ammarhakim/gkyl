@@ -43,9 +43,13 @@ end
 function HasegawaWakatani:setAuxFields(auxFields)
    -- Get streamfunction, phi.
    self.phi = auxFields[1].phi
+   self.phiYavg, self.denYavg = auxFields[2], auxFields[3]
    if self._isFirst then
       self.phiPtr   = self.phi:get(1)
       self.phiIdxr  = self.phi:genIndexer()
+
+      self.phiYavgPtr, self.denYavgPtr = self.phiYavg:get(1), self.denYavg:get(1)
+      self.yAvgIdxr = self.phiYavg:genIndexer()
       self._isFirst = false
    end
 end
@@ -54,7 +58,9 @@ end
 function HasegawaWakatani:volTerm(w, dx, idx, f, out)
    local tmStart = Time.clock()
    self.phi:fill(self.phiIdxr(idx), self.phiPtr)
-   local res = self._volTerm(self.adiabatic_C, self.gradient_kappa, w:data(), dx:data(), self.phiPtr:data(), f:data(), out:data())
+   self.phiYavg:fill(self.yAvgIdxr(idx), self.phiYavgPtr)
+   self.denYavg:fill(self.yAvgIdxr(idx), self.denYavgPtr)
+   local res = self._volTerm(self.adiabatic_C, self.gradient_kappa, w:data(), dx:data(), self.phiPtr:data(), f:data(), self.phiYavgPtr:data(), self.denYavgPtr:data(), out:data())
    self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
    return res
 end

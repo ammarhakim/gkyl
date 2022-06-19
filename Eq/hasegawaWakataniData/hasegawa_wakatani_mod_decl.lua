@@ -15,7 +15,7 @@ local _M = {}
 
 -- Select function to compute volume terms.
 function _M.selectVol(basisNm, polyOrder)
-   local funcSign = "(const double C_, const double kappa_, const double *xc, const double *dx, const double *phi, const double *fIn, double *out)"
+   local funcSign = "(const double C_, const double kappa_, const double *xc, const double *dx, const double *phi, const double *fIn, const double *phiZonal, const double *nZonal, double *out)"
 
    local funcType = "double"
    local funcNm = string.format("hasegawa_wakatani_vol_2x_p%d_%s", polyOrder, basisNmMap[basisNm])
