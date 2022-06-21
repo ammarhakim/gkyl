@@ -219,6 +219,10 @@ function PenalizedGyrokineticStep2:init(tbl)
    self.charge  = charge
    self.mass    = mass
 
+   self.penalty = assert(tbl.penalty, "PenalizedGyrokineticStep2: must specify the penalty field in 'penalty'.")
+   self.penaltyPtr  = self.penalty:get(1)
+   self.penaltyIdxr = self.penalty:genIndexer()
+
    self._ndim = self._basis:ndim()
    self._cdim = self._confBasis:ndim()
    self._vdim = self._ndim - self._cdim

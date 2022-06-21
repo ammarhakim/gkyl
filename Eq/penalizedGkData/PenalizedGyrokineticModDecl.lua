@@ -18,10 +18,10 @@ local _M = {}
 function _M.selectVol(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic, Bvars)
    local emString = ""
    local funcSign
-   funcSign = "(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyPi, const double *phi, const double *f, double *out)"
+   funcSign = "(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyChi, const double *phi, const double *f, double *out)"
    if isElectromagnetic then
       emString = "Em"
-      funcSign = "(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyPi, const double *phi, const double *Apar, const double *dApardt, const double *f, double *out)"
+      funcSign = "(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyChi, const double *phi, const double *Apar, const double *dApardt, const double *f, double *out)"
    end
 
    local bvarString = "_Bvars"
@@ -39,10 +39,10 @@ function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic, Bvars)
    local funcType  = "double"
    local emString  = ""
    local funcSign
-   funcSign = "(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyPi, const double *phi, const double *fL, const double *fR, double *outL, double *outR)"
+   funcSign = "(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyChi, const double *phi, const double *fL, const double *fR, double *outL, double *outR)"
    if isElectromagnetic then
       emString = "Em"
-      funcSign = "(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyPi, const double *phi, const double *Apar, const double *AparL, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR)"
+      funcSign = "(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyChi, const double *phi, const double *Apar, const double *AparL, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR)"
    end
    local bvarString = "_Bvars"
    for k, v in ipairs(Bvars) do bvarString = bvarString .. v end
@@ -88,20 +88,20 @@ function _M.selectStep2Vol(basisNm, CDIM, VDIM, polyOrder)
    return ffi.C[funcNm]
 end
 
-function _M.selectStep2Surf(basisNm, CDIM, VDIM, polyOrder, positivity, Bvars)
+function _M.selectStep2Surf(basisNm, CDIM, VDIM, polyOrder, Bvars)
    local funcType  = "double"
    local emString  = "Em"
    local funcSign
-   funcSign = "(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyPi, const double *phi, const double *Apar, const double *AparL, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR)"
+   funcSign = "(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyChi, const double *phi, const double *Apar, const double *AparL, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR)"
 
    local bvarString = "_Bvars"
    for k, v in ipairs(Bvars) do bvarString = bvarString .. v end
 
    local funcNm
    if polyOrder > 1 then
-      funcNm = string.format("PenalizedEmGyrokineticGenGeoSurf%s%dx%dv%s_vpar_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm = string.format("PenalizedEmGyrokineticGenGeoSurf%dx%dv%s_vpar_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
    else
-      funcNm = string.format("PenalizedEmGyrokineticGenGeoSurf%s%dx%dv%sStep2_vpar_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
+      funcNm = string.format("PenalizedEmGyrokineticGenGeoSurf%dx%dv%sStep2_vpar_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder) .. bvarString
    end
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")

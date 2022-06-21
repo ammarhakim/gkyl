@@ -97,8 +97,8 @@ function GkSpecies:alloc(nRkDup)
    end
 
    if self.tbl.mirrorPenalty then
-      local penaltyFunc = self.tbl.mirrorPenalty
-      assert(type(penaltyFunc) == "function", "GkSpecies: 'mirrorPenalty' must be a function.")
+      local penaltyIn = self.tbl.mirrorPenalty
+      assert(type(penaltyIn) == "string" or type(penaltyIn) == "function", "GkSpecies: 'mirrorPenalty' must be a function.")
 
       -- Penalize the mu*B term in the Hamiltonian.
       self.penalty = self:allocDistf()
@@ -193,36 +193,40 @@ function GkSpecies:createSolver(field, externalField)
    end
 
    if self.tbl.mirrorPenalty then
-      local penaltyFunc = self.tbl.mirrorPenalty
+      local penaltyIn = self.tbl.mirrorPenalty
 
-      -- Penalize the mu*B term in the Hamiltonian.
-      local evOnNodes = Updater.EvalOnNodes {
-         onGrid = self.grid,   evaluate = penaltyFunc,
-         basis  = self.basis,  onGhosts = false,
-      }
-      evOnNodes:advance(0., {}, {self.penalty})
-      -- Apply open BCs:
-      local function makeOpenBcUpdater(dir, edge)
-         local bcOpen = function(dir, tm, idxIn, fIn, fOut)
-            self.basis:flipSign(dir, fIn, fOut)   -- Requires skinLoop = "pointwise".
-         end
-         return Updater.Bc {
-            onGrid = self.grid,  edge = edge,
-            dir    = dir,        boundaryConditions = {bcOpen},
-            skinLoop = "pointwise",
+      if type(penaltyIn) == "string" then
+         self.distIo:read(self.penalty, penaltyIn, true)
+      else
+         -- Penalize the mu*B term in the Hamiltonian.
+         local evOnNodes = Updater.EvalOnNodes {
+            onGrid = self.grid,   evaluate = penaltyIn,
+            basis  = self.basis,  onGhosts = false,
          }
-      end
-      openBCupdaters = {}
-      for dir = 1, self.cdim do
-         if not lume.any(self.confGrid:getPeriodicDirs(), function(t) return t==dir end) then
-            openBCupdaters["lower"] = makeOpenBcUpdater(dir, "lower")
-            openBCupdaters["upper"] = makeOpenBcUpdater(dir, "upper")
+         evOnNodes:advance(0., {}, {self.penalty})
+         -- Apply open BCs:
+         local function makeOpenBcUpdater(dir, edge)
+            local bcOpen = function(dir, tm, idxIn, fIn, fOut)
+               self.basis:flipSign(dir, fIn, fOut)   -- Requires skinLoop = "pointwise".
+            end
+            return Updater.Bc {
+               onGrid = self.grid,  edge = edge,
+               dir    = dir,        boundaryConditions = {bcOpen},
+               skinLoop = "pointwise",
+            }
          end
-      end
-      for _, bc in pairs(openBCupdaters) do bc:advance(0., {}, {self.penalty}) end
-      self.penalty:sync(true)
+         openBCupdaters = {}
+         for dir = 1, self.cdim do
+            if not lume.any(self.confGrid:getPeriodicDirs(), function(t) return t==dir end) then
+               openBCupdaters["lower"] = makeOpenBcUpdater(dir, "lower")
+               openBCupdaters["upper"] = makeOpenBcUpdater(dir, "upper")
+            end
+         end
+         for _, bc in pairs(openBCupdaters) do bc:advance(0., {}, {self.penalty}) end
+         self.penalty:sync(true)
 
-      self.distIo:write(self.penalty, string.format("%s_mirrorPenalty_%d.bp", self.name, self.diagIoFrame), 0., self.diagIoFrame)
+         self.distIo:write(self.penalty, string.format("%s_mirrorPenalty_%d.bp", self.name, self.diagIoFrame), 0., self.diagIoFrame, true)
+      end
    end
 
    -- Create updater to advance solution by one time-step.
@@ -266,12 +270,22 @@ function GkSpecies:createSolver(field, externalField)
    
    if hasApar then
       -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
-      self.equationStep2 = GyrokineticEq.GkEqStep2 {
-         onGrid     = self.grid,       mass       = self.mass,
-         phaseBasis = self.basis,      Bvars      = externalField.bmagVars,
-         confBasis  = self.confBasis,  positivity = self.positivity,
-         charge     = self.charge,     geometry   = externalField.geo.name,
-      }
+      if self.penalty == nil then
+         self.equationStep2 = GyrokineticEq.GkEqStep2 {
+            onGrid     = self.grid,       mass       = self.mass,
+            phaseBasis = self.basis,      Bvars      = externalField.bmagVars,
+            confBasis  = self.confBasis,  positivity = self.positivity,
+            charge     = self.charge,     geometry   = externalField.geo.name,
+         }
+      else
+         self.equationStep2 = PenalizedGyrokineticEq.GkEqStep2 {
+            onGrid     = self.grid,       mass       = self.mass,
+            phaseBasis = self.basis,      Bvars      = externalField.bmagVars,
+            confBasis  = self.confBasis,  positivity = self.positivity,
+            charge     = self.charge,     geometry   = externalField.geo.name,
+            penalty    = self.penalty, 
+         }
+      end
 
       if self.basis:polyOrder()==1 then 
          -- This solver calculates vpar surface terms for Ohm's law. p=1 only!
