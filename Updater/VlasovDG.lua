@@ -60,7 +60,7 @@ gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
 
 ]]
 
--- Hyperbolic DG solver updater object
+-- Vlasov DG solver updater object
 local VlasovDG = Proto(UpdaterBase)
 
 function VlasovDG:init(tbl)
@@ -109,7 +109,6 @@ function VlasovDG:_advance(tCurr, inFld, outFld)
    local cflRateByCell = assert(outFld[2], "VlasovDG.advance: Must pass cflRate field in output table")
 
    local localRange = qRhsOut:localRange()
-   qRhsOut:clear(0.0)
    ffiC.gkyl_dg_updater_vlasov_advance(self._zero, self._fieldId, localRange, aux1, aux2, qIn._zero, cflRateByCell._zero, qRhsOut._zero)
 
 end
@@ -129,7 +128,6 @@ function VlasovDG:_advanceOnDevice(tCurr, inFld, outFld)
    local cflRateByCell = assert(outFld[2], "VlasovDG.advance: Must pass cflRate field in output table")
 
    local localRange = qRhsOut:localRange()
-   qRhsOut:clear(0.0)
    ffiC.gkyl_dg_updater_vlasov_advance_cu(self._zero, self._fieldId, localRange, aux1, aux2, qIn._zeroDevice, cflRateByCell._zeroDevice, qRhsOut._zeroDevice)
 
 end

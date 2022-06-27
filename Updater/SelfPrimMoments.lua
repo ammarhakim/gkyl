@@ -16,10 +16,62 @@ local PrimMomentsDecl = require "Updater.primMomentsCalcData.PrimMomentsModDecl"
 local xsys            = require "xsys"
 local ffi = require "ffi"
 local ffiC = ffi.C
+require "Lib.ZeroUtil"
 
 ffi.cdef [[
-  void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned c);
-  void gkylCartFieldAssignAll(unsigned s, unsigned nv, double val, double *out);
+typedef struct gkyl_mom_calc_bcorr gkyl_mom_calc_bcorr;
+typedef struct gkyl_prim_lbo_calc gkyl_prim_lbo_calc;
+
+gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_vlasov_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary);
+
+gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary, double mass);
+
+gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary);
+
+gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_gyrokinetic_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary, double mass);
+
+void gkyl_mom_calc_bcorr_advance(gkyl_mom_calc_bcorr *bcorr,
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *fIn, struct gkyl_array *out);
+
+void gkyl_mom_calc_bcorr_advance_cu(gkyl_mom_calc_bcorr *bcorr,
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *fIn, struct gkyl_array *out);
+
+gkyl_prim_lbo_calc*
+gkyl_prim_lbo_vlasov_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+
+gkyl_prim_lbo_calc*
+gkyl_prim_lbo_gyrokinetic_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+
+gkyl_prim_lbo_calc*
+gkyl_prim_lbo_vlasov_with_fluid_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng);
+
+gkyl_prim_lbo_calc*
+gkyl_prim_lbo_vlasov_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+
+gkyl_prim_lbo_calc*
+gkyl_prim_lbo_gyrokinetic_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+
+gkyl_prim_lbo_calc*
+gkyl_prim_lbo_vlasov_with_fluid_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng);
+
+void gkyl_prim_lbo_calc_advance(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
+  struct gkyl_range *conf_rng,
+  const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
+  struct gkyl_array *uout, struct gkyl_array *vtSqout);
+
+void gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
+  struct gkyl_range *conf_rng,
+  const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
+  struct gkyl_array* uout, struct gkyl_array* vtSqout);
+
+void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned c);
+void gkylCartFieldAssignAll(unsigned s, unsigned nv, double val, double *out);
 ]]
 
 -- function to check if operator option is correct
@@ -42,8 +94,9 @@ function SelfPrimMoments:init(tbl)
    local phaseBasis = assert(
       tbl.phaseBasis, "Updater.SelfPrimMoments: Must provide the phase basis object using 'phaseBasis'.")
 
-   local confBasis = assert(
+   self.confBasis = assert(
       tbl.confBasis, "Updater.SelfPrimMoments: Must provide the configuration basis object using 'confBasis'.")
+   local confBasis = self.confBasis
 
    local operator = assert(
       tbl.operator, "Updater.SelfPrimMoments: Must specify the collision operator (VmLBO or GkLBO for now) using 'operator'.")
@@ -85,10 +138,49 @@ function SelfPrimMoments:init(tbl)
    self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
 
    self._binOpData = ffiC.new_binOpData_t(self._numBasisC*(uDim+1), 0) 
+
+   local vbounds = assert(tbl.vbounds, "SelfPrimMoments: must pass vbounds")
+   local mass
+   if self._isGkLBO then mass = assert(tbl.mass, "SelfPrimMoments: must pass species mass for GkLBO") end
+   if GKYL_USE_GPU then
+      if self._isGkLBO then
+         self._zero_bcorr_calc = ffiC.gkyl_mom_calc_bcorr_lbo_gyrokinetic_cu_dev_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, vbounds, mass)
+         self._zero_prim_calc = ffiC.gkyl_prim_lbo_gyrokinetic_calc_cu_dev_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero)
+      else
+         self._zero_bcorr_calc = ffiC.gkyl_mom_calc_bcorr_lbo_vlasov_cu_dev_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, vbounds)
+         self._zero_prim_calc = ffiC.gkyl_prim_lbo_vlasov_calc_cu_dev_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero)
+      end
+   else
+      if self._isGkLBO then
+         self._zero_bcorr_calc = ffiC.gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, vbounds, mass)
+         self._zero_prim_calc = ffiC.gkyl_prim_lbo_gyrokinetic_calc_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero)
+      else
+         self._zero_bcorr_calc = ffiC.gkyl_mom_calc_bcorr_lbo_vlasov_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, vbounds)
+         self._zero_prim_calc = ffiC.gkyl_prim_lbo_vlasov_calc_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero)
+      end
+   end
 end
 
 -- Advance method.
 function SelfPrimMoments:_advance(tCurr, inFld, outFld)
+
+   if self._zero_prim_calc then
+
+      local moments = inFld[1]
+      local fIn = inFld[2]
+      local boundaryCorrections = inFld[3]
+      local u = outFld[1]
+      local vtsq = outFld[2]
+
+      -- compute boundary corrections
+      ffiC.gkyl_mom_calc_bcorr_advance(self._zero_bcorr_calc, fIn:localRange(), u:localRange(), fIn._zero, boundaryCorrections._zero)
+
+      -- compute u and vtsq
+      ffiC.gkyl_prim_lbo_calc_advance(self._zero_prim_calc, self.confBasis._zero, u:localRange(), moments._zero, boundaryCorrections._zero, u._zero, vtsq._zero)
+
+      return
+   end
+
    local grid = self._onGrid
 
    local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
@@ -174,5 +266,22 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
 
    end
 end
+
+function SelfPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
+
+   local moments = inFld[1]
+   local fIn = inFld[2]
+   local boundaryCorrections = inFld[3]
+   local u = outFld[1]
+   local vtsq = outFld[2]
+
+   -- compute boundary corrections
+   ffiC.gkyl_mom_calc_bcorr_advance_cu(self._zero_bcorr_calc, fIn:localRange(), u:localRange(), fIn._zeroDevice, boundaryCorrections._zeroDevice)
+
+   -- compute u and vtsq
+   ffiC.gkyl_prim_lbo_calc_advance_cu(self._zero_prim_calc, self.confBasis._zero, u:localRange(), moments._zeroDevice, boundaryCorrections._zeroDevice, u._zeroDevice, vtsq._zeroDevice)
+
+end
+   
 
 return SelfPrimMoments

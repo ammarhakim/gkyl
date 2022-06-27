@@ -81,6 +81,7 @@ function VlasovSpecies:alloc(nRkDup)
    self.numDensity = self:allocMoment()
    self.momDensity = self:allocVectorMoment(self.vdim)
    self.ptclEnergy = self:allocMoment()
+   self.fiveMoments = self:allocVectorMoment(self.vdim+2)
 
    -- Allocate field to accumulate externalField if any.
    --self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
@@ -219,22 +220,18 @@ function VlasovSpecies:createSolver(field, externalField)
       confBasis   = self.confBasis,
    }
    if self.needSelfPrimMom then
-      -- This is used in calcCouplingMoments to reduce overhead and multiplications.
-      -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
-      self.fiveMomentsLBOCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.grid,
+      local vbounds = ffi.new("double[6]")
+      for i=0, self.vdim-1 do 
+         vbounds[i] = self.grid:lower(i+1)
+         vbounds[i+self.vdim] = self.grid:upper(i+1)
+      end
+      self.primMomSelf = Updater.SelfPrimMoments {
+         onGrid     = self.confGrid,
          phaseBasis = self.basis,
          confBasis  = self.confBasis,
-         moment     = "FiveMomentsLBO",
+         operator   = "VmLBO",
+         vbounds = vbounds,
       }
-      if self.needCorrectedSelfPrimMom then
-         self.primMomSelf = Updater.SelfPrimMoments {
-            onGrid     = self.confGrid,
-            phaseBasis = self.basis,
-            confBasis  = self.confBasis,
-            operator   = "VmLBO",
-         }
-      end
 
       self.zIdx = Lin.IntVec(self.grid:ndim())
 
@@ -549,6 +546,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       -- Allocate fields for boundary corrections.
       self.m1Correction = self:allocVectorMoment(self.vdim)
       self.m2Correction = self:allocMoment()
+      self.fiveMomentsBoundaryCorrections = self:allocVectorMoment(self.vdim+1)
 
       -- Allocate fields for star moments (only used with polyOrder=1).
       if (self.basis:polyOrder()==1) then
@@ -632,6 +630,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    self:setActiveRKidx(inIdx)
    local fIn     = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
+   fRhsOut:clear(0.0)
 
    -- Accumulate functional Maxwell fields (if needed).
    local emField         = emIn[1]:rkStepperFields()[inIdx]
@@ -721,24 +720,12 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    local fIn = self:rkStepperFields()[rkIdx]
    if self.needSelfPrimMom and
       lume.any({unpack(self.momentFlags,1,4)},function(x) return x==false end) then -- No need to recompute if already computed.
-      self.fiveMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy, 
-                                                      self.m1Correction, self.m2Correction,
-                                                      self.m0Star, self.m1Star, self.m2Star })
-      if self.needCorrectedSelfPrimMom then
-         -- Also compute self-primitive moments u and vtSq.
-         self.primMomSelf:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy,
-                                          self.m1Correction, self.m2Correction, 
-                                          self.m0Star, self.m1Star, self.m2Star}, {self.uSelf, self.vtSqSelf})
-      else
-         -- Compute self-primitive moments with binOp updater.
-         self.confDiv:advance(tCurr, {self.numDensity, self.momDensity}, {self.uSelf})
-         self.confDotProduct:advance(tCurr, {self.uSelf, self.momDensity}, {self.kineticEnergyDensity})
-         -- Barrier over shared communicator before combine
-         Mpi.Barrier(self.grid:commSet().sharedComm)
-         self.thermalEnergyDensity:combine( 1.0/self.vdim, self.ptclEnergy,
-                                           -1.0/self.vdim, self.kineticEnergyDensity )
-         self.confDiv:advance(tCurr, {self.numDensity, self.thermalEnergyDensity}, {self.vtSqSelf})
-      end
+
+      self.fiveMomentsCalc:advance(tCurr, {fIn}, {self.fiveMoments})
+
+      -- Also compute self-primitive moments u and vtSq.
+      self.primMomSelf:advance(tCurr, {self.fiveMoments, fIn, self.fiveMomentsBoundaryCorrections}, {self.uSelf, self.vtSqSelf})
+
       -- Indicate that moments, boundary corrections, star moments
       -- and self-primitive moments have been computed.
       for iF=1,4 do self.momentFlags[iF] = true end

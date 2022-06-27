@@ -929,7 +929,7 @@ function ExternalMaxwellField:alloc(nField)
 
    -- Allocate fields needed in RK update.
    local emVecComp = 8
-   if not self.hasMagField then emVecComp = 3 end  -- Electric field only.
+   if not self.hasMagField then emVecComp = 1 end  -- Electric field only.
    self.em = DataStruct.Field {
       onGrid = self.grid,
       numComponents = emVecComp*self.basis:numBasis(),

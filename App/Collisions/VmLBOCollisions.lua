@@ -12,7 +12,6 @@ local DataStruct     = require "DataStruct"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
-local VmLBOconstNuEq = require "Eq.VmLBO"
 local xsys           = require "xsys"
 local Lin            = require "Lib.Linalg"
 local Mpi            = require "Comm.Mpi"
@@ -111,7 +110,11 @@ function VmLBOCollisions:fullInit(speciesTbl)
          end
       end
       if (collFreqType == "number") then
-         self.varNu         = false    -- Not spatially varying nu.
+         self.varNu         = true    
+         for iC = 1,#self.collFreqs do
+            local val = self.collFreqs[iC]
+            self.collFreqs[iC] = function(t, xn) return val end
+         end
       else -- collFreqType must be a function, which we assume to be spatially dependent. 
          self.varNu         = true
       end
@@ -302,24 +305,14 @@ function VmLBOCollisions:createSolver(mySpecies, extField)
    else
       self.nuSum    = 0.0    -- Assigned in advance method.
    end
-   -- Lenard-Bernstein equation.
-   self.equation = VmLBOconstNuEq {
+   -- Lenard-Bernstein operator (LBO) collisions updater.
+   self.collisionSlvr = Updater.VlasovLBO {
+      onGrid           = self.phaseGrid,
       phaseBasis       = self.phaseBasis,
       confBasis        = self.confBasis,
-      vUpper           = self.vMax,
-      varyingNu        = self.varNu,
-      useCellAverageNu = self.cellConstNu,
-      gridID           = self.phaseGrid:id(),
-      fluxType         = self.fluxType,
+      confRange        = self.nuUSum:localRange(),
    }
-   self.collisionSlvr = Updater.HyperDisCont {
-      onGrid             = self.phaseGrid,
-      basis              = self.phaseBasis,
-      cfl                = self.cfl,
-      equation           = self.equation,
-      updateDirections   = zfd,    -- Only update velocity directions.
-      zeroFluxDirections = zfd,
-   }
+
    if self.crossCollisions then
       if self.varNu then
          -- Temporary collisionality fields.
@@ -380,7 +373,10 @@ function VmLBOCollisions:createDiagnostics(mySpecies, field)
    return self.diagnostics
 end
 
-function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
+function VmLBOCollisions:advance(tCurr, fIn, species, out)
+
+   local fRhsOut = out[1]
+   local cflRateByCell = out[2]
 
    -- Fetch coupling moments and primitive moments of this species.
    local selfMom     = species[self.speciesName]:fluidMoments()
@@ -521,14 +517,8 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 
    -- Compute increment from collisions and accumulate it into output.
    self.collisionSlvr:advance(
-      tCurr, {fIn, self.nuUSum, self.nuVtSqSum, self.nuSum}, {self.collOut})
+      tCurr, {fIn, self.nuUSum, self.nuVtSqSum, self.nuSum}, {fRhsOut, cflRateByCell})
 
-   local tmNonSlvrStart = Time.clock()
-   -- Barrier over shared communicator before accumulate
-   Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
-
-   fRhsOut:accumulate(1.0, self.collOut)
-   self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 end
 
 function VmLBOCollisions:write(tm, frame)
