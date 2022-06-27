@@ -95,7 +95,7 @@ function VlasovLBO:_advanceOnDevice(tCurr, inFld, outFld)
    local cflRateByCell = assert(outFld[2], "VlasovLBO.advance: Must pass cflRate field in output table")
 
    local localRange = fRhsOut:localRange()
-   ffiC.gkyl_dg_updater_lbo_vlasov_advance(self._zero, localRange, nu_sum._zeroDevice, nu_u._zeroDevice, nu_vthsq._zeroDevice, fIn._zeroDevice, cflRateByCell._zeroDevice, fRhsOut._zeroDevice)
+   ffiC.gkyl_dg_updater_lbo_vlasov_advance_cu(self._zero, localRange, nu_sum._zeroDevice, nu_u._zeroDevice, nu_vthsq._zeroDevice, fIn._zeroDevice, cflRateByCell._zeroDevice, fRhsOut._zeroDevice)
 
 end
 
