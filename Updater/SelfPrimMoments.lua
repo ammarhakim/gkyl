@@ -139,6 +139,7 @@ function SelfPrimMoments:init(tbl)
 
    self._binOpData = ffiC.new_binOpData_t(self._numBasisC*(uDim+1), 0) 
 
+   assert(self._polyOrder == 2, "SelfPrimMoments: g0 implementation requires p=2")
    local vbounds = assert(tbl.vbounds, "SelfPrimMoments: must pass vbounds")
    local mass
    if self._isGkLBO then mass = assert(tbl.mass, "SelfPrimMoments: must pass species mass for GkLBO") end

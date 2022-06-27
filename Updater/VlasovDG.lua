@@ -75,10 +75,10 @@ function VlasovDG:init(tbl)
    assert(self._confRange:isSubRange()==1, "Eq.Vlasov: confRange must be a sub-range") 
 
    -- Check if we have an electric and magnetic field.
-   local hasElcField    = xsys.pickBool(tbl.hasElectricField, true)
-   local hasMagField    = xsys.pickBool(tbl.hasMagneticField, true)
-   local hasExtForce    = xsys.pickBool(tbl.hasExtForce, true)
-   self._plasmaMagField = xsys.pickBool(tbl.plasmaMagField, true)
+   local hasElcField    = xsys.pickBool(tbl.hasElectricField, false)
+   local hasMagField    = xsys.pickBool(tbl.hasMagneticField, false)
+   local hasExtForce    = xsys.pickBool(tbl.hasExtForce, false)
+   self._plasmaMagField = xsys.pickBool(tbl.plasmaMagField, false)
 
    if hasElcField and self._plasmaMagField then 
       self._fieldId = "GKYL_FIELD_E_B"
@@ -101,7 +101,7 @@ function VlasovDG:_advance(tCurr, inFld, outFld)
    if self._fieldId == "GKYL_FIELD_PHI" then
       aux1 = inFld[2]._zero
       aux2 = nil
-   else
+   elseif self._fieldId == "GKYL_FIELD_E_B" then
       aux1 = inFld[2]._zero
       aux2 = inFld[3]._zero
    end
@@ -120,7 +120,7 @@ function VlasovDG:_advanceOnDevice(tCurr, inFld, outFld)
    if self._fieldId == "GKYL_FIELD_PHI" then
       aux1 = inFld[2]._zeroDevice
       aux2 = inFld[2]._zeroDevice
-   else
+   elseif self._fieldId == "GKYL_FIELD_E_B" then
       aux1 = inFld[2]._zeroDevice
       aux2 = inFld[3]._zeroDevice
    end

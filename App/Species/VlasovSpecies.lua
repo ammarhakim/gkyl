@@ -146,33 +146,8 @@ function VlasovSpecies:createSolver(field, externalField)
    end
 
    self.computePlasmaB = true and plasmaB   -- Differentiate plasma B from external B.
-   
+
    ---- Create updater to advance solution by one time-step.
-   --self.equation = VlasovEq {
-   --   onGrid           = self.grid,
-   --   phaseBasis       = self.basis,
-   --   confBasis        = self.confBasis,
-   --   confRange = self.totalEmField:localRange(),
-   --   charge           = self.charge,
-   --   mass             = self.mass,
-   --   hasElectricField = hasE,
-   --   hasMagneticField = hasB,
-   --   hasExtForce      = self.hasExtForce,
-   --   plasmaMagField   = plasmaB,
-   --   numVelFlux       = self.numVelFlux,
-   --}
-
-   ---- Must apply zero-flux BCs in velocity directions.
-   --for d = 1, self.vdim do table.insert(self.zeroFluxDirections, self.cdim+d) end
-
-   --self.solver = Updater.HyperDisCont {
-   --   onGrid             = self.grid,
-   --   basis              = self.basis,
-   --   cfl                = self.cfl,
-   --   equation           = self.equation,
-   --   zeroFluxDirections = self.zeroFluxDirections,
-   --}
-
    self.solver = Updater.VlasovDG {
       onGrid = self.grid,
       confBasis = self.confBasis,
@@ -222,11 +197,11 @@ function VlasovSpecies:createSolver(field, externalField)
    if self.needSelfPrimMom then
       local vbounds = ffi.new("double[6]")
       for i=0, self.vdim-1 do 
-         vbounds[i] = self.grid:lower(i+1)
-         vbounds[i+self.vdim] = self.grid:upper(i+1)
+         vbounds[i] = self.grid:lower(self.cdim+i+1)
+         vbounds[i+self.vdim] = self.grid:upper(self.cdim+i+1)
       end
       self.primMomSelf = Updater.SelfPrimMoments {
-         onGrid     = self.confGrid,
+         onGrid     = self.grid,
          phaseBasis = self.basis,
          confBasis  = self.confBasis,
          operator   = "VmLBO",
