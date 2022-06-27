@@ -118,6 +118,18 @@ plasmaApp = Plasma.App {
    nFrame      = 1,                            -- Number of output frames.
    lower       = {R - Lx/2-.02, -Ly/2, -Lz/2}, -- Configuration space lower left.
    upper       = {R + Lx/2, Ly/2, Lz/2},       -- Configuration space upper right.
+   mapc2p = function(xc)
+      -- Field-aligned coordinates (x,y,z).
+      local x, y, z = xc[1], xc[2], xc[3]
+      -- Cylindrical coordinates (R,phi).
+      local R = x
+      local phi = z/(R0+a0)
+      -- Cartesian coordinates (X,Y,Z).
+      local X = R*math.cos(phi)
+      local Y = R*math.sin(phi)
+      local Z = y
+      return X, Y, Z
+   end,
    cells       = {8, 1, 8},                    -- Configuration space cells.
    basis       = "serendipity",                -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                            -- Polynomial order.

@@ -336,41 +336,28 @@ function GkField:createSolver(species, externalField)
    local gxxPoisson, gxyPoisson, gyyPoisson, jacobGeo
    local gxxAmpere, gxyAmpere, gyyAmpere
    if externalField.geo then 
-      if externalField.geo.name=="SimpleHelical" then
-         -- Metric coefficients alone.
+      -- Include Jacobian factor in metric coefficients (if using linearized polarization density).
+      if self.linearizedPolarization then
+         gxxPoisson = externalField.geo.gxxJ
+         gxyPoisson = externalField.geo.gxyJ
+         gyyPoisson = externalField.geo.gyyJ
+      else  -- If not, Jacobian already included in polarization density or not needed.
          gxxPoisson = externalField.geo.gxx
          gxyPoisson = externalField.geo.gxy
          gyyPoisson = externalField.geo.gyy
-         gxxAmpere  = externalField.geo.gxx
-         gxyAmpere  = externalField.geo.gxy
-         gyyAmpere  = externalField.geo.gyy
-         jacobGeo   = self.unitWeight
-      elseif externalField.geo.name=="GenGeo" then
-         -- Include Jacobian factor in metric coefficients (if using linearized polarization density).
-         if self.linearizedPolarization then
-            gxxPoisson = externalField.geo.gxxJ
-            gxyPoisson = externalField.geo.gxyJ
-            gyyPoisson = externalField.geo.gyyJ
-         else  -- If not, Jacobian already included in polarization density or not needed.
-            gxxPoisson = externalField.geo.gxx
-            gxyPoisson = externalField.geo.gxy
-            gyyPoisson = externalField.geo.gyy
-         end
-         gxxAmpere = externalField.geo.gxxJ
-         gxyAmpere = externalField.geo.gxyJ
-         gyyAmpere = externalField.geo.gyyJ
-         jacobGeo  = externalField.geo.jacobGeo
       end
+      gxxAmpere = externalField.geo.gxxJ
+      gxyAmpere = externalField.geo.gxyJ
+      gyyAmpere = externalField.geo.gyyJ
+      jacobGeo  = externalField.geo.jacobGeo
    else
       jacobGeo = self.unitWeight
    end
    self.phiSlvr = Updater.FemPoisson {
-      onGrid      = self.grid,
-      basis       = self.basis,
-      bcLower     = self.bcLowerPhi,
-      bcUpper     = self.bcUpperPhi,
+      onGrid = self.grid,   bcLower = self.bcLowerPhi,
+      basis  = self.basis,  bcUpper = self.bcUpperPhi,
       zContinuous = not self.discontinuousPhi,
-      -- Note these metric coefficients may contain the Jacobian (GenGeo).
+      -- Note these metric coefficients contain the Jacobian.
       gxx = gxxPoisson,
       gxy = gxyPoisson,
       gyy = gyyPoisson,
@@ -427,12 +414,9 @@ function GkField:createSolver(species, externalField)
      -- NOTE: aparSlvr only used to solve for initial Apar
      -- at all other times Apar is timestepped using dApar/dt
      self.aparSlvr = Updater.FemPoisson {
-        onGrid      = self.grid,
-        basis       = self.basis,
-        bcLower     = self.bcLowerApar,
-        bcUpper     = self.bcUpperApar,
+        onGrid = self.grid,   bcLower = self.bcLowerApar,
+        basis  = self.basis,  bcUpper = self.bcUpperApar,
         zContinuous = not self.discontinuousApar,
-        -- Note these metric coefficients may contain the Jacobian (GenGeo).
         gxx = gxxAmpere,
         gxy = gxyAmpere,
         gyy = gyyAmpere,
@@ -450,12 +434,9 @@ function GkField:createSolver(species, externalField)
      if modifierConstant ~= 0 then self.aparSlvr:setModifierWeight(self.modifierWeight) end
 
      self.dApardtSlvr = Updater.FemPoisson {
-        onGrid      = self.grid,
-        basis       = self.basis,
-        bcLower     = self.bcLowerApar,
-        bcUpper     = self.bcUpperApar,
+        onGrid = self.grid,   bcLower = self.bcLowerApar,
+        basis  = self.basis,  bcUpper = self.bcUpperApar,
         zContinuous = not self.discontinuousApar,
-        -- Note these metric coefficients may contain the Jacobian (GenGeo).
         gxx = gxxAmpere,
         gxy = gxyAmpere,
         gyy = gyyAmpere,
@@ -475,12 +456,9 @@ function GkField:createSolver(species, externalField)
      -- Separate solver for additional step for p=1.
      if self.basis:polyOrder() == 1 then
         self.dApardtSlvr2 = Updater.FemPoisson {
-           onGrid      = self.grid,
-           basis       = self.basis,
-           bcLower     = self.bcLowerApar,
-           bcUpper     = self.bcUpperApar,
+           onGrid  = self.grid,   bcLower = self.bcLowerApar,
+           basis   = self.basis,  bcUpper = self.bcUpperApar,
            zContinuous = not self.discontinuousApar,
-           -- Note these metric coefficients may contain the Jacobian (GenGeo).
            gxx = gxxAmpere,
            gxy = gxyAmpere,
            gyy = gyyAmpere,
@@ -933,10 +911,6 @@ function GkGeometry:fullInit(appTbl)
    self.bmagFunc = tbl.bmag
    --assert(self.bmagFunc and type(self.bmagFunc)=="function", "GkGeometry: must specify background magnetic field function with 'bmag'")
 
-   -- Specify which geometry to use. This gets redefined in :alloc method if mapc2p is detected.
-   -- NOTE: for must purposes one must use geo.name, defined in the :alloc method.
-   self.geoType = tbl.geometryType and tbl.geometryType or "SimpleHelical"
-
    -- Wall potential for sheath BCs.
    self.phiWallFunc = tbl.phiWall
    if self.phiWallFunc then assert(type(self.phiWallFunc)=="function", "GkGeometry: phiWall must be a function (t, xn)") end
@@ -953,13 +927,6 @@ function GkGeometry:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim()
 function GkGeometry:alloc()
    -- Allocate fields.
    self.geo = {}
-
-   -- If mapc2p is detected, use general geometry infrastructure.
-   if self.grid._mapc2p then
-      self.geo.name = "GenGeo"
-   else
-      self.geo.name = self.geoType
-   end
 
    local ghostNum     = {1,1}
    local syncPeriodic = false
@@ -982,60 +949,41 @@ function GkGeometry:alloc()
    -- g^yy = |grad y|**2.
    self.geo.gyy = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
-   if self.geo.name == "SimpleHelical" then
+   -- Jacobian of coordinate transformation.
+   self.geo.jacobGeo = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
-      -- Functions for magnetic drifts.
-      -- bdriftX = 1/B*curl(bhat).grad x.
-      self.geo.bdriftX = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-      -- bdriftY = 1/B*curl(bhat).grad y.
-      self.geo.bdriftY = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   -- Inverse of jacobian of coordinate transformation.
+   self.geo.jacobGeoInv = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
-      if self.ndim == 1 then
-         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,6,syncPeriodic)
-      else
-         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,8,syncPeriodic)
-      end
+   -- Total jacobian, including phase space jacobian.
+   -- jacobTot = J B 
+   self.geo.jacobTot = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
-   elseif self.geo.name == "GenGeo" then
+   -- Inverse of total jacobian, including phase space jacobian.
+   -- jacobTotInv = 1 / ( J B )
+   self.geo.jacobTotInv = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
-      -- Jacobian of coordinate transformation.
-      self.geo.jacobGeo = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   -- Functions for magnetic drifts .
+   -- b_x = g_xz / ( sqrt(g_zz) )
+   self.geo.b_x = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   -- b_y = g_yz / ( sqrt(g_zz) )
+   self.geo.b_y = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   -- b_z = sqrt(g_zz)
+   self.geo.b_z = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
-      -- Inverse of jacobian of coordinate transformation.
-      self.geo.jacobGeoInv = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-
-      -- Total jacobian, including phase space jacobian.
-      -- jacobTot = J B 
-      self.geo.jacobTot = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-
-      -- Inverse of total jacobian, including phase space jacobian.
-      -- jacobTotInv = 1 / ( J B )
-      self.geo.jacobTotInv = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-
-      -- Functions for magnetic drifts .
-      -- b_x = g_xz / ( sqrt(g_zz) )
-      self.geo.b_x = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-      -- b_y = g_yz / ( sqrt(g_zz) )
-      self.geo.b_y = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-      -- b_z = sqrt(g_zz)
-      self.geo.b_z = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-
-      self.geo.b_i = createField(self.grid,self.basis,ghostNum,3,syncPeriodic)
+   self.geo.b_i = createField(self.grid,self.basis,ghostNum,3,syncPeriodic)
  
-      -- Functions for laplacian, including Jacobian factor.
-      self.geo.gxxJ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-      self.geo.gxyJ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-      self.geo.gyyJ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   -- Functions for laplacian, including Jacobian factor.
+   self.geo.gxxJ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   self.geo.gxyJ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   self.geo.gyyJ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
    
-      if self.fromFile == nil then
-         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,16,syncPeriodic)
-      end
-
+   if self.fromFile == nil then
+      self.geo.allGeo = createField(self.grid,self.basis,ghostNum,16,syncPeriodic)
    end
 
    -- Wall potential for sheath BCs.
    self.geo.phiWall = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-
       
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
@@ -1052,212 +1000,123 @@ end
 function GkGeometry:createSolver()
 
    -- Get configuration-space Jacobian from grid (used by App/Projection/GkProjection, via GkSpecies).
-   self.jacobGeoFunc = function (t, xn)
-      return self.grid:calcJacobian(xn)
+   self.jacobGeoFunc = function (t, xn) return self.grid:calcJacobian(xn) end
+
+   -- Calculate all geometry quantities at once to avoid repeated metric calculations.
+   if self.ndim == 1 then
+      self.calcAllGeo = function(t, xn)
+         local g = {}
+         self.grid:calcMetric(xn, g)
+         local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz
+         if self.grid._inDim==1 then
+            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = 1.0, 0.0, 0.0, 1.0, 0.0, g[1]
+         elseif self.grid._inDim==2 then
+            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], 0.0, g[3], 0.0, 1.0
+         elseif self.grid._inDim==3 then
+            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
+         elseif self.grid._inDim == nil then -- Input file doesn't have mapc2p.
+            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = 1.0, 0.0, 0.0, 1.0, 0.0, 1.0
+         end
+         local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
+         local b_x      = g_xz/math.sqrt(g_zz)
+         local b_y      = g_yz/math.sqrt(g_zz)
+         local b_z      = math.sqrt(g_zz)
+
+         local det = jacobian^2
+         local gxx = (g_yy*g_zz-g_yz^2)/det
+         local gxy = (g_xz*g_yz-g_xy*g_zz)/det
+         local gxz = (g_xy*g_yz-g_xz*g_yy)/det
+         local gyy = (g_xx*g_zz-g_xz^2)/det
+         local gyz = (g_xy*g_xz-g_xx*g_yz)/det
+         local gzz = (g_xx*g_yy-g_xy^2)/det
+
+         local bmag = self.bmagFunc(t, xn)
+         local cmag = jacobian*bmag/math.sqrt(g_zz)
+
+         return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
+                b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
+      end
+   elseif self.ndim == 2 then
+      self.calcAllGeo = function(t, xn)
+         local g = {}
+         self.grid:calcMetric(xn, g)
+         local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz
+         if self.grid._inDim==2 then
+            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], 0.0, g[3], 0.0, 1.0
+         elseif self.grid._inDim==3 then
+            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
+         elseif self.grid._inDim == nil then -- Input file doesn't have mapc2p.
+            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = 1.0, 0.0, 0.0, 1.0, 0.0, 1.0
+         end
+         local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
+         local b_x      = g_xz/math.sqrt(g_zz)
+         local b_y      = g_yz/math.sqrt(g_zz)
+         local b_z      = math.sqrt(g_zz)
+
+         local det = jacobian^2
+         local gxx = (g_yy*g_zz-g_yz^2)/det
+         local gxy = (g_xz*g_yz-g_xy*g_zz)/det
+         local gxz = (g_xy*g_yz-g_xz*g_yy)/det
+         local gyy = (g_xx*g_zz-g_xz^2)/det
+         local gyz = (g_xy*g_xz-g_xx*g_yz)/det
+         local gzz = (g_xx*g_yy-g_xy^2)/det
+
+         local bmag = self.bmagFunc(t, xn)
+         local cmag = jacobian*bmag/math.sqrt(g_zz)
+
+         return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
+                b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
+       end
+   else
+      self.calcAllGeo = function(t, xn)
+         local g = {}
+         self.grid:calcMetric(xn, g)
+         local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
+         local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
+         local b_x      = g_xz/math.sqrt(g_zz)
+         local b_y      = g_yz/math.sqrt(g_zz)
+         local b_z      = math.sqrt(g_zz)
+
+         local det = jacobian^2
+         local gxx = (g_yy*g_zz-g_yz^2)/det
+         local gxy = (g_xz*g_yz-g_xy*g_zz)/det
+         local gxz = (g_xy*g_yz-g_xz*g_yy)/det
+         local gyy = (g_xx*g_zz-g_xz^2)/det
+         local gyz = (g_xy*g_xz-g_xx*g_yz)/det
+         local gzz = (g_xx*g_yy-g_xy^2)/det
+
+         local bmag = self.bmagFunc(t, xn)
+         local cmag = jacobian*bmag/math.sqrt(g_zz)
+
+         return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
+                b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
+       end
    end
 
-   if self.geo.name == "SimpleHelical" then
-
-      -- Calculate magnetic drift functions.
-      if self.ndim > 1 then
-         local function bgrad(xn)
-            local function bmagUnpack(...)
-               local xn1 = {...}
-               return self.bmagFunc(0, xn1)
-            end
-            local deriv = diff.derivativef(bmagUnpack, #xn)
-            local xntable = {}
-            for i = 1, #xn do xntable[i] = xn[i] end
-            local f, dx, dy, dz = deriv(unpack(xntable))
-            return dx, dy, dz
-         end
-         self.bdriftXFunc = function (t, xn)
-            local bgradX, bgradY, bgradZ = bgrad(xn)
-            return -bgradY/self.bmagFunc(t,xn)^2
-         end
-         self.bdriftYFunc = function (t, xn)
-            local bgradX, bgradY, bgradZ = bgrad(xn)
-            return bgradX/self.bmagFunc(t,xn)^2
-         end
-      end
-
-      -- Calculate all geometry quantities at once.
-      if self.ndim == 1 then
-         self.calcAllGeo = function(t, xn)
-            local gxx, gxy, gyy = 1.0, 0.0, 1.0
-
-            local bmag = self.bmagFunc(t, xn)
-            local cmag = 1.0
-
-            return bmag, 1/bmag, cmag, gxx, gxy, gyy
-          end
-      else
-         self.calcAllGeo = function(t, xn)
-            local gxx, gxy, gyy = 1.0, 0.0, 1.0
-
-            local bmag = self.bmagFunc(t, xn)
-            local cmag = 1.0
-
-            local bdriftX = self.bdriftXFunc(t, xn)
-            local bdriftY = self.bdriftYFunc(t, xn)
-
-            return bmag, 1/bmag, cmag, gxx, gxy, gyy, bdriftX, bdriftY
-          end
-      end
-
-      if self.fromFile == nil then
-         self.setAllGeo = Updater.ProjectOnBasis {
-            onGrid   = self.grid,
-            basis    = self.basis,
-            evaluate = self.calcAllGeo,
-            onGhosts = true,
-         }
-      end
-
-      -- Determine which variables bmag depends on by checking if setting a variable to nan results in nan.
-      local ones, allVars = {}, {"x","y","z","vpar","mu"}
-      for dir = 1, self.ndim do ones[dir] = 1 end
-      self.bmagVars = {}
-      for dir = 1, self.ndim do
-         ones[dir] = 0/0 -- Set this var to nan.
-         -- Test if result is nan.. nan is the only value that doesn't equal itself.
-         if self.bmagFunc(0, ones) ~= self.bmagFunc(0, ones) then
-            -- If result is nan, bmag must depend on this var.
-            table.insert(self.bmagVars, allVars[dir])
-         end
-         ones[dir] = 1 -- Reset so we can check other vars.
-      end
-      if self.bmagVars[1] == nil then self.bmagVars[1] = "" end
-
-   elseif self.geo.name == "GenGeo" then
-
-      -- Calculate all geometry quantities at once to avoid repeated metric calculations.
-      if self.ndim == 1 then
-         self.calcAllGeo = function(t, xn)
-            local g = {}
-            self.grid:calcMetric(xn, g)
-            local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz
-            if self.grid._inDim==1 then
-               g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = 1.0, 0.0, 0.0, 1.0, 0.0, g[1]
-            elseif self.grid._inDim==2 then
-               g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], 0.0, g[3], 0.0, 1.0
-            elseif self.grid._inDim==3 then
-               g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
-            end
-            local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
-            local b_x      = g_xz/math.sqrt(g_zz)
-            local b_y      = g_yz/math.sqrt(g_zz)
-            local b_z      = math.sqrt(g_zz)
-
-            local det = jacobian^2
-            local gxx = (g_yy*g_zz-g_yz^2)/det
-            local gxy = (g_xz*g_yz-g_xy*g_zz)/det
-            local gxz = (g_xy*g_yz-g_xz*g_yy)/det
-            local gyy = (g_xx*g_zz-g_xz^2)/det
-            local gyz = (g_xy*g_xz-g_xx*g_yz)/det
-            local gzz = (g_xx*g_yy-g_xy^2)/det
-
-            local bmag = self.bmagFunc(t, xn)
-            local cmag = jacobian*bmag/math.sqrt(g_zz)
-
-            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
-                   b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
-         end
-      elseif self.ndim == 2 then
-         self.calcAllGeo = function(t, xn)
-            local g = {}
-            self.grid:calcMetric(xn, g)
-            local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz
-            if self.grid._inDim==2 then
-               g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], 0.0, g[3], 0.0, 1.0
-            elseif self.grid._inDim==3 then
-               g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
-            end
-            local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
-            local b_x      = g_xz/math.sqrt(g_zz)
-            local b_y      = g_yz/math.sqrt(g_zz)
-            local b_z      = math.sqrt(g_zz)
-
-            local det = jacobian^2
-            local gxx = (g_yy*g_zz-g_yz^2)/det
-            local gxy = (g_xz*g_yz-g_xy*g_zz)/det
-            local gxz = (g_xy*g_yz-g_xz*g_yy)/det
-            local gyy = (g_xx*g_zz-g_xz^2)/det
-            local gyz = (g_xy*g_xz-g_xx*g_yz)/det
-            local gzz = (g_xx*g_yy-g_xy^2)/det
-
-            local bmag = self.bmagFunc(t, xn)
-            local cmag = jacobian*bmag/math.sqrt(g_zz)
-
-            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
-                   b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
-          end
-      else
-         self.calcAllGeo = function(t, xn)
-            local g = {}
-            self.grid:calcMetric(xn, g)
-            local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
-            local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
-            local b_x      = g_xz/math.sqrt(g_zz)
-            local b_y      = g_yz/math.sqrt(g_zz)
-            local b_z      = math.sqrt(g_zz)
-
-            local det = jacobian^2
-            local gxx = (g_yy*g_zz-g_yz^2)/det
-            local gxy = (g_xz*g_yz-g_xy*g_zz)/det
-            local gxz = (g_xy*g_yz-g_xz*g_yy)/det
-            local gyy = (g_xx*g_zz-g_xz^2)/det
-            local gyz = (g_xy*g_xz-g_xx*g_yz)/det
-            local gzz = (g_xx*g_yy-g_xy^2)/det
-
-            local bmag = self.bmagFunc(t, xn)
-            local cmag = jacobian*bmag/math.sqrt(g_zz)
-
-            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
-                   b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
-          end
-      end
-
-      if self.ndim == 3 then
-         self.bmagVars = {"x","z"} 
-      else
-         self.bmagVars = {"x"}
-      end
-
-      if self.fromFile == nil then
-         self.setAllGeo = Updater.EvalOnNodes {
-            onGrid   = self.grid,
-            basis    = self.basis,
-            evaluate = self.calcAllGeo,
-            onGhosts = true,
-         }
-      end
-
-   end   -- End of if geo.name == "..." statement.
-
-   if self.phiWallFunc then 
-      self.setPhiWall = Updater.EvalOnNodes {
-         onGrid   = self.grid,
-         basis    = self.basis,
-         evaluate = self.phiWallFunc,
-         onGhosts = true,
+   if self.fromFile == nil then
+      self.setAllGeo = Updater.EvalOnNodes {
+         onGrid = self.grid,   evaluate = self.calcAllGeo,
+         basis  = self.basis,  onGhosts = true,
       }
    end
 
+   if self.phiWallFunc then 
+      self.setPhiWall = Updater.EvalOnNodes {
+         onGrid = self.grid,   evaluate = self.phiWallFunc,
+         basis  = self.basis,  onGhosts = true,
+      }
+   end
 
    self.unitWeight = createField(self.grid,self.basis,{1,1})
    local initUnit = Updater.ProjectOnBasis {
-      onGrid   = self.grid,
-      basis    = self.basis,
-      evaluate = function (t,xn) return 1.0 end,
-      onGhosts = true,
+      onGrid = self.grid,   evaluate = function (t,xn) return 1.0 end,
+      basis  = self.basis,  onGhosts = true,
    }
    initUnit:advance(0.,{},{self.unitWeight})
 
    -- Updater to separate vector components packed into a single CartField.
    self.separateComponents = Updater.SeparateVectorComponents {
-      onGrid = self.grid,
-      basis  = self.basis,
+      onGrid = self.grid,  basis = self.basis,
    }
 end
 
@@ -1266,53 +1125,24 @@ function GkGeometry:createDiagnostics() end
 function GkGeometry:initField()
    local log = Logger { logToFile = true }
    log("...Initializing the geometry...\n")
-   if self.geo.name == "SimpleHelical" then
-      if self.fromFile then
-         -- Read the geometry quantities from a file.
-         if self.ndim == 1 then
-            local tm, fr = self.fieldIo:read({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-               cmag=self.geo.cmag, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy}, self.fromFile, true)
-         else
-            local tm, fr = self.fieldIo:read({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-               cmag=self.geo.cmag, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy, 
-               bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY}, self.fromFile, true)
-         end
-      else
-         self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
-         if self.ndim == 1 then
-            self.separateComponents:advance(0, {self.geo.allGeo},
-               {self.geo.bmag, self.geo.bmagInv, self.geo.cmag,
-                self.geo.gxx, self.geo.gxy, self.geo.gyy})
-         else
-            self.separateComponents:advance(0, {self.geo.allGeo},
-               {self.geo.bmag, self.geo.bmagInv, self.geo.cmag,
-                self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.bdriftX, self.geo.bdriftY})
-         end
-      end
-   elseif self.geo.name == "GenGeo" then
-      if self.fromFile then
-         -- Read the geometry quantities from a file.
-         local tm, fr = self.fieldIo:read({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
-            jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-            cmag=self.geo.cmag, b_x=self.geo.b_x, b_y=self.geo.b_y, b_z=self.geo.b_z, gxx=self.geo.gxx,
-            gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
-            self.fromFile, true)
-      else
-         self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
-         self.separateComponents:advance(0, {self.geo.allGeo},
-            {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
-             self.geo.bmag, self.geo.bmagInv, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
-             self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
-      end
-      local numB = self.basis:numBasis()
-      if GKYL_USE_GPU then
-         self.geo.b_i:copyDeviceToHost()
-      end
-      self.geo.b_i:combineOffset(1, self.geo.b_x, 0*numB, 1, self.geo.b_y, 1*numB, 1, self.geo.b_z, 2*numB)
-      if GKYL_USE_GPU then
-         self.geo.b_i:copyHostToDevice()
-      end
+   if self.fromFile then
+      -- Read the geometry quantities from a file.
+      local tm, fr = self.fieldIo:read({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
+         jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+         cmag=self.geo.cmag, b_x=self.geo.b_x, b_y=self.geo.b_y, b_z=self.geo.b_z, gxx=self.geo.gxx,
+         gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
+         self.fromFile, true)
+   else
+      self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
+      self.separateComponents:advance(0, {self.geo.allGeo},
+         {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
+          self.geo.bmag, self.geo.bmagInv, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
+          self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
    end
+   local numB = self.basis:numBasis()
+   if GKYL_USE_GPU then self.geo.b_i:copyDeviceToHost() end
+   self.geo.b_i:combineOffset(1, self.geo.b_x, 0*numB, 1, self.geo.b_y, 1*numB, 1, self.geo.b_z, 2*numB)
+   if GKYL_USE_GPU then self.geo.b_i:copyHostToDevice() end
    local confWeakMultiply = Updater.CartFieldBinOp {
       onGrid    = self.grid,   operation = "Multiply",
       weakBasis = self.basis,  onGhosts  = true,
@@ -1332,23 +1162,17 @@ function GkGeometry:initField()
    self.geo.gxx:sync(false)
    self.geo.gxy:sync(false)
    self.geo.gyy:sync(false)
-   if self.geo.name == "SimpleHelical" then
-      if self.ndim > 1 then
-         self.geo.bdriftX:sync(false)
-         self.geo.bdriftY:sync(false)
-      end
-   elseif self.geo.name == "GenGeo" then
-      self.geo.gxxJ:sync(false)
-      self.geo.gxyJ:sync(false)
-      self.geo.gyyJ:sync(false)
-      self.geo.jacobGeo:sync(false)
-      self.geo.jacobGeoInv:sync(false)
-      self.geo.jacobTotInv:sync(false)
-      self.geo.b_x:sync(false)
-      self.geo.b_y:sync(false)
-      self.geo.b_z:sync(false)
-      self.geo.b_i:sync(false)
-   end
+   self.geo.gxxJ:sync(false)
+   self.geo.gxyJ:sync(false)
+   self.geo.gyyJ:sync(false)
+   self.geo.jacobGeo:sync(false)
+   self.geo.jacobGeoInv:sync(false)
+   self.geo.jacobTotInv:sync(false)
+   self.geo.b_x:sync(false)
+   self.geo.b_y:sync(false)
+   self.geo.b_z:sync(false)
+   self.geo.b_i:sync(false)
+   
    self.geo.phiWall:sync(false)
 
    -- Apply BCs.
@@ -1359,39 +1183,21 @@ function GkGeometry:write(tm)
    -- Not evolving geometry, so only write geometry at beginning.
    if self.ioFrame == 0 then
       -- Write the geometry quantities to a file.
-      if self.geo.name == "SimpleHelical" then
-         if self.ndim == 1 then
-            for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
-               self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-                  cmag=self.geo.cmag, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy},
-                  string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
-            end
-         else
-            for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
-               self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-                  cmag=self.geo.cmag, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy,
-                  bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY},
-                  string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
-            end
-         end
-      elseif self.geo.name == "GenGeo" then
-         for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
-            self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
-               jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-               cmag=self.geo.cmag, b_x=self.geo.b_x, b_y=self.geo.b_y, b_z=self.geo.b_z, b_i=self.geo.b_i, gxx=self.geo.gxx,
-               gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
-               string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
-         end
-
-         -- Write a grid file.
-         local metaData = {
-            polyOrder = self.basis:polyOrder(),
-            basisType = self.basis:id(),
-            grid      = GKYL_OUT_PREFIX .. "_grid.bp"
-         }
-         self.grid:write("grid.bp", 0.0, metaData)
+      for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
+         self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
+            jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+            cmag=self.geo.cmag, b_x=self.geo.b_x, b_y=self.geo.b_y, b_z=self.geo.b_z, b_i=self.geo.b_i, gxx=self.geo.gxx,
+            gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
+            string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
       end
 
+      -- Write a grid file.
+      local metaData = {
+         polyOrder = self.basis:polyOrder(),
+         basisType = self.basis:id(),
+         grid      = GKYL_OUT_PREFIX .. "_grid.bp"
+      }
+      self.grid:write("grid.bp", 0.0, metaData)
    end
    self.ioFrame = self.ioFrame+1
 end
