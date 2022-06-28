@@ -52,10 +52,10 @@ MU_UPPER = 16*me*vte*vte/B/2
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = 3*L_n/vti/2,   -- End time.
-   nFrame      = 1,             -- Number of output frames.
-   lower       = {r0 - .01*dr/2, -dr/2, -L_parallel/2}, -- Configuration space lower left.
-   upper       = {r0 + .01*dr/2,  dr/2, L_parallel/2},  -- Configuration space upper right.
+   tEnd   = 3*L_n/vti/2,   -- End time.
+   nFrame = 1,             -- Number of output frames.
+   lower  = {r0 - .01*dr/2, -dr/2, -L_parallel/2}, -- Configuration space lower left.
+   upper  = {r0 + .01*dr/2,  dr/2, L_parallel/2},  -- Configuration space upper right.
    mapc2p = function(xc)
       -- Field-aligned coordinates (x,y,z).
       local x, y, z = xc[1], xc[2], xc[3]
@@ -70,7 +70,7 @@ plasmaApp = Plasma.App {
    end,
    cells       = {1, 8, 8},     -- Configuration space cells.
    basis       = "serendipity", -- One of "serendipity" or "maximal-order".
-   polyOrder   = 1,             -- Polynomial order.
+   polyOrder   = 2,             -- Polynomial order.
    timeStepper = "rk3",         -- One of "rk2" or "rk3".
    cflFrac     = 1.0,
 
