@@ -204,11 +204,9 @@ function GkSpecies:createSolver(field, externalField)
       mass         = self.mass,
       hasPhi       = hasPhi,
       hasApar      = hasApar,
-      Bvars        = externalField.bmagVars,
       hasSheathBCs = self.hasSheathBCs,
       positivity   = self.positivity,
       gyavgSlvr    = self.emGyavgSlvr,
-      geometry     = externalField.geo.name,
    }
 
    -- No update in mu direction (last velocity direction if present)
@@ -241,9 +239,7 @@ function GkSpecies:createSolver(field, externalField)
          confBasis  = self.confBasis,
          charge     = self.charge,
          mass       = self.mass,
-         Bvars      = externalField.bmagVars,
          positivity = self.positivity,
-         geometry   = externalField.geo.name,
       }
 
       if self.basis:polyOrder()==1 then 
