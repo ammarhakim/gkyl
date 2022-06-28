@@ -103,15 +103,11 @@ function GkSource:createSolver(mySpecies, extField)
       self.fSource:scale(self.powerScalingFac)
    end
 
-   local numDensitySrc = mySpecies:allocMoment()
-   local momDensitySrc = mySpecies:allocMoment()
-   local ptclEnergySrc = mySpecies:allocMoment()
-   mySpecies.threeMomentsCalc:advance(0.0, {self.fSource}, {numDensitySrc, momDensitySrc, ptclEnergySrc})
+   local momsSrc = mySpecies:allocVectorMoment(3)
+   mySpecies.threeMomentsCalc:advance(0.0, {self.fSource}, {momsSrc})
 
    self.fSource:write(string.format("%s_0.bp", self.name), 0., 0, self.writeGhost)
-   numDensitySrc:write(string.format("%s_M0_0.bp", self.name), 0., 0)
-   momDensitySrc:write(string.format("%s_M1_0.bp", self.name), 0., 0)
-   ptclEnergySrc:write(string.format("%s_M2_0.bp", self.name), 0., 0)
+   momsSrc:write(string.format("%s_Moms_0.bp", self.name), 0., 0)
 
    -- Need to define methods to allocate fields (used by diagnostics).
    self.allocMoment = function() return mySpecies:allocMoment() end

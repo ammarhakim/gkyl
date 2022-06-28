@@ -456,6 +456,7 @@ end
 
 -- Note: do not call applyBc here. It is called later in initialization sequence.
 function FluidSpecies:initDist(extField, species)
+
    if self.randomseed then
       math.randomseed(self.randomseed)
    else

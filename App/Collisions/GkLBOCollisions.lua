@@ -342,7 +342,10 @@ function GkLBOCollisions:createSolver(mySpecies, externalField)
    }
 end
 
-function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
+function GkLBOCollisions:advance(tCurr, fIn, species, out)
+
+   local fRhsOut = out[1]
+   local cflRateByCell = out[2]
 
    -- Fetch coupling moments and primitive moments of this species.
    local selfMom     = species[self.speciesName]:fluidMoments()
@@ -454,7 +457,7 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 
    -- Compute increment from collisions and accumulate it into output.
    self.collisionSlvr:advance(
-      tCurr, {fIn, self.bmagInv, self.nuUParSum, self.nuVtSqSum, self.nuSum, selfMom[3]}, {self.collOut})
+      tCurr, {fIn, self.bmagInv, self.nuUParSum, self.nuVtSqSum, self.nuSum, selfMom[3]}, {self.collOut, cflRateByCell})
 
    local tmNonSlvrStart = Time.clock()
    self.primMomLimitCrossingsG:appendData(tCurr, {0.0})
