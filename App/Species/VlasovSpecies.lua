@@ -506,16 +506,8 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       self.vtSqSelf = self:allocMoment()
 
       -- Allocate fields for boundary corrections.
-      self.m1Correction = self:allocVectorMoment(self.vdim)
-      self.m2Correction = self:allocMoment()
       self.fiveMomentsBoundaryCorrections = self:allocVectorMoment(self.vdim+1)
 
-      -- Allocate fields for star moments (only used with polyOrder=1).
-      if (self.basis:polyOrder()==1) then
-         self.m0Star = self:allocMoment()
-         self.m1Star = self:allocVectorMoment(self.vdim)
-         self.m2Star = self:allocMoment()
-      end
    end
 
    -- Allocate fieds to store cross-species primitive moments.

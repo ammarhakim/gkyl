@@ -119,11 +119,11 @@ function CartFieldBinOp:_advance(tCurr, inFld, outFld)
       Bfld, Afld = inFld[1], inFld[2]
    end
 
-   if self._zero_op == "Multiply" then
+   if self._zero_op and self._zero_op == "Multiply" and inFld[1]:numComponents() == inFld[2]:numComponents() then
       ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, 0, uOut._zero, 0, Afld._zero, 0, Bfld._zero, uOut:localRange())
    
       return
-   elseif self._zero_op == "Divide" then
+   elseif self._zero_op and self._zero_op == "Divide" then
       -- NYI
 
       return

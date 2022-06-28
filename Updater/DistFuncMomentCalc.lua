@@ -729,7 +729,6 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
       else
          confRange = mout:localRange()
       end
-      mout:clear(0.0)
       ffiC.gkyl_mom_calc_advance(self._zero_mom_calc, phaseRange, confRange, distf._zero, mout._zero)
       if self.oncePerTime then self.tCurr = tCurr end
    else
