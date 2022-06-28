@@ -297,7 +297,7 @@ function FemPerpPoisson:init(tbl)
                        stiffFinish    = "FemPerpPoisson... Assembly: Assemble stiffness matrix, apply BCs, and factorize",
                        --assemble       = "FemPerpPoisson... Total assembly",
                        }
-    self.timerLabelsSolve = {
+   self.timerLabelsSolve = {
                        srcReduceWait  = "FemPerpPoisson... Solve: wait for global source reduce to finish",
                        solve          = "FemPerpPoisson... Solve: solve linear system",
                        getSol         = "FemPerpPoisson... Solve: get solution",

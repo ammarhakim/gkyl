@@ -114,9 +114,8 @@ function test_smooth1d(nz, p, writeMatrix)
    print()
    print("Testing 1D parallel Poisson smooth...")
    local grid = Grid.RectCart {
-      lower = {0.0},
-      upper = {1.0},
-      cells = {nz},
+      lower = {0.0},  cells = {nz},
+      upper = {1.0},  periodicDirs = {1}
    }
    local basis = Basis.CartModalSerendipity { ndim = 1, polyOrder = p }
    io.write("nz=",nz," polyOrder=", p, "\n")
@@ -157,6 +156,7 @@ function test_smooth1d(nz, p, writeMatrix)
    poisson:advance(0.,{srcModal},{phiModal})
    local t2 = os.clock()
    io.write("1D parallel Poisson smooth took total of ", t2-t1, " s\n")
+   phiModal:write(string.format("phiModal_%d_g0.bp",nz))
 
    local err = DataStruct.Field {
       onGrid        = grid,
@@ -171,10 +171,8 @@ function test_smooth1d(nz, p, writeMatrix)
    --err:write("error-1d.bp", 0.0)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
-      onGrid        = grid,
-      basis         = basis,
-      numComponents = 1,
-      quantity      = "V2"
+      onGrid        = grid,  quantity = "V2",
+      numComponents = 1,     basis    = basis,
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -264,10 +262,8 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    --err:write("error-1d.bp", 0.0)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
-      onGrid        = grid,
-      basis         = basis,
-      numComponents = 1,
-      quantity      = "V2"
+      onGrid = grid,   numComponents = 1,
+      basis  = basis,  quantity      = "V2",
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -289,12 +285,10 @@ function test_smooth3d(nx, ny, nz, p, writeMatrix)
    io.write("nx=",nx," ny=",ny," nz=",nz," polyOrder=", p, "\n")
    local t1 = os.clock()
    local poisson = Updater.FemParPoisson {
-      onGrid  = grid,
-      basis   = basis,
+      onGrid  = grid,   smooth  = true,
+      basis   = basis,  writeStiffnessMatrix = writeMatrix,
       bcLower = {{ T = "N", V = 0.0 }},
       bcUpper = {{ T = "N", V = 0.0 }},
-      smooth  = true,
-      writeStiffnessMatrix = writeMatrix,
    }
    local t2 = os.clock()
    io.write("3D parallel Poisson init took ", t2-t1, " s\n")
@@ -343,10 +337,8 @@ function test_smooth3d(nx, ny, nz, p, writeMatrix)
    --err:write("error-1d.bp", 0.0)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
-      onGrid        = grid,
-      basis         = basis,
-      numComponents = 1,
-      quantity      = "V2"
+      onGrid = grid,   numComponents = 1,
+      basis  = basis,  quantity      = "V2",
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -444,10 +436,10 @@ function test_smooth3d_p2()
 end
 
 local t1 = os.clock()
-test_solve1d_p1()
-test_solve1d_p2()
-test_solve3d_p1()
-test_solve3d_p2()
+--test_solve1d_p1()
+--test_solve1d_p2()
+--test_solve3d_p1()
+--test_solve3d_p2()
 test_smooth1d_p1()
 test_smooth1d_p2()
 test_smooth3d_p1()
