@@ -17,8 +17,16 @@ local LinearDecomp = require "Lib.LinearDecomp"
 local Proto        = require "Lib.Proto"
 local UpdaterBase  = require "Updater.Base"
 local xsys         = require "xsys"
-local ffi          = require "ffi"
-local ffiC         = ffi.C
+local ffi = require "ffi"
+local ffiC = ffi.C
+require "Lib.ZeroUtil"
+
+ffi.cdef [[
+void gkyl_dg_mul_op_range(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out,
+  int c_lop, const struct gkyl_array* lop,
+  int c_rop, const struct gkyl_array* rop, struct gkyl_range *range);
+]]
 
 -- Function to check if moment name is correct.
 local function isOpNameGood(nm)
@@ -37,8 +45,9 @@ function CartFieldBinOp:init(tbl)
    self._onGrid = assert(
       tbl.onGrid, "Updater.CartFieldBinOp: Must provide grid object using 'onGrid'.")
 
-   local weakBasis = assert(
+   self._weakBasis = assert(
       tbl.weakBasis, "Updater.CartFieldBinOp: Must provide the weak basis object using 'weakBasis'.")
+   local weakBasis = self._weakBasis
    local fieldBasis = tbl.fieldBasis
 
    local op = assert(
@@ -85,6 +94,10 @@ function CartFieldBinOp:init(tbl)
    else 
       self._binOpData = ffiC.new_binOpData_t(self._numBasis, 0) 
    end
+
+   if op == "Multiply" then
+      self._zero_op = op
+   end
 end
 
 -- Advance method.
@@ -104,6 +117,16 @@ function CartFieldBinOp:_advance(tCurr, inFld, outFld)
       Afld, Bfld = inFld[1], inFld[2]
    elseif inFld[1]:numComponents() > inFld[2]:numComponents() then
       Bfld, Afld = inFld[1], inFld[2]
+   end
+
+   if self._zero_op == "Multiply" then
+      ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, 0, uOut._zero, 0, Afld._zero, 0, Bfld._zero, uOut:localRange())
+   
+      return
+   elseif self._zero_op == "Divide" then
+      -- NYI
+
+      return
    end
 
    -- Either the localRange is the same for Bfld and Afld,
@@ -156,6 +179,36 @@ function CartFieldBinOp:_advance(tCurr, inFld, outFld)
       uOut:fill(uOutIndexer(idx), uOutItr)
 
       self._BinOpCalc(self._binOpData, AfldItr:data(), BfldItr:data(), nComp, nCompEq, uOutItr:data())
+   end
+end
+
+function CartFieldBinOp:_advanceOnDevice(tCurr, inFld, outFld)
+   local grid = self._onGrid
+   -- Multiplication: Afld * Bfld (can be scalar*scalar, vector*scalar or scalar*vector,
+   --                              but in the latter Afld must be the scalar).
+   -- Division:       Bfld/Afld (Afld must be a scalar function).
+   -- DotProduct:     Afld . Bfld (both vector fields).
+
+   local uOut = outFld[1]
+   -- Remove SOME burden from the user in ordering the inputs. Order them here so that
+   -- in scalar-vector and conf-phase operations they enter the kernels as
+   -- BinOp(scalar,vector) and BinOp(conf field,phase field).
+   local Afld, Bfld
+   if inFld[1]:numComponents() <= inFld[2]:numComponents() then
+      Afld, Bfld = inFld[1], inFld[2]
+   elseif inFld[1]:numComponents() > inFld[2]:numComponents() then
+      Bfld, Afld = inFld[1], inFld[2]
+   end
+
+   if self._zero_op == "Multiply" then
+      ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, 0, uOut._zeroDevice, 0, Afld._zeroDevice, 0, Bfld._zeroDevice, uOut:localRange())
+   
+      return
+   elseif self._zero_op == "Divide" then
+      -- NYI
+      assert(false, "GPU bin op divide not yet integrated from g0")
+
+      return
    end
 end
 

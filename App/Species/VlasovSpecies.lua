@@ -212,19 +212,6 @@ function VlasovSpecies:createSolver(field, externalField)
 
    end
 
-   -- Updaters for the primitive moments.
-   -- These will be used to compute n*u^2 and n*T for computing integrated moments.
-   self.confDiv = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "Divide",
-   }
-   self.confDotProduct = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "DotProduct",
-   }
-
    if self.vlasovExtForceFunc then
       self.evalVlasovExtForce = Updater.ProjectOnBasis {
          onGrid   = self.confGrid,
