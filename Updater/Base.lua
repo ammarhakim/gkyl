@@ -44,7 +44,7 @@ function _M:init(tbl)
 end
 
 function _M:_advanceNoDeviceImpl(tCurr, inFld, outFld)
-   print("WARNING: no device implementation for " .. debug.getinfo(self._advance).source:sub(4) .. ". Using CPU version (with CPU-GPU copies).")
+   --print("WARNING: no device implementation for " .. debug.getinfo(self._advance).source:sub(4) .. ". Using CPU version (with CPU-GPU copies).")
    -- copy input fields from device -> host
    for _, fld in ipairs(inFld) do 
       if type(fld)=="table" and fld._zero and fld._zeroDevice then
