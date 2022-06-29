@@ -853,7 +853,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       fIn = self.getF_or_deltaF(fIn)  -- Return full-F, or compute and return fluctuations.
 
       if self.needSelfPrimMom and
-         lume.any({unpack(self.momentFlags,1,4)},function(x) return x==false end) then -- No need to recompute if already computed.
+         lume.any({unpack(self.momentFlags,2,4)},function(x) return x==false end) then -- No need to recompute if already computed.
 
 	 self.threeMomentsCalc:advance(tCurr, {fIn}, {self.threeMoments})
 
@@ -880,8 +880,9 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
          -- Indicate that moments, boundary corrections, star moments
          -- and self-primitive moments have been computed.
-         for iF=1,4 do self.momentFlags[iF] = true end
-      elseif self.momentFlags[1]==false then -- No need to recompute if already computed.
+         for iF=2,4 do self.momentFlags[iF] = true end
+      end
+      if self.momentFlags[1]==false then -- No need to recompute if already computed.
          self.numDensityCalc:advance(tCurr, {fIn}, { self.numDensity })
          -- Indicate that first moment has been computed.
          self.momentFlags[1] = true

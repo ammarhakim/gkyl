@@ -673,7 +673,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    -- Compute moments needed in coupling to fields and collisions.
    local fIn = self:rkStepperFields()[rkIdx]
    if self.needSelfPrimMom and
-      lume.any({unpack(self.momentFlags,1,4)},function(x) return x==false end) then -- No need to recompute if already computed.
+      lume.any({unpack(self.momentFlags,2,4)},function(x) return x==false end) then -- No need to recompute if already computed.
 
       self.fiveMomentsCalc:advance(tCurr, {fIn}, {self.fiveMoments})
 
