@@ -352,7 +352,7 @@ function GkSpecies:createSolver(field, externalField)
          vbounds[i+self.vdim] = self.grid:upper(self.cdim+i+1)
       end
       self.primMomSelf = Updater.SelfPrimMoments {
-         onGrid     = self.confGrid,
+         onGrid     = self.grid,
          phaseBasis = self.basis,
          confBasis  = self.confBasis,
          operator   = "GkLBO",
