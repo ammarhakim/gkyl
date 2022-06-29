@@ -86,7 +86,11 @@ function GkLBOCollisions:fullInit(speciesTbl)
          end
       end
       if (collFreqType == "number") then
-         self.varNu         = false    -- Not spatially varying nu.
+         self.varNu         = true    
+         for iC = 1,#self.collFreqs do
+            local val = self.collFreqs[iC]
+            self.collFreqs[iC] = function(t, xn) return val end
+         end
       else -- collFreqType must be a function, which we assume to be spatially dependent.
          self.varNu         = true
       end
@@ -275,23 +279,30 @@ function GkLBOCollisions:createSolver(mySpecies, externalField)
       self.nuSum = 0.0    -- Assigned in advance method.
    end
    -- Lenard-Bernstein equation.
-   self.equation = GkLBOconstNuEq {
-      phaseBasis       = self.phaseBasis,
-      confBasis        = self.confBasis,
-      vParUpper        = self.vParMax,
-      varyingNu        = self.varNu,
-      useCellAverageNu = self.cellConstNu,
-      mass             = self.mass,
-      positivity       = self.usePositivity,
-      gridID           = self.phaseGrid:id(),
-   }
-   self.collisionSlvr = Updater.HyperDisCont {
-      onGrid             = self.phaseGrid,
-      basis              = self.phaseBasis,
-      cfl                = self.cfl,
-      equation           = self.equation,
-      updateDirections   = zfd,    -- Only update velocity directions.
-      zeroFluxDirections = zfd,
+   --self.equation = GkLBOconstNuEq {
+   --   phaseBasis       = self.phaseBasis,
+   --   confBasis        = self.confBasis,
+   --   vParUpper        = self.vParMax,
+   --   varyingNu        = self.varNu,
+   --   useCellAverageNu = self.cellConstNu,
+   --   mass             = self.mass,
+   --   positivity       = self.usePositivity,
+   --   gridID           = self.phaseGrid:id(),
+   --}
+   --self.collisionSlvr = Updater.HyperDisCont {
+   --   onGrid             = self.phaseGrid,
+   --   basis              = self.phaseBasis,
+   --   cfl                = self.cfl,
+   --   equation           = self.equation,
+   --   updateDirections   = zfd,    -- Only update velocity directions.
+   --   zeroFluxDirections = zfd,
+   --}
+   self.collisionSlvr = Updater.GkLBO {
+      onGrid = self.phaseGrid,
+      phaseBasis = self.phaseBasis,
+      confBasis = self.confBasis,
+      confRange = self.nuSum:localRange(),
+      mass = self.mass,
    }
    if self.crossCollisions then
       if self.varNu then
@@ -457,17 +468,7 @@ function GkLBOCollisions:advance(tCurr, fIn, species, out)
 
    -- Compute increment from collisions and accumulate it into output.
    self.collisionSlvr:advance(
-      tCurr, {fIn, self.bmagInv, self.nuUParSum, self.nuVtSqSum, self.nuSum, selfMom[3]}, {self.collOut, cflRateByCell})
-
-   local tmNonSlvrStart = Time.clock()
-   self.primMomLimitCrossingsG:appendData(tCurr, {0.0})
-   self.primMomLimitCrossingsL:appendData(tCurr, {self.equation.primMomCrossLimit})
-
-   -- Barrier over shared communicator before accumulate
-   Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
-
-   fRhsOut:accumulate(1.0, self.collOut)
-   self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
+      tCurr, {fIn, self.bmagInv, self.nuUParSum, self.nuVtSqSum, self.nuSum}, {fRhsOut, cflRateByCell})
 end
 
 function GkLBOCollisions:write(tm, frame)
