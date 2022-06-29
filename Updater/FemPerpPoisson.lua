@@ -306,16 +306,19 @@ function FemPerpPoisson:init(tbl)
                        }
 
    
-   local bc_zero = ffi.new("struct gkyl_poisson_bc")
-   bc_zero.lo_type[0] = self._bc[0][0].type
-   bc_zero.up_type[0] = self._bc[0][1].type
-   bc_zero.lo_type[1] = self._bc[1][0].type
-   bc_zero.up_type[1] = self._bc[1][1].type
-   bc_zero.lo_value[0].v[0] = self._bc[0][0].value
-   bc_zero.up_value[0].v[0] = self._bc[0][1].value
-   bc_zero.lo_value[1].v[0] = self._bc[1][0].value
-   bc_zero.up_value[1].v[0] = self._bc[1][1].value
-   self._zero_fem = ffiC.gkyl_fem_poisson_new(self._grid._zero, self._basis._zero, bc_zero, -1.0, GKYL_USE_GPU or 0)
+   local useG0 = xsys.pickBool(tbl.useG0, true)
+   if useG0 then
+      local bc_zero = ffi.new("struct gkyl_poisson_bc")
+      bc_zero.lo_type[0] = self._bc[0][0].type
+      bc_zero.up_type[0] = self._bc[0][1].type
+      bc_zero.lo_type[1] = self._bc[1][0].type
+      bc_zero.up_type[1] = self._bc[1][1].type
+      bc_zero.lo_value[0].v[0] = self._bc[0][0].value
+      bc_zero.up_value[0].v[0] = self._bc[0][1].value
+      bc_zero.lo_value[1].v[0] = self._bc[1][0].value
+      bc_zero.up_value[1].v[0] = self._bc[1][1].value
+      self._zero_fem = ffiC.gkyl_fem_poisson_new(self._grid._zero, self._basis._zero, bc_zero, -1.0, GKYL_USE_GPU or 0)
+   end
 
    return self
 end

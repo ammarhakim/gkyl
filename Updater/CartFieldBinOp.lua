@@ -120,7 +120,7 @@ function CartFieldBinOp:_advance(tCurr, inFld, outFld)
    end
 
    if self._zero_op and self._zero_op == "Multiply" and inFld[1]:numComponents() == inFld[2]:numComponents() then
-      ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, 0, uOut._zero, 0, Afld._zero, 0, Bfld._zero, uOut:localRange())
+      ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, 0, uOut._zero, 0, Afld._zero, 0, Bfld._zero, uOut:localExtRange())
    
       return
    elseif self._zero_op and self._zero_op == "Divide" then
@@ -200,11 +200,11 @@ function CartFieldBinOp:_advanceOnDevice(tCurr, inFld, outFld)
       Bfld, Afld = inFld[1], inFld[2]
    end
 
-   if self._zero_op == "Multiply" then
-      ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, 0, uOut._zeroDevice, 0, Afld._zeroDevice, 0, Bfld._zeroDevice, uOut:localRange())
+   if self._zero_op and self._zero_op == "Multiply" and inFld[1]:numComponents() == inFld[2]:numComponents() then
+      ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, 0, uOut._zeroDevice, 0, Afld._zeroDevice, 0, Bfld._zeroDevice, uOut:localExtRange())
    
       return
-   elseif self._zero_op == "Divide" then
+   elseif self._zero_op and self._zero_op == "Divide" then
       -- NYI
       assert(false, "GPU bin op divide not yet integrated from g0")
 

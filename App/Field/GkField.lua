@@ -361,6 +361,7 @@ function GkField:createSolver(species, externalField)
       gxx = gxxPoisson,
       gxy = gxyPoisson,
       gyy = gyyPoisson,
+      useG0 = false,
    }
    if self.ndim == 3 and not self.discontinuousPhi then
       self.phiZSmoother = Updater.FemParPoisson {

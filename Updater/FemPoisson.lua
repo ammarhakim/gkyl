@@ -75,7 +75,8 @@ function FemPoisson:init(tbl)
         gxx          = self.gxx,
         gxy          = self.gxy,
         gyy          = self.gyy,
-        smooth       = self.smooth
+        smooth       = self.smooth,
+        useG0 = tbl.useG0,
       }
    elseif ndim == 3 then
       self.slvr = FemPerpPoisson {
@@ -88,7 +89,8 @@ function FemPoisson:init(tbl)
         gxx          = self.gxx,
         gxy          = self.gxy,
         gyy          = self.gyy,
-        smooth       = self.smooth
+        smooth       = self.smooth,
+        useG0 = tbl.useG0,
       }
    else 
       assert(false, "Updater.FemPoisson: Requires ndim<=3")
