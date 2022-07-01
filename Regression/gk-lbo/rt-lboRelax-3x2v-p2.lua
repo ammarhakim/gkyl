@@ -83,6 +83,7 @@ plasmaApp = Plasma.App {
       end,
       -- Evolve species?
       evolve      = true,
+      evolveCollisionless = false,
       diagnostics = { "M0", "M1", "M2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
@@ -106,6 +107,7 @@ plasmaApp = Plasma.App {
       end,
       -- Evolve species?
       evolve      = true,
+      evolveCollisionless = false,
       diagnostics = { "M0", "M1", "M2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
