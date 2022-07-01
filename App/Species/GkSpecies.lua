@@ -338,17 +338,17 @@ function GkSpecies:createSolver(field, externalField)
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
       -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
-      --self.threeMomentsLBOCalc = Updater.DistFuncMomentCalc {
-      --   onGrid     = self.grid,
-      --   phaseBasis = self.basis,
-      --   confBasis  = self.confBasis,
-      --   moment     = "GkThreeMomentsLBO",
-      --   gkfacs     = {self.mass, self.bmag},
-      --   positivity = self.positivity,
-      --}
-      local vbounds = ffi.new("double[6]")
+--      self.threeMomentsLBOCalc = Updater.DistFuncMomentCalc {
+--         onGrid     = self.grid,
+--         phaseBasis = self.basis,
+--         confBasis  = self.confBasis,
+--         moment     = "GkThreeMomentsLBO",
+--         gkfacs     = {self.mass, self.bmag},
+--         positivity = self.positivity,
+--      }
+      local vbounds = ffi.new("double[4]")
       for i=0, self.vdim-1 do 
-         vbounds[i] = self.grid:lower(self.cdim+i+1)
+         vbounds[i]           = self.grid:lower(self.cdim+i+1)
          vbounds[i+self.vdim] = self.grid:upper(self.cdim+i+1)
       end
       self.primMomSelf = Updater.SelfPrimMoments {
@@ -356,8 +356,8 @@ function GkSpecies:createSolver(field, externalField)
          phaseBasis = self.basis,
          confBasis  = self.confBasis,
          operator   = "GkLBO",
-         mass = self.mass,
-         vbounds = vbounds,
+         mass       = self.mass,
+         vbounds    = vbounds,
       }
       -- Updaters for the primitive moments.
       self.confDiv = Updater.CartFieldBinOp {
@@ -859,24 +859,24 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
 	 self.primMomSelf:advance(tCurr, {self.threeMoments, fIn, self.threeMomentsBoundaryCorrections}, {self.uParSelf, self.vtSqSelf})
 
-         --self.threeMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy,
-         --                                                 self.m1Correction, self.m2Correction,
-         --                                                 self.m0Star, self.m1Star, self.m2Star })
-	 --if self.needCorrectedSelfPrimMom then
-         --   -- Also compute self-primitive moments uPar and vtSq.
-         --   self.primMomSelf:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy,
-         --                                    self.m1Correction, self.m2Correction,
-         --                                    self.m0Star, self.m1Star, self.m2Star}, {self.uParSelf, self.vtSqSelf})
-         --else
-         --   -- Compute self-primitive moments with binOp updaters.
-         --   self.confDiv:advance(tCurr, {self.numDensity, self.momDensity}, {self.uParSelf})
-         --   self.confMul:advance(tCurr, {self.uParSelf, self.momDensity}, {self.numDensityAux})
-         --   -- Barrier over shared communicator before combine
-         --   Mpi.Barrier(self.grid:commSet().sharedComm)
-         --   self.momDensityAux:combine( 1.0/self.vDegFreedom, self.ptclEnergy,
-         --                              -1.0/self.vDegFreedom, self.numDensityAux )
-         --   self.confDiv:advance(tCurr, {self.numDensity, self.momDensityAux}, {self.vtSqSelf})
-         --end
+--         self.threeMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy,
+--                                                          self.m1Correction, self.m2Correction,
+--                                                          self.m0Star, self.m1Star, self.m2Star })
+--	 if self.needCorrectedSelfPrimMom then
+--            -- Also compute self-primitive moments uPar and vtSq.
+--            self.primMomSelf:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy,
+--                                             self.m1Correction, self.m2Correction,
+--                                             self.m0Star, self.m1Star, self.m2Star}, {self.uParSelf, self.vtSqSelf})
+--         else
+--            -- Compute self-primitive moments with binOp updaters.
+--            self.confDiv:advance(tCurr, {self.numDensity, self.momDensity}, {self.uParSelf})
+--            self.confMul:advance(tCurr, {self.uParSelf, self.momDensity}, {self.numDensityAux})
+--            -- Barrier over shared communicator before combine
+--            Mpi.Barrier(self.grid:commSet().sharedComm)
+--            self.momDensityAux:combine( 1.0/self.vDegFreedom, self.ptclEnergy,
+--                                       -1.0/self.vDegFreedom, self.numDensityAux )
+--            self.confDiv:advance(tCurr, {self.numDensity, self.momDensityAux}, {self.vtSqSelf})
+--         end
 
          -- Indicate that moments, boundary corrections, star moments
          -- and self-primitive moments have been computed.

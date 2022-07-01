@@ -197,7 +197,7 @@ function VlasovSpecies:createSolver(field, externalField)
    if self.needSelfPrimMom then
       local vbounds = ffi.new("double[6]")
       for i=0, self.vdim-1 do 
-         vbounds[i] = self.grid:lower(self.cdim+i+1)
+         vbounds[i]           = self.grid:lower(self.cdim+i+1)
          vbounds[i+self.vdim] = self.grid:upper(self.cdim+i+1)
       end
       self.primMomSelf = Updater.SelfPrimMoments {

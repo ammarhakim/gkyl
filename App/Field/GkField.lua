@@ -581,6 +581,7 @@ function GkField:write(tm, force)
                   local tm, energyVal = self.esEnergy:lastData()
                   local _, phiSqVal = self.phiSq:lastData()
                   energyVal[1] = energyVal[1] + .5*self.adiabSpec:getQneutFacLin()*phiSqVal[1]
+                  self.esEnergy:assignLastVal(1., energyVal)
                end
             else
                -- Something.

@@ -1,3 +1,4 @@
+--------------------------------------------------------------------------------
 --
 -- This updater wraps g0's dg_updater_lbo_gyrokinetic to advance the LBO collisions for Gk
 -- equations with Discontinuous Galerkin scheme.
