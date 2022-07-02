@@ -147,6 +147,9 @@ local function new_mat_ct(elct)
       s = function(self, i, j, v)
 	 self._p[(i-1)*self._m + (j-1)] = v
       end,
+      getRow = function(self, i)
+         return self._p+(i-1)*self._m
+      end,
    }
    local mat_mt = {
       __new = function(ct, n, m, data)

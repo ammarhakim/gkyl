@@ -105,8 +105,8 @@ function MaxwellianOnBasis:init(tbl)
          for d = 1, self._cDim do
             self.confOrdinates[ordIdx][d] = ordinates[ordIndexes[d]]
          end
-         self.confBasis:evalBasis(self.confOrdinates[ordIdx],
-                                  self.confBasisAtOrds[ordIdx])
+         self.confBasis:evalBasis(self.confOrdinates:getRow(ordIdx),
+                                  self.confBasisAtOrds:getRow(ordIdx))
       end
 
       -- Phase space ordinates and weights ------------------------------
@@ -128,8 +128,8 @@ function MaxwellianOnBasis:init(tbl)
                self.phaseWeights[ordIdx]*weights[ordIndexes[d]]
             self.phaseOrdinates[ordIdx][d] = ordinates[ordIndexes[d]]
          end
-         self.phaseBasis:evalBasis(self.phaseOrdinates[ordIdx],
-                                   self.phaseBasisAtOrds[ordIdx])
+         self.phaseBasis:evalBasis(self.phaseOrdinates:getRow(ordIdx),
+                                   self.phaseBasisAtOrds:getRow(ordIdx))
       end
 
       -- Construct the phase space to conf space ordinate map.

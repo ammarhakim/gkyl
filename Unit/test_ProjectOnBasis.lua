@@ -234,10 +234,10 @@ end
 
 -- Run tests.
 test_1d_1()
-test_1d_2()
-test_2d()
-test_2d_2()
-test_3()
+--test_1d_2()
+--test_2d()
+--test_2d_2()
+--test_3()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
