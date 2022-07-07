@@ -248,7 +248,7 @@ function GkIonization:createSolver(funcField)
 	    basisType = self.phaseBasis:id()
 	 },
       }
-   elseif (self.speciesName == self.neutNm) then
+   elseif not (self.speciesName == self.neutNm) then
       self.fMaxNeut = DataStruct.Field {
 	 onGrid        = self.phaseGrid,
 	 numComponents = self.phaseBasis:numBasis(),
@@ -328,7 +328,7 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
 
       fRhsOut:accumulate(1.0,self.ionizSrc)  
    else
-      -- Ions. 
+      -- Ions.
       self.m0elc:copy(elcM0)
       local neutM0   = species[self.neutNm]:fluidMoments()[1]
       local neutUpar = species[self.neutNm].uPar 
@@ -336,9 +336,8 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       
       species[self.speciesName].confWeakMultiply:advance(tCurr, {reactRate, self.m0elc}, {self.coefM0})
       species[self.speciesName].calcMaxwell:advance(tCurr,
-         {neutM0, neutUpar, neutVtSq, species[self.speciesName].bmag}, {self.fMaxNeut})
+						    {neutM0, neutUpar, neutVtSq, species[self.speciesName].bmag}, {self.fMaxNeut})
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {self.coefM0, self.fMaxNeut}, {self.ionizSrc})
-
       fRhsOut:accumulate(1.0,self.ionizSrc)
    end
    self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart

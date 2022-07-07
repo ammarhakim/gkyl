@@ -217,7 +217,6 @@ function GkChargeExchange:createSolver(funcField)
 	    basisType = self.confBasis:id()
 	 },
       }
-      self.bhat = species[self.neutNm].bHat
    end
 end
 
@@ -251,15 +250,15 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       local ionVtSq   = species[self.ionNm]:selfPrimitiveMoments()[2]
       local neutM0    = species[self.neutNm]:fluidMoments()[1]
       local neutDistF = species[self.neutNm]:getDistF()
-      
-      species[self.speciesName].confMult:advance(tCurr, {ionUpar,self.bhat}, {self.ionU})
+
+      species[self.speciesName].confMult:advance(tCurr, {ionUpar, species[self.neutNm].bHat}, {self.ionU})
       species[self.speciesName].calcMaxwell:advance(tCurr, {ionM0, self.ionU, ionVtSq}, {self.fMaxIon})
 
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {neutM0, self.fMaxIon}, {self.M0nDistFi})
       self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {reactRate, self.diffDistF}, {self.sourceCX})
-      
+ 
       fRhsOut:accumulate(-self.iMass/self.nMass,self.sourceCX)
 
    end

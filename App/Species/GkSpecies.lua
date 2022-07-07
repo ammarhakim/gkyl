@@ -886,13 +886,14 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       -- For ionization.
       if self.calcReactRate then
          local neuts = species[self.neutNmIz]
+	 neuts:calcCouplingMoments(tCurr, rkIdx, species)
          if lume.any({unpack(neuts.momentFlags,1,4)},function(x) return x==false end) then
             -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments.
             neuts:calcCouplingMoments(tCurr, rkIdx, species)
          end
          local neutM0   = neuts:fluidMoments()[1]
          local neutVtSq = neuts:selfPrimitiveMoments()[2]
-            
+           
          if tCurr == 0.0 then
             species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
          end
