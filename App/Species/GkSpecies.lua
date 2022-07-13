@@ -76,11 +76,11 @@ end
 local function createBasis(nm, cdim, vdim, polyOrder)
    local ndim = cdim+vdim
    if nm == "serendipity" then
---      if polyOrder == 1 then
---         return Basis.CartModalGkHybrid { cdim = cdim, vdim = vdim }
---      else
+      if polyOrder == 1 then
+         return Basis.CartModalGkHybrid { cdim = cdim, vdim = vdim }
+      else
          return Basis.CartModalSerendipity { ndim = ndim, polyOrder = polyOrder }
---      end
+      end
    elseif nm == "tensor" then
       return Basis.CartModalTensor { ndim = ndim, polyOrder = polyOrder }
    end
