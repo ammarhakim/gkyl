@@ -21,18 +21,6 @@ ffi.cdef [[
  * @return Pointer to new basis function.
  */
 void gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order);
-
-/**
- * Create new hybrid basis for use in gyrokinetics p=1
- * simulations. These basis have the v_par^2 monomial and its tensor
- * product with other monomials included.
- *
- * @param basis Basis object to initialize
- * @param ndim Dimension of reference element.
- * @param poly_order Polynomial order.
- * @return Pointer to new basis function.
- */
-void gkyl_cart_modal_gk_hybrid(struct gkyl_basis *basis, int ndim);
 ]]
 
 -- CartModalSerendipity -----------------------------------------------------------
@@ -51,23 +39,15 @@ function CartModalSerendipity:init(tbl)
       assert(false, "Basis.CartModalSerendipity: Polynomial order must be between 0 and 3")
    end
 
-   -- Option to use hybrid basis. It has vpar^2 & its tensor product w/ other monomials.
-   self._isGkHybrid = tbl.useGkHybrid 
-
    -- create gkylzero gkyl_basis struct
    self._zero = ffi.new("struct gkyl_basis")
 
-   if self._isGkHybrid then
-      assert(self._polyOrder == 1, "Basis.CartModalSerendipity: GK hybrid basis requires polyOrder=1.")
-      ffiC.gkyl_cart_modal_gk_hybrid(self._zero, self._ndim)
-   else
-      ffiC.gkyl_cart_modal_serendip(self._zero, self._ndim, self._polyOrder)
-   end
+   ffiC.gkyl_cart_modal_serendip(self._zero, self._ndim, self._polyOrder)
 
    self._numBasis = self._zero.num_basis
 end
 
-function CartModalSerendipity:id() return self._isGkHybrid and "gk_hybrid" or "serendipity" end
+function CartModalSerendipity:id() return "serendipity" end
 function CartModalSerendipity:ndim() return self._ndim end
 function CartModalSerendipity:polyOrder() return self._polyOrder end
 function CartModalSerendipity:numBasis() return self._numBasis end

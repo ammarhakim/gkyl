@@ -22,10 +22,41 @@ local ffiC = ffi.C
 require "Lib.ZeroUtil"
 
 ffi.cdef [[
+/**
+ * Same as gkyl_dg_mul_op, except operator is applied only on
+ * specified range (sub-range of range containing the DG fields).
+ *
+ * @param basis Basis functions used in expansions
+ * @param c_oop Component of output field in which to store product
+ * @param out Output DG field
+ * @param c_lop Component of left operand to use in product
+ * @param lop Left operand DG field
+ * @param c_rop Component of right operand to use in product
+ * @param rop Right operand DG field
+ * @param range Range to apply multiplication operator
+ */
 void gkyl_dg_mul_op_range(struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, struct gkyl_range *range);
+
+/**
+ * Compute pout = cop*pop on specified range (sub-range of range
+ * containing the DG fields), where pout and pop are phase-space
+ * operands, and cop is a conf-space operand.
+ *
+ * @param cbasis Configuration space basis functions used in expansions.
+ * @param pbasis Phase space basis functions used in expansions.
+ * @param pout Output phase-space DG field.
+ * @param cop Conf-space operand DG field.
+ * @param pop Phase-space operand DG field.
+ * @param crange Conf-space range to apply multiplication operator.
+ * @param prange Phase-space range to apply multiplication operator.
+ */
+void gkyl_dg_mul_conf_phase_op_range(struct gkyl_basis cbasis,
+  struct gkyl_basis pbasis, struct gkyl_array* out,
+  const struct gkyl_array* lop, const struct gkyl_array* rop,
+  struct gkyl_range crange, struct gkyl_range prange);
 ]]
 
 -- Function to check if moment name is correct.
@@ -47,8 +78,8 @@ function CartFieldBinOp:init(tbl)
 
    self._weakBasis = assert(
       tbl.weakBasis, "Updater.CartFieldBinOp: Must provide the weak basis object using 'weakBasis'.")
-   local weakBasis = self._weakBasis
-   local fieldBasis = tbl.fieldBasis
+   self._fieldBasis = tbl.fieldBasis
+   local weakBasis, fieldBasis = self._weakBasis, self._fieldBasis
 
    local op = assert(
       tbl.operation, "Updater.CartFieldBinOp: Must provide an operation using 'operation'.")
@@ -63,7 +94,8 @@ function CartFieldBinOp:init(tbl)
      -- Ensure sanity.
      assert(weakBasis:polyOrder() == fieldBasis:polyOrder(),
             "Polynomial orders of weak and field basis must match.")
-     assert(weakBasis:id() == fieldBasis:id(),
+     assert((weakBasis:id() == fieldBasis:id()) or
+            ((weakBasis:id()=="hybrid" or weakBasis:id()=="gkhybrid") and fieldBasis:id()=="serendipity"),
             "Type of weak and field basis must match.")
      -- Determine configuration and velocity space dims.
      self._cDim = fieldBasis:ndim()
@@ -76,6 +108,7 @@ function CartFieldBinOp:init(tbl)
    self._numBasis = weakBasis:numBasis()
 
    local id, polyOrder = weakBasis:id(), weakBasis:polyOrder()
+   if (id=="hybrid" or id=="gkhybrid") then id="serendipity" end
 
    -- Function to compute specified operation.
    if isOpNameGood(op) then
@@ -120,7 +153,13 @@ function CartFieldBinOp:_advance(tCurr, inFld, outFld)
    end
 
    if self._zero_op and self._zero_op == "Multiply" and inFld[1]:numComponents() == inFld[2]:numComponents() then
-      ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, 0, uOut._zero, 0, Afld._zero, 0, Bfld._zero, uOut:localExtRange())
+      if inFld[1]:numComponents() == inFld[2]:numComponents() then
+         ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, 0, uOut._zero, 0, Afld._zero, 0, Bfld._zero, uOut:localExtRange())
+      else
+         ffiC.gkyl_dg_mul_conf_phase_op_range(self._fieldBasis._zero, self._weakBasis._zero,
+                                              uOut._zero, Afld._zero, Bfld._zero,
+                                              Afld:localExtRange(), uOut:localExtRange())
+      end
    
       return
    elseif self._zero_op and self._zero_op == "Divide" then
@@ -200,8 +239,14 @@ function CartFieldBinOp:_advanceOnDevice(tCurr, inFld, outFld)
       Bfld, Afld = inFld[1], inFld[2]
    end
 
-   if self._zero_op and self._zero_op == "Multiply" and inFld[1]:numComponents() == inFld[2]:numComponents() then
-      ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, 0, uOut._zeroDevice, 0, Afld._zeroDevice, 0, Bfld._zeroDevice, uOut:localExtRange())
+   if self._zero_op and self._zero_op == "Multiply" then
+      if inFld[1]:numComponents() == inFld[2]:numComponents() then
+         ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, 0, uOut._zeroDevice, 0, Afld._zeroDevice, 0, Bfld._zeroDevice, uOut:localExtRange())
+      else
+         ffiC.gkyl_dg_mul_conf_phase_op_range(self._fieldBasis._zero, self._weakBasis._zero,
+                                              uOut._zeroDevice, Afld._zeroDevice, Bfld._zeroDevice,
+                                              Afld:localExtRange(), uOut:localExtRange())
+      end
    
       return
    elseif self._zero_op and self._zero_op == "Divide" then

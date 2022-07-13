@@ -6,6 +6,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+local Basis          = require "Basis"
 local DataStruct     = require "DataStruct"
 local Grid           = require "Grid"
 local KineticSpecies = require "App.Species.KineticSpecies"
@@ -71,6 +72,37 @@ function VlasovSpecies:makeBcApp(bcIn, dir, edge)
 end
 
 -- ............. End of backwards compatibility for BCs .....................--
+
+-- Function to create basis functions.
+local function createBasis(nm, cdim, vdim, polyOrder)
+   local ndim = cdim+vdim
+   if nm == "serendipity" then
+      if polyOrder == 1 then
+         return Basis.CartModalHybrid { cdim = cdim, vdim = vdim }
+      else
+         return Basis.CartModalSerendipity { ndim = ndim, polyOrder = polyOrder }
+      end
+   elseif nm == "tensor" then
+      return Basis.CartModalTensor { ndim = ndim, polyOrder = polyOrder }
+   end
+end
+
+function VlasovSpecies:createBasis(nm, polyOrder)
+   self.basis = createBasis(nm, self.cdim, self.vdim, polyOrder)
+   for _, c in pairs(self.collisions) do c:setPhaseBasis(self.basis) end
+
+   -- Output of grid file is placed here because as the file name is associated
+   -- with a species, we wish to save the basisID and polyOrder in it. But these
+   -- can only be extracted from self.basis after this is created.
+   if self.grid:getMappings() then
+      local metaData = {polyOrder = self.basis:polyOrder(),
+                        basisType = self.basis:id(),
+                        charge    = self.charge,
+                        mass      = self.mass,
+                        grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"}
+      self.grid:write(self.name .. "_grid.bp", 0.0, metaData)
+   end
+end
 
 function VlasovSpecies:alloc(nRkDup)
    -- Allocate distribution function.

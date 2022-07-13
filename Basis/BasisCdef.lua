@@ -4,7 +4,9 @@ ffi.cdef [[
 /* Basis function identifiers */
 enum gkyl_basis_type {
   GKYL_BASIS_MODAL_SERENDIPITY,
-  GKYL_BASIS_MODAL_TENSOR
+  GKYL_BASIS_MODAL_TENSOR,
+  GKYL_BASIS_MODAL_HYBRID,
+  GKYL_BASIS_MODAL_GKHYBRID,
 };
 
 /**
@@ -12,7 +14,7 @@ enum gkyl_basis_type {
  */
 struct gkyl_basis {
   unsigned ndim, poly_order, num_basis;
-  char id[64]; // "serendipity", "tensor"
+  char id[64]; // "serendipity", "tensor", "hybrid, "gkhybrid"
   enum gkyl_basis_type b_type; // identifier for basis function
 
 /**
