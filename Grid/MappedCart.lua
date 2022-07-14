@@ -15,6 +15,7 @@ local RectCart   = require "Grid.RectCart"
 local diff       = require "sci.diff-recursive"
 local diff1      = require "sci.diff"
 local math       = require("sci.math").generic
+local lume       = require "Lib.lume"
 
 -- MappedCartGrid --------------------------------------------------------------
 --
