@@ -8,37 +8,37 @@ local Plasma    = require ("App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
 
 -- Physical parameters.
-eV  = Constants.ELEMENTARY_CHARGE
-qe  = -eV
-qi  = eV
-me  = Constants.ELECTRON_MASS
-mi  = 2.014*Constants.PROTON_MASS -- (deuterium ions)
-Te0 = 2072*eV 
-Ti0 = 2072*eV 
-B0  = 1.91     -- Magnetic field strength on axis [T].
-R0  = 1.313    -- Major radius of magnetic axis [m].
-a   = 0.4701   -- Minor radius [m].
+local eV  = Constants.ELEMENTARY_CHARGE
+local qe  = -eV
+local qi  = eV
+local me  = Constants.ELECTRON_MASS
+local mi  = 2.014*Constants.PROTON_MASS -- (deuterium ions)
+local Te0 = 2072*eV 
+local Ti0 = 2072*eV 
+local B0  = 1.91     -- Magnetic field strength on axis [T].
+local R0  = 1.313    -- Major radius of magnetic axis [m].
+local a   = 0.4701   -- Minor radius [m].
 n0  = 4.992e19 -- [1/m^3].
 -- Derived parameters.
-r0       = 0.5*a   -- Minor radius of flux tube.
-R        = R0 + r0 -- Major radius of flux tube.
-B        = B0*R0/R -- Magnetic field strength in flux tube.
-vte  	 = math.sqrt(Te0/me)
-c_s      = math.sqrt(Te0/mi)
-omega_ci = math.abs(qi*B/mi)
-omega_ce = math.abs(qe*B/me)
-rho_s    = c_s/omega_ci
-rho_e    = vte/omega_ce
-dr       = 32*rho_e
-L_T      = R/10 
-ky_min   = 2*math.pi/dr
-omegade  = ky_min*rho_e*vte/R
+local r0       = 0.5*a   -- Minor radius of flux tube.
+local R        = R0 + r0 -- Major radius of flux tube.
+local B        = B0*R0/R -- Magnetic field strength in flux tube.
+local vte      = math.sqrt(Te0/me)
+local c_s      = math.sqrt(Te0/mi)
+local omega_ci = math.abs(qi*B/mi)
+local omega_ce = math.abs(qe*B/me)
+local rho_s    = c_s/omega_ci
+local rho_e    = vte/omega_ce
+local dr       = 32*rho_e
+local L_T      = R/10 
+local ky_min   = 2*math.pi/dr
+local omegade  = ky_min*rho_e*vte/R
 -- Velocity grid parameters.
-N_VPAR, N_MU = 16, 8
-VPAR_UPPER   = 4*vte
-VPAR_LOWER   = -VPAR_UPPER
-MU_LOWER     = 0
-MU_UPPER     = 16*me*vte*vte/B/2
+local N_VPAR, N_MU = 16, 8
+local VPAR_UPPER   = 4*vte
+local VPAR_LOWER   = -VPAR_UPPER
+local MU_LOWER     = 0
+local MU_UPPER     = 16*me*vte*vte/B/2
 
 plasmaApp = Plasma.App {
    logToFile = true,
@@ -49,7 +49,7 @@ plasmaApp = Plasma.App {
    upper       = {r0 + 0.001*dr/2,  dr/2}, -- Configuration space upper right.
    -- Dimensions of greater configuration space (for computing metric),
    -- and values at which to evaluate the other coordinates.
-   world  = { dim=3, evaluateAt={y=0.0} },
+   world  = { dim=3, evaluateAt={z=0.0} },
    mapc2p = function(xc)
       -- Field-aligned coordinates (x,y,z).
       local x, y, z = xc[1], xc[2], xc[3]

@@ -15,6 +15,7 @@ local RectCart   = require "Grid.RectCart"
 local diff       = require "sci.diff-recursive"
 local diff1      = require "sci.diff"
 local math       = require("sci.math").generic
+local lume       = require "Lib.lume"
 
 -- MappedCartGrid --------------------------------------------------------------
 --
@@ -58,7 +59,8 @@ function MappedCart:init(tbl)
       local cLabels, cTrans = {"x","y","z","vx","vy","vz"}, {}
       for d = 1, self._worldDim do cTrans[cLabels[d]]=d end
       local xcI, addI = 0, 0
-      for nm, v in pairs(cTrans) do
+      lume.setOrder(cTrans)
+      for nm, v in lume.orderedIter(cTrans) do -- Order in this loop matters.
          if extraCoord[nm] then 
             addI = addI+1
             self._addIdx[addI]   = v 
