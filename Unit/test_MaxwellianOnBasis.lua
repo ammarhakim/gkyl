@@ -29,15 +29,31 @@ local function createGrid(lo, up, nCells, pDirs)
    return gridOut
 end
 
-local function createBasis(dim, pOrder, bKind)
+local function createConfBasis(dim, pOrder, bKind)
    bKind = bKind or "Ser"
    local basis
    if (bKind=="Ser") then
       basis = Basis.CartModalSerendipity { ndim = dim, polyOrder = pOrder }
-   elseif (bKind=="Max") then
-      basis = Basis.CartModalMaxOrder { ndim = dim, polyOrder = pOrder }
    elseif (bKind=="Tensor") then
       basis = Basis.CartModalTensor { ndim = dim, polyOrder = pOrder }
+   else
+      assert(false,"Invalid basis")
+   end
+   return basis
+end
+
+local function createPhaseBasis(cdim, vdim, pOrder, bKind)
+   bKind = bKind or "Ser"
+   local pdim = cdim+vdim
+   local basis
+   if (bKind=="Ser") then
+      if pOrder == 1 then
+         basis = Basis.CartModalHybrid { cdim = cdim, vdim = vdim }
+      else
+         basis = Basis.CartModalSerendipity { ndim = pdim, polyOrder = pOrder }
+      end
+   elseif (bKind=="Tensor") then
+      basis = Basis.CartModalTensor { ndim = pdim, polyOrder = pOrder }
    else
       assert(false,"Invalid basis")
    end
@@ -68,11 +84,16 @@ function test_1x1v()
    local numCells  = {8, 8}
 
    for polyOrder = 1, 3 do
-
+      local lowerC, upperC, numCellsC = {}, {}, {}
+      for d=1,1 do
+         lowerC[d] = lower[d]
+         upperC[d] = upper[d]
+         numCellsC[d] = numCells[d]
+      end
       local phaseGrid  = createGrid(lower, upper, numCells)
-      local phaseBasis = createBasis(phaseGrid:ndim(), polyOrder)
-      local confGrid   = createGrid({lower[1]}, {upper[1]}, {numCells[1]})
-      local confBasis  = createBasis(confGrid:ndim(), polyOrder)
+      local phaseBasis = createPhaseBasis(#lowerC, #lower-#lowerC, polyOrder)
+      local confGrid   = createGrid(lowerC, upperC, numCellsC)
+      local confBasis  = createConfBasis(confGrid:ndim(), polyOrder)
    
       local m0Fld     = createField(confGrid, confBasis)
       local uDriftFld = createField(confGrid, confBasis)
@@ -154,11 +175,16 @@ function testGK_1x1v()
    local numCells  = {16, 16}
 
    for polyOrder = 1, 2 do
-
+      local lowerC, upperC, numCellsC = {}, {}, {}
+      for d=1,1 do
+         lowerC[d] = lower[d]
+         upperC[d] = upper[d]
+         numCellsC[d] = numCells[d]
+      end
       local phaseGrid  = createGrid(lower, upper, numCells)
-      local phaseBasis = createBasis(phaseGrid:ndim(), polyOrder)
-      local confGrid   = createGrid({lower[1]}, {upper[1]}, {numCells[1]})
-      local confBasis  = createBasis(confGrid:ndim(), polyOrder)
+      local phaseBasis = createPhaseBasis(#lowerC, #lower-#lowerC, polyOrder)
+      local confGrid   = createGrid(lowerC, upperC, numCellsC)
+      local confBasis  = createConfBasis(confGrid:ndim(), polyOrder)
 
       local m0Fld     = createField(confGrid, confBasis)
       local uDriftFld = createField(confGrid, confBasis)
@@ -279,11 +305,16 @@ function test_1x2v()
    local numCells  = {8, 8, 8}
 
    for polyOrder = 1, 3 do
-
+      local lowerC, upperC, numCellsC = {}, {}, {}
+      for d=1,1 do
+         lowerC[d] = lower[d]
+         upperC[d] = upper[d]
+         numCellsC[d] = numCells[d]
+      end
       local phaseGrid  = createGrid(lower, upper, numCells)
-      local phaseBasis = createBasis(phaseGrid:ndim(), polyOrder)
-      local confGrid   = createGrid({lower[1]}, {upper[1]}, {numCells[1]})
-      local confBasis  = createBasis(confGrid:ndim(), polyOrder)
+      local phaseBasis = createPhaseBasis(#lowerC, #lower-#lowerC, polyOrder)
+      local confGrid   = createGrid(lowerC, upperC, numCellsC)
+      local confBasis  = createConfBasis(confGrid:ndim(), polyOrder)
 
       local m0Fld     = createField(confGrid, confBasis)
       local uDriftFld = createField(confGrid, confBasis, #uDrift)
@@ -367,11 +398,16 @@ function testGK_1x2v()
    local numCells  = {16, 16, 16}
 
    for polyOrder = 1, 2 do
-
+      local lowerC, upperC, numCellsC = {}, {}, {}
+      for d=1,1 do
+         lowerC[d] = lower[d]
+         upperC[d] = upper[d]
+         numCellsC[d] = numCells[d]
+      end
       local phaseGrid  = createGrid(lower, upper, numCells)
-      local phaseBasis = createBasis(phaseGrid:ndim(), polyOrder)
-      local confGrid   = createGrid({lower[1]}, {upper[1]}, {numCells[1]})
-      local confBasis  = createBasis(confGrid:ndim(), polyOrder)
+      local phaseBasis = createPhaseBasis(#lowerC, #lower-#lowerC, polyOrder)
+      local confGrid   = createGrid(lowerC, upperC, numCellsC)
+      local confBasis  = createConfBasis(confGrid:ndim(), polyOrder)
 
       local m0Fld     = createField(confGrid, confBasis)
       local uDriftFld = createField(confGrid, confBasis)
@@ -492,11 +528,16 @@ function test_1x3v()
    local numCells  = {6, 8, 8, 4}
 
    for polyOrder = 1, 3 do
-
+      local lowerC, upperC, numCellsC = {}, {}, {}
+      for d=1,1 do
+         lowerC[d] = lower[d]
+         upperC[d] = upper[d]
+         numCellsC[d] = numCells[d]
+      end
       local phaseGrid  = createGrid(lower, upper, numCells)
-      local phaseBasis = createBasis(phaseGrid:ndim(), polyOrder)
-      local confGrid   = createGrid({lower[1]}, {upper[1]}, {numCells[1]})
-      local confBasis  = createBasis(confGrid:ndim(), polyOrder)
+      local phaseBasis = createPhaseBasis(#lowerC, #lower-#lowerC, polyOrder)
+      local confGrid   = createGrid(lowerC, upperC, numCellsC)
+      local confBasis  = createConfBasis(confGrid:ndim(), polyOrder)
 
       local m0Fld     = createField(confGrid, confBasis)
       local uDriftFld = createField(confGrid, confBasis, #uDrift)
@@ -611,11 +652,16 @@ function test_2x2v()
    local numCells  = {6, 12, 8, 8}
 
    for polyOrder = 1, 3 do
-
+      local lowerC, upperC, numCellsC = {}, {}, {}
+      for d=1,2 do
+         lowerC[d] = lower[d]
+         upperC[d] = upper[d]
+         numCellsC[d] = numCells[d]
+      end
       local phaseGrid  = createGrid(lower, upper, numCells)
-      local phaseBasis = createBasis(phaseGrid:ndim(), polyOrder)
-      local confGrid   = createGrid({lower[1],lower[2]}, {upper[1],upper[2]}, {numCells[1],numCells[2]})
-      local confBasis  = createBasis(confGrid:ndim(), polyOrder)
+      local phaseBasis = createPhaseBasis(#lowerC, #lower-#lowerC, polyOrder)
+      local confGrid   = createGrid(lowerC, upperC, numCellsC)
+      local confBasis  = createConfBasis(confGrid:ndim(), polyOrder)
 
       local m0Fld     = createField(confGrid, confBasis)
       local uDriftFld = createField(confGrid, confBasis, #uDrift)
@@ -702,11 +748,16 @@ function testGK_2x2v()
    local numCells  = {8, 8, 8, 8}
 
    for polyOrder = 1, 2 do
-
+      local lowerC, upperC, numCellsC = {}, {}, {}
+      for d=1,2 do
+         lowerC[d] = lower[d]
+         upperC[d] = upper[d]
+         numCellsC[d] = numCells[d]
+      end
       local phaseGrid  = createGrid(lower, upper, numCells)
-      local phaseBasis = createBasis(phaseGrid:ndim(), polyOrder)
-      local confGrid   = createGrid({lower[1],lower[2]}, {upper[1],upper[2]}, {numCells[1],numCells[2]})
-      local confBasis  = createBasis(confGrid:ndim(), polyOrder)
+      local phaseBasis = createPhaseBasis(#lowerC, #lower-#lowerC, polyOrder)
+      local confGrid   = createGrid(lowerC, upperC, numCellsC)
+      local confBasis  = createConfBasis(confGrid:ndim(), polyOrder)
 
       local m0Fld     = createField(confGrid, confBasis)
       local uDriftFld = createField(confGrid, confBasis)
@@ -827,11 +878,16 @@ function test_2x3v()
    local numCells  = {6, 12, 8, 8, 4}
 
    for polyOrder = 1, 2 do
-
+      local lowerC, upperC, numCellsC = {}, {}, {}
+      for d=1,2 do
+         lowerC[d] = lower[d]
+         upperC[d] = upper[d]
+         numCellsC[d] = numCells[d]
+      end
       local phaseGrid  = createGrid(lower, upper, numCells)
-      local phaseBasis = createBasis(phaseGrid:ndim(), polyOrder)
-      local confGrid   = createGrid({lower[1],lower[2]}, {upper[1],upper[2]}, {numCells[1],numCells[2]})
-      local confBasis  = createBasis(confGrid:ndim(), polyOrder)
+      local phaseBasis = createPhaseBasis(#lowerC, #lower-#lowerC, polyOrder)
+      local confGrid   = createGrid(lowerC, upperC, numCellsC)
+      local confBasis  = createConfBasis(confGrid:ndim(), polyOrder)
 
       local m0Fld     = createField(confGrid, confBasis)
       local uDriftFld = createField(confGrid, confBasis, #uDrift)
@@ -950,11 +1006,16 @@ function testGK_3x2v()
    local numCells  = {6, 8, 8, 8, 4}
 
    for polyOrder = 1, 1 do
-
+      local lowerC, upperC, numCellsC = {}, {}, {}
+      for d=1,3 do
+         lowerC[d] = lower[d]
+         upperC[d] = upper[d]
+         numCellsC[d] = numCells[d]
+      end
       local phaseGrid  = createGrid(lower, upper, numCells)
-      local phaseBasis = createBasis(phaseGrid:ndim(), polyOrder)
-      local confGrid   = createGrid({lower[1],lower[2],lower[3]}, {upper[1],upper[2],upper[3]}, {numCells[1],numCells[2],numCells[3]})
-      local confBasis  = createBasis(confGrid:ndim(), polyOrder)
+      local phaseBasis = createPhaseBasis(#lowerC, #lower-#lowerC, polyOrder)
+      local confGrid   = createGrid(lowerC, upperC, numCellsC)
+      local confBasis  = createConfBasis(confGrid:ndim(), polyOrder)
 
       local m0Fld     = createField(confGrid, confBasis)
       local uDriftFld = createField(confGrid, confBasis)
@@ -1079,11 +1140,16 @@ function test_3x3v()
    local numCells  = {4, 4, 4, 4, 4, 4}
 
    for polyOrder = 1, 1 do
-
+      local lowerC, upperC, numCellsC = {}, {}, {}
+      for d=1,3 do
+         lowerC[d] = lower[d]
+         upperC[d] = upper[d]
+         numCellsC[d] = numCells[d]
+      end
       local phaseGrid  = createGrid(lower, upper, numCells)
-      local phaseBasis = createBasis(phaseGrid:ndim(), polyOrder)
-      local confGrid   = createGrid({lower[1],lower[2],lower[3]}, {upper[1],upper[2],upper[3]}, {numCells[1],numCells[2],numCells[3]})
-      local confBasis  = createBasis(confGrid:ndim(), polyOrder)
+      local phaseBasis = createPhaseBasis(#lowerC, #lower-#lowerC, polyOrder)
+      local confGrid   = createGrid(lowerC, upperC, numCellsC)
+      local confBasis  = createConfBasis(confGrid:ndim(), polyOrder)
 
       local m0Fld     = createField(confGrid, confBasis)
       local uDriftFld = createField(confGrid, confBasis, #uDrift)
@@ -1197,7 +1263,7 @@ test_1x3v()
 test_2x2v()
 test_2x3v()
 test_3x3v()
--- Gyrokinetic tests.
+---- Gyrokinetic tests.
 testGK_1x1v()
 testGK_1x2v()
 testGK_2x2v()
