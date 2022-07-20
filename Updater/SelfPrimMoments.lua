@@ -110,7 +110,8 @@ function SelfPrimMoments:init(tbl)
    -- Ensure sanity.
    assert(phaseBasis:polyOrder() == self._polyOrder,
           "Polynomial orders of phase and conf basis must match.")
-   assert(phaseBasis:id() == self._basisID,
+   assert((phaseBasis:id() == self._basisID) or
+          ((phaseBasis:id()=="hybrid" or phaseBasis:id()=="gkhybrid") and self._basisID=="serendipity"),
           "Type of phase and conf basis must match.")
    -- Determine configuration and velocity space dims.
    self._cDim = confBasis:ndim()
@@ -139,7 +140,6 @@ function SelfPrimMoments:init(tbl)
 
    self._binOpData = ffiC.new_binOpData_t(self._numBasisC*(uDim+1), 0) 
 
-   assert(self._polyOrder == 2, "SelfPrimMoments: g0 implementation requires p=2")
    local vbounds = assert(tbl.vbounds, "SelfPrimMoments: must pass vbounds")
    local mass
    if self._isGkLBO then mass = assert(tbl.mass, "SelfPrimMoments: must pass species mass for GkLBO") end
@@ -167,11 +167,8 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
 
    if self._zero_prim_calc then
 
-      local moments = inFld[1]
-      local fIn = inFld[2]
-      local boundaryCorrections = inFld[3]
-      local u = outFld[1]
-      local vtsq = outFld[2]
+      local moments, fIn, boundaryCorrections = inFld[1], inFld[2], inFld[3]
+      local u, vtsq = outFld[1], outFld[2]
 
       -- compute boundary corrections
       ffiC.gkyl_mom_calc_bcorr_advance(self._zero_bcorr_calc, fIn:localRange(), u:localRange(), fIn._zero, boundaryCorrections._zero)

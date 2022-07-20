@@ -233,15 +233,12 @@ function VlasovSpecies:createSolver(field, externalField)
          vbounds[i+self.vdim] = self.grid:upper(self.cdim+i+1)
       end
       self.primMomSelf = Updater.SelfPrimMoments {
-         onGrid     = self.grid,
-         phaseBasis = self.basis,
+         onGrid     = self.grid,       operator   = "VmLBO",
+         phaseBasis = self.basis,      vbounds    = vbounds,
          confBasis  = self.confBasis,
-         operator   = "VmLBO",
-         vbounds = vbounds,
       }
 
       self.zIdx = Lin.IntVec(self.grid:ndim())
-
    end
 
    if self.vlasovExtForceFunc then
@@ -710,7 +707,8 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       self.fiveMomentsCalc:advance(tCurr, {fIn}, {self.fiveMoments})
 
       -- Also compute self-primitive moments u and vtSq.
-      self.primMomSelf:advance(tCurr, {self.fiveMoments, fIn, self.fiveMomentsBoundaryCorrections}, {self.uSelf, self.vtSqSelf})
+      self.primMomSelf:advance(tCurr, {self.fiveMoments, fIn, self.fiveMomentsBoundaryCorrections},
+                                      {self.uSelf, self.vtSqSelf})
 
       -- Indicate that moments, boundary corrections, star moments
       -- and self-primitive moments have been computed.

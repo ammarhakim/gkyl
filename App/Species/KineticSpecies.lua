@@ -350,15 +350,15 @@ function KineticSpecies:allocDistf()
    return self:allocCartField(self.grid,self.basis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 function KineticSpecies:allocMoment()
-   local metaData = {polyOrder = self.basis:polyOrder(),
-                     basisType = self.basis:id(),
+   local metaData = {polyOrder = self.confBasis:polyOrder(),
+                     basisType = self.confBasis:id(),
                      charge    = self.charge,
                      mass      = self.mass,}
    return self:allocCartField(self.confGrid,self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 function KineticSpecies:allocVectorMoment(dim)
-   local metaData = {polyOrder = self.basis:polyOrder(),
-                     basisType = self.basis:id(),
+   local metaData = {polyOrder = self.confBasis:polyOrder(),
+                     basisType = self.confBasis:id(),
                      charge    = self.charge,
                      mass      = self.mass,}
    return self:allocCartField(self.confGrid,dim*self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
