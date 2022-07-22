@@ -55,60 +55,73 @@ end
 
 function VlasovBasicBC:setName(nm) self.name = self.speciesName.."_"..nm end
 
+function VlasovBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
+   -- Requires skinLoop = "pointwise".
+   for i = 1, self.basis:numBasis() do fOut[i] = fIn[i] end
+end
 function VlasovBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
    -- Note that for bcAbsorb there is no operation on fIn,
    -- so skinLoop (which determines indexing of fIn) does not matter
    for i = 1, self.basis:numBasis() do fOut[i] = 0.0 end
-end
-function VlasovBasicBC:bcOpen(dir, tm, idxIn, fIn, fOut)
-   -- Requires skinLoop = "pointwise".
-   self.basis:flipSign(dir, fIn, fOut)
-end
-function VlasovBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
-   -- Requires skinLoop = "pointwise".
-   for i = 1, self.basis:numBasis() do fOut[i] = fIn[i] end
 end
 function VlasovBasicBC:bcReflect(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "flip".
    self.basis:flipSign(dir, fIn, fOut)
    self.basis:flipSign(dir+self.cdim, fOut, fOut)
 end
+function VlasovBasicBC:bcOpen(dir, tm, idxIn, fIn, fOut)
+   -- Requires skinLoop = "pointwise".
+   self.basis:flipSign(dir, fIn, fOut)
+end
 
 function VlasovBasicBC:createSolver(mySpecies, field, externalField)
 
    self.basis, self.grid = mySpecies.basis, mySpecies.grid
    self.ndim, self.cdim, self.vdim = self.grid:ndim(), self.confGrid:ndim(), self.grid:ndim()-self.confGrid:ndim()
+   local vdir = self.bcDir+self.cdim
 
    local bcFunc, skinType
-   if self.bcKind == "copy" then
-      bcFunc   = function(...) return self:bcCopy(...) end
-      skinType = "pointwise"
-   elseif self.bcKind == "absorb" then
-      bcFunc   = function(...) return self:bcAbsorb(...) end
-      skinType = "pointwise"
-   elseif self.bcKind == "open" then
-      bcFunc   = function(...) return self:bcOpen(...) end
-      skinType = "pointwise"
-   elseif self.bcKind == "reflect" then
-      bcFunc   = function(...) return self:bcReflect(...) end
-      skinType = "flip"
-   elseif self.bcKind == "function" then
-      bcFunc   = function(...) return self:bcCopy(...) end
-      skinType = "pointwise"
-   else
-      assert(false, "VlasovBasicBC: BC kind not recognized.")
-   end
+   if self.bcKind == "absorb" or self.bcKind == "reflect" then
+      if self.bcKind == "absorb" then
+         bcFunc   = function(...) return self:bcAbsorb(...) end
+         skinType = "pointwise"
+      elseif self.bcKind == "reflect" then
+         bcFunc   = function(...) return self:bcReflect(...) end
+         skinType = "flip"
+      end
 
-   local vdir = self.bcDir+self.cdim
-   self.bcSolver = Updater.Bc{
-      onGrid   = self.grid,   edge               = self.bcEdge,  
-      cdim     = self.cdim,   boundaryConditions = {bcFunc},   
-      dir      = self.bcDir,  evaluate           = self.bcFuncIn,
-      vdir     = vdir,        evolveFn           = self.evolve,
-      skinLoop = skinType,    feedback           = self.feedback,
-      basis    = self.basis,  confBasis          = self.confBasis,
-      advanceArgs = {{mySpecies:rkStepperFields()[1]}, {mySpecies:rkStepperFields()[1]}},
-   }
+      self.bcSolver = Updater.BasicBc{
+         onGrid   = self.grid,   edge               = self.bcEdge,  
+         cdim     = self.cdim,   boundaryConditions = {bcFunc},   
+         dir      = self.bcDir,  skinLoop           = skinType,    
+         vdir     = vdir,        confBasis          = self.confBasis,  
+         basis    = self.basis,
+         advanceArgs = {{mySpecies:rkStepperFields()[1]}, {mySpecies:rkStepperFields()[1]}},
+      }
+   else
+      if self.bcKind == "copy" then
+         bcFunc   = function(...) return self:bcCopy(...) end
+         skinType = "pointwise"
+      elseif self.bcKind == "open" then
+         bcFunc   = function(...) return self:bcOpen(...) end
+         skinType = "pointwise"
+      elseif self.bcKind == "function" then
+         bcFunc   = function(...) return self:bcCopy(...) end
+         skinType = "pointwise"
+      else
+         assert(false, "VlasovBasicBC: BC kind not recognized.")
+      end
+
+      self.bcSolver = Updater.Bc{
+         onGrid   = self.grid,   edge               = self.bcEdge,  
+         cdim     = self.cdim,   boundaryConditions = {bcFunc},   
+         dir      = self.bcDir,  evaluate           = self.bcFuncIn,
+         vdir     = vdir,        evolveFn           = self.evolve,
+         skinLoop = skinType,    feedback           = self.feedback,
+         basis    = self.basis,  confBasis          = self.confBasis,
+         advanceArgs = {{mySpecies:rkStepperFields()[1]}, {mySpecies:rkStepperFields()[1]}},
+      }
+   end
 
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
    -- the fluxes through a boundary (e.g. neutral recycling).
