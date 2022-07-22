@@ -47,9 +47,7 @@ ffi.cdef[[
 -- Projection updater object.
 local EvalOnNodes = Proto(UpdaterBase)
 
-function EvalOnNodes:setFunc(func)
-   self._evaluate = func
-end
+function EvalOnNodes:setFunc(func) self._evaluate = func end
 
 function EvalOnNodes:init(tbl)
    EvalOnNodes.super.init(self, tbl) -- Setup base object.

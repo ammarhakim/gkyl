@@ -170,58 +170,6 @@ function GkSpecies:createSolver(field, externalField)
       self.jacobGeoInv = externalField.geo.jacobGeoInv
    end
 
-   if self.gyavg then
-      -- Set up geo fields needed for gyroaveraging.
-      local rho1Func = function (t, xn)
-         local mu = xn[self.ndim]
-         return math.sqrt(2*mu*self.mass*externalField.gxxFunc(t, xn)/(self.charge^2*externalField.bmagFunc(t, xn)))
-      end
-      local rho2Func = function (t, xn)
-         local mu = xn[self.ndim]
-         return externalField.gxyFunc(t,xn)*math.sqrt(2*mu*self.mass/(self.charge^2*externalField.gxxFunc(t, xn)*externalField.bmagFunc(t, xn)))
-      end
-      local rho3Func = function (t, xn)
-         local mu = xn[self.ndim]
-         return math.sqrt(2*mu*self.mass*(externalField.gxxFunc(t,xn)*externalField.gyyFunc(t,xn)-externalField.gxyFunc(t,xn)^2)/(self.charge^2*externalField.gxxFunc(t, xn)*externalField.bmagFunc(t, xn)))
-      end
-      local project = Updater.ProjectOnBasis {
-         onGrid   = self.grid,
-         basis    = self.basis,
-         evaluate = function(t,xn) return 0. end,   -- Set below.
-         onGhosts = true
-      }
-      project:setFunc(function(t,xn) return rho1Func(t,xn) end)
-      project:advance(0.0, {}, {self.rho1})
-      project:setFunc(function(t,xn) return rho2Func(t,xn) end)
-      project:advance(0.0, {}, {self.rho2})
-      project:setFunc(function(t,xn) return rho3Func(t,xn) end)
-      project:advance(0.0, {}, {self.rho3})
-
-      -- Create solver for gyroaveraging potentials.
-      self.emGyavgSlvr = Updater.FemGyroaverage {
-         onGrid     = self.confGrid,
-         confBasis  = self.confBasis,
-         phaseGrid  = self.grid,
-         phaseBasis = self.basis,
-         rho1       = self.rho1,
-         rho2       = self.rho2,
-         rho3       = self.rho3,
-         muOrder0   = true, -- Cell-average in mu.
-      }
-
-      -- Create solver for gyroaveraging distribution function.
-      self.distfGyavgSlvr = Updater.FemGyroaverage {
-         onGrid     = self.confGrid,
-         confBasis  = self.confBasis,
-         phaseGrid  = self.grid,
-         phaseBasis = self.basis,
-         rho1       = self.rho1,
-         rho2       = self.rho2,
-         rho3       = self.rho3,
-         integrate  = true,
-      }
-   end
-
    self.hasSheathBCs = false
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
       self.hasSheathBCs = self.hasSheathBCs or (bc.bcKind=="sheath" and true or false)
@@ -229,18 +177,12 @@ function GkSpecies:createSolver(field, externalField)
 
    -- Create updater to advance solution by one time-step.
    self.equation = GyrokineticEq.GkEq {
-      onGrid       = self.grid,
-      confGrid     = self.confGrid,
-      phaseBasis   = self.basis,
-      confBasis    = self.confBasis,
-      confRange = self.bmag:localRange(),
-      charge       = self.charge,
-      mass         = self.mass,
-      hasPhi       = hasPhi,
-      hasApar      = hasApar,
-      hasSheathBCs = self.hasSheathBCs,
-      positivity   = self.positivity,
-      gyavgSlvr    = self.emGyavgSlvr,
+      onGrid     = self.grid,               mass         = self.mass,
+      confGrid   = self.confGrid,           hasPhi       = hasPhi,
+      phaseBasis = self.basis,              hasApar      = hasApar,
+      confBasis  = self.confBasis,          hasSheathBCs = self.hasSheathBCs,
+      confRange  = self.bmag:localRange(),  positivity   = self.positivity,
+      charge     = self.charge,
    }
 
    -- No update in mu direction (last velocity direction if present)

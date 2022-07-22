@@ -84,13 +84,16 @@ plasmaApp = Plasma.App {
       upper      = {vMax,muMax},
       cells      = Nv,
       -- Initial conditions.
-      init = function (t, xn)
-	 local x, vpar, mu = xn[1], xn[2], xn[3]
-
-         return topHat(x, vpar, mu, n0, u0, vt)
-      end,
+      init = Plasma.FunctionProjection {
+         func = function (t, xn)
+            local x, vpar, mu = xn[1], xn[2], xn[3]
+            
+            return topHat(x, vpar, mu, n0, u0, vt)
+         end,
+      },
       -- Evolve species?
       evolve      = true,
+      evolveCollisionless = false,
       diagnostics = { "M0", "M1", "M2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
@@ -107,13 +110,17 @@ plasmaApp = Plasma.App {
       upper      = {vMax,muMax},
       cells      = Nv,
       -- Initial conditions.
-      init = function (t, xn)
-   	 local x, vpar, mu = xn[1], xn[2], xn[3]
 
-         return bumpMaxwell(x,vpar,mu,n0,u0,vt,ab,ub,sb,vtb)
-      end,
+      init = Plasma.FunctionProjection {
+         func = function (t, xn)
+            local x, vpar, mu = xn[1], xn[2], xn[3]
+            
+            return bumpMaxwell(x,vpar,mu,n0,u0,vt,ab,ub,sb,vtb)
+         end,
+      },
       -- Evolve species?
       evolve      = true,
+      evolveCollisionless = false,
       diagnostics = { "M0", "M1", "M2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
@@ -134,7 +141,7 @@ plasmaApp = Plasma.App {
       -- Background magnetic field.
       bmag = function (t, xn)
          local x = xn[1]
-         return B0
+         return B0*(1.+0.5*math.cos(2.*math.pi*x))
       end,
 
       -- Geometry is not time-dependent.

@@ -76,11 +76,13 @@ plasmaApp = Plasma.App {
       upper = {vMax,muMax},
       cells = Nv,
       -- Initial conditions.
-      init = function (t, xn)
-	 local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
+      init = Plasma.FunctionProjection {
+         func = function (t, xn)
+            local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
 
-         return topHat(x, y, z, vpar, mu, n0, u0, vt)
-      end,
+            return topHat(x, y, z, vpar, mu, n0, u0, vt)
+         end,
+      },
       -- Evolve species?
       evolve      = true,
       diagnostics = { "M0", "M1", "M2" },
@@ -99,11 +101,13 @@ plasmaApp = Plasma.App {
       upper = {vMax,muMax},
       cells = Nv,
       -- Initial conditions.
-      init = function (t, xn)
-   	 local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
+      init = Plasma.FunctionProjection {
+         func = function (t, xn)
+            local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
 
-         return bumpMaxwell(x,y,z,vpar,mu,n0,u0,vt,ab,ub,sb,vtb)
-      end,
+            return bumpMaxwell(x,y,z,vpar,mu,n0,u0,vt,ab,ub,sb,vtb)
+         end,
+      },
       -- Evolve species?
       evolve      = true,
       diagnostics = { "M0", "M1", "M2" },
