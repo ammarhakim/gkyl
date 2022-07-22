@@ -993,9 +993,9 @@ function GkGeometry:alloc()
       self.geo.bdriftY = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
       if self.ndim == 1 then
-         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,6,syncPeriodic)
+         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,5,syncPeriodic)
       else
-         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,8,syncPeriodic)
+         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,7,syncPeriodic)
       end
 
    elseif self.geo.name == "GenGeo" then
@@ -1028,7 +1028,7 @@ function GkGeometry:alloc()
       self.geo.gyyJ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
    
       if self.fromFile == nil then
-         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,16,syncPeriodic)
+         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,15,syncPeriodic)
       end
 
    end
@@ -1287,10 +1287,10 @@ function GkGeometry:initField()
       if self.fromFile then
          -- Read the geometry quantities from a file.
          if self.ndim == 1 then
-            local tm, fr = self.fieldIo:read({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+            local tm, fr = self.fieldIo:read({bmag=self.geo.bmag, 
                cmag=self.geo.cmag, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy}, self.fromFile, true)
          else
-            local tm, fr = self.fieldIo:read({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+            local tm, fr = self.fieldIo:read({bmag=self.geo.bmag, 
                cmag=self.geo.cmag, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy, 
                bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY}, self.fromFile, true)
          end
@@ -1298,11 +1298,11 @@ function GkGeometry:initField()
          self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
          if self.ndim == 1 then
             self.separateComponents:advance(0, {self.geo.allGeo},
-               {self.geo.bmag, self.geo.bmagInv, self.geo.cmag,
+               {self.geo.bmag, self.geo.cmag,
                 self.geo.gxx, self.geo.gxy, self.geo.gyy})
          else
             self.separateComponents:advance(0, {self.geo.allGeo},
-               {self.geo.bmag, self.geo.bmagInv, self.geo.cmag,
+               {self.geo.bmag, self.geo.cmag,
                 self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.bdriftX, self.geo.bdriftY})
          end
       end
@@ -1310,7 +1310,7 @@ function GkGeometry:initField()
       if self.fromFile then
          -- Read the geometry quantities from a file.
          local tm, fr = self.fieldIo:read({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
-            jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+            jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag,
             cmag=self.geo.cmag, b_x=self.geo.b_x, b_y=self.geo.b_y, b_z=self.geo.b_z, gxx=self.geo.gxx,
             gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
             self.fromFile, true)
@@ -1318,14 +1318,21 @@ function GkGeometry:initField()
          self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
          self.separateComponents:advance(0, {self.geo.allGeo},
             {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
-             self.geo.bmag, self.geo.bmagInv, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
+             self.geo.bmag, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
              self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
       end
    end
+   -- Compute 1/B and 1/(B^2). LBO collisions require that this is
+   -- done via weak operations instead of projecting 1/B or 1/B^2.
    local confWeakMultiply = Updater.CartFieldBinOp {
       onGrid    = self.grid,   operation = "Multiply",
       weakBasis = self.basis,  onGhosts  = true,
    }
+   local confWeakDivide = Updater.CartFieldBinOp {
+      onGrid    = self.grid,   operation = "Divide",
+      weakBasis = self.basis,  onGhosts  = true,
+   }
+   confWeakDivide:advance(0., {self.geo.bmag, self.unitWeight}, {self.geo.bmagInv})
    confWeakMultiply:advance(0., {self.geo.bmagInv, self.geo.bmagInv}, {self.geo.bmagInvSq})
    log("...Finished initializing the geometry\n")
 
@@ -1374,13 +1381,13 @@ function GkGeometry:write(tm)
       if self.geo.name == "SimpleHelical" then
          if self.ndim == 1 then
             for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
-               self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+               self.fieldIo:write({bmag=self.geo.bmag,
                   cmag=self.geo.cmag, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy},
                   string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
             end
          else
             for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
-               self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+               self.fieldIo:write({bmag=self.geo.bmag,
                   cmag=self.geo.cmag, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy,
                   bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY},
                   string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
@@ -1389,7 +1396,7 @@ function GkGeometry:write(tm)
       elseif self.geo.name == "GenGeo" then
          for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
             self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
-               jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+               jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag,
                cmag=self.geo.cmag, b_x=self.geo.b_x, b_y=self.geo.b_y, b_z=self.geo.b_z, gxx=self.geo.gxx,
                gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
                string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
