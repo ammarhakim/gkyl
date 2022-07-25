@@ -66,7 +66,7 @@ plasmaApp = Plasma.App {
    basis       = "serendipity",   -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,               -- Polynomial order.
    timeStepper = "rk3",           -- One of "rk2" or "rk3".
-   cflFrac     = .9,
+   cflFrac     = 0.6*.9,
 
    -- Boundary conditions for configuration space.
    periodicDirs = {1,2}, -- Periodic directions.

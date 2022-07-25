@@ -10,7 +10,6 @@ local xsys = require "xsys"
 
 -- Gkeyll imports.
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
-local Basis            = require "Basis"
 local Collisions       = require "App.Collisions"
 local DataStruct       = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
@@ -27,17 +26,6 @@ local Time             = require "Lib.Time"
 local Updater          = require "Updater"
 local ffi              = require "ffi"
 local lume             = require "Lib.lume"
-
--- Function to create basis functions.
-local function createBasis(nm, ndim, polyOrder)
-   if nm == "serendipity" then
-      return Basis.CartModalSerendipity { ndim = ndim, polyOrder = polyOrder }
-   elseif nm == "maximal-order" then
-      return Basis.CartModalMaxOrder { ndim = ndim, polyOrder = polyOrder }
-   elseif nm == "tensor" then
-      return Basis.CartModalTensor { ndim = ndim, polyOrder = polyOrder }
-   end
-end
 
 -- Base class for kinetic species.
 local KineticSpecies = Proto(SpeciesBase)
@@ -341,23 +329,6 @@ function KineticSpecies:createGrid(confGridIn)
    for _, c in pairs(self.collisions) do c:setPhaseGrid(self.grid) end
 end
 
-function KineticSpecies:createBasis(nm, polyOrder)
-   self.basis = createBasis(nm, self.ndim, polyOrder)
-   for _, c in pairs(self.collisions) do c:setPhaseBasis(self.basis) end
-
-   -- Output of grid file is placed here because as the file name is associated
-   -- with a species, we wish to save the basisID and polyOrder in it. But these
-   -- can only be extracted from self.basis after this is created.
-   if self.grid:getMappings() then
-      local metaData = {polyOrder = self.basis:polyOrder(),
-                        basisType = self.basis:id(),
-                        charge    = self.charge,
-                        mass      = self.mass,
-                        grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"}
-      self.grid:write(self.name .. "_grid.bp", 0.0, metaData)
-   end
-end
-
 -- Field allocation in the species objects should be performed with one
 -- of the following four functions instead of calling DataStruct directly.
 function KineticSpecies:allocCartField(grid,nComp,ghosts,metaData)
@@ -379,15 +350,15 @@ function KineticSpecies:allocDistf()
    return self:allocCartField(self.grid,self.basis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 function KineticSpecies:allocMoment()
-   local metaData = {polyOrder = self.basis:polyOrder(),
-                     basisType = self.basis:id(),
+   local metaData = {polyOrder = self.confBasis:polyOrder(),
+                     basisType = self.confBasis:id(),
                      charge    = self.charge,
                      mass      = self.mass,}
    return self:allocCartField(self.confGrid,self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 function KineticSpecies:allocVectorMoment(dim)
-   local metaData = {polyOrder = self.basis:polyOrder(),
-                     basisType = self.basis:id(),
+   local metaData = {polyOrder = self.confBasis:polyOrder(),
+                     basisType = self.confBasis:id(),
                      charge    = self.charge,
                      mass      = self.mass,}
    return self:allocCartField(self.confGrid,dim*self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)

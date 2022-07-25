@@ -189,8 +189,8 @@ function DistFuncMomentCalc:init(tbl)
 
    local advArgs = tbl.advanceArgs  -- Sample arguments for advance method.
 
-   self._basisID   = phaseBasis:id()
-   self._polyOrder = phaseBasis:polyOrder()
+   self._confBasisID = confBasis:id()
+   self._polyOrder = confBasis:polyOrder()
 
    -- Dimension of spaces.
    self._pDim = phaseBasis:ndim() 
@@ -201,9 +201,10 @@ function DistFuncMomentCalc:init(tbl)
    self._numBasisP = phaseBasis:numBasis()
 
    -- Ensure sanity.
-   assert(self._polyOrder == confBasis:polyOrder(),
+   assert(self._polyOrder == phaseBasis:polyOrder(),
 	  "Polynomial orders of phase-space and config-space basis must match")
-   assert(self._basisID == confBasis:id(),
+   assert((self._confBasisID == phaseBasis:id()) or
+          ((phaseBasis:id()=="hybrid" or phaseBasis:id()=="gkhybrid") and self._confBasisID=="serendipity"),
 	  "Type of phase-space and config-space basis must match")
 
    local mom = assert(
@@ -273,10 +274,10 @@ function DistFuncMomentCalc:init(tbl)
    self._isGk = false
    if self:isMomentNameGood(mom) then
       self._kinSpecies = "Vm"
-      self._momCalcFun = MomDecl.selectMomCalc(mom, self._basisID, self._cDim, self._vDim, self._polyOrder, calcOnDevice)
+      self._momCalcFun = MomDecl.selectMomCalc(mom, self._confBasisID, self._cDim, self._vDim, self._polyOrder, calcOnDevice)
    elseif self:isGkMomentNameGood(mom) then
       self._kinSpecies = "Gk"
-      self._momCalcFun = MomDecl.selectGkMomCalc(mom, self._basisID, self._cDim, self._vDim, self._polyOrder)
+      self._momCalcFun = MomDecl.selectGkMomCalc(mom, self._confBasisID, self._cDim, self._vDim, self._polyOrder)
       self._isGk       = true
       assert(tbl.gkfacs, [[DistFuncMomentCalc: must provide a gkfacs table 
                            containing the species mass and the background magnetic field
@@ -302,7 +303,7 @@ function DistFuncMomentCalc:init(tbl)
       self._isFirst   = true
       self._perpRange = {}    -- Perp ranges in velocity directions.
       if self._polyOrder == 1 then
-         self._StarM1iM2Calc = MomDecl.selectStarM1iM2Calc(self._kinSpecies, self._basisID, self._cDim, self._vDim)
+         self._StarM1iM2Calc = MomDecl.selectStarM1iM2Calc(self._kinSpecies, self._confBasisID, self._cDim, self._vDim)
          -- Cell index, center and length left of a cell-boundary.
          self.idxM = Lin.IntVec(self._pDim)
          self.xcM  = Lin.Vec(self._pDim)
@@ -320,10 +321,10 @@ function DistFuncMomentCalc:init(tbl)
          self._StarM0Calc[vDir]  = function(...) end 
          self._uCorrection[vDir] = function(...) end 
       else
-         self._StarM0Calc[vDir]  = MomDecl.selectStarM0Calc(vDir, self._kinSpecies, self._basisID, self._cDim, self._vDim, self._onGrid:id(), self.applyPositivity)
-         self._uCorrection[vDir] = MomDecl.selectBoundaryFintegral(vDir, self._kinSpecies, self._basisID, self._cDim, self._vDim, self._polyOrder)
+         self._StarM0Calc[vDir]  = MomDecl.selectStarM0Calc(vDir, self._kinSpecies, self._confBasisID, self._cDim, self._vDim, self._onGrid:id(), self.applyPositivity)
+         self._uCorrection[vDir] = MomDecl.selectBoundaryFintegral(vDir, self._kinSpecies, self._confBasisID, self._cDim, self._vDim, self._polyOrder)
       end
-      self._vtSqCorrection[vDir] = MomDecl.selectBoundaryVFintegral(vDir, self._kinSpecies, self._basisID, self._cDim, self._vDim, self._polyOrder)
+      self._vtSqCorrection[vDir] = MomDecl.selectBoundaryVFintegral(vDir, self._kinSpecies, self._confBasisID, self._cDim, self._vDim, self._polyOrder)
    end
 
    self.onGhosts = xsys.pickBool(tbl.onGhosts, true)

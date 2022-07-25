@@ -9,8 +9,10 @@
 local CartModalMaxOrder = require "Basis.CartModalMaxOrder"
 local CartModalSerendipity = require "Basis.CartModalSerendipity"
 local CartModalTensor = require "Basis.CartModalTensor"
+local CartModalHybrid = require "Basis.CartModalHybrid"
+local CartModalGkHybrid = require "Basis.CartModalGkHybrid"
 
 -- system modules
 local xsys = require "xsys"
 
-return xsys.table.union(CartModalMaxOrder, CartModalSerendipity, CartModalTensor)
+return xsys.table.union(CartModalMaxOrder, CartModalSerendipity, CartModalTensor, CartModalHybrid, CartModalGkHybrid)

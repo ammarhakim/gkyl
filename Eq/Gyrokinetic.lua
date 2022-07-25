@@ -11,9 +11,9 @@ local EqBase     = require "Eq.EqBase"
 local Proto      = require "Lib.Proto"
 local Time       = require "Lib.Time"
 local xsys       = require "xsys"
-local GyrokineticModDecl = require "Eq.gkData.GyrokineticModDecl"
-local ffi           = require "ffi"
-local ffiC          = ffi.C
+local ModDecl    = require "Eq.gkData.GyrokineticModDecl"
+local ffi        = require "ffi"
+local ffiC       = ffi.C
 
 ffi.cdef [[ 
 
@@ -79,11 +79,12 @@ function Gyrokinetic:init(tbl)
    self._vdim = self._ndim - self._cdim
 
    local nm, p = self._basis:id(), self._basis:polyOrder()
+   if (nm=="hybrid" or nm=="gkhybrid") then nm="serendipity" end
 
    self._zero = ffiC.gkyl_dg_gyrokinetic_new(self._confBasis._zero, self._basis._zero, self._confRange, self.charge, self.mass, GKYL_USE_GPU or 0)
 
-   self._volTerm  = GyrokineticModDecl.selectVol(nm, self._cdim, self._vdim, p, self._isElectromagnetic)
-   self._surfTerm = GyrokineticModDecl.selectSurf(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self._positivity)
+   self._volTerm  = ModDecl.selectVol(nm, self._cdim, self._vdim, p, self._isElectromagnetic)
+   self._surfTerm = ModDecl.selectSurf(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self._positivity)
 
    -- Select the appropriate volume and surface term functions to call.
    self.volTermFunc  = function(w, dx, idx, f, out) return Gyrokinetic["volTermGenGeo"](self, w, dx, idx, f, out) end
@@ -93,7 +94,7 @@ function Gyrokinetic:init(tbl)
 
    -- For sheath BCs.
    if tbl.hasSheathBCs then
-      self._calcSheathReflection = GyrokineticModDecl.selectSheathReflection(nm, self._cdim, self._vdim, p)
+      self._calcSheathReflection = ModDecl.selectSheathReflection(nm, self._cdim, self._vdim, p)
    end
 
    if self._isElectromagnetic then
@@ -329,8 +330,8 @@ function GyrokineticStep2:init(tbl)
    self._positivity = xsys.pickBool(tbl.positivity,false)
 
    local nm, p = self._basis:id(), self._basis:polyOrder()
-   self._volTerm  = GyrokineticModDecl.selectStep2Vol(nm, self._cdim, self._vdim, p, self.geoType)
-   self._surfTerm = GyrokineticModDecl.selectStep2Surf(nm, self._cdim, self._vdim, p, self._positivity, self.geoType)
+   self._volTerm  = ModDecl.selectStep2Vol(nm, self._cdim, self._vdim, p, self.geoType)
+   self._surfTerm = ModDecl.selectStep2Surf(nm, self._cdim, self._vdim, p, self._positivity, self.geoType)
 
    -- Select the appropriate volume and surface term functions to call.
    self.surfTermFunc = function(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)

@@ -107,7 +107,7 @@ function ProjectOnBasis:init(tbl)
    -- Pre-compute values of basis functions at quadrature nodes.
    if numBasis > 1 then
       for n = 1, numOrdinates do
-	 self._basis:evalBasis(self._ordinates[n], self._basisAtOrdinates[n])
+	 self._basis:evalBasis(self._ordinates:getRow(n), self._basisAtOrdinates:getRow(n))
       end
    else
       for n = 1, numOrdinates do
