@@ -22,29 +22,28 @@ function FunctionProjection:advance(time, inFlds, outFlds)
    if self.fromFile then
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
-      if self.species.jacobPhaseFunc and self.vdim > 1 then
-         local initFuncWithoutJacobian = self.initFunc
-         self.initFunc = function (t, xn)
-            local xconf = {}
-            for d = 1, self.cdim do xconf[d] = xn[d] end
-            local J = self.species.jacobPhaseFunc(t,xconf)
-            local f = initFuncWithoutJacobian(t,xn)
-            return J*f
-         end
-      end
+--      if self.species.jacobPhaseFunc and self.vdim > 1 then
+--         local initFuncWithoutJacobian = self.initFunc
+--         self.initFunc = function (t, xn)
+--            local xconf = {}
+--            for d = 1, self.cdim do xconf[d] = xn[d] end
+--            local J = self.species.jacobPhaseFunc(t,xconf)
+--            local f = initFuncWithoutJacobian(t,xn)
+--            return J*f
+--         end
+--      end
 
       -- Note: don't use self.project as this does not have jacobian factors in initFunc.
       local project = Updater.ProjectOnBasis {
-         onGrid   = self.phaseGrid,
-         basis    = self.phaseBasis,
-         evaluate = self.initFunc,
-         onGhosts = true
+         onGrid = self.phaseGrid,   evaluate = self.initFunc,
+         basis  = self.phaseBasis,  onGhosts = true
       }
       project:advance(time, {}, {distf})
    end
 
-   local jacobGeo = extField.geo.jacobGeo
-   if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
+   local jacobTot, jacobPhase = extField.geo.jacobTot, extField.geo.bmag
+   if jacobTot then self.weakMultiplyConfPhase:advance(0, {distf, jacobTot}, {distf})
+   elseif jacobPhase then self.weakMultiplyConfPhase:advance(0, {distf, jacobPhase}, {distf}) end
 end
 
 --------------------------------------------------------------------------------
@@ -109,12 +108,9 @@ function MaxwellianProjection:lagrangeFix(distf)
    dM2:accumulate(-1.0, M2)
 
    local lagFix = Updater.LagrangeFix {
-      onGrid     = self.phaseGrid,
-      phaseBasis = self.phaseBasis,
-      confGrid   = self.confGrid,
-      confBasis  = self.confBasis,
-      mode       = 'gk',
-      mass       = self.species.mass,
+      onGrid     = self.phaseGrid,   confBasis  = self.confBasis,
+      phaseBasis = self.phaseBasis,  mode       = 'gk',
+      confGrid   = self.confGrid,    mass       = self.species.mass,
    }
    lagFix:advance(0.0, {dM0, dM1, dM2, self.species.bmag}, {distf})
 end
@@ -184,23 +180,17 @@ function MaxwellianProjection:scaleM012(distf)
 
    -- Initialize weak multiplication/division operators.
    local weakDivision = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "Divide",
-      onGhosts  = true,
+      onGrid    = self.confGrid,   operation = "Divide",
+      weakBasis = self.confBasis,  onGhosts  = true,
    }
    local weakMultiplicationConf = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "Multiply",
-      onGhosts  = true,
+      onGrid    = self.confGrid,   operation = "Multiply",
+      weakBasis = self.confBasis,  onGhosts  = true,
    }
    local weakMultiplicationPhase = Updater.CartFieldBinOp {
-      onGrid     = self.phaseGrid,
-      weakBasis  = self.phaseBasis,
+      onGrid     = self.phaseGrid,   operation  = "Multiply",
+      weakBasis  = self.phaseBasis,  onGhosts   = true,
       fieldBasis = self.confBasis,
-      operation  = "Multiply",
-      onGhosts   = true,
    }
 
    -- Calculate M0_mod = M0_e / M0.
@@ -475,12 +465,9 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
       vtSq:scale(1./self.mass)
       -- Project the Maxwellian. It includes a factor of jacobPhase=B*_||.
       local projMaxwell = Updater.MaxwellianOnBasis {
-         onGrid     = self.phaseGrid,
-         phaseBasis = self.phaseBasis,
-         confGrid   = self.confGrid,
-         confBasis  = self.confBasis,
-         mass       = self.mass,
-         onGhosts   = true,
+         onGrid     = self.phaseGrid,   confBasis  = self.confBasis,
+         phaseBasis = self.phaseBasis,  mass       = self.mass,
+         confGrid   = self.confGrid,    onGhosts   = true,
       }
       projMaxwell:advance(time,{numDens,uPar,vtSq,bmag},{distf})
    end

@@ -19,7 +19,7 @@ function _M.selectVol(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic)
    local pOrder
    if CDIM+VDIM==5 and polyOrder>1 then
       pOrder = 1
-      print("GyrokineticModDecl: Forcing selection of 3x2v p=1 gyrokinetic kernels (instead of p=2).")
+      print("GyrokineticModDecl: Forcing selection of 3x2v p=1 gyrokinetic kernels (instead of p=2). Not used by g0.")
    else
       pOrder = polyOrder
    end
@@ -46,7 +46,7 @@ function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic, positi
    local pOrder
    if CDIM+VDIM==5 and polyOrder>1 then
       pOrder = 1
-      print("GyrokineticModDecl: Forcing selection of 3x2v p=1 gyrokinetic kernels (instead of p=2).")
+      print("GyrokineticModDecl: Forcing selection of 3x2v p=1 gyrokinetic kernels (instead of p=2). Not used by g0.")
    else
       pOrder = polyOrder
    end
@@ -117,7 +117,7 @@ function _M.selectStep2Surf(basisNm, CDIM, VDIM, polyOrder, positivity)
    local pOrder
    if CDIM+VDIM==5 and polyOrder>1 then
       pOrder = 1
-      print("GyrokineticModDecl: Forcing selection of 3x2v p=1 gyrokinetic kernels (instead of p=2).")
+      print("GyrokineticModDecl: Forcing selection of 3x2v p=1 gyrokinetic kernels (instead of p=2). Not used by g0.")
    else
       pOrder = polyOrder
    end
@@ -149,7 +149,7 @@ function _M.selectSheathDeltaPhi(basisNm, CDIM, polyOrder)
    local pOrder
    if CDIM+VDIM==5 and polyOrder>1 then
       pOrder = 1
-      print("GyrokineticModDecl: Forcing selection of 3x2v p=1 gyrokinetic kernels (instead of p=2).")
+      print("GyrokineticModDecl: Forcing selection of 3x2v p=1 gyrokinetic kernels (instead of p=2). Not used by g0.")
    else
       pOrder = polyOrder
    end
@@ -167,7 +167,7 @@ function _M.selectSheathPartialReflection(basisNm, CDIM, VDIM, polyOrder)
    local pOrder
    if CDIM+VDIM==5 and polyOrder>1 then
       pOrder = 1
-      print("GyrokineticModDecl: Forcing selection of 3x2v p=1 gyrokinetic kernels (instead of p=2).")
+      print("GyrokineticModDecl: Forcing selection of 3x2v p=1 gyrokinetic kernels (instead of p=2). Not used by g0.")
    else
       pOrder = polyOrder
    end
@@ -184,7 +184,7 @@ function _M.selectSheathReflection(basisNm, CDIM, VDIM, polyOrder)
    local pOrder
    if CDIM+VDIM==5 and polyOrder>1 then
       pOrder = 1
-      print("GyrokineticModDecl: Forcing selection of 3x2v p=1 gyrokinetic kernels (instead of p=2).")
+      print("GyrokineticModDecl: Forcing selection of 3x2v p=1 gyrokinetic kernels (instead of p=2). Not used by g0.")
    else
       pOrder = polyOrder
    end

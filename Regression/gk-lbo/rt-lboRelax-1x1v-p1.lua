@@ -59,6 +59,7 @@ plasmaApp = Plasma.App {
    basis       = "serendipity", -- One of "serendipity" or "maximal-order".
    polyOrder   = polyOrder,     -- Polynomial order.
    timeStepper = "rk3",         -- One of "rk2", "rk3" or "rk3s4".
+   cflFrac     = 0.6,
 
    -- Decomposition for configuration space.
    decompCuts = {1},            -- Cuts in each configuration direction.
@@ -75,11 +76,13 @@ plasmaApp = Plasma.App {
       upper      = { 8.0*vt},
       cells      = {32},
       -- Initial conditions.
-      init = function (t, xn)
-	 local x, v = xn[1], xn[2]
+      init = Plasma.FunctionProjection {
+         func = function (t, xn)
+            local x, v = xn[1], xn[2]
 
-         return topHat(x, v, n0, u0, vt)
-      end,
+            return topHat(x, v, n0, u0, vt)
+         end,
+      },
       evolve      = true,
       diagnostics = { "M0", "M1", "M2" },
       coll = Plasma.LBOCollisions {
@@ -96,10 +99,12 @@ plasmaApp = Plasma.App {
       upper      = { 8.0*vt},
       cells      = {32},
       -- Initial conditions.
-      init = function (t, xn)
-	 local x, v = xn[1], xn[2]
-         return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
-      end,
+      init = Plasma.FunctionProjection {
+         func = function (t, xn)
+            local x, v = xn[1], xn[2]
+            return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
+         end,
+      },
       evolve      = true,
       diagnostics = { "M0", "M1", "M2" },
       coll = Plasma.LBOCollisions {

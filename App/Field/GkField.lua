@@ -981,7 +981,7 @@ function GkGeometry:alloc()
    self.geo.gyyJ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
    
    if self.fromFile == nil then
-      self.geo.allGeo = createField(self.grid,self.basis,ghostNum,16,syncPeriodic)
+      self.geo.allGeo = createField(self.grid,self.basis,ghostNum,15,syncPeriodic)
    end
 
    -- Wall potential for sheath BCs.
@@ -1035,7 +1035,7 @@ function GkGeometry:createSolver()
          local bmag = self.bmagFunc(t, xn)
          local cmag = jacobian*bmag/math.sqrt(g_zz)
 
-         return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
+         return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, cmag, 
                 b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
       end
    elseif self.ndim == 2 then
@@ -1066,7 +1066,7 @@ function GkGeometry:createSolver()
          local bmag = self.bmagFunc(t, xn)
          local cmag = jacobian*bmag/math.sqrt(g_zz)
 
-         return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
+         return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, cmag, 
                 b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
        end
    else
@@ -1090,7 +1090,7 @@ function GkGeometry:createSolver()
          local bmag = self.bmagFunc(t, xn)
          local cmag = jacobian*bmag/math.sqrt(g_zz)
 
-         return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
+         return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, cmag, 
                 b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
        end
    end
@@ -1130,7 +1130,7 @@ function GkGeometry:initField()
    if self.fromFile then
       -- Read the geometry quantities from a file.
       local tm, fr = self.fieldIo:read({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
-         jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+         jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag,
          cmag=self.geo.cmag, b_x=self.geo.b_x, b_y=self.geo.b_y, b_z=self.geo.b_z, gxx=self.geo.gxx,
          gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
          self.fromFile, true)
@@ -1138,18 +1138,27 @@ function GkGeometry:initField()
       self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
       self.separateComponents:advance(0, {self.geo.allGeo},
          {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
-          self.geo.bmag, self.geo.bmagInv, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
+          self.geo.bmag, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
           self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
    end
    local numB = self.basis:numBasis()
    if GKYL_USE_GPU then self.geo.b_i:copyDeviceToHost() end
    self.geo.b_i:combineOffset(1, self.geo.b_x, 0*numB, 1, self.geo.b_y, 1*numB, 1, self.geo.b_z, 2*numB)
    if GKYL_USE_GPU then self.geo.b_i:copyHostToDevice() end
+
+   -- Compute 1/B and 1/(B^2). LBO collisions require that this is
+   -- done via weak operations instead of projecting 1/B or 1/B^2.
    local confWeakMultiply = Updater.CartFieldBinOp {
       onGrid    = self.grid,   operation = "Multiply",
       weakBasis = self.basis,  onGhosts  = true,
    }
+   local confWeakDivide = Updater.CartFieldBinOp {
+      onGrid    = self.grid,   operation = "Divide",
+      weakBasis = self.basis,  onGhosts  = true,
+   }
+   confWeakDivide:advance(0., {self.geo.bmag, self.unitWeight}, {self.geo.bmagInv})
    confWeakMultiply:advance(0., {self.geo.bmagInv, self.geo.bmagInv}, {self.geo.bmagInvSq})
+
    log("...Finished initializing the geometry\n")
 
    if self.setPhiWall then self.setPhiWall:advance(0.0, {}, {self.geo.phiWall})

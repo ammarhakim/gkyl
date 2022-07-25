@@ -50,6 +50,7 @@ plasmaApp = Plasma.App {
    basis       = "serendipity", -- One of "serendipity" or "maximal-order".
    polyOrder   = polyOrder,     -- Polynomial order.
    timeStepper = "rk3",         -- One of "rk2", "rk3" or "rk3s4".
+   cflFrac     = 0.6,
 
    -- Decomposition for configuration space.
    decompCuts = {1},            -- Cuts in each configuration direction.

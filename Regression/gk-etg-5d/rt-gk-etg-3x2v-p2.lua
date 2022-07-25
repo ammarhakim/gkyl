@@ -50,7 +50,7 @@ omegade  = ky_min*rho_e*vte/R
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = .075e-6, -- End time.
+   tEnd        = .15e-8, -- End time.
    nFrame      = 1,       -- Number of output frames.
    lower       = {r0 - dr/2, -dr/2, -L_parallel/2}, -- Configuration space lower left.
    upper       = {r0 + dr/2,  dr/2, L_parallel/2},  -- Configuration space upper right.

@@ -42,14 +42,11 @@ function MaxwellianOnBasis:init(tbl)
                             "Updater.MaxwellianOnBasis: Must provide phase space basis object 'phaseBasis'")
 
    -- Number of quadrature points in each direction
-   local numQuad1D = tbl.numConfQuad and tbl.numConfQuad or self.confBasis:polyOrder() + 1
+   local numQuad1D = self.confBasis:polyOrder() + 1
    assert(numQuad1D<=8, "Updater.MaxwellianOnBasis: Gaussian quadrature only implemented for numQuad<=8 in each dimension")
 
    self.quadType = "Gauss"
-   self.quadImpl = tbl.implementation and tbl.implementation or "C"
-
-   -- The C implementation only allows p+1 quadrature points (in 1D).
-   if numQuad1D ~= self.confBasis:polyOrder()+1 then self.quadImpl="Lua" end
+   self.quadImpl = tbl.implementation and tbl.implementation or "Lua"
 
    self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
 
@@ -89,6 +86,11 @@ function MaxwellianOnBasis:init(tbl)
       -- 1D weights and ordinates.
       local ordinates = GaussQuadRules.ordinates[numQuad1D]
       local weights   = GaussQuadRules.weights[numQuad1D]
+      local ordinatesP2, weightsP2
+      if self.confBasis:polyOrder() == 1 then -- Force hybrid basis.
+         ordinatesP2 = GaussQuadRules.ordinates[numQuad1D+1]
+         weightsP2   = GaussQuadRules.weights[numQuad1D+1]
+      end
 
       -- Configuration space ordinates ----------------------------------
       local l, u = {}, {}
@@ -105,31 +107,51 @@ function MaxwellianOnBasis:init(tbl)
          for d = 1, self._cDim do
             self.confOrdinates[ordIdx][d] = ordinates[ordIndexes[d]]
          end
-         self.confBasis:evalBasis(self.confOrdinates[ordIdx],
-                                  self.confBasisAtOrds[ordIdx])
+         self.confBasis:evalBasis(self.confOrdinates:getRow(ordIdx),
+                                  self.confBasisAtOrds:getRow(ordIdx))
       end
 
       -- Phase space ordinates and weights ------------------------------
-      for d = 1, self._pDim do l[d], u[d] = 1, numQuad1D end
-      self.phaseQuadRange = Range.Range(l, u)
-      self.phaseQuadIndexer = 
-         Range.makeColMajorGenIndexer(self.phaseQuadRange)
-      self.numPhaseOrds = self.phaseQuadRange:volume()
-      self.numPhaseBasis = self.phaseBasis:numBasis()
-      self.phaseBasisAtOrds = Lin.Mat(self.numPhaseOrds,
-           			   self.numPhaseBasis)
-      self.phaseOrdinates = Lin.Mat(self.numPhaseOrds, self._pDim)
-      self.phaseWeights = Lin.Vec(self.numPhaseOrds) -- Needed for integration.
+      if self.confBasis:polyOrder() == 1 then -- Force hybrid basis.
+         for d = 1, self._cDim do l[d], u[d] = 1, numQuad1D end
+         if self.isGK then
+            l[self._cDim+1], u[self._cDim+1] = 1, numQuad1D+1  -- p=2 in vpar.
+            if self._vDim==2 then 
+               l[self._pDim], u[self._pDim] = 1, numQuad1D
+            end
+         else
+            -- p=2 in velocity space.
+            for d = self._cDim+1, self._pDim do l[d], u[d] = 1, numQuad1D+1 end
+         end
+      else
+         for d = 1, self._pDim do l[d], u[d] = 1, numQuad1D end
+      end
+      self.phaseQuadRange   = Range.Range(l, u)
+      self.phaseQuadIndexer = Range.makeColMajorGenIndexer(self.phaseQuadRange)
+      self.numPhaseOrds     = self.phaseQuadRange:volume()
+      self.numPhaseBasis    = self.phaseBasis:numBasis()
+      self.phaseBasisAtOrds = Lin.Mat(self.numPhaseOrds, self.numPhaseBasis)
+      self.phaseOrdinates   = Lin.Mat(self.numPhaseOrds, self._pDim)
+      self.phaseWeights     = Lin.Vec(self.numPhaseOrds) -- Needed for integration.
       for ordIndexes in self.phaseQuadRange:colMajorIter() do
          local ordIdx = self.phaseQuadIndexer(ordIndexes)
          self.phaseWeights[ordIdx] = 1.0
          for d = 1, self._pDim do
-            self.phaseWeights[ordIdx] =
-               self.phaseWeights[ordIdx]*weights[ordIndexes[d]]
-            self.phaseOrdinates[ordIdx][d] = ordinates[ordIndexes[d]]
+            if self.confBasis:polyOrder() == 1 then -- Force hybrid basis.
+               if d<=self._cDim or (self.isGK and d==self._cDim+2) then
+                  self.phaseOrdinates[ordIdx][d] = ordinates[ordIndexes[d]]
+                  self.phaseWeights[ordIdx] = self.phaseWeights[ordIdx]*weights[ordIndexes[d]]
+               else
+                  self.phaseWeights[ordIdx] = self.phaseWeights[ordIdx]*weightsP2[ordIndexes[d]]
+                  self.phaseOrdinates[ordIdx][d] = ordinatesP2[ordIndexes[d]]
+               end
+            else
+               self.phaseWeights[ordIdx] = self.phaseWeights[ordIdx]*weights[ordIndexes[d]]
+               self.phaseOrdinates[ordIdx][d] = ordinates[ordIndexes[d]]
+            end
          end
-         self.phaseBasis:evalBasis(self.phaseOrdinates[ordIdx],
-                                   self.phaseBasisAtOrds[ordIdx])
+         self.phaseBasis:evalBasis(self.phaseOrdinates:getRow(ordIdx),
+                                   self.phaseBasisAtOrds:getRow(ordIdx))
       end
 
       -- Construct the phase space to conf space ordinate map.
