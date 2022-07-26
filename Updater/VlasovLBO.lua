@@ -47,6 +47,7 @@ gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo,
   const struct gkyl_array* fIn,
   struct gkyl_array* cflrate, struct gkyl_array* rhs);
 
+void gkyl_dg_updater_lbo_vlasov_release(gkyl_dg_updater_lbo_vlasov *lbo);
 ]]
 
 -- VlasovLBO DG solver updater object
@@ -62,7 +63,8 @@ function VlasovLBO:init(tbl)
 
    self._confRange = assert(tbl.confRange, "Updater.VlasovLBO: Must specify conf-space range using 'confRange'")
 
-   self._zero = ffiC.gkyl_dg_updater_lbo_vlasov_new(self._onGrid._zero, self._confBasis._zero, self._phaseBasis._zero, self._confRange, GKYL_USE_GPU or 0)
+   self._zero = ffi.gc(ffiC.gkyl_dg_updater_lbo_vlasov_new(self._onGrid._zero, self._confBasis._zero, self._phaseBasis._zero, self._confRange, GKYL_USE_GPU or 0),
+                       ffiC.gkyl_dg_updater_lbo_vlasov_release)
 
    return self
 end

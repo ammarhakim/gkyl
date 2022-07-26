@@ -90,7 +90,8 @@ function Vlasov:init(tbl)
    else
       self._fieldId = 3
    end
-   self._zero = ffiC.gkyl_dg_vlasov_new(self._confBasis._zero, self._phaseBasis._zero, self._confRange, self._fieldId, GKYL_USE_GPU or 0)
+   self._zero = ffi.gc(ffiC.gkyl_dg_vlasov_new(self._confBasis._zero, self._phaseBasis._zero, self._confRange, self._fieldId, GKYL_USE_GPU or 0),
+                       ffiC.gkyl_dg_eqn_release)
 
    -- Option to perform only the force volume update (e.g. for stochastic forces).
    local onlyForceUpdate = xsys.pickBool(tbl.onlyForceUpdate, false)
