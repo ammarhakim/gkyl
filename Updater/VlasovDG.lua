@@ -58,6 +58,8 @@ gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
   const struct gkyl_array* fIn,
   struct gkyl_array* cflrate, struct gkyl_array* rhs);
 
+void gkyl_dg_updater_vlasov_release(gkyl_dg_updater_vlasov *vlasov);
+
 ]]
 
 -- Vlasov DG solver updater object
@@ -88,7 +90,10 @@ function VlasovDG:init(tbl)
       self._fieldId = "GKYL_FIELD_NULL"
    end
 
-   self._zero = ffiC.gkyl_dg_updater_vlasov_new(self._onGrid._zero, self._confBasis._zero, self._phaseBasis._zero, self._confRange, nil, self._fieldId, GKYL_USE_GPU or 0)
+   self._zero = ffi.gc(
+                  ffiC.gkyl_dg_updater_vlasov_new(self._onGrid._zero, self._confBasis._zero, self._phaseBasis._zero, self._confRange, nil, self._fieldId, GKYL_USE_GPU or 0),
+                  ffiC.gkyl_dg_updater_vlasov_release
+                )
 
    return self
 end

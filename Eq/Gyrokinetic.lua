@@ -81,7 +81,8 @@ function Gyrokinetic:init(tbl)
    local nm, p = self._basis:id(), self._basis:polyOrder()
    if (nm=="hybrid" or nm=="gkhybrid") then nm="serendipity" end
 
-   self._zero = ffiC.gkyl_dg_gyrokinetic_new(self._confBasis._zero, self._basis._zero, self._confRange, self.charge, self.mass, GKYL_USE_GPU or 0)
+   self._zero = ffi.gc(ffiC.gkyl_dg_gyrokinetic_new(self._confBasis._zero, self._basis._zero, self._confRange, self.charge, self.mass, GKYL_USE_GPU or 0),
+                       ffiC.gkyl_dg_eqn_release)
 
    self._volTerm  = ModDecl.selectVol(nm, self._cdim, self._vdim, p, self._isElectromagnetic)
    self._surfTerm = ModDecl.selectSurf(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self._positivity)

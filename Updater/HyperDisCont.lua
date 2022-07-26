@@ -85,6 +85,8 @@ void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range *updat
   const struct gkyl_array* fIn, struct gkyl_array* cflrate,
   struct gkyl_array* rhs);
 
+void gkyl_hyper_dg_release(gkyl_hyper_dg* hdg);
+
 ]]
 
 -- Hyperbolic DG solver updater object
@@ -154,7 +156,8 @@ function HyperDisCont:init(tbl)
    end
    local zf = ffi.new("int[6]", self._zeroFluxFlags)
    if self._equation._zero then 
-     self._zero = ffiC.gkyl_hyper_dg_new(self._onGrid._zero, self._basis._zero, self._equation._zero, #self._updateDirs, upd, zf, self._updateVolumeTerm, GKYL_USE_GPU or 0)
+     self._zero = ffi.gc(ffiC.gkyl_hyper_dg_new(self._onGrid._zero, self._basis._zero, self._equation._zero, #self._updateDirs, upd, zf, self._updateVolumeTerm, GKYL_USE_GPU or 0),
+                         ffiC.gkyl_hyper_dg_release)
    end
 
    return self

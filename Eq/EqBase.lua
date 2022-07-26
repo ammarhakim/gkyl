@@ -46,6 +46,8 @@ struct gkyl_dg_eqn {
   struct gkyl_ref_count ref_count; // reference count
   struct  gkyl_dg_eqn *on_dev; // pointer to itself or device data
 };
+
+void gkyl_dg_eqn_release(const struct gkyl_dg_eqn* eqn);
 ]]
 
 local EqBase = Proto()

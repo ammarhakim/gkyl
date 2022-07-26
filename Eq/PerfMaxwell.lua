@@ -150,7 +150,8 @@ function PerfMaxwell:init(tbl)
          assert(self._numFLux, "Eq.PerfMaxwell: Incorrect numerical flux specified, options supported: 'central' and 'upwind' ")
       end
 
-      self._zero = ffiC.gkyl_dg_maxwell_new(self._basis._zero, self._c, self._ce, self._cb, GKYL_USE_GPU or 0)
+      self._zero = ffi.gc(ffiC.gkyl_dg_maxwell_new(self._basis._zero, self._c, self._ce, self._cb, GKYL_USE_GPU or 0),
+                          ffiC.gkyl_dg_eqn_release)
    end
 
    -- maximum characteristic speed
