@@ -48,6 +48,7 @@ gkyl_dg_updater_lbo_gyrokinetic_advance_cu(gkyl_dg_updater_lbo_gyrokinetic *lbo,
   const struct gkyl_array* fIn,
   struct gkyl_array* cflrate, struct gkyl_array* rhs);
 
+void gkyl_dg_updater_lbo_gyrokinetic_release(gkyl_dg_updater_lbo_gyrokinetic *lbo);
 ]]
 
 -- GkLBO DG solver updater object
@@ -64,7 +65,8 @@ function GkLBO:init(tbl)
    self._confRange = assert(tbl.confRange, "Updater.GkLBO: Must specify conf-space range using 'confRange'")
    self._mass = assert(tbl.mass, "Updater.GkLBO: Must specify species mass using 'mass'")
 
-   self._zero = ffiC.gkyl_dg_updater_lbo_gyrokinetic_new(self._onGrid._zero, self._confBasis._zero, self._phaseBasis._zero, self._confRange, self._mass, GKYL_USE_GPU or 0)
+   self._zero = ffi.gc(ffiC.gkyl_dg_updater_lbo_gyrokinetic_new(self._onGrid._zero, self._confBasis._zero, self._phaseBasis._zero, self._confRange, self._mass, GKYL_USE_GPU or 0),
+                       ffiC.gkyl_dg_updater_lbo_gyrokinetic_release)
 
    return self
 end
