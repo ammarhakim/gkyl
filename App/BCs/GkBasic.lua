@@ -66,7 +66,7 @@ function GkBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
 end
 function GkBasicBC:bcOpen(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "pointwise".
-   self.basis:flipSign(dir, fIn, fOut)
+   self.basis:flipSign(dir, fIn:data(), fOut:data())
 end
 function GkBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "pointwise".
@@ -74,9 +74,9 @@ function GkBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
 end
 function GkBasicBC:bcReflect(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "flip".
-   self.basis:flipSign(dir, fIn, fOut)
+   self.basis:flipSign(dir, fIn:data(), fOut:data())
    local vparDir = self.cdim+1
-   self.basis:flipSign(vparDir, fOut, fOut)
+   self.basis:flipSign(vparDir, fOut:data(), fOut:data())
 end
 function GkBasicBC:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_, idx, f, fRefl)
    self.phi:fill(self.phiIdxr(idx), self.phiPtr)

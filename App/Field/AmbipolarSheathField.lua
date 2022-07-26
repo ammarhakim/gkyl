@@ -130,7 +130,7 @@ function AmbipolarSheathField:createSolver(species, externalField)
    end
    assert(self.adiabatic and (self.adiabSpec.charge<0.), "AmbipolarSheathField: currently only available for the adiabatic electron case.")
 
-   local function bcOpen(dir, tm, idxIn, fIn, fOut) self.basis:flipSign(dir, fIn, fOut) end
+   local function bcOpen(dir, tm, idxIn, fIn, fOut) self.basis:flipSign(dir, fIn:data(), fOut:data()) end
    local function makeBcUpdater(dir, edge, bcList)
       return Updater.Bc{onGrid             = self.grid,  dir  = dir,
                         boundaryConditions = bcList,     edge = edge,}

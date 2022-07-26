@@ -498,7 +498,7 @@ function GkField:createSolver(species, externalField)
    -- Various functions to apply BCs of different types.
    local function bcOpen(dir, tm, idxIn, fIn, fOut)
       -- Requires skinLoop = "pointwise".
-      self.basis:flipSign(dir, fIn, fOut)
+      self.basis:flipSign(dir, fIn:data(), fOut:data())
    end
 
    -- Functions to make life easier while reading in BCs to apply.

@@ -62,7 +62,7 @@ function VlasovBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
 end
 function VlasovBasicBC:bcOpen(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "pointwise".
-   self.basis:flipSign(dir, fIn, fOut)
+   self.basis:flipSign(dir, fIn:data(), fOut:data())
 end
 function VlasovBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "pointwise".
@@ -70,8 +70,8 @@ function VlasovBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
 end
 function VlasovBasicBC:bcReflect(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "flip".
-   self.basis:flipSign(dir, fIn, fOut)
-   self.basis:flipSign(dir+self.cdim, fOut, fOut)
+   self.basis:flipSign(dir, fIn:data(), fOut:data())
+   self.basis:flipSign(dir+self.cdim, fOut:data(), fOut:data())
 end
 
 function VlasovBasicBC:createSolver(mySpecies, field, externalField)

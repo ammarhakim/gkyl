@@ -109,8 +109,8 @@ function NeutralRecyclingBC:bcNeutralRecycling(dir, tm, idxIn, fIn, fOut)
       fOut[i] = rFPtr[i]
    end
 
-   self.basis:flipSign(dir, fOut, fOut)
-   self.basis:flipSign(dir+self.cdim, fOut, fOut)
+   self.basis:flipSign(dir, fOut:data(), fOut:data())
+   self.basis:flipSign(dir+self.cdim, fOut:data(), fOut:data())
 end
 
 function NeutralRecyclingBC:initCrossSpeciesCoupling(species)

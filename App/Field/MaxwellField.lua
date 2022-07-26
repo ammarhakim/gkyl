@@ -465,7 +465,7 @@ function MaxwellField:createSolver()
       local nb = self.basis:numBasis()
       local fInData, fOutData = fIn:data(), fOut:data()
       for i = 1, 8 do
-	 self.basis:flipSign(dir, fInData+(i-1)*nb-1, fOutData+(i-1)*nb-1)
+	 self.basis:flipSign(dir, fInData+(i-1)*nb, fOutData+(i-1)*nb)
       end
    end
    local function bcCopy(dir, tm, xc, fIn, fOut)
@@ -476,7 +476,7 @@ function MaxwellField:createSolver()
       local fInData, fOutData = fIn:data(), fOut:data()
       -- Zero gradient for all the components.
       for i = 1, 8 do
-	 self.basis:flipSign(dir, fInData+(i-1)*nb-1, fOutData+(i-1)*nb-1)
+	 self.basis:flipSign(dir, fInData+(i-1)*nb, fOutData+(i-1)*nb)
       end
       for i = 1, self.basis:numBasis() do
 	 -- Zero tangent for electric field.
@@ -494,7 +494,7 @@ function MaxwellField:createSolver()
       local fInData, fOutData = fIn:data(), fOut:data()
       -- Zero gradient for all the components.
       for i = 1, 8 do
-	 self.basis:flipSign(dir, fInData+(i-1)*nb-1, fOutData+(i-1)*nb-1)
+	 self.basis:flipSign(dir, fInData+(i-1)*nb, fOutData+(i-1)*nb)
       end
       for i = 1, self.basis:numBasis() do
 	 -- Zero normal for electric field.
