@@ -47,11 +47,9 @@ function KineticProjection:fullInit(species)
    self.scaleWithSourcePower = xsys.pickBool(self.tbl.scaleWithSourcePower, false)
 
    self.weakMultiplyConfPhase = Updater.CartFieldBinOp {
-      onGrid     = self.phaseGrid,
-      weakBasis  = self.phaseBasis,
+      onGrid     = self.phaseGrid,   operation = "Multiply",
+      weakBasis  = self.phaseBasis,  onGhosts  = true,
       fieldBasis = self.confBasis,
-      operation  = "Multiply",
-      onGhosts   = true,
    }
 end
 
