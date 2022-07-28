@@ -167,12 +167,10 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
 
       -- Create field and function for calculating wall potential according to user-provided function.
       self.phiWallFld = DataStruct.Field {
-         onGrid        = field.grid,
-         numComponents = field.basis:numBasis(),
-         ghost         = {1,1},
-         metaData      = {polyOrder = field.basis:polyOrder(),
-                          basisType = field.basis:id()},
-         syncPeriodicDirs = false,
+         onGrid   = field.grid,  numComponents    = field.basis:numBasis(),
+         ghost    = {1,1},       syncPeriodicDirs = false,
+         metaData = {polyOrder = field.basis:polyOrder(),
+                     basisType = field.basis:id()},
       }
       self.phiWallFld:clear(0.)
       self.phiWallFldPtr, self.phiWallFldIdxr = self.phiWallFld:get(1), self.phiWallFld:genIndexer()

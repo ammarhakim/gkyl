@@ -53,10 +53,10 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
  * @param crange Conf-space range to apply multiplication operator.
  * @param prange Phase-space range to apply multiplication operator.
  */
-void gkyl_dg_mul_conf_phase_op_range(struct gkyl_basis cbasis,
-  struct gkyl_basis pbasis, struct gkyl_array* out,
-  const struct gkyl_array* lop, const struct gkyl_array* rop,
-  struct gkyl_range crange, struct gkyl_range prange);
+void gkyl_dg_mul_conf_phase_op_range(struct gkyl_basis *cbasis,
+  struct gkyl_basis *pbasis, struct gkyl_array* pout,
+  const struct gkyl_array* cop, const struct gkyl_array* pop,
+  struct gkyl_range *crange, struct gkyl_range *prange);
 ]]
 
 -- Function to check if moment name is correct.
@@ -135,7 +135,6 @@ end
 
 -- Advance method.
 function CartFieldBinOp:_advance(tCurr, inFld, outFld)
-   local grid = self._onGrid
    -- Multiplication: Afld * Bfld (can be scalar*scalar, vector*scalar or scalar*vector,
    --                              but in the latter Afld must be the scalar).
    -- Division:       Bfld/Afld (Afld must be a scalar function).
@@ -152,7 +151,7 @@ function CartFieldBinOp:_advance(tCurr, inFld, outFld)
       Bfld, Afld = inFld[1], inFld[2]
    end
 
-   if self._zero_op and self._zero_op == "Multiply" and inFld[1]:numComponents() == inFld[2]:numComponents() then
+   if self._zero_op and self._zero_op == "Multiply" then
       if inFld[1]:numComponents() == inFld[2]:numComponents() then
          ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, 0, uOut._zero, 0, Afld._zero, 0, Bfld._zero, uOut:localExtRange())
       else
@@ -167,6 +166,8 @@ function CartFieldBinOp:_advance(tCurr, inFld, outFld)
 
       return
    end
+
+   local grid = self._onGrid
 
    -- Either the localRange is the same for Bfld and Afld,
    -- or just use the range of the phase space field,

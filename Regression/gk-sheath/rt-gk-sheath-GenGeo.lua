@@ -116,7 +116,7 @@ plasmaApp = Plasma.App {
       charge = qe,  mass = me,
       lower = {-4*vte, 0},
       upper = { 4*vte, 12*me*vte^2/(2*B0)},
-      cells = {8, 4},
+      cells = {6, 4},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
@@ -168,7 +168,7 @@ plasmaApp = Plasma.App {
       -- Velocity space grid.
       lower = {-4*vti, 0},
       upper = { 4*vti, 12*mi*vti^2/(2*B0)},
-      cells = {8, 4},
+      cells = {6, 4},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
