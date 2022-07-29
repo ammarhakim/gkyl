@@ -62,6 +62,13 @@ struct gkyl_bc_basic* gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const 
  * @param f_arr Field array to apply BC to.
  */
 void gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_arr, struct gkyl_array *f_arr);
+
+/**
+ * Free memory associated with bc_basic updater.
+ *
+ * @param up BC updater.
+ */
+void gkyl_bc_basic_release(struct gkyl_bc_basic *up);
 ]]
 
 -- Boundary condition updater.
@@ -89,8 +96,9 @@ function BasicBc:init(tbl)
       if self._bcType == "absorb" then bctype = 0
       elseif self._bcType == "reflect" then bctype = 1 end
 
-      self._zero = ffiC.gkyl_bc_basic_new(self._dir-1, edge, localExtRange, numGhostVec:data(), bctype,
-                                          self._basis._zero, cDim, GKYL_USE_GPU or 0)
+      self._zero = ffi.gc(ffiC.gkyl_bc_basic_new(self._dir-1, edge, localExtRange, numGhostVec:data(), bctype,
+                                                 self._basis._zero, cDim, GKYL_USE_GPU or 0),
+                          ffiC.gkyl_bc_basic_release)
 --   else
 --      -- g2 code, to be deleted.
 --      self._bcList = assert(
