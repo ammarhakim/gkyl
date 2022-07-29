@@ -271,8 +271,7 @@ local function Field_meta_ctor(elct)
       self._ghostRgnLower = RangeVec(self._ndim)
       self._lowerGhostVec = Lin.IntVec(self._ndim)
       self._upperGhostVec = Lin.IntVec(self._ndim)
-      local lowerEdge = 0
-      local upperEdge = 1
+      local lowerEdge, upperEdge = 0, 1 -- Match gkyl_edge_loc in gkylzero/zero/gkyl_range.h.
       for d=1, self._ndim do
          self._lowerGhostVec[d] = self._lowerGhost
          self._upperGhostVec[d] = self._upperGhost

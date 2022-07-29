@@ -128,9 +128,7 @@ function CartFieldBinOp:init(tbl)
       self._binOpData = ffiC.new_binOpData_t(self._numBasis, 0) 
    end
 
-   if op == "Multiply" then
-      self._zero_op = op
-   end
+   if op == "Multiply" then self._zero_op = op end
 end
 
 -- Advance method.
