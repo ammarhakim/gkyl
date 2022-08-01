@@ -60,6 +60,11 @@ plasmaApp = Plasma.App {
    timeStepper = "rk3",         -- One of "rk2", "rk3" or "rk3s4".
    cflFrac     = 0.01,
 
+   mapc2p = function(xn)
+      local x, y, z = xn[1], xn[2], xn[3]
+      return x, y, z
+   end,
+
    
    -- Decomposition for configuration space.
    decompCuts = {1,1,1},            -- Cuts in each configuration direction.
@@ -83,6 +88,7 @@ plasmaApp = Plasma.App {
       end,
       -- Evolve species?
       evolve      = true,
+      evolveCollisionless = false,
       diagnostics = { "M0", "M1", "M2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
@@ -106,6 +112,7 @@ plasmaApp = Plasma.App {
       end,
       -- Evolve species?
       evolve      = true,
+      evolveCollisionless = false,
       diagnostics = { "M0", "M1", "M2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
@@ -125,6 +132,7 @@ plasmaApp = Plasma.App {
       -- Background magnetic field
       bmag = function (t, xn)
          local x = xn[1]
+--         return B0*(1+0.5*math.cos(2.*math.pi*x))
          return B0*(1+x)
       end,
 

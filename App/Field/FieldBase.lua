@@ -19,6 +19,7 @@ function FieldBase:setBasis(basis) self.basis = basis end
 function FieldBase:printDevDiagnostics() end
 function FieldBase:accumulateCurrent(dt, current, em) end
 function FieldBase:applyBcIdx(tCurr, idx) end
+function FieldBase:useBoundaryFlux(tCurr, outIdx) end
 function FieldBase:suggestDt() return GKYL_MAX_DOUBLE end
 function FieldBase:clearCFL() end
 

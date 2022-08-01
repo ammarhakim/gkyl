@@ -12,6 +12,7 @@ local Proto            = require "Lib.Proto"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
 local ConstDiffusionEq = require "Eq.ConstDiffusion"
+local MultimomentConstDiffusionEq = require "Eq.MultimomentConstDiffusion"
 local xsys             = require "xsys"
 local Mpi              = require "Comm.Mpi"
 
@@ -24,9 +25,7 @@ local Diffusion = Proto(CollisionsBase)
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
-function Diffusion:init(tbl)
-   self.tbl = tbl
-end
+function Diffusion:init(tbl) self.tbl = tbl end
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
@@ -69,7 +68,10 @@ function Diffusion:setConfGrid(grid)    self.confGrid = grid end
 function Diffusion:setPhaseBasis(basis) self.phaseBasis = basis end
 function Diffusion:setPhaseGrid(grid)   self.phaseGrid = grid end
 
-function Diffusion:createSolver()
+function Diffusion:createSolver(mySpecies, externalField)
+
+   local nMoments = mySpecies.nMoments
+
    local grid, basis
    local zfd = {}
    if self.phaseGrid then
@@ -77,9 +79,7 @@ function Diffusion:createSolver()
       grid, basis = self.phaseGrid, self.phaseBasis
       local vdim  = self.phaseGrid:ndim()-self.confGrid:ndim()
       -- Zero-flux BCs.
-      for d = 1, vdim do
-         zfd[d] = self.confGrid:ndim() + d
-      end
+      for d = 1, vdim do zfd[d] = self.confGrid:ndim() + d end
    else
       -- Running a conf-space simulation.
       grid, basis = self.confGrid, self.confBasis
@@ -156,28 +156,31 @@ function Diffusion:createSolver()
       projectDiffCoeff:advance(0.0, {}, {self.coefficient})
    end
 
-
    -- Intemediate storage for output of collisions.
+   local compV = nMoments and nMoments or 1
    self.collOut = DataStruct.Field {
       onGrid        = grid,
-      numComponents = basis:numBasis(),
+      numComponents = basis:numBasis()*compV,
       ghost         = {1, 1},
    }
    -- Diffusion equation.
-   self.equation = ConstDiffusionEq {
-      basis         = basis,
-      coefficient   = self.coefficient,
-      diffusiveDirs = self.diffDirs,
-      positivity    = self.usePositivity,
-      order         = self.diffOrder,
-   }
+   if nMoments ~= nil and nMoments > 1 then
+      self.equation = MultimomentConstDiffusionEq {
+         basis         = basis,             positivity = self.usePositivity,
+         coefficient   = self.coefficient,  order      = self.diffOrder,
+         diffusiveDirs = self.diffDirs,     numMoments = nMoments,
+      }
+   else
+      self.equation = ConstDiffusionEq {
+         basis         = basis,             positivity = self.usePositivity,
+         coefficient   = self.coefficient,  order      = self.diffOrder,
+         diffusiveDirs = self.diffDirs,
+      }
+   end
    self.collisionSlvr = Updater.HyperDisCont {
-      onGrid             = grid,
-      basis              = basis,
-      cfl                = self.cfl,
-      equation           = self.equation,
-      updateDirections   = self.diffDirs,
-      zeroFluxDirections = zfd,
+      onGrid = grid,      equation           = self.equation,
+      basis  = basis,     updateDirections   = self.diffDirs,
+      cfl    = self.cfl,  zeroFluxDirections = zfd,
    }
 end
 
@@ -188,9 +191,7 @@ function Diffusion:advance(tCurr, fIn, species, fRhsOut)
 
    local tmNonSlvrStart = Time.clock()
    -- Barrier over shared communicator before accumulate
-   if self.phaseGrid then
-      Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
-   end
+   if self.phaseGrid then Mpi.Barrier(self.phaseGrid:commSet().sharedComm) end
 
    fRhsOut:accumulate(1.0, self.collOut)
    self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart

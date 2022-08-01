@@ -62,11 +62,6 @@ function Bc:init(tbl)
    end
 
    local advArgs       = tbl.advanceArgs  -- Sample arguments for advance method.
-   self._doDiagnostics = xsys.pickBool(tbl.doDiagnostics, false)   -- Indicate whether boundary diagnostics are needed.
-   if self._doDiagnostics then
-      assert(advArgs, "Updater.Bc: requesting boundary diagnostics requires passing sample arguments for the advance method through 'advanceArgs'.")
-      assert(self._cDim, "Updater.Bc: Must specify configuration space dimensions to apply with 'cdim'")
-   end
 
    -- A function can be specied in the ghost cell layer to be used as a boundary condition.
    -- Additionally, a feedback function of fluid moments at the boundary can be set up.
@@ -139,7 +134,7 @@ function Bc:init(tbl)
       self.advImpl = function(tCurr, inFld, outFld) Bc["_advanceBasic"](self, tCurr, inFld, outFld) end
    end
 
-   if self._doDiagnostics or self._evaluateFn then 
+   if self._evaluateFn then 
        -- Create reduced boundary grid with 1 cell in dimension of self._dir.
       if self._grid:isShared() then 
          -- Shared memory implementation needs more work...
@@ -192,36 +187,6 @@ function Bc:init(tbl)
             upper = reducedUpper,  decomposition = reducedDecomp,
          }
       end
-
-      if self._doDiagnostics then
-         if self._cDim == self._grid:ndim() then
-            self._confBoundaryGrid = self._boundaryGrid
-         else 
-            -- Create reduced boundary config-space grid with 1 cell in dimension of self._dir.
-            local reducedLower, reducedUpper, reducedNumCells, reducedCuts = {}, {}, {}, {}
-            for d = 1, self._cDim do
-               if d==self._dir then
-                  table.insert(reducedLower, -self._grid:dx(d)/2)
-                  table.insert(reducedUpper,  self._grid:dx(d)/2)
-                  table.insert(reducedNumCells, 1)
-                  table.insert(reducedCuts, 1)
-               else
-                  table.insert(reducedLower,    self._grid:lower(d))
-                  table.insert(reducedUpper,    self._grid:upper(d))
-                  table.insert(reducedNumCells, self._grid:numCells(d))
-                  table.insert(reducedCuts,     self._grid:cuts(d))
-               end
-            end
-            local reducedDecomp = CartDecomp.CartProd {
-               comm      = self._splitComm,  cuts      = reducedCuts,
-               writeRank = self.writeRank,   useShared = self._grid:isShared(),
-            }
-            self._confBoundaryGrid = Grid.RectCart {
-               lower = reducedLower,  cells = reducedNumCells,
-               upper = reducedUpper,  decomposition = reducedDecomp,
-            }
-         end
-      end
    end
 
    -- Initialize tools constructed from fields (e.g. ranges).
@@ -244,6 +209,7 @@ function Bc:initFldTools(inFld, outFld)
    local tools = {}
 
    local distf = inFld[1]
+   local inGhostRange = inFld[2] -- Optional range on which we wish to apply BCs.
    local qOut  = assert(outFld[1], "Bc.advance: Must-specify an output field")
 
    local grid = self._grid
@@ -252,6 +218,10 @@ function Bc:initFldTools(inFld, outFld)
    local globalExt  = qOut:globalExtRange()
    local localExt   = qOut:localExtRange()
    local ghostRange = localExt:intersect(self:getGhostRange(global, globalExt))   -- Range spanning ghost cells.
+   if inGhostRange then
+      local ghostRangeAll = localExt:intersect(self:getGhostRange(global, globalExt)) 
+      ghostRange = ghostRangeAll:intersect(inGhostRange)
+   end
    -- Decompose ghost region into threads.
    tools.ghostRangeDecomp = LinearDecomp.LinearDecompRange {
       range = ghostRange, numSplit = grid:numSharedProcs() }
@@ -262,21 +232,6 @@ function Bc:initFldTools(inFld, outFld)
    self.flipIdx = self._skinLoop == "flip" 
       and function(idxIn) idxIn[self._vdir] = global:upper(self._vdir) + 1 - idxIn[self._vdir] end
       or function(idxIn) end
-
-   if self._doDiagnostics then
-      -- Make enough boundary field copies for 4 RK stages.
-      self._boundaryFluxFields = {createFieldFromField(self._boundaryGrid, qOut, {1,1}),
-                                  createFieldFromField(self._boundaryGrid, qOut, {1,1}),
-                                  createFieldFromField(self._boundaryGrid, qOut, {1,1}),
-                                  createFieldFromField(self._boundaryGrid, qOut, {1,1}),}
-      self._boundaryFluxRate      = createFieldFromField(self._boundaryGrid, qOut, {1,1})
-      self._boundaryFluxFieldPrev = createFieldFromField(self._boundaryGrid, qOut, {1,1})
-      self._boundaryPtr = {self._boundaryFluxFields[1]:get(1), 
-                           self._boundaryFluxFields[2]:get(1),
-                           self._boundaryFluxFields[3]:get(1),
-                           self._boundaryFluxFields[4]:get(1),}
-      self._boundaryIdxr = self._boundaryFluxFields[1]:genIndexer()
-   end
 
    if self._evaluateFn then
       tools.ghostFld        = createFieldFromField(self._boundaryGrid, qOut, {1,1})
@@ -461,74 +416,12 @@ function Bc:_advance(tCurr, inFld, outFld)
    self.advImpl(tCurr, inFld, outFld)
 end
 
-function Bc:storeBoundaryFlux(tCurr, rkIdx, qOut)
-   local ptrOut = qOut:get(1) -- Get pointers to (re)use inside inner loop.
-   local indexer = qOut:genIndexer()
-
-   local tId = self._grid:subGridSharedId() -- Local thread ID.
-   for idxOut in self.fldTools.ghostRangeDecomp:rowMajorIter(tId) do
-      idxOut:copyInto(self._idxIn)
-
-      qOut:fill(indexer(idxOut), ptrOut) 
-
-      -- Before operating on ghosts, store ghost values for later flux diagnostics
-      self._idxIn[self._dir] = 1
-      self._boundaryFluxFields[rkIdx]:fill(self._boundaryIdxr(self._idxIn), self._boundaryPtr[rkIdx])
-      for c = 1, qOut:numComponents() do
-         self._boundaryPtr[rkIdx][c] = ptrOut[c]
-      end
-   end
-end
-
-function Bc:evalOnConfBoundary(inFld)
-   if self._confGhostRangeDecomp==nil then
-      self._confBoundaryField    = createFieldFromField(self._confBoundaryGrid, inFld, {1,1})
-      self._confBoundaryFieldPtr = self._confBoundaryField:get(1)
-      self._confBoundaryIdxr     = self._confBoundaryField:genIndexer()
-
-      local confGlobal        = inFld:globalRange()
-      local confGlobalExt     = inFld:globalExtRange()
-      local confLocalExtRange = inFld:localExtRange()
-      self._confGhostRange    = confLocalExtRange:intersect(
-         self:getGhostRange(confGlobal, confGlobalExt) ) -- Range spanning ghost cells.
-      -- Decompose ghost region into threads.
-      self._confGhostRangeDecomp = self._confGhostRangeDecomp or LinearDecomp.LinearDecompRange {
-         range = self._confGhostRange, numSplit = self._grid:numSharedProcs() }
-   end
-
-   local inFldPtr = inFld:get(1)
-   local indexer = inFld:genIndexer()
-
-   local tId = self._grid:subGridSharedId() -- Local thread ID.
-   for idxIn in self._confGhostRangeDecomp:rowMajorIter(tId) do
-      idxIn:copyInto(self._idxOut)
-      self._idxOut[self._dir] = 1
-      
-      inFld:fill(indexer(idxIn), inFldPtr) 
-      self._confBoundaryField:fill(self._confBoundaryIdxr(self._idxOut), self._confBoundaryFieldPtr)
-       
-      for c = 1, inFld:numComponents() do
-         self._confBoundaryFieldPtr[c] = inFldPtr[c]
-      end
-   end
-
-   return self._confBoundaryField
-end
-
 function Bc:getDir() return self._dir end
 
 function Bc:getEdge() return self._edge end
 
 function Bc:label() return "Flux"..self._dirlabel..self._edge end
 
-function Bc:getBoundaryFluxFields() return self._boundaryFluxFields end
-
-function Bc:getBoundaryFluxRate() return self._boundaryFluxRate end
-
-function Bc:getBoundaryFluxFieldPrev() return self._boundaryFluxFieldPrev end
-
 function Bc:getBoundaryGrid() return self._boundaryGrid end
-
-function Bc:getConfBoundaryGrid() return self._confBoundaryGrid end
 
 return Bc

@@ -16,18 +16,13 @@ geo : "both"$
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 2$
-minCdim_Ser : 1$
-maxCdim_Ser : 1$
-
-/* Maximal order basis. */
-maxPolyOrder_Max : 2$
-minCdim_Max : 1$
-maxCdim_Max : 0$
+minCdim_Ser : 2$
+maxCdim_Ser : 2$
 
 /* Tensor order basis. */
 maxPolyOrder_Tensor : 2$
 minCdim_Tensor : 1$
-maxCdim_Tensor : 1$
+maxCdim_Tensor : 0$
 
 /* Vdim possibilities for each of Cdim=[1,2,3]. */
 gkVdims : [[1,2], [2], [2]]$
@@ -35,10 +30,10 @@ gkVdims : [[1,2], [2], [2]]$
 /* ...... END OF USER INPUTS........ */
 
 /* To generate other bases, just add corresponding column to arrays below. */
-bName        : ["Ser", "Max", "Tensor"]$
-maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
-minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
-maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+bName        : ["Ser", "Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Tensor]$
 
 /* Is electromagnetic booleans. */
 if     ESorEM="ES"   then (fieldType : [false]) 
@@ -78,7 +73,11 @@ for bInd : 1 thru length(bName) do (
             /* Possible combinations of variable dependence of background magnetic field.
                with [] = const. Note that we assume axisymmetry, which means B cannot depend on y. */
             if isGenGeo then (
-              bVarsList : [[], [x], [z], [x,z]]
+              if c<3 then (
+                bVarsList : [[], [x]]
+              ) else (
+                bVarsList : [[], [x], [z], [x,z]]
+              )
             ) else (
               bVarsList : [[], [x]]
             ),

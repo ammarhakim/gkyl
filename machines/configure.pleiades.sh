@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Edit the paths and options in the following command to suit your system
-module load mpi-sgi/mpt
+module load mpi-hpe/mpt
 module load comp-intel
 
 CC=icc

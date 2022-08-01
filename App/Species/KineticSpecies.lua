@@ -299,31 +299,31 @@ function KineticSpecies:createGrid(confGridIn)
    end
 
    local GridConstructor = Grid.RectCart
-   local coordinateMap = {} -- Table of functions
+   self.phaseCoordinateMap = {} -- Table of functions
    -- Construct comp -> phys mappings if they exist
    if self.coordinateMap or confGrid:getMappings() then
       if confGrid:getMappings() and self.coordinateMap then
          for d = 1, self.cdim do
             lower[d], upper[d] = confGrid:logicalLower(d), confGrid:logicalUpper(d)
-            table.insert(coordinateMap, confGrid:getMappings(d))
+           table.insert(self.phaseCoordinateMap, confGrid:getMappings(d))
          end
          for d = 1, self.vdim do
-            table.insert(coordinateMap, self.coordinateMap[d])
+           table.insert(self.phaseCoordinateMap, self.coordinateMap[d])
          end
       elseif confGrid:getMappings() then
          for d = 1, self.cdim do
             lower[d], upper[d] = confGrid:logicalLower(d), confGrid:logicalUpper(d)
-            table.insert(coordinateMap, confGrid:getMappings(d))
+           table.insert(self.phaseCoordinateMap, confGrid:getMappings(d))
          end
          for d = 1, self.vdim do
-            table.insert(coordinateMap, function (z) return z end)
+           table.insert(self.phaseCoordinateMap, function (z) return z end)
          end
       else
          for d = 1, self.cdim do
-            table.insert(coordinateMap, function (z) return z end)
+           table.insert(self.phaseCoordinateMap, function (z) return z end)
          end
          for d = 1, self.vdim do
-            table.insert(coordinateMap, self.coordinateMap[d])
+           table.insert(self.phaseCoordinateMap, self.coordinateMap[d])
          end
       end
       GridConstructor = Grid.NonUniformRectCart
@@ -335,7 +335,7 @@ function KineticSpecies:createGrid(confGridIn)
       cells         = cells,
       periodicDirs  = confGrid:getPeriodicDirs(),
       decomposition = self.decomp,
-      mappings      = coordinateMap,
+      mappings      = self.phaseCoordinateMap,
    }
 
    for _, c in pairs(self.collisions) do c:setPhaseGrid(self.grid) end
@@ -453,7 +453,7 @@ function KineticSpecies:createSolver(field, externalField)
    end
 
    -- Create solvers for collisions.
-   for _, c in pairs(self.collisions) do c:createSolver(externalField) end
+   for _, c in pairs(self.collisions) do c:createSolver(self, externalField) end
 
    -- Create BC solvers.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self, field, externalField) end

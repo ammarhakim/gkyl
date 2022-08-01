@@ -1,5 +1,5 @@
 #!/bin/bash
-module load mpi-sgi/mpt
+module load mpi-hpe/mpt
 module load comp-intel
 
 CC=icc

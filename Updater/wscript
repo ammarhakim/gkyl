@@ -17,6 +17,7 @@ def build(bld):
     FiveMomentFrictionSrcImpl.cpp
 
     aSheathPotentialData/asheath_potential_1x_p1_ser.cpp
+    aSheathPotentialData/asheath_potential_1x_p2_ser.cpp
 
     alphaGenGeoCalcData/AlphaGenGeoSer1x3v.cpp
     alphaGenGeoCalcData/AlphaGenGeoSer3x3v.cpp
@@ -367,6 +368,10 @@ def build(bld):
     maxwellianOnBasisData/MaxwellianOnBasisTensor1x2vP3.cpp
     maxwellianOnBasisData/MaxwellianOnBasisTensor2x2vP1.cpp
     maxwellianOnBasisData/MaxwellianOnBasisTensor2x2vP2.cpp
+    maxwellianOnBasisData/BiMaxwellianOnBasisSer1x2vP1.cpp
+    maxwellianOnBasisData/BiMaxwellianOnBasisSer1x2vP2.cpp
+    maxwellianOnBasisData/BiMaxwellianOnBasisTensor1x2vP1.cpp
+    maxwellianOnBasisData/BiMaxwellianOnBasisTensor1x2vP2.cpp
 
     projectFluxOnGhostsData/ProjectFluxOnGhostsSer.cpp
 

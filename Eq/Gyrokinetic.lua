@@ -47,9 +47,10 @@ function Gyrokinetic:init(tbl)
    self._surfTerm = GyrokineticModDecl.selectSurf(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self._positivity, self.Bvars, self.geoType)
 
    -- Select the appropriate volume and surface term functions to call.
-   self.volTermFunc  = function(w, dx, idx, f, out) return Gyrokinetic["volTerm" .. self.geoType](self, w, dx, idx, f, out) end
+   local ESorEMstr = self._isElectromagnetic and "EM" or "ES"
+   self.volTermFunc  = function(w, dx, idx, f, out) return Gyrokinetic["volTerm" .. self.geoType .. ESorEMstr](self, w, dx, idx, f, out) end
    self.surfTermFunc = function(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
-      return Gyrokinetic["surfTerm" .. self.geoType](self, dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
+      return Gyrokinetic["surfTerm" .. self.geoType .. ESorEMstr](self, dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    end
 
    -- For sheath BCs.
@@ -69,21 +70,6 @@ function Gyrokinetic:init(tbl)
       self.emMod:clear(0.0)
    end
 
-   -- For gyroaveraging.
-   self.gyavgSlvr = tbl.gyavgSlvr
-   if self.gyavgSlvr then
-      self._gyavg = true
-      self.phiGy = {}
-      local nmu = self._grid:numCells(self._ndim)
-      for i = 1, nmu do
-         self.phiGy[i] = DataStruct.Field {
-            onGrid        = self._confGrid,
-            numComponents = self._confBasis:numBasis(),
-            ghost         = {1, 1}
-         }
-      end
-   end
-
    self._isFirst = true
 
    -- Timers.
@@ -97,12 +83,6 @@ function Gyrokinetic:setAuxFields(auxFields)
 
    -- Get the electrostatic potential, phi.
    self.phi = potentials.phi
-   if self._gyavg then 
-      self.gyavgSlvr:advance(0, {self.phi}, {self.phiGy}) 
-      for i=1,self._grid:numCells(self._ndim) do
-         self.phiGy[i]:sync()
-      end
-   end
 
    if self._isElectromagnetic then
       -- Get electromagnetic terms.
@@ -111,22 +91,22 @@ function Gyrokinetic:setAuxFields(auxFields)
       self.dApardtProv = auxFields[3]
    end
 
-   -- Get magnetic geometry fields.
-   self.bmag = geo.bmag
-   self.cmag = geo.cmag
-   if self.geoType == "SimpleHelical" then
-      self.bmagInv = geo.bmagInv
-      self.bdriftX = geo.bdriftX
-      self.bdriftY = geo.bdriftY
-   elseif self.geoType == "GenGeo" then
-      self.b_x = geo.b_x
-      self.b_y = geo.b_y
-      self.b_z = geo.b_z
-      self.jacobTotInv = geo.jacobTotInv
-   end
-   self.phiWall = geo.phiWall  -- For sheath BCs.
-
    if self._isFirst then
+      -- Get magnetic geometry fields. Inside _isFirst since they don't change in time.
+      self.bmag = geo.bmag
+      self.cmag = geo.cmag
+      if self.geoType == "SimpleHelical" then
+         self.bmagInv = geo.bmagInv
+         self.bdriftX = geo.bdriftX
+         self.bdriftY = geo.bdriftY
+      elseif self.geoType == "GenGeo" then
+         self.b_x = geo.b_x
+         self.b_y = geo.b_y
+         self.b_z = geo.b_z
+         self.jacobTotInv = geo.jacobTotInv
+      end
+      self.phiWall = geo.phiWall  -- For sheath BCs.
+
       -- Allocate pointers and indexers to field objects.
 
       -- Potentials.
@@ -134,21 +114,10 @@ function Gyrokinetic:setAuxFields(auxFields)
       self.phiIdxr = self.phi:genIndexer()
       if self._isElectromagnetic then
          self.aparPtr        = self.apar:get(1)
-         self.aparLPtr       = self.apar:get(1)
          self.dApardtPtr     = self.dApardt:get(1)
          self.dApardtProvPtr = self.dApardtProv:get(1)
          self.aparIdxr       = self.apar:genIndexer()
          self.dApardtIdxr    = self.dApardt:genIndexer()
-      end
-
-      -- For gyroaveraging.
-      if self._gyavg then
-         self.phiGyPtr = {}
-         self.phiGyIdxr = {}
-         for i=1,self._grid:numCells(self._ndim) do
-            self.phiGyPtr[i]  = self.phiGy[i]:get(1)
-            self.phiGyIdxr[i] = self.phiGy[i]:genIndexer()
-         end
       end
 
       -- Geometry.
@@ -184,54 +153,57 @@ end
 function Gyrokinetic:volTerm(w, dx, idx, f, out)
    return self.volTermFunc(w, dx, idx, f, out)
 end
-function Gyrokinetic:volTermSimpleHelical(w, dx, idx, f, out)
+function Gyrokinetic:volTermSimpleHelicalES(w, dx, idx, f, out)
    local tmStart = Time.clock()
-   if self._gyavg then
-      local idmu = idx[self._ndim]
-      self.phiGy[idmu]:fill(self.phiGyIdxr[idmu](idx), self.phiGyPtr[idmu])
-      self.phiPtr = self.phiGyPtr[idmu]
-   else
-      self.phi:fill(self.phiIdxr(idx), self.phiPtr)
-   end
+   self.phi:fill(self.phiIdxr(idx), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idx), self.bmagPtr)
    self.bmagInv:fill(self.bmagInvIdxr(idx), self.bmagInvPtr)
    self.cmag:fill(self.cmagIdxr(idx), self.cmagPtr)
    self.bdriftX:fill(self.bdriftXIdxr(idx), self.bdriftXPtr)
    self.bdriftY:fill(self.bdriftYIdxr(idx), self.bdriftYPtr)
-   local res
-   if self._isElectromagnetic then
-     self.apar:fill(self.aparIdxr(idx), self.aparPtr)
-     self.dApardtProv:fill(self.dApardtIdxr(idx), self.dApardtProvPtr)
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.cmagPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtProvPtr:data(), f:data(), out:data())
-   else
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.cmagPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), f:data(), out:data())
-   end
+   local res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.cmagPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), f:data(), out:data())
    self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
    return res
 end
-function Gyrokinetic:volTermGenGeo(w, dx, idx, f, out)
+function Gyrokinetic:volTermSimpleHelicalEM(w, dx, idx, f, out)
    local tmStart = Time.clock()
-   if self._gyavg then 
-      local idmu = idx[self._ndim]
-      self.phiGy[idmu]:fill(self.phiGyIdxr[idmu](idx), self.phiGyPtr[idmu])
-      self.phiPtr = self.phiGyPtr[idmu]
-   else
-      self.phi:fill(self.phiIdxr(idx), self.phiPtr)
-   end
+   self.phi:fill(self.phiIdxr(idx), self.phiPtr)
+   self.bmag:fill(self.bmagIdxr(idx), self.bmagPtr)
+   self.bmagInv:fill(self.bmagInvIdxr(idx), self.bmagInvPtr)
+   self.cmag:fill(self.cmagIdxr(idx), self.cmagPtr)
+   self.bdriftX:fill(self.bdriftXIdxr(idx), self.bdriftXPtr)
+   self.bdriftY:fill(self.bdriftYIdxr(idx), self.bdriftYPtr)
+   self.apar:fill(self.aparIdxr(idx), self.aparPtr)
+   self.dApardtProv:fill(self.dApardtIdxr(idx), self.dApardtProvPtr)
+   res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.cmagPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtProvPtr:data(), f:data(), out:data())
+   self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
+   return res
+end
+function Gyrokinetic:volTermGenGeoES(w, dx, idx, f, out)
+   local tmStart = Time.clock()
+   self.phi:fill(self.phiIdxr(idx), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idx), self.bmagPtr)
    self.jacobTotInv:fill(self.jacobTotInvIdxr(idx), self.jacobTotInvPtr)
    self.cmag:fill(self.cmagIdxr(idx), self.cmagPtr)
    self.b_x:fill(self.b_xIdxr(idx), self.b_xPtr)
    self.b_y:fill(self.b_yIdxr(idx), self.b_yPtr)
    self.b_z:fill(self.b_zIdxr(idx), self.b_zPtr)
-   local res
-   if self._isElectromagnetic then
-     self.apar:fill(self.aparIdxr(idx), self.aparPtr)
-     self.dApardtProv:fill(self.dApardtIdxr(idx), self.dApardtProvPtr)
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtProvPtr:data(), f:data(), out:data())
-   else 
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), f:data(), out:data())
-   end
+   local res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), f:data(), out:data())
+   self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
+   return res
+end
+function Gyrokinetic:volTermGenGeoEM(w, dx, idx, f, out)
+   local tmStart = Time.clock()
+   self.phi:fill(self.phiIdxr(idx), self.phiPtr)
+   self.bmag:fill(self.bmagIdxr(idx), self.bmagPtr)
+   self.jacobTotInv:fill(self.jacobTotInvIdxr(idx), self.jacobTotInvPtr)
+   self.cmag:fill(self.cmagIdxr(idx), self.cmagPtr)
+   self.b_x:fill(self.b_xIdxr(idx), self.b_xPtr)
+   self.b_y:fill(self.b_yIdxr(idx), self.b_yPtr)
+   self.b_z:fill(self.b_zIdxr(idx), self.b_zPtr)
+   self.apar:fill(self.aparIdxr(idx), self.aparPtr)
+   self.dApardtProv:fill(self.dApardtIdxr(idx), self.dApardtProvPtr)
+   local res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtProvPtr:data(), f:data(), out:data())
    self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
    return res
 end
@@ -240,59 +212,123 @@ end
 function Gyrokinetic:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    return self.surfTermFunc(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
 end
-function Gyrokinetic:surfTermSimpleHelical(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
+function Gyrokinetic:surfTermSimpleHelicalES(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    local tmStart = Time.clock()
-   if self._gyavg then
-      local idmu = idxr[self._ndim]
-      self.phiGy[idmu]:fill(self.phiGyIdxr[idmu](idxr), self.phiGyPtr[idmu])
-      self.phiPtr = self.phiGyPtr[idmu]
+   local side
+   if (dir <= self._cdim and (not self._confGrid:isDirPeriodic(dir)) and idxr[dir] ~= 1) then
+      -- Use the Left kernel (assumes fields from the left cell, and evaluates them at 1).
+      side = 1
+      self.phi:fill(self.phiIdxr(idxl), self.phiPtr)
+      self.bmag:fill(self.bmagIdxr(idxl), self.bmagPtr)
+      self.bmagInv:fill(self.bmagInvIdxr(idxl), self.bmagInvPtr)
+      self.cmag:fill(self.cmagIdxr(idxl), self.cmagPtr)
+      self.bdriftX:fill(self.bdriftXIdxr(idxl), self.bdriftXPtr)
+      self.bdriftY:fill(self.bdriftYIdxr(idxl), self.bdriftYPtr)
    else
+      -- Use the Right kernel (assumes fields from the right cell, and evaluates them at -1).
+      side = 2
       self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
+      self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
+      self.bmagInv:fill(self.bmagInvIdxr(idxr), self.bmagInvPtr)
+      self.cmag:fill(self.cmagIdxr(idxr), self.cmagPtr)
+      self.bdriftX:fill(self.bdriftXIdxr(idxr), self.bdriftXPtr)
+      self.bdriftY:fill(self.bdriftYIdxr(idxr), self.bdriftYPtr)
    end
-   self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
-   self.bmagInv:fill(self.bmagInvIdxr(idxr), self.bmagInvPtr)
-   self.cmag:fill(self.cmagIdxr(idxr), self.cmagPtr)
-   self.bdriftX:fill(self.bdriftXIdxr(idxr), self.bdriftXPtr)
-   self.bdriftY:fill(self.bdriftYIdxr(idxr), self.bdriftYPtr)
-   local res
-   if self._isElectromagnetic then
-     self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
-     self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProvPtr)
-     self.emMod:fill(self.emModIdxr(idxl), self.emModPtrL)
-     self.emMod:fill(self.emModIdxr(idxr), self.emModPtrR)
-     res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.cmagPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
-   else
-     res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.cmagPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
-   end
+   local res = self._surfTerm[dir][side](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.cmagPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res
 end
-function Gyrokinetic:surfTermGenGeo(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
+function Gyrokinetic:surfTermSimpleHelicalEM(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    local tmStart = Time.clock()
-   if self._gyavg then 
-      local idmu = idxr[self._ndim]
-      self.phiGy[idmu]:fill(self.phiGyIdxr[idmu](idxr), self.phiGyPtr[idmu])
-      self.phiPtr = self.phiGyPtr[idmu]
+   local side
+   if (dir <= self._cdim and (not self._confGrid:isDirPeriodic(dir)) and idxr[dir] ~= 1) then
+      -- Use the Left kernel (assumes fields from the left cell, and evaluates them at 1).
+      side = 1
+      self.phi:fill(self.phiIdxr(idxl), self.phiPtr)
+      self.bmag:fill(self.bmagIdxr(idxl), self.bmagPtr)
+      self.bmagInv:fill(self.bmagInvIdxr(idxl), self.bmagInvPtr)
+      self.cmag:fill(self.cmagIdxr(idxl), self.cmagPtr)
+      self.bdriftX:fill(self.bdriftXIdxr(idxl), self.bdriftXPtr)
+      self.bdriftY:fill(self.bdriftYIdxr(idxl), self.bdriftYPtr)
+      self.apar:fill(self.aparIdxr(idxl), self.aparPtr)
+      self.dApardtProv:fill(self.dApardtIdxr(idxl), self.dApardtProvPtr)
    else
+      -- Use the Right kernel (assumes fields from the right cell, and evaluates them at -1).
+      side = 2
       self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
+      self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
+      self.bmagInv:fill(self.bmagInvIdxr(idxr), self.bmagInvPtr)
+      self.cmag:fill(self.cmagIdxr(idxr), self.cmagPtr)
+      self.bdriftX:fill(self.bdriftXIdxr(idxr), self.bdriftXPtr)
+      self.bdriftY:fill(self.bdriftYIdxr(idxr), self.bdriftYPtr)
+      self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
+      self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProvPtr)
    end
-   self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
-   self.jacobTotInv:fill(self.jacobTotInvIdxr(idxr), self.jacobTotInvPtr)
-   self.cmag:fill(self.cmagIdxr(idxr), self.cmagPtr)
-   self.b_x:fill(self.b_xIdxr(idxr), self.b_xPtr)
-   self.b_y:fill(self.b_yIdxr(idxr), self.b_yPtr)
-   self.b_z:fill(self.b_zIdxr(idxr), self.b_zPtr)
-   local res
-   if self._isElectromagnetic then
-     self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
-     self.apar:fill(self.aparIdxr(idxl), self.aparLPtr)
-     self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProvPtr)
-     self.emMod:fill(self.emModIdxr(idxl), self.emModPtrL)
-     self.emMod:fill(self.emModIdxr(idxr), self.emModPtrR)
-     res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.aparLPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
-   else 
-     res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+   self.emMod:fill(self.emModIdxr(idxl), self.emModPtrL)
+   self.emMod:fill(self.emModIdxr(idxr), self.emModPtrR)
+   local res = self._surfTerm[dir][side](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.cmagPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
+   self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
+   return res
+end
+function Gyrokinetic:surfTermGenGeoES(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
+   local tmStart = Time.clock()
+   local side
+   if (dir <= self._cdim and (not self._confGrid:isDirPeriodic(dir)) and idxr[dir] ~= 1) then
+      -- Use the Left kernel (assumes fields from the left cell, and evaluates them at 1).
+      side = 1
+      self.phi:fill(self.phiIdxr(idxl), self.phiPtr)
+      self.bmag:fill(self.bmagIdxr(idxl), self.bmagPtr)
+      self.jacobTotInv:fill(self.jacobTotInvIdxr(idxl), self.jacobTotInvPtr)
+      self.cmag:fill(self.cmagIdxr(idxl), self.cmagPtr)
+      self.b_x:fill(self.b_xIdxr(idxl), self.b_xPtr)
+      self.b_y:fill(self.b_yIdxr(idxl), self.b_yPtr)
+      self.b_z:fill(self.b_zIdxr(idxl), self.b_zPtr)
+   else
+      -- Use the Right kernel (assumes fields from the right cell, and evaluates them at -1).
+      side = 2
+      self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
+      self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
+      self.jacobTotInv:fill(self.jacobTotInvIdxr(idxr), self.jacobTotInvPtr)
+      self.cmag:fill(self.cmagIdxr(idxr), self.cmagPtr)
+      self.b_x:fill(self.b_xIdxr(idxr), self.b_xPtr)
+      self.b_y:fill(self.b_yIdxr(idxr), self.b_yPtr)
+      self.b_z:fill(self.b_zIdxr(idxr), self.b_zPtr)
    end
+   local res = self._surfTerm[dir][side](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+   self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
+   return res
+end
+function Gyrokinetic:surfTermGenGeoEM(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
+   local tmStart = Time.clock()
+   local side
+   if (dir <= self._cdim and (not self._confGrid:isDirPeriodic(dir)) and idxr[dir] ~= 1) then
+      -- Use the Left kernel (assumes fields from the left cell, and evaluates them at 1).
+      side = 1
+      self.phi:fill(self.phiIdxr(idxl), self.phiPtr)
+      self.bmag:fill(self.bmagIdxr(idxl), self.bmagPtr)
+      self.jacobTotInv:fill(self.jacobTotInvIdxr(idxl), self.jacobTotInvPtr)
+      self.cmag:fill(self.cmagIdxr(idxl), self.cmagPtr)
+      self.b_x:fill(self.b_xIdxr(idxl), self.b_xPtr)
+      self.b_y:fill(self.b_yIdxr(idxl), self.b_yPtr)
+      self.b_z:fill(self.b_zIdxr(idxl), self.b_zPtr)
+      self.apar:fill(self.aparIdxr(idxl), self.aparPtr)
+      self.dApardtProv:fill(self.dApardtIdxr(idxl), self.dApardtProvPtr)
+   else
+      -- Use the Right kernel (assumes fields from the right cell, and evaluates them at -1).
+      side = 2
+      self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
+      self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
+      self.jacobTotInv:fill(self.jacobTotInvIdxr(idxr), self.jacobTotInvPtr)
+      self.cmag:fill(self.cmagIdxr(idxr), self.cmagPtr)
+      self.b_x:fill(self.b_xIdxr(idxr), self.b_xPtr)
+      self.b_y:fill(self.b_yIdxr(idxr), self.b_yPtr)
+      self.b_z:fill(self.b_zIdxr(idxr), self.b_zPtr)
+      self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
+      self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProvPtr)
+   end
+   self.emMod:fill(self.emModIdxr(idxl), self.emModPtrL)
+   self.emMod:fill(self.emModIdxr(idxr), self.emModPtrR)
+   local res = self._surfTerm[dir][side](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res
 end
@@ -352,28 +388,27 @@ function GyrokineticStep2:setAuxFields(auxFields)
    self.dApardt     = potentials.dApardt
    self.dApardtProv = auxFields[3]
 
-   -- Get magnetic geometry fields.
-   self.bmag = geo.bmag
-   self.cmag = geo.cmag
-   if self.geoType == "SimpleHelical" then
-      self.bmagInv = geo.bmagInv
-      self.bdriftX = geo.bdriftX
-      self.bdriftY = geo.bdriftY
-   elseif self.geoType == "GenGeo" then
-      self.b_x = geo.b_x
-      self.b_y = geo.b_y
-      self.b_z = geo.b_z
-      self.jacobTotInv = geo.jacobTotInv
-   end
-
    if self._isFirst then
+      -- Get magnetic geometry fields.
+      self.bmag = geo.bmag
+      self.cmag = geo.cmag
+      if self.geoType == "SimpleHelical" then
+         self.bmagInv = geo.bmagInv
+         self.bdriftX = geo.bdriftX
+         self.bdriftY = geo.bdriftY
+      elseif self.geoType == "GenGeo" then
+         self.b_x = geo.b_x
+         self.b_y = geo.b_y
+         self.b_z = geo.b_z
+         self.jacobTotInv = geo.jacobTotInv
+      end
+
       -- Allocate pointers and indexers to field objects.
 
       -- Potentials.
       self.phiPtr         = self.phi:get(1)
       self.phiIdxr        = self.phi:genIndexer()
       self.aparPtr        = self.apar:get(1)
-      self.aparLPtr       = self.apar:get(1)
       self.dApardtPtr     = self.dApardt:get(1)
       self.dApardtProvPtr = self.dApardtProv:get(1)
       self.aparIdxr       = self.apar:genIndexer()
@@ -444,11 +479,10 @@ function GyrokineticStep2:surfTermGenGeo(dir, cfll, cflr, wl, wr, dxl, dxr, maxs
    self.b_y:fill(self.b_yIdxr(idxr), self.b_yPtr)
    self.b_z:fill(self.b_zIdxr(idxr), self.b_zPtr)
    self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
-   self.apar:fill(self.aparIdxr(idxl), self.aparLPtr)
    self.dApardt:fill(self.dApardtIdxr(idxr), self.dApardtPtr)
    self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProvPtr)
 
-   local res = self._surfTerm(self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.aparLPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), nil, nil)
+   local res = self._surfTerm(self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), nil, nil)
 
    return res
 end

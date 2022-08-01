@@ -374,6 +374,7 @@ local function buildApplication(self, tbl)
 
    local tStart = 0.0 -- By default start at t=0.
    if GKYL_COMMANDS[1] == "restart" then
+      log(string.format("restart requested. reading restart files to continue simulation from previous one.\n"))
       -- Give everyone a chance to adjust ICs based on restart frame
       -- and adjust tStart accordingly.
       tStart = readRestart()
@@ -833,6 +834,7 @@ return {
          BasicBC    = require ("App.BCs.GkBasic").GkBasic,
          AbsorbBC   = require ("App.BCs.GkBasic").GkAbsorb,
          CopyBC     = require ("App.BCs.GkBasic").GkCopy,
+         TokamakEdgeBC      = require "App.BCs.TokamakEdge",
          NeutralRecyclingBC = require "App.BCs.NeutralRecycling",
          OpenBC     = require ("App.BCs.GkBasic").GkOpen,
          ReflectBC  = require ("App.BCs.GkBasic").GkReflect,
@@ -853,6 +855,7 @@ return {
 	 LboCollisions          = require "App.Collisions.GkLBOCollisions",
 	 VmLBOCollisions = require "App.Collisions.VmLBOCollisions",
 	 MaxwellianProjection   = require ("App.Projection.GkProjection").MaxwellianProjection,
+	 BiMaxwellianProjection = require ("App.Projection.GkProjection").BiMaxwellianProjection,
 	 Species                = require "App.Species.GkSpecies",
 	 Source                 = require "App.Sources.GkSource",
 	 Vlasov                 = require ("App.Species.VlasovSpecies"),
@@ -873,6 +876,16 @@ return {
 	 Field      = require ("App.Field.GkField").GkField,
          Source     = require "App.Sources.FluidSource",
 	 Species    = require "App.Species.IncompEulerSpecies",
+      }
+   end,
+
+   HasegawaWakatani = function ()
+      App.label = "Hasegawa-Wakatani"
+      return {
+	 App       = App,
+	 Field     = require ("App.Field.GkField").GkField,
+	 Species   = require "App.Species.HasegawaWakataniSpecies",
+	 Diffusion = require "App.Collisions.Diffusion",
       }
    end,
 
