@@ -9,6 +9,7 @@
 local Proto        = require "Lib.Proto"
 local FluidSpecies = require "App.Species.FluidSpecies"
 local BasicBC      = require "App.BCs.AdiabaticBasic"
+local Updater      = require "Updater"
 
 local AdiabaticSpecies = Proto(FluidSpecies)
 
@@ -49,24 +50,62 @@ end
 
 function AdiabaticSpecies:createSolver(field, externalField)
 
-   -- Compute density in center of domain.
-   local gridCenter = {}
-   for d = 1, self.ndim do gridCenter[d] = (self.grid:upper(d) + self.grid:lower(d))/2 end
-   self._dens0 = self.initFunc(0., gridCenter)
+   -- Compute the factor multiplying the potential in quasineutrality equation.
+   self.QneutFac = self:allocMoment()
+   if field.linearizedPolarization then
+      if field.uniformPolarization then
+         -- Compute density in center of domain.
+         local gridCenter = {}
+         for d = 1, self.ndim do gridCenter[d] = self.grid:mid(d) end
+         local dens0 = self.initFunc(0., gridCenter)
+         self.QneutFac:combine(dens0*(self.charge^2)/self._temp, self.unitField)
+      else
+         local evOnNodes = Updater.EvalOnNodes {
+            onGrid = self.grid,   evaluate = self.initFunc,
+            basis  = self.basis,  onGhosts = false, --true,
+         }
+         evOnNodes:advance(0., {}, {self.QneutFac})
 
-   self.qneutFac = self:allocMoment()
+         -- Apply open BCs:
+         local function makeOpenBcUpdater(dir, edge)
+            local bcOpen = function(dir, tm, idxIn, fIn, fOut)
+               self.confBasis:flipSign(dir, fIn, fOut)   -- Requires skinLoop = "pointwise".
+            end
+            return Updater.Bc {
+               onGrid   = self.grid,  edge = edge,
+               dir      = dir,        boundaryConditions = {bcOpen},
+               skinLoop = "pointwise",
+            }
+         end
+         openBCupdaters = {}
+         for dir = 1, self.ndim do
+            if not lume.any(self.grid:getPeriodicDirs(), function(t) return t==dir end) then
+               openBCupdaters["lower"] = makeOpenBcUpdater(dir, "lower")
+               openBCupdaters["upper"] = makeOpenBcUpdater(dir, "upper")
+            end
+         end
+         for _, bc in pairs(openBCupdaters) do bc:advance(0., {}, {self.QneutFac}) end
+         self.QneutFac:sync(true)
 
-   -- Set up jacobian for general geometry
-   -- and use it to scale initial density
-   -- (consistent with scaling distribution function with jacobian).
-   if externalField then
-      self.jacobGeoFunc = externalField.jacobGeoFunc
+         self.QneutFac:scale((self.charge^2)/self._temp)
+      end
 
-      local initFuncWithoutJacobian = self.initFunc
-      self.initFunc = function (t, xn)
-         local J = self.jacobGeoFunc(t,xn)
-         local f = initFuncWithoutJacobian(t,xn)
-         return J*f
+      -- Scale by the Jacobian.
+      if externalField.geo then
+         local weakMultiply = Updater.CartFieldBinOp {
+            onGrid    = self.grid,   operation = "Multiply",
+            weakBasis = self.basis,  onGhosts  = true,
+         }
+
+         local jacob = externalField.geo.jacobGeo
+         if jacob then weakMultiply:advance(0, {self.QneutFac, jacob}, {self.QneutFac}) end
+      end
+   
+      self.getQneutFacFunc = function() return self.QneutFac end
+   else
+      self.getQneutFacFunc = function() 
+         self.QneutFac:combine(self.charge^2/self._temp, self.couplingMoments)
+         return self.QneutFac
       end
    end
 
@@ -110,18 +149,9 @@ end
 
 function AdiabaticSpecies:temp() return self._temp end
 
-function AdiabaticSpecies:dens0() return self._dens0 end
-
-function AdiabaticSpecies:getQneutFacLin()
-   -- Return the factor on potential in charge neutrality equation,
-   -- assuming a linearized polarization.
-   return self._dens0*self.charge^2/self._temp
-end
-function AdiabaticSpecies:getQneutFacNotLin()
-   -- Return the factor on potential in in charge neutrality equation,
-   -- not assuming a linearized polarization.
-   self.qneutFac:combine(self.charge^2/self._temp, self.couplingMoments)
-   return self.qneutFac
+function AdiabaticSpecies:getQneutFac()
+   -- Return the factor on potential in charge neutrality equation.
+   return self.getQneutFacFunc()
 end
 
 return AdiabaticSpecies

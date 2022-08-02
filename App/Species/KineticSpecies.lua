@@ -41,7 +41,6 @@ function KineticSpecies:fullInit(appTbl)
 
    self.charge = tbl.charge or 1.0
    self.mass   = tbl.mass or 1.0
-   self.n0     = tbl.n0 or n0
    self.lower, self.upper = tbl.lower, tbl.upper
    self.cells  = tbl.cells
    self.vdim   = #self.cells -- Velocity dimensions.
