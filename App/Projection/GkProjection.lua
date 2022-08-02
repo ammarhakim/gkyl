@@ -459,18 +459,30 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
       local numDens = self:allocConfField()
       local uPar    = self:allocConfField()
       local vtSq    = self:allocConfField()
-      if self.exactScaleM0 then
-         -- Use a unit density because we are going to rescale the density anyways,
-         -- and it is easier to weak-divide by something close to unity.
-         confProject:setFunc(function(t, xn) return 1. end)
+      if self.densityFromFile then
+        self.fieldIo:read(numDens, self.density,false)
       else
-         confProject:setFunc(self.density)
+        if self.exactScaleM0 then
+           -- Use a unit density because we are going to rescale the density anyways,
+           -- and it is easier to weak-divide by something close to unity.
+           confProject:setFunc(function(t, xn) return 1. end)
+        else
+           confProject:setFunc(self.density)
+        end
+        confProject:advance(time, {}, {numDens})
       end
-      confProject:advance(time, {}, {numDens})
-      confProject:setFunc(self.driftSpeed)
-      confProject:advance(time, {}, {uPar})
-      confProject:setFunc(self.temperature)
-      confProject:advance(time, {}, {vtSq})
+      if self.driftSpeedFromFile then
+        self.fieldIo:read(uPar, self.driftSpeed,false)
+      else
+        confProject:setFunc(self.driftSpeed)
+        confProject:advance(time, {}, {uPar})
+      end
+      if self.temperatureFromFile then
+        self.fieldIo:read(vtSq, self.temperature,false)
+      else
+        confProject:setFunc(self.temperature)
+        confProject:advance(time, {}, {vtSq})
+      end
       vtSq:scale(1./self.mass)
       -- Project the Maxwellian. It includes a factor of jacobPhase=B*_||.
       local projMaxwell = Updater.MaxwellianOnBasis {

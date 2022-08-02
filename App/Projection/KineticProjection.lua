@@ -35,6 +35,9 @@ function KineticProjection:fullInit(species)
    self.vDegFreedom = species.vDegFreedom   -- Only defined in GkSpecies.
 
    self.fromFile = self.tbl.fromFile
+   self.densityFromFile = self.tbl.densityFromFile
+   self.temperatureFromFile = self.tbl.temperatureFromFile
+   self.driftSpeedFromFile = self.tbl.driftSpeedFromFile
 
    self.exactScaleM0    = xsys.pickBool(self.tbl.exactScaleM0, true)
    self.exactScaleM012  = xsys.pickBool(self.tbl.exactScaleM012, false)
@@ -111,15 +114,22 @@ function MaxwellianProjection:fullInit(species)
    end
    self.temperature = assert(tbl.temperature,
 			     "Maxwellian: must specify 'temperature'")
-
-   -- Check for constants instead of functions.
-   if type(self.density) ~= "function" then
+   --Check to see if we want to load any profiles for ICs
+   --If not then Check for constants instead of functions.
+   if type(self.density) == "string" then
+     self.densityFromFile = true
+     self.exactScaleM0 = false
+   elseif type(self.density) ~= "function" then
       self.density = function (t, zn) return tbl.density end
    end
-   if type(self.driftSpeed) ~= "function" then
+   if type(self.driftSpeed) == "string" then
+     self.driftSpeedFromFile = true
+   elseif type(self.driftSpeed) ~= "function" then
       self.driftSpeed = function (t, zn) return tbl.driftSpeed end
    end
-   if type(self.temperature) ~= "function" then
+   if type(self.temperature) == "string" then
+     self.temperatureFromFile = true
+   elseif type(self.temperature) ~= "function" then
       self.temperature = function (t, zn) return tbl.temperature end
    end
 
@@ -146,6 +156,17 @@ function MaxwellianProjection:fullInit(species)
          onGrid = self.phaseGrid,   evaluate = self.initFunc,
          basis  = self.phaseBasis,  onGhosts = true
       }
+      if self.densityFromFile or self.driftspeedFromFile or self.temperatureFromFile then
+      self.ioMethod  = "MPI"
+      self.writeGhost = false
+      self.fieldIo = AdiosCartFieldIo {
+         elemType   = species.distf[1]:elemType(),
+         method     = self.ioMethod,
+         writeGhost = self.writeGhost,
+         metaData   = {polyOrder = self.phaseBasis:polyOrder(),
+                       basisType = self.phaseBasis:id()}
+      }
+      end
    end
 end
 
