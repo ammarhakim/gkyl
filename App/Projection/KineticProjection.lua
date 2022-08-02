@@ -95,8 +95,10 @@ function FunctionProjection:advance(t, inFlds, outFlds)
       self.project:advance(t, {}, {distf})
    end
 
-   local jacobGeo = extField.geo.jacobGeo
-   if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
+   if extField.geo then
+      local jacobGeo = extField.geo.jacobGeo
+      if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
+   end
 end
 
 ----------------------------------------------------------------------

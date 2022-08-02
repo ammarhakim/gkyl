@@ -134,7 +134,7 @@ function GkSpecies:createSolver(field, externalField)
       self.bmagInvSq   = externalField.geo.bmagInvSq
       self.jacobGeo    = externalField.geo.jacobGeo
       self.jacobGeoInv = externalField.geo.jacobGeoInv
-      self.jacobGeo:write(string.format("%s_jacobGeo_%d.bp",self.name,0),0.0,0,true)
+      --self.jacobGeo:write(string.format("%s_jacobGeo_%d.bp",self.name,0),0.0,0,true)
    end
 
    if self.gyavg then

@@ -1053,7 +1053,6 @@ function GkGeometry:alloc()
 
          self.geo.allGeo = createField(self.grid,self.basis,ghostNum,24,syncPeriodic)
 
-         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,15,syncPeriodic)
       end
 
    end
