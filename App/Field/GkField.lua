@@ -1114,7 +1114,7 @@ function GkGeometry:createSolver()
             local bmag = self.bmagFunc(t, xn)
             local cmag = 1.0
 
-            return bmag, 1/bmag, cmag, gxx, gxy, gyy
+            return bmag, cmag, gxx, gxy, gyy
           end
       else
          self.calcAllGeo = function(t, xn)
@@ -1126,7 +1126,7 @@ function GkGeometry:createSolver()
             local bdriftX = self.bdriftXFunc(t, xn)
             local bdriftY = self.bdriftYFunc(t, xn)
 
-            return bmag, 1/bmag, cmag, gxx, gxy, gyy, bdriftX, bdriftY
+            return bmag, cmag, gxx, gxy, gyy, bdriftX, bdriftY
           end
       end
 
@@ -1198,10 +1198,9 @@ function GkGeometry:createSolver()
 	    -- local bY = bx*dYdx + by*dYdx + bz*dYdz     -- b^Y = b_Y
 	    -- local bZ = bx*dZdx + by*dYdz + bz*dZdz     -- b^Z = b_Z
 
-            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
+            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, cmag, 
 	           b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian--,
-		   --gxz, gyz, gzz, bX, bY, bZ, g_yz, g_zz
-		   
+		   --gxz, gyz, gzz, bX, bY, bZ, g_yz, g_zz		  
          end
 	 self.calcTanVecComp = function(t, xn)
 	    local d = {}
@@ -1238,11 +1237,8 @@ function GkGeometry:createSolver()
             local bmag = self.bmagFunc(t, xn)
             local cmag = jacobian*bmag/math.sqrt(g_zz)
 
-	    --local bX, bY, bZ = b_x, b_y, b_z
-
-            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
-	           b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian--,
-		   --gxz, gyz, gzz, bX, bY, bZ, g_yz, g_zz
+            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, cmag, 
+                   b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
           end
       else
          self.calcAllGeo = function(t, xn)
@@ -1284,7 +1280,7 @@ function GkGeometry:createSolver()
 	    -- local bY = bx*dYdx + by*dYdx + bz*dYdz     -- b^Y = b_Y
 	    -- local bZ = bx*dZdx + by*dYdz + bz*dZdz     -- b^Z = b_Z
 
-            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
+            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, cmag, 
 	           b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian,
 		   gxz, gyz, gzz --, bX, bY, bZ, g_yz, g_zz --, normGradx
 	 end
