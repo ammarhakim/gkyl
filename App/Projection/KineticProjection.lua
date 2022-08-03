@@ -163,8 +163,8 @@ function MaxwellianProjection:fullInit(species)
          elemType   = species.distf[1]:elemType(),
          method     = self.ioMethod,
          writeGhost = self.writeGhost,
-         metaData   = {polyOrder = self.phaseBasis:polyOrder(),
-                       basisType = self.phaseBasis:id()}
+         metaData   = {polyOrder = self.confBasis:polyOrder(),
+                       basisType = self.confBasis:id()}
       }
       end
    end
