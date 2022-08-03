@@ -47,8 +47,11 @@ local checkBCs = function(dimIn, isDirPer, bcLoIn, bcUpIn, bcLoOut, bcUpOut, set
       for d=1,#bcLoIn do bcLoOut[d], bcUpOut[d] = bcLoIn[d], bcUpIn[d] end
    end
    for d=1,math.min(dimIn,2) do
-      assert((isDirPer[d]==(bcLoOut[d].T=="P")) and (isDirPer[d]==(bcUpOut[d].T=="P")),
-             string.format("App.Field.GkField: direction %d is periodic. Must use {T='P'} in bcLower/bcUpper.",d))
+      if isDirPer[d] then
+         assert(bcLoOut[d].T=="P" and bcUpOut[d].T=="P",
+                string.format("App.Field.GkField: direction %d is periodic. Must use {T='P'} in bcLower/bcUpper.",d))
+     
+      end
    end
    if setLastDir and (bcLoOut[dimIn]==nil or bcUpOut[dimIn]==nil) then
       -- Assume homogeneous Neumann since this would only be used in the z-smoothing.
@@ -244,6 +247,7 @@ function GkField:alloc(nRkDup)
    self.polarizationWeight = self.uniformPolarization and 0. or createField(self.grid,self.basis,{1,1})
    self.lapWeightPoisson   = createField(self.grid,self.basis,{1,1})
    self.modWeightPoisson   = createField(self.grid,self.basis,{1,1})
+   self.rhsDenomPoisson    = self.ndim == 1 and createField(self.grid,self.basis,{1,1}) or nil
    if self.isElectromagnetic then
       self.dApardtSlvr_lapModFac = createField(self.grid,self.basis,{1,1})
       self.lapWeightAmpere       = createField(self.grid,self.basis,{1,1})
@@ -259,10 +263,8 @@ end
 function GkField:initField(species)
    if self.externalPhi then
       local evalOnNodes = Updater.EvalOnNodes {
-         onGrid   = self.grid,
-         basis    = self.basis,
-         evaluate = self.externalPhi,
-         onGhosts = true
+         onGrid = self.grid,   evaluate = self.externalPhi,
+         basis  = self.basis,  onGhosts = true
       }
       self.externalPhiFld = createField(self.grid,self.basis,{1,1})
       evalOnNodes:advance(0.0, {}, {self.externalPhiFld})
@@ -357,16 +359,24 @@ function GkField:createSolver(species, externalField)
    else
       self.jacobGeo = self.unitField
    end
-   self.phiSlvr = Updater.FemPoisson {
-      onGrid = self.grid,   bcLower = self.bcLowerPhi,
-      basis  = self.basis,  bcUpper = self.bcUpperPhi,
-      zContinuous = not self.discontinuousPhi,
-      -- Note these metric coefficients contain the Jacobian.
-      gxx = gxxPoisson,
-      gxy = gxyPoisson,
-      gyy = gyyPoisson,
-      useG0 = false,
-   }
+   if self.ndim == 3 then
+      self.phiSlvr = Updater.FemPoisson {
+         onGrid = self.grid,   bcLower = self.bcLowerPhi,
+         basis  = self.basis,  bcUpper = self.bcUpperPhi,
+         zContinuous = not self.discontinuousPhi,
+         -- Note these metric coefficients contain the Jacobian.
+         gxx = gxxPoisson,
+         gxy = gxyPoisson,
+         gyy = gyyPoisson,
+         useG0 = false,
+      }
+   else
+      self.phiSlvr = Updater.FemParproj {
+         onGrid = self.grid, 
+         basis  = self.basis,
+         periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
+      }
+   end
 
    if self.ndim == 3 and not self.discontinuousPhi then
       self.phiZSmoother = Updater.FemParPoisson {
@@ -385,6 +395,10 @@ function GkField:createSolver(species, externalField)
    self.weakMultiply = Updater.CartFieldBinOp {
       onGrid    = self.grid,   operation = "Multiply",
       weakBasis = self.basis,  onGhosts  = true,
+   }
+   self.weakDivide = Updater.CartFieldBinOp {
+      onGrid    = self.grid,   operation = "Divide",
+      weakBasis = self.basis,  onGhosts  = false,
    }
 
    -- When using a linearizedPolarization term in Poisson equation,
@@ -410,12 +424,22 @@ function GkField:createSolver(species, externalField)
       local setLapWeight, setModWeight = false, false
       if self.ndim==1 then
          self.lapWeightPoisson:clear(0.)
+         -- For ndim=1 we'll divide the RHS by the modifier instead (to keep fem_parproj simple in g0).
+         self.modWeightPoisson:copy(self.unitField)
          if self.uniformPolarization then
-            self.modWeightPoisson:combine(self.kperpSq*self.polarizationWeight, self.unitField)
+            self.rhsDenomPoisson:combine(self.kperpSq*self.polarizationWeight, self.unitField)
          else
-            self.modWeightPoisson:combine(self.kperpSq, self.polarizationWeight)
+            self.rhsDenomPoisson:combine(self.kperpSq, self.polarizationWeight)
          end
+         -- Add contribution from the adiabatic species.
+         if self.adiabatic then self.rhsDenomPoisson:accumulate(1., self.adiabSpec:getQneutFac()) end
          setModWeight = true
+         setLapWeight = true -- MF 2022/08/01: Temporary work around. Otherwise it is not set in FemParproj (but not used therein anyway).
+
+         self.divRHSbyModWeightPoisson = function(qdens)
+            self.weakDivide:advance(0., {self.rhsDenomPoisson, qdens}, {qdens})
+            return qdens
+         end
       else 
          self.modWeightPoisson:clear(0.)
          if self.uniformPolarization then
@@ -424,12 +448,13 @@ function GkField:createSolver(species, externalField)
             self.lapWeightPoisson:combine(-1., self.polarizationWeight)
          end
          setLapWeight = true
-      end
 
-      -- Add contribution from the adiabatic species.
-      if self.adiabatic then 
-         self.modWeightPoisson:accumulate(1., self.adiabSpec:getQneutFac())
-         setModWeight = true
+         if self.adiabatic then   -- Add contribution from the adiabatic species.
+            self.modWeightPoisson:accumulate(1., self.adiabSpec:getQneutFac())
+            setModWeight = true
+         end
+
+         self.divRHSbyModWeightPoisson = function(qdens) return qdens end
       end
 
       if setLapWeight then self.phiSlvr:setLaplacianWeight(self.lapWeightPoisson) end
@@ -439,13 +464,19 @@ function GkField:createSolver(species, externalField)
    else
       -- When not using linearizedPolarization, weights are set each step in advance method using these functions.
       if self.ndim == 1 then
+         -- For ndim=1 we'll divide the RHS by the modifier instead (to keep fem_parproj simple in g0).
+         self.phiSlvr:setModifierWeight(self.unitField)
          self.setPolarizationWeightFunc = function(specTbl)
-            self.polarizationWeight:clear(0.0)
+            self.rhsDenomPoisson:clear(0.0)
             for _, s in lume.orderedIter(specTbl) do
-               self.polarizationWeight:accumulate(self.kperpSq, s:getPolarizationMassDensity())
+               self.rhsDenomPoisson:accumulate(self.kperpSq, s:getPolarizationMassDensity())
             end
-            self.weakMultiply:advance(0., {externalField.bmagInvSq, self.polarizationWeight}, {self.polarizationWeight})
-            self.phiSlvr:setModifierWeight(self.polarizationWeight)
+            self.weakMultiply:advance(0., {externalField.bmagInvSq, self.rhsDenomPoisson}, {self.rhsDenomPoisson})
+         end
+
+         self.divRHSbyModWeightPoisson = function(qdens)
+            self.weakDivide:advance(0., {self.rhsDenomPoisson, qdens}, {qdens})
+            return qdens
          end
       else
          self.setPolarizationWeightFunc = function(specTbl)
@@ -456,6 +487,8 @@ function GkField:createSolver(species, externalField)
             self.weakMultiply:advance(0., {externalField.bmagInvSq, self.polarizationWeight}, {self.polarizationWeight})
             self.phiSlvr:setLaplacianWeight(self.polarizationWeight)
          end
+
+         self.divRHSbyModWeightPoisson = function(qdens) return qdens end
       end
    end
 
@@ -708,6 +741,9 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
          -- If not using linearized polarization term, set up laplacian weight.
          self:setPolarizationWeight(species)
 
+         -- For ndim=1 divide the RHS by the polarization/modifier weight.
+         self.chargeDens = self.divRHSbyModWeightPoisson(self.chargeDens)
+
          -- Phi solve (elliptic, so update potCurr).
          -- Energy conservation requires phi to be continuous in all directions. 
          -- The first FEM solve ensures that phi is continuous in x and y.
@@ -786,7 +822,7 @@ end
 function GkField:totalSolverTime()
    local time = 0.
    if self.phiSlvr then
-      time = time + self.timers.advTime[1]+self.phiSlvr.slvr.timers.completeNsolve
+      if self.phiSlvr.slvr then time = time + self.timers.advTime[1]+self.phiSlvr.slvr.timers.completeNsolve end
       if self.isElectromagnetic and self.dApardtSlvr then  time = time + self.timers.advTime[2] end
    end
    return time

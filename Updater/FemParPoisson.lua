@@ -101,7 +101,7 @@ function FemParPoisson:init(tbl)
 
    -- Set up constant dummy field.
    self.unitWeight = DataStruct.Field {
-      onGrid        = self._grid,              ghost         = {1, 1},
+      onGrid        = self._grid,              ghost     = {1, 1},
       numComponents = self._basis:numBasis(),  useDevice = false,
    }
    local initUnit = ProjectOnBasis {
@@ -112,11 +112,11 @@ function FemParPoisson:init(tbl)
 
    -- Set up fields for non-uniform and/or time-dependent laplacian and modifier weights
    self.laplacianWeight = DataStruct.Field {
-      onGrid        = self._grid,              ghost         = {1, 1},
+      onGrid        = self._grid,              ghost     = {1, 1},
       numComponents = self._basis:numBasis(),  useDevice = false,
    }
    self.modifierWeight = DataStruct.Field {
-      onGrid        = self._grid,              ghost         = {1, 1}, 
+      onGrid        = self._grid,              ghost     = {1, 1}, 
       numComponents = self._basis:numBasis(),  useDevice = false,
    }
    -- Initialize these fields to zero.
@@ -200,7 +200,10 @@ function FemParPoisson:init(tbl)
                   srcReduce      = 0., assemble    = 0.,
                   completeNsolve = 0.}
 
-   self._zero_fem = ffiC.gkyl_fem_parproj_new(self._grid._zero, self._basis._zero, self._periodic, GKYL_USE_GPU or 0)
+   local useG0 = xsys.pickBool(tbl.useG0, true)
+   if useG0 then
+      self._zero_fem = ffiC.gkyl_fem_parproj_new(self._grid._zero, self._basis._zero, self._periodic, GKYL_USE_GPU or 0)
+   end
 
    return self
 end
