@@ -1455,9 +1455,9 @@ function GkGeometry:initField()
    applyBCsync(self.geo.gxx)
    applyBCsync(self.geo.gxy)
    applyBCsync(self.geo.gyy)
-   -- applyBCsync(self.geo.gxz)
-   -- applyBCsync(self.geo.gyz)
-   -- applyBCsync(self.geo.gzz)
+   applyBCsync(self.geo.gxz)
+   applyBCsync(self.geo.gyz)
+   applyBCsync(self.geo.gzz)
 
    if self.geo.name == "SimpleHelical" then
       if self.ndim > 1 then
@@ -1475,6 +1475,7 @@ function GkGeometry:initField()
       applyBCsync(self.geo.b_x)
       applyBCsync(self.geo.b_y)
       applyBCsync(self.geo.b_z)
+      applyBCsync(self.geo.tanVecComp)
       -- applyBCsync(self.geo.g_yz)
       -- applyBCsync(self.geo.g_zz)
       -- if ndim == 3 then
