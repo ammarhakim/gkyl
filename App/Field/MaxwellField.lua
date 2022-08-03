@@ -447,10 +447,10 @@ function MaxwellField:createSolver()
    -- Function to construct a BC updater.
    local function makeBcUpdater(dir, edge, bcList)
       return Updater.Bc {
-	 onGrid             = self.grid,
-	 boundaryConditions = bcList,
-	 dir                = dir,
-	 edge               = edge,
+         onGrid             = self.grid,
+         boundaryConditions = bcList,
+         dir                = dir,
+         edge               = edge,
       }
    end
 

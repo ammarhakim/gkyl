@@ -27,7 +27,12 @@ ffi.cdef [[
 enum gkyl_edge_loc { GKYL_LOWER_EDGE = 0, GKYL_UPPER_EDGE = 1 };
 
 // BC types in this updater.
-enum gkyl_bc_basic_type { GKYL_BC_ABSORB = 0, GKYL_BC_REFLECT = 1 };
+enum gkyl_bc_basic_type { 
+   GKYL_BC_COPY = 0, 
+   GKYL_BC_ABSORB = 1, 
+   GKYL_BC_REFLECT = 2,
+   GKYL_BC_MAXWELL_PEC = 3, 
+};
 
 // Object type
 typedef struct gkyl_bc_basic gkyl_bc_basic;
@@ -93,8 +98,11 @@ function BasicBc:init(tbl)
       local numGhostVec   = self._edge == 'lower' and onField._lowerGhostVec or onField._upperGhostVec
 
       local bctype -- Match gkyl_bc_basic_type in gkylzero/zero/gkyl_bc_basic.h
-      if self._bcType == "absorb" then bctype = 0
-      elseif self._bcType == "reflect" then bctype = 1 end
+      if self._bcType == "copy" then bctype = 0
+      elseif self._bcType == "absorb" then bctype = 1 
+      elseif self._bcType == "reflect" then bctype = 2 
+      elseif self._bcType == "maxwell_pec" then bctype = 3 
+      end
 
       self._zero = ffi.gc(ffiC.gkyl_bc_basic_new(self._dir-1, edge, localExtRange, numGhostVec:data(), bctype,
                                                  self._basis._zero, cDim, GKYL_USE_GPU or 0),

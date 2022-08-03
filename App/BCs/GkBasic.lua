@@ -160,7 +160,7 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
    self.getPhi     = function(fieldIn, inIdx) return nil end 
 
    local bcFunc, skinType
-   if self.bcKind == "reflect" or self.bcKind == "absorb" then
+   if self.bcKind == "copy" or self.bcKind == "absorb" or self.bcKind == "reflect" then
       self.bcSolver = Updater.BasicBc{
          onGrid  = self.grid,   edge   = self.bcEdge,  
          cdim    = self.cdim,   basis  = self.basis,

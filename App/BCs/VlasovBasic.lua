@@ -101,7 +101,7 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
    self.bcBuffer = allocDistf() -- Buffer used by BasicBc updater.
 
    local bcFunc, skinType
-   if self.bcKind == "absorb" or self.bcKind == "reflect" then
+   if self.bcKind == "copy" or self.bcKind == "absorb" or self.bcKind == "reflect" then
       self.bcSolver = Updater.BasicBc{
          onGrid  = self.grid,   edge   = self.bcEdge,  
          cdim    = self.cdim,   basis  = self.basis,
