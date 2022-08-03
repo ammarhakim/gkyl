@@ -44,12 +44,13 @@ typedef struct gkyl_bc_basic gkyl_bc_basic;
  * @param num_ghosts Number of ghosts in each dimension.
  * @param bctype BC type (see gkyl_bc_basic_type).
  * @param basis Basis on which coefficients in array are expanded.
+ * @param num_comp Number of components (DOFs) within a cell.
  * @param cdim Configuration space dimensions.
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
 struct gkyl_bc_basic* gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range* local_range_ext,
-  const int *num_ghosts, enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis, int cdim, bool use_gpu);
+  const int *num_ghosts, enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis, int num_comp, int cdim, bool use_gpu);
 
 /**
  * Create new updater to apply basic BCs to a field
@@ -97,7 +98,7 @@ function BasicBc:init(tbl)
       elseif self._bcType == "reflect" then bctype = 1 end
 
       self._zero = ffi.gc(ffiC.gkyl_bc_basic_new(self._dir-1, edge, localExtRange, numGhostVec:data(), bctype,
-                                                 self._basis._zero, cDim, GKYL_USE_GPU or 0),
+                                                 self._basis._zero, onField:numComponents(), cDim, GKYL_USE_GPU or 0),
                           ffiC.gkyl_bc_basic_release)
 --   else
 --      -- g2 code, to be deleted.
