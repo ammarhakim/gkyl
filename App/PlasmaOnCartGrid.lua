@@ -313,7 +313,6 @@ local function buildApplication(self, tbl)
    end
 
    -- Initialize field (sometimes requires species to have been initialized).
-   field:createSolver(species, externalField)
    field:initField(species)
 
    -- Initialize diagnostic objects.
