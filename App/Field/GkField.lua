@@ -1089,7 +1089,7 @@ function GkGeometry:createSolver()
             local bmag = self.bmagFunc(t, xn)
             local cmag = 1.0
 
-            return bmag, 1/bmag, cmag, gxx, gxy, gyy
+            return bmag, cmag, gxx, gxy, gyy
           end
       else
          self.calcAllGeo = function(t, xn)
@@ -1101,7 +1101,7 @@ function GkGeometry:createSolver()
             local bdriftX = self.bdriftXFunc(t, xn)
             local bdriftY = self.bdriftYFunc(t, xn)
 
-            return bmag, 1/bmag, cmag, gxx, gxy, gyy, bdriftX, bdriftY
+            return bmag, cmag, gxx, gxy, gyy, bdriftX, bdriftY
           end
       end
 
@@ -1158,7 +1158,7 @@ function GkGeometry:createSolver()
             local bmag = self.bmagFunc(t, xn)
             local cmag = jacobian*bmag/math.sqrt(g_zz)
 
-            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
+            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, cmag, 
                    b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
          end
       elseif self.ndim == 2 then
@@ -1187,7 +1187,7 @@ function GkGeometry:createSolver()
             local bmag = self.bmagFunc(t, xn)
             local cmag = jacobian*bmag/math.sqrt(g_zz)
 
-            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
+            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, cmag, 
                    b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
           end
       else
@@ -1211,7 +1211,7 @@ function GkGeometry:createSolver()
             local bmag = self.bmagFunc(t, xn)
             local cmag = jacobian*bmag/math.sqrt(g_zz)
 
-            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
+            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, cmag, 
                    b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
           end
       end
