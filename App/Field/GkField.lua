@@ -1037,10 +1037,10 @@ function GkGeometry:alloc()
       self.geo.gyyJ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
       -- Functions for Cartesian components of magnetic field in a vector.
-      -- self.geo.bHat = createField(self.grid,self.basis,ghostNum,3,syncPeriodic)
-      -- self.geo.bX = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-      -- self.geo.bY = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)      
-      -- self.geo.bZ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+      self.geo.bHat = createField(self.grid,self.basis,ghostNum,3,syncPeriodic)
+      self.geo.bX = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+      self.geo.bY = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)      
+      self.geo.bZ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
       -- Some extra functions to calculate source
       -- self.geo.g_yz = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
@@ -1052,7 +1052,7 @@ function GkGeometry:alloc()
    
       if self.fromFile == nil then
 
-         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,15,syncPeriodic)
+         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,21,syncPeriodic)
 
       end
 
@@ -1199,8 +1199,8 @@ function GkGeometry:createSolver()
 	    -- local bZ = bx*dZdx + by*dYdz + bz*dZdz     -- b^Z = b_Z
 
             return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, cmag, 
-	           b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian--,
-		   --gxz, gyz, gzz, bX, bY, bZ, g_yz, g_zz		  
+	           b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian,
+		   gxz, gyz, gzz --, bX, bY, bZ, g_yz, g_zz		  
          end
 	 self.calcTanVecComp = function(t, xn)
 	    local d = {}
@@ -1262,27 +1262,27 @@ function GkGeometry:createSolver()
             local cmag = jacobian*bmag/math.sqrt(g_zz)
 
 	    -- Retrieve tangent vector components to calc b_X, b_Y, b_Z
-	    -- local d = {}	    
-	    -- self.grid:getTanVecComp(xn, d)
-	    -- local dXdx, dYdx, dZdx = d[1], d[2], d[3]
-	    -- local dXdy, dYdy, dZdy = d[4], d[5], d[6]
-	    -- local dXdz, dYdz, dZdz = d[7], d[8], d[9]
+	    local d = {}	    
+	    self.grid:getTanVecComp(xn, d)
+	    local dXdx, dYdx, dZdx = d[1], d[2], d[3]
+	    local dXdy, dYdy, dZdy = d[4], d[5], d[6]
+	    local dXdz, dYdz, dZdz = d[7], d[8], d[9]
 
-	    -- -- Calculate | grad{x} |
+	    -- Calculate | grad{x} |
 	    -- normGradx = ( (gxx*dXdx + gxy*dXdy + gxz*dXdz)^2 + (gxx*dYdx + gxy*dYdy + gxz*dYdz)^2
 	    -- 	           + (gxx*dZdx + gxy*dZdy + gxz*dZdz)^2 )^(0.5)
 	       
-	    -- local bx = b_x*gxx + b_y*gxy + b_z*gxz     -- b^x
-	    -- local by = b_x*gxy + b_y*gyy + b_z*gyz     -- b^y
-	    -- local bz = b_x*gxz + b_y*gyz + b_z*gzz     -- b^z
+	    local bx = b_x*gxx + b_y*gxy + b_z*gxz     -- b^x
+	    local by = b_x*gxy + b_y*gyy + b_z*gyz     -- b^y
+	    local bz = b_x*gxz + b_y*gyz + b_z*gzz     -- b^z
 
-	    -- local bX = bx*dXdx + by*dXdy + bz*dXdz     -- b^X = b_X
-	    -- local bY = bx*dYdx + by*dYdx + bz*dYdz     -- b^Y = b_Y
-	    -- local bZ = bx*dZdx + by*dYdz + bz*dZdz     -- b^Z = b_Z
+	    local bX = bx*dXdx + by*dXdy + bz*dXdz     -- b^X = b_X
+	    local bY = bx*dYdx + by*dYdx + bz*dYdz     -- b^Y = b_Y
+	    local bZ = bx*dZdx + by*dYdz + bz*dZdz     -- b^Z = b_Z
 
             return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, cmag, 
 	           b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian,
-		   gxz, gyz, gzz --, bX, bY, bZ, g_yz, g_zz --, normGradx
+		   gxz, gyz, gzz, bX, bY, bZ --, g_yz, g_zz --, normGradx
 	 end
 	 self.calcTanVecComp = function(t, xn) 
 	    local d = {}
@@ -1408,17 +1408,17 @@ function GkGeometry:initField()
       else
 	 --local ghostNum     = {1,1}
 	 --local syncPeriodic = false
-	 --local bXtemp = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-	 --local bYtemp = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-	 --local bZtemp = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+	 -- local bXtemp = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+	 -- local bYtemp = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+	 -- local bZtemp = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
          self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
          self.separateComponents:advance(0, {self.geo.allGeo},
             {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
              self.geo.bmag, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
-             self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ}) 
-	     --self.geo.gxz, self.geo.gyz, self.geo.gzz, bXtemp, bYtemp, bZtemp, self.geo.g_yz, self.geo.g_zz})
+             self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ, --}) 
+	     self.geo.gxz, self.geo.gyz, self.geo.gzz, self.geo.bX, self.geo.bY, self.geo.bZ}) --, self.geo.g_yz, self.geo.g_zz})
 	 self.setTanVecComp:advance(0.0, {}, {self.geo.tanVecComp})
-	 --self.geo.bHat:combineOffset(1.0, bXtemp, 0, 1.0, bYtemp, self.basis:numBasis(), 1.0, bZtemp, 2*self.basis:numBasis())
+	 self.geo.bHat:combineOffset(1.0, self.geo.bX, 0, 1.0, self.geo.bY, self.basis:numBasis(), 1.0, self.geo.bZ, 2*self.basis:numBasis())
       end
    end
    -- Compute 1/B and 1/(B^2). LBO collisions require that this is
@@ -1461,7 +1461,7 @@ function GkGeometry:initField()
          applyBCsync(self.geo.bdriftY)
       end
    elseif self.geo.name == "GenGeo" then
-      
+ 
       applyBCsync(self.geo.gxxJ)
       applyBCsync(self.geo.gxyJ)
       applyBCsync(self.geo.gyyJ)
@@ -1472,10 +1472,11 @@ function GkGeometry:initField()
       applyBCsync(self.geo.b_y)
       applyBCsync(self.geo.b_z)
       applyBCsync(self.geo.tanVecComp)
+      applyBCsync(self.geo.bHat)
       -- applyBCsync(self.geo.g_yz)
       -- applyBCsync(self.geo.g_zz)
       -- if ndim == 3 then
-      -- 	 applyBCsync(self.geo.bhat)
+      -- 	 applyBCsync(self.geo.bHat)
       -- 	 applyBCsync(self.geo.tanVecComp)
       -- end
       
