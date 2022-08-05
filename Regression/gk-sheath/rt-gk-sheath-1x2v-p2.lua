@@ -81,7 +81,7 @@ plasmaApp = Plasma.App {
    nFrame      = 1,                       -- Number of output frames.
    lower       = {-Lz/2},                  -- Configuration space lower left.
    upper       = { Lz/2},                  -- Configuration space upper right.
-   cells       = {8},                      -- Configuration space cells.
+   cells       = {6},                      -- Configuration space cells.
    basis       = "serendipity",            -- One of "serendipity" or "maximal-order".
    polyOrder   = 2,                        -- Polynomial order.
    timeStepper = "rk3",                    -- One of "rk2" or "rk3".
@@ -180,8 +180,8 @@ plasmaApp = Plasma.App {
       --applyPositivity = true,
       diagnostics = {"M0", "Upar", "Temp", "intM0", "intM1", "intKE", "intEnergy"}, 
       randomseed = randomseed,
-      bcx = {Plasma.SheathBC{diagnostics={"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}},
-             Plasma.SheathBC{diagnostics={"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}}},
+      bcx = {Plasma.SheathBC{diagnostics={"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics={"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Field solver.

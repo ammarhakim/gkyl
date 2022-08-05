@@ -56,7 +56,8 @@ function FemPoisson:init(tbl)
          basis   = self.basis,
          bcLower = self.bcLower,
          bcUpper = self.bcUpper,
-         smooth  = self.smooth
+         smooth  = self.smooth,
+         useG0 = tbl.useG0,
       }
       -- Set up weak division operator for special case when solve is algebraic.
       self.weakDivide = CartFieldBinOp {
