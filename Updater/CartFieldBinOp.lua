@@ -155,9 +155,18 @@ function CartFieldBinOp:_advance(tCurr, inFld, outFld)
       if inFld[1]:numComponents() == inFld[2]:numComponents() then
          ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, 0, uOut._zero, 0, Afld._zero, 0, Bfld._zero, uOut:localExtRange())
       else
-         ffiC.gkyl_dg_mul_conf_phase_op_range(self._fieldBasis._zero, self._weakBasis._zero,
-                                              uOut._zero, Afld._zero, Bfld._zero,
-                                              Afld:localExtRange(), uOut:localExtRange())
+         if self._fieldBasis then
+            -- Conf-space * phase-space multiplication.
+            ffiC.gkyl_dg_mul_conf_phase_op_range(self._fieldBasis._zero, self._weakBasis._zero,
+                                                 uOut._zero, Afld._zero, Bfld._zero,
+                                                 Afld:localExtRange(), uOut:localExtRange())
+         else
+            -- Conf-space scalar * vector multiplication.
+            local nVecComp = Bfld:numComponents()/self._numBasis
+            for d = 0, nVecComp-1 do
+               ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, d, uOut._zero, 0, Afld._zero, d, Bfld._zero, uOut:localExtRange())
+            end
+         end
       end
    
       return
