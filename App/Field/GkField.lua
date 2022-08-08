@@ -1184,23 +1184,23 @@ function GkGeometry:createSolver()
             local cmag = jacobian*bmag/math.sqrt(g_zz)
 
 	    -- Retrieve tangent vector components to calc b_X, b_Y, b_Z
-	    -- local d = {}	    
-	    -- self.grid:getTanVecComp(xn, d)
-	    -- local dXdx, dYdx, dZdx = d[1], d[2], d[3]
-	    -- local dXdy, dYdy, dZdy = d[4], d[5], d[6]
-	    -- local dXdz, dYdz, dZdz = d[7], d[8], d[9]
+	    local d = {}	    
+	    self.grid:getTanVecComp(xn, d)
+	    local dXdx, dYdx, dZdx = d[1], d[2], d[3]
+	    local dXdy, dYdy, dZdy = d[4], d[5], d[6]
+	    local dXdz, dYdz, dZdz = d[7], d[8], d[9]
 
-	    -- local bx = b_x*gxx + b_y*gxy + b_z*gxz     -- b^x
-	    -- local by = b_x*gxy + b_y*gyy + b_z*gyz     -- b^y
-	    -- local bz = b_x*gxz + b_y*gyz + b_z*gzz     -- b^z
+	    local bx = b_x*gxx + b_y*gxy + b_z*gxz     -- b^x
+	    local by = b_x*gxy + b_y*gyy + b_z*gyz     -- b^y
+	    local bz = b_x*gxz + b_y*gyz + b_z*gzz     -- b^z
 
-	    -- local bX = bx*dXdx + by*dXdy + bz*dXdz     -- b^X = b_X
-	    -- local bY = bx*dYdx + by*dYdx + bz*dYdz     -- b^Y = b_Y
-	    -- local bZ = bx*dZdx + by*dYdz + bz*dZdz     -- b^Z = b_Z
+	    local bX = bx*dXdx + by*dXdy + bz*dXdz     -- b^X = b_X
+	    local bY = bx*dYdx + by*dYdx + bz*dYdz     -- b^Y = b_Y
+	    local bZ = bx*dZdx + by*dYdz + bz*dZdz     -- b^Z = b_Z
 
             return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, cmag, 
 	           b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian,
-		   gxz, gyz, gzz --, bX, bY, bZ, g_yz, g_zz		  
+		   gxz, gyz, gzz, bX, bY, bZ --, g_yz, g_zz		  
          end
 	 self.calcTanVecComp = function(t, xn)
 	    local d = {}
