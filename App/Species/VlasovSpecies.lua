@@ -122,7 +122,8 @@ function VlasovSpecies:createSolver(field, externalField)
    -- Run the KineticSpecies 'createSolver()' to initialize the collisions solver
    VlasovSpecies.super.createSolver(self, field, externalField)
 
-   if externalField.geo then -- for genGeo with neutrals
+   if externalField.geo.name == "GenGeo" then -- for genGeo with neutrals
+      print('gen geo true')
       self._isGenGeo = true
       self.bHat = externalField.geo.bHat
       self.gxx = externalField.geo.gxx
@@ -150,8 +151,7 @@ function VlasovSpecies:createSolver(field, externalField)
       
       -- Calculate alphaGeo here. Use an Updater.
       self.calcAlphaGeo:advance(0.0, {self.tanVecComp, self.gxx, self.gxy, self.gxz, self.gyy, self.gyz, self.gzz}, {self.alphaGeo})
-      self.alphaGeo:write(string.format("%s_alphaGeo_%d.bp",self.name,0),0.0,0,false)
-      
+      self.alphaGeo:write(string.format("%s_alphaGeo_%d.bp",self.name,0),0.0,0,false)    
    end
       
    local plasmaE, plasmaB = field:hasEB()
