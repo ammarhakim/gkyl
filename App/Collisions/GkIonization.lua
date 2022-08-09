@@ -299,9 +299,14 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       -- Electrons.
       self.m0elc:copy(elcM0)
       local neutM0     = species[self.neutNm]:fluidMoments()[1]
-      local neutU      = species[self.neutNm]:selfPrimitiveMoments()[1]
       local elcVtSq    = species[self.elcNm]:selfPrimitiveMoments()[2]
       local elcDistF   = species[self.elcNm]:getDistF()
+      local neutU
+      if species[self.neutNm].needGkMom then
+	  neutU = species[self.neutNm].uPar
+      else
+	 neutU = species[self.neutNm]:selfPrimitiveMoments()[1]
+      end
 
       -- Calculate ioniz fMax
       self.calcIonizationTemp:advance(tCurr, {elcVtSq}, {self.vtSqIz})
@@ -331,12 +336,18 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       -- Ions.
       self.m0elc:copy(elcM0)
       local neutM0   = species[self.neutNm]:fluidMoments()[1]
-      local neutUpar = species[self.neutNm].uPar 
-      local neutVtSq = species[self.neutNm].vtSqGk
+      local neutUpar, neutVtSq
+      if species[self.neutNm].needGkMom then
+	 neutU = species[self.neutNm].uPar
+	 neutVtSq = species[self.neutNm].vtSqGk
+      else
+	 neutU = species[self.neutNm]:selfPrimitiveMoments()[1] 
+	 neutVtSq = species[self.neutNm]:selfPrimitiveMoments()[2] 
+      end
       
       species[self.speciesName].confWeakMultiply:advance(tCurr, {reactRate, self.m0elc}, {self.coefM0})
       species[self.speciesName].calcMaxwell:advance(tCurr,
-						    {neutM0, neutUpar, neutVtSq, species[self.speciesName].bmag}, {self.fMaxNeut})
+						    {neutM0, neutU, neutVtSq, species[self.speciesName].bmag}, {self.fMaxNeut})
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {self.coefM0, self.fMaxNeut}, {self.ionizSrc})
       fRhsOut:accumulate(1.0,self.ionizSrc)
    end
