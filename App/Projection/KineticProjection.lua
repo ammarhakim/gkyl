@@ -95,7 +95,7 @@ function FunctionProjection:advance(t, inFlds, outFlds)
       self.project:advance(t, {}, {distf})
    end
 
-   if extField.geo then
+   if extField.geo.name == "GenGeo" then
       local jacobGeo = extField.geo.jacobGeo
       if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
    end
@@ -197,8 +197,10 @@ function MaxwellianProjection:advance(t, inFlds, outFlds)
    end
    assert(self.exactLagFixM012 == false, "MaxwellianProjection: Specialized version of 'MaxwellianProjection' is required. Use 'VlasovProjection.MaxwellianProjection' or 'GkProjection.MaxwellianProjection'")
 
-   local jacobGeo = extField.geo.jacobGeo
-   if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
+   if extField.geo.name == "GenGeo" then
+      local jacobGeo = extField.geo.jacobGeo
+      if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
+   end
 end
 
 ----------------------------------------------------------------------
