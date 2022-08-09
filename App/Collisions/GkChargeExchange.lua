@@ -226,15 +226,20 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
 
    -- Identify species and accumulate.
    if (self.speciesName == self.ionNm) then
-
-      local neutM0   = species[self.neutNm]:fluidMoments()[1]
-      local neutUpar = species[self.neutNm].uPar
-      local neutVtSq = species[self.neutNm].vtSqGk
+      local neutM0, neutU, neutVtSq
+      neutM0   = species[self.neutNm]:fluidMoments()[1]
+      if species[self.neutNm].needGkMom then
+	 neutU = species[self.neutNm].uPar
+	 neutVtSq = species[self.neutNm].vtSqGk
+      else
+	 neutU = species[self.neutNm]:selfPrimitiveMoments()[1] 
+	 neutVtSq = species[self.neutNm]:selfPrimitiveMoments()[2] 
+      end
       local ionM0    = species[self.ionNm]:fluidMoments()[1]
       local ionDistF = species[self.ionNm]:getDistF()
 
       species[self.speciesName].calcMaxwell:advance(tCurr,
-         {neutM0, neutUpar, neutVtSq, species[self.speciesName].bmag}, {self.fMaxNeut})
+         {neutM0, neutU, neutVtSq, species[self.speciesName].bmag}, {self.fMaxNeut})
 
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {ionM0, self.fMaxNeut}, {self.M0iDistFn})
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
@@ -250,10 +255,15 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       local ionVtSq   = species[self.ionNm]:selfPrimitiveMoments()[2]
       local neutM0    = species[self.neutNm]:fluidMoments()[1]
       local neutDistF = species[self.neutNm]:getDistF()
+            
+      if species[self.speciesName].needGkMin then
+	 species[self.speciesName].confMult:advance(tCurr, {ionUpar, species[self.neutNm].bHat}, {self.ionU})
+      else
+	 self.ionU = ionUpar
+      end
 
-      species[self.speciesName].confMult:advance(tCurr, {ionUpar, species[self.neutNm].bHat}, {self.ionU})
-      species[self.speciesName].calcMaxwell:advance(tCurr, {ionM0, self.ionU, ionVtSq}, {self.fMaxIon})
-
+      species[self.speciesName].calcMaxwell:advance(tCurr, {ionM0, self.ionU, ionVtSq}, {self.fMaxIon})	 
+	 
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {neutM0, self.fMaxIon}, {self.M0nDistFi})
       self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)

@@ -122,8 +122,7 @@ function VlasovSpecies:createSolver(field, externalField)
    -- Run the KineticSpecies 'createSolver()' to initialize the collisions solver
    VlasovSpecies.super.createSolver(self, field, externalField)
 
-   if externalField.geo.name == "GenGeo" then -- for genGeo with neutrals
-      print('gen geo true')
+   if externalField.geo.name == "GenGeo" then -- for genGeo with neutrals      
       self._isGenGeo = true
       self.bHat = externalField.geo.bHat
       self.gxx = externalField.geo.gxx
@@ -151,7 +150,8 @@ function VlasovSpecies:createSolver(field, externalField)
       
       -- Calculate alphaGeo here. Use an Updater.
       self.calcAlphaGeo:advance(0.0, {self.tanVecComp, self.gxx, self.gxy, self.gxz, self.gyy, self.gyz, self.gzz}, {self.alphaGeo})
-      self.alphaGeo:write(string.format("%s_alphaGeo_%d.bp",self.name,0),0.0,0,false)    
+      self.alphaGeo:write(string.format("%s_alphaGeo_%d.bp",self.name,0),0.0,0,false)
+      if self.vdim == 3 then self.needGkMom = true end
    end
       
    local plasmaE, plasmaB = field:hasEB()
@@ -506,7 +506,6 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
 			counterIz_elc         = false
 		     elseif self.name==species[sN].collisions[collNm].neutNm and counterIz_neut then
 			self.needSelfPrimMom = true
-			if self.vdim == 3 then self.needGkMom = true end
 			counterIz_neut       = false
    		     end
    		  end
@@ -535,7 +534,6 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    			counterCX_ion = false
 		     elseif self.name==species[sN].collisions[collNm].neutNm and counterCX_neut then
 			self.needSelfPrimMom = true
-			if self.vdim == 3 then self.needGkMom = true end
 			counterCX_neut       = false
    		     end
    		  end
