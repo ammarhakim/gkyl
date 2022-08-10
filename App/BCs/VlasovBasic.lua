@@ -55,86 +55,75 @@ end
 
 function VlasovBasicBC:setName(nm) self.name = self.speciesName.."_"..nm end
 
-function VlasovBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
-   -- Note that for bcAbsorb there is no operation on fIn,
-   -- so skinLoop (which determines indexing of fIn) does not matter
-   for i = 1, self.basis:numBasis() do fOut[i] = 0.0 end
-end
 function VlasovBasicBC:bcOpen(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "pointwise".
    self.basis:flipSign(dir, fIn:data(), fOut:data())
-end
-function VlasovBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
-   -- Requires skinLoop = "pointwise".
-   for i = 1, self.basis:numBasis() do fOut[i] = fIn[i] end
-end
-function VlasovBasicBC:bcReflect(dir, tm, idxIn, fIn, fOut)
-   -- Requires skinLoop = "flip".
-   self.basis:flipSign(dir, fIn:data(), fOut:data())
-   self.basis:flipSign(dir+self.cdim, fOut:data(), fOut:data())
 end
 
 function VlasovBasicBC:createSolver(mySpecies, field, externalField)
 
    self.basis, self.grid = mySpecies.basis, mySpecies.grid
    self.ndim, self.cdim, self.vdim = self.grid:ndim(), self.confGrid:ndim(), self.grid:ndim()-self.confGrid:ndim()
+   local vdir = self.bcDir+self.cdim
 
-   local bcFunc, skinType
-   if self.bcKind == "copy" then
-      bcFunc   = function(...) return self:bcCopy(...) end
-      skinType = "pointwise"
-   elseif self.bcKind == "absorb" then
-      bcFunc   = function(...) return self:bcAbsorb(...) end
-      skinType = "pointwise"
-   elseif self.bcKind == "open" then
-      bcFunc   = function(...) return self:bcOpen(...) end
-      skinType = "pointwise"
-   elseif self.bcKind == "reflect" then
-      bcFunc   = function(...) return self:bcReflect(...) end
-      skinType = "flip"
-   elseif self.bcKind == "function" then
-      bcFunc   = function(...) return self:bcCopy(...) end
-      skinType = "pointwise"
-   else
-      assert(false, "VlasovBasicBC: BC kind not recognized.")
+   -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
+   self:createBoundaryGrid()
+
+   local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
+   -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
+   self.allocCartField = function(self, grid, nComp, ghosts, metaData)
+      local f = DataStruct.Field {
+         onGrid        = grid,   ghost    = ghosts,
+         numComponents = nComp,  metaData = metaData,
+      }
+      f:clear(0.0)
+      return f
+   end
+   local allocDistf = function()
+      return self:allocCartField(self.boundaryGrid, self.basis:numBasis(),
+                                 {distf:lowerGhost(),distf:upperGhost()}, distf:getMetaData())
    end
 
-   local vdir = self.bcDir+self.cdim
-   self.bcSolver = Updater.Bc{
-      onGrid   = self.grid,   edge               = self.bcEdge,  
-      cdim     = self.cdim,   boundaryConditions = {bcFunc},   
-      dir      = self.bcDir,  evaluate           = self.bcFuncIn,
-      vdir     = vdir,        evolveFn           = self.evolve,
-      skinLoop = skinType,    feedback           = self.feedback,
-      basis    = self.basis,  confBasis          = self.confBasis,
-      advanceArgs = {{mySpecies:rkStepperFields()[1]}, {mySpecies:rkStepperFields()[1]}},
-   }
+   self.bcBuffer = allocDistf() -- Buffer used by BasicBc updater.
+
+   local bcFunc, skinType
+   if self.bcKind == "copy" or self.bcKind == "absorb" or self.bcKind == "reflect" then
+      self.bcSolver = Updater.BasicBc{
+         onGrid  = self.grid,   edge   = self.bcEdge,  
+         cdim    = self.cdim,   basis  = self.basis,
+         dir     = self.bcDir,  bcType = self.bcKind,
+         onField = mySpecies:rkStepperFields()[1],
+      }
+   else
+      -- g2, to be deleted.
+      if self.bcKind == "open" then
+         bcFunc   = function(...) return self:bcOpen(...) end
+         skinType = "pointwise"
+      elseif self.bcKind == "function" then
+         bcFunc   = function(...) return self:bcCopy(...) end
+         skinType = "pointwise"
+      else
+         assert(false, "VlasovBasicBC: BC kind not recognized.")
+      end
+
+      self.bcSolver = Updater.Bc{
+         onGrid   = self.grid,   edge               = self.bcEdge,  
+         cdim     = self.cdim,   boundaryConditions = {bcFunc},   
+         dir      = self.bcDir,  evaluate           = self.bcFuncIn,
+         vdir     = vdir,        evolveFn           = self.evolve,
+         skinLoop = skinType,    feedback           = self.feedback,
+         basis    = self.basis,  confBasis          = self.confBasis,
+         advanceArgs = {{mySpecies:rkStepperFields()[1]}, {mySpecies:rkStepperFields()[1]}},
+      }
+   end
 
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
    -- the fluxes through a boundary (e.g. neutral recycling).
    if self.saveFlux then
-      -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
-      self:createBoundaryGrid()
 
       -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
       self:createConfBoundaryGrid()
 
-      local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
-      -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
-      self.allocCartField = function(self, grid, nComp, ghosts, metaData)
-         local f = DataStruct.Field {
-            onGrid        = grid,
-            numComponents = nComp,
-            ghost         = ghosts,
-            metaData      = metaData,
-         }
-         f:clear(0.0)
-         return f
-      end
-      local allocDistf = function()
-         return self:allocCartField(self.boundaryGrid, self.basis:numBasis(),
-                                    {distf:lowerGhost(),distf:upperGhost()}, distf:getMetaData())
-      end
       self.allocMoment = function(self)
          return self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
                                     {numDensity:lowerGhost(),numDensity:upperGhost()}, numDensity:getMetaData())
@@ -318,7 +307,8 @@ function VlasovBasicBC:getFlucF() return self.boundaryFluxRate end
 
 function VlasovBasicBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
    local fIn = mySpecies:rkStepperFields()[outIdx]
-   self.bcSolver:advance(tCurr, {fIn}, {fIn})
+
+   self.bcSolver:advance(tCurr, {self.bcBuffer}, {fIn})
 end
 
 function VlasovBasicBC:getBoundaryFluxFields() return self.boundaryFluxFields end
