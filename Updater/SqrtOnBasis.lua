@@ -53,18 +53,10 @@ function SqrtOnBasis:_advance(tCurr, inFld, outFld)
 
    local fInItr, fOutItr = fIn:get(1), fOut:get(1)
 
-   local indexer = fIn:genIndexer()
-   local fOutRangeDecomp
-   if self.onGhosts then
-      fOutRangeDecomp = LinearDecomp.LinearDecompRange {
-         range = fOut:localExtRange(), numSplit = grid:numSharedProcs() }
-   else
-      fOutRangeDecomp = LinearDecomp.LinearDecompRange {
-         range = fOut:localRange(), numSplit = grid:numSharedProcs() }
-   end
+   local indexer   = fIn:genIndexer()
+   local fOutRange = self.onGhosts and fOut:localExtRange() or fOut:localRange()
 
-   local tId = grid:subGridSharedId()   -- Local thread ID.
-   for idx in fOutRangeDecomp:rowMajorIter(tId) do
+   for idx in fOutRange:rowMajorIter() do
       fIn:fill(indexer(idx), fInItr)
       fOut:fill(indexer(idx), fOutItr)
 

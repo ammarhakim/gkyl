@@ -8,7 +8,6 @@
 
 -- Gkyl libraries.
 local UpdaterBase = require "Updater.Base"
-local LinearDecomp = require "Lib.LinearDecomp"
 local Proto = require "Lib.Proto"
 local RelativeVelocityDecl = require "Updater.chargeExchangeCalcData.RelativeVelocityModDecl"
 local xsys = require "xsys"
@@ -84,12 +83,8 @@ function VrelProductCX:_advance(tCurr, inFld, outFld)
 
    local phaseRange = prodCX:localRange()
 
-   local phaseRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = phaseRange:selectFirst(pDim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId()    -- Local thread ID.
-   
    -- Phase space loop 
-   for pIdx in phaseRangeDecomp:rowMajorIter(tId) do
+   for pIdx in phaseRange:rowMajorIter() do
       grid:setIndex(pIdx)
       grid:cellCenter(self.xc)
 

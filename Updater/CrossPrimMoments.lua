@@ -15,7 +15,6 @@
 -- Gkyl libraries.
 local UpdaterBase     = require "Updater.Base"
 local Lin             = require "Lib.Linalg"
-local LinearDecomp    = require "Lib.LinearDecomp"
 local Proto           = require "Lib.Proto"
 local PrimMomentsDecl = require "Updater.primMomentsCalcData.PrimMomentsModDecl"
 local xsys            = require "xsys"
@@ -123,11 +122,6 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
    local confRange = uSelf:localRange()
    if self.onGhosts then confRange = uSelf:localExtRange() end
 
-   -- Construct ranges for nested loops.
-   local confRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = confRange:selectFirst(self._cDim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId() -- Local thread ID.
-
    local confIndexer   = m0Self:genIndexer()
 
    local m0SelfItr   = m0Self:get(1)
@@ -195,7 +189,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
          -- avoid evaluating (if polyOrder==1) at each cell.
          if self._polyOrder > 1 then
 
-            for cIdx in confRangeDecomp:rowMajorIter(tId) do
+            for cIdx in confRange:rowMajorIter() do
                grid:setIndex(cIdx)
          
                m0Self:fill(confIndexer(cIdx), m0SelfItr)
@@ -235,7 +229,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
 
          else    -- Piecewise linear polynomial basis below.
 
-            for cIdx in confRangeDecomp:rowMajorIter(tId) do
+            for cIdx in confRange:rowMajorIter() do
                grid:setIndex(cIdx)
          
                m0Self:fill(confIndexer(cIdx), m0SelfItr)
@@ -282,7 +276,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
          end    -- end if polyOrder>1.
       else    -- BGK operator below (needs fewer inputs).
 
-         for cIdx in confRangeDecomp:rowMajorIter(tId) do
+         for cIdx in confRange:rowMajorIter() do
             grid:setIndex(cIdx)
          
             m0Self:fill(confIndexer(cIdx), m0SelfItr)

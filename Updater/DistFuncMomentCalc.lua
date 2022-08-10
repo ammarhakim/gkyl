@@ -11,7 +11,6 @@
 
 -- Gkyl libraries.
 local Lin          = require "Lib.Linalg"
-local LinearDecomp = require "Lib.LinearDecomp"
 local MomDecl      = require "Updater.momentCalcData.DistFuncMomentCalcModDecl"
 local Proto        = require "Lib.Proto"
 local UpdaterBase  = require "Updater.Base"
@@ -447,10 +446,8 @@ function DistFuncMomentCalc:initFldTools(inFld, outFld)
    end
 
    -- Construct ranges for nested loops.
-   tools.confRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = phaseRange:selectFirst(cDim), numSplit = self._onGrid:numSharedProcs() }
-   tools.velRange = phaseRange:selectLast(vDim)
-   tools.tId      = self._onGrid:subGridSharedId()    -- Local thread ID.
+   tools.confRange = phaseRange:selectFirst(cDim)
+   tools.velRange  = phaseRange:selectLast(vDim)
 
    if self.isPartialMom then
       -- For partial moments, we only wish to integrate over part of one of the velocity dimensions.
@@ -491,7 +488,7 @@ function DistFuncMomentCalc:advanceSingle(tCurr, inFld, outFld)
    local grid = self._onGrid
 
    -- Outer loop is threaded and over configuration space.
-   for cIdx in self.fldTools.confRangeDecomp:rowMajorIter(self.fldTools.tId) do
+   for cIdx in self.fldTools.confRange:rowMajorIter() do
    
       cIdx:copyInto(self.idxP)
 
@@ -526,7 +523,7 @@ function DistFuncMomentCalc:advanceFiveMoments(tCurr, inFld, outFld)
    local grid = self._onGrid
 
    -- Outer loop is threaded and over configuration space.
-   for cIdx in self.fldTools.confRangeDecomp:rowMajorIter(self.fldTools.tId) do
+   for cIdx in self.fldTools.confRange:rowMajorIter() do
    
       cIdx:copyInto(self.idxP)
 
@@ -570,7 +567,7 @@ function DistFuncMomentCalc:advanceFiveMomentsLBO(tCurr, inFld, outFld)
    local cDim, vDim = self._cDim, self._vDim
 
    -- Outer loop is threaded and over configuration space.
-   for cIdx in self.fldTools.confRangeDecomp:rowMajorIter(self.fldTools.tId) do
+   for cIdx in self.fldTools.confRange:rowMajorIter() do
    
       cIdx:copyInto(self.idxP)
 
@@ -646,7 +643,7 @@ function DistFuncMomentCalc:advanceFiveMomentsLBOp1(tCurr, inFld, outFld)
    local cDim, vDim = self._cDim, self._vDim
 
    -- Outer loop is threaded and over configuration space.
-   for cIdx in self.fldTools.confRangeDecomp:rowMajorIter(self.fldTools.tId) do
+   for cIdx in self.fldTools.confRange:rowMajorIter() do
    
       cIdx:copyInto(self.idxP)
    

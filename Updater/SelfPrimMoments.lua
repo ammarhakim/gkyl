@@ -10,7 +10,6 @@
 -- Gkyl libraries
 local UpdaterBase     = require "Updater.Base"
 local Lin             = require "Lib.Linalg"
-local LinearDecomp    = require "Lib.LinearDecomp"
 local Proto           = require "Lib.Proto"
 local PrimMomentsDecl = require "Updater.primMomentsCalcData.PrimMomentsModDecl"
 local xsys            = require "xsys"
@@ -214,21 +213,13 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
       m2StarItr = m2Star:get(1)
    end
 
-   local confRange  = m0:localRange()
-   if self.onGhosts then confRange = m0:localExtRange() end
-
-   -- Construct ranges for nested loops.
-   -- NOTE: Shared memory is only being used over configuration space.
-   -- Similar to DistFuncMomentCalc, this is to avoid race conditions.
-   local confRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = confRange:selectFirst(cDim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId()    -- Local thread ID.
+   local confRange = self.onGhosts and m0:localExtRange() or m0:localRange()
 
    -- polyOrder=1 and >1 each use separate velocity grid loops to
    -- avoid evaluating (if polyOrder==1) at each cell.
    if self._polyOrder > 1 then
 
-      for cIdx in confRangeDecomp:rowMajorIter(tId) do
+      for cIdx in confRange:rowMajorIter() do
          grid:setIndex(cIdx)
 
          m0:fill(confIndexer(cIdx), m0Itr)
@@ -245,7 +236,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
 
    else
 
-      for cIdx in confRangeDecomp:rowMajorIter(tId) do
+      for cIdx in confRange:rowMajorIter() do
          grid:setIndex(cIdx)
 
          m0:fill(confIndexer(cIdx), m0Itr)

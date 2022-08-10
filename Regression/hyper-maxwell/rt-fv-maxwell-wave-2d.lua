@@ -25,7 +25,6 @@ maxwellApp = Moments.App {
    
    -- decomposition stuff
    decompCuts = {1, 1}, -- cuts in each direction
-   useShared = false, -- if to use shared memory
 
    periodicDirs = {1, 2}, -- periodic directions
 

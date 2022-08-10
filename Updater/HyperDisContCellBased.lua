@@ -10,15 +10,14 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local Alloc = require "Lib.Alloc"
-local Lin = require "Lib.Linalg"
-local LinearDecomp = require "Lib.LinearDecomp"
-local Mpi = require "Comm.Mpi"
-local Proto = require "Lib.Proto"
-local Range = require "Lib.Range"
+local Alloc       = require "Lib.Alloc"
+local Lin         = require "Lib.Linalg"
+local Mpi         = require "Comm.Mpi"
+local Proto       = require "Lib.Proto"
+local Range       = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
-local ffi = require "ffi"
-local xsys = require "xsys"
+local ffi         = require "ffi"
+local xsys        = require "xsys"
 
 -- Hyperbolic DG cell-based solver updater object
 local HyperDisContCellBased = Proto(UpdaterBase)
@@ -79,7 +78,6 @@ function HyperDisContCellBased:init(tbl)
 
    self._isFirst = true
    self._auxFields = {} -- auxilliary fields passed to eqn object
-   self._perpRangeDecomp = {} -- perp ranges in each direction      
 
    self.dummy = Lin.Vec(self._basis:numBasis())
 
@@ -142,15 +140,10 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
       self._maxsLocal[d] = 0.0 -- reset to get new values in this step
    end
 
-   local tId = grid:subGridSharedId() -- local thread ID
-
    -- clear output field before computing vol/surf increments
    if self._clearOut then qRhsOut:clear(0.0) end
    -- accumulate contributions from volume and surface integrals
    local cflRate
-
-   local rangeDecomp = LinearDecomp.LinearDecompRange {
-      range = localRange, numSplit = grid:numSharedProcs() }
 
    if noIter then
       --self._equation:_kernel(grid, localRange, localExtRange, self._updateDirs, self._zeroFluxFlags, dt, qIn, qRhsOut, cflRateByCell, self._maxsLocal)
@@ -262,7 +255,7 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
       end
    else 
       -- cell-based loop, which duplicates work to avoid race conditions in certain threading models
-      for idxC in rangeDecomp:rowMajorIter(tId) do
+      for idxC in localRange:rowMajorIter() do
 
          -- volume update
          grid:setIndex(idxC)

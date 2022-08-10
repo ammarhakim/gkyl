@@ -845,8 +845,6 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 --            -- Compute self-primitive moments with binOp updaters.
 --            self.confDiv:advance(tCurr, {self.numDensity, self.momDensity}, {self.uParSelf})
 --            self.confMul:advance(tCurr, {self.uParSelf, self.momDensity}, {self.numDensityAux})
---            -- Barrier over shared communicator before combine
---            Mpi.Barrier(self.grid:commSet().sharedComm)
 --            self.momDensityAux:combine( 1.0/self.vDegFreedom, self.ptclEnergy,
 --                                       -1.0/self.vDegFreedom, self.numDensityAux )
 --            self.confDiv:advance(tCurr, {self.numDensity, self.momDensityAux}, {self.vtSqSelf})

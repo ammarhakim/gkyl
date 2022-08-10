@@ -12,7 +12,6 @@
 local Alloc          = require "Lib.Alloc"
 local GaussQuadRules = require "Lib.GaussQuadRules"
 local Lin            = require "Lib.Linalg"
-local LinearDecomp   = require "Lib.LinearDecomp"
 local Proto          = require "Proto"
 local Range          = require "Lib.Range"
 local UpdaterBase    = require "Updater.Base"
@@ -142,22 +141,14 @@ function ProjectOnBasis:_advance(tCurr, inFld, outFld)
    local fv  = Lin.Mat(numOrd, numVal) -- Function values at ordinates.
    local xmu = Lin.Vec(ndim)           -- Coordinate at ordinate.
 
-   local tId = grid:subGridSharedId() -- Local thread ID.
    -- Object to iterate over only region owned by local SHM thread.
-   local localRangeDecomp
-   if self._onGhosts then
-      localRangeDecomp = LinearDecomp.LinearDecompRange {
-	 range = qOut:localExtRange(), numSplit = grid:numSharedProcs() }
-   else
-      localRangeDecomp = LinearDecomp.LinearDecompRange {
-	 range = qOut:localRange(), numSplit = grid:numSharedProcs() }
-   end
+   local localRangeOut = self._onGhosts and qOut:localExtRange() or qOut:localRange()
 
    local indexer = qOut:genIndexer()
    local fItr    = qOut:get(1)
 
    -- Loop, computing projections in each cell.
-   for idx in localRangeDecomp:colMajorIter(tId) do
+   for idx in localRangeOut:colMajorIter() do
       grid:setIndex(idx)
       grid:getDx(dx)
       grid:cellCenter(xc)

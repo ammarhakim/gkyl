@@ -8,20 +8,18 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local BCsBase        = require "App.BCs.BCsBase"
-local DataStruct     = require "DataStruct"
-local Updater        = require "Updater"
-local Mpi            = require "Comm.Mpi"
-local Proto          = require "Lib.Proto"
-local Time           = require "Lib.Time"
-local Range          = require "Lib.Range"
-local Lin            = require "Lib.Linalg"
-local LinearDecomp   = require "Lib.LinearDecomp"
-local CartDecomp     = require "Lib.CartDecomp"
-local Grid           = require "Grid"
-local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
-local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
-local xsys           = require "xsys"
+local BCsBase     = require "App.BCs.BCsBase"
+local DataStruct  = require "DataStruct"
+local Updater     = require "Updater"
+local Mpi         = require "Comm.Mpi"
+local Proto       = require "Lib.Proto"
+local Time        = require "Lib.Time"
+local Range       = require "Lib.Range"
+local Lin         = require "Lib.Linalg"
+local Grid        = require "Grid"
+local DiagsApp    = require "App.Diagnostics.SpeciesDiagnostics"
+local VlasovDiags = require "App.Diagnostics.VlasovDiagnostics"
+local xsys        = require "xsys"
 
 local VlasovBasicBC = Proto(BCsBase)
 
@@ -161,9 +159,6 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
       -- Create the range needed to loop over ghosts.
       local global, globalExt, localExtRange = distf:globalRange(), distf:globalExtRange(), distf:localExtRange()
       self.ghostRange = localExtRange:intersect(self:getGhostRange(global, globalExt))
-      -- Decompose ghost region into threads.
-      self.ghostRangeDecomp = LinearDecomp.LinearDecompRange{range=self.ghostRange, numSplit=self.grid:numSharedProcs()}
-      self.tId              = self.grid:subGridSharedId() -- Local thread ID.
 
       -- The following are needed to evaluate a conf-space CartField on the confBoundaryGrid.
       self.confBoundaryField    = self:allocMoment()
@@ -173,8 +168,6 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
       local confGlobalExt     = numDensity:globalExtRange()
       local confLocalExtRange = numDensity:localExtRange()
       self.confGhostRange = confLocalExtRange:intersect(self:getGhostRange(confGlobal, confGlobalExt)) -- Range spanning ghost cells.
-      -- Decompose ghost region into threads.
-      self.confGhostRangeDecomp = LinearDecomp.LinearDecompRange {range=self.confGhostRange, numSplit=self.grid:numSharedProcs()}
 
       local jacobGeo = externalField.geo and externalField.geo.jacobGeo
       if jacobGeo then
@@ -191,7 +184,7 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
 
       self.storeBoundaryFluxFunc = function(tCurr, rkIdx, qOut)
          local ptrOut = qOut:get(1)
-         for idx in self.ghostRangeDecomp:rowMajorIter(self.tId) do
+         for idx in self.ghostRange:rowMajorIter() do
             idx:copyInto(self.idxOut)
             qOut:fill(self.distfInIdxr(idx), ptrOut)
 

@@ -190,8 +190,6 @@ function Diffusion:advance(tCurr, fIn, species, fRhsOut)
    self.collisionSlvr:advance(tCurr, {fIn}, {self.collOut})
 
    local tmNonSlvrStart = Time.clock()
-   -- Barrier over shared communicator before accumulate
-   if self.phaseGrid then Mpi.Barrier(self.phaseGrid:commSet().sharedComm) end
 
    fRhsOut:accumulate(1.0, self.collOut)
    self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart

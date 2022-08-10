@@ -146,52 +146,16 @@ function CartProdDecomp:init(tbl)
    for d = 1, #tbl.cuts do ones[d] = 1 end
 
    self._cutsRange = Range.Range(ones, tbl.cuts)
-   self._useShared = xsys.pickBool(tbl.useShared, false)
 
-   local comm, shmComm = Mpi.COMM_WORLD, nil
+   local comm = Mpi.COMM_WORLD
    -- Use a different communicator if one is specified.
    if tbl.comm then comm = tbl.comm end
    -- Denote specific ranks from which writes should happen (defaults to all ranks).
    local writeRank = tbl.writeRank or Mpi.Comm_rank(Mpi.COMM_WORLD)
-   -- Create various communicators.
-   if self._useShared then
-      shmComm = Mpi.Comm_split_type(comm, Mpi.COMM_TYPE_SHARED, 0, Mpi.INFO_NULL)
-   else
-      -- When not using MPI-SHM, make each processor its own "SHM"
-      -- communicator (i.e each SHM comm has 1 proc).
-      local ranks = Lin.IntVec(1)
-      ranks[1] = Mpi.Comm_rank(comm) -- only local rank is "shared"
-      shmComm = Mpi.Split_comm(comm, ranks)
-   end
 
-   local worldSz = Mpi.Comm_size(comm)
-   local shmSz = Mpi.Comm_size(shmComm)
-   
-   -- Get mapping from shared -> global communicator ranks.
-   local worldGrp = Mpi.Comm_group(comm)
-   local shmGrp = Mpi.Comm_group(shmComm)
-   local shmRanks = Lin.IntVec(shmSz)
-   for d = 1, shmSz do shmRanks[d] = d-1 end -- ranks are indexed from 0
-   local worldRanks = Mpi.Group_translate_ranks(shmGrp, shmRanks, worldGrp)
-
-   -- Store world rank corresponding to rank zero of shmComm.
-   local nodeSz = worldSz/shmSz
-   local localZeroRanks = Lin.IntVec(nodeSz)
-   for d = 1, #localZeroRanks do localZeroRanks[d] = 0 end
-
-   -- Collect global ranks corresponding to rank 0 of shmComm.
-   local worldRank = Mpi.Comm_rank(comm) -- Global rank of process.
-   if worldRank % shmSz == 0 then
-      localZeroRanks[worldRank/shmSz+1] = worldRanks[1]
-   end
-   local zeroRanks = Lin.IntVec(nodeSz)
-   Mpi.Allreduce(localZeroRanks:data(), zeroRanks:data(), nodeSz, Mpi.INT, Mpi.SUM, comm)
-   -- (the above Allreduce ensures that the zeroRanks vector is
-   -- identical on processes in comm. It works as the localZeroRanks
-   -- only has a single non-zero element at a unique index location).
-
-   -- Now create nodeComm from the collected rank zeros.
-   local nodeComm = Mpi.Split_comm(comm, zeroRanks)
+   -- MF 2022/08/09: node communicator is a remnant from MPI-shm. We'll keep it for potential
+   -- future use but for now we just set it to the world comm.
+   local nodeComm = comm
 
    -- Check if total number of domains specified by 'cuts' matches
    -- number of MPI ranks in nodeComm.
@@ -208,7 +172,7 @@ function CartProdDecomp:init(tbl)
 
    -- Store various communicators in a table.
    self._commSet = {
-      comm = comm, sharedComm = shmComm, nodeComm = nodeComm, writeRank = writeRank
+      comm = comm, nodeComm = nodeComm, writeRank = writeRank,
    }
 end
 
@@ -216,7 +180,6 @@ end
 function CartProdDecomp:commSet() return self._commSet end
 function CartProdDecomp:ndim() return self._cutsRange:ndim() end
 function CartProdDecomp:cuts(dir) return self._cutsRange:upper(dir) end
-function CartProdDecomp:isShared() return self._useShared end
 
 function CartProdDecomp:decompose(range) -- Decompose range.
    local decompRgn = DecomposedRange(self)
@@ -270,56 +233,56 @@ function CartProdDecomp:childDecomp(keepDir)
    for d=1,parentDim do parentCuts[d] = self:cuts(d) or 1 end
    for d=1,childDim do childCuts[d] = self:cuts(keepDir[d]) or 1 end
 
-   local parentNodeRank            = Mpi.Comm_rank(self:commSet().nodeComm)
-   local childRank, childWriteRank = parentNodeRank, parentNodeRank
+   local parentRank                = Mpi.Comm_rank(self:commSet().comm)
+   local childRank, childWriteRank = parentRank, parentRank
    if (parentDim > 1) and (childDim < parentDim) then
       -- The following assumes a colum-major order distribution of MPI processes.
       if parentDim == 2 then
          if keepDir[1] == 1 then 
-            childRank = math.floor(parentNodeRank/parentCuts[1])
+            childRank = math.floor(parentRank/parentCuts[1])
          elseif keepDir[1] == 2 then 
-            childRank = parentNodeRank % parentCuts[1]
+            childRank = parentRank % parentCuts[1]
          end
       else  -- This assumes that there's no decomposition along directions>3. 
          if childDim == 1 then
             if keepDir[1] == 1 then 
-               childRank = math.floor(parentNodeRank/parentCuts[1])
+               childRank = math.floor(parentRank/parentCuts[1])
             elseif keepDir[1] == 2 then 
-               childRank = parentNodeRank % parentCuts[1] + parentCuts[1]*math.floor(parentNodeRank/(parentCuts[1]*parentCuts[2]))
+               childRank = parentRank % parentCuts[1] + parentCuts[1]*math.floor(parentRank/(parentCuts[1]*parentCuts[2]))
             elseif keepDir[1] == 3 then 
-               childRank = parentNodeRank % (parentCuts[1]*parentCuts[2])
+               childRank = parentRank % (parentCuts[1]*parentCuts[2])
             end
          elseif childDim == 2 then
             if ((keepDir[1] == 1) and (keepDir[2] == 2)) or ((keepDir[1] == 2) and (keepDir[2] == 1)) then
-               childRank = math.floor(parentNodeRank/(parentCuts[1]*parentCuts[2]))
+               childRank = math.floor(parentRank/(parentCuts[1]*parentCuts[2]))
             elseif ((keepDir[1] == 2) and (keepDir[2] == 3)) or ((keepDir[1] == 3) and (keepDir[2] == 2)) then
-               childRank = (parentNodeRank % (parentCuts[1]*parentCuts[2])) % parentCuts[1]
+               childRank = (parentRank % (parentCuts[1]*parentCuts[2])) % parentCuts[1]
             elseif ((keepDir[1] == 3) and (keepDir[2] == 1)) or ((keepDir[1] == 1) and (keepDir[2] == 3)) then
-               childRank = math.floor(parentNodeRank/parentCuts[1]) % parentCuts[2]
+               childRank = math.floor(parentRank/parentCuts[1]) % parentCuts[2]
             end
          end
       end
 --      -- (UNFINISHED) The following assumes a row-major order distribution of MPI processes.
 --      if parentDim == 2 then
 --         if keepDir[1] == 1 then 
---            childRank = parentNodeRank % parentCuts[2]
+--            childRank = parentRank % parentCuts[2]
 --         elseif keepDir[1] == 2 then 
---            childRank = math.floor(parentNodeRank/parentCuts[1])
+--            childRank = math.floor(parentRank/parentCuts[1])
 --         end
 --      elseif parentDim == 3 then
 --         if childDim == 1 then
 --            if keepDir[1] == 1 then 
---               childRank = parentNodeRank % (parentCuts[2]*parentCuts[3])
+--               childRank = parentRank % (parentCuts[2]*parentCuts[3])
 --            elseif keepDir[1] == 2 then 
---               childRank = parentNodeRank
+--               childRank = parentRank
 --            elseif keepDir[1] == 3 then 
---               childRank = parentNodeRank
+--               childRank = parentRank
 --            end
 --         elseif childDim == 2 then
 --            if ((keepDir[1] == 1) and (keepDir[2] == 2)) or ((keepDir[1] == 2) and (keepDir[2] == 1)) then
---               childRank = parentNodeRank % parentCuts[3]
+--               childRank = parentRank % parentCuts[3]
 --            elseif ((keepDir[1] == 2) and (keepDir[2] == 3)) or ((keepDir[1] == 3) and (keepDir[2] == 2)) then
---               childRank = math.floor(parentNodeRank/(parentCuts[2]*parentCuts[3]))
+--               childRank = math.floor(parentRank/(parentCuts[2]*parentCuts[3]))
 --            elseif ((keepDir[1] == 3) and (keepDir[2] == 1)) or ((keepDir[1] == 1) and (keepDir[2] == 3)) then
 --            end
 --         end
@@ -327,13 +290,11 @@ function CartProdDecomp:childDecomp(keepDir)
 
       local childWriteRank = -1   -- MF: I think this should be Mpi.PROC_NULL
       -- For now assume only the ranks with the lowest childRank do IO. 
-      if childRank == 0 then childWriteRank = parentNodeRank end
+      if childRank == 0 then childWriteRank = parentRank end
    end
-   local childComm = Mpi.Comm_split(self:commSet().comm, childRank, parentNodeRank)
+   local childComm = Mpi.Comm_split(self:commSet().comm, childRank, parentRank)
 
-   local childIsShared = self:isShared()
-
-   return childComm, childWriteRank, childCuts, childIsShared
+   return childComm, childWriteRank, childCuts
 end
 
 --------------------------------------------------------------------------------

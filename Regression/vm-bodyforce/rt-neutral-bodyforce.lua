@@ -20,7 +20,6 @@ App = Vlasov.App {
    polyOrder = 2,
    timeStepper = 'rk3',
    decompCuts = {1},
-   useShared = false,
    periodicDirs = {1},   
 
    neut = Vlasov.Species {

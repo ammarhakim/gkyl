@@ -5,13 +5,12 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local UpdaterBase = require "Updater.Base"
-local LinearDecomp = require "Lib.LinearDecomp"
-local Proto = require "Lib.Proto"
+local UpdaterBase        = require "Updater.Base"
+local Proto              = require "Lib.Proto"
 local ChargeExchangeDecl = require "Updater.chargeExchangeCalcData.ChargeExchangeModDecl"
-local xsys = require "xsys"
-local Lin = require "Lib.Linalg"
-local Time = require "Lib.Time"
+local xsys               = require "xsys"
+local Lin                = require "Lib.Linalg"
+local Time               = require "Lib.Time"
 
 -- Charge exchange collisions updater object.
 local ChargeExchange = Proto(UpdaterBase)
@@ -87,12 +86,8 @@ function ChargeExchange:_advance(tCurr, inFld, outFld)
    
    local confRange = vtSqIon:localRange()
 
-   local confRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = confRange:selectFirst(cDim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId()    -- Local thread ID.
-   
    -- Phase space loop
-   for cIdx in confRangeDecomp:rowMajorIter(tId) do
+   for cIdx in confRange:rowMajorIter() do
       grid:setIndex(cIdx)
 
       if uIonDim < vDim and uIonDim == 1 and cDim == 1 then

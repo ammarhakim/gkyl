@@ -20,7 +20,6 @@
 local CartFldInterpDecl = require "Updater.interpolateCalcData.CartFieldInterpolateModDecl"
 local Proto             = require "Lib.Proto"
 local UpdaterBase       = require "Updater.Base"
-local LinearDecomp      = require "Lib.LinearDecomp"
 local Lin               = require "Lib.Linalg"
 local lume              = require "Lib.lume" 
 local Range             = require "Lib.Range"
@@ -205,9 +204,7 @@ function CartFieldInterpolate:_advance(tCurr, fldIn, fldOut)
    local inGrid  = inFld:grid() 
    local outGrid = outFld:grid() 
 
-   localRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = inFld:localRange(), numSplit = inGrid:numSharedProcs() }
-   local tId        = inGrid:subGridSharedId()    -- Local thread ID.
+   local localRangeIn = inFld:localRange()
 
    local inFldIndexer = inFld:genIndexer()
    local inFldItr     = inFld:get(1)
@@ -215,7 +212,7 @@ function CartFieldInterpolate:_advance(tCurr, fldIn, fldOut)
    local outFldIndexer = outFld:genIndexer()
    local outFldItr     = outFld:get(1)
 
-   for inIdx in localRangeDecomp:rowMajorIter(tId) do
+   for inIdx in localRangeIn:rowMajorIter() do
 
       inGrid:setIndex(inIdx)
       inGrid:getDx(self.inDx)

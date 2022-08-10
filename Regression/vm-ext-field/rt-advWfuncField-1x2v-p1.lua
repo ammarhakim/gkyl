@@ -24,7 +24,6 @@ sim = Plasma.App {
 
    -- Parallel decomposition for configuration space.
    decompCuts = {1},   -- Cuts in each configuration direction.
-   useShared  = false, -- Set to true to use shared memory.
 
    -- Specify which directions have periodic boundary conditions for configuration space.
    periodicDirs = {1},

@@ -24,7 +24,6 @@ vlasovApp = Vlasov.App {
 
    -- Decomposition for configuration space
    decompCuts = {1, 1},   -- Cuts in each configuration direction.
-   useShared  = false,    -- If to use shared memory.
 
    -- Field solver.
    field = Vlasov.Field {

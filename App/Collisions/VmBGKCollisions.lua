@@ -368,8 +368,6 @@ function VmBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
                               {self.nufMaxwellSum})
       if self.exactLagFixM012 then
          self.fiveMomentsCalc:advance(tCurr, {self.nufMaxwellSum}, { self.dM0, self.dM1, self.dM2 })
-         -- Barrier before manipulations to moments before passing them to Lagrange Fix updater
-         Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
 	 self.dM0:scale(-1)
 	 self.dM0:accumulate(1, selfMom[1])
 	 self.dM1:scale(-1)
@@ -391,9 +389,6 @@ function VmBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
 			       {self.nufMaxwellSum})
       else
          self.nuSum = self.collFreqSelf
-         -- Barrier before scaling by the collisionality
-         -- Note that this is not necessary when nu varies because the scaling is done via advance methods
-         Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
          self.nufMaxwellSum:scale(self.collFreqSelf)
       end
    end    -- end if self.selfCollisions
@@ -454,8 +449,6 @@ function VmBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
             self.confMultiply:advance(tCurr, {selfMom[1],self.crossMaxwellianM2}, {self.crossMaxwellianM2})
             -- Now compute current moments of Maxwellians and perform Lagrange fix. 
             self.fiveMomentsCalc:advance(tCurr, {self.nufMaxwellCross}, { self.dM0, self.dM1, self.dM2 })
-            -- Barrier before manipulations to moments before passing them to Lagrange Fix updater.
-            Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
             self.dM0:scale(-1)
             self.dM0:accumulate(1, selfMom[1])
             self.dM1:scale(-1)
@@ -468,16 +461,10 @@ function VmBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
          if self.varNu then
             self.phaseMul:advance(tCurr, {self.nuCrossSelf, self.nufMaxwellCross}, {self.nufMaxwellCross})
 
-            -- Barrier over shared communicator before accumulate.
-            Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
-
             self.nuSum:accumulate(1.0, self.nuCrossSelf)
             self.nufMaxwellSum:accumulate(1.0, self.nufMaxwellCross)
          else
             self.nuSum = self.nuSum+self.nuCrossSelf
-
-            -- Barrier over shared communicator before accumulate.
-            Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
 
             self.nufMaxwellSum:accumulate(self.nuCrossSelf, self.nufMaxwellCross)
          end

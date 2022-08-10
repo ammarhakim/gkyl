@@ -78,7 +78,6 @@ function VmSource:createSolver(mySpecies, extField)
    self.fSource = mySpecies:allocDistf()
 
    self.profile:advance(0.0, {extField}, {self.fSource})
-   Mpi.Barrier(mySpecies.grid:commSet().sharedComm)
 
    if self.positivityRescale then
       mySpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
@@ -126,7 +125,6 @@ end
 
 function VmSource:advance(tCurr, fIn, species, fRhsOut)
    local tm = Time.clock()
-   Mpi.Barrier(self.confGrid:commSet().sharedComm)
    fRhsOut:accumulate(self.timeDependence(tCurr), self.fSource)
    self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
 end

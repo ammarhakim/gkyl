@@ -20,7 +20,6 @@ vlasovApp = Vlasov.App {
 
    -- decomposition for configuration space
    decompCuts = {1, 1}, -- cuts in each configuration direction
-   useShared = false, -- if to use shared memory
 
    -- field solver
    field = Vlasov.Field {

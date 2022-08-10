@@ -86,14 +86,9 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, inFld, outFld)
       self.globalVals[i] = 0.0
    end
 
-   -- Construct range for shared memory.
-   local fieldRange = self.onGhosts and field:localExtRange() or field:localRange()
-   local fieldRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = fieldRange:selectFirst(ndim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId()    -- Local thread ID.
-
    -- Loop, computing integrated moments in each cell.
-   for idx in fieldRangeDecomp:rowMajorIter(tId) do
+   local fieldRange = self.onGhosts and field:localExtRange() or field:localRange()
+   for idx in fieldRange:rowMajorIter() do
       grid:setIndex(idx)
       grid:getDx(self.dxv)
 

@@ -189,7 +189,6 @@ function FluidSpecies:fullInit(appTbl)
       end
    end
 
-   self.useShared         = xsys.pickBool(appTbl.useShared, false)
    self.positivity        = xsys.pickBool(tbl.applyPositivity, false)
    self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
    self.positivityRescale = xsys.pickBool(tbl.positivityRescale, false)
@@ -471,9 +470,6 @@ function FluidSpecies:initDist(extField, species)
    for nm, pr in pairs(self.projections) do
       pr:fullInit(self)
       pr:advance(0.0, {extField}, {self.moments[2]})
-      -- This barrier is needed as when using MPI-SHM some
-      -- processes will get to accumulate before projection is finished.
-      Mpi.Barrier(self.grid:commSet().sharedComm)
       if string.find(nm,"init") then
          self.moments[1]:accumulate(1.0, self.moments[2])
          initCnt = initCnt + 1

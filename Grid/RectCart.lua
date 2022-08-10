@@ -68,18 +68,12 @@ void gkyl_create_grid_ranges(const struct gkyl_rect_grid *grid,
 
 local rectCartSz = sizeof("struct gkyl_rect_grid")
 
--- Determine local domain index. This is complicated by the fact that
--- when using MPI-SHM the processes that live in shmComm all have the
--- same domain index. Hence, we need to use rank from nodeComm and
--- broadcast it to everyone in shmComm.
-local function getSubDomIndex(nodeComm, shmComm)
+-- Determine local domain index.
+local function getSubDomIndex(comm)
    local idx = ffi.new("int[1]")
-   if Mpi.Is_comm_valid(nodeComm) then
-      idx[0] = Mpi.Comm_rank(nodeComm)+1 -- sub-domains are indexed from 1
+   if Mpi.Is_comm_valid(comm) then
+      idx[0] = Mpi.Comm_rank(comm)+1 -- sub-domains are indexed from 1
    end
-   -- send from rank 0 of shmComm to everyone else: this works as rank
-   -- 0 of shmComm is contained in nodeComm
-   Mpi.Bcast(idx, 1, Mpi.INT, 0, shmComm)
    return idx[0]
 end
 
@@ -129,18 +123,16 @@ function RectCart:init(tbl)
    self._globalRange = Range.Range(l, u)   
    self._localRange  = Range.Range(l, u)
    self._block       = 1   -- Block number for use in parallel communications.
-   self._isShared    = false
    
    self.decomp = tbl.decomposition and tbl.decomposition or nil  -- Decomposition.
    if self.decomp then
       assert(self.decomp:ndim() == self._ndim,
 	     "Decomposition dimensions must be same as grid dimensions!")
 
-      self._isShared = self.decomp:isShared()
       -- In parallel, we need to adjust local range. 
       self._commSet         = self.decomp:commSet()
       self._decomposedRange = self.decomp:decompose(self._globalRange)
-      local subDomIdx       = getSubDomIndex(self._commSet.nodeComm, self._commSet.sharedComm)
+      local subDomIdx       = getSubDomIndex(self._commSet.comm)
       self._block           = subDomIdx
       local localRange      = self._decomposedRange:subDomain(subDomIdx)
       self._localRange:copy(localRange)
@@ -154,7 +146,7 @@ function RectCart:init(tbl)
       -- Create a dummy decomp and use it to set the grid.
       local cuts = {}
       for i = 1, self._ndim do cuts[i] = 1 end
-      local dec1 = DecompRegionCalc.CartProd { cuts = cuts, useShared = true }
+      local dec1 = DecompRegionCalc.CartProd { cuts = cuts }
       self._commSet = dec1:commSet()
       self._decomposedRange = dec1:decompose(self._globalRange)
       self._block = 1
@@ -165,17 +157,10 @@ end
 -- Member functions.
 function RectCart:id() return "uniform" end
 function RectCart:commSet() return self._commSet end 
-function RectCart:isShared() return self._isShared end
 function RectCart:subGridId() return self._block end
 function RectCart:subGridIdByDim(idx) 
    local invIdxr = self._decomposedRange:cutsInvIndexer()
    invIdxr(self._block, idx)
-end
-function RectCart:numSharedProcs()
-   return Mpi.Comm_size(self._commSet.sharedComm)
-end
-function RectCart:subGridSharedId()
-   return Mpi.Comm_rank(self._commSet.sharedComm)+1 -- we are 1-indexed while MPI is 0-indexed
 end
 function RectCart:decomposedRange() return self._decomposedRange end
 function RectCart:ndim() return self._ndim end
@@ -394,10 +379,10 @@ function RectCart:childGrid(keepDims)
 
    local childDecomp = nil
    if self.decomp then
-      local childComm, childWriteRank, childCuts, childIsShared = self.decomp:childDecomp(keepDims)
+      local childComm, childWriteRank, childCuts = self.decomp:childDecomp(keepDims)
       childDecomp = DecompRegionCalc.CartProd {
          comm         = childComm,       cuts      = childCuts,
-         writeRank    = childWriteRank,  useShared = childIsShared,
+         writeRank    = childWriteRank,
          __serTesting = true,
       }
    end

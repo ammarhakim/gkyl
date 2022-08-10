@@ -82,13 +82,8 @@ function Ionization:ionizationTemp(elcVtSq, vtSqIz)
    local confRange = elcVtSq:localRange()
    if self.onGhosts then confRange = elcVtSq:localExtRange() end
    
-   -- Construct ranges for nested loops.
-   local confRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = confRange:selectFirst(self._cDim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId() -- Local thread ID.
-   
    -- Configuration space loop
-   for cIdx in confRangeDecomp:rowMajorIter(tId) do
+   for cIdx in confRange:rowMajorIter() do
       grid:setIndex(cIdx)
 
       elcVtSq:fill(confIndexer(cIdx), elcVtSqItr)
@@ -121,14 +116,9 @@ function Ionization:reactRateCoef(neutM0, neutVtSq, elcVtSq, coefIz) --, cflRate
    local cflRange = cflRateByCell:localRange()
    local velRange = cflRange:selectLast(vDim)
    
-   -- Construct ranges for nested loops.
-   local confRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = confRange:selectFirst(self._cDim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId() -- Local thread ID.
-
    local cflRate
    -- Configuration space loop
-   for cIdx in confRangeDecomp:rowMajorIter(tId) do
+   for cIdx in confRange:rowMajorIter() do
       grid:setIndex(cIdx)
 
       neutM0:fill(confIndexer(cIdx), neutM0Itr)
