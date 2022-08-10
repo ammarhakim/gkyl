@@ -107,36 +107,36 @@ function MaxwellianProjection:fullInit(species)
    local tbl = self.tbl
    self.density     = assert(tbl.density, "Maxwellian: must specify 'density'")
    self.driftSpeed  = tbl.driftSpeed or function(t, zn)
-      if self.vDegFreedom then return 0.   -- Gyrokinetics. Vlasov doesn't define vDegFreedom. 
+      if self.vDegFreedom then return 0.   -- Gyrokinetics. Vlasov doesn't define vDegFreedom.
       elseif self.vdim==1 then return {0.}
       elseif self.vdim==2 then return {0., 0.}
       elseif self.vdim==3 then return {0., 0., 0.} end
    end
    self.temperature = assert(tbl.temperature,
-			     "Maxwellian: must specify 'temperature'")
+              "Maxwellian: must specify 'temperature'")
    --Check to see if we want to load any profiles for ICs
    --If not then Check for constants instead of functions.
    if type(self.density) == "string" then
-     self.densityFromFile = true
-     self.exactScaleM0 = false
+      self.densityFromFile = true
+      self.exactScaleM0 = false
    elseif type(self.density) ~= "function" then
       self.density = function (t, zn) return tbl.density end
    end
    if type(self.driftSpeed) == "string" then
-     self.driftSpeedFromFile = true
+      self.driftSpeedFromFile = true
    elseif type(self.driftSpeed) ~= "function" then
       self.driftSpeed = function (t, zn) return tbl.driftSpeed end
    end
    if type(self.temperature) == "string" then
-     self.temperatureFromFile = true
+      self.temperatureFromFile = true
    elseif type(self.temperature) ~= "function" then
       self.temperature = function (t, zn) return tbl.temperature end
    end
 
    self.initFunc = function (t, zn)
       return species:Maxwellian(zn, self.density(t, zn, species),
-				self.temperature(t, zn, species),
-				self.driftSpeed(t, zn, species))
+            self.temperature(t, zn, species),
+            self.driftSpeed(t, zn, species))
    end
 
    if self.fromFile then
@@ -157,15 +157,17 @@ function MaxwellianProjection:fullInit(species)
          basis  = self.phaseBasis,  onGhosts = true
       }
       if self.densityFromFile or self.driftspeedFromFile or self.temperatureFromFile then
-      self.ioMethod  = "MPI"
-      self.writeGhost = false
-      self.fieldIo = AdiosCartFieldIo {
-         elemType   = species.distf[1]:elemType(),
-         method     = self.ioMethod,
-         writeGhost = self.writeGhost,
-         metaData   = {polyOrder = self.confBasis:polyOrder(),
-                       basisType = self.confBasis:id()}
-      }
+         self.ioMethod  = "MPI"
+         self.writeGhost = false
+         self.fieldIo = AdiosCartFieldIo {
+            elemType   = species.distf[1]:elemType(),
+            method     = self.ioMethod,
+            writeGhost = self.writeGhost,
+            metaData   = {polyOrder = self.confBasis:polyOrder(),
+                          basisType = self.confBasis:id(),
+                          charge    = self.charge,
+                          mass      = self.mass,},
+         }
       end
    end
 end
@@ -225,9 +227,9 @@ function BiMaxwellianProjection:fullInit(species)
       elseif self.vdim==3 then return {0., 0., 0.} end
    end
    self.parallelTemperature = assert(tbl.parallelTemperature,
-		                     "BiMaxwellian: must specify 'parallelTemperature'")
+                           "BiMaxwellian: must specify 'parallelTemperature'")
    self.perpendicularTemperature = assert(tbl.perpendicularTemperature,
-		                     "BiMaxwellian: must specify 'perpendicularTemperature'")
+                           "BiMaxwellian: must specify 'perpendicularTemperature'")
 
    -- Check for constants instead of functions.
    if type(self.density) ~= "function" then
@@ -245,9 +247,9 @@ function BiMaxwellianProjection:fullInit(species)
 
    self.initFunc = function (t, zn)
       return species:BiMaxwellian(zn, self.density(t, zn, species),
-			          self.parallelTemperature(t, zn, species),
-			          self.perpendicularTemperature(t, zn, species),
-			          self.driftSpeed(t, zn, species))
+                   self.parallelTemperature(t, zn, species),
+                   self.perpendicularTemperature(t, zn, species),
+                   self.driftSpeed(t, zn, species))
    end
 
    if self.fromFile then

@@ -88,7 +88,7 @@ function MaxwellianProjection:lagrangeFix(distf)
    self.species.momDensityCalc:advance(0.0, {distf}, {M1})
    func = function (t, zn)
       return self.density(t, zn, self.species) *
-	 self.driftSpeed(t, zn, self.species)
+    self.driftSpeed(t, zn, self.species)
    end
    project:setFunc(func)
    project:advance(0.0, {}, {dM1})
@@ -98,11 +98,11 @@ function MaxwellianProjection:lagrangeFix(distf)
    func = function (t, zn)
       local drifts = self.driftSpeed(t, zn, self.species)
       if self.vdim == 1 then
-	 return self.density(t, zn, self.species) *
-	    (self.driftSpeed(t, zn, self.species)*self.driftSpeed(t, zn, self.species) + self.temperature(t, zn, self.species)/self.species.mass )
+    return self.density(t, zn, self.species) *
+       (self.driftSpeed(t, zn, self.species)*self.driftSpeed(t, zn, self.species) + self.temperature(t, zn, self.species)/self.species.mass )
       else
-	 return self.density(t, zn, self.species) *
-	    (self.driftSpeed(t, zn, self.species)*self.driftSpeed(t, zn, self.species) + 3*self.temperature(t, zn, self.species)/self.species.mass )
+    return self.density(t, zn, self.species) *
+       (self.driftSpeed(t, zn, self.species)*self.driftSpeed(t, zn, self.species) + 3*self.temperature(t, zn, self.species)/self.species.mass )
       end
    end
    project:setFunc(func)
@@ -459,8 +459,39 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
       local numDens = self:allocConfField()
       local uPar    = self:allocConfField()
       local vtSq    = self:allocConfField()
+      --Function to Add and Apply Open BCs to a confField
+      local function applyOpenBcs(fld)
+         fld.nonPeriodicBCs = {}   -- List of non-periodic BCs to apply.
+         -- Function to construct a BC updater.
+         local function makeOpenBcUpdater(dir, edge)
+            local bcOpen = function(dir, tm, idxIn, fIn, fOut)
+               -- Requires skinLoop = "pointwise".
+               self.confBasis:flipSign(dir, fIn, fOut)
+            end
+            return Updater.Bc {
+               onGrid = fld._grid,  edge = edge,
+               dir    = dir,        boundaryConditions = {bcOpen},
+               skinLoop = "pointwise",
+            }
+         end
+         -- For non-periodic dirs, use open BCs. It's the most sensible choice given that the
+         -- coordinate mapping could diverge outside of the interior domain.
+         for dir = 1, fld._ndim do
+            --if not lume.any(self.periodicDirs, function(t) return t==dir end) then
+            fld.nonPeriodicBCs["lower"] = makeOpenBcUpdater(dir, "lower")
+            fld.nonPeriodicBCs["upper"] = makeOpenBcUpdater(dir, "upper")
+            --end
+         end
+         for _, bc in pairs(fld.nonPeriodicBCs) do
+            bc:advance(tCurr, {}, {fld})
+         end
+         fld:sync(true)
+      end
+
+
       if self.densityFromFile then
-        self.fieldIo:read(numDens, self.density,false)
+         self.fieldIo:read(numDens, self.density,false)
+         applyOpenBcs(numDens)
       else
         if self.exactScaleM0 then
            -- Use a unit density because we are going to rescale the density anyways,
@@ -472,16 +503,18 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
         confProject:advance(time, {}, {numDens})
       end
       if self.driftSpeedFromFile then
-        self.fieldIo:read(uPar, self.driftSpeed,false)
+         self.fieldIo:read(uPar, self.driftSpeed,false)
+         applyOpenBcs(uPar)
       else
-        confProject:setFunc(self.driftSpeed)
-        confProject:advance(time, {}, {uPar})
+         confProject:setFunc(self.driftSpeed)
+         confProject:advance(time, {}, {uPar})
       end
       if self.temperatureFromFile then
-        self.fieldIo:read(vtSq, self.temperature,false)
+         self.fieldIo:read(vtSq, self.temperature,false)
+         applyOpenBcs(vtSq)
       else
-        confProject:setFunc(self.temperature)
-        confProject:advance(time, {}, {vtSq})
+         confProject:setFunc(self.temperature)
+         confProject:advance(time, {}, {vtSq})
       end
       vtSq:scale(1./self.mass)
       -- Project the Maxwellian. It includes a factor of jacobPhase=B*_||.
