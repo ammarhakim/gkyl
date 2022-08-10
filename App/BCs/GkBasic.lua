@@ -59,18 +59,9 @@ end
 
 function GkBasicBC:setName(nm) self.name = self.speciesName.."_"..nm end
 
-function GkBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
-   -- Note that for bcAbsorb there is no operation on fIn,
-   -- so skinLoop (which determines indexing of fIn) does not matter
-   for i = 1, self.basis:numBasis() do fOut[i] = 0.0 end
-end
 function GkBasicBC:bcOpen(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "pointwise".
    self.basis:flipSign(dir, fIn:data(), fOut:data())
-end
-function GkBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
-   -- Requires skinLoop = "pointwise".
-   for i = 1, self.basis:numBasis() do fOut[i] = fIn[i] end
 end
 function GkBasicBC:bcReflect(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "flip".
@@ -169,17 +160,7 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
       }
    else
       -- g2, to be deleted.
-      if self.bcKind == "absorb" then
-         bcFunc   = function(...) return self:bcAbsorb(...) end
-         skinType = "pointwise"
-      elseif self.bcKind == "reflect" then
-         assert(self.bcDir==self.cdim, "GkBasicBC: reflect BC can only be used along the last/parallel configuration space dimension.")
-         bcFunc   = function(...) return self:bcReflect(...) end
-         skinType = "flip"
-      elseif self.bcKind == "copy" then
-         bcFunc   = function(...) return self:bcCopy(...) end
-         skinType = "pointwise"
-      elseif self.bcKind == "open" then
+      if self.bcKind == "open" then
          bcFunc   = function(...) return self:bcOpen(...) end
          skinType = "pointwise"
       elseif self.bcKind == "function" then

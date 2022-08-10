@@ -55,20 +55,6 @@ end
 
 function VlasovBasicBC:setName(nm) self.name = self.speciesName.."_"..nm end
 
-function VlasovBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
-   -- Requires skinLoop = "pointwise".
-   for i = 1, self.basis:numBasis() do fOut[i] = fIn[i] end
-end
-function VlasovBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
-   -- Note that for bcAbsorb there is no operation on fIn,
-   -- so skinLoop (which determines indexing of fIn) does not matter
-   for i = 1, self.basis:numBasis() do fOut[i] = 0.0 end
-end
-function VlasovBasicBC:bcReflect(dir, tm, idxIn, fIn, fOut)
-   -- Requires skinLoop = "flip".
-   self.basis:flipSign(dir, fIn:data(), fOut:data())
-   self.basis:flipSign(dir+self.cdim, fOut:data(), fOut:data())
-end
 function VlasovBasicBC:bcOpen(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "pointwise".
    self.basis:flipSign(dir, fIn:data(), fOut:data())
@@ -110,16 +96,7 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
       }
    else
       -- g2, to be deleted.
-      if self.bcKind == "absorb" then
-         bcFunc   = function(...) return self:bcAbsorb(...) end
-         skinType = "pointwise"
-      elseif self.bcKind == "reflect" then
-         bcFunc   = function(...) return self:bcReflect(...) end
-         skinType = "flip"
-      elseif self.bcKind == "copy" then
-         bcFunc   = function(...) return self:bcCopy(...) end
-         skinType = "pointwise"
-      elseif self.bcKind == "open" then
+      if self.bcKind == "open" then
          bcFunc   = function(...) return self:bcOpen(...) end
          skinType = "pointwise"
       elseif self.bcKind == "function" then
