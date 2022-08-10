@@ -200,7 +200,10 @@ function FemParPoisson:init(tbl)
                   srcReduce      = 0., assemble    = 0.,
                   completeNsolve = 0.}
 
-   self._zero_fem = ffiC.gkyl_fem_parproj_new(self._grid._zero, self._basis._zero, self._periodic, GKYL_USE_GPU or 0)
+   local useG0 = xsys.pickBool(tbl.useG0, true)
+   if useG0 then
+      self._zero_fem = ffiC.gkyl_fem_parproj_new(self._grid._zero, self._basis._zero, self._periodic, GKYL_USE_GPU or 0)
+   end
 
    return self
 end
