@@ -478,8 +478,8 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
       -- coordinate mapping could diverge outside of the interior domain.
       for dir = 1, self.cdim do
          if not lume.any(self.confGrid:getPeriodicDirs(), function(t) return t==dir end) then
-         nonPeriodicBCs["lower"] = makeOpenBcUpdater(dir, "lower")
-         nonPeriodicBCs["upper"] = makeOpenBcUpdater(dir, "upper")
+         nonPeriodicBCs["lower" .. tostring(dir)] = makeOpenBcUpdater(dir, "lower")
+         nonPeriodicBCs["upper" .. tostring(dir)] = makeOpenBcUpdater(dir, "upper")
          end
       end
       --Function to Add and Apply Open BCs to a confField
