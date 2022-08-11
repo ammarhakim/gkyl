@@ -492,9 +492,7 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
 
       if self.densityFromFile then
          self.confFieldIo:read(numDens, self.density,false)
-         for i =0,35 do print("Before numDens.data = ",numDens._data[i] ) end
          applyOpenBcs(numDens)
-         for i =0,35 do print("After numDens.data = ",numDens._data[i] ) end
       else
         if self.exactScaleM0 then
            -- Use a unit density because we are going to rescale the density anyways,
