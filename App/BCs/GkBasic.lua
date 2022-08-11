@@ -158,6 +158,43 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
          dir     = self.bcDir,  bcType = self.bcKind,
          onField = mySpecies:rkStepperFields()[1],
       }
+      self.bcSolverAdvance = function(tm, inFlds, outFlds)
+         self.bcSolver:advance(tm, {inFlds[1]}, outFlds)
+      end
+   elseif self.bcKind == "sheath" then
+      local charge, mass = mySpecies.charge, mySpecies.mass
+
+      self.getPhi = function(fieldIn, inIdx) return fieldIn:rkStepperFields()[inIdx].phi end 
+
+      -- Create field and function for calculating wall potential according to user-provided function.
+      self.phiWallFld = DataStruct.Field {
+         onGrid        = field.grid,
+         numComponents = field.basis:numBasis(),
+         ghost         = {1,1},
+         metaData      = {polyOrder = field.basis:polyOrder(),
+                          basisType = field.basis:id()},
+         syncPeriodicDirs = false,
+      }
+      self.phiWallFld:clear(0.)
+      if self.phiWallFunc then
+         self.setPhiWall = Updater.EvalOnNodes {
+            onGrid = field.grid,   evaluate = self.phiWallFunc,
+            basis  = field.basis,  onGhosts = true,
+         }
+         self.setPhiWall:advance(0.0, {}, {self.phiWallFld})
+      end
+      self.phiWallFld:sync(false)
+
+      self.bcSolver = Updater.GkSheathBc{
+         onGrid  = self.grid,   edge    = self.bcEdge,  
+         cdim    = self.cdim,   basis   = self.basis,
+         dir     = self.bcDir,  phiWall = self.phiWallFld,
+         charge  = charge,      mass    = mass,
+         onField = mySpecies:rkStepperFields()[1],
+      }
+      self.bcSolverAdvance = function(tm, inFlds, outFlds)
+         self.bcSolver:advance(tm, {inFlds[2]}, outFlds)
+      end
    else
       -- g2, to be deleted.
       if self.bcKind == "open" then
@@ -216,6 +253,9 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
          basis    = self.basis,  confBasis          = self.confBasis,
          advanceArgs = {{mySpecies:rkStepperFields()[1]}, {mySpecies:rkStepperFields()[1]}},
       }
+      self.bcSolverAdvance = function(tm, inFlds, outFlds)
+         self.bcSolver:advance(tm, {}, outFlds)
+      end
    end
 
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
@@ -433,7 +473,7 @@ function GkBasicBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx
 
    local fIn = mySpecies:rkStepperFields()[outIdx] 
 
-   self.bcSolver:advance(tCurr, {self.bcBuffer}, {fIn})
+   self.bcSolverAdvance(tCurr, {self.bcBuffer, self.phi}, {fIn})
 end
 
 function GkBasicBC:getBoundaryFluxFields() return self.boundaryFluxFields end
