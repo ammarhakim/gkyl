@@ -35,9 +35,6 @@ function KineticProjection:fullInit(species)
    self.vDegFreedom = species.vDegFreedom   -- Only defined in GkSpecies.
 
    self.fromFile = self.tbl.fromFile
-   self.densityFromFile = self.tbl.densityFromFile
-   self.temperatureFromFile = self.tbl.temperatureFromFile
-   self.driftSpeedFromFile = self.tbl.driftSpeedFromFile
 
    self.exactScaleM0    = xsys.pickBool(self.tbl.exactScaleM0, true)
    self.exactScaleM012  = xsys.pickBool(self.tbl.exactScaleM012, false)
@@ -113,7 +110,7 @@ function MaxwellianProjection:fullInit(species)
       elseif self.vdim==3 then return {0., 0., 0.} end
    end
    self.temperature = assert(tbl.temperature,
-              "Maxwellian: must specify 'temperature'")
+                      "Maxwellian: must specify 'temperature'")
    --Check to see if we want to load any profiles for ICs
    --If not then Check for constants instead of functions.
    if type(self.density) == "string" then
@@ -135,8 +132,8 @@ function MaxwellianProjection:fullInit(species)
 
    self.initFunc = function (t, zn)
       return species:Maxwellian(zn, self.density(t, zn, species),
-            self.temperature(t, zn, species),
-            self.driftSpeed(t, zn, species))
+             self.temperature(t, zn, species),
+             self.driftSpeed(t, zn, species))
    end
 
    if self.fromFile then
@@ -159,7 +156,7 @@ function MaxwellianProjection:fullInit(species)
       if self.densityFromFile or self.driftspeedFromFile or self.temperatureFromFile then
          self.ioMethod  = "MPI"
          self.writeGhost = false
-         self.fieldIo = AdiosCartFieldIo {
+         self.confFieldIo = AdiosCartFieldIo {
             elemType   = species.distf[1]:elemType(),
             method     = self.ioMethod,
             writeGhost = self.writeGhost,
@@ -227,9 +224,9 @@ function BiMaxwellianProjection:fullInit(species)
       elseif self.vdim==3 then return {0., 0., 0.} end
    end
    self.parallelTemperature = assert(tbl.parallelTemperature,
-                           "BiMaxwellian: must specify 'parallelTemperature'")
+                              "BiMaxwellian: must specify 'parallelTemperature'")
    self.perpendicularTemperature = assert(tbl.perpendicularTemperature,
-                           "BiMaxwellian: must specify 'perpendicularTemperature'")
+                                   "BiMaxwellian: must specify 'perpendicularTemperature'")
 
    -- Check for constants instead of functions.
    if type(self.density) ~= "function" then
@@ -247,9 +244,9 @@ function BiMaxwellianProjection:fullInit(species)
 
    self.initFunc = function (t, zn)
       return species:BiMaxwellian(zn, self.density(t, zn, species),
-                   self.parallelTemperature(t, zn, species),
-                   self.perpendicularTemperature(t, zn, species),
-                   self.driftSpeed(t, zn, species))
+             self.parallelTemperature(t, zn, species),
+             self.perpendicularTemperature(t, zn, species),
+             self.driftSpeed(t, zn, species))
    end
 
    if self.fromFile then
