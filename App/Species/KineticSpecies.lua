@@ -317,12 +317,9 @@ function KineticSpecies:createGrid(confGridIn)
    end
 
    self.grid = GridConstructor {
-      lower         = lower,
-      upper         = upper,
-      cells         = cells,
-      periodicDirs  = confGrid:getPeriodicDirs(),
-      decomposition = self.decomp,
-      mappings      = coordinateMap,
+      lower = lower,  periodicDirs  = confGrid:getPeriodicDirs(),
+      upper = upper,  decomposition = self.decomp,
+      cells = cells,  mappings      = coordinateMap,
    }
 
    for _, c in pairs(self.collisions) do c:setPhaseGrid(self.grid) end
@@ -332,10 +329,8 @@ end
 -- of the following four functions instead of calling DataStruct directly.
 function KineticSpecies:allocCartField(grid,nComp,ghosts,metaData)
    local f = DataStruct.Field {
-      onGrid        = grid,
-      numComponents = nComp,
-      ghost         = ghosts,
-      metaData      = metaData,
+      onGrid        = grid,   ghost    = ghosts,
+      numComponents = nComp,  metaData = metaData,
    }
    f:clear(0.0)
    return f

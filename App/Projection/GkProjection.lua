@@ -442,10 +442,8 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
       local bmag = extField.geo.bmag
       -- Project the moments onto configuration-space basis.
       local confProject = Updater.ProjectOnBasis {
-         onGrid   = self.confGrid,
-         basis    = self.confBasis,
-         evaluate = function(t, xn) return 0. end,   -- Set below.
-         onGhosts = true
+         onGrid   = self.confGrid,   evaluate = function(t, xn) return 0. end,   -- Set below.
+         basis    = self.confBasis,  onGhosts = true
       }
       local numDens = self:allocConfField()
       local uPar    = self:allocConfField()
