@@ -359,7 +359,13 @@ function GkField:createSolver(species, externalField)
    else
       self.jacobGeo = self.unitField
    end
-   if self.ndim == 3 then
+   if self.ndim == 1 then
+      self.phiSlvr = Updater.FemParproj {
+         onGrid = self.grid, 
+         basis  = self.basis,
+         periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
+      }
+   else
       self.phiSlvr = Updater.FemPoisson {
          onGrid = self.grid,   bcLower = self.bcLowerPhi,
          basis  = self.basis,  bcUpper = self.bcUpperPhi,
@@ -369,12 +375,6 @@ function GkField:createSolver(species, externalField)
          gxy = gxyPoisson,
          gyy = gyyPoisson,
          useG0 = false,
-      }
-   else
-      self.phiSlvr = Updater.FemParproj {
-         onGrid = self.grid, 
-         basis  = self.basis,
-         periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
       }
    end
 
