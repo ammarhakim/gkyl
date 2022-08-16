@@ -395,53 +395,55 @@ function MaxwellField:createSolver()
       local isParallel = false
       for d=1,self.grid:ndim() do if self.grid:cuts(d)>1 then isParallel=true end end
 
-      if self.basis:polyOrder()>1 or isParallel or GKYL_USE_GPU then
+--      MF 2022/08/15: disable multigrid for now.
+--      if self.basis:polyOrder()>1 or isParallel or GKYL_USE_GPU then
          self.isSlvrMG = false
          self.fieldSlvr = Updater.FemPoisson {
-            onGrid = self.grid,
-            basis = self.basis,
-            bcLower = self.bcLowerPhi,
-            bcUpper = self.bcUpperPhi,
+            onGrid = self.grid,   bcLower = self.bcLowerPhi,
+            basis  = self.basis,  bcUpper = self.bcUpperPhi,
+            -- MF 2022/08/15: FemPoisson presently defaults to FemParPoisson in 1D, and
+            -- that is hooked into fem_parproj in g0, which is not what we want here. 
+            useG0 = self.grid:ndim()>1,
          }
          self.esEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
-            onGrid = self.grid,
-            basis = self.basis,
+            onGrid   = self.grid,
+            basis    = self.basis,
             quantity = "V2"
          }
          self.emEnergyCalc = function(tCurr, inFld, outDynV) self:esEnergy(tCurr, inFld, outDynV) end
-      else
-         self.isSlvrMG = true
-         -- Multigrid parameters (hardcoded for now).
-         local gamma = 1                 -- V-cycles=1, W-cycles=2.
-         local relaxType = 'DampedJacobi'    -- DampedJacobi or DampedGaussSeidel
-         local relaxNum = {1,2,300}         -- Number of pre,post and coarsest-grid smoothings.
-         local relaxOmega                     -- Relaxation damping parameter.
-         local ndim = self.grid:ndim()
-         if ndim == 1 then
-            relaxOmega = 2./3.
-         elseif ndim == 2 then
-            relaxOmega = 4./5.
-         end
-         local tolerance = 1.e-6             -- Do cycles until reaching this relative residue norm.
-         -- After the 4th call to the advance method, we will start using a
-         -- 3-point extrapolation to obtain an initial guess for the MG solver. 
-         self.filledPhiPrev = false
-         self.phiPrevCount = 0
-         self.fieldSlvr = Updater.MGpoisson {                                   
-            solverType = 'FEM',                                                 
-            onGrid     = self.grid,
-            basis      = self.basis,
-            bcLower    = self.bcLowerPhi,
-            bcUpper    = self.bcUpperPhi,
-            gamma      = gamma,         -- V-cycles=1, W-cycles=2.
-            relaxType  = relaxType,     -- DampedJacobi or DampedGaussSeidel
-            relaxNum   = relaxNum,      -- Number of pre,post and coarsest-grid smoothings.
-            relaxOmega = relaxOmega,    -- Relaxation damping parameter.
-            tolerance  = tolerance,     -- Do cycles until reaching this relative residue norm.
-         }
-   
-         self.emEnergyCalc = function(tCurr, inFld, outDynV) self.fieldSlvr:esEnergy(tCurr, inFld, outDynV) end
-      end
+--      else
+--         self.isSlvrMG = true
+--         -- Multigrid parameters (hardcoded for now).
+--         local gamma = 1                 -- V-cycles=1, W-cycles=2.
+--         local relaxType = 'DampedJacobi'    -- DampedJacobi or DampedGaussSeidel
+--         local relaxNum = {1,2,300}         -- Number of pre,post and coarsest-grid smoothings.
+--         local relaxOmega                     -- Relaxation damping parameter.
+--         local ndim = self.grid:ndim()
+--         if ndim == 1 then
+--            relaxOmega = 2./3.
+--         elseif ndim == 2 then
+--            relaxOmega = 4./5.
+--         end
+--         local tolerance = 1.e-6             -- Do cycles until reaching this relative residue norm.
+--         -- After the 4th call to the advance method, we will start using a
+--         -- 3-point extrapolation to obtain an initial guess for the MG solver. 
+--         self.filledPhiPrev = false
+--         self.phiPrevCount = 0
+--         self.fieldSlvr = Updater.MGpoisson {                                   
+--            solverType = 'FEM',                                                 
+--            onGrid     = self.grid,
+--            basis      = self.basis,
+--            bcLower    = self.bcLowerPhi,
+--            bcUpper    = self.bcUpperPhi,
+--            gamma      = gamma,         -- V-cycles=1, W-cycles=2.
+--            relaxType  = relaxType,     -- DampedJacobi or DampedGaussSeidel
+--            relaxNum   = relaxNum,      -- Number of pre,post and coarsest-grid smoothings.
+--            relaxOmega = relaxOmega,    -- Relaxation damping parameter.
+--            tolerance  = tolerance,     -- Do cycles until reaching this relative residue norm.
+--         }
+--   
+--         self.emEnergyCalc = function(tCurr, inFld, outDynV) self.fieldSlvr:esEnergy(tCurr, inFld, outDynV) end
+--      end
    end
 
    -- Function to construct a BC updater.
