@@ -403,7 +403,7 @@ function MaxwellField:createSolver()
             basis  = self.basis,  bcUpper = self.bcUpperPhi,
             -- MF 2022/08/15: FemPoisson presently defaults to FemParPoisson in 1D, and
             -- that is hooked into fem_parproj in g0, which is not what we want here. 
-            useG0 = self.grid:ndim()>1,
+            useG0 = self.grid:ndim()==2,
          }
          self.esEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
             onGrid   = self.grid,
