@@ -108,6 +108,7 @@ plasmaApp = Plasma.App {
          end,
          exactScaleM012 = true,
       },
+      polarizationDensityFactor = n0,
       evolve = true, -- Evolve species?
       diagnostics = {"M0", "Upar", "Temp"}, 
    },
