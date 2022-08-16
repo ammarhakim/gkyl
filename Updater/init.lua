@@ -29,6 +29,7 @@ local FemPerpPoisson = require "Updater.FemPerpPoisson"
 local FemPoisson = require "Updater.FemPoisson"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
 local GkLBO = require "Updater.GkLBO"
+local GkSheathBc = require "Updater.GkSheathBc"
 local HyperDisCont = require "Updater.HyperDisCont"
 local HyperDisContCellBased = require "Updater.HyperDisContCellBased"
 local Ionization = require "Updater.Ionization"
@@ -86,6 +87,7 @@ return {
    FemPoisson = FemPoisson,
    FiveMomentSrc = FiveMomentSrc,
    GkLBO = GkLBO,
+   GkSheathBc = GkSheathBc,
    HyperDisCont = HyperDisCont,
    HyperDisContCellBased = HyperDisContCellBased,
    Ionization = Ionization,
