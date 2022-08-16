@@ -99,9 +99,6 @@ function HWSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       c:advance(tCurr, momIn, species, momRhsOut)
    end
 
-   -- Complete the field solve.
-   emIn[1]:phiSolve(tCurr, species, inIdx, outIdx)
-
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       local em = emIn[1]:rkStepperFields()[inIdx]

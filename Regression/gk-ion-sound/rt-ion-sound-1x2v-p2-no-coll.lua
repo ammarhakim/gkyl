@@ -85,6 +85,7 @@ plasmaApp = Plasma.App {
 --         collideWith = { 'ion' },
 --         frequencies = { nuIon },
 --      }, 
+      polarizationDensityFactor = nIon,
       evolve = true, -- Evolve species?
       diagnostics = {"M0", "M2"},
    },

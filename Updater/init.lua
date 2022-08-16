@@ -24,6 +24,7 @@ local EvalOnNodes = require "Updater.EvalOnNodes"
 local EvaluateBronoldFehskeBC = require "Updater.EvaluateBronoldFehskeBC"
 local FemGyroaverage = require "Updater.FemGyroaverage"
 local FemParPoisson = require "Updater.FemParPoisson"
+local FemParproj = require "Updater.FemParproj"
 local FemPerpPoisson = require "Updater.FemPerpPoisson"
 local FemPoisson = require "Updater.FemPoisson"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
@@ -81,6 +82,7 @@ return {
    EvaluateBronoldFehskeBC = EvaluateBronoldFehskeBC,
    FemGyroaverage = FemGyroaverage,
    FemParPoisson = FemParPoisson,
+   FemParproj = FemParproj,
    FemPerpPoisson = FemPerpPoisson,
    FemPoisson = FemPoisson,
    FiveMomentSrc = FiveMomentSrc,

@@ -101,7 +101,7 @@ function FemParPoisson:init(tbl)
 
    -- Set up constant dummy field.
    self.unitWeight = DataStruct.Field {
-      onGrid        = self._grid,              ghost         = {1, 1},
+      onGrid        = self._grid,              ghost     = {1, 1},
       numComponents = self._basis:numBasis(),  useDevice = false,
    }
    local initUnit = ProjectOnBasis {
@@ -112,11 +112,11 @@ function FemParPoisson:init(tbl)
 
    -- Set up fields for non-uniform and/or time-dependent laplacian and modifier weights
    self.laplacianWeight = DataStruct.Field {
-      onGrid        = self._grid,              ghost         = {1, 1},
+      onGrid        = self._grid,              ghost     = {1, 1},
       numComponents = self._basis:numBasis(),  useDevice = false,
    }
    self.modifierWeight = DataStruct.Field {
-      onGrid        = self._grid,              ghost         = {1, 1}, 
+      onGrid        = self._grid,              ghost     = {1, 1}, 
       numComponents = self._basis:numBasis(),  useDevice = false,
    }
    -- Initialize these fields to zero.
