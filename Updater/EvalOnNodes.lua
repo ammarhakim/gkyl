@@ -95,7 +95,7 @@ function EvalOnNodes:_advance(tCurr, inFld, outFld)
    local fv = Lin.Mat(self.numNodes, numVal) -- Function values at ordinates.
    local xi = Lin.Vec(ndim)                  -- Coordinates at node.
 
-   local localRangeOut = self._onGhosts and qOut:localExtRange() and qOut:localRange()
+   local localRangeOut = self._onGhosts and qOut:localExtRange() or qOut:localRange()
 
    local indexer = qOut:genIndexer()
    local fItr    = qOut:get(1)
