@@ -104,8 +104,11 @@ function BasicBc:init(tbl)
       elseif self._bcType == "maxwell_pec" then bctype = 3 
       end
 
+      local useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU)
+      local basis  = useGPU and self._basis._zeroDevice or self._basis._zero
+
       self._zero = ffi.gc(ffiC.gkyl_bc_basic_new(self._dir-1, edge, localExtRange, numGhostVec:data(), bctype,
-                                                 self._basis._zero, onField:numComponents(), cDim, GKYL_USE_GPU or 0),
+                                                 basis, onField:numComponents(), cDim, useGPU or 0),
                           ffiC.gkyl_bc_basic_release)
 --   else
 --      -- g2 code, to be deleted.

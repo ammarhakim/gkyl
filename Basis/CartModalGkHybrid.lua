@@ -7,6 +7,9 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+-- System libraries.
+local xsys = require "xsys"
+
 -- Gkyl libraries
 local Proto = require "Lib.Proto"
 local ffi   = require "ffi"
@@ -15,16 +18,38 @@ require "Basis.BasisCdef"
 
 ffi.cdef [[ 
 /**
- * Create new hybrid basis for use in gyrokinetics p=1
+ * Assign object members in hybrid basis for use in gyrokinetics p=1
  * simulations. These basis have the v_par^2 monomial and its tensor
  * product with other monomials included.
  *
  * @param basis Basis object to initialize
  * @param cdim dimension of configuration space.
  * @param vdim dimension of velocity space.
- * @return Pointer to new basis function.
  */
 void gkyl_cart_modal_gkhybrid(struct gkyl_basis *basis, int cdim, int vdim);
+void gkyl_cart_modal_gkhybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdim);
+
+/**
+ * Create new hybrid basis for use in gyrokinetics p=1
+ * simulations. These basis have the v_par^2 monomial and its tensor
+ * product with other monomials included.
+ * This basis needs to be deallocated with free/release methods.
+ *
+ * @param cdim dimension of configuration space.
+ * @param vdim dimension of velocity space.
+ * @return new basis struct.
+ */
+struct gkyl_basis * gkyl_cart_modal_gkhybrid_new(int cdim, int vdim);
+struct gkyl_basis * gkyl_cart_modal_gkhybrid_cu_dev_new(int cdim, int vdim);
+
+/**
+ * Free the memory associated with basis objects
+ * created with _new methods above.
+ *
+ * @param basis Basis object to free.
+ */
+void gkyl_cart_modal_basis_release(struct gkyl_basis *basis);
+void gkyl_cart_modal_basis_release_cu(struct gkyl_basis *basis);
 ]]
 
 -- CartModalGkHybrid --------------------------------------------------------------
@@ -45,8 +70,14 @@ function CartModalGkHybrid:init(tbl)
 
    -- create gkylzero gkyl_basis struct
    self._zero = ffi.new("struct gkyl_basis")
-
    ffiC.gkyl_cart_modal_gkhybrid(self._zero, self._cdim, self._vdim)
+
+   if xsys.pickBool(tbl.useDevice, GKYL_USE_GPU) then
+      self._zeroDevice = ffi.gc(ffiC.gkyl_cart_modal_gkhybrid_cu_dev_new(self._cdim, self._vdim),
+                                ffiC.gkyl_cart_modal_basis_release_cu)
+   else
+      self._zeroDevice = nil
+   end
 
    self._numBasis = self._zero.num_basis
 end
