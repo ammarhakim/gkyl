@@ -25,9 +25,7 @@ function FemPoisson:init(tbl)
 
    local function contains(table, element)
       for _, value in pairs(table) do
-         if value == element then
-            return true
-         end
+         if value == element then return true end
       end
       return false
    end
@@ -52,45 +50,32 @@ function FemPoisson:init(tbl)
    self.slvr = nil
    if ndim == 1 then 
       self.slvr = FemParPoisson {
-         onGrid  = self.grid,
-         basis   = self.basis,
-         bcLower = self.bcLower,
-         bcUpper = self.bcUpper,
-         smooth  = self.smooth,
+         onGrid = self.grid,   bcLower = self.bcLower,
+         basis  = self.basis,  bcUpper = self.bcUpper,
+         smooth = self.smooth,
          useG0 = tbl.useG0,
       }
       -- Set up weak division operator for special case when solve is algebraic.
       self.weakDivide = CartFieldBinOp {
-         onGrid    = self.grid,
-         weakBasis = self.basis,
-         operation = "Divide",
-         onGhosts  = true,
+         onGrid    = self.grid,   operation = "Divide",
+         weakBasis = self.basis,  onGhosts  = true,
       }
    elseif ndim == 2 then
       self.slvr = FemPerpPoisson {
-        onGrid       = self.grid,
-        basis        = self.basis,
-        bcLower      = self.bcLower,
-        bcUpper      = self.bcUpper,
-        constStiff   = self.constStiff,
-        gxx          = self.gxx,
-        gxy          = self.gxy,
-        gyy          = self.gyy,
-        smooth       = self.smooth,
+        onGrid     = self.grid,        gxx    = self.gxx,
+        basis      = self.basis,       gxy    = self.gxy,
+        bcLower    = self.bcLower,     gyy    = self.gyy,
+        bcUpper    = self.bcUpper,     smooth = self.smooth,
+        constStiff = self.constStiff,
         useG0 = tbl.useG0,
       }
    elseif ndim == 3 then
       self.slvr = FemPerpPoisson {
-        onGrid       = self.grid,
-        basis        = self.basis,
-        bcLower      = self.bcLower,
-        bcUpper      = self.bcUpper,
-        zContinuous  = self.zContinuous,
-        constStiff   = self.constStiff,
-        gxx          = self.gxx,
-        gxy          = self.gxy,
-        gyy          = self.gyy,
-        smooth       = self.smooth,
+        onGrid      = self.grid,         constStiff = self.constStiff,
+        basis       = self.basis,        gxx        = self.gxx,
+        bcLower     = self.bcLower,      gxy        = self.gxy,
+        bcUpper     = self.bcUpper,      gyy        = self.gyy,
+        zContinuous = self.zContinuous,  smooth     = self.smooth,
         useG0 = tbl.useG0,
       }
    else 

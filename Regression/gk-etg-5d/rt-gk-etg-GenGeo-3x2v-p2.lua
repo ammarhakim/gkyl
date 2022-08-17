@@ -113,6 +113,7 @@ plasmaApp = Plasma.App {
             return Te0*(1-(x-r0)/L_T)
          end,
       },
+      polarizationDensityFactor = n0,
       evolve = true, -- Evolve species?
       diagnostics = {"M0", "M2"},
    },

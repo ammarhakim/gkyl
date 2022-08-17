@@ -121,19 +121,8 @@ function GkSpecies:alloc(nRkDup)
       self.momDensityPos = self:allocMoment()
       self.ptclEnergyPos = self:allocMoment()
    end
-   self.polarizationWeight = self:allocMoment() -- not used when using linearized poisson solve
 			
-   if self.gyavg then
-      self.rho1 = self:allocDistf()
-      self.rho2 = self:allocDistf()
-      self.rho3 = self:allocDistf()
-   end
-
-   if self.vdim == 1 then
-      self.vDegFreedom = 1.0
-   else
-      self.vDegFreedom = 3.0
-   end
+   self.vDegFreedom = self.vdim == 1 and 1.0 or 3.0
 
    self.first = true
 end
@@ -158,10 +147,6 @@ function GkSpecies:createSolver(field, externalField)
       -- If vdim>1, get the phase-space Jacobian (=bmag) from geo.
       self.jacobPhaseFunc = self.bmagFunc
       self.jacobGeoFunc   = externalField.jacobGeoFunc
-
-      local xMid = {}
-      for d = 1,self.cdim do xMid[d]=self.grid:mid(d) end
-      self.B0 = externalField.bmagFunc(0.0, xMid)
 
       self.bmag        = assert(externalField.geo.bmag, "nil bmag")
       self.bmagInv     = externalField.geo.bmagInv
@@ -355,14 +340,72 @@ function GkSpecies:createSolver(field, externalField)
       }
    }
 
+   -- Select the function that returns the mass density factor for the polarization (Poisson equation).
+   -- Allow user to specify polarization density factor (n in polarization density).
+   -- If the polarization is linearized, it should be specified in the input file (as a number, file, or function).
+   if field.linearizedPolarization then
+      if self.tbl.polarizationDensityFactor == nil then
+         print("*** App.Species.GkSpecies: WARNING... not specifying 'polarizationDensityFactor' and relying on n0 in the input file will be deprecated. Please change your input file to specify 'polarizationDensityFactor' (the density factor in the Poisson equation). ***")
+         local den0 = self.tbl.n0 or n0
+         self.polMassDen = den0*self.mass
+      else
+         local polDenFacIn = self.tbl.polarizationDensityFactor
+   
+         if type(polDenFacIn) == "number" then
+            self.polMassDen = self.mass*polDenFacIn
+         elseif type(polDenFacIn) == "string" or type(polDenFacIn) == "function" then
+            self.polMassDen = self:allocMoment() -- Polarization mass density (for Poisson equation).
+            if type(polDenFacIn) == "string" then
+               self.distIo:read(self.polMassDen, polDenFacIn) --, true)
+            else
+               local evOnNodes = Updater.EvalOnNodes {
+                  onGrid = self.confGrid,   evaluate = polDenFacIn,
+                  basis  = self.confBasis,  onGhosts = false, --true,
+               }
+               evOnNodes:advance(0., {}, {self.polMassDen})
+            end
+   
+            -- Apply open BCs (although BCs here should not matter/be used).
+            local function makeOpenBcUpdater(dir, edge)
+               local bcOpen = function(dir, tm, idxIn, fIn, fOut)
+                  self.confBasis:flipSign(dir, fIn, fOut)   -- Requires skinLoop = "pointwise".
+               end
+               return Updater.Bc {
+                  onGrid   = self.confGrid,  edge = edge,
+                  dir      = dir,            boundaryConditions = {bcOpen},
+                  skinLoop = "pointwise",
+               }
+            end
+            local openBCupdaters = {}
+            for dir = 1, self.cdim do
+               if not lume.any(self.confGrid:getPeriodicDirs(), function(t) return t==dir end) then
+                  openBCupdaters["lower"] = makeOpenBcUpdater(dir, "lower")
+                  openBCupdaters["upper"] = makeOpenBcUpdater(dir, "upper")
+               end
+            end
+            for _, bc in pairs(openBCupdaters) do bc:advance(0., {}, {self.polMassDen}) end
+            self.polMassDen:sync(true)
+   
+            self.distIo:write(self.polMassDen, string.format("%s_polarizationDensityFactor_%d.bp", self.name, self.diagIoFrame), 0., self.diagIoFrame, false) --true)
+   
+            self.polMassDen:scale(self.mass)
+         end
+      end
+
+      self.getPolMassDen = function() return self.polMassDen end
+   else
+      self.getPolMassDen = function()
+         self.polMassDen:combine(self.mass, self.numDensity)
+         return self.polMassDen
+      end
+   end
+
    -- Create species source solvers.
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
 
    self._firstMomentCalc = true  -- To avoid re-calculating moments when not evolving.
 
    self.timers = {couplingMom = 0., sources = 0.}
-
-   assert(self.n0, "Must specify background density as global variable 'n0' in species table as 'n0 = ...'")
 end
 
 function GkSpecies:initCrossSpeciesCoupling(species)
@@ -743,9 +786,6 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       c:advance(tCurr, fIn, species, {fRhsOut, self.cflRateByCell})
    end
 
-   -- Complete the field solve.
-   --emIn[1]:phiSolve(tCurr, species, inIdx, outIdx)
-
    if self.evolveCollisionless then
       self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut, self.cflRateByCell})
    else
@@ -935,8 +975,6 @@ function GkSpecies:getNumDensity(rkIdx)
    return self.numDensityAux
 end
 
-function GkSpecies:getBackgroundDens() return self.n0 end
-
 function GkSpecies:getMomDensity(rkIdx)
    -- If no rkIdx specified, assume momDensity has already been calculated.
    if rkIdx == nil then return self.momDensity end 
@@ -991,15 +1029,7 @@ function GkSpecies:getEmModifier(rkIdx)
    return self.momDensityAux
 end
 
-function GkSpecies:getPolarizationWeight(linearized)
-   if linearized == false then 
-      self.confWeakMultiply:advance(0.0, {self.numDensity, self.bmagInvSq}, {self.polarizationWeight})
-      self.polarizationWeight:scale(self.mass)
-      return self.polarizationWeight
-   else 
-      return self.n0*self.mass/self.B0^2
-   end
-end
+function GkSpecies:getPolarizationMassDensity() return self.getPolMassDen() end
 
 function GkSpecies:getSrcCX() return self.srcCX end
 

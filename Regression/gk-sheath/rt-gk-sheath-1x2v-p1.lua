@@ -129,6 +129,7 @@ plasmaApp = Plasma.App {
          power       = P_src/2,
          diagnostics = {"M0","Temp","intM0","intM2"},
       },
+      polarizationDensityFactor = n0,
       evolve = true, -- Evolve species?
       --applyPositivity = true,
       diagnostics = {"M0", "Upar", "Temp", "Beta", "intM0", "intM1", "intEnergy",}, 
@@ -176,6 +177,7 @@ plasmaApp = Plasma.App {
          power       = P_src/2,
          diagnostics = {"M0","Temp","intM0","intM2"},
       },
+      polarizationDensityFactor = n0,
       evolve = true, -- Evolve species?
       --applyPositivity = true,
       diagnostics = {"M0", "Upar", "Temp", "intM0", "intM1", "intKE", "intEnergy"}, 
