@@ -88,7 +88,7 @@ function AxisymmetricPhMaxwellSrc:_advance(tCurr, inFld, outFld)
       self._updateSrc(self, dt, xc:data(), fPtr)
    end
 
-   return true, GKYL_MAX_DOUBLE
+   return self:reduceStatusDt(true, GKYL_MAX_DOUBLE)
 end
 
 return AxisymmetricPhMaxwellSrc

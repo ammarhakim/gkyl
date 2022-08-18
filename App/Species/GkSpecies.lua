@@ -318,17 +318,6 @@ function GkSpecies:createSolver(field, externalField)
          mass       = self.mass,
          vbounds    = vbounds,
       }
-      -- Updaters for the primitive moments.
-      self.confDiv = Updater.CartFieldBinOp {
-         onGrid    = self.confGrid,
-         weakBasis = self.confBasis,
-         operation = "Divide",
-      }
-      self.confMul = Updater.CartFieldBinOp {
-         onGrid    = self.confGrid,
-         weakBasis = self.confBasis,
-         operation = "Multiply",
-      }
    end
 
    -- Create an updater for volume integrals. Used by diagnostics.
@@ -872,25 +861,6 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 self.threeMomentsCalc:advance(tCurr, {fIn}, {self.threeMoments})
 
 	 self.primMomSelf:advance(tCurr, {self.threeMoments, fIn, self.threeMomentsBoundaryCorrections}, {self.uParSelf, self.vtSqSelf})
-
---         self.threeMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy,
---                                                          self.m1Correction, self.m2Correction,
---                                                          self.m0Star, self.m1Star, self.m2Star })
---	 if self.needCorrectedSelfPrimMom then
---            -- Also compute self-primitive moments uPar and vtSq.
---            self.primMomSelf:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy,
---                                             self.m1Correction, self.m2Correction,
---                                             self.m0Star, self.m1Star, self.m2Star}, {self.uParSelf, self.vtSqSelf})
---         else
---            -- Compute self-primitive moments with binOp updaters.
---            self.confDiv:advance(tCurr, {self.numDensity, self.momDensity}, {self.uParSelf})
---            self.confMul:advance(tCurr, {self.uParSelf, self.momDensity}, {self.numDensityAux})
---            -- Barrier over shared communicator before combine
---            Mpi.Barrier(self.grid:commSet().sharedComm)
---            self.momDensityAux:combine( 1.0/self.vDegFreedom, self.ptclEnergy,
---                                       -1.0/self.vDegFreedom, self.numDensityAux )
---            self.confDiv:advance(tCurr, {self.numDensity, self.momDensityAux}, {self.vtSqSelf})
---         end
 
          -- Indicate that moments, boundary corrections, star moments
          -- and self-primitive moments have been computed.

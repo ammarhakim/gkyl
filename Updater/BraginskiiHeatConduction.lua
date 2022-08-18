@@ -209,7 +209,7 @@ function BraginskiiHeatConduction:_forwardEuler(
 end
 
 function BraginskiiHeatConduction:_advance(tCurr, inFld, outFld)
-   return self:_forwardEuler(self, tCurr, inFld, outFld)
+   return self:reduceStatusDt(self:_forwardEuler(self, tCurr, inFld, outFld))
 end
 
 return BraginskiiHeatConduction

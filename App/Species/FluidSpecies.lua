@@ -289,12 +289,12 @@ function FluidSpecies:createSolver(field, externalField)
    -- Operators needed for time-dependent calculation and diagnostics.
    if self.ndim <= 3 then
       self.weakMultiply = Updater.CartFieldBinOp {
-         onGrid    = self.grid,   operation = "Multiply",
-         weakBasis = self.basis,  onGhosts  = true,
+         operation = "Multiply",  weakBasis = self.basis,
+         onGhosts  = true,
       }
       self.weakDivide = Updater.CartFieldBinOp {
-         onGrid    = self.grid,   operation = "Divide",
-         weakBasis = self.basis,  onGhosts  = true,
+         operation = "Divide",  weakBasis = self.basis,
+         onRange   = self.jacob:localExtRange(),  onGhosts = true,
       }
    end
    self.volIntegral = {
@@ -364,9 +364,11 @@ function FluidSpecies:createSolver(field, externalField)
          momIn:accumulate(1.0, self.momBackground)
          momIn:sync(syncFullFperiodicDirs)
       end or function(momIn, syncFullFperiodicDirs) end 
+   print("here ",self.perturbedDiagnostics)
    self.calcDeltaMom = self.perturbedDiagnostics 
       and function(momIn) self.flucMom:combine(1.0, momIn, -1.0, self.momBackground) end
       or function(momIn) end
+   print("here 2 ",self.calcDeltaMom)
 
    if self.fluctuationBCs or self.perturbedDiagnostics then
       self.writeFluctuation = self.perturbedDiagnostics 
