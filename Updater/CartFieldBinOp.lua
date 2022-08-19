@@ -289,22 +289,38 @@ function CartFieldBinOp:_advanceOnDevice(tCurr, inFld, outFld)
       Bfld, Afld = inFld[1], inFld[2]
    end
 
+   local localuRange = self.onGhosts and uOut:localExtRange() or uOut:localRange()
    if self._zero_op and self._zero_op == "Multiply" then
-      if inFld[1]:numComponents() == inFld[2]:numComponents() then
-         ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, 0, uOut._zeroDevice, 0, Afld._zeroDevice, 0, Bfld._zeroDevice, uOut:localExtRange())
-      else
+      if self._fieldBasis then
+         -- Conf-space * phase-space multiplication.
+         local localARange = self.onGhosts and Afld:localExtRange() or Afld:localRange()
          ffiC.gkyl_dg_mul_conf_phase_op_range(self._fieldBasis._zero, self._weakBasis._zero,
-                                              uOut._zeroDevice, Afld._zeroDevice, Bfld._zeroDevice,
-                                              Afld:localExtRange(), uOut:localExtRange())
+                                              uOut._zeroDevice, Afld._zeroDevice, Bfld._zeroDevice, localARange, localuRange)
+      else
+         -- Conf-space scalar * scalar or scalar * vector multiplication.
+         local nVecComp = Bfld:numComponents()/self._numBasis
+         for d = 0, nVecComp-1 do
+            ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, d, uOut._zeroDevice,
+	                              0, Afld._zeroDevice, d, Bfld._zeroDevice, localuRange)
+         end
       end
    
       return
    elseif self._zero_op and self._zero_op == "Divide" then
+      -- Conf-space scalar / scalar or vector / scalar division.
+      local nVecComp = Bfld:numComponents()/self._numBasis
+      for d = 0, nVecComp-1 do
+         ffiC.gkyl_dg_div_op_range(self._mem, self._weakBasis._zero, d, uOut._zeroDevice,
+	                           d, Bfld._zeroDevice, 0, Afld._zeroDevice, localuRange)
+      end
+      return
+   else 
       -- NYI
-      assert(false, "GPU bin op divide not yet integrated from g0")
+      assert(false, "GPU bin op NYI")
 
       return
    end
+
 end
 
 return CartFieldBinOp
