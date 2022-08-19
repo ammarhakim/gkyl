@@ -34,8 +34,8 @@ function FluidProjection:fullInit(species)
    self.fromFile = self.tbl.fromFile
 
    self.weakMultiply = Updater.CartFieldBinOp {
-      onGrid     = self.grid,   operation = "Multiply",
-      weakBasis  = self.basis,  onGhosts  = true,
+      weakBasis = self.basis,  operation = "Multiply",
+      onGhosts  = true,
    }
 end
 

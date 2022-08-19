@@ -219,16 +219,16 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
          end
          -- Set up weak multiplication and division operators (for diagnostics).
          self.confWeakMultiply = Updater.CartFieldBinOp {
-            onGrid    = self.confBoundaryGrid,  operation = "Multiply",
-            weakBasis = self.confBasis,         onGhosts  = true,
+            weakBasis = self.confBasis,  operation = "Multiply",
+            onGhosts  = true,
          }
          self.confWeakDivide = Updater.CartFieldBinOp {
-            onGrid    = self.confBoundaryGrid,  operation = "Divide",
-            weakBasis = self.confBasis,         onGhosts  = true,
+            weakBasis = self.confBasis,  operation = "Divide",
+            onRange   = self.confBoundaryField:localExtRange(),  onGhosts = true,
          }
          self.confWeakDotProduct = Updater.CartFieldBinOp {
-            onGrid    = self.confBoundaryGrid,  operation = "DotProduct",
-            weakBasis = self.confBasis,         onGhosts  = true,
+            weakBasis = self.confBasis,  operation = "DotProduct",
+            onGhosts  = true,
          }
          -- Volume integral operator (for diagnostics).
          self.volIntegral = {

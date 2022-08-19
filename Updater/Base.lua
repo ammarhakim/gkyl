@@ -6,20 +6,27 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local Mpi = require "Comm.Mpi"
+local Mpi   = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
-local Time = require "Lib.Time"
-local ffi = require "ffi"
-local xsys = require "xsys"
+local Time  = require "Lib.Time"
+local ffi   = require "ffi"
+local xsys  = require "xsys"
 
 local _M = Proto()
 
 function _M:init(tbl)
-   assert(tbl.onGrid, "Updater.Base: Must provide grid object using 'onGrid'")
-   self._comm       = tbl.onGrid:commSet().comm
-   self._sharedComm = tbl.onGrid:commSet().sharedComm
-   self._nodeComm   = tbl.onGrid:commSet().nodeComm
-   self.totalTime   = 0.0
+   -- Some updaters use the communicators to perform parallel operations.
+   local onGrid = tbl.onGrid
+   if onGrid then
+      self._comm       = onGrid:commSet().comm
+      self._sharedComm = onGrid:commSet().sharedComm
+      self._nodeComm   = onGrid:commSet().nodeComm
+   end
+
+   self.totalTime = 0.0  -- Time taken by the advance method.
+
+   -- Some (FV) updaters are used for time stepping and require parallel
+   -- reduction of stepping status and size.
    self._myStatus, self._myDtSuggested = ffi.new("int[2]"), ffi.new("double[2]")
    self._status, self._dtSuggested     = ffi.new("int[2]"), ffi.new("double[2]")
 
@@ -75,20 +82,15 @@ function _M:getSharedComm() return self._sharedComm end
 -- computes a "total Time", and also synchronizes the status and
 -- time-step suggestion across processors.
 function _M:advance(tCurr, inFld, outFld)
-
-   -- This barrier is needed to ensure that all "threads" (processes)
-   -- in MPI-SHM comm have caught up with each other with previous
-   -- work before running the _advance method. One needs to be careful
-   -- to ensure threads don’t switch to doing something else before
-   -- data they need is made ready by other threads
-   Mpi.Barrier(self._sharedComm)
-   
    -- Advance updater, measuring how long it took
    local tmStart = Time.clock()
    local status, dtSuggested = self:_advanceFunc(tCurr, inFld, outFld)
    self.totalTime = self.totalTime + (Time.clock()-tmStart)
 
-   -- reduce across processors ...
+   return status, dtSuggested
+end
+
+function _M:reduceStatusDt(status, dtSuggested)
    if status ~= nil and dtSuggested ~= nil then 
       self._myStatus[0]      = status and 1 or 0
       self._myDtSuggested[0] = dtSuggested

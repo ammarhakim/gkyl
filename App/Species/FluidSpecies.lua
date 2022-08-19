@@ -289,12 +289,12 @@ function FluidSpecies:createSolver(field, externalField)
    -- Operators needed for time-dependent calculation and diagnostics.
    if self.ndim <= 3 then
       self.weakMultiply = Updater.CartFieldBinOp {
-         onGrid    = self.grid,   operation = "Multiply",
-         weakBasis = self.basis,  onGhosts  = true,
+         operation = "Multiply",  weakBasis = self.basis,
+         onGhosts  = true,
       }
       self.weakDivide = Updater.CartFieldBinOp {
-         onGrid    = self.grid,   operation = "Divide",
-         weakBasis = self.basis,  onGhosts  = true,
+         operation = "Divide",  weakBasis = self.basis,
+         onRange   = self.jacob:localExtRange(),  onGhosts = true,
       }
    end
    self.volIntegral = {

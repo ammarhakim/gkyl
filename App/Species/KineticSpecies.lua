@@ -361,20 +361,21 @@ end
 function KineticSpecies:createSolver(field, externalField)
    -- Set up weak multiplication and division operators.
    self.confWeakMultiply = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,   operation = "Multiply",
-      weakBasis = self.confBasis,  onGhosts  = true,
+      weakBasis = self.confBasis,  operation = "Multiply",
+      onGhosts  = true,
    }
+   local dummyConfField = self:allocMoment()
    self.confWeakDivide = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,   operation = "Divide",
-      weakBasis = self.confBasis,  onGhosts  = true,
+      weakBasis = self.confBasis,  operation = "Divide",
+      onRange   = dummyConfField:localExtRange(),  onGhosts = true,
    }
    self.confWeakDotProduct = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,   operation = "DotProduct",
-      weakBasis = self.confBasis,  onGhosts  = true,
+      weakBasis = self.confBasis,  operation = "DotProduct",
+      onGhosts = true,
    }
    self.confPhaseWeakMultiply = Updater.CartFieldBinOp {
-      onGrid    = self.grid,   fieldBasis = self.confBasis,
-      weakBasis = self.basis,  operation  = "Multiply",
+      weakBasis  = self.basis,  operation = "Multiply",
+      fieldBasis = self.confBasis,
    }
 
    -- Functions to compute fluctuations given the current moments and background,

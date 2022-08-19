@@ -271,9 +271,7 @@ function GkLBOCollisions:createSolver(mySpecies, externalField)
       end
       -- Weak multiplication to multiply nu(x) with uPar or vtSq.
       self.confMul = Updater.CartFieldBinOp {
-         onGrid    = self.confGrid,
-         weakBasis = self.confBasis,
-         operation = "Multiply",
+         weakBasis = self.confBasis,  operation = "Multiply",
       }
    else
       self.nuSum = 0.0    -- Assigned in advance method.

@@ -85,8 +85,8 @@ function GyrofluidHeatFlux:setAuxFields(auxFields)
 
       -- Compose a field with 1/B^2. Eventually we'll remove this or put it in geo.
       local weakMult = Updater.CartFieldBinOp {
-         onGrid    = self._grid,   operation = "Multiply",
-         weakBasis = self._basis,  onGhosts  = true,
+         weakBasis = self._basis,  operation = "Multiply",
+         onGhosts  = true,
       }
       self.rBmagSq = DataStruct.Field {
          onGrid        = self._grid,

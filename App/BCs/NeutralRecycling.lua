@@ -194,14 +194,9 @@ function NeutralRecyclingBC:createSolver(mySpecies, field, externalField)
       phaseBasis = self.basis,         moment     = mom,
    }
 
-   self.recycleConfWeakDivide = Updater.CartFieldBinOp {
-      onGrid    = self.confBoundaryGrid,  operation = "Divide",
-      weakBasis = self.confBasis,         onGhosts  = false,
-   }
    self.recycleConfPhaseWeakMultiply = Updater.CartFieldBinOp {
-      onGrid     = self.boundaryGrid,  operation = "Multiply",
-      weakBasis  = self.basis,         onGhosts  = false,
-      fieldBasis = self.confBasis, 
+      weakBasis  = self.basis,  operation = "Multiply",
+      fieldBasis = self.confBasis,
    }
 
    local recycleSource = function (t, xn)
@@ -317,16 +312,16 @@ function NeutralRecyclingBC:createSolver(mySpecies, field, externalField)
 
          -- Set up weak multiplication and division operators (for diagnostics).
          self.confWeakMultiply = Updater.CartFieldBinOp {
-            onGrid    = self.confBoundaryGrid,  operation = "Multiply",
-            weakBasis = self.confBasis,         onGhosts  = true,
+            weakBasis = self.confBasis,  operation = "Multiply",
+            onGhosts  = true,
          }
          self.confWeakDivide = Updater.CartFieldBinOp {
-            onGrid    = self.confBoundaryGrid,  operation = "Divide",
-            weakBasis = self.confBasis,         onGhosts  = true,
+            weakBasis = self.confBasis,  operation = "Divide",
+            onRange   = self.confBoundaryField:localExtRange(),  onGhosts = true,
          }
          self.confWeakDotProduct = Updater.CartFieldBinOp {
-            onGrid    = self.confBoundaryGrid,  operation = "DotProduct",
-            weakBasis = self.confBasis,         onGhosts  = true,
+            weakBasis = self.confBasis,  operation = "DotProduct",
+            onGhosts  = true,
          }
          -- Volume integral operator (for diagnostics).
          self.volIntegral = {
@@ -381,6 +376,11 @@ function NeutralRecyclingBC:createCouplingSolver(species, field, externalField)
 
    self.recIonBC = recIon.nonPeriodicBCs[string.gsub(self.name,self.speciesName.."_","")]
    self.bcIonM0fluxField = self.recIonBC:allocMoment() 
+
+   self.recycleConfWeakDivide = Updater.CartFieldBinOp {
+      weakBasis = self.confBasis,  operation = "Divide",
+      onRange   = self.bcIonM0fluxField:localRange(),
+   }
 end
 
 function NeutralRecyclingBC:storeBoundaryFlux(tCurr, rkIdx, qOut)
