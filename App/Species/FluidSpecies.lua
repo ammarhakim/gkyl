@@ -364,11 +364,9 @@ function FluidSpecies:createSolver(field, externalField)
          momIn:accumulate(1.0, self.momBackground)
          momIn:sync(syncFullFperiodicDirs)
       end or function(momIn, syncFullFperiodicDirs) end 
-   print("here ",self.perturbedDiagnostics)
    self.calcDeltaMom = self.perturbedDiagnostics 
       and function(momIn) self.flucMom:combine(1.0, momIn, -1.0, self.momBackground) end
       or function(momIn) end
-   print("here 2 ",self.calcDeltaMom)
 
    if self.fluctuationBCs or self.perturbedDiagnostics then
       self.writeFluctuation = self.perturbedDiagnostics 
