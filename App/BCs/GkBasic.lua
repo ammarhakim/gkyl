@@ -371,12 +371,12 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
          end
          -- Set up weak multiplication and division operators (for diagnostics).
          self.confWeakMultiply = Updater.CartFieldBinOp {
-            onGrid    = self.confBoundaryGrid,  operation = "Multiply",
-            weakBasis = self.confBasis,         onGhosts  = true,
+            weakBasis = self.confBasis,  operation = "Multiply",
+            onGhosts  = true,
          }
          self.confWeakDivide = Updater.CartFieldBinOp {
-            onGrid    = self.confBoundaryGrid,  operation = "Divide",
-            weakBasis = self.confBasis,         onGhosts  = true,
+            weakBasis = self.confBasis,  operation = "Divide",
+            onRange   = self.confBoundaryField:localExtRange(),  onGhosts = true,
          }
          -- Volume integral operator (for diagnostics).
          self.volIntegral = {

@@ -393,12 +393,12 @@ function GkField:createSolver(species, externalField)
    end
 
    self.weakMultiply = Updater.CartFieldBinOp {
-      onGrid    = self.grid,   operation = "Multiply",
-      weakBasis = self.basis,  onGhosts  = true,
+      weakBasis = self.basis,  operation = "Multiply",
+      onGhosts  = true,
    }
    self.weakDivide = Updater.CartFieldBinOp {
-      onGrid    = self.grid,   operation = "Divide",
-      weakBasis = self.basis,  onGhosts  = false,
+      weakBasis = self.basis,  operation = "Divide",
+      onRange   = self.chargeDens:localRange(),  onGhosts = false,
    }
 
    -- When using a linearizedPolarization term in Poisson equation,
@@ -1105,12 +1105,12 @@ function GkGeometry:initField()
    -- Compute 1/B and 1/(B^2). LBO collisions require that this is
    -- done via weak operations instead of projecting 1/B or 1/B^2.
    local confWeakMultiply = Updater.CartFieldBinOp {
-      onGrid    = self.grid,   operation = "Multiply",
-      weakBasis = self.basis,  onGhosts  = true,
+      weakBasis = self.basis,  operation = "Multiply",
+      onGhosts  = true,
    }
    local confWeakDivide = Updater.CartFieldBinOp {
-      onGrid    = self.grid,   operation = "Divide",
-      weakBasis = self.basis,  onGhosts  = true,
+      weakBasis = self.basis,  operation = "Divide",
+      onRange   = self.unitWeight:localExtRange(),  onGhosts = true,
    }
    confWeakDivide:advance(0., {self.geo.bmag, self.unitWeight}, {self.geo.bmagInv})
    confWeakMultiply:advance(0., {self.geo.bmagInv, self.geo.bmagInv}, {self.geo.bmagInvSq})

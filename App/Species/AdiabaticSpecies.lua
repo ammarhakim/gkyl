@@ -92,12 +92,11 @@ function AdiabaticSpecies:createSolver(field, externalField)
 
       -- Scale by the Jacobian.
       if externalField.geo then
-         local weakMultiply = Updater.CartFieldBinOp {
-            onGrid    = self.grid,   operation = "Multiply",
-            weakBasis = self.basis,  onGhosts  = true,
-         }
-
          local jacob = externalField.geo.jacobGeo
+         local weakMultiply = Updater.CartFieldBinOp {
+            weakBasis = self.basis,  operation = "Multiply",
+            onGhosts  = true, 
+         }
          if jacob then weakMultiply:advance(0, {self.QneutFac, jacob}, {self.QneutFac}) end
       end
    

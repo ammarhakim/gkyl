@@ -180,17 +180,16 @@ function MaxwellianProjection:scaleM012(distf)
 
    -- Initialize weak multiplication/division operators.
    local weakDivision = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,   operation = "Divide",
-      weakBasis = self.confBasis,  onGhosts  = true,
+      weakBasis = self.confBasis,  operation = "Divide",
+      onRange   = M0_e:localExtRange(),  onGhosts  = true,
    }
    local weakMultiplicationConf = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,   operation = "Multiply",
-      weakBasis = self.confBasis,  onGhosts  = true,
+      weakBasis = self.confBasis,  operation = "Multiply",
+      onGhosts  = true,
    }
    local weakMultiplicationPhase = Updater.CartFieldBinOp {
-      onGrid     = self.phaseGrid,   operation  = "Multiply",
-      weakBasis  = self.phaseBasis,  onGhosts   = true,
-      fieldBasis = self.confBasis,
+      weakBasis  = self.phaseBasis,  operation  = "Multiply",
+      fieldBasis = self.confBasis,   onGhosts   = true,
    }
 
    -- Calculate M0_mod = M0_e / M0.
@@ -249,10 +248,8 @@ end
 --      return vpar*self.initFunc(t,zn)
 --   end
 --   local project_vpar = Updater.ProjectOnBasis {
---      onGrid   = self.phaseGrid,
---      basis    = self.phaseBasis,
---      evaluate = distf_vparFunc,
---      onGhosts = true
+--      onGrid = self.phaseGrid,   evaluate = distf_vparFunc,
+--      basis  = self.phaseBasis,  onGhosts = true
 --   }
 --   project_vpar:advance(0.0, {}, {distf_vpar})
 --   local distf_vpar2Func = function (t, zn)
@@ -260,10 +257,8 @@ end
 --      return vpar^2*self.initFunc(t,zn)
 --   end
 --   local project_vpar2 = Updater.ProjectOnBasis {
---      onGrid   = self.phaseGrid,
---      basis    = self.phaseBasis,
---      evaluate = distf_vpar2Func,
---      onGhosts = true
+--      onGrid = self.phaseGrid,   evaluate = distf_vpar2Func,
+--      basis  = self.phaseBasis,  onGhosts = true
 --   }
 --   project_vpar2:advance(0.0, {}, {distf_vpar2})
 --   if self.vdim == 2 then 
@@ -272,37 +267,29 @@ end
 --         return mu*sp.bmagFunc(t,zn)*self.initFunc(t,zn)
 --      end
 --      local project_muB = Updater.ProjectOnBasis {
---         onGrid   = self.phaseGrid,
---         basis    = self.phaseBasis,
---         evaluate = distf_muBFunc,
---         onGhosts = true
+--         onGrid = self.phaseGrid,   evaluate = distf_muBFunc,
+--         basis  = self.phaseBasis,  onGhosts = true
 --      }
 --      project_muB:advance(0.0, {}, {distf_muB})
 --   end
 --
---   -- initialize weak multiplication/division operators
---   local weakDivision = Updater.CartFieldBinOp {
---      onGrid = self.confGrid,
---      weakBasis = self.confBasis,
---      operation = "Divide",
---      onGhosts = true,
---   }
---   local weakMultiplicationConf = Updater.CartFieldBinOp {
---      onGrid = self.confGrid,
---      weakBasis = self.confBasis,
---      operation = "Multiply",
---      onGhosts = true,
---   }
---   local weakMultiplicationPhase = Updater.CartFieldBinOp {
---      onGrid = self.phaseGrid,
---      weakBasis = self.phaseBasis,
---      fieldBasis = self.confBasis,
---      operation = "Multiply",
---      onGhosts = true,
---   }
---
 --   -- calculate (inexact) moments of initial distribution function
 --   local Dens, M1, M2par, M2perp = sp:allocMoment(), sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
+--
+--   -- initialize weak multiplication/division operators
+--   local weakDivision = Updater.CartFieldBinOp {
+--      weakBasis = self.confBasis,  operation = "Divide",
+--      onRange   = M1:localExtRange(),  onGhosts = true,
+--   }
+--   local weakMultiplicationConf = Updater.CartFieldBinOp {
+--      weakBasis = self.confBasis,  operation = "Multiply",
+--      onGhosts  = true,
+--   }
+--   local weakMultiplicationPhase = Updater.CartFieldBinOp {
+--      weakBasis  = self.phaseBasis,  operation = "Multiply",
+--      fieldBasis = self.confBasis,   onGhosts  = true,
+--   }
+--
 --   sp.numDensityCalc:advance(0.0, {distf}, {Dens})
 --   sp.momDensityCalc:advance(0.0, {distf}, {M1})
 --   sp.M2parCalc:advance(0.0, {distf}, {M2par})
@@ -327,35 +314,27 @@ end
 --   -- initialize exact moments
 --   local Dens_e, Upar_e, Temp_e = sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
 --   local projectDens = Updater.ProjectOnBasis {
---      onGrid   = self.confGrid,
---      basis    = self.confBasis,
---      evaluate = function(t, zn) return self.density(t, zn, sp) end,
---      onGhosts = true,
+--      onGrid = self.confGrid,   evaluate = function(t, zn) return self.density(t, zn, sp) end,
+--      basis  = self.confBasis,  onGhosts = true,
 --   }
 --   projectDens:advance(0.0, {}, {Dens_e})
 --
 --   local projectUpar = Updater.ProjectOnBasis {
---      onGrid   = self.confGrid,
---      basis    = self.confBasis,
---      evaluate = function(t, zn) return self.driftSpeed(t, zn, sp) end,
---      onGhosts = true,
+--      onGrid = self.confGrid,   evaluate = function(t, zn) return self.driftSpeed(t, zn, sp) end,
+--      basis  = self.confBasis,  onGhosts = true,
 --   }
 --   projectUpar:advance(0.0, {}, {Upar_e})
 --
 --   local projectTemp = Updater.ProjectOnBasis {
---      onGrid   = self.confGrid,
---      basis    = self.confBasis,
---      evaluate = function(t, zn) return self.temperature(t, zn, sp) end,
---      onGhosts = true,
+--      onGrid = self.confGrid,   evaluate = function(t, zn) return self.temperature(t, zn, sp) end,
+--      basis  = self.confBasis,  onGhosts = true,
 --   }
 --   projectTemp:advance(0.0, {}, {Temp_e})
 --
 --   local unitField, TparInv, TperpInv = sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
 --   local projectUnity = Updater.ProjectOnBasis {
---      onGrid   = self.confGrid,
---      basis    = self.confBasis,
---      evaluate = function(t, zn) return 1.0 end,
---      onGhosts = true,
+--      onGrid = self.confGrid,   evaluate = function(t, zn) return 1.0 end,
+--      basis  = self.confBasis,  onGhosts = true,
 --   }
 --   projectUnity:advance(0.0, {}, {unitField})
 --

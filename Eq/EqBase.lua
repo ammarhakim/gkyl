@@ -7,7 +7,7 @@
 
 -- system libraries
 local Proto = require "Lib.Proto"
-local ffi = require "ffi"
+local ffi   = require "ffi"
 require "Lib.ZeroUtil"
 
 ffi.cdef [[ 

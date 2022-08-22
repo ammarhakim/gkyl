@@ -18,9 +18,9 @@
 --------------------------------------------------------------------------------
 
 local UpdaterBase = require "Updater.Base"
-local Lin = require "Lib.Linalg"
-local Proto = require "Lib.Proto"
-local xsys = require "xsys"
+local Lin         = require "Lib.Linalg"
+local Proto       = require "Lib.Proto"
+local xsys        = require "xsys"
 
 local AnisotropicDiffusion = Proto(UpdaterBase)
 
@@ -612,7 +612,7 @@ function AnisotropicDiffusion:_forwardEuler(
 end
 
 function AnisotropicDiffusion:_advance(tCurr, inFld, outFld)
-   return self:_forwardEuler(self, tCurr, inFld, outFld)
+   return self:reduceStatusDt(self:_forwardEuler(self, tCurr, inFld, outFld))
 end
 
 return AnisotropicDiffusion

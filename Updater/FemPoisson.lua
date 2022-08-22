@@ -57,8 +57,8 @@ function FemPoisson:init(tbl)
       }
       -- Set up weak division operator for special case when solve is algebraic.
       self.weakDivide = CartFieldBinOp {
-         onGrid    = self.grid,   operation = "Divide",
-         weakBasis = self.basis,  onGhosts  = true,
+         onRange   = self.slvr:getModifierWeight():localExtRange(),  onGhosts = true,
+         weakBasis = self.basis,  operation = "Divide",
       }
    elseif ndim == 2 then
       self.slvr = FemPerpPoisson {
