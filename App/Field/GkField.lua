@@ -436,6 +436,9 @@ function GkField:createSolver(species, externalField)
          setModWeight = true
          setLapWeight = true -- MF 2022/08/01: Temporary work around. Otherwise it is not set in FemParproj (but not used therein anyway).
 
+         -- Include the Jacobian factor (included in metric coeffs in ndim>1).
+         self.weakMultiply:advance(0., {self.jacobGeo, self.rhsDenomPoisson}, {self.rhsDenomPoisson})
+
          self.divRHSbyModWeightPoisson = function(qdens)
             self.weakDivide:advance(0., {self.rhsDenomPoisson, qdens}, {qdens})
             return qdens
