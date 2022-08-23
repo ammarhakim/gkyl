@@ -153,6 +153,15 @@ function GkSpecies:createSolver(field, externalField)
       self.bmagInvSq   = externalField.geo.bmagInvSq
       self.jacobGeo    = externalField.geo.jacobGeo
       self.jacobGeoInv = externalField.geo.jacobGeoInv
+
+      self.jacobGeoDbmagSq = self:allocMoment()
+      self.confWeakMultiply:advance(0., {self.jacobGeo, self.bmagInvSq}, {self.jacobGeoDbmagSq})
+
+      -- Compute the magnetic field in the center of the domain (e.g. for the Poisson equation).
+      local xMid = {}
+      for d = 1,self.cdim do xMid[d]=self.confGrid:mid(d) end
+      self.bmagMid = self.bmagFunc(0.0, xMid)
+
    end
 
    self.hasSheathBCs = false
@@ -332,26 +341,29 @@ function GkSpecies:createSolver(field, externalField)
    -- Select the function that returns the mass density factor for the polarization (Poisson equation).
    -- Allow user to specify polarization density factor (n in polarization density).
    -- If the polarization is linearized, it should be specified in the input file (as a number, file, or function).
+   self.polWeight = self:allocMoment() -- Polarization weight mass*jacobGeo*n0/B^2 (for Poisson equation).
    if field.linearizedPolarization then
+      local evOnNodes = Updater.EvalOnNodes {
+         onGrid = self.confGrid,   evaluate = function(t, xn) return 1. end,
+         basis  = self.confBasis,  onGhosts = false, --true,
+      }
       if self.tbl.polarizationDensityFactor == nil then
          print("*** App.Species.GkSpecies: WARNING... not specifying 'polarizationDensityFactor' and relying on n0 in the input file will be deprecated. Please change your input file to specify 'polarizationDensityFactor' (the density factor in the Poisson equation). ***")
          local den0 = self.tbl.n0 or n0
-         self.polMassDen = den0*self.mass
+         evOnNodes:setFunc(function(t,xn) return den0*self.mass/(self.bmagMid^2) end)
+         evOnNodes:advance(0., {}, {self.polWeight})
       else
          local polDenFacIn = self.tbl.polarizationDensityFactor
    
          if type(polDenFacIn) == "number" then
-            self.polMassDen = self.mass*polDenFacIn
+            evOnNodes:setFunc(function(t,xn) return polDenFacIn*self.mass/(self.bmagMid^2) end)
+            evOnNodes:advance(0., {}, {self.polWeight})
          elseif type(polDenFacIn) == "string" or type(polDenFacIn) == "function" then
-            self.polMassDen = self:allocMoment() -- Polarization mass density (for Poisson equation).
             if type(polDenFacIn) == "string" then
-               self.distIo:read(self.polMassDen, polDenFacIn) --, true)
+               self.distIo:read(self.polWeight, polDenFacIn) --, true)
             else
-               local evOnNodes = Updater.EvalOnNodes {
-                  onGrid = self.confGrid,   evaluate = polDenFacIn,
-                  basis  = self.confBasis,  onGhosts = false, --true,
-               }
-               evOnNodes:advance(0., {}, {self.polMassDen})
+               evOnNodes:setFunc(polDenFacIn)
+               evOnNodes:advance(0., {}, {self.polWeight})
             end
    
             -- Apply open BCs (although BCs here should not matter/be used).
@@ -372,20 +384,25 @@ function GkSpecies:createSolver(field, externalField)
                   openBCupdaters["upper"] = makeOpenBcUpdater(dir, "upper")
                end
             end
-            for _, bc in pairs(openBCupdaters) do bc:advance(0., {}, {self.polMassDen}) end
-            self.polMassDen:sync(true)
+            for _, bc in pairs(openBCupdaters) do bc:advance(0., {}, {self.polWeight}) end
+            self.polWeight:sync(true)
    
-            self.distIo:write(self.polMassDen, string.format("%s_polarizationDensityFactor_%d.bp", self.name, self.diagIoFrame), 0., self.diagIoFrame, false) --true)
+            self.distIo:write(self.polWeight, string.format("%s_polarizationDensityFactor_%d.bp", self.name, self.diagIoFrame), 0., self.diagIoFrame, false) --true)
    
-            self.polMassDen:scale(self.mass)
+            self.polWeight:scale(self.mass)
+            self.confWeakMultiply:advance(0., {self.bmagInvSq, self.polWeight}, {self.polWeight})
          end
       end
 
-      self.getPolMassDen = function() return self.polMassDen end
+      -- Include a factor of jacobGeo (included naturally when linearizedPolarization=false).
+      self.confWeakMultiply:advance(0., {self.jacobGeo, self.polWeight}, {self.polWeight})
+
+      self.getPolWeight = function() return self.polWeight end
    else
-      self.getPolMassDen = function()
-         self.polMassDen:combine(self.mass, self.numDensity)
-         return self.polMassDen
+      self.getPolWeight = function()
+         self.polWeight:combine(self.mass, self.numDensity)
+         self.confWeakMultiply:advance(0., {self.jacobGeoDbmagSq, self.polWeight}, {self.polWeight})
+         return self.polWeight
       end
    end
 
@@ -999,7 +1016,7 @@ function GkSpecies:getEmModifier(rkIdx)
    return self.momDensityAux
 end
 
-function GkSpecies:getPolarizationMassDensity() return self.getPolMassDen() end
+function GkSpecies:getPolarizationWeight() return self.getPolWeight() end
 
 function GkSpecies:getSrcCX() return self.srcCX end
 

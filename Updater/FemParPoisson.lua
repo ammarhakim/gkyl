@@ -64,9 +64,29 @@ ffi.cdef[[
    // Object type
   typedef struct gkyl_fem_parproj gkyl_fem_parproj;
 
+/**
+ * Create new updater to project a DG field onto the FEM (nodal) basis
+ * in order to make the field continuous or, thanks to the option to pass
+ * a multiplicative weight, solve 1D algebraic equations in which the output
+ * field is continuous (but the input may not be). That is, we solve
+ *    wgt*phi_{fem} \doteq rho_{dg}
+ * where wgt is the weight field, phi_{fem} is the (continuous field)
+ * we wish to compute, rho_{dg} is the (discontinuous) input source field,
+ * and \doteq implies weak equality with respect to the FEM basis.
+ * Free using gkyl_fem_parproj_release method.
+ *
+ * @param grid Grid object
+ * @param basis Basis functions of the DG field.
+ * @param isparperiodic boolean indicating if parallel direction is periodic.
+ * @param isweighted boolean indicating if wgt\=1.
+ * @param weight multiplicative weight on left-side of the operator.
+ * @param use_gpu boolean indicating whether to use the GPU.
+ * @return New updater pointer.
+ */
   gkyl_fem_parproj* gkyl_fem_parproj_new(
     const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-    const bool isparperiodic, bool use_gpu);
+    bool isparperiodic, bool isweighted, const struct gkyl_array *weight,
+    bool use_gpu);
 
   void gkyl_fem_parproj_set_rhs(gkyl_fem_parproj* up, const struct gkyl_array *rhsin);
   void gkyl_fem_parproj_solve(gkyl_fem_parproj* up, struct gkyl_array *phiout);
@@ -202,7 +222,8 @@ function FemParPoisson:init(tbl)
 
    local useG0 = xsys.pickBool(tbl.useG0, true)
    if useG0 then
-      self._zero_fem = ffiC.gkyl_fem_parproj_new(self._grid._zero, self._basis._zero, self._periodic, GKYL_USE_GPU or 0)
+      self._zero_fem = ffiC.gkyl_fem_parproj_new(self._grid._zero, self._basis._zero, self._periodic,
+                                                 false, self.unitWeight._zero, GKYL_USE_GPU or 0)
    end
 
    return self

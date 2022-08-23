@@ -29,7 +29,7 @@ log("\n")
 log("  1x2v gyrokinetic WHAM simulation\n")
 log("\n")
 
-polyOrder = 1
+polyOrder = 2
 
 -- Universal constant parameters.
 eps0, mu0 = Constants.EPSILON0, Constants.MU0
@@ -359,7 +359,7 @@ plasmaApp = Plasma.App {
    end,
 
    timeStepper = "rk3",                    -- One of "rk2" or "rk3".
-   cflFrac     = 0.9*.60,
+   cflFrac     = 0.9,
    restartFrameEvery = .05,
    calcIntQuantEvery = 1./(10.*nframes),  -- Aim at 10x more frequently than frames.
 

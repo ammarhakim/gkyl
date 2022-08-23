@@ -43,12 +43,15 @@ typedef struct gkyl_fem_parproj gkyl_fem_parproj;
  * @param grid Grid object
  * @param basis Basis functions of the DG field.
  * @param isparperiodic boolean indicating if parallel direction is periodic.
+ * @param isweighted boolean indicating if wgt\=1.
+ * @param weight multiplicative weight on left-side of the operator.
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
 gkyl_fem_parproj* gkyl_fem_parproj_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  const bool isparperiodic, bool use_gpu);
+  bool isparperiodic, bool isweighted, const struct gkyl_array *weight,
+  bool use_gpu);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field.
@@ -79,12 +82,19 @@ local FemParproj = Proto(UpdaterBase)
 function FemParproj:init(tbl)
    FemParproj.super.init(self, tbl) -- Setup base object.
 
-   self._grid          = assert(tbl.onGrid, "Updater.FemParproj: Must specify grid to use with 'onGrid'.")
-   self._basis         = assert(tbl.basis, "Updater.FemParproj: Must specify the basis in 'basis'.")
+   self._grid  = assert(tbl.onGrid, "Updater.FemParproj: Must specify grid to use with 'onGrid'.")
+   self._basis = assert(tbl.basis, "Updater.FemParproj: Must specify the basis in 'basis'.")
+
    self._isParPeriodic = tbl.periodicParallelDir
    assert(self._isParPeriodic ~= nil, "Updater.FemParproj: Must specify if parallel direction is periodic with 'periodicParallelDir'.")
 
-   self._zero = ffi.gc(ffiC.gkyl_fem_parproj_new(self._grid._zero, self._basis._zero, self._isParPeriodic, GKYL_USE_GPU or 0),
+   self._isWeighted = tbl.weighted
+   assert(self._isWeighted ~= nil, "Updater.FemParproj: Must specify if projection is weighted with 'weighted'.")
+
+   local weightFld = assert(tbl.weight, "Updater.FemParproj: Must specify weight (use dummy weight if weighted=false).")
+
+   self._zero = ffi.gc(ffiC.gkyl_fem_parproj_new(self._grid._zero, self._basis._zero, self._isParPeriodic,
+                                                 self._isWeighted, weightFld._zero, GKYL_USE_GPU or 0),
                        ffiC.gkyl_fem_parproj_release)
 end
 

@@ -25,8 +25,14 @@ ffi.cdef [[
       int ndim, unsigned nc, unsigned nb, const double *dxv, const double *fIn, double *out);
     void gkylCartFieldIntQuantAbsV(
       int ndim, unsigned nc, unsigned nb, const double *dxv, const double *fIn, double *out);
-    void gkylCartFieldIntQuantGradPerpV2(
-      int ndim, unsigned nc, unsigned nb, const double *dxv, const double *fIn, double *out);
+    void gkylCartFieldIntQuantGradPerpV2_2x_p1(
+      int ndim, unsigned nc, unsigned nb, const double *dxv, const double *inw, const double *fIn, double *out);
+    void gkylCartFieldIntQuantGradPerpV2_2x_p2(
+      int ndim, unsigned nc, unsigned nb, const double *dxv, const double *inw, const double *fIn, double *out);
+    void gkylCartFieldIntQuantGradPerpV2_3x_p1(
+      int ndim, unsigned nc, unsigned nb, const double *dxv, const double *inw, const double *fIn, double *out);
+    void gkylCartFieldIntQuantGradPerpV2_3x_p2(
+      int ndim, unsigned nc, unsigned nb, const double *dxv, const double *inw, const double *fIn, double *out);
 ]]
 
 -- Integrated quantities calculator.
@@ -52,11 +58,21 @@ function CartFieldIntegratedQuantCalc:init(tbl)
 
    if tbl.quantity == "RmsV" then self.sqrt = true; tbl.quantity = "V2" end
 
-   self.updateFunc = ffiC["gkylCartFieldIntQuant"..tbl.quantity]
+   if tbl.quantity == "GradPerpV2" then
+      assert(self.numComponents==1 and self.basis:polyOrder()<3, 
+             "CartFieldIntegratedQuantCalc: GradPerpV2 currently only implemented for p<3 and numComponents=1")
+      tbl.quantity = tbl.quantity .. "_" .. tostring(self.onGrid:ndim()) .. "x_p" .. tostring(self.basis:polyOrder())
 
-   if tbl.quantity == "GradPerpV2" then assert(self.numComponents==1 and self.basis:polyOrder()==1, 
-          "CartFieldIntegratedQuantCalc: GradPerpV2 currently only implemented for p=1 and numComponents=1")
+      self.advFunc = function(tCurr, inFld, outFld)
+         self:advanceGradPerpV2(tCurr, inFld, outFld)
+      end
+   else
+      self.advFunc = function(tCurr, inFld, outFld)
+         self:advanceBasic(tCurr, inFld, outFld)
+      end
    end
+
+   self.updateFunc = ffiC["gkylCartFieldIntQuant"..tbl.quantity]
 
    self.timeIntegrate = xsys.pickBool(tbl.timeIntegrate, false)
 
@@ -68,8 +84,52 @@ function CartFieldIntegratedQuantCalc:init(tbl)
    self.globalVals = Lin.Vec(self.numComponents)
 end   
 
--- Advance method.
-function CartFieldIntegratedQuantCalc:_advance(tCurr, inFld, outFld)
+function CartFieldIntegratedQuantCalc:advanceGradPerpV2(tCurr, inFld, outFld)
+   local grid        = self.onGrid
+   local field, vals = inFld[1], outFld[1]
+   local multfac     = assert(inFld[2], "Updater.CartFieldIntegratedQuantCalc: GradPerpV2 requires that you pass the position-space jacobian.")
+
+   local ndim  = self.basis:ndim()
+   local nvals = self.numComponents
+
+   local fieldIndexer = field:genIndexer()
+   local fieldItr     = field:get(1)
+
+   -- Clear local values.
+   for i = 1, nvals do
+      self.localVals[i]  = 0.0
+      self.globalVals[i] = 0.0
+   end
+
+   -- Construct range for shared memory.
+   local fieldRange = self.onGhosts and field:localExtRange() or field:localRange()
+   local fieldRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = fieldRange:selectFirst(ndim), numSplit = grid:numSharedProcs() }
+   local tId = grid:subGridSharedId()    -- Local thread ID.
+
+   -- Assume multfac is a field with the same number of cells and components as field.
+   local multfacItr = multfac:get(1)
+   -- Loop, computing integrated moments in each cell.
+   for idx in fieldRangeDecomp:rowMajorIter(tId) do
+      grid:setIndex(idx)
+      grid:getDx(self.dxv)
+
+      field:fill(fieldIndexer(idx), fieldItr)
+      multfac:fill(fieldIndexer(idx), multfacItr)
+
+      -- Compute integrated quantities.
+      self.updateFunc(
+         ndim, nvals, self.basis:numBasis(), self.dxv:data(), multfacItr:data(), fieldItr:data(), self.localVals:data())
+   end
+
+   -- All-reduce across processors and push result into dyn-vector.
+   Mpi.Allreduce(
+      self.localVals:data(), self.globalVals:data(), nvals, Mpi.DOUBLE, Mpi.SUM, Mpi.COMM_WORLD)
+
+   vals:appendData(tCurr, self.globalVals)
+end
+
+function CartFieldIntegratedQuantCalc:advanceBasic(tCurr, inFld, outFld)
    local grid        = self.onGrid
    local field, vals = inFld[1], outFld[1]
    local multfac     = inFld[2]
@@ -98,9 +158,10 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, inFld, outFld)
       grid:getDx(self.dxv)
 
       field:fill(fieldIndexer(idx), fieldItr)
+
       -- Compute integrated quantities.
       self.updateFunc(
-	 ndim, nvals, self.basis:numBasis(), self.dxv:data(), fieldItr:data(), self.localVals:data())
+         ndim, nvals, self.basis:numBasis(), self.dxv:data(), fieldItr:data(), self.localVals:data())
    end
 
    -- All-reduce across processors and push result into dyn-vector.
@@ -122,6 +183,11 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, inFld, outFld)
    end
 
    vals:appendData(tCurr, self.globalVals)
+end
+
+-- Advance method.
+function CartFieldIntegratedQuantCalc:_advance(tCurr, inFld, outFld)
+   self.advFunc(tCurr, inFld, outFld)
 end
 
 return CartFieldIntegratedQuantCalc

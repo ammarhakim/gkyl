@@ -244,10 +244,9 @@ function GkField:alloc(nRkDup)
    self.currentDens = createField(self.grid,self.basis,{1,1})
 
    -- Set up some other fields.
-   self.polarizationWeight = self.uniformPolarization and 0. or createField(self.grid,self.basis,{1,1})
-   self.lapWeightPoisson   = createField(self.grid,self.basis,{1,1})
+   self.polarizationWeight = createField(self.grid,self.basis,{1,1})
+   self.lapWeightPoisson   = self.ndim > 1 and createField(self.grid,self.basis,{1,1}) or nil
    self.modWeightPoisson   = createField(self.grid,self.basis,{1,1})
-   self.rhsDenomPoisson    = self.ndim == 1 and createField(self.grid,self.basis,{1,1}) or nil
    if self.isElectromagnetic then
       self.dApardtSlvr_lapModFac = createField(self.grid,self.basis,{1,1})
       self.lapWeightAmpere       = createField(self.grid,self.basis,{1,1})
@@ -256,6 +255,7 @@ function GkField:alloc(nRkDup)
    
    -- For diagnostics:
    self.phiSq = createField(self.grid,self.basis,{1,1})
+   self.esEnergyFac = createField(self.grid,self.basis,{1,1})
 end
 
 -- Solve for initial fields self-consistently 
@@ -296,7 +296,7 @@ function GkField:initField(species)
    -- Apply BCs and update ghosts.
    self:applyBc(0, self.potentials[1])
 
-   if self.ioFrame == 0 then 
+   if self.ndim > 1 and self.ioFrame == 0 then 
       self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeightPoisson_0.bp", tm, self.ioFrame, false)
       self.fieldIo:write(self.phiSlvr:getModifierWeight(),  "modifierWeightPoisson_0.bp", tm, self.ioFrame, false)
    end
@@ -359,13 +359,11 @@ function GkField:createSolver(species, externalField)
    else
       self.jacobGeo = self.unitField
    end
-   if self.ndim == 1 then
-      self.phiSlvr = Updater.FemParproj {
-         onGrid = self.grid, 
-         basis  = self.basis,
-         periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
-      }
-   else
+   -- MF 2022/08/23: g2 creation of phiSlvr happens before setting weights,
+   -- but g0 solver creation needs to happen after computing weights.
+   -- So we only do this creation for ndim>1 here since that is still using
+   -- the g2 updater.
+   if self.ndim > 1 then
       self.phiSlvr = Updater.FemPoisson {
          onGrid = self.grid,   bcLower = self.bcLowerPhi,
          basis  = self.basis,  bcUpper = self.bcUpperPhi,
@@ -375,6 +373,78 @@ function GkField:createSolver(species, externalField)
          gxy = gxyPoisson,
          gyy = gyyPoisson,
          useG0 = false,
+      }
+   end
+
+   self.weakMultiply = Updater.CartFieldBinOp {
+      weakBasis = self.basis,  operation = "Multiply",
+      onGhosts  = true,
+   }
+   self.weakDivide = Updater.CartFieldBinOp {
+      weakBasis = self.basis,  operation = "Divide",
+      onRange   = self.chargeDens:localRange(),  onGhosts = false,
+   }
+
+   -- When using a linearizedPolarization term in Poisson equation,
+   -- the density in the polarization density is constant in time.
+   if self.linearizedPolarization then
+      -- Calculate weight on polarization term: sum_s m_s * jacobGeo * n_s / B^2.
+      self.polarizationWeight:clear(0.)
+      for _, s in lume.orderedIter(species) do
+         if Species.GkSpecies.is(s) or Species.GyrofluidSpecies.is(s) then
+            self.polarizationWeight:accumulate(1., s:getPolarizationWeight())
+         end
+      end
+      self.esEnergyFac:combine(.5, self.polarizationWeight)
+
+      -- Set up scalar multipliers on laplacian and modifier terms in Poisson equation.
+      if self.ndim==1 then
+         self.modWeightPoisson:combine(self.kperpSq, self.polarizationWeight)
+         self.esEnergyFac:scale(self.kperpSq)  -- For diagnostics.
+         -- Add contribution from the adiabatic species.
+         if self.adiabatic then 
+            self.modWeightPoisson:accumulate(1., self.adiabSpec:getQneutFac())
+            self.esEnergyFac:accumulate(0.5, self.adiabSpec:getQneutFac())   -- For diagnostics.
+         end
+      else 
+         self.lapWeightPoisson:combine(-1., self.polarizationWeight)
+         self.phiSlvr:setLaplacianWeight(self.lapWeightPoisson)
+
+         self.modWeightPoisson:clear(0.)
+         if self.adiabatic then   -- Add contribution from the adiabatic species.
+            self.modWeightPoisson:accumulate(1., self.adiabSpec:getQneutFac())
+            self.phiSlvr:setModifierWeight(self.modWeightPoisson)
+         end
+
+      end
+
+      self.setPolarizationWeightFunc = function(specTbl) end  -- Polarization weight is not time dependent.
+   else
+      -- When not using linearizedPolarization, weights are set each step in advance method using these functions.
+      if self.ndim == 1 then
+         self.setPolarizationWeightFunc = function(specTbl)
+            self.polarizationWeight:clear(0.0)
+            for _, s in lume.orderedIter(specTbl) do
+               self.polarizationWeight:accumulate(self.kperpSq, s:getPolarizationMassDensity())
+            end
+         end
+         self.phiSlvr:setWeight(self.polarizationWeight)
+      else
+         self.setPolarizationWeightFunc = function(specTbl)
+            self.polarizationWeight:clear(0.0)
+            for _, s in lume.orderedIter(specTbl) do
+               self.polarizationWeight:accumulate(-1.0, s:getPolarizationMassDensity())
+            end
+            self.phiSlvr:setLaplacianWeight(self.polarizationWeight)
+         end
+      end
+   end
+
+   if self.ndim == 1 then
+      self.phiSlvr = Updater.FemParproj {
+         onGrid   = self.grid,  basis  = self.basis,
+         weighted = true,       weight = self.modWeightPoisson,
+         periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
       }
    end
 
@@ -391,110 +461,6 @@ function GkField:createSolver(species, externalField)
    else
       self.zSmoothPhi = function(tCurr, phiIn, phiOut) return phiIn end
    end
-
-   self.weakMultiply = Updater.CartFieldBinOp {
-      weakBasis = self.basis,  operation = "Multiply",
-      onGhosts  = true,
-   }
-   self.weakDivide = Updater.CartFieldBinOp {
-      weakBasis = self.basis,  operation = "Divide",
-      onRange   = self.chargeDens:localRange(),  onGhosts = false,
-   }
-
-   -- When using a linearizedPolarization term in Poisson equation,
-   -- the density in the polarization density is constant in time.
-   if self.linearizedPolarization then
-      -- Calculate weight on polarization term: sum_s m_s n_s / B^2.
-      for _, s in lume.orderedIter(species) do
-         if Species.GkSpecies.is(s) or Species.GyrofluidSpecies.is(s) then
-            if self.uniformPolarization then
-               self.polarizationWeight = self.polarizationWeight + s:getPolarizationMassDensity()
-            else
-               self.polarizationWeight:accumulate(1., s:getPolarizationMassDensity())
-            end
-         end
-      end
-      if self.uniformPolarization then
-         self.polarizationWeight = self.polarizationWeight/(externalField.bmagMid^2)
-      else
-         self.weakMultiply:advance(0., {externalField.bmagInvSq, self.polarizationWeight}, {self.polarizationWeight})
-      end
-
-      -- Set up scalar multipliers on laplacian and modifier terms in Poisson equation.
-      local setLapWeight, setModWeight = false, false
-      if self.ndim==1 then
-         self.lapWeightPoisson:clear(0.)
-         -- For ndim=1 we'll divide the RHS by the modifier instead (to keep fem_parproj simple in g0).
-         self.modWeightPoisson:copy(self.unitField)
-         if self.uniformPolarization then
-            self.rhsDenomPoisson:combine(self.kperpSq*self.polarizationWeight, self.unitField)
-         else
-            self.rhsDenomPoisson:combine(self.kperpSq, self.polarizationWeight)
-         end
-         -- Add contribution from the adiabatic species.
-         if self.adiabatic then self.rhsDenomPoisson:accumulate(1., self.adiabSpec:getQneutFac()) end
-         setModWeight = true
-         setLapWeight = true -- MF 2022/08/01: Temporary work around. Otherwise it is not set in FemParproj (but not used therein anyway).
-
-         -- Include the Jacobian factor (included in metric coeffs in ndim>1).
-         self.weakMultiply:advance(0., {self.jacobGeo, self.rhsDenomPoisson}, {self.rhsDenomPoisson})
-
-         self.divRHSbyModWeightPoisson = function(qdens)
-            self.weakDivide:advance(0., {self.rhsDenomPoisson, qdens}, {qdens})
-            return qdens
-         end
-      else 
-         self.modWeightPoisson:clear(0.)
-         if self.uniformPolarization then
-            self.lapWeightPoisson:combine(-self.polarizationWeight, self.unitField)
-         else
-            self.lapWeightPoisson:combine(-1., self.polarizationWeight)
-         end
-         setLapWeight = true
-
-         if self.adiabatic then   -- Add contribution from the adiabatic species.
-            self.modWeightPoisson:accumulate(1., self.adiabSpec:getQneutFac())
-            setModWeight = true
-         end
-
-         self.divRHSbyModWeightPoisson = function(qdens) return qdens end
-      end
-
-      if setLapWeight then self.phiSlvr:setLaplacianWeight(self.lapWeightPoisson) end
-      if setModWeight then self.phiSlvr:setModifierWeight(self.modWeightPoisson) end
-
-      self.setPolarizationWeightFunc = function(specTbl) end  -- Polarization weight is not time dependent.
-   else
-      -- When not using linearizedPolarization, weights are set each step in advance method using these functions.
-      if self.ndim == 1 then
-         -- For ndim=1 we'll divide the RHS by the modifier instead (to keep fem_parproj simple in g0).
-         self.phiSlvr:setModifierWeight(self.unitField)
-         self.setPolarizationWeightFunc = function(specTbl)
-            self.rhsDenomPoisson:clear(0.0)
-            for _, s in lume.orderedIter(specTbl) do
-               self.rhsDenomPoisson:accumulate(self.kperpSq, s:getPolarizationMassDensity())
-            end
-            self.weakMultiply:advance(0., {externalField.bmagInvSq, self.rhsDenomPoisson}, {self.rhsDenomPoisson})
-         end
-
-         self.divRHSbyModWeightPoisson = function(qdens)
-            self.weakDivide:advance(0., {self.rhsDenomPoisson, qdens}, {qdens})
-            return qdens
-         end
-      else
-         self.setPolarizationWeightFunc = function(specTbl)
-            self.polarizationWeight:clear(0.0)
-            for _, s in lume.orderedIter(specTbl) do
-               self.polarizationWeight:accumulate(-1.0, s:getPolarizationMassDensity())
-            end
-            self.weakMultiply:advance(0., {externalField.bmagInvSq, self.polarizationWeight}, {self.polarizationWeight})
-            self.phiSlvr:setLaplacianWeight(self.polarizationWeight)
-         end
-
-         self.divRHSbyModWeightPoisson = function(qdens) return qdens end
-      end
-   end
-
 
    if self.isElectromagnetic then 
       local ndim = self.ndim
@@ -610,23 +576,18 @@ function GkField:write(tm, force)
             self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.aparSq })
          end
          if self.energyCalc then 
-            self.energyCalc:advance(tm, { self.potentials[1].phi }, { self.gradPerpPhiSq })
+            if self.ndim > 1 then
+               self.energyCalc:advance(tm, { self.potentials[1].phi, self.unitField }, { self.gradPerpPhiSq })
+            end
             if self.linearizedPolarization then
                if self.uniformPolarization then
                   if self.ndim == 1 then 
-                     self.esEnergyFac = self.esEnergyFac and self.esEnergyFac or createField(self.grid,self.basis,{1,1})
-                     self.esEnergyFac:combine(.5*self.polarizationWeight, self.jacobGeo)
-                     self.esEnergyFac:scale(self.kperpSq) 
-                     if self.adiabatic then 
-                        self.esEnergyFac:accumulate(0.5, self.adiabSpec:getQneutFac()) 
-                     end
                      self.weakMultiply:advance(0., {self.potentials[1].phiAux, self.potentials[1].phiAux},
                                                {self.phiSq})
-                     self.weakMultiply:advance(0., {self.phiSq, self.esEnergyFac}, {self.esEnergyFac})
-                     self.energyCalc:advance(tm, { self.esEnergyFac }, { self.esEnergy })
+                     self.weakMultiply:advance(0., {self.phiSq, self.esEnergyFac}, {self.phiSq})
+                     self.energyCalc:advance(tm, { self.phiSq }, { self.esEnergy })
                   else
-                     local esEnergyFac = .5*self.polarizationWeight
-                     self.energyCalc:advance(tm, { self.potentials[1].phiAux, esEnergyFac }, { self.esEnergy })
+                     self.energyCalc:advance(tm, { self.potentials[1].phiAux, self.esEnergyFac }, { self.esEnergy })
                   end
 
                   if self.adiabatic and self.ndim > 1 then
@@ -684,8 +645,6 @@ end
 function GkField:writeRestart(tm)
    -- (the final "false" prevents writing of ghost cells).
    self.fieldIo:write(self.potentials[1].phi, "phi_restart.bp", tm, self.ioFrame, false)
-   self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeightPoisson_restart.bp", tm, self.ioFrame, false)
-   self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeightPoisson_restart.bp", tm, self.ioFrame, false)
    if self.isElectromagnetic then
       self.fieldIo:write(self.potentials[1].apar, "apar_restart.bp", tm, self.ioFrame, false)
    end
@@ -702,13 +661,6 @@ function GkField:readRestart()
    -- before updating the hyperbolic part.
    local tm, fr = self.fieldIo:read(self.potentials[1].phi, "phi_restart.bp")
    self.intPhiSq:read("intPhiSq_restart.bp", tm)
-
-   self.fieldIo:read(self.lapWeightPoisson, "laplacianWeightPoisson_restart.bp")
-   self.phiSlvr:setLaplacianWeight(self.lapWeightPoisson)
-   if self.adiabatic or self.ndim == 1 then
-      self.fieldIo:read(self.modWeightPoisson, "modifierWeightPoisson_restart.bp")
-      self.phiSlvr:setModifierWeight(self.modWeightPoisson)
-   end
 
    if self.isElectromagnetic then
       self.fieldIo:read(self.potentials[1].apar, "apar_restart.bp")
@@ -743,9 +695,6 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
 
          -- If not using linearized polarization term, set up laplacian weight.
          self:setPolarizationWeight(species)
-
-         -- For ndim=1 divide the RHS by the polarization/modifier weight.
-         self.chargeDens = self.divRHSbyModWeightPoisson(self.chargeDens)
 
          -- Phi solve (elliptic, so update potCurr).
          -- Energy conservation requires phi to be continuous in all directions. 
@@ -1144,11 +1093,6 @@ function GkGeometry:initField()
 
    -- Apply BCs.
    self:applyBc(0, self.geo)
-
-   -- Compute the magnetic field in the center of the domain (e.g. for the Poisson equation).
-   local xMid = {}
-   for d = 1,self.ndim do xMid[d]=self.grid:mid(d) end
-   self.bmagMid = self.bmagFunc(0.0, xMid)
 
 end
 
