@@ -206,7 +206,7 @@ end
 function GkField:hasEB() return true, self.isElectromagnetic end
 function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
 
-local function createField(grid, basis, ghostCells, vComp, periodicSync)
+local function createField(grid, basis, ghostCells, vComp, periodicSync, useDevice)
    vComp = vComp or 1
    local fld = DataStruct.Field {
       onGrid           = grid,
@@ -215,6 +215,7 @@ local function createField(grid, basis, ghostCells, vComp, periodicSync)
       metaData         = {polyOrder = basis:polyOrder(),
                           basisType = basis:id()},
       syncPeriodicDirs = periodicSync,
+      useDevice        = useDevice,
    }
    fld:clear(0.0)
    return fld
@@ -441,18 +442,21 @@ function GkField:createSolver(species, externalField)
    end
 
    if self.ndim == 1 then
+      -- MF 2022/08/23: Construction of modWeightPoisson took place on the device because
+      -- it was assigned with :accumulate and :combine, which use the device
+      -- pointer if the CartField was created with useDevice=nil. Copy to host.
+      self.modWeightPoisson:copyDeviceToHost()
       self.phiSlvr = Updater.FemParproj {
-         onGrid   = self.grid,  basis  = self.basis,
-         weighted = true,       weight = self.modWeightPoisson,
+         onGrid = self.grid,  basis = self.basis,
+         weight = self.modWeightPoisson,
          periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
       }
    end
 
    if self.ndim == 3 and not self.discontinuousPhi then
-      self.phiZSmoother = Updater.FemParPoisson {
-         onGrid = self.grid,   bcLower = {{T="N",V=0.0}},
-         basis  = self.basis,  bcUpper = {{T="N",V=0.0}},
-         smooth = true,
+      self.phiZSmoother = Updater.FemParproj {
+         onGrid = self.grid,  basis = self.basis,
+         periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
       }
       self.zSmoothPhi = function(tCurr, phiIn, phiOut)
          self.phiZSmoother:advance(tCurr, {phiIn}, {phiOut})

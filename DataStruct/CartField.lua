@@ -613,10 +613,10 @@ local function Field_meta_ctor(elct)
 	 self._zeroDevice:copy(fIn._zeroDevice)
       end,
       copyHostToDevice = function (self)
-	 self._zeroDevice:copy(self._zero)
+         if self._zeroDevice then self._zeroDevice:copy(self._zero) end
       end,
       copyDeviceToHost = function (self)
-	 self._zero:copy(self._zeroDevice)
+         if self._zeroDevice then self._zero:copy(self._zeroDevice) end
       end,
       copyDeviceToHostAsync = function (self)
 	 self._zero:copyAsync(self._zeroDevice)

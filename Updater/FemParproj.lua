@@ -19,6 +19,7 @@ local LinearDecomp   = require "Lib.LinearDecomp"
 local Proto          = require "Lib.Proto"
 local Range          = require "Lib.Range"
 local UpdaterBase    = require "Updater.Base"
+local DataStruct     = require "DataStruct"
 local ffi            = require "ffi"
 
 local ffiC = ffi.C
@@ -88,13 +89,18 @@ function FemParproj:init(tbl)
    self._isParPeriodic = tbl.periodicParallelDir
    assert(self._isParPeriodic ~= nil, "Updater.FemParproj: Must specify if parallel direction is periodic with 'periodicParallelDir'.")
 
-   self._isWeighted = tbl.weighted
-   assert(self._isWeighted ~= nil, "Updater.FemParproj: Must specify if projection is weighted with 'weighted'.")
-
-   local weightFld = assert(tbl.weight, "Updater.FemParproj: Must specify weight (use dummy weight if weighted=false).")
+   local weightFld  = tbl.weight
+   local isWeighted = weightFld ~= nil
+   if not isWeighted then  -- Create a dummy weight (not used).
+      weightFld = DataStruct.Field {
+         onGrid = self._grid,  numComponents = self._basis:numBasis(),
+         ghost  = {1,1},       useDevice = false,
+      }
+      weightFld:clear(0.0)
+   end
 
    self._zero = ffi.gc(ffiC.gkyl_fem_parproj_new(self._grid._zero, self._basis._zero, self._isParPeriodic,
-                                                 self._isWeighted, weightFld._zero, GKYL_USE_GPU or 0),
+                                                 isWeighted, weightFld._zero, GKYL_USE_GPU or 0),
                        ffiC.gkyl_fem_parproj_release)
 end
 
@@ -118,10 +124,6 @@ function FemParproj:_advanceOnDevice(tCurr, inFld, outFld)
    ffiC.gkyl_fem_parproj_solve(self._zero, qOut._zeroDevice)
 end
 
-function FemParproj:setLaplacianWeight(weight) self.lapWeight = weight end
-function FemParproj:setModifierWeight(weight) self.modWeight = weight end
-function FemParproj:getLaplacianWeight() return self.lapWeight end
-function FemParproj:getModifierWeight() return self.modWeight end
 function FemParproj:printDevDiagnostics() end
 
 return FemParproj

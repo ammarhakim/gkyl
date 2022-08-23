@@ -60,36 +60,6 @@ ffi.cdef[[
   void solvePar(FemParPoisson* f);
   void getSolutionPar(FemParPoisson* f, double* ptr, int idz);
   void getNodalSolutionPar(FemParPoisson* f, double* ptr, int idz);
-
-   // Object type
-  typedef struct gkyl_fem_parproj gkyl_fem_parproj;
-
-/**
- * Create new updater to project a DG field onto the FEM (nodal) basis
- * in order to make the field continuous or, thanks to the option to pass
- * a multiplicative weight, solve 1D algebraic equations in which the output
- * field is continuous (but the input may not be). That is, we solve
- *    wgt*phi_{fem} \doteq rho_{dg}
- * where wgt is the weight field, phi_{fem} is the (continuous field)
- * we wish to compute, rho_{dg} is the (discontinuous) input source field,
- * and \doteq implies weak equality with respect to the FEM basis.
- * Free using gkyl_fem_parproj_release method.
- *
- * @param grid Grid object
- * @param basis Basis functions of the DG field.
- * @param isparperiodic boolean indicating if parallel direction is periodic.
- * @param isweighted boolean indicating if wgt\=1.
- * @param weight multiplicative weight on left-side of the operator.
- * @param use_gpu boolean indicating whether to use the GPU.
- * @return New updater pointer.
- */
-  gkyl_fem_parproj* gkyl_fem_parproj_new(
-    const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-    bool isparperiodic, bool isweighted, const struct gkyl_array *weight,
-    bool use_gpu);
-
-  void gkyl_fem_parproj_set_rhs(gkyl_fem_parproj* up, const struct gkyl_array *rhsin);
-  void gkyl_fem_parproj_solve(gkyl_fem_parproj* up, struct gkyl_array *phiout);
 ]]
 local DIRICHLET = 0
 local NEUMANN   = 1
@@ -219,12 +189,6 @@ function FemParPoisson:init(tbl)
                   stiffCreate    = 0., getSol      = 0.,
                   srcReduce      = 0., assemble    = 0.,
                   completeNsolve = 0.}
-
-   local useG0 = xsys.pickBool(tbl.useG0, true)
-   if useG0 then
-      self._zero_fem = ffiC.gkyl_fem_parproj_new(self._grid._zero, self._basis._zero, self._periodic,
-                                                 false, self.unitWeight._zero, GKYL_USE_GPU or 0)
-   end
 
    return self
 end
@@ -412,13 +376,6 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
    local src = assert(inFld[1], "FemParPoisson.advance: Must specify an input field")
    local sol = assert(outFld[1], "FemParPoisson.advance: Must specify an output field")
 
-   if self._zero_fem then
-      if self._periodic then src:sync(true) end
-      ffiC.gkyl_fem_parproj_set_rhs(self._zero_fem, src._zero)
-      ffiC.gkyl_fem_parproj_solve(self._zero_fem, sol._zero)
-      return
-   end
-
    -- Assemble the right-side source vector and, if needed, the stiffness matrix.
    self:beginAssembly(tCurr, src)
 
@@ -431,8 +388,6 @@ function FemParPoisson:_advanceOnDevice(tCurr, inFld, outFld)
    local sol = assert(outFld[1], "FemParPoisson.advanceOnDevice: Must specify an output field")
 
    assert(self._zero_fem, "FemParPoisson: advanceOnDevice requires gkyl_fem_parproj from g0")
-   ffiC.gkyl_fem_parproj_set_rhs(self._zero_fem, src._zeroDevice)
-   ffiC.gkyl_fem_parproj_solve(self._zero_fem, sol._zeroDevice)
 end
 
 function FemParPoisson:setLaplacianWeight(weight)

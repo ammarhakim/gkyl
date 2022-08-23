@@ -115,7 +115,7 @@ function GkSpecies:alloc(nRkDup)
    self.momDensityAux = self:allocMoment()
    self.ptclEnergy    = self:allocMoment()
    self.ptclEnergyAux = self:allocMoment()
-   self.threeMoments = self:allocVectorMoment(3)
+   self.threeMoments  = self:allocVectorMoment(3)
    if self.positivity then
       self.numDensityPos = self:allocMoment()
       self.momDensityPos = self:allocMoment()
