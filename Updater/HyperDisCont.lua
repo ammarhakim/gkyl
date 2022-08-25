@@ -322,7 +322,7 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
 
    local localRange = qRhsOut:localRange()
 
-   qRhsOut:clear(0.0)
+   if self._clearOut then qRhsOut:clear(0.0) end
    ffiC.gkyl_hyper_dg_advance_cu(self._zero, localRange, qIn._zeroDevice, cflRateByCell._zeroDevice, qRhsOut._zeroDevice)
 end
 

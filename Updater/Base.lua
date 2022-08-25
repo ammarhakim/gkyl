@@ -56,6 +56,9 @@ function _M:_advanceNoDeviceImpl(tCurr, inFld, outFld)
    for _, fld in ipairs(inFld) do 
       if type(fld)=="table" and fld._zero then fld:copyDeviceToHost() end
    end
+   for _, fld in ipairs(outFld) do 
+      if type(fld)=="table" and fld._zero then fld:copyDeviceToHost() end
+   end
    -- do update
    self:_advance(tCurr, inFld, outFld)
    -- copy output fields from host -> device

@@ -237,8 +237,6 @@ function VlasovSpecies:createSolver(field, externalField)
          phaseBasis = self.basis,      vbounds    = vbounds,
          confBasis  = self.confBasis,
       }
-
-      self.zIdx = Lin.IntVec(self.grid:ndim())
    end
 
    if self.vlasovExtForceFunc then
