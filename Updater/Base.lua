@@ -51,19 +51,25 @@ function _M:init(tbl)
 end
 
 function _M:_advanceNoDeviceImpl(tCurr, inFld, outFld)
-   --print("WARNING: no device implementation for " .. debug.getinfo(self._advance).source:sub(4) .. ". Using CPU version (with CPU-GPU copies).")
-   -- copy input fields from device -> host
+   -- Copy input fields from device -> host.
    for _, fld in ipairs(inFld) do 
       if type(fld)=="table" and fld._zero then fld:copyDeviceToHost() end
    end
-   for _, fld in ipairs(outFld) do 
+    -- Also copy output fields in case they are inputs too,
+    -- or are incremented rather than overwritten.
+   for _, fld in ipairs(outFld) do
       if type(fld)=="table" and fld._zero then fld:copyDeviceToHost() end
    end
-   -- do update
+
    self:_advance(tCurr, inFld, outFld)
-   -- copy output fields from host -> device
+
+   -- Copy output fields from host -> device.
    for _, fld in ipairs(outFld) do 
       if type(fld)=="table" and fld._zero then fld:copyHostToDevice() end
+   end
+   -- Also copy input fields in case they were modified.
+   for _, fld in ipairs(inFld) do 
+      if type(fld)=="table" and fld._zero then fld:copyDeviceToHost() end
    end
 end
 
