@@ -170,10 +170,10 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
       local moments, fIn, boundaryCorrections = inFld[1], inFld[2], inFld[3]
       local u, vtsq = outFld[1], outFld[2]
 
-      -- compute boundary corrections
+      -- Compute boundary corrections.
       ffiC.gkyl_mom_calc_bcorr_advance(self._zero_bcorr_calc, fIn:localRange(), u:localRange(), fIn._zero, boundaryCorrections._zero)
 
-      -- compute u and vtsq
+      -- Compute u and vtsq.
       ffiC.gkyl_prim_lbo_calc_advance(self._zero_prim_calc, self.confBasis._zero, u:localRange(), moments._zero, boundaryCorrections._zero, u._zero, vtsq._zero)
 
       return
@@ -268,15 +268,16 @@ end
 function SelfPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
 
    local moments = inFld[1]
-   local fIn = inFld[2]
+   local fIn     = inFld[2]
    local boundaryCorrections = inFld[3]
-   local u = outFld[1]
+
+   local u    = outFld[1]
    local vtsq = outFld[2]
 
-   -- compute boundary corrections
+   -- Compute boundary corrections.
    ffiC.gkyl_mom_calc_bcorr_advance_cu(self._zero_bcorr_calc, fIn:localRange(), u:localRange(), fIn._zeroDevice, boundaryCorrections._zeroDevice)
 
-   -- compute u and vtsq
+   -- Compute u and vtsq.
    ffiC.gkyl_prim_lbo_calc_advance_cu(self._zero_prim_calc, self.confBasis._zero, u:localRange(), moments._zeroDevice, boundaryCorrections._zeroDevice, u._zeroDevice, vtsq._zeroDevice)
 
 end

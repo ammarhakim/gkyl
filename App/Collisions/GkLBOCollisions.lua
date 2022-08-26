@@ -230,52 +230,44 @@ function GkLBOCollisions:createSolver(mySpecies, externalField)
       
    -- Zero-flux BCs in the velocity dimensions.
    local zfd = { }
-   for d = 1, self.vDim do
-      zfd[d] = self.confGrid:ndim() + d
-   end
+   for d = 1, self.vDim do zfd[d] = self.confGrid:ndim() + d end
 
-   self.equation = {}
-   if self.varNu then
-      -- Self-species collisionality, which varies in space.
-      self.nuVarXSelf = DataStruct.Field {
-         onGrid        = self.confGrid,
-         numComponents = self.confBasis:numBasis(),
-         ghost         = {1, 1},
+   -- Self-species collisionality, which varies in space.
+   self.nuVarXSelf = DataStruct.Field {
+      onGrid        = self.confGrid,
+      numComponents = self.confBasis:numBasis(),
+      ghost         = {1, 1},
+   }
+   -- Collisionality, nu, summed over all species pairs.
+   self.nuSum = DataStruct.Field {
+      onGrid        = self.confGrid,
+      numComponents = self.confBasis:numBasis(),
+      ghost         = {1, 1},
+   }
+   if self.timeDepNu then
+      -- Updater to compute spatially varying (Spitzer) nu.
+      self.spitzerNu = Updater.SpitzerCollisionality {
+         onGrid           = self.confGrid,
+         confBasis        = self.confBasis,
+         useCellAverageNu = self.cellConstNu,
+         willInputNormNu  = self.userInputNormNu,
+         elemCharge       = self.elemCharge,
+         epsilon0         = self.epsilon0,
+         hBar             = self.hBar,
+         nuFrac           = self.nuFrac,
       }
-      -- Collisionality, nu, summed over all species pairs.
-      self.nuSum = DataStruct.Field {
-         onGrid        = self.confGrid,
-         numComponents = self.confBasis:numBasis(),
-         ghost         = {1, 1},
+   elseif self.selfCollisions then
+      local projectUserNu = Updater.ProjectOnBasis {
+         onGrid = self.confGrid,   evaluate = self.collFreqSelf,
+         basis  = self.confBasis,  onGhosts = false
       }
-      if self.timeDepNu then
-         -- Updater to compute spatially varying (Spitzer) nu.
-         self.spitzerNu = Updater.SpitzerCollisionality {
-            onGrid           = self.confGrid,
-            confBasis        = self.confBasis,
-            useCellAverageNu = self.cellConstNu,
-            willInputNormNu  = self.userInputNormNu,
-            elemCharge       = self.elemCharge,
-            epsilon0         = self.epsilon0,
-            hBar             = self.hBar,
-            nuFrac           = self.nuFrac,
-         }
-      elseif self.selfCollisions then
-         local projectUserNu = Updater.ProjectOnBasis {
-            onGrid   = self.confGrid,
-            basis    = self.confBasis,
-            evaluate = self.collFreqSelf,
-            onGhosts = false
-         }
-         projectUserNu:advance(0.0, {}, {self.nuVarXSelf})
-      end
-      -- Weak multiplication to multiply nu(x) with uPar or vtSq.
-      self.confMul = Updater.CartFieldBinOp {
-         weakBasis = self.confBasis,  operation = "Multiply",
-      }
-   else
-      self.nuSum = 0.0    -- Assigned in advance method.
+      projectUserNu:advance(0.0, {}, {self.nuVarXSelf})
    end
+   -- Weak multiplication to multiply nu(x) with uPar or vtSq.
+   self.confMul = Updater.CartFieldBinOp {
+      weakBasis = self.confBasis,  operation = "Multiply",
+   }
+   self.equation = {}
    -- Lenard-Bernstein equation.
    --self.equation = GkLBOconstNuEq {
    --   phaseBasis       = self.phaseBasis,
@@ -296,40 +288,33 @@ function GkLBOCollisions:createSolver(mySpecies, externalField)
    --   zeroFluxDirections = zfd,
    --}
    self.collisionSlvr = Updater.GkLBO {
-      onGrid = self.phaseGrid,
-      phaseBasis = self.phaseBasis,
-      confBasis = self.confBasis,
-      confRange = self.nuSum:localRange(),
-      mass = self.mass,
+      onGrid     = self.phaseGrid,   confBasis = self.confBasis,
+      phaseBasis = self.phaseBasis,  confRange = self.nuSum:localRange(),
+      mass       = self.mass,
    }
    if self.crossCollisions then
-      if self.varNu then
-         -- Temporary collisionality fields.
-         self.nuCrossSelf = DataStruct.Field {
-            onGrid        = self.confGrid,
-            numComponents = self.confBasis:numBasis(),
-            ghost         = {1, 1},
-         }
-         self.nuCrossOther = DataStruct.Field {
-            onGrid        = self.confGrid,
-            numComponents = self.confBasis:numBasis(),
-            ghost         = {1, 1},
-         }
-         -- Cross-species uPar and vtSq multiplied by collisionality.
-         self.nuUParCross = DataStruct.Field {
-            onGrid        = self.confGrid,
-            numComponents = self.confBasis:numBasis(),
-            ghost         = {1, 1},
-         }
-         self.nuVtSqCross = DataStruct.Field {
-            onGrid        = self.confGrid,
-            numComponents = self.confBasis:numBasis(),
-            ghost         = {1, 1},
-         }
-      else
-         self.nuCrossSelf  = 0.0
-         self.nuCrossOther = 0.0
-      end
+      -- Temporary collisionality fields.
+      self.nuCrossSelf = DataStruct.Field {
+         onGrid        = self.confGrid,
+         numComponents = self.confBasis:numBasis(),
+         ghost         = {1, 1},
+      }
+      self.nuCrossOther = DataStruct.Field {
+         onGrid        = self.confGrid,
+         numComponents = self.confBasis:numBasis(),
+         ghost         = {1, 1},
+      }
+      -- Cross-species uPar and vtSq multiplied by collisionality.
+      self.nuUParCross = DataStruct.Field {
+         onGrid        = self.confGrid,
+         numComponents = self.confBasis:numBasis(),
+         ghost         = {1, 1},
+      }
+      self.nuVtSqCross = DataStruct.Field {
+         onGrid        = self.confGrid,
+         numComponents = self.confBasis:numBasis(),
+         ghost         = {1, 1},
+      }
       -- Updater to compute cross-species primitive moments.
       self.primMomCross = Updater.CrossPrimMoments {
          onGrid           = self.confGrid,
@@ -360,11 +345,7 @@ function GkLBOCollisions:advance(tCurr, fIn, species, out)
    local selfMom     = species[self.speciesName]:fluidMoments()
    local primMomSelf = species[self.speciesName]:selfPrimitiveMoments()
 
-   if self.varNu then
-      self.nuSum:clear(0.0)
-   else
-      self.nuSum = 0.0
-   end
+   self.nuSum:clear(0.0)
    self.nuUParSum:clear(0.0)
    self.nuVtSqSum:clear(0.0)
 
@@ -373,22 +354,16 @@ function GkLBOCollisions:advance(tCurr, fIn, species, out)
 
       self.equation.primMomCrossLimit = 0.0
 
-      if self.varNu then
-         if self.timeDepNu then
-            -- Compute the Spitzer collisionality.
-            self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2],
-                                           self.charge, self.mass, selfMom[1], primMomSelf[2], 
-                                           self.normNuSelf, self.bmag}, {self.nuSum})
-         else
-            self.nuSum:copy(self.nuVarXSelf)
-         end
-         self.confMul:advance(tCurr, {self.nuSum, primMomSelf[1]}, {self.nuUParSum})
-         self.confMul:advance(tCurr, {self.nuSum, primMomSelf[2]}, {self.nuVtSqSum})
+      if self.timeDepNu then
+         -- Compute the Spitzer collisionality.
+         self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2],
+                                        self.charge, self.mass, selfMom[1], primMomSelf[2], 
+                                        self.normNuSelf, self.bmag}, {self.nuSum})
       else
-         self.nuSum = self.collFreqSelf
-         self.nuUParSum:combine(self.collFreqSelf, primMomSelf[1])
-         self.nuVtSqSum:combine(self.collFreqSelf, primMomSelf[2])
+         self.nuSum:copy(self.nuVarXSelf)
       end
+      self.confMul:advance(tCurr, {self.nuSum, primMomSelf[1]}, {self.nuUParSum})
+      self.confMul:advance(tCurr, {self.nuSum, primMomSelf[2]}, {self.nuVtSqSum})
    end    -- end if self.selfCollisions.
 
    if self.crossCollisions then
@@ -404,31 +379,26 @@ function GkLBOCollisions:advance(tCurr, fIn, species, out)
          local bCorrectionsOther = species[otherNm]:boundaryCorrections()
          local starMomOther      = species[otherNm]:starMoments()
 
-         if self.varNu then
-            if self.timeDepNu then
-               -- Compute the collisionality if another species hasn't already done so.
-               local chargeOther = species[otherNm]:getCharge()
-               if (not species[self.speciesName].momentFlags[6][otherNm]) then
-                  self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2],
-                                                 chargeOther, mOther, otherMom[1], primMomOther[2],
-                                                 self.normNuCross[sInd], self.bmag},
-                                                {species[self.speciesName].nuVarXCross[otherNm]})
-                  species[self.speciesName].momentFlags[6][otherNm] = true
-               end
-               if (not species[otherNm].momentFlags[6][self.speciesName]) then
-                  self.spitzerNu:advance(tCurr, {chargeOther, mOther, otherMom[1], primMomOther[2],
-                                                 self.charge, self.mass, selfMom[1], primMomSelf[2],
-                                                 species[otherNm].collPairs[otherNm][self.speciesName].normNu, self.bmag},
-                                                {species[otherNm].nuVarXCross[self.speciesName]})
-                  species[otherNm].momentFlags[6][self.speciesName] = true
-               end
+         if self.timeDepNu then
+            -- Compute the collisionality if another species hasn't already done so.
+            local chargeOther = species[otherNm]:getCharge()
+            if (not species[self.speciesName].momentFlags[6][otherNm]) then
+               self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2],
+                                              chargeOther, mOther, otherMom[1], primMomOther[2],
+                                              self.normNuCross[sInd], self.bmag},
+                                             {species[self.speciesName].nuVarXCross[otherNm]})
+               species[self.speciesName].momentFlags[6][otherNm] = true
             end
-            self.nuCrossSelf:copy(species[self.speciesName].nuVarXCross[otherNm])
-            self.nuCrossOther:copy(species[otherNm].nuVarXCross[self.speciesName])
-         else
-            self.nuCrossSelf  = self.collFreqCross[sInd]
-            self.nuCrossOther = species[otherNm].collPairs[otherNm][self.speciesName].nu
+            if (not species[otherNm].momentFlags[6][self.speciesName]) then
+               self.spitzerNu:advance(tCurr, {chargeOther, mOther, otherMom[1], primMomOther[2],
+                                              self.charge, self.mass, selfMom[1], primMomSelf[2],
+                                              species[otherNm].collPairs[otherNm][self.speciesName].normNu, self.bmag},
+                                             {species[otherNm].nuVarXCross[self.speciesName]})
+               species[otherNm].momentFlags[6][self.speciesName] = true
+            end
          end
+         self.nuCrossSelf:copy(species[self.speciesName].nuVarXCross[otherNm])
+         self.nuCrossOther:copy(species[otherNm].nuVarXCross[self.speciesName])
 
          if (not (species[self.speciesName].momentFlags[5][otherNm] and
                   species[otherNm].momentFlags[5][self.speciesName])) then
@@ -443,21 +413,13 @@ function GkLBOCollisions:advance(tCurr, fIn, species, out)
             species[otherNm].momentFlags[5][self.speciesName] = true
          end
 
-         if self.varNu then
-            self.confMul:advance(tCurr, {self.nuCrossSelf, species[self.speciesName].uParCross[otherNm]}, {self.nuUParCross})
-            self.confMul:advance(tCurr, {self.nuCrossSelf, species[self.speciesName].vtSqCross[otherNm]}, {self.nuVtSqCross})
-            -- Barrier over shared communicator before accumulate
-            Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
-            self.nuSum:accumulate(1.0, self.nuCrossSelf)
-            self.nuUParSum:accumulate(1.0, self.nuUParCross)
-            self.nuVtSqSum:accumulate(1.0, self.nuVtSqCross)
-         else
-            self.nuSum = self.nuSum+self.nuCrossSelf
-            -- Barrier over shared communicator before accumulate
-            Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
-            self.nuUParSum:accumulate(self.nuCrossSelf, species[self.speciesName].uParCross[otherNm])
-            self.nuVtSqSum:accumulate(self.nuCrossSelf, species[self.speciesName].vtSqCross[otherNm])
-         end
+         self.confMul:advance(tCurr, {self.nuCrossSelf, species[self.speciesName].uParCross[otherNm]}, {self.nuUParCross})
+         self.confMul:advance(tCurr, {self.nuCrossSelf, species[self.speciesName].vtSqCross[otherNm]}, {self.nuVtSqCross})
+         -- Barrier over shared communicator before accumulate
+         Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
+         self.nuSum:accumulate(1.0, self.nuCrossSelf)
+         self.nuUParSum:accumulate(1.0, self.nuUParCross)
+         self.nuVtSqSum:accumulate(1.0, self.nuVtSqCross)
 
       end    -- end loop over other species that this species collides with.
 
@@ -480,16 +442,10 @@ function GkLBOCollisions:write(tm, frame)
    end
 end
 
-function GkLBOCollisions:totalTime()
-   return self.collisionSlvr.totalTime + self.timers.nonSlvr
-end
+function GkLBOCollisions:totalTime() return self.collisionSlvr.totalTime + self.timers.nonSlvr end
 
-function GkLBOCollisions:slvrTime()
-   return self.collisionSlvr.totalTime
-end
+function GkLBOCollisions:slvrTime() return self.collisionSlvr.totalTime end
 
-function GkLBOCollisions:nonSlvrTime()
-   return self.timers.nonSlvr
-end
+function GkLBOCollisions:nonSlvrTime() return self.timers.nonSlvr end
 
 return GkLBOCollisions

@@ -790,7 +790,11 @@ function GkField:energyCalcTime()
    return t
 end
 
-function GkField:printDevDiagnostics() self.phiSlvr:printDevDiagnostics() end
+function GkField:printDevDiagnostics() 
+   if self.phiSlvr then
+      self.phiSlvr:printDevDiagnostics()
+   end
+end
 
 -- GkGeometry ---------------------------------------------------------------------
 --
