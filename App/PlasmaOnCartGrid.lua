@@ -9,22 +9,23 @@
 --------------------------------------------------------------------------------
 
 -- Infrastructure loads
-local Alloc = require "Alloc"
-local AllocShared = require "AllocShared"
-local Basis = require "Basis"
-local DataStruct = require "DataStruct"
+local Alloc            = require "Alloc"
+local AllocShared      = require "AllocShared"
+local Basis            = require "Basis"
+local DataStruct       = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
-local Grid = require "Grid"
-local Lin = require "Lib.Linalg"
-local LinearTrigger = require "Lib.LinearTrigger"
+local Grid             = require "Grid"
+local Lin              = require "Lib.Linalg"
+local LinearTrigger    = require "Lib.LinearTrigger"
 local Logger = require "Lib.Logger"
-local Mpi = require "Comm.Mpi"
-local Proto = require "Lib.Proto"
-local Time = require "Lib.Time"
-local date = require "xsys.date"
-local lfs = require "lfs"
-local lume = require "Lib.lume"
-local xsys = require "xsys"
+local Mpi    = require "Comm.Mpi"
+local Proto  = require "Lib.Proto"
+local Time   = require "Lib.Time"
+local date   = require "xsys.date"
+local lfs    = require "lfs"
+local lume   = require "Lib.lume"
+local xsys   = require "xsys"
+
 math = require("sci.math").generic -- this is global so that it affects input file
 
 -- App loads (do not load specific app objects here, but only things
@@ -234,7 +235,7 @@ local function buildApplication(self, tbl)
    -- Compute CFL numbers.
    for _, s in lume.orderedIter(species) do
       local ndim = s:getNdim()
-      local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
+      local myCfl = tbl.cfl and tbl.cfl or cflFrac
       cflMin = math.min(cflMin, myCfl)
       s:setCfl(cflMin)
    end
@@ -245,9 +246,9 @@ local function buildApplication(self, tbl)
       fld:setBasis(confBasis)
       fld:setGrid(confGrid)
       do
-	 local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
+	 local myCfl = tbl.cfl and tbl.cfl or cflFrac
 	 if fld.isElliptic then
-	    myCfl = tbl.cfl and tbl.cfl or cflFrac/(cdim*(2*polyOrder+1))
+	    myCfl = tbl.cfl and tbl.cfl or cflFrac
 	 end
 	 cflMin = math.min(cflMin, myCfl)
 	 fld:setCfl(myCfl)
