@@ -398,10 +398,10 @@ function MaxwellField:createSolver()
 --      MF 2022/08/15: disable multigrid for now.
 --      if self.basis:polyOrder()>1 or isParallel or GKYL_USE_GPU then
          self.isSlvrMG = false
-         self.fieldSlvr = Updater.FemPoisson {
+         self.fieldSlvr = Updater.GkFemPoisson {
             onGrid = self.grid,   bcLower = self.bcLowerPhi,
             basis  = self.basis,  bcUpper = self.bcUpperPhi,
-            -- MF 2022/08/15: FemPoisson presently defaults to FemParPoisson in 1D, and
+            -- MF 2022/08/15: GkFemPoisson presently defaults to FemParPoisson in 1D, and
             -- that is hooked into fem_parproj in g0, which is not what we want here. 
             useG0 = self.grid:ndim()==2,
          }

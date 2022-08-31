@@ -365,7 +365,7 @@ function GkField:createSolver(species, externalField)
    -- So we only do this creation for ndim>1 here since that is still using
    -- the g2 updater.
    if self.ndim > 1 then
-      self.phiSlvr = Updater.FemPoisson {
+      self.phiSlvr = Updater.GkFemPoisson {
          onGrid = self.grid,   bcLower = self.bcLowerPhi,
          basis  = self.basis,  bcUpper = self.bcUpperPhi,
          zContinuous = not self.discontinuousPhi,
@@ -471,7 +471,7 @@ function GkField:createSolver(species, externalField)
       local laplacianConstant, modifierConstant
       -- NOTE: aparSlvr only used to solve for initial Apar
       -- at all other times Apar is timestepped using dApar/dt
-      self.aparSlvr = Updater.FemPoisson {
+      self.aparSlvr = Updater.GkFemPoisson {
          onGrid = self.grid,   bcLower = self.bcLowerApar,
          basis  = self.basis,  bcUpper = self.bcUpperApar,
          zContinuous = not self.discontinuousApar,
@@ -491,7 +491,7 @@ function GkField:createSolver(species, externalField)
       if laplacianConstant ~= 0 then self.aparSlvr:setLaplacianWeight(self.lapWeightAmpere) end
       if modifierConstant ~= 0 then self.aparSlvr:setModifierWeight(self.modWeightAmpere) end
 
-      self.dApardtSlvr = Updater.FemPoisson {
+      self.dApardtSlvr = Updater.GkFemPoisson {
          onGrid = self.grid,   bcLower = self.bcLowerApar,
          basis  = self.basis,  bcUpper = self.bcUpperApar,
          zContinuous = not self.discontinuousApar,

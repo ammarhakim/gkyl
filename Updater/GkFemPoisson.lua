@@ -18,10 +18,10 @@ local CartFieldBinOp = require "Updater.CartFieldBinOp"
 local xsys           = require "xsys"
 
 -- FEM Poisson solver updater object
-local FemPoisson = Proto(UpdaterBase)
+local GkFemPoisson = Proto(UpdaterBase)
 
-function FemPoisson:init(tbl)
-   FemPoisson.super.init(self, tbl)
+function GkFemPoisson:init(tbl)
+   GkFemPoisson.super.init(self, tbl)
 
    local function contains(table, element)
       for _, value in pairs(table) do
@@ -79,7 +79,7 @@ function FemPoisson:init(tbl)
         useG0 = tbl.useG0,
       }
    else 
-      assert(false, "Updater.FemPoisson: Requires ndim<=3")
+      assert(false, "Updater.GkFemPoisson: Requires ndim<=3")
    end   
 
    -- Option to write development-related diagnostics.
@@ -88,19 +88,19 @@ function FemPoisson:init(tbl)
    return self
 end
 
-function FemPoisson:assemble(tCurr, inFld, outFld)
+function GkFemPoisson:assemble(tCurr, inFld, outFld)
    -- Begin assembling the source vector and, if needed, the stiffness matrix.
    self.slvr:assemble(tCurr, inFld, outFld)
 end
 
-function FemPoisson:solve(tCurr, inFld, outFld) 
+function GkFemPoisson:solve(tCurr, inFld, outFld) 
    -- Assuming the right-side vector (and if needed the stiffness matrix)
    -- has been assembled, this solves the linear problem.
    -- If the assembly initiated an MPI non-blocking reduce, this waits for it.
    self.slvr:solve(tCurr, inFld, outFld)
 end
 
-function FemPoisson:_advance(tCurr, inFld, outFld) 
+function GkFemPoisson:_advance(tCurr, inFld, outFld) 
    -- Advance method. This assembles the right-side source vector and, if needed,
    -- the stiffness matrix. Then it solves the linear problem.
    if self.ndim == 1 and not self.zContinuous and self.slvr._hasLaplacian == false then
@@ -114,7 +114,7 @@ function FemPoisson:_advance(tCurr, inFld, outFld)
    end
 end
 
-function FemPoisson:_advanceOnDevice(tCurr, inFld, outFld)
+function GkFemPoisson:_advanceOnDevice(tCurr, inFld, outFld)
    -- Advance method. This assembles the right-side source vector and, if needed,
    -- the stiffness matrix. Then it solves the linear problem.
    if self.ndim == 1 and not self.zContinuous and self.slvr._hasLaplacian == false then
@@ -128,22 +128,22 @@ function FemPoisson:_advanceOnDevice(tCurr, inFld, outFld)
    end
 end
 
-function FemPoisson:setLaplacianWeight(weight)
+function GkFemPoisson:setLaplacianWeight(weight)
    self.slvr:setLaplacianWeight(weight)
 end
-function FemPoisson:setModifierWeight(weight)
+function GkFemPoisson:setModifierWeight(weight)
    self.slvr:setModifierWeight(weight)
 end
 
-function FemPoisson:getLaplacianWeight()
+function GkFemPoisson:getLaplacianWeight()
    return self.slvr:getLaplacianWeight()
 end
-function FemPoisson:getModifierWeight()
+function GkFemPoisson:getModifierWeight()
    return self.slvr:getModifierWeight()
 end
 
-function FemPoisson:printDevDiagnostics()
+function GkFemPoisson:printDevDiagnostics()
    if self.verbose then self.slvr:printDevDiagnostics() end
 end
 
-return FemPoisson
+return GkFemPoisson

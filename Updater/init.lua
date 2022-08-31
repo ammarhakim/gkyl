@@ -26,7 +26,7 @@ local FemGyroaverage = require "Updater.FemGyroaverage"
 local FemParPoisson = require "Updater.FemParPoisson"
 local FemParproj = require "Updater.FemParproj"
 local FemPerpPoisson = require "Updater.FemPerpPoisson"
-local FemPoisson = require "Updater.FemPoisson"
+local GkFemPoisson = require "Updater.GkFemPoisson"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
 local GkLBO = require "Updater.GkLBO"
 local GkSheathBc = require "Updater.GkSheathBc"
@@ -84,7 +84,7 @@ return {
    FemParPoisson = FemParPoisson,
    FemParproj = FemParproj,
    FemPerpPoisson = FemPerpPoisson,
-   FemPoisson = FemPoisson,
+   GkFemPoisson = GkFemPoisson,
    FiveMomentSrc = FiveMomentSrc,
    GkLBO = GkLBO,
    GkSheathBc = GkSheathBc,
