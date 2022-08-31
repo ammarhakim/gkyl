@@ -398,12 +398,10 @@ function MaxwellField:createSolver()
 --      MF 2022/08/15: disable multigrid for now.
 --      if self.basis:polyOrder()>1 or isParallel or GKYL_USE_GPU then
          self.isSlvrMG = false
-         self.fieldSlvr = Updater.GkFemPoisson {
-            onGrid = self.grid,   bcLower = self.bcLowerPhi,
-            basis  = self.basis,  bcUpper = self.bcUpperPhi,
-            -- MF 2022/08/15: GkFemPoisson presently defaults to FemParPoisson in 1D, and
-            -- that is hooked into fem_parproj in g0, which is not what we want here. 
-            useG0 = self.grid:ndim()==2,
+         self.fieldSlvr = Updater.FemPoisson {
+            onGrid    = self.grid,   bcLower = self.bcLowerPhi,
+            basis     = self.basis,  bcUpper = self.bcUpperPhi,
+            epsilon_0 = self.epsilon0,
          }
          self.esEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
             onGrid   = self.grid,
@@ -769,43 +767,41 @@ function MaxwellField:advance(tCurr, species, inIdx, outIdx)
          self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
       end
 
-      if self.isSlvrMG then
-         self.chargeDens:scale(1.0/self.epsilon0)
-         if inIdx == 1 then
-            -- In the first RK stage shuffle the storage of previous potentials.
-            for i = 1, self.phiPrevNum-1 do
-               self.phiFldPrev[i]["fld"]:copy(self.phiFldPrev[i+1]["fld"])
-               self.phiFldPrev[i]["time"] = self.phiFldPrev[i+1]["time"]
-            end
-            self.phiFldPrev[self.phiPrevNum]["fld"]:copy(emIn)
-            self.phiFldPrev[self.phiPrevNum]["time"] = tCurr
-            -- Count until phiPrevNum time steps have been taken.
-            if not self.filledPhiPrev then
-               self.phiPrevCount = self.phiPrevCount+1
-               if self.phiPrevCount > self.phiPrevNum then self.filledPhiPrev = true end
-            end
-         end
-         if self.filledPhiPrev then
-            -- Form an initial guess with 3-point Lagrange extrapolation.
-            local tMt1 = tCurr-self.phiFldPrev[1]["time"]
-            local tMt2 = tCurr-self.phiFldPrev[2]["time"]
-            local tMt3 = tCurr-self.phiFldPrev[3]["time"]
-            local t1Mt2, t1Mt3 = tMt2-tMt1, tMt3-tMt1
-            local t2Mt1, t2Mt3 = -t1Mt2, tMt3-tMt2
-            local t3Mt1, t3Mt2 = -t1Mt3, -t2Mt3
-            local f1 = tMt2*tMt3/(t1Mt2*t1Mt3)
-            local f2 = tMt1*tMt3/(t2Mt1*t2Mt3)
-            local f3 = tMt1*tMt2/(t3Mt1*t3Mt2)
-            emIn:combine(f1,self.phiFldPrev[1]["fld"],
-                         f2,self.phiFldPrev[2]["fld"],
-                         f3,self.phiFldPrev[3]["fld"]) 
-         end
-      else
-         self.chargeDens:scale(-1.0/self.epsilon0)
-      end
+--      if self.isSlvrMG then
+--         self.chargeDens:scale(1.0/self.epsilon0)
+--         if inIdx == 1 then
+--            -- In the first RK stage shuffle the storage of previous potentials.
+--            for i = 1, self.phiPrevNum-1 do
+--               self.phiFldPrev[i]["fld"]:copy(self.phiFldPrev[i+1]["fld"])
+--               self.phiFldPrev[i]["time"] = self.phiFldPrev[i+1]["time"]
+--            end
+--            self.phiFldPrev[self.phiPrevNum]["fld"]:copy(emIn)
+--            self.phiFldPrev[self.phiPrevNum]["time"] = tCurr
+--            -- Count until phiPrevNum time steps have been taken.
+--            if not self.filledPhiPrev then
+--               self.phiPrevCount = self.phiPrevCount+1
+--               if self.phiPrevCount > self.phiPrevNum then self.filledPhiPrev = true end
+--            end
+--         end
+--         if self.filledPhiPrev then
+--            -- Form an initial guess with 3-point Lagrange extrapolation.
+--            local tMt1 = tCurr-self.phiFldPrev[1]["time"]
+--            local tMt2 = tCurr-self.phiFldPrev[2]["time"]
+--            local tMt3 = tCurr-self.phiFldPrev[3]["time"]
+--            local t1Mt2, t1Mt3 = tMt2-tMt1, tMt3-tMt1
+--            local t2Mt1, t2Mt3 = -t1Mt2, tMt3-tMt2
+--            local t3Mt1, t3Mt2 = -t1Mt3, -t2Mt3
+--            local f1 = tMt2*tMt3/(t1Mt2*t1Mt3)
+--            local f2 = tMt1*tMt3/(t2Mt1*t2Mt3)
+--            local f3 = tMt1*tMt2/(t3Mt1*t3Mt2)
+--            emIn:combine(f1,self.phiFldPrev[1]["fld"],
+--                         f2,self.phiFldPrev[2]["fld"],
+--                         f3,self.phiFldPrev[3]["fld"]) 
+--         end
+--      end
 
       -- Solve for the potential.
-      self.fieldSlvr:advance(tCurr, {self.chargeDens, emIn}, {emIn})
+      self.fieldSlvr:advance(tCurr, {self.chargeDens}, {emIn})
    end
 end
 

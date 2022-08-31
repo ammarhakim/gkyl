@@ -98,9 +98,9 @@ function BasicBc:init(tbl)
       local numGhostVec   = self._edge == 'lower' and onField._lowerGhostVec or onField._upperGhostVec
 
       local bctype -- Match gkyl_bc_basic_type in gkylzero/zero/gkyl_bc_basic.h
-      if self._bcType == "copy" then bctype = 0
-      elseif self._bcType == "absorb" then bctype = 1 
-      elseif self._bcType == "reflect" then bctype = 2 
+          if self._bcType == "copy"        then bctype = 0
+      elseif self._bcType == "absorb"      then bctype = 1 
+      elseif self._bcType == "reflect"     then bctype = 2 
       elseif self._bcType == "maxwell_pec" then bctype = 3 
       end
 

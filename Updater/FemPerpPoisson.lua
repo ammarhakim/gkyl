@@ -63,32 +63,6 @@ ffi.cdef[[
   void solve(FemPerpPoisson* f);
   void getSolution(FemPerpPoisson* f, double* ptr, int idx, int idy);
   void getNodalSolution(FemPerpPoisson* f, double* ptr, int idx, int idy);
-
-// Boundary condition types.                                                       
-enum gkyl_poisson_bc_type {                                                        
-  GKYL_POISSON_PERIODIC=0,
-  GKYL_POISSON_DIRICHLET,  // sets the value.                                      
-  GKYL_POISSON_NEUMANN,  // sets the slope normal to the boundary.                 
-  GKYL_POISSON_ROBIN,  // a combination of dirichlet and neumann.                  
-};                                                                                 
-                                                                                   
-// Boundary condition values. Dirichlet and Neumann use only one value,            
-// Robin uses 3, and periodic ignores the value.                                   
-struct gkyl_poisson_bc_value { double v[3]; };                                     
-                                                                                   
-struct gkyl_poisson_bc {                                                           
-  enum gkyl_poisson_bc_type lo_type[3], up_type[3];    
-  struct gkyl_poisson_bc_value lo_value[3], up_value[3];  
-};  
-
-typedef struct gkyl_fem_poisson gkyl_fem_poisson;
-
-gkyl_fem_poisson* gkyl_fem_poisson_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  struct gkyl_poisson_bc *bcs, const double epsilon, bool use_gpu);
-
-void gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhs);
-void gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *sol);
 ]]
 local GKYL_POISSON_PERIODIC = 0
 local GKYL_POISSON_DIRICHLET = 1
