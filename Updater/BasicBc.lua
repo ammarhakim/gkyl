@@ -15,7 +15,8 @@ local Lin         = require "Lib.Linalg"
 local Proto       = require "Lib.Proto"
 local Range       = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
-local ffi = require "ffi"
+local ffi         = require "ffi"
+
 local ffiC = ffi.C
 require "Lib.ZeroUtil"
 
