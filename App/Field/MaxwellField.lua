@@ -391,62 +391,62 @@ function MaxwellField:createSolver()
       local isParallel = false
       for d=1,self.grid:ndim() do if self.grid:cuts(d)>1 then isParallel=true end end
 
-      if self.basis:polyOrder()>1 or isParallel or GKYL_USE_GPU then
+--      MF 2022/08/15: disable multigrid for now.
+--      if self.basis:polyOrder()>1 or isParallel or GKYL_USE_GPU then
          self.isSlvrMG = false
          self.fieldSlvr = Updater.FemPoisson {
-            onGrid = self.grid,
-            basis = self.basis,
-            bcLower = self.bcLowerPhi,
-            bcUpper = self.bcUpperPhi,
+            onGrid    = self.grid,   bcLower = self.bcLowerPhi,
+            basis     = self.basis,  bcUpper = self.bcUpperPhi,
+            epsilon_0 = self.epsilon0,
          }
          self.esEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
-            onGrid = self.grid,
-            basis = self.basis,
+            onGrid   = self.grid,
+            basis    = self.basis,
             quantity = "V2"
          }
          self.emEnergyCalc = function(tCurr, inFld, outDynV) self:esEnergy(tCurr, inFld, outDynV) end
-      else
-         self.isSlvrMG = true
-         -- Multigrid parameters (hardcoded for now).
-         local gamma = 1                 -- V-cycles=1, W-cycles=2.
-         local relaxType = 'DampedJacobi'    -- DampedJacobi or DampedGaussSeidel
-         local relaxNum = {1,2,300}         -- Number of pre,post and coarsest-grid smoothings.
-         local relaxOmega                     -- Relaxation damping parameter.
-         local ndim = self.grid:ndim()
-         if ndim == 1 then
-            relaxOmega = 2./3.
-         elseif ndim == 2 then
-            relaxOmega = 4./5.
-         end
-         local tolerance = 1.e-6             -- Do cycles until reaching this relative residue norm.
-         -- After the 4th call to the advance method, we will start using a
-         -- 3-point extrapolation to obtain an initial guess for the MG solver. 
-         self.filledPhiPrev = false
-         self.phiPrevCount = 0
-         self.fieldSlvr = Updater.MGpoisson {                                   
-            solverType = 'FEM',                                                 
-            onGrid     = self.grid,
-            basis      = self.basis,
-            bcLower    = self.bcLowerPhi,
-            bcUpper    = self.bcUpperPhi,
-            gamma      = gamma,         -- V-cycles=1, W-cycles=2.
-            relaxType  = relaxType,     -- DampedJacobi or DampedGaussSeidel
-            relaxNum   = relaxNum,      -- Number of pre,post and coarsest-grid smoothings.
-            relaxOmega = relaxOmega,    -- Relaxation damping parameter.
-            tolerance  = tolerance,     -- Do cycles until reaching this relative residue norm.
-         }
-   
-         self.emEnergyCalc = function(tCurr, inFld, outDynV) self.fieldSlvr:esEnergy(tCurr, inFld, outDynV) end
-      end
+--      else
+--         self.isSlvrMG = true
+--         -- Multigrid parameters (hardcoded for now).
+--         local gamma = 1                 -- V-cycles=1, W-cycles=2.
+--         local relaxType = 'DampedJacobi'    -- DampedJacobi or DampedGaussSeidel
+--         local relaxNum = {1,2,300}         -- Number of pre,post and coarsest-grid smoothings.
+--         local relaxOmega                     -- Relaxation damping parameter.
+--         local ndim = self.grid:ndim()
+--         if ndim == 1 then
+--            relaxOmega = 2./3.
+--         elseif ndim == 2 then
+--            relaxOmega = 4./5.
+--         end
+--         local tolerance = 1.e-6             -- Do cycles until reaching this relative residue norm.
+--         -- After the 4th call to the advance method, we will start using a
+--         -- 3-point extrapolation to obtain an initial guess for the MG solver. 
+--         self.filledPhiPrev = false
+--         self.phiPrevCount = 0
+--         self.fieldSlvr = Updater.MGpoisson {                                   
+--            solverType = 'FEM',                                                 
+--            onGrid     = self.grid,
+--            basis      = self.basis,
+--            bcLower    = self.bcLowerPhi,
+--            bcUpper    = self.bcUpperPhi,
+--            gamma      = gamma,         -- V-cycles=1, W-cycles=2.
+--            relaxType  = relaxType,     -- DampedJacobi or DampedGaussSeidel
+--            relaxNum   = relaxNum,      -- Number of pre,post and coarsest-grid smoothings.
+--            relaxOmega = relaxOmega,    -- Relaxation damping parameter.
+--            tolerance  = tolerance,     -- Do cycles until reaching this relative residue norm.
+--         }
+--   
+--         self.emEnergyCalc = function(tCurr, inFld, outDynV) self.fieldSlvr:esEnergy(tCurr, inFld, outDynV) end
+--      end
    end
 
    -- Function to construct a BC updater.
    local function makeBcUpdater(dir, edge, bcList)
       return Updater.Bc {
-	 onGrid             = self.grid,
-	 boundaryConditions = bcList,
-	 dir                = dir,
-	 edge               = edge,
+         onGrid             = self.grid,
+         boundaryConditions = bcList,
+         dir                = dir,
+         edge               = edge,
       }
    end
 
@@ -760,43 +760,41 @@ function MaxwellField:advance(tCurr, species, inIdx, outIdx)
          self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
       end
 
-      if self.isSlvrMG then
-         self.chargeDens:scale(1.0/self.epsilon0)
-         if inIdx == 1 then
-            -- In the first RK stage shuffle the storage of previous potentials.
-            for i = 1, self.phiPrevNum-1 do
-               self.phiFldPrev[i]["fld"]:copy(self.phiFldPrev[i+1]["fld"])
-               self.phiFldPrev[i]["time"] = self.phiFldPrev[i+1]["time"]
-            end
-            self.phiFldPrev[self.phiPrevNum]["fld"]:copy(emIn)
-            self.phiFldPrev[self.phiPrevNum]["time"] = tCurr
-            -- Count until phiPrevNum time steps have been taken.
-            if not self.filledPhiPrev then
-               self.phiPrevCount = self.phiPrevCount+1
-               if self.phiPrevCount > self.phiPrevNum then self.filledPhiPrev = true end
-            end
-         end
-         if self.filledPhiPrev then
-            -- Form an initial guess with 3-point Lagrange extrapolation.
-            local tMt1 = tCurr-self.phiFldPrev[1]["time"]
-            local tMt2 = tCurr-self.phiFldPrev[2]["time"]
-            local tMt3 = tCurr-self.phiFldPrev[3]["time"]
-            local t1Mt2, t1Mt3 = tMt2-tMt1, tMt3-tMt1
-            local t2Mt1, t2Mt3 = -t1Mt2, tMt3-tMt2
-            local t3Mt1, t3Mt2 = -t1Mt3, -t2Mt3
-            local f1 = tMt2*tMt3/(t1Mt2*t1Mt3)
-            local f2 = tMt1*tMt3/(t2Mt1*t2Mt3)
-            local f3 = tMt1*tMt2/(t3Mt1*t3Mt2)
-            emIn:combine(f1,self.phiFldPrev[1]["fld"],
-                         f2,self.phiFldPrev[2]["fld"],
-                         f3,self.phiFldPrev[3]["fld"]) 
-         end
-      else
-         self.chargeDens:scale(-1.0/self.epsilon0)
-      end
+--      if self.isSlvrMG then
+--         self.chargeDens:scale(1.0/self.epsilon0)
+--         if inIdx == 1 then
+--            -- In the first RK stage shuffle the storage of previous potentials.
+--            for i = 1, self.phiPrevNum-1 do
+--               self.phiFldPrev[i]["fld"]:copy(self.phiFldPrev[i+1]["fld"])
+--               self.phiFldPrev[i]["time"] = self.phiFldPrev[i+1]["time"]
+--            end
+--            self.phiFldPrev[self.phiPrevNum]["fld"]:copy(emIn)
+--            self.phiFldPrev[self.phiPrevNum]["time"] = tCurr
+--            -- Count until phiPrevNum time steps have been taken.
+--            if not self.filledPhiPrev then
+--               self.phiPrevCount = self.phiPrevCount+1
+--               if self.phiPrevCount > self.phiPrevNum then self.filledPhiPrev = true end
+--            end
+--         end
+--         if self.filledPhiPrev then
+--            -- Form an initial guess with 3-point Lagrange extrapolation.
+--            local tMt1 = tCurr-self.phiFldPrev[1]["time"]
+--            local tMt2 = tCurr-self.phiFldPrev[2]["time"]
+--            local tMt3 = tCurr-self.phiFldPrev[3]["time"]
+--            local t1Mt2, t1Mt3 = tMt2-tMt1, tMt3-tMt1
+--            local t2Mt1, t2Mt3 = -t1Mt2, tMt3-tMt2
+--            local t3Mt1, t3Mt2 = -t1Mt3, -t2Mt3
+--            local f1 = tMt2*tMt3/(t1Mt2*t1Mt3)
+--            local f2 = tMt1*tMt3/(t2Mt1*t2Mt3)
+--            local f3 = tMt1*tMt2/(t3Mt1*t3Mt2)
+--            emIn:combine(f1,self.phiFldPrev[1]["fld"],
+--                         f2,self.phiFldPrev[2]["fld"],
+--                         f3,self.phiFldPrev[3]["fld"]) 
+--         end
+--      end
 
       -- Solve for the potential.
-      self.fieldSlvr:advance(tCurr, {self.chargeDens, emIn}, {emIn})
+      self.fieldSlvr:advance(tCurr, {self.chargeDens}, {emIn})
    end
 end
 

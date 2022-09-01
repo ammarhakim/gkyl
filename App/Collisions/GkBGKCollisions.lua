@@ -331,10 +331,8 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
       end
       -- Weak multiplication to multiply nu(x) with fMaxwell.
       self.phaseMul = Updater.CartFieldBinOp {
-         onGrid     = self.phaseGrid,
-         weakBasis  = self.phaseBasis,
+         weakBasis  = self.phaseBasis,  operation = "Multiply",
          fieldBasis = self.confBasis,
-         operation  = "Multiply",
       }
    else
       self.nuSum = 0.0  -- Assigned in advance method.
@@ -366,14 +364,10 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
          self.crossMaxwellianM1 = self:createConfField()
          self.crossMaxwellianM2 = self:createConfField()
          self.confMultiply = Updater.CartFieldBinOp {
-            onGrid    = self.confGrid,
-            weakBasis = self.confBasis,
-            operation = "Multiply",
+            weakBasis = self.confBasis,  operation = "Multiply",
          }
          self.confDotProduct = Updater.CartFieldBinOp {
-            onGrid    = self.confGrid,
-            weakBasis = self.confBasis,
-            operation = "DotProduct",
+            weakBasis = self.confBasis,  operation = "DotProduct",
          }
       end
    end

@@ -60,9 +60,6 @@ function AmbipolarSheathField:fullInit(appTbl)
    self.adiabatic = false  -- Electrons must be adiabatic. We check this later.
    self.discontinuousPhi = xsys.pickBool(tbl.discontinuousPhi, false)
 
-   -- Flag to indicate if phi has been calculated.
-   self.calcedPhi = false
-
    self.bcTime = 0.0 -- Timer for BCs.
 
    self._first = true
@@ -106,7 +103,6 @@ end
 function AmbipolarSheathField:initField(species)
    -- Solve for initial phi.
    self:advance(0.0, species, 1, 1)
-   self:phiSolve(0.0, species, 1, 1)
 
    -- Apply BCs and update ghosts.
    self:applyBc(0, self.potentials[1])
@@ -277,35 +273,23 @@ function AmbipolarSheathField:advance(tCurr, species, inIdx, outIdx)
    --for _, bc in lume.orderedIter(self.ionBC) do
    --   bc.numDensityCalc:advance(tCurr, {bc:getBoundaryFluxFields()[inIdx]}, {self.bcIonM0flux[bc:getEdge()]})
    --end
-   self.calcedPhi = false
+
+   local potCurr = self:rkStepperFields()[inIdx]
+   self.phiSlvr:advance(tCurr, {self.bcIonM0flux, species[self.ionName]:getNumDensity(), self.jacobGeoInv}, {potCurr.phiAux})
+   -- Smooth phi in z to ensure continuity in all directions.
+   if self.ndim ~= 2 and not self.discontinuousPhi then
+      self.phiZSmoother:advance(tCurr, {potCurr.phiAux}, {potCurr.phi})
+   else
+      potCurr.phi = potCurr.phiAux
+   end
+
+   -- Apply BCs. Make sure phi is continuous across skin-ghost boundary.
+   local tmStart = Time.clock()
+   for _, bc in ipairs(self.boundaryConditions) do bc:advance(tCurr, {}, {potCurr.phi}) end
+   potCurr.phi:sync(true)
+   self.bcTime = self.bcTime + (Time.clock()-tmStart)
 
    self.timers.advTime[1] = self.timers.advTime[1] + Time.clock() - tmStart
-end
-
-function AmbipolarSheathField:phiSolve(tCurr, species, inIdx, outIdx)
-   -- Assuming that :advance initiated the assembly of the left-side matrix and the
-   -- right-side source vector, :phiSolve waits for the assembly to finish, solves the
-   -- linear problem, and applies BCs to phi.
-   -- Need the self.calcedPhi flag because we assume :phiSolve is called within the
-   -- species :advance, but we want multiple species to call it.
-   if not self.calcedPhi then
-      local potCurr = self:rkStepperFields()[inIdx]
-      self.phiSlvr:advance(tCurr, {self.bcIonM0flux, species[self.ionName]:getNumDensity(), self.jacobGeoInv}, {potCurr.phiAux})
-      -- Smooth phi in z to ensure continuity in all directions.
-      if self.ndim ~= 2 and not self.discontinuousPhi then
-         self.phiZSmoother:advance(tCurr, {potCurr.phiAux}, {potCurr.phi})
-      else
-         potCurr.phi = potCurr.phiAux
-      end
-
-      -- Apply BCs. Make sure phi is continuous across skin-ghost boundary.
-      local tmStart = Time.clock()
-      for _, bc in ipairs(self.boundaryConditions) do bc:advance(tCurr, {}, {potCurr.phi}) end
-      potCurr.phi:sync(true)
-      self.bcTime = self.bcTime + (Time.clock()-tmStart)
-
-      self.calcedPhi = true
-   end
 end
 
 function AmbipolarSheathField:useBoundaryFlux(tCurr, outIdx)

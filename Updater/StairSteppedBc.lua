@@ -89,7 +89,7 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
       end
    end
 
-   return true, GKYL_MAX_DOUBLE
+   return self:reduceStatusDt(true, GKYL_MAX_DOUBLE)
 end
 
 function StairSteppedBc:getDir() return self.dir end

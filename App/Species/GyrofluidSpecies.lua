@@ -386,9 +386,6 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       c:advance(tCurr, momIn, species, {em, extGeo}, momRhsOut)
    end
 
-   -- Complete the field solve.
-   emIn[1]:phiSolve(tCurr, species, inIdx, outIdx)
-
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solver:advance(tCurr, {momIn, em, extGeo, self.primMomSelf, self.cRusanov}, {momRhsOut})

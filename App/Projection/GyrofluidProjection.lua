@@ -78,13 +78,9 @@ function GyrofluidProjection:fullInit(mySpecies)
          onGrid = self.grid,   evaluate = function(t, xn) return 0. end,   -- Set later.
          basis  = self.basis,  onGhosts = true,
       }
-      self.weakMultiply = Updater.CartFieldBinOp {
-         onGrid    = self.grid,   operation = "Multiply",
-         weakBasis = self.basis,  onGhosts  = true,
-      }
       self.weakDivide = Updater.CartFieldBinOp {
-         onGrid    = self.grid,   operation = "Divide",
-         weakBasis = self.basis,  onGhosts  = true,
+         weakBasis = self.basis,  operation = "Divide",
+         onRange   = mySpecies.moments[1]:localExtRange(),  onGhosts = true,
       }
       -- Will also need some temporary fields. Can use those declared in GyrofluidSpecies.
       self.jacM0      = mySpecies.jacM0

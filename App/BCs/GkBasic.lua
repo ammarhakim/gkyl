@@ -57,18 +57,9 @@ end
 
 function GkBasicBC:setName(nm) self.name = self.speciesName.."_"..nm end
 
-function GkBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
-   -- Note that for bcAbsorb there is no operation on fIn,
-   -- so skinLoop (which determines indexing of fIn) does not matter
-   for i = 1, self.basis:numBasis() do fOut[i] = 0.0 end
-end
 function GkBasicBC:bcOpen(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "pointwise".
    self.basis:flipSign(dir, fIn:data(), fOut:data())
-end
-function GkBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
-   -- Requires skinLoop = "pointwise".
-   for i = 1, self.basis:numBasis() do fOut[i] = fIn[i] end
 end
 function GkBasicBC:bcReflect(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "flip".
@@ -130,48 +121,59 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
    self.basis, self.grid = mySpecies.basis, mySpecies.grid
    self.ndim, self.cdim, self.vdim = self.grid:ndim(), self.confGrid:ndim(), self.grid:ndim()-self.confGrid:ndim()
 
+   local vdir = nil
+   if self.bcDir==self.cdim then vdir = self.cdim+1 end
+
+   -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
+   self:createBoundaryGrid()
+
+   local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
+   -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
+   self.allocCartField = function(self, grid, nComp, ghosts, metaData)
+      local f = DataStruct.Field {
+         onGrid        = grid,   ghost    = ghosts,
+         numComponents = nComp,  metaData = metaData,
+      }
+      f:clear(0.0)
+      return f
+   end
+   local allocDistf = function()
+      return self:allocCartField(self.boundaryGrid, self.basis:numBasis(),
+                                 {distf:lowerGhost(),distf:upperGhost()}, distf:getMetaData())
+   end
+
+   self.bcBuffer = allocDistf() -- Buffer used by BasicBc updater.
+
    -- Sheath BCs use phi and phiWall.
    self.setPhiWall = {advance = function(tCurr,inFlds,OutFlds) end}
    self.getPhi     = function(fieldIn, inIdx) return nil end 
 
    local bcFunc, skinType
-   if self.bcKind == "copy" then
-      bcFunc   = function(...) return self:bcCopy(...) end
-      skinType = "pointwise"
-   elseif self.bcKind == "absorb" then
-      bcFunc   = function(...) return self:bcAbsorb(...) end
-      skinType = "pointwise"
-   elseif self.bcKind == "open" then
-      bcFunc   = function(...) return self:bcOpen(...) end
-      skinType = "pointwise"
-   elseif self.bcKind == "reflect" then
-      assert(self.bcDir==self.cdim, "GkBasicBC: reflect BC can only be used along the last/parallel configuration space dimension.")
-      bcFunc   = function(...) return self:bcReflect(...) end
-      skinType = "flip"
-   elseif self.bcKind == "function" then
-      bcFunc   = function(...) return self:bcCopy(...) end
-      skinType = "pointwise"
+   if self.bcKind == "copy" or self.bcKind == "absorb" or self.bcKind == "reflect" then
+      self.bcSolver = Updater.BasicBc{
+         onGrid  = self.grid,   edge   = self.bcEdge,  
+         cdim    = self.cdim,   basis  = self.basis,
+         dir     = self.bcDir,  bcType = self.bcKind,
+         onField = mySpecies:rkStepperFields()[1],
+      }
+      self.bcSolverAdvance = function(tm, inFlds, outFlds)
+         self.bcSolver:advance(tm, {inFlds[1]}, outFlds)
+      end
    elseif self.bcKind == "sheath" then
-      assert(self.bcDir==self.cdim, "GkBasicBC: sheath BC can only be used along the last/parallel configuration space dimension.")
-
-      self.charge, self.mass = mySpecies.charge, mySpecies.mass
-
-      self.fhatSheath = Lin.Vec(self.basis:numBasis())
+      local charge, mass = mySpecies.charge, mySpecies.mass
 
       self.getPhi = function(fieldIn, inIdx) return fieldIn:rkStepperFields()[inIdx].phi end 
-      -- Pre-create pointer and indexer for phi potential.
-      local phi = field:rkStepperFields()[1].phi
-      self.phiPtr, self.phiIdxr = phi:get(1), phi:genIndexer()
 
       -- Create field and function for calculating wall potential according to user-provided function.
       self.phiWallFld = DataStruct.Field {
-         onGrid   = field.grid,  numComponents    = field.basis:numBasis(),
-         ghost    = {1,1},       syncPeriodicDirs = false,
-         metaData = {polyOrder = field.basis:polyOrder(),
-                     basisType = field.basis:id()},
+         onGrid        = field.grid,
+         numComponents = field.basis:numBasis(),
+         ghost         = {1,1},
+         metaData      = {polyOrder = field.basis:polyOrder(),
+                          basisType = field.basis:id()},
+         syncPeriodicDirs = false,
       }
       self.phiWallFld:clear(0.)
-      self.phiWallFldPtr, self.phiWallFldIdxr = self.phiWallFld:get(1), self.phiWallFld:genIndexer()
       if self.phiWallFunc then
          self.setPhiWall = Updater.EvalOnNodes {
             onGrid = field.grid,   evaluate = self.phiWallFunc,
@@ -181,53 +183,85 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
       end
       self.phiWallFld:sync(false)
 
-      self._calcSheathReflection = GyrokineticModDecl.selectSheathReflection(self.basis:id(), self.cdim, 
-                                                                             self.vdim, self.basis:polyOrder())
-
-      bcFunc   = function(...) return self:bcSheath(...) end
-      skinType = "flip"
+      self.bcSolver = Updater.GkSheathBc{
+         onGrid  = self.grid,   edge    = self.bcEdge,  
+         cdim    = self.cdim,   basis   = self.basis,
+         dir     = self.bcDir,  phiWall = self.phiWallFld,
+         charge  = charge,      mass    = mass,
+         onField = mySpecies:rkStepperFields()[1],
+      }
+      self.bcSolverAdvance = function(tm, inFlds, outFlds)
+         self.bcSolver:advance(tm, {inFlds[2]}, outFlds)
+      end
    else
-      assert(false, "GkBasicBC: BC kind not recognized.")
+      -- g2, to be deleted.
+      if self.bcKind == "open" then
+         bcFunc   = function(...) return self:bcOpen(...) end
+         skinType = "pointwise"
+      elseif self.bcKind == "function" then
+         bcFunc   = function(...) return self:bcCopy(...) end
+         skinType = "pointwise"
+      elseif self.bcKind == "sheath" then
+         assert(self.bcDir==self.cdim, "GkBasicBC: sheath BC can only be used along the last/parallel configuration space dimension.")
+
+         self.charge, self.mass = mySpecies.charge, mySpecies.mass
+
+         self.fhatSheath = Lin.Vec(self.basis:numBasis())
+
+         self.getPhi = function(fieldIn, inIdx) return fieldIn:rkStepperFields()[inIdx].phi end 
+         -- Pre-create pointer and indexer for phi potential.
+         local phi = field:rkStepperFields()[1].phi
+         self.phiPtr, self.phiIdxr = phi:get(1), phi:genIndexer()
+
+         -- Create field and function for calculating wall potential according to user-provided function.
+         self.phiWallFld = DataStruct.Field {
+            onGrid        = field.grid,
+            numComponents = field.basis:numBasis(),
+            ghost         = {1,1},
+            metaData      = {polyOrder = field.basis:polyOrder(),
+                             basisType = field.basis:id()},
+            syncPeriodicDirs = false,
+         }
+         self.phiWallFld:clear(0.)
+         self.phiWallFldPtr, self.phiWallFldIdxr = self.phiWallFld:get(1), self.phiWallFld:genIndexer()
+         if self.phiWallFunc then
+            self.setPhiWall = Updater.EvalOnNodes {
+               onGrid = field.grid,   evaluate = self.phiWallFunc,
+               basis  = field.basis,  onGhosts = true,
+            }
+            self.setPhiWall:advance(0.0, {}, {self.phiWallFld})
+         end
+         self.phiWallFld:sync(false)
+
+         self._calcSheathReflection = GyrokineticModDecl.selectSheathReflection(self.basis:id(), self.cdim, 
+                                                                                self.vdim, self.basis:polyOrder())
+
+         bcFunc   = function(...) return self:bcSheath(...) end
+         skinType = "flip"
+      else
+         assert(false, "GkBasicBC: BC kind not recognized.")
+      end
+
+      self.bcSolver = Updater.Bc{
+         onGrid   = self.grid,   edge               = self.bcEdge,  
+         cdim     = self.cdim,   boundaryConditions = {bcFunc},   
+         dir      = self.bcDir,  evaluate           = self.bcFuncIn,
+         vdir     = vdir,        evolveFn           = self.evolve,
+         skinLoop = skinType,    feedback           = self.feedback,
+         basis    = self.basis,  confBasis          = self.confBasis,
+         advanceArgs = {{mySpecies:rkStepperFields()[1]}, {mySpecies:rkStepperFields()[1]}},
+      }
+      self.bcSolverAdvance = function(tm, inFlds, outFlds)
+         self.bcSolver:advance(tm, {}, outFlds)
+      end
    end
-
-   local vdir = nil
-   if self.bcDir==self.cdim then vdir = self.cdim+1 end
-
-   self.bcSolver = Updater.Bc{
-      onGrid   = self.grid,   edge               = self.bcEdge,  
-      cdim     = self.cdim,   boundaryConditions = {bcFunc},   
-      dir      = self.bcDir,  evaluate           = self.bcFuncIn,
-      vdir     = vdir,        evolveFn           = self.evolve,
-      skinLoop = skinType,    feedback           = self.feedback,
-      basis    = self.basis,  confBasis          = self.confBasis,
-      advanceArgs = {{mySpecies:rkStepperFields()[1]}, {mySpecies:rkStepperFields()[1]}},
-   }
 
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
    -- the fluxes through a boundary (e.g. neutral recycling).
    if self.saveFlux then
-      -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
-      self:createBoundaryGrid()
-
       -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
       self:createConfBoundaryGrid()
 
-      local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
-      -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
-      self.allocCartField = function(self, grid, nComp, ghosts, metaData)
-         local f = DataStruct.Field {
-            onGrid        = grid,
-            numComponents = nComp,
-            ghost         = ghosts,
-            metaData      = metaData,
-         }
-         f:clear(0.0)
-         return f
-      end
-      local allocDistf = function()
-         return self:allocCartField(self.boundaryGrid, self.basis:numBasis(),
-                                    {distf:lowerGhost(),distf:upperGhost()}, distf:getMetaData())
-      end
       self.allocMoment = function(self)
          return self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
                                     {numDensity:lowerGhost(),numDensity:upperGhost()}, numDensity:getMetaData())
@@ -330,12 +364,12 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
          end
          -- Set up weak multiplication and division operators (for diagnostics).
          self.confWeakMultiply = Updater.CartFieldBinOp {
-            onGrid    = self.confBoundaryGrid,  operation = "Multiply",
-            weakBasis = self.confBasis,         onGhosts  = true,
+            weakBasis = self.confBasis,  operation = "Multiply",
+            onGhosts  = true,
          }
          self.confWeakDivide = Updater.CartFieldBinOp {
-            onGrid    = self.confBoundaryGrid,  operation = "Divide",
-            weakBasis = self.confBasis,         onGhosts  = true,
+            weakBasis = self.confBasis,  operation = "Divide",
+            onRange   = self.confBoundaryField:localExtRange(),  onGhosts = true,
          }
          -- Volume integral operator (for diagnostics).
          self.volIntegral = {
@@ -432,7 +466,7 @@ function GkBasicBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx
 
    local fIn = mySpecies:rkStepperFields()[outIdx] 
 
-   self.bcSolver:advance(tCurr, {fIn}, {fIn})
+   self.bcSolverAdvance(tCurr, {self.bcBuffer, self.phi}, {fIn})
 end
 
 function GkBasicBC:getBoundaryFluxFields() return self.boundaryFluxFields end

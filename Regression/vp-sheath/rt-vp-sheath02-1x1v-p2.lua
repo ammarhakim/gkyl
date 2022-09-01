@@ -99,8 +99,8 @@ sim = Plasma.App {
       epsilon0 = epsilon_0, mu0 = mu_0,
       evolve   = true, -- Evolve field?
       hasMagneticField = false,
-      bcUpperPhi = {{T="N", V=0.0}}, 
       bcLowerPhi = {{T="D", V=0.0}}, 
+      bcUpperPhi = {{T="N", V=0.0}}, 
    },
 }
 -- Run application.

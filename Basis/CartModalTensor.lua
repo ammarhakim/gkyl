@@ -5,6 +5,9 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+-- System libraries.
+local xsys = require "xsys"
+
 -- Gkyl libraries
 local Proto = require "Lib.Proto"
 local ffi   = require "ffi"
@@ -13,14 +16,36 @@ require "Basis.BasisCdef"
 
 ffi.cdef [[ 
 /**
- * Create new modal tensor-product basis function object.
+ * Assign object members in modal tensor-product basis object.
  *
  * @param basis Basis object to initialize
  * @param ndim Dimension of reference element.
  * @param poly_order Polynomial order.
- * @return Pointer to new basis function.
  */
-void gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim, int poly_order);
+void gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim,
+  int poly_order);
+void gkyl_cart_modal_tensor_cu_dev(struct gkyl_basis *basis, int ndim,
+  int poly_order);
+
+/**
+ * Create new modal tensor-product basis function object.
+ * This basis needs to be deallocated with free/release methods.
+ *
+ * @param ndim Dimension of reference element.
+ * @param poly_order Polynomial order.
+ * @return new basis struct.
+ */
+struct gkyl_basis * gkyl_cart_modal_tensor_new(int ndim, int poly_order);
+struct gkyl_basis * gkyl_cart_modal_tensor_cu_dev_new(int ndim, int poly_order);
+
+/**
+ * Free the memory associated with basis objects
+ * created with _new methods above.
+ *
+ * @param basis Basis object to free.
+ */
+void gkyl_cart_modal_basis_release(struct gkyl_basis *basis);
+void gkyl_cart_modal_basis_release_cu(struct gkyl_basis *basis);
 ]]
 
 -- CartModalTensor -----------------------------------------------------------
@@ -40,8 +65,14 @@ function CartModalTensor:init(tbl)
 
    -- create gkylzero gkyl_basis struct
    self._zero = ffi.new("struct gkyl_basis")
-
    ffiC.gkyl_cart_modal_tensor(self._zero, self._ndim, self._polyOrder)
+
+   if xsys.pickBool(tbl.useDevice, GKYL_USE_GPU) then
+      self._zeroDevice = ffi.gc(ffiC.gkyl_cart_modal_tensor_cu_dev_new(self._ndim, self._polyOrder),
+                                ffiC.gkyl_cart_modal_basis_release_cu)
+   else
+      self._zeroDevice = nil
+   end
 
    self._numBasis = self._zero.num_basis
 end

@@ -390,7 +390,7 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
       local g0_status = ffi.C.gkyl_wave_prop_advance(
          self._zero, 0, dt, qOut._localRange, qIn._zero, qOut._zero)
       local success = g0_status.success == 1 and true or false
-      return success, g0_status.dt_suggested
+      return self:reduceStatusDt(success, g0_status.dt_suggested)
    end
 
    local equation = self._equation -- equation to solve
@@ -489,7 +489,7 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
          end
 
          -- return if time-step was too large
-         if cfla > cflm then return false, dt*cfl/cfla end
+         if cfla > cflm then return self:reduceStatusDt(false, dt*cfl/cfla) end
 
          -- limit waves before computing second-order updates
          self:limitWaves(localRange:lower(dir), localRange:upper(dir)+1, wavesSlice, speedsSlice, onSsBnd)
@@ -518,7 +518,7 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
    end
 
    self._isFirst = false -- no longer first time
-   return true, dt*cfl/cfla
+   return self:reduceStatusDt(true, dt*cfl/cfla)
 end
 
 function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)

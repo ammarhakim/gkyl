@@ -1,5 +1,5 @@
-module load gcc/8.3.1
-module load cudatoolkit/11.4
+module load gcc/8
+module load cudatoolkit/11.6
 module load openmpi/cuda-11.1/gcc/4.1.1
 module load anaconda3/2020.11
 # if we are in machines directory, go up a directory

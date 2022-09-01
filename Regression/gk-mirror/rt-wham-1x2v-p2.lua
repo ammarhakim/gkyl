@@ -2,9 +2,7 @@
 --
 -- 1x2v gyrokinetic calculation in a mirror geometry modeled after WHAM.
 -- Notes: 
---   a) Because of some limitations of AD in the calculation of the
---      Jacobian near Z=0 we do not center the domain at Z=0.
---   b) In order to compute the right metric quantities, we must do so
+--   a) In order to compute the right metric quantities, we must do so
 --      in 3D and then evaluate them at a value in the other two coordinates.
 --
 -- All dimensional quantities are in SI units unless noted otherwise.
@@ -31,16 +29,13 @@ log("\n")
 log("  1x2v gyrokinetic WHAM simulation\n")
 log("\n")
 
-polyOrder = 1
+polyOrder = 2
 
 -- Universal constant parameters.
-eps0 = Constants.EPSILON0
-mu0  = Constants.MU0
-eV   = Constants.ELEMENTARY_CHARGE
-qe   = -eV
-qi   = eV
-me   = Constants.ELECTRON_MASS
-mp   = Constants.PROTON_MASS
+eps0, mu0 = Constants.EPSILON0, Constants.MU0
+eV        = Constants.ELEMENTARY_CHARGE
+qe, qi    = -eV, eV
+me, mp    = Constants.ELECTRON_MASS, Constants.PROTON_MASS
 
 -- Plasma parameters.
 mi        = 2.014*mp                         -- Deuterium ion mass.
@@ -50,7 +45,7 @@ B_p       = 0.53
 beta      = 0.4                              -- Ratio of plasma to magnetic pressure.
 tau       = (B_p^2)*beta/(2*mu0*n0*Te0)-1    -- Ti/Te ratio.
 Ti0       = tau*Te0
-kperpRhos = 0.3                              -- k_perp*rho_s in the Poisson equation.
+kperpRhos = 0.01                              -- k_perp*rho_s in the Poisson equation.
 
 -- Parameters controlling initial conditions.
 alim    = 0.125    -- Plasma limiting radius.
@@ -82,7 +77,7 @@ rho_s    = c_s/omega_ci
 kperp = kperpRhos/rho_s
 
 -- Geometry parameters.
-numCellZ = 64
+numCellZ = 0.5*144
 RatZeq0  = 0.10    -- Radius of the field line at Z=0.
 -- Axial coordinate Z extents. Endure that Z=0 is not on
 -- the boundary of a cell (due to AD errors).
@@ -332,12 +327,15 @@ log("\n")
 log(string.format("  omega_H = kpar*vte/(kperp*rhos) = %e rad/s\n", omega_H))
 log("\n")
 
+local endTime = 0.5*0.3e-9
+local nframes = 1
+
 -- Simulation App.
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd       = 1.0e-10,                   -- End time.
-   nFrame     = 1,                      -- Number of output frames.
+   tEnd       = endTime,                  -- End time.
+   nFrame     = nframes,                 -- Number of output frames.
    lower      = {zMin},                  -- Configuration space lower left.
    upper      = {zMax},                  -- Configuration space upper right.
    cells      = {numCellZ},              -- Configuration space cells.
@@ -361,16 +359,16 @@ plasmaApp = Plasma.App {
    end,
 
    timeStepper = "rk3",                    -- One of "rk2" or "rk3".
-   cflFrac     = 0.8,
---   restartFrameEvery = .05,
---   calcIntQuantEvery = 1./400.,
+   cflFrac     = 0.9,
+   restartFrameEvery = .05,
+   calcIntQuantEvery = 1./(10.*nframes),  -- Aim at 10x more frequently than frames.
 
    -- Gyrokinetic electrons.
    elc = Plasma.Species {
       charge = qe, mass = me,
-      lower = {-5*vte, 0},
-      upper = { 5*vte, 12*me*(vte^2)/(2*B_p)},
-      cells = {64, 8},
+      lower = {-3.75*vte, 0},
+      upper = { 3.75*vte, me*((3.*vte)^2)/(2*B_p)},
+      cells = {16, 48},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
 --         fromFile = "elcIC.bp",
@@ -416,21 +414,22 @@ plasmaApp = Plasma.App {
 --         fromFile    = "elc_fSourceIC.bp",
          density     = srcDenElc,
          temperature = srcTempElc,
-         diagnostics = {"intM0", "intM2"},
+         diagnostics = {"twoFiles","M0","intM0","intM2"},
       },
+      diagnostics = {"twoFiles","M0", "Upar", "Temp", "Tperp", "Tpar", "intM0", "intM1", "intM2", "intKE", "intEnergy"},
+      bcx = {Plasma.SheathBC{diagnostics = {"twoFiles","M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics = {"twoFiles","M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}}},
+      polarizationDensityFactor = n0,
       evolve = true, -- Evolve species?
-      diagnostics = {"M0", "Upar", "Temp", "Tperp", "Tpar", "intM0", "intM1", "intM2", "intKE", "intEnergy" },
       randomseed = randomseed,
-      bcx = {Plasma.SheathBC{diagnostics={"M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}},
-             Plasma.SheathBC{diagnostics={"M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Gyrokinetic ions.
    ion = Plasma.Species {
       charge = qi, mass = mi,
-      lower = {-5*vti, 0},
-      upper = { 5*vti, 12*mi*(vti^2)/(2*B_p)},
-      cells = {64, 8},
+      lower = {-3.75*vti, 0},
+      upper = { 3.75*vti, mi*((3.*vti)^2)/(2*B_p)},
+      cells = {16, 48},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
 --         fromFile = "ionIC.bp",
@@ -476,13 +475,14 @@ plasmaApp = Plasma.App {
 --         fromFile    = "ion_fSourceIC.bp",
          density     = srcDenIon,
          temperature = srcTempIon,
-         diagnostics = {"intM0", "intM2"},
+         diagnostics = {"twoFiles","M0","intM0","intM2"},
       },
+      diagnostics = {"twoFiles","M0", "Upar", "Temp", "Tperp", "Tpar", "intM0", "intM1", "intM2", "intKE", "intEnergy"},
+      bcx = {Plasma.SheathBC{diagnostics = {"twoFiles","M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics = {"twoFiles","M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}}},
+      polarizationDensityFactor = n0,
       evolve = true, -- Evolve species?
-      diagnostics = {"M0", "Upar", "Temp", "Tperp", "Tpar", "intM0", "intM1", "intM2", "intKE", "intEnergy" },
       randomseed = randomseed,
-      bcx = {Plasma.SheathBC{diagnostics={"M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}},
-             Plasma.SheathBC{diagnostics={"M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Field solver.

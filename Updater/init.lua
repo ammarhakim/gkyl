@@ -7,6 +7,7 @@
 
 -- Gkyl modules
 local ASheathPotential = require "Updater.ASheathPotential"
+local BasicBc = require "Updater.BasicBc"
 local Bc = require "Updater.Bc"
 local BgkCollisions = require "Updater.BgkCollisions"
 local CartFieldBinOp = require "Updater.CartFieldBinOp"
@@ -23,10 +24,13 @@ local EvalOnNodes = require "Updater.EvalOnNodes"
 local EvaluateBronoldFehskeBC = require "Updater.EvaluateBronoldFehskeBC"
 local FemGyroaverage = require "Updater.FemGyroaverage"
 local FemParPoisson = require "Updater.FemParPoisson"
+local FemParproj = require "Updater.FemParproj"
 local FemPerpPoisson = require "Updater.FemPerpPoisson"
 local FemPoisson = require "Updater.FemPoisson"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
+local GkFemPoisson = require "Updater.GkFemPoisson"
 local GkLBO = require "Updater.GkLBO"
+local GkSheathBc = require "Updater.GkSheathBc"
 local HyperDisCont = require "Updater.HyperDisCont"
 local HyperDisContCellBased = require "Updater.HyperDisContCellBased"
 local Ionization = require "Updater.Ionization"
@@ -62,6 +66,7 @@ local AnisotropicDiffusion = require "Updater.AnisotropicDiffusion"
 
 return {
    ASheathPotential = ASheathPotential,
+   BasicBc = BasicBc,
    Bc = Bc,
    BgkCollisions = BgkCollisions,
    CartFieldBinOp = CartFieldBinOp,
@@ -78,10 +83,13 @@ return {
    EvaluateBronoldFehskeBC = EvaluateBronoldFehskeBC,
    FemGyroaverage = FemGyroaverage,
    FemParPoisson = FemParPoisson,
+   FemParproj = FemParproj,
    FemPerpPoisson = FemPerpPoisson,
    FemPoisson = FemPoisson,
    FiveMomentSrc = FiveMomentSrc,
+   GkFemPoisson = GkFemPoisson,
    GkLBO = GkLBO,
+   GkSheathBc = GkSheathBc,
    HyperDisCont = HyperDisCont,
    HyperDisContCellBased = HyperDisContCellBased,
    Ionization = Ionization,

@@ -60,16 +60,6 @@ ffi.cdef[[
   void solvePar(FemParPoisson* f);
   void getSolutionPar(FemParPoisson* f, double* ptr, int idz);
   void getNodalSolutionPar(FemParPoisson* f, double* ptr, int idz);
-
-   // Object type
-  typedef struct gkyl_fem_parproj gkyl_fem_parproj;
-
-  gkyl_fem_parproj* gkyl_fem_parproj_new(
-    const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-    const bool isparperiodic, bool use_gpu);
-
-  void gkyl_fem_parproj_set_rhs(gkyl_fem_parproj* up, const struct gkyl_array *rhsin);
-  void gkyl_fem_parproj_solve(gkyl_fem_parproj* up, struct gkyl_array *phiout);
 ]]
 local DIRICHLET = 0
 local NEUMANN   = 1
@@ -101,7 +91,7 @@ function FemParPoisson:init(tbl)
 
    -- Set up constant dummy field.
    self.unitWeight = DataStruct.Field {
-      onGrid        = self._grid,              ghost         = {1, 1},
+      onGrid        = self._grid,              ghost     = {1, 1},
       numComponents = self._basis:numBasis(),  useDevice = false,
    }
    local initUnit = ProjectOnBasis {
@@ -112,11 +102,11 @@ function FemParPoisson:init(tbl)
 
    -- Set up fields for non-uniform and/or time-dependent laplacian and modifier weights
    self.laplacianWeight = DataStruct.Field {
-      onGrid        = self._grid,              ghost         = {1, 1},
+      onGrid        = self._grid,              ghost     = {1, 1},
       numComponents = self._basis:numBasis(),  useDevice = false,
    }
    self.modifierWeight = DataStruct.Field {
-      onGrid        = self._grid,              ghost         = {1, 1}, 
+      onGrid        = self._grid,              ghost     = {1, 1}, 
       numComponents = self._basis:numBasis(),  useDevice = false,
    }
    -- Initialize these fields to zero.
@@ -199,11 +189,6 @@ function FemParPoisson:init(tbl)
                   stiffCreate    = 0., getSol      = 0.,
                   srcReduce      = 0., assemble    = 0.,
                   completeNsolve = 0.}
-
-   local useG0 = xsys.pickBool(tbl.useG0, true)
-   if useG0 then
-      self._zero_fem = ffiC.gkyl_fem_parproj_new(self._grid._zero, self._basis._zero, self._periodic, GKYL_USE_GPU or 0)
-   end
 
    return self
 end
@@ -391,27 +376,11 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
    local src = assert(inFld[1], "FemParPoisson.advance: Must specify an input field")
    local sol = assert(outFld[1], "FemParPoisson.advance: Must specify an output field")
 
-   if self._zero_fem then
-      if self._periodic then src:sync(true) end
-      ffiC.gkyl_fem_parproj_set_rhs(self._zero_fem, src._zero)
-      ffiC.gkyl_fem_parproj_solve(self._zero_fem, sol._zero)
-      return
-   end
-
    -- Assemble the right-side source vector and, if needed, the stiffness matrix.
    self:beginAssembly(tCurr, src)
 
    -- Compute and obtain the local solution.
    self:completeAssemblyAndSolve(tCurr, sol)
-end
-
-function FemParPoisson:_advanceOnDevice(tCurr, inFld, outFld)
-   local src = assert(inFld[1], "FemParPoisson.advanceOnDevice: Must specify an input field")
-   local sol = assert(outFld[1], "FemParPoisson.advanceOnDevice: Must specify an output field")
-
-   assert(self._zero_fem, "FemParPoisson: advanceOnDevice requires gkyl_fem_parproj from g0")
-   ffiC.gkyl_fem_parproj_set_rhs(self._zero_fem, src._zeroDevice)
-   ffiC.gkyl_fem_parproj_solve(self._zero_fem, sol._zeroDevice)
 end
 
 function FemParPoisson:setLaplacianWeight(weight)

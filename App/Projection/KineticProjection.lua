@@ -17,9 +17,7 @@ local KineticProjection = Proto(ProjectionBase)
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
-function KineticProjection:init(tbl)
-   self.tbl = tbl
-end
+function KineticProjection:init(tbl) self.tbl = tbl end
 
 function KineticProjection:fullInit(species)
    self.species = species
@@ -47,9 +45,8 @@ function KineticProjection:fullInit(species)
    self.scaleWithSourcePower = xsys.pickBool(self.tbl.scaleWithSourcePower, false)
 
    self.weakMultiplyConfPhase = Updater.CartFieldBinOp {
-      onGrid     = self.phaseGrid,   operation = "Multiply",
-      weakBasis  = self.phaseBasis,  onGhosts  = true,
-      fieldBasis = self.confBasis,
+      weakBasis  = self.phaseBasis,  operation = "Multiply",
+      fieldBasis = self.confBasis,   onGhosts  = true,
    }
 end
 
@@ -78,10 +75,8 @@ function FunctionProjection:fullInit(species)
       }
    else
       self.project = Updater.ProjectOnBasis {
-         onGrid   = self.phaseGrid,
-         basis    = self.phaseBasis,
-         evaluate = func,
-         onGhosts = true
+         onGrid = self.phaseGrid,   evaluate = func,
+         basis  = self.phaseBasis,  onGhosts = true
       }
    end
    self.initFunc = func
@@ -145,10 +140,8 @@ function MaxwellianProjection:fullInit(species)
       }
    else
       self.project = Updater.ProjectOnBasis {
-         onGrid   = self.phaseGrid,
-         basis    = self.phaseBasis,
-         evaluate = self.initFunc,
-         onGhosts = true
+         onGrid = self.phaseGrid,   evaluate = self.initFunc,
+         basis  = self.phaseBasis,  onGhosts = true
       }
    end
 end
@@ -162,18 +155,14 @@ function MaxwellianProjection:scaleDensity(distf)
       return self.density(t, zn, self.species)
    end
    local project = Updater.ProjectOnBasis {
-      onGrid   = self.confGrid,
-      basis    = self.confBasis,
-      evaluate = func,
-      onGhosts = true,
+      onGrid = self.confGrid,   evaluate = func,
+      basis  = self.confBasis,  onGhosts = true,
    }
    project:advance(0.0, {}, {M0e})
 
    local weakDivision = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "Divide",
-      onGhosts  = true,
+      weakBasis = self.confBasis,  operation = "Divide",
+      onRange   = M0e:localExtRange(),  onGhosts  = true,
    }
 
    -- Calculate M0mod = M0e / M0.

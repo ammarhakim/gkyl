@@ -226,9 +226,7 @@ function DistFuncMomentCalc:init(tbl)
    if GKYL_HAVE_CUDA then
       -- This allows us to force an updater to run on the host, even for a GPU simulation.
       self._calcOnHost = tbl.onHost
-      if self._calcOnHost then
-         self._advanceFunc = self._advance 
-      end
+      if self._calcOnHost then self._advanceFunc = self._advance end
    else
       self._calcOnHost = true
    end
@@ -743,7 +741,7 @@ end
 function DistFuncMomentCalc:_advanceOnDevice(tCurr, inFld, outFld)
    if self.oncePerTime and self.tCurr == tCurr then return end -- Do nothing, already computed on this step.
    local distf = inFld[1]
-   local mout = outFld[1]
+   local mout  = outFld[1]
    local phaseRange = distf:localRange()
    local confRange
    if self.onGhosts then

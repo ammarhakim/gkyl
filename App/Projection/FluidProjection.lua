@@ -32,6 +32,11 @@ function FluidProjection:fullInit(species)
    self.mass = species:getMass()
 
    self.fromFile = self.tbl.fromFile
+
+   self.weakMultiply = Updater.CartFieldBinOp {
+      weakBasis = self.basis,  operation = "Multiply",
+      onGhosts  = true,
+   }
 end
 
 ----------------------------------------------------------------------
@@ -59,21 +64,23 @@ function FunctionProjection:fullInit(species)
       }
    else
       self.project = Updater.ProjectOnBasis {
-         onGrid   = self.grid,
-         basis    = self.basis,
-         evaluate = func,
-         onGhosts = true
+         onGrid = self.grid,   evaluate = func,
+         basis  = self.basis,  onGhosts = true
       }
    end
    self.initFunc = func
 end
 
 function FunctionProjection:advance(time, inFlds, outFlds)
-   local momOut = outFlds[1]
+   local extField = inFlds[1]
+   local momOut   = outFlds[1]
    if self.fromFile then
       local tm, fr = self.fieldIo:read(momOut, self.fromFile)
    else
       self.project:advance(time, {}, {momOut})
+
+      local jacob = extField.geo.jacobGeo
+      if jacob then self.weakMultiply:advance(0, {momOut, jacob}, {momOut}) end
    end
 end
 ----------------------------------------------------------------------

@@ -336,12 +336,12 @@ end
 
 -- advance method
 function FiveMomentSrc:_advance(tCurr, inFld, outFld)
-   return self:_advanceDispatch(tCurr, inFld, outFld, "cpu")
+   return self:reduceStatusDt(self:_advanceDispatch(tCurr, inFld, outFld, "cpu"))
 end
 
 -- advance method
 function FiveMomentSrc:_advanceDevice(tCurr, inFld, outFld)
-   return self:_advanceDispatch(tCurr, inFld, outFld, "gpu")
+   return self:reduceStatusDt(self:_advanceDispatch(tCurr, inFld, outFld, "gpu"))
 end
 
 return FiveMomentSrc

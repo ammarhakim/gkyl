@@ -57,6 +57,7 @@ plasmaApp = Plasma.App {
          end,
          temperature = function (t, xn) return Ti0 end,
       },
+      polarizationDensityFactor = ni0,
       evolve = true, -- Evolve species?
       diagnostics = {"M0", "M2"},
    },

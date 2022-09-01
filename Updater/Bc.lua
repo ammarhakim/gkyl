@@ -10,7 +10,6 @@ local xsys = require "xsys"
 
 -- Gkyl libraries.
 local CartDecomp     = require "Lib.CartDecomp"
-local CartFieldBinOp = require "Updater.CartFieldBinOp"
 local DataStruct     = require "DataStruct"
 local Grid           = require "Grid"
 local Lin            = require "Lib.Linalg"

@@ -262,7 +262,7 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
 end
 
 function BraginskiiViscosityDiffusion:_advance(tCurr, inFld, outFld)
-   return self:_forwardEuler(self, tCurr, inFld, outFld)
+   return self:reduceStatusDt(self:_forwardEuler(self, tCurr, inFld, outFld))
 end
 
 return BraginskiiViscosityDiffusion

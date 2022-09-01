@@ -115,25 +115,14 @@ function GkSpecies:alloc(nRkDup)
    self.momDensityAux = self:allocMoment()
    self.ptclEnergy    = self:allocMoment()
    self.ptclEnergyAux = self:allocMoment()
-   self.threeMoments = self:allocVectorMoment(3)
+   self.threeMoments  = self:allocVectorMoment(3)
    if self.positivity then
       self.numDensityPos = self:allocMoment()
       self.momDensityPos = self:allocMoment()
       self.ptclEnergyPos = self:allocMoment()
    end
-   self.polarizationWeight = self:allocMoment() -- not used when using linearized poisson solve
 			
-   if self.gyavg then
-      self.rho1 = self:allocDistf()
-      self.rho2 = self:allocDistf()
-      self.rho3 = self:allocDistf()
-   end
-
-   if self.vdim == 1 then
-      self.vDegFreedom = 1.0
-   else
-      self.vDegFreedom = 3.0
-   end
+   self.vDegFreedom = self.vdim == 1 and 1.0 or 3.0
 
    self.first = true
 end
@@ -159,15 +148,20 @@ function GkSpecies:createSolver(field, externalField)
       self.jacobPhaseFunc = self.bmagFunc
       self.jacobGeoFunc   = externalField.jacobGeoFunc
 
-      local xMid = {}
-      for d = 1,self.cdim do xMid[d]=self.grid:mid(d) end
-      self.B0 = externalField.bmagFunc(0.0, xMid)
-
       self.bmag        = assert(externalField.geo.bmag, "nil bmag")
       self.bmagInv     = externalField.geo.bmagInv
       self.bmagInvSq   = externalField.geo.bmagInvSq
       self.jacobGeo    = externalField.geo.jacobGeo
       self.jacobGeoInv = externalField.geo.jacobGeoInv
+
+      self.jacobGeoDbmagSq = self:allocMoment()
+      self.confWeakMultiply:advance(0., {self.jacobGeo, self.bmagInvSq}, {self.jacobGeoDbmagSq})
+
+      -- Compute the magnetic field in the center of the domain (e.g. for the Poisson equation).
+      local xMid = {}
+      for d = 1,self.cdim do xMid[d]=self.confGrid:mid(d) end
+      self.bmagMid = self.bmagFunc(0.0, xMid)
+
    end
 
    self.hasSheathBCs = false
@@ -176,84 +170,88 @@ function GkSpecies:createSolver(field, externalField)
    end
 
    -- Create updater to advance solution by one time-step.
-   self.equation = GyrokineticEq.GkEq {
-      onGrid     = self.grid,               mass         = self.mass,
-      confGrid   = self.confGrid,           hasPhi       = hasPhi,
-      phaseBasis = self.basis,              hasApar      = hasApar,
-      confBasis  = self.confBasis,          hasSheathBCs = self.hasSheathBCs,
-      confRange  = self.bmag:localRange(),  positivity   = self.positivity,
-      charge     = self.charge,
-   }
-
-   -- No update in mu direction (last velocity direction if present)
-   local upd = {}
-   if hasApar then    -- If electromagnetic only update conf dir surface terms on first step.
-      for d = 1, self.cdim do upd[d] = d end
-   else
-      for d = 1, self.cdim + 1 do upd[d] = d end
-   end
-   -- Zero flux in vpar and mu.
-   table.insert(self.zeroFluxDirections, self.cdim+1)
-   if self.vdim > 1 then table.insert(self.zeroFluxDirections, self.cdim+2) end
-
-   self.solver = Updater.HyperDisCont {
-      onGrid             = self.grid,
-      basis              = self.basis,
-      cfl                = self.cfl,
-      equation           = self.equation,
-      zeroFluxDirections = self.zeroFluxDirections,
-      updateDirections   = upd,
-      clearOut           = false,   -- Continue accumulating into output field.
-      globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
-   }
-   
-   if hasApar then
-      -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
-      self.equationStep2 = GyrokineticEq.GkEqStep2 {
-         onGrid     = self.grid,
-         phaseBasis = self.basis,
-         confBasis  = self.confBasis,
+   if self.evolveCollisionless then
+      self.equation = GyrokineticEq.GkEq {
+         onGrid     = self.grid,               mass         = self.mass,
+         confGrid   = self.confGrid,           hasPhi       = hasPhi,
+         phaseBasis = self.basis,              hasApar      = hasApar,
+         confBasis  = self.confBasis,          hasSheathBCs = self.hasSheathBCs,
+         confRange  = self.bmag:localRange(),  positivity   = self.positivity,
          charge     = self.charge,
-         mass       = self.mass,
-         positivity = self.positivity,
       }
 
-      if self.basis:polyOrder()==1 then 
-         -- This solver calculates vpar surface terms for Ohm's law. p=1 only!
-         self.solverStep2 = Updater.HyperDisCont {
+      -- No update in mu direction (last velocity direction if present)
+      local upd = {}
+      if hasApar then    -- If electromagnetic only update conf dir surface terms on first step.
+         for d = 1, self.cdim do upd[d] = d end
+      else
+         for d = 1, self.cdim + 1 do upd[d] = d end
+      end
+      -- Zero flux in vpar and mu.
+      table.insert(self.zeroFluxDirections, self.cdim+1)
+      if self.vdim > 1 then table.insert(self.zeroFluxDirections, self.cdim+2) end
+
+      if self.evolveCollisionless then
+         self.solver = Updater.HyperDisCont {
             onGrid             = self.grid,
             basis              = self.basis,
             cfl                = self.cfl,
             equation           = self.equation,
             zeroFluxDirections = self.zeroFluxDirections,
-            updateDirections   = {self.cdim+1},    -- Only vpar terms.
-            updateVolumeTerm   = false,            -- No volume term.
-            clearOut           = false,            -- Continue accumulating into output field.
-            globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
-         }
-         -- Note that the surface update for this term only involves the vpar direction.
-         self.solverStep3 = Updater.HyperDisCont {
-            onGrid             = self.grid,
-            basis              = self.basis,
-            cfl                = self.cfl,
-            equation           = self.equationStep2,
-            zeroFluxDirections = self.zeroFluxDirections,
-            updateDirections   = {self.cdim+1}, -- Only vpar terms.
+            updateDirections   = upd,
             clearOut           = false,   -- Continue accumulating into output field.
             globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
          }
-      else
-         -- Note that the surface update for this term only involves the vpar direction.
-         self.solverStep2 = Updater.HyperDisCont {
-            onGrid             = self.grid,
-            basis              = self.basis,
-            cfl                = self.cfl,
-            equation           = self.equationStep2,
-            zeroFluxDirections = self.zeroFluxDirections,
-            updateDirections   = {self.cdim+1},
-            clearOut           = false,   -- Continue accumulating into output field.
-            globalUpwind       = false,   -- Don't reduce max speed.
+      end
+      
+      if hasApar then
+         -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
+         self.equationStep2 = GyrokineticEq.GkEqStep2 {
+            onGrid     = self.grid,
+            phaseBasis = self.basis,
+            confBasis  = self.confBasis,
+            charge     = self.charge,
+            mass       = self.mass,
+            positivity = self.positivity,
          }
+
+         if self.basis:polyOrder()==1 then 
+            -- This solver calculates vpar surface terms for Ohm's law. p=1 only!
+            self.solverStep2 = Updater.HyperDisCont {
+               onGrid             = self.grid,
+               basis              = self.basis,
+               cfl                = self.cfl,
+               equation           = self.equation,
+               zeroFluxDirections = self.zeroFluxDirections,
+               updateDirections   = {self.cdim+1},    -- Only vpar terms.
+               updateVolumeTerm   = false,            -- No volume term.
+               clearOut           = false,            -- Continue accumulating into output field.
+               globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
+            }
+            -- Note that the surface update for this term only involves the vpar direction.
+            self.solverStep3 = Updater.HyperDisCont {
+               onGrid             = self.grid,
+               basis              = self.basis,
+               cfl                = self.cfl,
+               equation           = self.equationStep2,
+               zeroFluxDirections = self.zeroFluxDirections,
+               updateDirections   = {self.cdim+1}, -- Only vpar terms.
+               clearOut           = false,   -- Continue accumulating into output field.
+               globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
+            }
+         else
+            -- Note that the surface update for this term only involves the vpar direction.
+            self.solverStep2 = Updater.HyperDisCont {
+               onGrid             = self.grid,
+               basis              = self.basis,
+               cfl                = self.cfl,
+               equation           = self.equationStep2,
+               zeroFluxDirections = self.zeroFluxDirections,
+               updateDirections   = {self.cdim+1},
+               clearOut           = false,   -- Continue accumulating into output field.
+               globalUpwind       = false,   -- Don't reduce max speed.
+            }
+         end
       end
    end
    
@@ -296,18 +294,14 @@ function GkSpecies:createSolver(field, externalField)
       }
    end
    self.threeMomentsCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "GkThreeMoments",
+      onGrid     = self.grid,   confBasis = self.confBasis,
+      phaseBasis = self.basis,  moment    = "GkThreeMoments",
       gkfacs     = {self.mass, self.bmag},
    }
    self.calcMaxwell = Updater.MaxwellianOnBasis {
-      onGrid      = self.grid,
-      phaseBasis  = self.basis,
-      confGrid    = self.confGrid,
-      confBasis   = self.confBasis,
-      mass        = self.mass,
+      onGrid     = self.grid,   confGrid  = self.confGrid,
+      phaseBasis = self.basis,  confBasis = self.confBasis,
+      mass       = self.mass,
    }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
@@ -326,23 +320,9 @@ function GkSpecies:createSolver(field, externalField)
          vbounds[i+self.vdim] = self.grid:upper(self.cdim+i+1)
       end
       self.primMomSelf = Updater.SelfPrimMoments {
-         onGrid     = self.grid,
-         phaseBasis = self.basis,
-         confBasis  = self.confBasis,
-         operator   = "GkLBO",
-         mass       = self.mass,
-         vbounds    = vbounds,
-      }
-      -- Updaters for the primitive moments.
-      self.confDiv = Updater.CartFieldBinOp {
-         onGrid    = self.confGrid,
-         weakBasis = self.confBasis,
-         operation = "Divide",
-      }
-      self.confMul = Updater.CartFieldBinOp {
-         onGrid    = self.confGrid,
-         weakBasis = self.confBasis,
-         operation = "Multiply",
+         onGrid     = self.grid,       operator = "GkLBO",
+         phaseBasis = self.basis,      vbounds  = vbounds,
+         confBasis  = self.confBasis,  mass     = self.mass,
       }
    end
 
@@ -355,14 +335,80 @@ function GkSpecies:createSolver(field, externalField)
       }
    }
 
+   -- Select the function that returns the mass density factor for the polarization (Poisson equation).
+   -- Allow user to specify polarization density factor (n in polarization density).
+   -- If the polarization is linearized, it should be specified in the input file (as a number, file, or function).
+   self.polWeight = self:allocMoment() -- Polarization weight mass*jacobGeo*n0/B^2 (for Poisson equation).
+   if field.linearizedPolarization then
+      local evOnNodes = Updater.EvalOnNodes {
+         onGrid = self.confGrid,   evaluate = function(t, xn) return 1. end,
+         basis  = self.confBasis,  onGhosts = false, --true,
+      }
+      if self.tbl.polarizationDensityFactor == nil then
+         print("*** App.Species.GkSpecies: WARNING... not specifying 'polarizationDensityFactor' and relying on n0 in the input file will be deprecated. Please change your input file to specify 'polarizationDensityFactor' (the density factor in the Poisson equation). ***")
+         local den0 = self.tbl.n0 or n0
+         evOnNodes:setFunc(function(t,xn) return den0*self.mass/(self.bmagMid^2) end)
+         evOnNodes:advance(0., {}, {self.polWeight})
+      else
+         local polDenFacIn = self.tbl.polarizationDensityFactor
+   
+         if type(polDenFacIn) == "number" then
+            evOnNodes:setFunc(function(t,xn) return polDenFacIn*self.mass/(self.bmagMid^2) end)
+            evOnNodes:advance(0., {}, {self.polWeight})
+         elseif type(polDenFacIn) == "string" or type(polDenFacIn) == "function" then
+            if type(polDenFacIn) == "string" then
+               self.distIo:read(self.polWeight, polDenFacIn) --, true)
+            else
+               evOnNodes:setFunc(polDenFacIn)
+               evOnNodes:advance(0., {}, {self.polWeight})
+            end
+   
+            -- Apply open BCs (although BCs here should not matter/be used).
+            local function makeOpenBcUpdater(dir, edge)
+               local bcOpen = function(dir, tm, idxIn, fIn, fOut)
+                  self.confBasis:flipSign(dir, fIn, fOut)   -- Requires skinLoop = "pointwise".
+               end
+               return Updater.Bc {
+                  onGrid   = self.confGrid,  edge = edge,
+                  dir      = dir,            boundaryConditions = {bcOpen},
+                  skinLoop = "pointwise",
+               }
+            end
+            local openBCupdaters = {}
+            for dir = 1, self.cdim do
+               if not lume.any(self.confGrid:getPeriodicDirs(), function(t) return t==dir end) then
+                  openBCupdaters["lower"] = makeOpenBcUpdater(dir, "lower")
+                  openBCupdaters["upper"] = makeOpenBcUpdater(dir, "upper")
+               end
+            end
+            for _, bc in pairs(openBCupdaters) do bc:advance(0., {}, {self.polWeight}) end
+            self.polWeight:sync(true)
+   
+            self.distIo:write(self.polWeight, string.format("%s_polarizationDensityFactor_%d.bp", self.name, self.diagIoFrame), 0., self.diagIoFrame, false) --true)
+   
+            self.polWeight:scale(self.mass)
+            self.confWeakMultiply:advance(0., {self.bmagInvSq, self.polWeight}, {self.polWeight})
+         end
+      end
+
+      -- Include a factor of jacobGeo (included naturally when linearizedPolarization=false).
+      self.confWeakMultiply:advance(0., {self.jacobGeo, self.polWeight}, {self.polWeight})
+
+      self.getPolWeight = function() return self.polWeight end
+   else
+      self.getPolWeight = function()
+         self.polWeight:combine(self.mass, self.numDensity)
+         self.confWeakMultiply:advance(0., {self.jacobGeoDbmagSq, self.polWeight}, {self.polWeight})
+         return self.polWeight
+      end
+   end
+
    -- Create species source solvers.
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
 
    self._firstMomentCalc = true  -- To avoid re-calculating moments when not evolving.
 
    self.timers = {couplingMom = 0., sources = 0.}
-
-   assert(self.n0, "Must specify background density as global variable 'n0' in species table as 'n0 = ...'")
 end
 
 function GkSpecies:initCrossSpeciesCoupling(species)
@@ -743,13 +789,8 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       c:advance(tCurr, fIn, species, {fRhsOut, self.cflRateByCell})
    end
 
-   -- Complete the field solve.
-   --emIn[1]:phiSolve(tCurr, species, inIdx, outIdx)
-
    if self.evolveCollisionless then
       self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut, self.cflRateByCell})
-   else
-      self.equation:setAuxFields({em, emFunc, dApardtProv})  -- Set auxFields in case they are needed by BCs/collisions.
    end
 
    for _, bc in pairs(self.nonPeriodicBCs) do
@@ -831,24 +872,8 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
 	 self.threeMomentsCalc:advance(tCurr, {fIn}, {self.threeMoments})
 
-	 self.primMomSelf:advance(tCurr, {self.threeMoments, fIn, self.threeMomentsBoundaryCorrections}, {self.uParSelf, self.vtSqSelf})
-
---         self.threeMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy,
---                                                          self.m1Correction, self.m2Correction,
---                                                          self.m0Star, self.m1Star, self.m2Star })
---	 if self.needCorrectedSelfPrimMom then
---            -- Also compute self-primitive moments uPar and vtSq.
---            self.primMomSelf:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy,
---                                             self.m1Correction, self.m2Correction,
---                                             self.m0Star, self.m1Star, self.m2Star}, {self.uParSelf, self.vtSqSelf})
---         else
---            -- Compute self-primitive moments with binOp updaters.
---            self.confDiv:advance(tCurr, {self.numDensity, self.momDensity}, {self.uParSelf})
---            self.confMul:advance(tCurr, {self.uParSelf, self.momDensity}, {self.numDensityAux})
---            self.momDensityAux:combine( 1.0/self.vDegFreedom, self.ptclEnergy,
---                                       -1.0/self.vDegFreedom, self.numDensityAux )
---            self.confDiv:advance(tCurr, {self.numDensity, self.momDensityAux}, {self.vtSqSelf})
---         end
+	 self.primMomSelf:advance(tCurr, {self.threeMoments, fIn, self.threeMomentsBoundaryCorrections},
+                                  {self.uParSelf, self.vtSqSelf})
 
          -- Indicate that moments, boundary corrections, star moments
          -- and self-primitive moments have been computed.
@@ -933,8 +958,6 @@ function GkSpecies:getNumDensity(rkIdx)
    return self.numDensityAux
 end
 
-function GkSpecies:getBackgroundDens() return self.n0 end
-
 function GkSpecies:getMomDensity(rkIdx)
    -- If no rkIdx specified, assume momDensity has already been calculated.
    if rkIdx == nil then return self.momDensity end 
@@ -989,15 +1012,7 @@ function GkSpecies:getEmModifier(rkIdx)
    return self.momDensityAux
 end
 
-function GkSpecies:getPolarizationWeight(linearized)
-   if linearized == false then 
-      self.confWeakMultiply:advance(0.0, {self.numDensity, self.bmagInvSq}, {self.polarizationWeight})
-      self.polarizationWeight:scale(self.mass)
-      return self.polarizationWeight
-   else 
-      return self.n0*self.mass/self.B0^2
-   end
-end
+function GkSpecies:getPolarizationWeight() return self.getPolWeight() end
 
 function GkSpecies:getSrcCX() return self.srcCX end
 
@@ -1013,7 +1028,7 @@ function GkSpecies:solverVolTime() return self.equation.totalVolTime end
 function GkSpecies:solverSurfTime() return self.equation.totalSurfTime end
 
 function GkSpecies:totalSolverTime()
-   local timer = self.solver.totalTime
+   local timer = self.solver and self.solver.totalTime or 0.
    if self.solverStep2 then timer = timer + self.solverStep2.totalTime end
    if self.solverStep3 then timer = timer + self.solverStep3.totalTime end
    if self.posRescaler then timer = timer + self.posRescaler.totalTime end

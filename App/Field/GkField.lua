@@ -47,8 +47,11 @@ local checkBCs = function(dimIn, isDirPer, bcLoIn, bcUpIn, bcLoOut, bcUpOut, set
       for d=1,#bcLoIn do bcLoOut[d], bcUpOut[d] = bcLoIn[d], bcUpIn[d] end
    end
    for d=1,math.min(dimIn,2) do
-      assert((isDirPer[d]==(bcLoOut[d].T=="P")) and (isDirPer[d]==(bcUpOut[d].T=="P")),
-             string.format("App.Field.GkField: direction %d is periodic. Must use {T='P'} in bcLower/bcUpper.",d))
+      if isDirPer[d] then
+         assert(bcLoOut[d].T=="P" and bcUpOut[d].T=="P",
+                string.format("App.Field.GkField: direction %d is periodic. Must use {T='P'} in bcLower/bcUpper.",d))
+     
+      end
    end
    if setLastDir and (bcLoOut[dimIn]==nil or bcUpOut[dimIn]==nil) then
       -- Assume homogeneous Neumann since this would only be used in the z-smoothing.
@@ -147,11 +150,12 @@ function GkField:fullInit(appTbl)
    end
 
    -- For storing integrated energies.
-   self.phiSq         = DataStruct.DynVector { numComponents = 1 }
-   self.gradPerpPhiSq = DataStruct.DynVector { numComponents = 1 }
-   self.aparSq        = DataStruct.DynVector { numComponents = 1 }
-   self.esEnergy      = DataStruct.DynVector { numComponents = 1 }
-   self.emEnergy      = DataStruct.DynVector { numComponents = 1 }
+   self.intPhiSq          = DataStruct.DynVector { numComponents = 1 }
+   self.esEnergyAdiabatic = DataStruct.DynVector { numComponents = 1 }
+   self.gradPerpPhiSq     = DataStruct.DynVector { numComponents = 1 }
+   self.aparSq            = DataStruct.DynVector { numComponents = 1 }
+   self.esEnergy          = DataStruct.DynVector { numComponents = 1 }
+   self.emEnergy          = DataStruct.DynVector { numComponents = 1 }
 
    self.adiabatic = false
    self.discontinuousPhi  = xsys.pickBool(tbl.discontinuousPhi, false)
@@ -159,15 +163,14 @@ function GkField:fullInit(appTbl)
 
    -- For ndim=1 only.
    self.kperpSq = tbl.kperpSq or tbl.kperp2   -- kperp2 for backwards compatibility.
-
-   -- Allow user to specify polarization weight. will be calculated automatically if not specified.
-   self.polarizationWeight = tbl.polarizationWeight
+   assert((ndim==1 and self.kperpSq) or ndim>1, "GkField: must specify kperpSq for ndim=1")
 
    -- Determine whether to use linearized polarization term in poisson equation,
    -- which uses background density in polarization weight.
    -- If not, uses full time-dependent density in polarization weight.
    self.linearizedPolarization = xsys.pickBool(tbl.linearizedPolarization, true)
-   self.uniformPolarization    = xsys.pickBool(tbl.uniformPolarization, true)
+   self.uniformPolarization    = xsys.pickBool(tbl.uniformPolarization, self.linearizedPolarization)
+   assert(not (self.linearizedPolarization==false and self.uniformPolarization==true), "GkField: cannot have nonlinearized and uniform polarization.")
 
    if self.isElectromagnetic then self.mu0 = tbl.mu0 or Constants.MU0 end
 
@@ -192,9 +195,6 @@ function GkField:fullInit(appTbl)
       self.calcIntFieldEnergyTrigger = function(t) return true end
    end
 
-   -- Flag to indicate if phi has been calculated.
-   self.calcedPhi = false
-
    self.bcTime = 0.0 -- Timer for BCs.
 
    self._first = true
@@ -206,7 +206,7 @@ end
 function GkField:hasEB() return true, self.isElectromagnetic end
 function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
 
-local function createField(grid, basis, ghostCells, vComp, periodicSync)
+local function createField(grid, basis, ghostCells, vComp, periodicSync, useDevice)
    vComp = vComp or 1
    local fld = DataStruct.Field {
       onGrid           = grid,
@@ -215,6 +215,7 @@ local function createField(grid, basis, ghostCells, vComp, periodicSync)
       metaData         = {polyOrder = basis:polyOrder(),
                           basisType = basis:id()},
       syncPeriodicDirs = periodicSync,
+      useDevice        = useDevice,
    }
    fld:clear(0.0)
    return fld
@@ -242,18 +243,20 @@ function GkField:alloc(nRkDup)
    -- Create fields for total charge and current densities.
    self.chargeDens  = createField(self.grid,self.basis,{1,1})
    self.currentDens = createField(self.grid,self.basis,{1,1})
-   -- Set up constant dummy field.
-   self.unitWeight = createField(self.grid,self.basis,{1,1})
-   local initUnit = Updater.ProjectOnBasis {
-      onGrid = self.grid,   evaluate = function (t,xn) return 1.0 end,
-      basis  = self.basis,  onGhosts = true,
-   }
-   initUnit:advance(0.,{},{self.unitWeight})
 
    -- Set up some other fields.
-   self.weight          = createField(self.grid,self.basis,{1,1})
-   self.laplacianWeight = createField(self.grid,self.basis,{1,1})
-   self.modifierWeight  = createField(self.grid,self.basis,{1,1})
+   self.polarizationWeight = createField(self.grid,self.basis,{1,1})
+   self.lapWeightPoisson   = self.ndim > 1 and createField(self.grid,self.basis,{1,1}) or nil
+   self.modWeightPoisson   = createField(self.grid,self.basis,{1,1})
+   if self.isElectromagnetic then
+      self.dApardtSlvr_lapModFac = createField(self.grid,self.basis,{1,1})
+      self.lapWeightAmpere       = createField(self.grid,self.basis,{1,1})
+      self.modWeightAmpere       = createField(self.grid,self.basis,{1,1})
+   end
+   
+   -- For diagnostics:
+   self.phiSq = createField(self.grid,self.basis,{1,1})
+   self.esEnergyFac = createField(self.grid,self.basis,{1,1})
 end
 
 -- Solve for initial fields self-consistently 
@@ -261,10 +264,8 @@ end
 function GkField:initField(species)
    if self.externalPhi then
       local evalOnNodes = Updater.EvalOnNodes {
-         onGrid   = self.grid,
-         basis    = self.basis,
-         evaluate = self.externalPhi,
-         onGhosts = true
+         onGrid = self.grid,   evaluate = self.externalPhi,
+         basis  = self.basis,  onGhosts = true
       }
       self.externalPhiFld = createField(self.grid,self.basis,{1,1})
       evalOnNodes:advance(0.0, {}, {self.externalPhiFld})
@@ -278,7 +279,6 @@ function GkField:initField(species)
    else
       -- Solve for initial phi.
       self:advance(0.0, species, 1, 1)
-      --self:phiSolve(0.0, species, 1, 1)
    end
 
    if self.isElectromagnetic then
@@ -297,9 +297,9 @@ function GkField:initField(species)
    -- Apply BCs and update ghosts.
    self:applyBc(0, self.potentials[1])
 
-   if self.ioFrame == 0 then 
-      self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeight_0.bp", tm, self.ioFrame, false)
-      self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_0.bp", tm, self.ioFrame, false)
+   if self.ndim > 1 and self.ioFrame == 0 then 
+      self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeightPoisson_0.bp", tm, self.ioFrame, false)
+      self.fieldIo:write(self.phiSlvr:getModifierWeight(),  "modifierWeightPoisson_0.bp", tm, self.ioFrame, false)
    end
 end
 
@@ -332,8 +332,15 @@ function GkField:createSolver(species, externalField)
    end
    assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")
 
+   self.unitField = createField(self.grid,self.basis,{1,1})
+   local initUnit = Updater.ProjectOnBasis {
+      onGrid = self.grid,   evaluate = function (t,xn) return 1.0 end,
+      basis  = self.basis,  onGhosts = true,
+   }
+   initUnit:advance(0.,{},{self.unitField})
+
    -- Metric coefficients in the Poisson and Ampere equations for phi and Apar.
-   local gxxPoisson, gxyPoisson, gyyPoisson, jacobGeo
+   local gxxPoisson, gxyPoisson, gyyPoisson
    local gxxAmpere, gxyAmpere, gyyAmpere
    if externalField.geo then 
       -- Include Jacobian factor in metric coefficients (if using linearized polarization density).
@@ -349,179 +356,188 @@ function GkField:createSolver(species, externalField)
       gxxAmpere = externalField.geo.gxxJ
       gxyAmpere = externalField.geo.gxyJ
       gyyAmpere = externalField.geo.gyyJ
-      jacobGeo  = externalField.geo.jacobGeo
+      self.jacobGeo = externalField.geo.jacobGeo
    else
-      jacobGeo = self.unitWeight
+      self.jacobGeo = self.unitField
    end
-   self.phiSlvr = Updater.FemPoisson {
-      onGrid = self.grid,   bcLower = self.bcLowerPhi,
-      basis  = self.basis,  bcUpper = self.bcUpperPhi,
-      zContinuous = not self.discontinuousPhi,
-      -- Note these metric coefficients contain the Jacobian.
-      gxx = gxxPoisson,
-      gxy = gxyPoisson,
-      gyy = gyyPoisson,
-      useG0 = false,
-   }
-   if self.ndim == 3 and not self.discontinuousPhi then
-      self.phiZSmoother = Updater.FemParPoisson {
-         onGrid = self.grid,   bcLower = {{T="N",V=0.0}},
-         basis  = self.basis,  bcUpper = {{T="N",V=0.0}},
-         smooth = true,
+   -- MF 2022/08/23: g2 creation of phiSlvr happens before setting weights,
+   -- but g0 solver creation needs to happen after computing weights.
+   -- So we only do this creation for ndim>1 here since that is still using
+   -- the g2 updater.
+   if self.ndim > 1 then
+      self.phiSlvr = Updater.GkFemPoisson {
+         onGrid = self.grid,   bcLower = self.bcLowerPhi,
+         basis  = self.basis,  bcUpper = self.bcUpperPhi,
+         zContinuous = not self.discontinuousPhi,
+         -- Note these metric coefficients contain the Jacobian.
+         gxx = gxxPoisson,
+         gxy = gxyPoisson,
+         gyy = gyyPoisson,
+         useG0 = false,
       }
    end
+
+   self.weakMultiply = Updater.CartFieldBinOp {
+      weakBasis = self.basis,  operation = "Multiply",
+      onGhosts  = true,
+   }
+   self.weakDivide = Updater.CartFieldBinOp {
+      weakBasis = self.basis,  operation = "Divide",
+      onRange   = self.chargeDens:localRange(),  onGhosts = false,
+   }
+
    -- When using a linearizedPolarization term in Poisson equation,
-   -- the weights on the terms are constant scalars.
+   -- the density in the polarization density is constant in time.
    if self.linearizedPolarization then
-      -- If not provided, calculate species-dependent weight on polarization term == sum_s m_s n_s / B^2.
-      if not self.polarizationWeight then 
-         self.polarizationWeight = 0.0
-         for _, s in lume.orderedIter(species) do
-            if Species.GkSpecies.is(s) or Species.GyrofluidSpecies.is(s) then
-               self.polarizationWeight = self.polarizationWeight + s:getPolarizationWeight()
-            end
+      -- Calculate weight on polarization term: sum_s m_s * jacobGeo * n_s / B^2.
+      self.polarizationWeight:clear(0.)
+      for _, s in lume.orderedIter(species) do
+         if Species.GkSpecies.is(s) or Species.GyrofluidSpecies.is(s) then
+            self.polarizationWeight:accumulate(1., s:getPolarizationWeight())
          end
       end
-      -- If not adiabatic, and polarization weight still not set, assume it is 1.
-      if self.polarizationWeight == 0.0 and not self.adiabatic then self.polarizationWeight = 1.0 end
+      self.esEnergyFac:combine(.5, self.polarizationWeight)
 
       -- Set up scalar multipliers on laplacian and modifier terms in Poisson equation.
-      local laplacianConstant, modifierConstant
- 
       if self.ndim==1 then
-         assert(self.kperpSq, "GkField: must specify kperpSq for ndim=1")
-         laplacianConstant = 0.0 
-         modifierConstant  = self.kperpSq*self.polarizationWeight 
+         self.modWeightPoisson:combine(self.kperpSq, self.polarizationWeight)
+         self.esEnergyFac:scale(self.kperpSq)  -- For diagnostics.
+         -- Add contribution from the adiabatic species.
+         if self.adiabatic then 
+            self.modWeightPoisson:accumulate(1., self.adiabSpec:getQneutFac())
+            self.esEnergyFac:accumulate(0.5, self.adiabSpec:getQneutFac())   -- For diagnostics.
+         end
       else 
-         laplacianConstant = -self.polarizationWeight 
-         modifierConstant  = 0.0 
+         self.lapWeightPoisson:combine(-1., self.polarizationWeight)
+         self.phiSlvr:setLaplacianWeight(self.lapWeightPoisson)
+
+         self.modWeightPoisson:clear(0.)
+         if self.adiabatic then   -- Add contribution from the adiabatic species.
+            self.modWeightPoisson:accumulate(1., self.adiabSpec:getQneutFac())
+            self.phiSlvr:setModifierWeight(self.modWeightPoisson)
+         end
+
       end
 
-      if self.adiabatic then 
-         modifierConstant = modifierConstant + self.adiabSpec:getQneutFacLin() 
+      self.setPolarizationWeightFunc = function(specTbl) end  -- Polarization weight is not time dependent.
+   else
+      -- When not using linearizedPolarization, weights are set each step in advance method using these functions.
+      if self.ndim == 1 then
+         self.setPolarizationWeightFunc = function(specTbl)
+            self.polarizationWeight:clear(0.0)
+            for _, s in lume.orderedIter(specTbl) do
+               self.polarizationWeight:accumulate(self.kperpSq, s:getPolarizationMassDensity())
+            end
+         end
+         self.phiSlvr:setWeight(self.polarizationWeight)
+      else
+         self.setPolarizationWeightFunc = function(specTbl)
+            self.polarizationWeight:clear(0.0)
+            for _, s in lume.orderedIter(specTbl) do
+               self.polarizationWeight:accumulate(-1.0, s:getPolarizationMassDensity())
+            end
+            self.phiSlvr:setLaplacianWeight(self.polarizationWeight)
+         end
       end
-
-      self.laplacianWeight:combine(laplacianConstant, self.unitWeight)   -- No jacobian here.
-      self.modifierWeight:combine(modifierConstant, jacobGeo)
-
-      if laplacianConstant ~= 0 then self.phiSlvr:setLaplacianWeight(self.laplacianWeight) end
-      if modifierConstant ~= 0 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
    end
-   -- When not using linearizedPolarization, weights are set each step in advance method.
+
+   if self.ndim == 1 then
+      -- MF 2022/08/23: Construction of modWeightPoisson took place on the device because
+      -- it was assigned with :accumulate and :combine, which use the device
+      -- pointer if the CartField was created with useDevice=nil. Copy to host.
+      self.modWeightPoisson:copyDeviceToHost()
+      self.phiSlvr = Updater.FemParproj {
+         onGrid = self.grid,  basis = self.basis,
+         weight = self.modWeightPoisson,
+         periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
+      }
+   end
+
+   if self.ndim == 3 and not self.discontinuousPhi then
+      self.phiZSmoother = Updater.FemParproj {
+         onGrid = self.grid,  basis = self.basis,
+         periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
+      }
+      self.zSmoothPhi = function(tCurr, phiIn, phiOut)
+         self.phiZSmoother:advance(tCurr, {phiIn}, {phiOut})
+         return phiOut
+      end
+   else
+      self.zSmoothPhi = function(tCurr, phiIn, phiOut) return phiIn end
+   end
 
    if self.isElectromagnetic then 
-     local ndim = self.ndim
-     local laplacianConstant, modifierConstant
-     -- NOTE: aparSlvr only used to solve for initial Apar
-     -- at all other times Apar is timestepped using dApar/dt
-     self.aparSlvr = Updater.FemPoisson {
-        onGrid = self.grid,   bcLower = self.bcLowerApar,
-        basis  = self.basis,  bcUpper = self.bcUpperApar,
-        zContinuous = not self.discontinuousApar,
-        gxx = gxxAmpere,
-        gxy = gxyAmpere,
-        gyy = gyyAmpere,
-     }
-     if ndim==1 then
-        laplacianConstant = 0.0
-        modifierConstant  = self.kperpSq/self.mu0
-     else
-        laplacianConstant = -1.0/self.mu0
-        modifierConstant  = 0.0
-     end
-     self.laplacianWeight:combine(laplacianConstant, self.unitWeight)
-     self.modifierWeight:combine(modifierConstant, self.unitWeight)
-     if laplacianConstant ~= 0 then self.aparSlvr:setLaplacianWeight(self.laplacianWeight) end
-     if modifierConstant ~= 0 then self.aparSlvr:setModifierWeight(self.modifierWeight) end
+      local ndim = self.ndim
+      local laplacianConstant, modifierConstant
+      -- NOTE: aparSlvr only used to solve for initial Apar
+      -- at all other times Apar is timestepped using dApar/dt
+      self.aparSlvr = Updater.GkFemPoisson {
+         onGrid = self.grid,   bcLower = self.bcLowerApar,
+         basis  = self.basis,  bcUpper = self.bcUpperApar,
+         zContinuous = not self.discontinuousApar,
+         gxx = gxxAmpere,
+         gxy = gxyAmpere,
+         gyy = gyyAmpere,
+      }
+      if ndim==1 then
+         laplacianConstant = 0.0
+         modifierConstant  = self.kperpSq/self.mu0
+      else
+         laplacianConstant = -1.0/self.mu0
+         modifierConstant  = 0.0
+      end
+      self.lapWeightAmpere:combine(laplacianConstant, self.unitField)
+      self.modWeightAmpere:combine(modifierConstant, self.unitField)
+      if laplacianConstant ~= 0 then self.aparSlvr:setLaplacianWeight(self.lapWeightAmpere) end
+      if modifierConstant ~= 0 then self.aparSlvr:setModifierWeight(self.modWeightAmpere) end
 
-     self.dApardtSlvr = Updater.FemPoisson {
-        onGrid = self.grid,   bcLower = self.bcLowerApar,
-        basis  = self.basis,  bcUpper = self.bcUpperApar,
-        zContinuous = not self.discontinuousApar,
-        gxx = gxxAmpere,
-        gxy = gxyAmpere,
-        gyy = gyyAmpere,
-     }
-     if ndim==1 then
-        laplacianConstant = 0.0
-        modifierConstant  = 1.0
-     else
-        laplacianConstant = -1.0/self.mu0
-        modifierConstant  = 1.0
-     end
-     self.laplacianWeight:combine(laplacianConstant, self.unitWeight)
-     self.modifierWeight:combine(modifierConstant, self.unitWeight)
-     if laplacianConstant ~= 0 then self.dApardtSlvr:setLaplacianWeight(self.laplacianWeight) end
-     if modifierConstant ~= 0 then self.dApardtSlvr:setModifierWeight(self.modifierWeight) end
-
-     -- Separate solver for additional step for p=1.
-     if self.basis:polyOrder() == 1 then
-        self.dApardtSlvr2 = Updater.FemPoisson {
-           onGrid  = self.grid,   bcLower = self.bcLowerApar,
-           basis   = self.basis,  bcUpper = self.bcUpperApar,
-           zContinuous = not self.discontinuousApar,
-           gxx = gxxAmpere,
-           gxy = gxyAmpere,
-           gyy = gyyAmpere,
-        }
-        if ndim==1 then
-           laplacianConstant = 0.0
-           modifierConstant  = 1.0
-        else
-           laplacianConstant = -1.0/self.mu0
-           modifierConstant  = 1.0
-        end
-        self.laplacianWeight:combine(laplacianConstant, self.unitWeight)
-        self.modifierWeight:combine(modifierConstant, self.unitWeight)
-        if laplacianConstant ~= 0 then self.dApardtSlvr2:setLaplacianWeight(self.laplacianWeight) end
-        if modifierConstant ~= 0 then self.dApardtSlvr2:setModifierWeight(self.modifierWeight) end
-     end
+      self.dApardtSlvr = Updater.GkFemPoisson {
+         onGrid = self.grid,   bcLower = self.bcLowerApar,
+         basis  = self.basis,  bcUpper = self.bcUpperApar,
+         zContinuous = not self.discontinuousApar,
+         gxx = gxxAmpere,
+         gxy = gxyAmpere,
+         gyy = gyyAmpere,
+      }
+      if ndim==1 then
+         laplacianConstant = 0.0
+         modifierConstant  = self.kperpSq/self.mu0
+         self.dApardtSlvr_lapModFac:combine(modifierConstant, self.unitField) 
+      else
+         laplacianConstant = -1.0/self.mu0
+         modifierConstant  = 1.0
+         self.dApardtSlvr_lapModFac:clear(0.)
+      end
+      self.lapWeightAmpere:combine(laplacianConstant, self.unitField)
+      self.modWeightAmpere:combine(modifierConstant, self.unitField)
+      if laplacianConstant ~= 0 then self.dApardtSlvr:setLaplacianWeight(self.lapWeightAmpere) end
+      if modifierConstant ~= 0 then self.dApardtSlvr:setModifierWeight(self.modWeightAmpere) end
    end
 
    -- Need to set this flag so that field calculated self-consistently at end of full RK timestep.
    self.isElliptic = true
 
-   if self.isElectromagnetic and self.basis:polyOrder() == 1 then 
-      self.nstep = 3 
-   elseif self.isElectromagnetic then
-      self.nstep = 2
-   end
+   if self.isElectromagnetic then self.nstep = 2 end
 
-   -- Function to construct a BC updater.
-   local function makeBcUpdater(dir, edge, bcList)
+   self.boundaryConditions = { }   -- List of Bcs to apply.
+   -- For non-periodic dirs, use BC_OPEN to make sure values on edge of ghost cells match
+   -- values on edge of skin cells, so that field is continuous across skin-ghost boundary.
+ 
+   local function makeOpenBcUpdater(dir, edge)  -- Function to construct a BC updater.
+      local bcOpen = function(dir, tm, idxIn, fIn, fOut)
+         self.basis:flipSign(dir, fIn:data(), fOut:data())  -- Requires skinLoop = "pointwise".
+      end
       return Updater.Bc {
-         onGrid             = self.grid,  dir  = dir,
-         boundaryConditions = bcList,     edge = edge,
+         onGrid   = self.grid,   edge = edge,
+         dir      = dir,         boundaryConditions = {bcOpen},
+         skinLoop = "pointwise",
       }
    end
 
-   -- Various functions to apply BCs of different types.
-   local function bcOpen(dir, tm, idxIn, fIn, fOut)
-      -- Requires skinLoop = "pointwise".
-      self.basis:flipSign(dir, fIn:data(), fOut:data())
-   end
-
-   -- Functions to make life easier while reading in BCs to apply.
-   self.boundaryConditions = { }   -- List of Bcs to apply.
-   local function appendBoundaryConditions(dir, edge, bcType)
-      if bcType == EM_BC_OPEN then
-	 table.insert(self.boundaryConditions,
-		      makeBcUpdater(dir, edge, { bcOpen }))
-      else
-	 assert(false, "GkField: Unsupported BC type!")
-      end
-   end
-
-   local function handleBc(dir, bc)
-      if bc[1] then appendBoundaryConditions(dir, "lower", bc[1]) end
-      if bc[2] then appendBoundaryConditions(dir, "upper", bc[2]) end
-   end
-
-   -- For non-periodic dirs, use BC_OPEN to make sure values on edge of ghost cells match
-   -- values on edge of skin cells, so that field is continuous across skin-ghost boundary.
    for dir = 1, self.ndim do
       if not lume.any(self.periodicDirs, function(t) return t==dir end) then 
-         handleBc(dir, {EM_BC_OPEN, EM_BC_OPEN}) 
+         table.insert(self.boundaryConditions, makeOpenBcUpdater(dir, "lower"))
+         table.insert(self.boundaryConditions, makeOpenBcUpdater(dir, "upper"))
       end
    end
 end
@@ -538,21 +554,19 @@ function GkField:createDiagnostics()
 
    -- Updaters for computing integrated quantities.
    self.int2Calc = Updater.CartFieldIntegratedQuantCalc {
-      onGrid   = self.grid,
-      basis    = self.basis,
-      quantity = "V2"
+      onGrid = self.grid,   quantity = "V2",
+      basis  = self.basis,
+   }
+   self.intCalc = Updater.CartFieldIntegratedQuantCalc {
+      onGrid = self.grid,   quantity = "V",
+      basis  = self.basis,
    }
    if self.ndim == 1 then
-      self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
-         onGrid   = self.grid,
-         basis    = self.basis,
-         quantity = "V2"
-      }
+      self.energyCalc = self.intCalc
    elseif self.basis:polyOrder()==1 then -- GradPerpV2 only implemented for p=1 currently.
       self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
-         onGrid   = self.grid,
-         basis    = self.basis,
-         quantity = "GradPerpV2"
+         onGrid = self.grid,   quantity = "GradPerpV2",
+         basis  = self.basis,
       }
    end
 end
@@ -561,27 +575,38 @@ function GkField:write(tm, force)
    if self.evolve then
       if self.calcIntFieldEnergyTrigger(tm) then
          -- Compute integrated quantities over domain.
-         self.int2Calc:advance(tm, { self.potentials[1].phi }, { self.phiSq })
+         self.int2Calc:advance(tm, { self.potentials[1].phi }, { self.intPhiSq })
          if self.isElectromagnetic then 
             self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.aparSq })
          end
          if self.energyCalc then 
-            self.energyCalc:advance(tm, { self.potentials[1].phi }, { self.gradPerpPhiSq })
+            if self.ndim > 1 then
+               self.energyCalc:advance(tm, { self.potentials[1].phi, self.unitField }, { self.gradPerpPhiSq })
+            end
             if self.linearizedPolarization then
-               local esEnergyFac = .5*self.polarizationWeight
-               if self.ndim == 1 then 
-                  esEnergyFac = esEnergyFac*self.kperpSq 
-                  if self.adiabatic then 
-                     esEnergyFac = esEnergyFac + .5*self.adiabSpec:getQneutFacLin() 
+               if self.uniformPolarization then
+                  if self.ndim == 1 then 
+                     self.weakMultiply:advance(0., {self.potentials[1].phiAux, self.potentials[1].phiAux},
+                                               {self.phiSq})
+                     self.weakMultiply:advance(0., {self.phiSq, self.esEnergyFac}, {self.phiSq})
+                     self.energyCalc:advance(tm, { self.phiSq }, { self.esEnergy })
+                  else
+                     self.energyCalc:advance(tm, { self.potentials[1].phiAux, self.esEnergyFac }, { self.esEnergy })
                   end
-               end
-               self.energyCalc:advance(tm, { self.potentials[1].phiAux, esEnergyFac }, { self.esEnergy })
 
-               if self.adiabatic and self.ndim > 1 then
-                  local tm, energyVal = self.esEnergy:lastData()
-                  local _, phiSqVal = self.phiSq:lastData()
-                  energyVal[1] = energyVal[1] + .5*self.adiabSpec:getQneutFacLin()*phiSqVal[1]
---                  self.esEnergy:assignLastVal(1., energyVal)
+                  if self.adiabatic and self.ndim > 1 then
+                     self.weakMultiply:advance(0., {self.potentials[1].phi, self.potentials[1].phi},
+                                               {self.phiSq})
+                     self.weakMultiply:advance(0., {self.phiSq, self.adiabSpec:getQneutFac()}, {self.phiSq})
+                     self.intCalc:advance(tm, { self.phiSq, 0.5 }, { self.esEnergyAdiabatic })
+                     local tm, energyVal = self.esEnergy:lastData()
+                     local _, energyValAdiabatic = self.esEnergyAdiabatic:lastData()
+                     energyVal[1] = energyVal[1] + energyValAdiabatic[1]
+--                     -- MF 2022/07/20: commenting this out for now to facilitate reg test comparison.
+--                     self.esEnergy:assignLastVal(1., energyVal)  -- Adiabatic species contribution.
+                  end
+               else
+                  -- Something.
                end
             else
                -- Something.
@@ -596,7 +621,7 @@ function GkField:write(tm, force)
 
       if self.ioTrigger(tm) or force then
 	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
-	 self.phiSq:write(string.format("phiSq.bp"), tm, self.ioFrame)
+	 self.intPhiSq:write(string.format("intPhiSq.bp"), tm, self.ioFrame)
 	 self.gradPerpPhiSq:write(string.format("gradPerpPhiSq.bp"), tm, self.ioFrame)
 	 self.esEnergy:write(string.format("esEnergy.bp"), tm, self.ioFrame)
          if self.isElectromagnetic then 
@@ -624,14 +649,12 @@ end
 function GkField:writeRestart(tm)
    -- (the final "false" prevents writing of ghost cells).
    self.fieldIo:write(self.potentials[1].phi, "phi_restart.bp", tm, self.ioFrame, false)
-   self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeight_restart.bp", tm, self.ioFrame, false)
-   self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_restart.bp", tm, self.ioFrame, false)
    if self.isElectromagnetic then
       self.fieldIo:write(self.potentials[1].apar, "apar_restart.bp", tm, self.ioFrame, false)
    end
 
    -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
-   self.phiSq:write("phiSq_restart.bp", tm, self.dynVecRestartFrame, false, false)
+   self.intPhiSq:write("intPhiSq_restart.bp", tm, self.dynVecRestartFrame, false, false)
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 
 end
@@ -641,12 +664,7 @@ function GkField:readRestart()
    -- numbering correct. The forward Euler recomputes the potential
    -- before updating the hyperbolic part.
    local tm, fr = self.fieldIo:read(self.potentials[1].phi, "phi_restart.bp")
-   self.phiSq:read("phiSq_restart.bp", tm)
-
-   self.fieldIo:read(self.laplacianWeight, "laplacianWeight_restart.bp")
-   self.fieldIo:read(self.modifierWeight, "modifierWeight_restart.bp")
-   self.phiSlvr:setLaplacianWeight(self.laplacianWeight)
-   if self.adiabatic or self.ndim == 1 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
+   self.intPhiSq:read("intPhiSq_restart.bp", tm)
 
    if self.isElectromagnetic then
       self.fieldIo:read(self.potentials[1].apar, "apar_restart.bp")
@@ -657,6 +675,10 @@ function GkField:readRestart()
    self.ioFrame = fr 
    -- Iterate triggers.
    self.ioTrigger(tm)
+end
+
+function GkField:setPolarizationWeight(speciesIn)
+   self.setPolarizationWeightFunc(speciesIn)
 end
 
 -- Solve for electrostatic potential phi.
@@ -674,83 +696,27 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
          for _, s in lume.orderedIter(species) do
             self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
          end
+
          -- If not using linearized polarization term, set up laplacian weight.
-         if not self.linearizedPolarization or (self._first and not self.uniformPolarization) then
-            self.weight:clear(0.0)
-            for _, s in lume.orderedIter(species) do
-               if Species.GkSpecies.is(s) or Species.GyrofluidSpecies.is(s) then
-                  self.weight:accumulate(1.0, s:getPolarizationWeight(false))
-               end
-            end
-            if self.ndim == 1 then
-               self.modifierWeight:combine(self.kperpSq, self.weight)
-            else
-               self.modifierWeight:clear(0.0)
-               self.laplacianWeight:combine(-1.0, self.weight)
-            end
-
-            if self.adiabatic then
-               self.modifierWeight:accumulate(1.0, self.adiabSpec:getQneutFacNotLin())
-            end
-
-            if self.ndim > 1 then
-               self.phiSlvr:setLaplacianWeight(self.laplacianWeight)
-            end
-            if self.adiabatic or self.ndim == 1 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
-         end
+         self:setPolarizationWeight(species)
 
          -- Phi solve (elliptic, so update potCurr).
          -- Energy conservation requires phi to be continuous in all directions. 
          -- The first FEM solve ensures that phi is continuous in x and y.
          -- The conserved energy is defined in terms of this intermediate result,
          -- which we denote phiAux, before the final smoothing operation in z.
-         -- For now, just initiate the assembling of the left-side matrix and
-         -- right-side source vector. The problem is solved in :phiSolve.
          self.phiSlvr:advance(tCurr, {self.chargeDens}, {potCurr.phiAux})
-         if self.ndim == 3 and not self.discontinuousPhi then
-            self.phiZSmoother:advance(tCurr, {potCurr.phiAux}, {potCurr.phi})
-         else
-            potCurr.phi = potCurr.phiAux
-         end
-         self.calcedPhi = false
+
+         potCurr.phi = self.zSmoothPhi(tCurr, potCurr.phiAux, potCurr.phi)
 
          self._first = false
       end
    else
       -- Just copy stuff over.
-      if self.isElectromagnetic then 
-         potRhs.apar:copy(potCurr.apar) 
-      end
+      if self.isElectromagnetic then potRhs.apar:copy(potCurr.apar) end
    end
 
    self.timers.advTime[1] = self.timers.advTime[1] + Time.clock() - tmStart
-end
-
-function GkField:phiSolve(tCurr, species, inIdx, outIdx)
-   -- Assuming that :advance initiated the assembly of the left-side matrix and the
-   -- right-side source vector, :phiSolve waits for the assembly to finish, solves the
-   -- linear problem, and applies BCs to phi.
-   -- Need the self.calcedPhi flag because we assume :phiSolve is called within the
-   -- species :advance, but we want multiple species to call it.
-   if self.evolve and (not self.externalPhi and not self.externalPhiTimeDependence) and (not self.calcedPhi) then
-      local potCurr = self:rkStepperFields()[inIdx]
-      self.phiSlvr:solve(tCurr, {self.chargeDens}, {potCurr.phiAux})
-      -- Smooth phi in z to ensure continuity in all directions.
-      if self.ndim == 3 and not self.discontinuousPhi then
-         self.phiZSmoother:advance(tCurr, {potCurr.phiAux}, {potCurr.phi})
-      else
-         potCurr.phi = potCurr.phiAux
-      end
-
-      -- Apply BCs.
-      local tmStart = Time.clock()
-      -- Make sure phi is continuous across skin-ghost boundary.
-      for _, bc in ipairs(self.boundaryConditions) do bc:advance(tCurr, {}, {potCurr.phi}) end
-      potCurr.phi:sync(true)
-      self.bcTime = self.bcTime + (Time.clock()-tmStart)
-
-      self.calcedPhi = true
-   end
 end
 
 -- Solve for dApardt in p>=2, or solve for a provisional dApardtProv in p=1.
@@ -760,77 +726,21 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
    local potRhs  = self:rkStepperFields()[outIdx]
 
-   local polyOrder = self.basis:polyOrder()
-
    if self.evolve then
 
       self.currentDens:clear(0.0)
-      if self.ndim==1 then 
-         self.modifierWeight:combine(self.kperpSq/self.mu0, self.unitWeight) 
-      else 
-         self.modifierWeight:clear(0.0)
-      end
+      self.modWeightAmpere:copy(self.dApardtSlvr_lapModFac)
       for _, s in lume.orderedIter(species) do
          if s:isEvolving() then 
-            self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getNumDensity())
+            self.modWeightAmpere:accumulate((s:getCharge()^2)/s:getMass(), s:getNumDensity())
             -- Taking momDensity at outIdx gives momentum moment of df/dt.
             self.currentDens:accumulate(s:getCharge(), s:getMomDensity(outIdx))
          end
       end
-      self.dApardtSlvr:setModifierWeight(self.modifierWeight)
+      self.dApardtSlvr:setModifierWeight(self.modWeightAmpere)
       -- dApar/dt solve.
       local dApardt = potCurr.dApardt
       self.dApardtSlvr:advance(tCurr, {self.currentDens}, {dApardt}) 
-
-      -- Apply BCs.
-      local tmStart = Time.clock()
-      -- make sure dApardt is continuous across skin-ghost boundary
-      for _, bc in ipairs(self.boundaryConditions) do
-         bc:advance(tCurr, {}, {potCurr.dApardt})
-      end
-      dApardt:sync(true)
-      self.bcTime = self.bcTime + (Time.clock()-tmStart)
-
-      if polyOrder > 1 then 
-         -- Apar RHS is just dApar/dt.
-         potRhs.apar:copy(dApardt)
-      else 
-         -- Save dApardt as dApardtProv, so that it can be used in upwinding 
-         -- in vpar surface terms in p=1 Ohm's law and GK update.
-         self.dApardtProv:copy(dApardt)
-      end
-   end
-
-   self.timers.advTime[2] = self.timers.advTime[2] + Time.clock() - tmStart
-end
-
--- Note: step 3 is for p=1 only: solve for dApardt.
-function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
-   local tmStart = Time.clock()
-
-   local potCurr = self:rkStepperFields()[inIdx]
-   local potRhs  = self:rkStepperFields()[outIdx]
-
-   local polyOrder = self.basis:polyOrder()
-
-   if self.evolve then
-      self.currentDens:clear(0.0)
-      if self.ndim==1 then 
-         self.modifierWeight:combine(self.kperpSq/self.mu0, self.unitWeight) 
-      else 
-         self.modifierWeight:clear(0.0)
-      end
-      for _, s in lume.orderedIter(species) do
-         if s:isEvolving() then 
-            self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getEmModifier())
-            -- Taking momDensity at outIdx gives momentum moment of df/dt.
-            self.currentDens:accumulate(s:getCharge(), s:getMomProjDensity(outIdx))
-         end
-      end
-      self.dApardtSlvr2:setModifierWeight(self.modifierWeight)
-      -- dApar/dt solve.
-      local dApardt = potCurr.dApardt
-      self.dApardtSlvr2:advance(tCurr, {self.currentDens}, {dApardt}) 
 
       -- Apply BCs.
       local tmStart = Time.clock()
@@ -845,7 +755,7 @@ function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
       potRhs.apar:copy(dApardt)
    end
 
-   self.timers.advTime[3] = self.timers.advTime[3] + Time.clock() - tmStart
+   self.timers.advTime[2] = self.timers.advTime[2] + Time.clock() - tmStart
 end
 
 -- NOTE: global boundary conditions handled by solver. This just updates interproc ghosts.
@@ -868,9 +778,8 @@ end
 function GkField:totalSolverTime()
    local time = 0.
    if self.phiSlvr then
-      time = time + self.timers.advTime[1]+self.phiSlvr.slvr.timers.completeNsolve
+      if self.phiSlvr.slvr then time = time + self.timers.advTime[1]+self.phiSlvr.slvr.timers.completeNsolve end
       if self.isElectromagnetic and self.dApardtSlvr then  time = time + self.timers.advTime[2] end
-      if self.isElectromagnetic and self.dApardtSlvr2 then time = time + self.timers.advTime[3] end
    end
    return time
 end
@@ -881,7 +790,11 @@ function GkField:energyCalcTime()
    return t
 end
 
-function GkField:printDevDiagnostics() self.phiSlvr:printDevDiagnostics() end
+function GkField:printDevDiagnostics() 
+   if self.phiSlvr then
+      self.phiSlvr:printDevDiagnostics()
+   end
+end
 
 -- GkGeometry ---------------------------------------------------------------------
 --
@@ -1149,12 +1062,12 @@ function GkGeometry:initField()
    -- Compute 1/B and 1/(B^2). LBO collisions require that this is
    -- done via weak operations instead of projecting 1/B or 1/B^2.
    local confWeakMultiply = Updater.CartFieldBinOp {
-      onGrid    = self.grid,   operation = "Multiply",
-      weakBasis = self.basis,  onGhosts  = true,
+      weakBasis = self.basis,  operation = "Multiply",
+      onGhosts  = true,
    }
    local confWeakDivide = Updater.CartFieldBinOp {
-      onGrid    = self.grid,   operation = "Divide",
-      weakBasis = self.basis,  onGhosts  = true,
+      weakBasis = self.basis,  operation = "Divide",
+      onRange   = self.unitWeight:localExtRange(),  onGhosts = true,
    }
    confWeakDivide:advance(0., {self.geo.bmag, self.unitWeight}, {self.geo.bmagInv})
    confWeakMultiply:advance(0., {self.geo.bmagInv, self.geo.bmagInv}, {self.geo.bmagInvSq})
@@ -1188,6 +1101,7 @@ function GkGeometry:initField()
 
    -- Apply BCs.
    self:applyBc(0, self.geo)
+
 end
 
 function GkGeometry:write(tm)
