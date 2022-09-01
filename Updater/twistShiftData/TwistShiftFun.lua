@@ -58,12 +58,11 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local Lin          = require "Lib.Linalg"
-local Mpi          = require "Comm.Mpi"
-local lume         = require "Lib.lume"
-local math         = require "sci.math"  -- For sign function.
-local LinearDecomp = require "Lib.LinearDecomp"
-local root         = require "sci.root"
+local Lin  = require "Lib.Linalg"
+local Mpi  = require "Comm.Mpi"
+local lume = require "Lib.lume"
+local math = require "sci.math"  -- For sign function.
+local root = require "sci.root"
 -- The following are needed for projecting onto the basis.
 local SerendipityNodes = require "Lib.SerendipityNodes"
 local ffi              = require "ffi"

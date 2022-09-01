@@ -11,13 +11,13 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local BinOpDecl    = require "Updater.binOpCalcData.CartFieldBinOpModDecl"
-local Lin          = require "Lib.Linalg"
-local LinearDecomp = require "Lib.LinearDecomp"
-local Proto        = require "Lib.Proto"
-local UpdaterBase  = require "Updater.Base"
-local xsys         = require "xsys"
-local ffi = require "ffi"
+local BinOpDecl   = require "Updater.binOpCalcData.CartFieldBinOpModDecl"
+local Lin         = require "Lib.Linalg"
+local Proto       = require "Lib.Proto"
+local UpdaterBase = require "Updater.Base"
+local xsys        = require "xsys"
+local ffi         = require "ffi"
+
 local ffiC = ffi.C
 require "Lib.ZeroUtil"
 

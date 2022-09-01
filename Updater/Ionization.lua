@@ -6,12 +6,11 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local UpdaterBase = require "Updater.Base"
-local LinearDecomp = require "Lib.LinearDecomp"
-local Proto = require "Lib.Proto"
+local UpdaterBase    = require "Updater.Base"
+local Proto          = require "Lib.Proto"
 local IonizationDecl = require "Updater.ionizationCalcData.IonizationModDecl"
 local xsys = require "xsys"
-local Lin = require "Lib.Linalg"
+local Lin  = require "Lib.Linalg"
 local Time = require "Lib.Time"
 
 -- Voronov Collisions updater object.

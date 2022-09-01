@@ -15,7 +15,6 @@
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
 local Lin = require "Lib.Linalg"
-local LinearDecomp = require "Lib.LinearDecomp"
 local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
 local UpdaterBase = require "Updater.Base"

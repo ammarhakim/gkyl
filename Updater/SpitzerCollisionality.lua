@@ -12,7 +12,6 @@
 
 -- Gkyl libraries.
 local UpdaterBase   = require "Updater.Base"
-local LinearDecomp  = require "Lib.LinearDecomp"
 local Proto         = require "Lib.Proto"
 local SpitzerNuDecl = require "Updater.spitzerNuCalcData.SpitzerNuModDecl"
 local xsys          = require "xsys"

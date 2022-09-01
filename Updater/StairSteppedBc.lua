@@ -4,7 +4,6 @@
 local Proto = require "Lib.Proto"
 local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
-local LinearDecomp = require "Lib.LinearDecomp"
 
 local isGhost = function(inOutPtr) return inOutPtr[1] < 0 end
 

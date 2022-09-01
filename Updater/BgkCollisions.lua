@@ -5,7 +5,6 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local LinearDecomp = require "Lib.LinearDecomp"
 local Proto        = require "Proto"
 local UpdaterBase  = require "Updater.Base"
 

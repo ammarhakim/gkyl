@@ -28,7 +28,6 @@ local DataStruct   = require "DataStruct"
 local EvOnNodesUpd = require "Updater.EvalOnNodes"
 local Range        = require "Lib.Range"
 local Lin          = require "Lib.Linalg"
-local LinearDecomp = require "Lib.LinearDecomp"
 local Mpi          = require "Comm.Mpi"
 local math         = require "sci.math"  -- For sign function.
 

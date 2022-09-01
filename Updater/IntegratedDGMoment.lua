@@ -7,15 +7,14 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local Alloc        = require "Lib.Alloc"
-local Lin          = require "Lib.Linalg"
-local IntMomDecl   = require "Updater.momentCalcData.IntegratedDGMomentModDecl"
-local Mpi          = require "Comm.Mpi"
-local LinearDecomp = require "Lib.LinearDecomp"
-local Proto        = require "Lib.Proto"
-local Range        = require "Lib.Range"
-local UpdaterBase  = require "Updater.Base"
-local lume         = require "Lib.lume"
+local Alloc       = require "Lib.Alloc"
+local Lin         = require "Lib.Linalg"
+local IntMomDecl  = require "Updater.momentCalcData.IntegratedDGMomentModDecl"
+local Mpi         = require "Comm.Mpi"
+local Proto       = require "Lib.Proto"
+local Range       = require "Lib.Range"
+local UpdaterBase = require "Updater.Base"
+local lume        = require "Lib.lume"
 
 -- Integrated moments updater object.
 local IntegratedDGMoment = Proto(UpdaterBase)

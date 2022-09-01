@@ -9,7 +9,6 @@
 
 -- Gkyl libraries.
 local GaussQuadRules     = require "Lib.GaussQuadRules"
-local LinearDecomp       = require "Lib.LinearDecomp"
 local Lin                = require "Lib.Linalg"
 local Proto              = require "Proto"
 local Range              = require "Lib.Range"
