@@ -383,13 +383,6 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
    self:completeAssemblyAndSolve(tCurr, sol)
 end
 
-function FemParPoisson:_advanceOnDevice(tCurr, inFld, outFld)
-   local src = assert(inFld[1], "FemParPoisson.advanceOnDevice: Must specify an input field")
-   local sol = assert(outFld[1], "FemParPoisson.advanceOnDevice: Must specify an output field")
-
-   assert(self._zero_fem, "FemParPoisson: advanceOnDevice requires gkyl_fem_parproj from g0")
-end
-
 function FemParPoisson:setLaplacianWeight(weight)
    self._hasLaplacian = true
    self.laplacianWeight:copy(weight)
