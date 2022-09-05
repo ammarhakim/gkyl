@@ -873,7 +873,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 self.threeMomentsCalc:advance(tCurr, {fIn}, {self.threeMoments})
 
 	 self.primMomSelf:advance(tCurr, {self.threeMoments, fIn, self.threeMomentsBoundaryCorrections},
-	                          {self.uParSelf, self.vtSqSelf})
+                                  {self.uParSelf, self.vtSqSelf})
 
          -- Indicate that moments, boundary corrections, star moments
          -- and self-primitive moments have been computed.

@@ -22,7 +22,6 @@ eulerApp = Moments.App {
    
    -- decomposition stuff
    decompCuts = {1, 1}, -- cuts in each direction
-   useShared = false, -- if to use shared memory
 
    -- electrons
    fluid = Moments.Species {

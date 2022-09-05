@@ -279,7 +279,6 @@ function GyrofluidSpecies:pParJacCalc(tm, momIn, uPar, mJacM1, mJacM2flow,
    -- Compute the parallel pressure (times Jacobian).
    self.weakMultiply:advance(tm, {uPar, mJacM1}, {mJacM2flow})
    mJacM2:combineOffset(1, momIn, self.mJacM2Off)
-   Mpi.Barrier(self.grid:commSet().sharedComm)   -- Barrier over sharedComm before combine.
    pParJacOut:combine(2., mJacM2, -2., pPerpJac, -1., mJacM2flow)
 
    -- If the perpendicular pressure and/or the parallel flow energy density are sufficiently

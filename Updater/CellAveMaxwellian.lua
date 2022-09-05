@@ -5,14 +5,13 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local UpdaterBase = require "Updater.Base"
-local LinearDecomp = require "Lib.LinearDecomp"
-local Proto = require "Lib.Proto"
+local UpdaterBase           = require "Updater.Base"
+local Proto                 = require "Lib.Proto"
 local CellAveMaxwellianDecl = require "Updater.cellAveMaxwellianCalcData.MaxwellianCellAvModDecl"
-local DataStruct = require "DataStruct"
-local xsys = require "xsys"
-local Lin = require "Lib.Linalg"
-local Time = require "Lib.Time"
+local DataStruct            = require "DataStruct"
+local xsys                  = require "xsys"
+local Lin                   = require "Lib.Linalg"
+local Time                  = require "Lib.Time"
 
 -- Charge exchange collisions updater object.
 local CellAveMaxwellian = Proto(UpdaterBase)
@@ -101,15 +100,10 @@ function CellAveMaxwellian:vlasov(m0, u, vtSq, fMax)
    local vtSqItr = vtSq:get(1)
    local fMaxItr = fMax:get(1)
    
-   local phaseRange = fMax:localRange()
-   if self.onGhosts == true then phaseRange = fMax:localExtRange() end
-
-   local phaseRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = phaseRange:selectFirst(pDim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId()    -- Local thread ID.
+   local phaseRange = self.onGhosts and fMax:localExtRange() or fMax:localRange()
    
    -- Phase space loop
-   for pIdx in phaseRangeDecomp:rowMajorIter(tId) do
+   for pIdx in phaseRange:rowMajorIter() do
       grid:setIndex(pIdx)
       grid:cellCenter(self.xc)
 
@@ -159,15 +153,10 @@ function CellAveMaxwellian:gyrokinetic(m0, u, vtSq, fMax)
       self.uInItr = u:get(1)
    end
    
-   local phaseRange = fMax:localRange()
-   if self.onGhosts == true then phaseRange = fMax:localExtRange() end
-   
-   local phaseRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = phaseRange:selectFirst(pDim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId()    -- Local thread ID.
+   local phaseRange = self.onGhosts and fMax:localExtRange() or fMax:localRange()
    
    -- Phase space loop
-   for pIdx in phaseRangeDecomp:rowMajorIter(tId) do
+   for pIdx in phaseRange:rowMajorIter() do
       grid:setIndex(pIdx)
       grid:cellCenter(self.xc)
 

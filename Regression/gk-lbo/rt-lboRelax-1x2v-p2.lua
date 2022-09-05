@@ -62,7 +62,6 @@ plasmaApp = Plasma.App {
    
    -- Decomposition for configuration space.
    decompCuts = {1},            -- Cuts in each configuration direction.
-   useShared  = false,          -- If to use shared memory.
 
    -- Boundary conditions for configuration space.
    periodicDirs = {1},          -- Periodic directions.

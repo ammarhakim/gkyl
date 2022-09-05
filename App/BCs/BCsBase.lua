@@ -40,54 +40,50 @@ function BCsBase:createSolver(thisSpecies, extField) end
 function BCsBase:createCouplingSolver(species, field, externalField) end
 function BCsBase:createBoundaryGrid()
    -- Create a ghost boundary grid with only one cell in the direction of the BC.
-   if self.grid:isShared() then
-      assert(false, "VlasovBasicBC: shared memory implementation of boundary flux diagnostics not ready.")
-   else
-      local reducedLower, reducedUpper, reducedNumCells, reducedCuts = {}, {}, {}, {}
-      for d = 1, self.grid:ndim() do
-         if d==self.bcDir then
-            table.insert(reducedLower, -self.grid:dx(d)/2.)
-            table.insert(reducedUpper,  self.grid:dx(d)/2.)
-            table.insert(reducedNumCells, 1)
-            table.insert(reducedCuts, 1)
-         else
-            table.insert(reducedLower,    self.grid:lower(d))
-            table.insert(reducedUpper,    self.grid:upper(d))
-            table.insert(reducedNumCells, self.grid:numCells(d))
-            table.insert(reducedCuts,     self.grid:cuts(d))
-         end
+   local reducedLower, reducedUpper, reducedNumCells, reducedCuts = {}, {}, {}, {}
+   for d = 1, self.grid:ndim() do
+      if d==self.bcDir then
+         table.insert(reducedLower, -self.grid:dx(d)/2.)
+         table.insert(reducedUpper,  self.grid:dx(d)/2.)
+         table.insert(reducedNumCells, 1)
+         table.insert(reducedCuts, 1)
+      else
+         table.insert(reducedLower,    self.grid:lower(d))
+         table.insert(reducedUpper,    self.grid:upper(d))
+         table.insert(reducedNumCells, self.grid:numCells(d))
+         table.insert(reducedCuts,     self.grid:cuts(d))
       end
-      local commSet  = self.grid:commSet()
-      local worldComm, nodeComm = commSet.comm, commSet.nodeComm
-      local nodeRank = Mpi.Comm_rank(nodeComm)
-      local dirRank  = nodeRank
-      local cuts     = {}
-      for d=1,3 do cuts[d] = self.grid:cuts(d) or 1 end
-      local writeRank = -1
-      if self.bcDir == 1 then
-         dirRank = nodeRank % (cuts[1]*cuts[2]) % cuts[1]
-      elseif self.bcDir == 2 then
-         dirRank = math.floor(nodeRank/cuts[1]) % cuts[2]
-      elseif self.bcDir == 3 then
-         dirRank = math.floor(nodeRank/cuts[1]/cuts[2])
-      end
-      self._splitComm = Mpi.Comm_split(worldComm, dirRank, nodeRank)
-      -- Set up which ranks to write from.
-      if self.bcEdge == "lower" and dirRank == 0 then
-         writeRank = nodeRank
-      elseif self.bcEdge == "upper" and dirRank == self.grid:cuts(self.bcDir)-1 then
-         writeRank = nodeRank
-      end
-      self.writeRank = writeRank
-      local reducedDecomp = CartDecomp.CartProd {
-         comm      = self._splitComm,  cuts      = reducedCuts,
-         writeRank = writeRank,        useShared = self.grid:isShared(),
-      }
-      self.boundaryGrid = Grid.RectCart {
-         lower = reducedLower,  cells         = reducedNumCells,
-         upper = reducedUpper,  decomposition = reducedDecomp,
-      }
    end
+   local commSet  = self.grid:commSet()
+   local worldComm, nodeComm = commSet.comm, commSet.nodeComm
+   local nodeRank = Mpi.Comm_rank(nodeComm)
+   local dirRank  = nodeRank
+   local cuts     = {}
+   for d=1,3 do cuts[d] = self.grid:cuts(d) or 1 end
+   local writeRank = -1
+   if self.bcDir == 1 then
+      dirRank = nodeRank % (cuts[1]*cuts[2]) % cuts[1]
+   elseif self.bcDir == 2 then
+      dirRank = math.floor(nodeRank/cuts[1]) % cuts[2]
+   elseif self.bcDir == 3 then
+      dirRank = math.floor(nodeRank/cuts[1]/cuts[2])
+   end
+   self._splitComm = Mpi.Comm_split(worldComm, dirRank, nodeRank)
+   -- Set up which ranks to write from.
+   if self.bcEdge == "lower" and dirRank == 0 then
+      writeRank = nodeRank
+   elseif self.bcEdge == "upper" and dirRank == self.grid:cuts(self.bcDir)-1 then
+      writeRank = nodeRank
+   end
+   self.writeRank = writeRank
+   local reducedDecomp = CartDecomp.CartProd {
+      comm      = self._splitComm,  cuts      = reducedCuts,
+      writeRank = writeRank,
+   }
+   self.boundaryGrid = Grid.RectCart {
+      lower = reducedLower,  cells         = reducedNumCells,
+      upper = reducedUpper,  decomposition = reducedDecomp,
+   }
 end
 function BCsBase:createConfBoundaryGrid()
 -- Create reduced boundary config-space grid with 1 cell in dimension of self._dir.
@@ -110,7 +106,7 @@ function BCsBase:createConfBoundaryGrid()
       end
       local reducedDecomp = CartDecomp.CartProd {
          comm      = self._splitComm,  cuts      = reducedCuts,
-         writeRank = self.writeRank,   useShared = self.grid:isShared(),
+         writeRank = self.writeRank,
       }
       self.confBoundaryGrid = Grid.RectCart {
          lower = reducedLower,  cells         = reducedNumCells,
@@ -146,8 +142,7 @@ function BCsBase:evalOnBoundary(inFld)
    local inFldPtr  = inFld:get(1)
    local inFldIdxr = inFld:genIndexer()
 
-   local tId = self.grid:subGridSharedId() -- Local thread ID.
-   for idxIn in self.ghostRangeDecomp:rowMajorIter(tId) do
+   for idxIn in self.ghostRange:rowMajorIter() do
       idxIn:copyInto(self.idxOut)
       self.idxOut[self.bcDir] = 1
 
@@ -164,8 +159,7 @@ function BCsBase:evalOnConfBoundary(inFld)
    local inFldPtr  = inFld:get(1)
    local inFldIdxr = inFld:genIndexer()
 
-   local tId = self.grid:subGridSharedId() -- Local thread ID.
-   for idxIn in self.confGhostRangeDecomp:rowMajorIter(tId) do
+   for idxIn in self.confGhostRange:rowMajorIter() do
       idxIn:copyInto(self.idxOut)
       self.idxOut[self.bcDir] = 1
 

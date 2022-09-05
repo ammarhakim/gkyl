@@ -18,9 +18,7 @@ function _M:init(tbl)
    -- Some updaters use the communicators to perform parallel operations.
    local onGrid = tbl.onGrid
    if onGrid then
-      self._comm       = onGrid:commSet().comm
-      self._sharedComm = onGrid:commSet().sharedComm
-      self._nodeComm   = onGrid:commSet().nodeComm
+      self._comm = onGrid:commSet().comm
    end
 
    self.totalTime = 0.0  -- Time taken by the advance method.
@@ -79,9 +77,7 @@ function _M:_advance(tCurr, inFld, outFld)
 end
 
 -- return various comms for communications
-function _M:getComm()  return self._comm end
-function _M:getNodeComm() return self._nodeComm end
-function _M:getSharedComm() return self._sharedComm end
+function _M:getComm() return self._comm end
 
 -- This function wraps derived updater's _advance() function and
 -- computes a "total Time", and also synchronizes the status and

@@ -12,15 +12,10 @@
 local xsys = require "xsys"
 
 -- Gkyl libraries.
-local CartDecomp     = require "Lib.CartDecomp"
-local Grid           = require "Grid"
-local Lin            = require "Lib.Linalg"
-local LinearDecomp   = require "Lib.LinearDecomp"
-local Proto          = require "Lib.Proto"
-local Range          = require "Lib.Range"
-local UpdaterBase    = require "Updater.Base"
-local DataStruct     = require "DataStruct"
-local ffi            = require "ffi"
+local Proto       = require "Lib.Proto"
+local UpdaterBase = require "Updater.Base"
+local DataStruct  = require "DataStruct"
+local ffi         = require "ffi"
 
 local ffiC = ffi.C
 require "Lib.ZeroUtil"

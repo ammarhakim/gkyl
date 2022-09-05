@@ -7,15 +7,14 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local Alloc        = require "Lib.Alloc"
-local Lin          = require "Lib.Linalg"
-local IntMomDecl   = require "Updater.momentCalcData.IntegratedDGMomentModDecl"
-local Mpi          = require "Comm.Mpi"
-local LinearDecomp = require "Lib.LinearDecomp"
-local Proto        = require "Lib.Proto"
-local Range        = require "Lib.Range"
-local UpdaterBase  = require "Updater.Base"
-local lume         = require "Lib.lume"
+local Alloc       = require "Lib.Alloc"
+local Lin         = require "Lib.Linalg"
+local IntMomDecl  = require "Updater.momentCalcData.IntegratedDGMomentModDecl"
+local Mpi         = require "Comm.Mpi"
+local Proto       = require "Lib.Proto"
+local Range       = require "Lib.Range"
+local UpdaterBase = require "Updater.Base"
+local lume        = require "Lib.lume"
 
 -- Integrated moments updater object.
 local IntegratedDGMoment = Proto(UpdaterBase)
@@ -154,14 +153,9 @@ function IntegratedDGMoment:_advance(tCurr, inFld, outFld)
    -- Clear local values.
    for i = 1,self.intMomNcomp do self.localMom[i] = 0.0 end
 
-   -- Construct range for shared memory.
-   local fldRange       = scalarFld:localRange()
-   local fldRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = fldRange:selectFirst(self.dim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId()    -- Local thread ID.
-
    -- Loop, computing integrated moments in each cell.
-   for idx in fldRangeDecomp:rowMajorIter(tId) do
+   local fldRange = scalarFld:localRange()
+   for idx in fldRange:rowMajorIter() do
       grid:setIndex(idx)
       grid:cellCenter(self.w)
       for d = 1, self.dim do self.dxv[d] = grid:dx(d) end

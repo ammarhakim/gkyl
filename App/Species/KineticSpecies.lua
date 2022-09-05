@@ -52,8 +52,6 @@ function KineticSpecies:fullInit(appTbl)
    assert(#self.upper == self.vdim, "'upper' must have " .. self.vdim .. " entries")
    self.coordinateMap = tbl.coordinateMap
 
-   self.useShared = xsys.pickBool(appTbl.useShared, false)
-   
    self.decompCuts = {}
    -- WE DO NOT ALLOW DECOMPOSITION IN VELOCITY SPACE
    for d = 1, self.vdim do self.decompCuts[d] = 1 end
@@ -268,8 +266,7 @@ function KineticSpecies:createGrid(confGridIn)
    for d = 1, self.cdim do table.insert(decompCuts, confGrid:cuts(d)) end
    for d = 1, self.vdim do table.insert(decompCuts, self.decompCuts[d]) end
    self.decomp = DecompRegionCalc.CartProd {
-      cuts      = decompCuts,
-      useShared = self.useShared,
+      cuts = decompCuts,
    }
 
    -- Create computational domain.
@@ -553,9 +550,6 @@ function KineticSpecies:initDist(extField)
    for nm, pr in lume.orderedIter(self.projections) do
       pr:fullInit(self)
       pr:advance(0.0, {extField}, {self.distf[2]})
-      -- This barrier is needed as when using MPI-SHM some
-      -- processes will get to accumulate before projection is finished.
-      Mpi.Barrier(self.grid:commSet().sharedComm)
       if string.find(nm,"init") then
          self.distf[1]:accumulate(1.0, self.distf[2])
          initCnt = initCnt + 1

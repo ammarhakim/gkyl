@@ -29,7 +29,6 @@ vlasovApp = Vlasov.App {
 
    -- decomposition for configuration space
    decompCuts = {1}, -- cuts in each configuration direction
-   useShared = false, -- if to use shared memory
 
    -- boundary conditions for configuration space
    periodicDirs = {1}, -- periodic directions

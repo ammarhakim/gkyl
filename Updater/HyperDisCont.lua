@@ -7,27 +7,27 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local Alloc = require "Lib.Alloc"
-local Basis = require "Basis.BasisCdef"
-local DataStruct = require "DataStruct"
-local EqBase = require "Eq.EqBase"
-local Grid = require "Grid.RectCart"
-local CartField = require "DataStruct.CartField"
-local Lin = require "Lib.Linalg"
-local LinearDecomp = require "Lib.LinearDecomp"
-local Mpi = require "Comm.Mpi"
-local Proto = require "Lib.Proto"
-local Range = require "Lib.Range"
+local Alloc       = require "Lib.Alloc"
+local Basis       = require "Basis.BasisCdef"
+local DataStruct  = require "DataStruct"
+local EqBase      = require "Eq.EqBase"
+local Grid        = require "Grid.RectCart"
+local CartField   = require "DataStruct.CartField"
+local Lin         = require "Lib.Linalg"
+local Mpi         = require "Comm.Mpi"
+local Proto       = require "Lib.Proto"
+local Range       = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
-local ffi = require "ffi"
+local ffi         = require "ffi"
+local xsys        = require "xsys"
+
 local ffiC = ffi.C
-local xsys = require "xsys"
 local new, sizeof, typeof, metatype = xsys.from(ffi,
      "new, sizeof, typeof, metatype")
 
 local cuda = nil
 if GKYL_HAVE_CUDA then
-   cuda = require "Cuda.RunTime"
+   cuda    = require "Cuda.RunTime"
    cuAlloc = require "Cuda.Alloc"
 end
 
@@ -148,7 +148,7 @@ function HyperDisCont:init(tbl)
 
    self._isFirst = true
    self._auxFields = {} -- Auxilliary fields passed to eqn object.
-   self._perpRangeDecomp = {} -- Perp ranges in each direction.
+   self._perpRange = {} -- Perp ranges in each direction.
    
    local upd = ffi.new("int[6]", self._updateDirs)
    for i = 1, #self._updateDirs do
@@ -218,8 +218,6 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
          self._maxsLocal[d] = 0.0 -- Reset to get new values in this step.
       end
 
-      local tId = grid:subGridSharedId() -- Local thread ID.
-
       -- Clear output field before computing vol/surf increments.
       if self._clearOut then qRhsOut:clear(0.0) end
       -- Accumulate contributions from volume and surface integrals.
@@ -243,17 +241,13 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
          end
 
          if self._isFirst then
-            self._perpRangeDecomp[dir] = LinearDecomp.LinearDecompRange {
-               range = localRange:shorten(dir), -- range orthogonal to 'dir'
-               numSplit = grid:numSharedProcs(),
-               threadComm = self:getSharedComm()
-            }
+            self._perpRange[dir] = localRange:shorten(dir) -- range orthogonal to 'dir'
          end
-         local perpRangeDecomp = self._perpRangeDecomp[dir]
+         local perpRange = self._perpRange[dir]
 
          -- outer loop is over directions orthogonal to 'dir' and inner
          -- loop is over 1D slice in `dir`.
-         for idx in perpRangeDecomp:rowMajorIter(tId) do
+         for idx in perpRange:rowMajorIter() do
             idx:copyInto(idxp); idx:copyInto(idxm)
 
             for i = dirLoIdx, dirUpIdx do -- this loop is over edges

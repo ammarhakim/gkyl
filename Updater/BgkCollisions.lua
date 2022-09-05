@@ -5,7 +5,6 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local LinearDecomp = require "Lib.LinearDecomp"
 local Proto        = require "Proto"
 local UpdaterBase  = require "Updater.Base"
 
@@ -95,13 +94,8 @@ function BgkCollisions:_advance(tCurr, inFld, outFld)
    local cflRateByCellIdxr = cflRateByCell:genIndexer()
    local cflRateByCellPtr  = cflRateByCell:get(1)
 
-   -- Construct range for shared memory.
-   local phaseRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = phaseRange:selectFirst(pDim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId()    -- Local thread ID.
-
    -- Phase space loop.
-   for pIdx in phaseRangeDecomp:rowMajorIter(tId) do
+   for pIdx in phaseRange:rowMajorIter() do
       fIn:fill(phaseIndexer(pIdx), fInItr)
       sumNufMaxwell:fill(phaseIndexer(pIdx), sumNufMaxwellItr)
       fRhsOut:fill(phaseIndexer(pIdx), fRhsOutItr)

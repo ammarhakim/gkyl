@@ -15,7 +15,6 @@
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
 local Lin = require "Lib.Linalg"
-local LinearDecomp = require "Lib.LinearDecomp"
 local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
 local UpdaterBase = require "Updater.Base"
@@ -291,9 +290,6 @@ function WavePropagation:init(tbl)
       end
    end
 
-   -- store range objects needed in update
-   self._perpRangeDecomp = {}
-
    -- construct various functions from template representations
    self._calcDelta = loadstring( calcDeltaTempl {MEQN = meqn} )()
    self._calcCfla = loadstring( calcCflaTempl {MWAVE = mwave} )()
@@ -427,8 +423,6 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
       inOutIdxr = self._inOut:genIndexer()
    end
 
-   local tId = grid:subGridSharedId() -- local thread ID
-
    local calcDelta = self._calcDelta
    local calcFirstOrderGud = self._calcFirstOrderGud
    local calcCfla = self._calcCfla
@@ -449,17 +443,13 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
       local dirLoIdx, dirUpIdx = localRange:lower(dir)-1, localRange:upper(dir)+2
 
       if self._isFirst then
-         self._perpRangeDecomp[dir] = LinearDecomp.LinearDecompRange {
-            range = localRange:shorten(dir), -- range orthogonal to 'dir'
-            numSplit = grid:numSharedProcs(),
-            threadComm = self:getSharedComm()
-         }
+         self._perpRange[dir] = localRange:shorten(dir) -- range orthogonal to 'dir'
       end
-      local perpRangeDecomp = self._perpRangeDecomp[dir]
+      local perpRange = self._perpRange[dir]
 
       -- outer loop is over directions orthogonal to 'dir' and inner
       -- loop is over 1D slice in `dir`.
-      for idx in perpRangeDecomp:rowMajorIter(tId) do
+      for idx in perpRange:rowMajorIter() do
          idx:copyInto(idxp); idx:copyInto(idxm)
 
          -- fill masks along this direction

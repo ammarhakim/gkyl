@@ -24,7 +24,6 @@ local UpdaterBase      = require "Updater.Base"
 local Grid             = require "Grid"
 local DataStruct       = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
-local LinearDecomp     = require "Lib.LinearDecomp"
 local Lin              = require "Lib.Linalg"
 local ffi              = require "ffi"
 local lume             = require "Lib.lume"
@@ -311,11 +310,8 @@ function MGpoisson:init(tbl)
          if cellsC[d] == 2 then notAtCoarsest = false end
       end
 
-      local isSharedC = grid:isShared()
-
       local decompC = DecompRegionCalc.CartProd {
-         cuts      = decompCutsC,
-         useShared = isSharedC,
+         cuts = decompCutsC,
       }
 
       self.mgGrids[self.mgLevels] = Grid.RectCart {
@@ -617,16 +613,13 @@ function MGpoisson:translateDG_FEM(inFld,outFld,dir)
    local cellsN = {}
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
-   local rangeDecomp = LinearDecomp.LinearDecompRange {
-      range = outFld:localRange(), numSplit = grid:numSharedProcs() }
-   local tId         = grid:subGridSharedId()    -- Local thread ID.
+   local indexer = outFld:genIndexer()
 
-   local indexer     = outFld:genIndexer()
+   local outFldItr = outFld:get(1)
+   local inFldItr  = inFld:get(1)
 
-   local outFldItr   = outFld:get(1)
-   local inFldItr    = inFld:get(1)
-
-   for idx in rangeDecomp:rowMajorIter(tId) do
+   local localRange = outFld:localRange()
+   for idx in localRange:rowMajorIter() do
 
       grid:setIndex(idx)
 
@@ -703,16 +696,13 @@ function MGpoisson:projectFEM(femFld,fldOut)
    local cellsN = {}
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
-   local rangeDecomp = LinearDecomp.LinearDecompRange {
-      range = fldOut:localRange(), numSplit = grid:numSharedProcs() }
-   local tId         = grid:subGridSharedId()    -- Local thread ID.
+   local indexer = fldOut:genIndexer()
 
-   local indexer     = fldOut:genIndexer()
+   local fldOutItr = fldOut:get(1)
+   local femFldItr = femFld:get(1)
 
-   local fldOutItr   = fldOut:get(1)
-   local femFldItr   = femFld:get(1)
-
-   for idx in rangeDecomp:rowMajorIter(tId) do
+   local localRange = fldOut:localRange()
+   for idx in localRange:rowMajorIter() do
 
       grid:setIndex(idx)
       fldOut:fill(indexer(idx), fldOutItr)   -- Projected FEM field pointer.
@@ -788,13 +778,8 @@ function MGpoisson:normFEM(tCurr,normType,inFld,outDynV)
 
    self.localNorm[1] = 0.0   -- Clear local values.
 
-   -- Construct range for shared memory.
-   local fldRange       = fld:localRange()
-   local fldRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = fldRange:selectFirst(self.dim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId()    -- Local thread ID.
-
-   for idx in fldRangeDecomp:rowMajorIter(tId) do
+   local fldRange = fld:localRange()
+   for idx in fldRange:rowMajorIter() do
       grid:setIndex(idx)
       grid:getDx(self.dxBuf)
 
@@ -851,13 +836,8 @@ function MGpoisson:accumulateConst(inConst,inFld)
    local indexer = inFld:genIndexer()
    local fldItr  = inFld:get(1)
 
-   -- Construct range for shared memory.
-   local fldRange       = inFld:localRange()
-   local fldRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = fldRange:selectFirst(self.dim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId()    -- Local thread ID.
-
-   for idx in fldRangeDecomp:rowMajorIter(tId) do
+   local fldRange = inFld:localRange()
+   for idx in fldRange:rowMajorIter() do
       grid:setIndex(idx)
       inFld:fill(indexer(idx), fldItr)
       self._accuConst[self:idxToStencilIU(idx,cellsN)](inConst, fldItr:data())
@@ -880,13 +860,8 @@ function MGpoisson:esEnergy(tCurr,fldIn,outDynV)
       self.localEnergy[d] = 0.0   -- Clear local values.
    end
 
-   -- Construct range for shared memory.
-   local phiRange       = phiIn:localRange()
-   local phiRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = phiRange:selectFirst(self.dim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId()    -- Local thread ID.
-
-   for idx in phiRangeDecomp:rowMajorIter(tId) do
+   local phiRange = phiIn:localRange()
+   for idx in phiRange:rowMajorIter() do
       grid:setIndex(idx)
       grid:getDx(self.dxBuf)
 
@@ -908,17 +883,14 @@ function MGpoisson:restrictDG(fFld,cFld)
 
    local grid = cFld:grid() 
 
-   local rangeDecomp = LinearDecomp.LinearDecompRange {
-      range = cFld:localRange(), numSplit = grid:numSharedProcs() }
-   local tId         = grid:subGridSharedId()    -- Local thread ID.
-
    local cFldIndexer = cFld:genIndexer()
    local cFldItr     = cFld:get(1)
 
    local fFldIndexer = fFld:genIndexer()
    local fFldItr     = fFld:get(1)
 
-   for cIdx in rangeDecomp:rowMajorIter(tId) do
+   local localRange = cFld:localRange()
+   for cIdx in localRange:rowMajorIter() do
 
       grid:setIndex(cIdx)
 
@@ -965,11 +937,7 @@ function MGpoisson:restrictFEM(fFld,cFld)
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
    -- For periodic BCs extend the range at the lower boundary by 1 cell.
-   local fLocalRange  = fFld:localRange():extendDirs(self.periodicDirs,1,0)
-
-   local rangeDecomp = LinearDecomp.LinearDecompRange {
-      range = cFld:localRange(), numSplit = grid:numSharedProcs() }
-   local tId         = grid:subGridSharedId()    -- Local thread ID.
+   local fLocalRange = fFld:localRange():extendDirs(self.periodicDirs,1,0)
 
    local cFldIndexer = cFld:genIndexer()
    local cFldItr     = cFld:get(1)
@@ -977,7 +945,8 @@ function MGpoisson:restrictFEM(fFld,cFld)
    local fFldIndexer = fFld:genIndexer()
    local fFldItr     = fFld:get(1)
 
-   for cIdx in rangeDecomp:rowMajorIter(tId) do
+   local localRange = cFld:localRange()
+   for cIdx in localRange:rowMajorIter() do
 
       grid:setIndex(cIdx)
 
@@ -1071,14 +1040,12 @@ function MGpoisson:relax(numRelax, phiFld, rhoFld)
    local cellsN = {}
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
-   local rangeDecomp = LinearDecomp.LinearDecompRange {
-      range = phiFld:localRange(), numSplit = grid:numSharedProcs() }
-   local tId         = grid:subGridSharedId()    -- Local thread ID.
+   local indexer = phiFld:genIndexer()
 
-   local indexer     = phiFld:genIndexer()
+   local phiItr = phiFld:get(1)
+   local rhoItr = rhoFld:get(1)
 
-   local phiItr      = phiFld:get(1)
-   local rhoItr      = rhoFld:get(1)
+   local localRange = phiFld:localRange()
 
    local phiPrevItr, currLevel
 
@@ -1089,7 +1056,7 @@ function MGpoisson:relax(numRelax, phiFld, rhoFld)
          phiPrevItr = self.phiPrevAll[currLevel]:get(1)
       end
 
-      for idx in rangeDecomp:rowMajorIter(tId) do
+      for idx in localRange:rowMajorIter() do
    
          grid:setIndex(idx)
    
@@ -1173,17 +1140,15 @@ function MGpoisson:residual(phiFld, rhoFld, resFld)
    local cellsN = {}
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
-   local rangeDecomp = LinearDecomp.LinearDecompRange {
-      range = phiFld:localRange(), numSplit = grid:numSharedProcs() }
-   local tId         = grid:subGridSharedId()    -- Local thread ID.
+   local localRange = phiFld:localRange()
 
-   local indexer     = phiFld:genIndexer()
+   local indexer = phiFld:genIndexer()
 
-   local phiItr      = phiFld:get(1)
-   local rhoItr      = rhoFld:get(1)
-   local resItr      = resFld:get(1)
+   local phiItr = phiFld:get(1)
+   local rhoItr = rhoFld:get(1)
+   local resItr = resFld:get(1)
 
-   for idx in rangeDecomp:rowMajorIter(tId) do
+   for idx in localRange:rowMajorIter() do
    
       grid:setIndex(idx)
    
@@ -1294,17 +1259,14 @@ function MGpoisson:prolongDG(cFld,fFld)
 
    local grid = fFld:grid() 
 
-   local rangeDecomp = LinearDecomp.LinearDecompRange {
-      range = fFld:localRange(), numSplit = grid:numSharedProcs() }
-   local tId         = grid:subGridSharedId()    -- Local thread ID.
-
    local cFldIndexer = cFld:genIndexer()
    local cFldItr     = cFld:get(1)
 
    local fFldIndexer = fFld:genIndexer()
    local fFldItr     = fFld:get(1)
 
-   for fIdx in rangeDecomp:rowMajorIter(tId) do
+   local localRange = fFld:localRange()
+   for fIdx in localRange:rowMajorIter() do
 
       grid:setIndex(fIdx)
 
@@ -1354,17 +1316,13 @@ function MGpoisson:prolongFEM(cFld,fFld)
    local fLocalRange  = fFld:localRange()
    local cFldExtRange = cFld:localRange():extendDirs(self.periodicDirs,0,1)
 
-   local rangeDecomp = LinearDecomp.LinearDecompRange {
-      range = cFldExtRange, numSplit = grid:numSharedProcs() }
-   local tId         = grid:subGridSharedId()    -- Local thread ID.
-
    local cFldIndexer = cFld:genIndexer()
    local cFldItr     = cFld:get(1)
 
    local fFldIndexer = fFld:genIndexer()
    local fFldItr     = fFld:get(1)
 
-   for cIdx in rangeDecomp:rowMajorIter(tId) do
+   for cIdx in cFldExtRange:rowMajorIter() do
 
       grid:setIndex(cIdx)
 

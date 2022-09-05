@@ -86,7 +86,6 @@ function FluidSource:createSolver(mySpecies, externalField)
    fluidProj:fullInit(mySpecies)
 
    fluidProj:advance(0., {externalField}, {self.momSource})
-   Mpi.Barrier(self.grid:commSet().sharedComm)
 
    if mySpecies.positivityRescale then
       mySpecies.posRescaler:advance(0.0, {self.momSource}, {self.momSource})
@@ -98,7 +97,6 @@ end
 function FluidSource:advance(tCurr, momIn, species, momRhsOut)
    local tm = Time.clock()
 
-   Mpi.Barrier(self.grid:commSet().sharedComm)
    momRhsOut:accumulate(self.timeDependence(tCurr), self.momSource)
 
    self.timers.accumulateSrc = self.timers.accumulateSrc + Time.clock() - tm

@@ -22,14 +22,13 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local UpdaterBase  = require "Updater.Base"
-local DataStruct   = require "DataStruct"
-local LinearDecomp = require "Lib.LinearDecomp"
-local Lin          = require "Lib.Linalg"
-local Proto        = require "Lib.Proto"
-local xsys         = require "xsys"
-local ModDecl      = require "Updater.aSheathPotentialData.asheath_potential_mod_decl"
-local Mpi          = require "Comm.Mpi"
+local UpdaterBase = require "Updater.Base"
+local DataStruct  = require "DataStruct"
+local Lin         = require "Lib.Linalg"
+local Proto       = require "Lib.Proto"
+local xsys        = require "xsys"
+local ModDecl     = require "Updater.aSheathPotentialData.asheath_potential_mod_decl"
+local Mpi         = require "Comm.Mpi"
 
 -- Inherit the base Updater from UpdaterBase updater object.
 local ASheathPotential = Proto(UpdaterBase)
@@ -69,7 +68,7 @@ function ASheathPotential:init(tbl)
    --   - The [z_min,0] and [0,z_max] grids to compute phi (halfGrid).
    self.boundary = {"lower","upper"}
    self.halfSign = {lower=-1., upper=1.}
-   self.halfDomRangeDecomp = {}
+   self.halfDomRange = {}
    local sheathDirCells = self.grid:numCells(self.sheathDir)
    local globalRange = self.grid:globalRange()
    for _, b in ipairs(self.boundary) do
@@ -91,9 +90,7 @@ function ASheathPotential:init(tbl)
       -- Create the decomposed range that a rank has to
       -- loop over when looping over the half domain.
       local halfDomRange = self.grid:globalRange():extendDir(self.sheathDir,sheathDirExts[1],sheathDirExts[2])
-      local halfDomLocalRange = self.grid:localRange():intersect(halfDomRange)
-      self.halfDomRangeDecomp[b] = LinearDecomp.LinearDecompRange {
-        range = halfDomLocalRange, numSplit = self.grid:numSharedProcs() }
+      self.halfDomRange[b] = self.grid:localRange():intersect(halfDomRange)
    end
 
    self.phiSheath = {lower=DataStruct.Field{onGrid = self.boundaryGrids["lower"],
@@ -166,10 +163,7 @@ function ASheathPotential:_advance(tCurr, inFlds, outFlds)
    for _, b in ipairs(self.boundary) do
       -- Loop over boundary grid and compute phi_s in each cell using quadrature.
       local skinRange = b=="lower" and globalRange:lowerSkin(self.sheathDir,1) or globalRange:upperSkin(self.sheathDir,1)
-      local skinRangeDecomp = LinearDecomp.LinearDecompRange {
-            range = skinRange, numSplit = grid:numSharedProcs() }
-      local tId = grid:subGridSharedId()    -- Local thread ID.
-      for idx in skinRangeDecomp:rowMajorIter(tId) do
+      for idx in skinRange:rowMajorIter() do
          idx:copyInto(self.idxB)
          self.idxB[self.sheathDir] = 1  -- Boundary grid has 1 cell in this direction.
          grid:getDx(self.dx)
@@ -187,7 +181,7 @@ function ASheathPotential:_advance(tCurr, inFlds, outFlds)
       self.bcastSheathQuants(b)
 
       -- Loop over the half grid and compute phi.
-      for idx in self.halfDomRangeDecomp[b]:rowMajorIter(tId) do
+      for idx in self.halfDomRange[b]:rowMajorIter() do
          idx:copyInto(self.idxB)
          self.idxB[self.sheathDir] = 1  -- Boundary grid has 1 cell in this direction.
 

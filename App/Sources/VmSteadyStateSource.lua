@@ -51,7 +51,6 @@ function VmSteadyStateSource:createSolver(mySpecies, extField)
    self.fSource = mySpecies:allocDistf()
 
    self.profile:advance(0.0, {extField}, {self.fSource})
-   Mpi.Barrier(mySpecies.grid:commSet().sharedComm)
 
    if self.positivityRescale then
       mySpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)

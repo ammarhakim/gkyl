@@ -7,15 +7,14 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local Alloc        = require "Lib.Alloc"
-local LinearDecomp = require "Lib.LinearDecomp"
-local Lin          = require "Lib.Linalg"
-local Mpi          = require "Comm.Mpi"
-local Proto        = require "Lib.Proto"
-local Range        = require "Lib.Range"
-local UpdaterBase  = require "Updater.Base"
-local ffi          = require "ffi"
-local xsys         = require "xsys"
+local Alloc       = require "Lib.Alloc"
+local Lin         = require "Lib.Linalg"
+local Mpi         = require "Comm.Mpi"
+local Proto       = require "Lib.Proto"
+local Range       = require "Lib.Range"
+local UpdaterBase = require "Updater.Base"
+local ffi         = require "ffi"
+local xsys        = require "xsys"
 
 local ffiC = ffi.C
 ffi.cdef [[
@@ -101,16 +100,11 @@ function CartFieldIntegratedQuantCalc:advanceGradPerpV2(tCurr, inFld, outFld)
       self.globalVals[i] = 0.0
    end
 
-   -- Construct range for shared memory.
-   local fieldRange = self.onGhosts and field:localExtRange() or field:localRange()
-   local fieldRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = fieldRange:selectFirst(ndim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId()    -- Local thread ID.
-
    -- Assume multfac is a field with the same number of cells and components as field.
    local multfacItr = multfac:get(1)
    -- Loop, computing integrated moments in each cell.
-   for idx in fieldRangeDecomp:rowMajorIter(tId) do
+   local fieldRange = self.onGhosts and field:localExtRange() or field:localRange()
+   for idx in fieldRange:rowMajorIter() do
       grid:setIndex(idx)
       grid:getDx(self.dxv)
 
@@ -146,14 +140,9 @@ function CartFieldIntegratedQuantCalc:advanceBasic(tCurr, inFld, outFld)
       self.globalVals[i] = 0.0
    end
 
-   -- Construct range for shared memory.
-   local fieldRange = self.onGhosts and field:localExtRange() or field:localRange()
-   local fieldRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = fieldRange:selectFirst(ndim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId()    -- Local thread ID.
-
    -- Loop, computing integrated moments in each cell.
-   for idx in fieldRangeDecomp:rowMajorIter(tId) do
+   local fieldRange = self.onGhosts and field:localExtRange() or field:localRange()
+   for idx in fieldRange:rowMajorIter() do
       grid:setIndex(idx)
       grid:getDx(self.dxv)
 

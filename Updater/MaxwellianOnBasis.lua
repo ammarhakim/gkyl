@@ -15,7 +15,6 @@
 
 -- Gkyl libraries.
 local GaussQuadRules    = require "Lib.GaussQuadRules"
-local LinearDecomp      = require "Lib.LinearDecomp"
 local Lin               = require "Lib.Linalg"
 local Proto             = require "Proto"
 local Range             = require "Lib.Range"
@@ -204,15 +203,13 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
    end
 
    -- Construct ranges for nested loops.
-   local confRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = phaseRange:selectFirst(cDim), numSplit = self.phaseGrid:numSharedProcs() }
-   local velRange = phaseRange:selectLast(vDim)
-   local tId      = self.phaseGrid:subGridSharedId()   -- Local thread ID.
+   local confRange = phaseRange:selectFirst(cDim)
+   local velRange  = phaseRange:selectLast(vDim)
 
    if self.quadImpl == "C" then
 
       -- The configuration space loop
-      for cIdx in confRangeDecomp:rowMajorIter(tId) do
+      for cIdx in confRange:rowMajorIter() do
          nIn:fill(confIndexer(cIdx), nItr)
          uFlowIn:fill(confIndexer(cIdx), uFlowItr)
          vtSqIn:fill(confIndexer(cIdx), vtSqItr)
@@ -251,7 +248,7 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
       local ordIdx = nil
    
       -- The configuration space loop
-      for cIdx in confRangeDecomp:rowMajorIter(tId) do
+      for cIdx in confRange:rowMajorIter() do
          nIn:fill(confIndexer(cIdx), nItr)
          uFlowIn:fill(confIndexer(cIdx), uFlowItr)
          vtSqIn:fill(confIndexer(cIdx), vtSqItr)

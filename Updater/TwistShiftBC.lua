@@ -28,7 +28,6 @@ local DataStruct   = require "DataStruct"
 local EvOnNodesUpd = require "Updater.EvalOnNodes"
 local Range        = require "Lib.Range"
 local Lin          = require "Lib.Linalg"
-local LinearDecomp = require "Lib.LinearDecomp"
 local Mpi          = require "Comm.Mpi"
 local math         = require "sci.math"  -- For sign function.
 
@@ -152,17 +151,10 @@ function TwistShiftBC:_advance(tCurr, inFld, outFld)
    if self.isFirst then
       local global, globalExt, localExtRange = fldTar:globalRange(), fldTar:globalExtRange(), fldTar:localExtRange()
       self.ghostRange = localExtRange:intersect(getGhostRange(global, globalExt, 3, self.zEdge))
-      -- Decompose ghost region into threads.
-      self.ghostRangeDecomp = LinearDecomp.LinearDecompRange {
-         range      = self.ghostRange,       numSplit = self.grid:numSharedProcs(),  
-         threadComm = self:getSharedComm(),
-      }
       self.isFirst = false
    end
 
-   local tId = self.grid:subGridSharedId() -- Local thread ID.
-
-   for idxTar in self.ghostRangeDecomp:rowMajorIter(tId) do
+   for idxTar in self.ghostRange:rowMajorIter() do
 
       fldTar:fill(indexer(idxTar), fldTarItr)
       -- Zero out target cell before operation.
@@ -239,16 +231,10 @@ function TwistShiftBC:_advance3xInPlace(tCurr, inFld, outFld)
       local globalExt     = fldTar:globalExtRange()
       local localExtRange = fldTar:localExtRange()
       self.ghostRng = localExtRange:intersect(getGhostRange(global, globalExt, 3, self.zEdge))
-      -- Decompose ghost region into threads.
-      self.ghostRangeDecomp = LinearDecomp.LinearDecompRange {
-         range = self.ghostRng, numSplit = self.grid:numSharedProcs() }
-
       self.isFirst = false
    end
 
-   local tId = self.grid:subGridSharedId() -- Local thread ID.
-
-   for idxTar in self.ghostRangeDecomp:rowMajorIter(tId) do
+   for idxTar in self.ghostRng:rowMajorIter() do
 
       fldTar:fill(indexer(idxTar), fldTarItr)
       -- Zero out target cell before operation.

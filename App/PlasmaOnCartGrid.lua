@@ -10,7 +10,6 @@
 
 -- Infrastructure loads
 local Alloc            = require "Alloc"
-local AllocShared      = require "AllocShared"
 local Basis            = require "Basis"
 local DataStruct       = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
@@ -131,19 +130,13 @@ local function buildApplication(self, tbl)
    local dtPtr     = Lin.Vec(1)
 
    -- Parallel decomposition stuff.
-   local useShared  = xsys.pickBool(tbl.useShared, false)   
    local decompCuts = tbl.decompCuts
    if tbl.decompCuts then
       assert(cdim == #tbl.decompCuts, "decompCuts should have exactly " .. cdim .. " entries")
    else
-      if not useShared then
-	 -- if not specified and not using shared, construct a
-	 -- decompCuts automatically
-	 local numRanks = Mpi.Comm_size(Mpi.COMM_WORLD)
-	 decompCuts = DecompRegionCalc.makeCuts(cdim, numRanks, tbl.cells)
-      else
-	 assert(false, "Must specify decompCuts when useShared = true")
-      end
+      -- If not specified, construct a decompCuts automatically for configuration space.
+      local numRanks = Mpi.Comm_size(Mpi.COMM_WORLD)
+      decompCuts = DecompRegionCalc.makeCuts(cdim, numRanks, tbl.cells)
    end
 
    -- Extract periodic directions.
@@ -159,8 +152,7 @@ local function buildApplication(self, tbl)
 
    -- Configuration space decomp object.
    local decomp = DecompRegionCalc.CartProd {
-      cuts      = decompCuts,
-      useShared = useShared,
+      cuts = decompCuts,
    }
 
    -- Some timers.

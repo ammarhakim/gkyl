@@ -75,9 +75,6 @@ plasmaApp = Plasma.App {
    timeStepper = "rk3",           -- One of "rk2" or "rk3".
    cflFrac     = 1.0,
 
-   -- Decomposition for configuration space.
-   useShared = false,   -- If to use shared memory.
-
    -- Boundary conditions for configuration space.
    periodicDirs = {1,2,3},   -- Periodic directions.
 

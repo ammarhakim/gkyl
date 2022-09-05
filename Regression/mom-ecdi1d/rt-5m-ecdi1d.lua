@@ -185,7 +185,6 @@ momentApp = Moments.App {
    timeStepper = "fvDimSplit",
 
    decompCuts = {4}, -- cuts in each configuration direction
-   useShared = false, -- if to use shared memory
 
    periodicDirs = periodicDirs, -- periodic directions
 

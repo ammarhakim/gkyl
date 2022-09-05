@@ -58,12 +58,11 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local Lin          = require "Lib.Linalg"
-local Mpi          = require "Comm.Mpi"
-local lume         = require "Lib.lume"
-local math         = require "sci.math"  -- For sign function.
-local LinearDecomp = require "Lib.LinearDecomp"
-local root         = require "sci.root"
+local Lin  = require "Lib.Linalg"
+local Mpi  = require "Comm.Mpi"
+local lume = require "Lib.lume"
+local math = require "sci.math"  -- For sign function.
+local root = require "sci.root"
 -- The following are needed for projecting onto the basis.
 local SerendipityNodes = require "Lib.SerendipityNodes"
 local ffi              = require "ffi"
@@ -1016,11 +1015,6 @@ function _M.getDonors(grid, yShift, yShBasis)
 
    local yShIndexer, yShItr = yShift:genIndexer(), yShift:get(1)
 
-   local localRange = grid:localRange()
-   local xyRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = localRange:selectFirst(2), numSplit = grid:numSharedProcs(), threadComm = grid:commSet().sharedComm }
-   local tId = grid:subGridSharedId()   -- Local thread ID.
-
    local yShNumB    = yShift:numComponents()
    local yShBasisEv = Lin.Vec(yShNumB)
 
@@ -1033,7 +1027,8 @@ function _M.getDonors(grid, yShift, yShBasis)
       searchPoint[d] = grid:lower(d)+deltaFrac*grid:dx(d)
    end
 
-   for idx in xyRangeDecomp:rowMajorIter(tId) do
+   local xyRange = grid:localRange():selectFirst(2)
+   for idx in xyRange:rowMajorIter() do
       grid:setIndex(idx)
       
       local doCellsC = doCells[idx[1]][idx[2]]  -- Donor cells of current target cell.
@@ -1155,10 +1150,6 @@ function _M.preCalcMat(grid, yShift, doCells, tsMatVecs)
 
    local localRange = grid:localRange()
 
-   local xRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = localRange:selectFirst(1), numSplit = grid:numSharedProcs(), threadComm = grid:commSet().sharedComm }
-   local tId = grid:subGridSharedId() -- Local thread ID.
-
    local yIdxTar = 1   -- For positive(negative) yShift idx=1(last) might be better, but ideally it shouldn't matter.
    local idxTar, idxTarP, idxDoP = Lin.IntVec(2), Lin.IntVec(dim), Lin.IntVec(dim)
    idxTar[2], idxTarP[2], idxDoP[2] = yIdxTar, yIdxTar, yIdxTar
@@ -1174,7 +1165,8 @@ function _M.preCalcMat(grid, yShift, doCells, tsMatVecs)
    local dxP        = {}
    for d=1,dim do dxP[d] = 0. end  -- Re-set below.
 
-   for xIdx in xRangeDecomp:rowMajorIter(tId) do
+   local xRange = localRange:selectFirst(1) 
+   for xIdx in xRange:rowMajorIter() do
       idxTar[1], idxTarP[1] = xIdx[1], xIdx[1]
 
       grid:setIndex(idxTarP)

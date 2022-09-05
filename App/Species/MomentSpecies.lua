@@ -144,8 +144,6 @@ function MomentSpecies:fullInit(appTbl)
       }
    end
 
-   self.useShared = xsys.pickBool(appTbl.useShared, false)
-
    self.tCurr = 0.0
 
    self.limiter = tbl.limiter and tbl.limiter or "monotonized-centered"
@@ -391,9 +389,6 @@ function MomentSpecies:initDist(extField)
    for nm, pr in pairs(self.projections) do
       pr:fullInit(self)
       pr:advance(0.0, {}, {self.moments[2]})
-      -- This barrier is needed as when using MPI-SHM some
-      -- processes will get to accumulate before projection is finished.
-      Mpi.Barrier(self.grid:commSet().sharedComm)
       if nm == "init" then
          self.moments[1]:accumulate(1.0, self.moments[2])
          initCnt = initCnt + 1

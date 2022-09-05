@@ -66,7 +66,6 @@ function GyrofluidSource:createSolver(mySpecies, externalField)
    gfProj:fullInit(mySpecies)
 
    gfProj:advance(0., {externalField}, {self.momSource})
-   Mpi.Barrier(self.grid:commSet().sharedComm)
 
    if self.power then
       local intKE = DataStruct.DynVector{numComponents = 1}
@@ -105,7 +104,6 @@ end
 
 function GyrofluidSource:advance(tCurr, momIn, species, momRhsOut)
    local tm = Time.clock()
-   Mpi.Barrier(self.grid:commSet().sharedComm)
    momRhsOut:accumulate(self.timeDependence(tCurr), self.momSource)
    self.timers.accumulateSrc = self.timers.accumulateSrc + Time.clock() - tm
 end

@@ -7,21 +7,21 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local Alloc = require "Lib.Alloc"
-local Basis = require "Basis.BasisCdef"
-local DataStruct = require "DataStruct"
-local EqBase = require "Eq.EqBase"
-local Grid = require "Grid.RectCart"
-local CartField = require "DataStruct.CartField"
-local Lin = require "Lib.Linalg"
-local LinearDecomp = require "Lib.LinearDecomp"
-local Mpi = require "Comm.Mpi"
-local Proto = require "Lib.Proto"
-local Range = require "Lib.Range"
+local Alloc       = require "Lib.Alloc"
+local Basis       = require "Basis.BasisCdef"
+local DataStruct  = require "DataStruct"
+local EqBase      = require "Eq.EqBase"
+local Grid        = require "Grid.RectCart"
+local CartField   = require "DataStruct.CartField"
+local Lin         = require "Lib.Linalg"
+local Mpi         = require "Comm.Mpi"
+local Proto       = require "Lib.Proto"
+local Range       = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
-local ffi = require "ffi"
+local ffi         = require "ffi"
+local xsys        = require "xsys"
+
 local ffiC = ffi.C
-local xsys = require "xsys"
 local new, sizeof, typeof, metatype = xsys.from(ffi,
      "new, sizeof, typeof, metatype")
 

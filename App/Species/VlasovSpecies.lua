@@ -630,9 +630,6 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       local vExtForce = self.vExtForce
       self.evalVlasovExtForce:advance(tCurr, {}, {vExtForce})
 
-      -- Need to barrier over the shared communicator before accumulating force onto electric field.
-      Mpi.Barrier(self.grid:commSet().sharedComm)
-
       -- Analogous to the current, the external force only gets accumulated onto the electric field.
       local vItr, eItr   = vExtForce:get(1), totalEmField:get(1)
       local vIdxr, eIdxr = vExtForce:genIndexer(), totalEmField:genIndexer()

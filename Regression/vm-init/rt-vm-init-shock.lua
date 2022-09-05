@@ -46,7 +46,6 @@ plasmaApp = Plasma.App {
 
    -- decomposition for configuration space
    decompCuts = {1}, -- cuts in each configuration direction
-   useShared = false, -- if to use shared memory
 
    neutNoFix = Plasma.Species {
       charge = 1.0, mass = 1.0,

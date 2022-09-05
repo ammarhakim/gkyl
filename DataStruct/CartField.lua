@@ -15,7 +15,6 @@ local new, sizeof, typeof, metatype = xsys.from(ffi,
 -- Gkyl libraries.
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Alloc            = require "Lib.Alloc"
-local AllocShared      = require "Lib.AllocShared"
 local CartDecompNeigh  = require "Lib.CartDecompNeigh"
 local Grid             = require "Grid.RectCart"
 local Lin              = require "Lib.Linalg"
@@ -101,14 +100,6 @@ local function field_check_range(y, x)
    return y:localRange() == x:localRange()
 end
 
--- Return local start and num times to bump.
-local function getStartAndBump(self, decomp)
-   if self._layout == colMajLayout then
-      return decomp:colStartIndex(self._shmIndex), decomp:shape(self._shmIndex)
-   end
-   return decomp:rowStartIndex(self._shmIndex), decomp:shape(self._shmIndex)
-end
-
 -- Turn numbers in a table into strings and concatenate them.
 local tblToStr = function(tblIn)
    local strOut = ""
@@ -174,18 +165,13 @@ local function Field_meta_ctor(elct)
       elctCommType = Mpi.BYTE -- by default, send stuff as byte array
    end
 
-   -- functions for regular, shared and device memory allocations
+   -- functions for regular and device memory allocations
    local allocFunc = Alloc.Alloc_meta_ctor(elct)
-   local allocSharedFunc = AllocShared.AllocShared_meta_ctor(elct)
    local allocCudaFunc = cuAlloc.Alloc_meta_ctor(elct, false) -- don't used managed memory
    
-   -- allocator for use in non-shared applications
+   -- allocator for use in applications
    local function allocatorFunc(comm, numElem)
       return allocFunc(numElem)
-   end
-   -- allocator for use in shared applications
-   local function sharedAllocatorFunc(comm, numElem)
-      return allocSharedFunc(comm, numElem)
    end
    -- allocator for use in memory on device
    local function deviceAllocatorFunc(comm, numElem)
@@ -219,12 +205,10 @@ local function Field_meta_ctor(elct)
       local globalRange = grid:globalRange()
       local localRange  = grid:localRange()
 
-      -- Various communicators for use in shared allocator.
       local nodeComm = grid:commSet().nodeComm
-      local shmComm  = grid:commSet().sharedComm
 
       -- Allocator function.
-      local allocator = grid:isShared() and sharedAllocatorFunc or allocatorFunc
+      local allocator = allocatorFunc
       
       local sz = localRange:extend(ghost[1], ghost[2]):volume()*nc -- Amount of data in field.
       -- Setup object.
@@ -258,8 +242,7 @@ local function Field_meta_ctor(elct)
 	 self._lowerGhost, self._upperGhost)
       
       self._localRange = localRange
-      self._localExtRange = self._localRange:extend(
-	 self._lowerGhost, self._upperGhost)
+      self._localExtRange = self._localRange:extend(self._lowerGhost, self._upperGhost)
 
       -- re-initialize localRange and globalRange as sub-ranges of localExtRange and globalExtRange
       self._localRange = self._localExtRange:subRange(localRange:lowerAsVec(), localRange:upperAsVec())
@@ -305,21 +288,9 @@ local function Field_meta_ctor(elct)
          self._layout = tbl.layout=="row-major" and rowMajLayout or colMajLayout
       end
 
-      self._shmIndex = Mpi.Comm_rank(shmComm)+1 -- Our local index on SHM comm (one more than rank).
-
-      -- Construct linear decomposition of various ranges.
-      self._localRangeDecomp = LinearDecomp.LinearDecompRange {
-         range    = self._localRange,
-         numSplit = Mpi.Comm_size(shmComm)
-      }
-      self._localExtRangeDecomp = LinearDecomp.LinearDecompRange {
-         range    = self._localExtRange,
-         numSplit = Mpi.Comm_size(shmComm)
-      }
-
-      -- Store start index and size handled by local SHM-rank for local and extended range.
-      self._localStartIdx, self._localNumBump       = getStartAndBump(self, self._localRangeDecomp)
-      self._localExtStartIdx, self._localExtNumBump = getStartAndBump(self, self._localExtRangeDecomp)
+      -- Store start index and size handled by local rank for local and extended range.
+      self._localStartIdx, self._localNumBump       = self._localRange:lowerAsVec(), self._localRange:volume()
+      self._localExtStartIdx, self._localExtNumBump = self._localExtRange:lowerAsVec(), self._localExtRange:volume()
 
       -- Compute communication neighbors.
       self._decompNeigh = CartDecompNeigh(grid:decomposedRange())
@@ -371,8 +342,7 @@ local function Field_meta_ctor(elct)
       self._sendUpperPerMPILoc, self._recvUpperPerMPILoc = {}, {}
 
       -- Create buffers for periodic copy if Mpi.Comm_size(nodeComm) = 1.
-      -- Note that since nodeComm is only valid on shmComm = 0, need to check whether this is a valid comm.
-      if Mpi.Comm_size(shmComm) == 1 and Mpi.Comm_size(nodeComm) == 1 then
+      if Mpi.Comm_size(nodeComm) == 1 then
          self._lowerPeriodicBuff, self._upperPeriodicBuff = {}, {}
       end
 
@@ -392,7 +362,7 @@ local function Field_meta_ctor(elct)
                -- memory needed for periodic boundary conditions and we do not need MPI Datatypes.
                if myId == loId then
                   local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
-                  if Mpi.Comm_size(shmComm) == 1 and Mpi.Comm_size(nodeComm) == 1 then
+                  if Mpi.Comm_size(nodeComm) == 1 then
                      local szSend = rgnSend:volume()*self._numComponents
                      self._lowerPeriodicBuff[dir] = ZeroArray.Array(ZeroArray.double, self._numComponents, rgnSend:volume(), self.useDevice)
                   end
@@ -411,7 +381,7 @@ local function Field_meta_ctor(elct)
                end
                if myId == upId then
                   local rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
-                  if Mpi.Comm_size(shmComm) == 1 and Mpi.Comm_size(nodeComm) == 1 then
+                  if Mpi.Comm_size(nodeComm) == 1 then
                      local szSend = rgnSend:volume()*self._numComponents
                      self._upperPeriodicBuff[dir] = ZeroArray.Array(ZeroArray.double, self._numComponents, rgnSend:volume(), self.useDevice)
                   end
@@ -638,10 +608,10 @@ local function Field_meta_ctor(elct)
 	 fc._cdata = self._data+loc
       end,
       _localLower = function (self)
-	 return (self._localExtRangeDecomp:lower(self._shmIndex)-1)*self:numComponents()
+	 return 0
       end,
       _localShape = function (self)
-	 return self._localExtRangeDecomp:shape(self._shmIndex)*self:numComponents()
+	 return self._localExtRange:volume()*self:numComponents()
       end,
       _assign = function(self, fact, fld)
          self._zeroForOps:set(fact, fld._zeroForOps)
@@ -851,34 +821,19 @@ local function Field_meta_ctor(elct)
       end,
       sync = function (self, syncPeriodicDirs_)
          local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
-	 -- this barrier is needed as when using MPI-SHM some
-	 -- processors will get to the sync method before others
-         -- this is especially troublesome in the RK combine step
-	 Mpi.Barrier(self._grid:commSet().sharedComm)
 	 self._field_sync(self, self._zeroForOps:data())
 	 if self._syncPeriodicDirs and syncPeriodicDirs then
 	    self._field_periodic_sync(self, self._zeroForOps:data())
 	 end
-	 -- this barrier is needed as when using MPI-SHM some
-	 -- processors will not participate in sync()
-	 Mpi.Barrier(self._grid:commSet().sharedComm)
       end,
       -- This method is an alternative function for applying periodic boundary
       -- conditions when Mpi.Comm_size(nodeComm) = 1 and we do not need to call
       -- Send/Recv to copy the skin cell data into ghost cells.
       periodicCopy = function (self, syncPeriodicDirs_)
          local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
-	 -- this barrier is needed as when using MPI-SHM some
-	 -- processors could apply periodic boundary conditions before others
-         -- this is especially troublesome in the RK combine step
-	 Mpi.Barrier(self._grid:commSet().sharedComm)
 	 if self._syncPeriodicDirs and syncPeriodicDirs then
             self._field_periodic_copy(self)
 	 end
-	 -- This barrier is needed as when using MPI-SHM some
-	 -- processors will not participate in applying periodic
-         -- boundary conditions
-	 Mpi.Barrier(self._grid:commSet().sharedComm)
       end,
       setBasisId = function(self, basisId)
          self._basisId = basisId

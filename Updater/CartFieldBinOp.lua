@@ -11,13 +11,13 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local BinOpDecl    = require "Updater.binOpCalcData.CartFieldBinOpModDecl"
-local Lin          = require "Lib.Linalg"
-local LinearDecomp = require "Lib.LinearDecomp"
-local Proto        = require "Lib.Proto"
-local UpdaterBase  = require "Updater.Base"
-local xsys         = require "xsys"
-local ffi = require "ffi"
+local BinOpDecl   = require "Updater.binOpCalcData.CartFieldBinOpModDecl"
+local Lin         = require "Lib.Linalg"
+local Proto       = require "Lib.Proto"
+local UpdaterBase = require "Updater.Base"
+local xsys        = require "xsys"
+local ffi         = require "ffi"
+
 local ffiC = ffi.C
 require "Lib.ZeroUtil"
 
@@ -230,14 +230,7 @@ function CartFieldBinOp:_advance(tCurr, inFld, outFld)
 
    -- Either the localRange is the same for Bfld and Afld,
    -- or just use the range of the phase space field,
-   local localBRangeDecomp
-   if self.onGhosts then
-      localBRangeDecomp = LinearDecomp.LinearDecompRange {
-	 range = Bfld:localExtRange(), numSplit = grid:numSharedProcs() }
-   else
-      localBRangeDecomp = LinearDecomp.LinearDecompRange {
-	 range = Bfld:localRange(), numSplit = grid:numSharedProcs() }
-   end
+   local localBRange = self.onGhosts and Bfld:localExtRange() or Bfld:localRange()
 
    local AfldIndexer = Afld:genIndexer()
    local BfldIndexer = Bfld:genIndexer()
@@ -259,9 +252,8 @@ function CartFieldBinOp:_advance(tCurr, inFld, outFld)
    -- a conf space function (scalar?) with a phase space function.
    self._BinOpCalc = (Afld:ndim() == Bfld:ndim()) and self._BinOpCalcS or self._BinOpCalcD
 
-   local tId = grid:subGridSharedId() -- Local thread ID.
    -- Loop, computing binOp in each cell.
-   for idx in localBRangeDecomp:rowMajorIter(tId) do
+   for idx in localBRange:rowMajorIter() do
       grid:setIndex(idx)
 
       Afld:fill(AfldIndexer(idx), AfldItr)

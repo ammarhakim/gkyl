@@ -13,7 +13,6 @@ local CartDecomp     = require "Lib.CartDecomp"
 local DataStruct     = require "DataStruct"
 local Grid           = require "Grid"
 local Lin            = require "Lib.Linalg"
-local LinearDecomp   = require "Lib.LinearDecomp"
 local Mpi            = require "Comm.Mpi"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local Proto          = require "Lib.Proto"
@@ -183,8 +182,8 @@ function Bc:init(tbl)
          self.writeRank = writeRank
          
          local reducedDecomp = CartDecomp.CartProd {
-            comm      = self._splitComm,  cuts      = reducedCuts,
-            writeRank = writeRank,        useShared = self._grid:isShared(),
+            comm      = self._splitComm,  cuts = reducedCuts,
+            writeRank = writeRank,
          }
          self._boundaryGrid = Grid.RectCart {
             lower = reducedLower,  cells = reducedNumCells,
@@ -213,7 +212,7 @@ function Bc:init(tbl)
             end
             local reducedDecomp = CartDecomp.CartProd {
                comm      = self._splitComm,  cuts      = reducedCuts,
-               writeRank = self.writeRank,   useShared = self._grid:isShared(),
+               writeRank = self.writeRank,
             }
             self._confBoundaryGrid = Grid.RectCart {
                lower = reducedLower,  cells = reducedNumCells,
@@ -250,10 +249,7 @@ function Bc:initFldTools(inFld, outFld)
    local global     = qOut:globalRange()
    local globalExt  = qOut:globalExtRange()
    local localExt   = qOut:localExtRange()
-   local ghostRange = localExt:intersect(self:getGhostRange(global, globalExt))   -- Range spanning ghost cells.
-   -- Decompose ghost region into threads.
-   tools.ghostRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = ghostRange, numSplit = grid:numSharedProcs() }
+   tools.ghostRange = localExt:intersect(self:getGhostRange(global, globalExt))   -- Range spanning ghost cells.
 
    -- Get the in and out indexers. 
    tools.indexerOut, tools.indexerIn = qOut:genIndexer(), qOut:genIndexer()
@@ -293,10 +289,8 @@ function Bc:initFldTools(inFld, outFld)
          local vDim       = pDim - cDim
          local phaseRange, phaseIndexer = distf:localRange(), distf:genIndexer()
          -- Construct ranges for nested loops.
-         local confSkinRange = self._edge == "lower"
+         tools.confSkinRange = self._edge == "lower"
             and phaseRange:selectFirst(cDim):lowerSkin(self._dir,1) or phaseRange:selectFirst(cDim):upperSkin(self._dir,1)
-         tools.confSkinRangeDecomp = LinearDecomp.LinearDecompRange {
-            range = confSkinRange, numSplit = grid:numSharedProcs() }
          tools.velRange = phaseRange:selectLast(vDim)
          tools.velRange = tools.velRange:extendDir(self._dir,self.partialMomDirExts[1],self.partialMomDirExts[2])
          tools.phaseIndexer = distf:genIndexer()
@@ -319,8 +313,7 @@ function Bc:_advanceBasic(tCurr, inFld, outFld)
    -- Get the in and out pointers.
    local ptrOut, ptrIn = qOut:get(1), qOut:get(1)
 
-   local tId = grid:subGridSharedId() -- Local thread ID.
-   for idxOut in self.fldTools.ghostRangeDecomp:rowMajorIter(tId) do 
+   for idxOut in self.fldTools.ghostRange:rowMajorIter() do 
       qOut:fill(self.fldTools.indexerOut(idxOut), ptrOut)
 
       -- Copy out index into in index
@@ -355,8 +348,7 @@ function Bc:_advanceBCFunc(tCurr, inFld, outFld)
    -- Get the in and out pointers
    local ptrOut, ptrIn = qOut:get(1), self.fldTools.ghostFld:get(1)
 
-   local tId = grid:subGridSharedId() -- Local thread ID.
-   for idxOut in self.fldTools.ghostRangeDecomp:rowMajorIter(tId) do 
+   for idxOut in self.fldTools.ghostRange:rowMajorIter() do 
       qOut:fill(self.fldTools.indexerOut(idxOut), ptrOut)
 
       -- Copy out index into in index
@@ -392,9 +384,8 @@ function Bc:_advanceFeedback(tCurr, inFld, outFld)
    local cDim = 1
    local vDim = self._grid:ndim() - cDim
    local edgeM0, edgeM1, edgeM2 = 0.0, 0.0, 0.0
-   local tId = grid:subGridSharedId()    -- Local thread ID.
    -- Outer loop is threaded and over configuration space.
-   for cIdx in self.fldTools.confSkinRangeDecomp:rowMajorIter(tId) do
+   for cIdx in self.fldTools.confSkinRange:rowMajorIter() do
       cIdx:copyInto(self.idxP)
       for k = 1, self.numConfBasis do
          self.mom0[k], self.pMom1[k], self.mom2[k] = 0.0, 0.0, 0.0
@@ -431,8 +422,7 @@ function Bc:_advanceFeedback(tCurr, inFld, outFld)
    -- Get the in and out pointers
    local ptrOut, ptrIn = qOut:get(1), self.fldTools.ghostFld:get(1)
 
-   local tId = self._grid:subGridSharedId() -- Local thread ID.
-   for idxOut in self.fldTools.ghostRangeDecomp:rowMajorIter(tId) do 
+   for idxOut in self.fldTools.ghostRange:rowMajorIter() do 
       qOut:fill(self.fldTools.indexerOut(idxOut), ptrOut)
 
       -- Copy out index into in index
@@ -464,8 +454,7 @@ function Bc:storeBoundaryFlux(tCurr, rkIdx, qOut)
    local ptrOut = qOut:get(1) -- Get pointers to (re)use inside inner loop.
    local indexer = qOut:genIndexer()
 
-   local tId = self._grid:subGridSharedId() -- Local thread ID.
-   for idxOut in self.fldTools.ghostRangeDecomp:rowMajorIter(tId) do
+   for idxOut in self.fldTools.ghostRange:rowMajorIter() do
       idxOut:copyInto(self._idxIn)
 
       qOut:fill(indexer(idxOut), ptrOut) 
@@ -480,7 +469,7 @@ function Bc:storeBoundaryFlux(tCurr, rkIdx, qOut)
 end
 
 function Bc:evalOnConfBoundary(inFld)
-   if self._confGhostRangeDecomp==nil then
+   if self._confGhostRange==nil then
       self._confBoundaryField    = createFieldFromField(self._confBoundaryGrid, inFld, {1,1})
       self._confBoundaryFieldPtr = self._confBoundaryField:get(1)
       self._confBoundaryIdxr     = self._confBoundaryField:genIndexer()
@@ -490,16 +479,12 @@ function Bc:evalOnConfBoundary(inFld)
       local confLocalExtRange = inFld:localExtRange()
       self._confGhostRange    = confLocalExtRange:intersect(
          self:getGhostRange(confGlobal, confGlobalExt) ) -- Range spanning ghost cells.
-      -- Decompose ghost region into threads.
-      self._confGhostRangeDecomp = self._confGhostRangeDecomp or LinearDecomp.LinearDecompRange {
-         range = self._confGhostRange, numSplit = self._grid:numSharedProcs() }
    end
 
    local inFldPtr = inFld:get(1)
    local indexer = inFld:genIndexer()
 
-   local tId = self._grid:subGridSharedId() -- Local thread ID.
-   for idxIn in self._confGhostRangeDecomp:rowMajorIter(tId) do
+   for idxIn in self._confGhostRange:rowMajorIter() do
       idxIn:copyInto(self._idxOut)
       self._idxOut[self._dir] = 1
       

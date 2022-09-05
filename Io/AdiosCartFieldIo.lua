@@ -309,8 +309,7 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
       break
    end
 
-   local comm    = Mpi.getComm(field:grid():commSet().nodeComm)
-   local shmComm = Mpi.getComm(field:grid():commSet().sharedComm)
+   local comm = Mpi.getComm(field:grid():commSet().nodeComm)
    -- (the extra getComm() is needed as Lua has no concept of
    -- pointers and hence we don't know before hand if nodeComm is a
    -- pointer or an object)
@@ -452,9 +451,6 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
 	 end
       end
    end
-   -- If running with shared memory, need to broadcast time stamp and frame number.
-   Mpi.Bcast(tmStampBuff, 1, Mpi.DOUBLE, 0, shmComm)
-   Mpi.Bcast(frNumBuff, 1, Mpi.INT, 0, shmComm)
 
    return tmStampBuff[0], frNumBuff[0]
 end

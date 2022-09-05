@@ -10,13 +10,13 @@
 local xsys = require "xsys"
 
 -- Gkyl libraries.
-local Grid           = require "Grid"
-local Lin            = require "Lib.Linalg"
-local LinearDecomp   = require "Lib.LinearDecomp"
-local Proto          = require "Lib.Proto"
-local Range          = require "Lib.Range"
-local UpdaterBase    = require "Updater.Base"
-local ffi = require "ffi"
+local Grid        = require "Grid"
+local Lin         = require "Lib.Linalg"
+local Proto       = require "Lib.Proto"
+local Range       = require "Lib.Range"
+local UpdaterBase = require "Updater.Base"
+local ffi         = require "ffi"
+
 local ffiC = ffi.C
 require "Lib.ZeroUtil"
 
@@ -156,10 +156,7 @@ function BasicBc:initFldTools(inFld, outFld)
    local global     = qOut:globalRange()
    local globalExt  = qOut:globalExtRange()
    local localExt   = qOut:localExtRange()
-   local ghostRange = localExt:intersect(self:getGhostRange(global, globalExt))   -- Range spanning ghost cells.
-   -- Decompose ghost region into threads.
-   tools.ghostRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = ghostRange, numSplit = grid:numSharedProcs() }
+   tools.ghostRange = localExt:intersect(self:getGhostRange(global, globalExt))   -- Range spanning ghost cells.
 
    -- Get the in and out indexers. 
    tools.indexerOut, tools.indexerIn = qOut:genIndexer(), qOut:genIndexer()
@@ -182,8 +179,7 @@ function BasicBc:_advanceBasic(tCurr, inFld, outFld)
    -- Get the in and out pointers.
    local ptrOut, ptrIn = qOut:get(1), qOut:get(1)
 
-   local tId = grid:subGridSharedId() -- Local thread ID.
-   for idxOut in self.fldTools.ghostRangeDecomp:rowMajorIter(tId) do 
+   for idxOut in self.fldTools.ghostRange:rowMajorIter() do 
       qOut:fill(self.fldTools.indexerOut(idxOut), ptrOut)
 
       -- Copy out index into in index

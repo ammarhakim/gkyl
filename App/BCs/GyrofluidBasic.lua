@@ -15,8 +15,6 @@ local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
 local Range          = require "Lib.Range"
 local Lin            = require "Lib.Linalg"
-local LinearDecomp   = require "Lib.LinearDecomp"
-local CartDecomp     = require "Lib.CartDecomp"
 local Grid           = require "Grid"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local GyrofluidDiags = require "App.Diagnostics.GyrofluidDiagnostics"
@@ -248,13 +246,10 @@ function GyrofluidBasicBC:createSolver(mySpecies, field, externalField)
       -- Create the range needed to loop over ghosts.
       local global, globalExt, localExtRange = moms:globalRange(), moms:globalExtRange(), moms:localExtRange()
       self.ghostRng = localExtRange:intersect(self:getGhostRange(global, globalExt))
-      -- Decompose ghost region into threads.
-      self.ghostRangeDecomp = LinearDecomp.LinearDecompRange{range=self.ghostRng, numSplit=self.grid:numSharedProcs()}
-      self.tId              = self.grid:subGridSharedId() -- Local thread ID.
 
       self.storeBoundaryFluxFunc = function(tCurr, rkIdx, qOut)
          local ptrOut = qOut:get(1)
-         for idx in self.ghostRangeDecomp:rowMajorIter(self.tId) do
+         for idx in self.ghostRng:rowMajorIter() do
             idx:copyInto(self.idxOut)
             qOut:fill(self.momInIdxr(idx), ptrOut)
 

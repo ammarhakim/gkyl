@@ -7,13 +7,12 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local UpdaterBase = require "Updater.Base"
-local LinearDecomp = require "Lib.LinearDecomp"
-local Proto = require "Lib.Proto"
+local UpdaterBase        = require "Updater.Base"
+local Proto              = require "Lib.Proto"
 local ProjectFluxModDecl = require "Updater.projectFluxOnGhostsData.ProjectFluxModDecl"
-local xsys = require "xsys"
-local Lin = require "Lib.Linalg"
-local Time = require "Lib.Time"
+local xsys               = require "xsys"
+local Lin                = require "Lib.Linalg"
+local Time               = require "Lib.Time"
 
 -- Project flux onto ghosts updater object.
 local ProjectFluxFunc = Proto(UpdaterBase)
@@ -75,15 +74,13 @@ function ProjectFluxFunc:_advance(tCurr, inFld, outFld)
    local fInItr, fHatItr = fIn:get(1), fHat:get(1)
 
    -- Construct ranges for nested loops.
-   local confRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = phaseRange:selectFirst(cDim), numSplit = grid:numSharedProcs() }
-   local velRange = phaseRange:selectLast(vDim)
-   local tId      = grid:subGridSharedId()    -- Local thread ID.
+   local confRange = phaseRange:selectFirst(cDim)
+   local velRange  = phaseRange:selectLast(vDim)
 
    local phaseIndexer = fIn:genIndexer()
 
    -- Outer loop is threaded and over configuration space.
-   for cIdx in confRangeDecomp:rowMajorIter(tId) do
+   for cIdx in confRange:rowMajorIter() do
       
       cIdx:copyInto(self.idxP)
    

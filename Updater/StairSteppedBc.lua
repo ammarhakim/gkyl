@@ -4,7 +4,6 @@
 local Proto = require "Lib.Proto"
 local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
-local LinearDecomp = require "Lib.LinearDecomp"
 
 local isGhost = function(inOutPtr) return inOutPtr[1] < 0 end
 
@@ -23,12 +22,7 @@ function StairSteppedBc:init(tbl)
                        pfx .. "Must specify mask field with 'inOut'.")
 
    local localRange = self.grid:localRange()
-   local localPerpRange = localRange:shorten(self.dir)
-   self.perpRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = localPerpRange,
-      numSplit = self.grid:numSharedProcs(),
-      threadComm = self:getSharedComm()
-   }
+   self.perpRange = localRange:shorten(self.dir)
 end
 
 function StairSteppedBc:_advance(tCurr, inFld, outFld)
@@ -54,8 +48,7 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
    local xcGhost = Lin.Vec(grid:ndim())
 
    -- Loop over directions perpendicular to 'dir'.
-   local tId = grid:subGridSharedId()
-   for idx in self.perpRangeDecomp:colMajorIter(tId) do
+   for idx in self.perpRange:colMajorIter() do
       idx:copyInto(idxL)
       idx:copyInto(idxR)
 

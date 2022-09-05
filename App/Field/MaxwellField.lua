@@ -228,13 +228,9 @@ function MaxwellField:esEnergy(tCurr, fldIn, outDynV)
    -- Clear local values.
    for d = 1, dim do self.localEnergy[d] = 0.0 end
 
-   -- Construct range for shared memory.
    local phiRange = phiIn:localRange()
-   local phiRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = phiRange:selectFirst(dim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId()    -- Local thread ID.
 
-   for idx in phiRangeDecomp:rowMajorIter(tId) do
+   for idx in phiRange:rowMajorIter() do
       grid:setIndex(idx)
       grid:getDx(self.dxBuf)
 
@@ -692,9 +688,6 @@ end
 
 function MaxwellField:accumulateCurrent(current, emRhs)
    if current == nil then return end
-
-   -- Barrier before doing accumulating current.
-   Mpi.Barrier(self.grid:commSet().sharedComm)
 
    local tmStart = Time.clock()
 
