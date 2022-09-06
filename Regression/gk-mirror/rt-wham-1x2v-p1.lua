@@ -417,8 +417,8 @@ plasmaApp = Plasma.App {
          diagnostics = {"twoFiles","M0","intM0","intM2"},
       },
       diagnostics = {"twoFiles","M0", "Upar", "Temp", "Tperp", "Tpar", "intM0", "intM1", "intM2", "intKE", "intEnergy"},
-      bcx = {Plasma.SheathBC{diagnostics = {"twoFiles","M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}},
-             Plasma.SheathBC{diagnostics = {"twoFiles","M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}}},
+      bcx = {Plasma.SheathBC{diagnostics = {"twoFiles","M0","M1","M2","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics = {"twoFiles","M0","M1","M2","Energy","intM0","intM1","intKE","intEnergy"}}},
       polarizationDensityFactor = n0,
       evolve = true, -- Evolve species?
       randomseed = randomseed,
@@ -478,8 +478,8 @@ plasmaApp = Plasma.App {
          diagnostics = {"twoFiles","M0","intM0","intM2"},
       },
       diagnostics = {"twoFiles","M0", "Upar", "Temp", "Tperp", "Tpar", "intM0", "intM1", "intM2", "intKE", "intEnergy"},
-      bcx = {Plasma.SheathBC{diagnostics = {"twoFiles","M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}},
-             Plasma.SheathBC{diagnostics = {"twoFiles","M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}}},
+      bcx = {Plasma.SheathBC{diagnostics = {"twoFiles","M0","M1","M2","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics = {"twoFiles","M0","M1","M2","Energy","intM0","intM1","intKE","intEnergy"}}},
       polarizationDensityFactor = n0,
       evolve = true, -- Evolve species?
       randomseed = randomseed,

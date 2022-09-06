@@ -188,7 +188,6 @@ local range_mt = {
 	    r._lower[dir-1], r._upper[dir-1] = self:lower(dir)-lExt, self:upper(dir)+uExt
 	 end
          ffiC.gkyl_range_init(r, r._ndim, r._lower, r._upper)
-	 --self = r:subRange(self:lowerAsVec(), self:upperAsVec())
 	 return r
       end,
       extendDir = function (self, extDir, lExt, uExt)
@@ -199,7 +198,6 @@ local range_mt = {
 	 end
 	 r._lower[extDir-1], r._upper[extDir-1] = self:lower(extDir)-lExt, self:upper(extDir)+uExt
          ffiC.gkyl_range_init(r, r._ndim, r._lower, r._upper)
-	 --self = r:subRange(self:lowerAsVec(), self:upperAsVec())
 	 return r
       end,
       extendDirs = function (self, dirList, lExt, uExt)
@@ -213,7 +211,6 @@ local range_mt = {
 	    r._lower[extDir-1], r._upper[extDir-1] = self:lower(extDir)-lExt, self:upper(extDir)+uExt
 	 end
          ffiC.gkyl_range_init(r, r._ndim, r._lower, r._upper)
-	 --self = r:subRange(self:lowerAsVec(), self:upperAsVec())
 	 return r
       end,
       subRange = function(self, sublower, subupper)

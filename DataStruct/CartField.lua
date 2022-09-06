@@ -237,15 +237,12 @@ local function Field_meta_ctor(elct)
          self._zeroForOps = self._zero
       end
 
-      self._globalRange = globalRange
-      self._globalExtRange = self._globalRange:extend(
-	 self._lowerGhost, self._upperGhost)
-      
-      self._localRange = localRange
-      self._localExtRange = self._localRange:extend(self._lowerGhost, self._upperGhost)
+      -- Extended ranges include ghost cells.
+      self._globalExtRange = globalRange:extend(self._lowerGhost, self._upperGhost)
+      self._localExtRange  = localRange:extend(self._lowerGhost, self._upperGhost)
 
       -- re-initialize localRange and globalRange as sub-ranges of localExtRange and globalExtRange
-      self._localRange = self._localExtRange:subRange(localRange:lowerAsVec(), localRange:upperAsVec())
+      self._localRange  = self._localExtRange:subRange(localRange:lowerAsVec(), localRange:upperAsVec())
       self._globalRange = self._globalExtRange:subRange(globalRange:lowerAsVec(), globalRange:upperAsVec())
 
       self._skinRgnUpper = RangeVec(self._ndim)

@@ -217,7 +217,7 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
          }
          self.confWeakDivide = Updater.CartFieldBinOp {
             weakBasis = self.confBasis,  operation = "Divide",
-            onRange   = self.confBoundaryField:localExtRange(),  onGhosts = true,
+            onRange   = self.confBoundaryField:localRange(),  onGhosts = false,
          }
          self.confWeakDotProduct = Updater.CartFieldBinOp {
             weakBasis = self.confBasis,  operation = "DotProduct",

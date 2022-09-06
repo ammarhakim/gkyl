@@ -426,8 +426,8 @@ plasmaApp = Plasma.App {
       evolve = true, -- Evolve species?
       diagnostics = {"twoFiles","M0", "Upar", "Temp", "Tperp", "Tpar", "intM0", "intM1", "intM2", "intKE", "intEnergy" },
       randomseed = randomseed,
-      bcx = {Plasma.SheathBC{diagnostics={"twoFiles","M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}},
-             Plasma.SheathBC{diagnostics={"twoFiles","M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}}},
+      bcx = {Plasma.SheathBC{diagnostics={"twoFiles","M0","M1","M2","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics={"twoFiles","M0","M1","M2","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Field solver.

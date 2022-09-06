@@ -364,11 +364,11 @@ function KineticSpecies:createSolver(field, externalField)
    local dummyConfField = self:allocMoment()
    self.confWeakDivide = Updater.CartFieldBinOp {
       weakBasis = self.confBasis,  operation = "Divide",
-      onRange   = dummyConfField:localExtRange(),  onGhosts = true,
+      onRange   = dummyConfField:localRange(),  onGhosts = false,
    }
    self.confWeakDotProduct = Updater.CartFieldBinOp {
       weakBasis = self.confBasis,  operation = "DotProduct",
-      onGhosts = true,
+      onGhosts  = true,
    }
    self.confPhaseWeakMultiply = Updater.CartFieldBinOp {
       weakBasis  = self.basis,  operation = "Multiply",

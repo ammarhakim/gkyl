@@ -156,8 +156,8 @@ plasmaApp = Plasma.App {
       diagnostics = {"M0", "Upar", "Temp", "Beta", "intM0", "intM1", "intEnergy",}, 
       randomseed = randomseed,
       bcx = {Plasma.ZeroFluxBC{}, Plasma.ZeroFluxBC{}},
-      bcz = {Plasma.SheathBC{diagnostics={"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}},
-             Plasma.SheathBC{diagnostics={"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}}},
+      bcz = {Plasma.SheathBC{diagnostics={"M0","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics={"M0","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Gyrokinetic ions
@@ -209,8 +209,8 @@ plasmaApp = Plasma.App {
       randomseed = randomseed,
       bcx = {Plasma.ZeroFluxBC{},
              Plasma.ZeroFluxBC{}},
-      bcz = {Plasma.SheathBC{diagnostics={"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}},
-             Plasma.SheathBC{diagnostics={"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}}},
+      bcz = {Plasma.SheathBC{diagnostics={"M0","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics={"M0","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Field solver.
