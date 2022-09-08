@@ -63,6 +63,20 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
   int c_rop, const struct gkyl_array* rop, struct gkyl_range *range);
 
 /**
+ * Same as gkyl_dg_dot_product_op, except operator is applied only on
+ * specified range (sub-range of range containing the DG fields).
+ *
+ * @param basis Basis functions used in expansions.
+ * @param out Output DG scalar field.
+ * @param lop Left operand DG vector field.
+ * @param rop Right operand DG vector field.
+ * @param range Range to apply dot product operator.
+ */
+void gkyl_dg_dot_product_op_range(struct gkyl_basis basis,
+  struct gkyl_array* out, const struct gkyl_array* lop,
+  const struct gkyl_array* rop, struct gkyl_range *range);
+
+/**
  * Compute pout = cop*pop on specified range (sub-range of range
  * containing the DG fields), where pout and pop are phase-space
  * operands, and cop is a conf-space operand.
@@ -125,51 +139,44 @@ function CartFieldBinOp:init(tbl)
 
    local weakBasis, fieldBasis = self._weakBasis, self._fieldBasis
 
-   -- Positivity option disabled for now. Need to investigate bugs in kernels.
-   local applyPositivity = false -- xsys.pickBool(tbl.positivity,false)   -- Positivity preserving option.
-
-   -- Dimension of spaces.
-   self._wDim = weakBasis:ndim()
    if fieldBasis then
-     -- Dealing with phase space simulation.
-     -- Ensure sanity.
-     assert(weakBasis:polyOrder() == fieldBasis:polyOrder(),
-            "Polynomial orders of weak and field basis must match.")
-     assert((weakBasis:id() == fieldBasis:id()) or
-            ((weakBasis:id()=="hybrid" or weakBasis:id()=="gkhybrid") and fieldBasis:id()=="serendipity"),
-            "Type of weak and field basis must match.")
-     -- Determine configuration and velocity space dims.
-     self._cDim = fieldBasis:ndim()
-     self._vDim = self._wDim - self._cDim
-   else
-     self._cDim = self._wDim
+      -- Dealing with phase space simulation.
+      -- Ensure sanity.
+      assert(weakBasis:polyOrder() == fieldBasis:polyOrder(),
+             "Polynomial orders of weak and field basis must match.")
+      assert((weakBasis:id() == fieldBasis:id()) or
+             ((weakBasis:id()=="hybrid" or weakBasis:id()=="gkhybrid") and fieldBasis:id()=="serendipity"),
+             "Type of weak and field basis must match.")
    end
 
    -- Number of basis functions. Used to compute number of vector components.
    self._numBasis = weakBasis:numBasis()
 
-   local id, polyOrder = weakBasis:id(), weakBasis:polyOrder()
+   local id = weakBasis:id()
    if (id=="hybrid" or id=="gkhybrid") then id="serendipity" end
 
-   -- Function to compute specified operation.
-   if isOpNameGood(op) then
-      self._BinOpCalcS = BinOpDecl.selectBinOpCalcS(op, id, self._cDim, self._vDim, polyOrder, applyPositivity)
-      if fieldBasis then self._BinOpCalcD = BinOpDecl.selectBinOpCalcD(op, id, self._cDim, self._vDim, polyOrder) end
-   else
-      assert(false, string.format(
-		"CartFieldBinOp: Operation must be one of Multiply, Divide, DotProduct. Requested %s instead.", op))
-   end
+   assert(isOpNameGood(op), string.format(
+          "CartFieldBinOp: Operation must be one of Multiply, Divide, DotProduct. Requested %s instead.", op))
 
-   -- Create struct containing allocated binOp arrays.
-   if fieldBasis then 
-      self._binOpData = ffiC.new_binOpData_t(fieldBasis:numBasis(), self._numBasis) 
-   else 
-      self._binOpData = ffiC.new_binOpData_t(self._numBasis, 0) 
-   end
-
-   if op == "Multiply" or op == "Divide" then self._zero_op = op end
-
-   if op == "Divide" then
+   -- Set the advance method function and preallocate memory if needed.
+   if op == "Multiply" then
+      if self._fieldBasis then
+         self.advanceFunc = function(tCurr, inFlds, outFlds)
+            CartFieldBinOp['_advanceMultiplyConfPhase'](self, tCurr, inFlds, outFlds) end
+         self.advanceOnDeviceFunc = self._useGPU and function(tCurr, inFlds, outFlds)
+            CartFieldBinOp['_advanceOnDeviceMultiplyConfPhase'](self, tCurr, inFlds, outFlds) end or nil
+      else
+         self.advanceFunc = function(tCurr, inFlds, outFlds)
+            CartFieldBinOp['_advanceMultiplyConfConf'](self, tCurr, inFlds, outFlds) end
+         self.advanceOnDeviceFunc = self._useGPU and function(tCurr, inFlds, outFlds)
+            CartFieldBinOp['_advanceOnDeviceMultiplyConfConf'](self, tCurr, inFlds, outFlds) end or nil
+      end
+   elseif op == "DotProduct" then
+      self.advanceFunc = function(tCurr, inFlds, outFlds)
+         CartFieldBinOp['_advanceDotProduct'](self, tCurr, inFlds, outFlds) end
+      self.advanceOnDeviceFunc = self._useGPU and function(tCurr, inFlds, outFlds)
+         CartFieldBinOp['_advanceOnDeviceDotProduct'](self, tCurr, inFlds, outFlds) end or nil
+   elseif op == "Divide" then
       local onRange = assert(tbl.onRange, "Updater.CartFieldBinOp: Must provide the range to perform division in 'onRange'.")
       if self._useGPU then
          self._mem = ffi.gc(ffiC.gkyl_dg_bin_op_mem_cu_dev_new(onRange:volume(), self._numBasis),
@@ -178,90 +185,145 @@ function CartFieldBinOp:init(tbl)
          self._mem = ffi.gc(ffiC.gkyl_dg_bin_op_mem_new(onRange:volume(), self._numBasis),
                             ffiC.gkyl_dg_bin_op_mem_release)
       end
+      self.advanceFunc = function(tCurr, inFlds, outFlds)
+         CartFieldBinOp['_advanceDivide'](self, tCurr, inFlds, outFlds) end
+      self.advanceOnDeviceFunc = self._useGPU and function(tCurr, inFlds, outFlds)
+         CartFieldBinOp['_advanceOnDeviceDivide'](self, tCurr, inFlds, outFlds) end or nil
    end
 end
 
--- Advance method.
+local identifyScalarVector = function(inFld)
+   -- Remove SOME burden from the user in ordering the inputs. Order them here so that
+   -- in scalar-vector and conf-phase operations they enter the kernels as
+   -- BinOp(scalar,vector) and BinOp(conf field,phase field).
+   if inFld[1]:numComponents() <= inFld[2]:numComponents() then
+      return inFld[1], inFld[2]
+   elseif inFld[1]:numComponents() > inFld[2]:numComponents() then
+      return inFld[2], inFld[1]
+   end
+end
+
+-- Conf-space * conf-space multiplication advance method.
+function CartFieldBinOp:_advanceMultiplyConfConf(tCurr, inFld, outFld)
+   -- Multiplication: Afld * Bfld (can be scalar*scalar, vector*scalar or scalar*vector,
+   --                              but in the latter Afld must be the scalar).
+
+   local Afld, Bfld = identifyScalarVector(inFld)
+   local uOut       = outFld[1]
+
+   local localuRange = self.onGhosts and uOut:localExtRange() or uOut:localRange()
+   -- Conf-space scalar * scalar or scalar * vector multiplication.
+   local nVecComp = Bfld:numComponents()/self._numBasis
+   for d = 0, nVecComp-1 do
+      ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, d, uOut._zero, 0, Afld._zero, d, Bfld._zero, localuRange)
+   end
+end
+
+-- Conf-space * phase-space multiplication advance method.
+function CartFieldBinOp:_advanceMultiplyConfPhase(tCurr, inFld, outFld)
+   -- Multiplication: Afld * Bfld (can be scalar*scalar, vector*scalar or scalar*vector,
+   --                              but in the latter Afld must be the scalar).
+
+   local Afld, Bfld = identifyScalarVector(inFld)
+   local uOut       = outFld[1]
+
+   local localuRange = self.onGhosts and uOut:localExtRange() or uOut:localRange()
+   -- Conf-space * phase-space multiplication.
+   local localARange = self.onGhosts and Afld:localExtRange() or Afld:localRange()
+   ffiC.gkyl_dg_mul_conf_phase_op_range(self._fieldBasis._zero, self._weakBasis._zero,
+                                        uOut._zero, Afld._zero, Bfld._zero, localARange, localuRange)
+end
+
+function CartFieldBinOp:_advanceDotProduct(tCurr, inFld, outFld)
+   -- DotProduct:     Afld . Bfld (both vector fields).
+
+   local Afld, Bfld = inFld[1], inFld[2]
+   local uOut       = outFld[1]
+
+   local localuRange = self.onGhosts and uOut:localExtRange() or uOut:localRange()
+   -- Vector . vector dot product.
+   ffiC.gkyl_dg_dot_product_op_range(self._weakBasis._zero, uOut._zero, Afld._zero, Bfld._zero, localuRange)
+end
+
+function CartFieldBinOp:_advanceDivide(tCurr, inFld, outFld)
+   -- Division:       Bfld/Afld (Afld must be a scalar function).
+
+   local Afld, Bfld = identifyScalarVector(inFld)
+   local uOut = outFld[1]
+
+   local localuRange = self.onGhosts and uOut:localExtRange() or uOut:localRange()
+   -- Conf-space scalar / scalar or vector / scalar division.
+   local nVecComp = Bfld:numComponents()/self._numBasis
+   for d = 0, nVecComp-1 do
+      ffiC.gkyl_dg_div_op_range(self._mem, self._weakBasis._zero, d, uOut._zero, d, Bfld._zero, 0, Afld._zero, localuRange)
+   end
+end
+
+-- Conf-space * conf-space multiplication advance method.
+function CartFieldBinOp:_advanceOnDeviceMultiplyConfConf(tCurr, inFld, outFld)
+   -- Multiplication: Afld * Bfld (can be scalar*scalar, vector*scalar or scalar*vector,
+   --                              but in the latter Afld must be the scalar).
+
+   local Afld, Bfld = identifyScalarVector(inFld)
+   local uOut       = outFld[1]
+
+   local localuRange = self.onGhosts and uOut:localExtRange() or uOut:localRange()
+   -- Conf-space scalar * scalar or scalar * vector multiplication.
+   local nVecComp = Bfld:numComponents()/self._numBasis
+   for d = 0, nVecComp-1 do
+      ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, d, uOut._zeroDevice,
+                                0, Afld._zeroDevice, d, Bfld._zeroDevice, localuRange)
+   end
+end
+
+-- Conf-space * phase-space multiplication advance method.
+function CartFieldBinOp:_advanceOnDeviceMultiplyConfPhase(tCurr, inFld, outFld)
+   -- Multiplication: Afld * Bfld (can be scalar*scalar, vector*scalar or scalar*vector,
+   --                              but in the latter Afld must be the scalar).
+
+   local Afld, Bfld = identifyScalarVector(inFld)
+   local uOut       = outFld[1]
+
+   local localuRange = self.onGhosts and uOut:localExtRange() or uOut:localRange()
+   -- Conf-space * phase-space multiplication.
+   local localARange = self.onGhosts and Afld:localExtRange() or Afld:localRange()
+   ffiC.gkyl_dg_mul_conf_phase_op_range(self._fieldBasis._zero, self._weakBasis._zero,
+                                        uOut._zeroDevice, Afld._zeroDevice, Bfld._zeroDevice, localARange, localuRange)
+end
+
+function CartFieldBinOp:_advanceOnDeviceDotProduct(tCurr, inFld, outFld)
+   -- DotProduct:     Afld . Bfld (both vector fields).
+
+   local Afld, Bfld = inFld[1], inFld[2]
+   local uOut       = outFld[1]
+
+   local localuRange = self.onGhosts and uOut:localExtRange() or uOut:localRange()
+   -- Vector . vector dot product.
+   ffiC.gkyl_dg_dot_product_op_range(self._weakBasis._zero, uOut._zeroDevice,
+                                     Afld._zeroDevice, Bfld._zeroDevice, localuRange)
+end
+
+function CartFieldBinOp:_advanceOnDeviceDivide(tCurr, inFld, outFld)
+   -- Division:       Bfld/Afld (Afld must be a scalar function).
+
+   local Afld, Bfld = identifyScalarVector(inFld)
+   local uOut = outFld[1]
+
+   local localuRange = self.onGhosts and uOut:localExtRange() or uOut:localRange()
+   -- Conf-space scalar / scalar or vector / scalar division.
+   local nVecComp = Bfld:numComponents()/self._numBasis
+   for d = 0, nVecComp-1 do
+      ffiC.gkyl_dg_div_op_range(self._mem, self._weakBasis._zero, d, uOut._zeroDevice,
+                                d, Bfld._zeroDevice, 0, Afld._zeroDevice, localuRange)
+   end
+end
+
 function CartFieldBinOp:_advance(tCurr, inFld, outFld)
    -- Multiplication: Afld * Bfld (can be scalar*scalar, vector*scalar or scalar*vector,
    --                              but in the latter Afld must be the scalar).
    -- Division:       Bfld/Afld (Afld must be a scalar function).
    -- DotProduct:     Afld . Bfld (both vector fields).
-
-   local uOut = outFld[1]
-   -- Remove SOME burden from the user in ordering the inputs. Order them here so that
-   -- in scalar-vector and conf-phase operations they enter the kernels as
-   -- BinOp(scalar,vector) and BinOp(conf field,phase field).
-   local Afld, Bfld
-   if inFld[1]:numComponents() <= inFld[2]:numComponents() then
-      Afld, Bfld = inFld[1], inFld[2]
-   elseif inFld[1]:numComponents() > inFld[2]:numComponents() then
-      Bfld, Afld = inFld[1], inFld[2]
-   end
-
-   local localuRange = self.onGhosts and uOut:localExtRange() or uOut:localRange()
-   if self._zero_op and self._zero_op == "Multiply" then
-      if self._fieldBasis then
-         -- Conf-space * phase-space multiplication.
-         local localARange = self.onGhosts and Afld:localExtRange() or Afld:localRange()
-         ffiC.gkyl_dg_mul_conf_phase_op_range(self._fieldBasis._zero, self._weakBasis._zero,
-                                              uOut._zero, Afld._zero, Bfld._zero, localARange, localuRange)
-      else
-         -- Conf-space scalar * scalar or scalar * vector multiplication.
-         local nVecComp = Bfld:numComponents()/self._numBasis
-         for d = 0, nVecComp-1 do
-            ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, d, uOut._zero, 0, Afld._zero, d, Bfld._zero, localuRange)
-         end
-      end
-   
-      return
-   elseif self._zero_op and self._zero_op == "Divide" then
-      -- Conf-space scalar / scalar or vector / scalar division.
-      local nVecComp = Bfld:numComponents()/self._numBasis
-      for d = 0, nVecComp-1 do
-         ffiC.gkyl_dg_div_op_range(self._mem, self._weakBasis._zero, d, uOut._zero, d, Bfld._zero, 0, Afld._zero, localuRange)
-      end
-      return
-   end
-
-   -- g2 implementation below. To be deleted eventually.
-
-   local grid = Afld:grid()
-
-   -- Either the localRange is the same for Bfld and Afld,
-   -- or just use the range of the phase space field,
-   local localBRange = self.onGhosts and Bfld:localExtRange() or Bfld:localRange()
-
-   local AfldIndexer = Afld:genIndexer()
-   local BfldIndexer = Bfld:genIndexer()
-   local uOutIndexer = uOut:genIndexer()
-
-   local AfldItr = Afld:get(1)
-   local BfldItr = Bfld:get(1)
-   local uOutItr = uOut:get(1)
-
-   -- Number of vectorial components.
-   local nComp = Bfld:numComponents()/self._numBasis
-
-   -- This factor is used in the kernel to differentiate the case of
-   -- scalar-vector multiplication from the vector-vector multiplication.
-   local nCompEq = Afld:numComponents() == Bfld:numComponents() and 1 or 0
-   -- If the dimensions are the same assume we are doing vector-vector or
-   -- scalar-vector operations in configuration space.
-   -- If dimensions are different assume we are doing multiplication of
-   -- a conf space function (scalar?) with a phase space function.
-   self._BinOpCalc = (Afld:ndim() == Bfld:ndim()) and self._BinOpCalcS or self._BinOpCalcD
-
-   -- Loop, computing binOp in each cell.
-   for idx in localBRange:rowMajorIter() do
-      grid:setIndex(idx)
-
-      Afld:fill(AfldIndexer(idx), AfldItr)
-      Bfld:fill(BfldIndexer(idx), BfldItr)
-      uOut:fill(uOutIndexer(idx), uOutItr)
-
-      self._BinOpCalc(self._binOpData, AfldItr:data(), BfldItr:data(), nComp, nCompEq, uOutItr:data())
-   end
+   self.advanceFunc(tCurr, inFld, outFld)
 end
 
 function CartFieldBinOp:_advanceOnDevice(tCurr, inFld, outFld)
@@ -270,49 +332,7 @@ function CartFieldBinOp:_advanceOnDevice(tCurr, inFld, outFld)
    -- Division:       Bfld/Afld (Afld must be a scalar function).
    -- DotProduct:     Afld . Bfld (both vector fields).
 
-   local uOut = outFld[1]
-   -- Remove SOME burden from the user in ordering the inputs. Order them here so that
-   -- in scalar-vector and conf-phase operations they enter the kernels as
-   -- BinOp(scalar,vector) and BinOp(conf field,phase field).
-   local Afld, Bfld
-   if inFld[1]:numComponents() <= inFld[2]:numComponents() then
-      Afld, Bfld = inFld[1], inFld[2]
-   elseif inFld[1]:numComponents() > inFld[2]:numComponents() then
-      Bfld, Afld = inFld[1], inFld[2]
-   end
-
-   local localuRange = self.onGhosts and uOut:localExtRange() or uOut:localRange()
-   if self._zero_op and self._zero_op == "Multiply" then
-      if self._fieldBasis then
-         -- Conf-space * phase-space multiplication.
-         local localARange = self.onGhosts and Afld:localExtRange() or Afld:localRange()
-         ffiC.gkyl_dg_mul_conf_phase_op_range(self._fieldBasis._zero, self._weakBasis._zero,
-                                              uOut._zeroDevice, Afld._zeroDevice, Bfld._zeroDevice, localARange, localuRange)
-      else
-         -- Conf-space scalar * scalar or scalar * vector multiplication.
-         local nVecComp = Bfld:numComponents()/self._numBasis
-         for d = 0, nVecComp-1 do
-            ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, d, uOut._zeroDevice,
-	                              0, Afld._zeroDevice, d, Bfld._zeroDevice, localuRange)
-         end
-      end
-   
-      return
-   elseif self._zero_op and self._zero_op == "Divide" then
-      -- Conf-space scalar / scalar or vector / scalar division.
-      local nVecComp = Bfld:numComponents()/self._numBasis
-      for d = 0, nVecComp-1 do
-         ffiC.gkyl_dg_div_op_range(self._mem, self._weakBasis._zero, d, uOut._zeroDevice,
-	                           d, Bfld._zeroDevice, 0, Afld._zeroDevice, localuRange)
-      end
-      return
-   else 
-      -- NYI
-      assert(false, "GPU bin op NYI")
-
-      return
-   end
-
+   self.advanceOnDeviceFunc(tCurr, inFld, outFld)
 end
 
 return CartFieldBinOp
