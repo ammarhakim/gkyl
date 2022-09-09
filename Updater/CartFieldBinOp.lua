@@ -60,7 +60,7 @@ void gkyl_dg_bin_op_mem_release(gkyl_dg_bin_op_mem *mem);
 void gkyl_dg_mul_op_range(struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
-  int c_rop, const struct gkyl_array* rop, struct gkyl_range *range);
+  int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range);
 
 /**
  * Same as gkyl_dg_dot_product_op, except operator is applied only on
@@ -74,7 +74,7 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
  */
 void gkyl_dg_dot_product_op_range(struct gkyl_basis basis,
   struct gkyl_array* out, const struct gkyl_array* lop,
-  const struct gkyl_array* rop, struct gkyl_range *range);
+  const struct gkyl_array* rop, const struct gkyl_range *range);
 
 /**
  * Compute pout = cop*pop on specified range (sub-range of range
@@ -92,7 +92,7 @@ void gkyl_dg_dot_product_op_range(struct gkyl_basis basis,
 void gkyl_dg_mul_conf_phase_op_range(struct gkyl_basis *cbasis,
   struct gkyl_basis *pbasis, struct gkyl_array* pout,
   const struct gkyl_array* cop, const struct gkyl_array* pop,
-  struct gkyl_range *crange, struct gkyl_range *prange);
+  const struct gkyl_range *crange, const struct gkyl_range *prange);
 
 /**
  * Same as gkyl_dg_div_op, except operator is applied only on
@@ -111,7 +111,7 @@ void gkyl_dg_mul_conf_phase_op_range(struct gkyl_basis *cbasis,
 void gkyl_dg_div_op_range(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
-  int c_rop, const struct gkyl_array* rop, struct gkyl_range *range);
+  int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range);
 ]]
 
 -- Function to check if moment name is correct.
