@@ -103,7 +103,7 @@ function CrossPrimMoments:init(tbl)
    local phaseBasis = assert(
       tbl.phaseBasis, "Updater.CrossPrimMoments: Must provide the phase basis object using 'phaseBasis'.")
 
-   local confBasis = assert(
+   self.confBasis = assert(
       tbl.confBasis, "Updater.CrossPrimMoments: Must provide the configuration basis object using 'confBasis'.")
 
    self._operator = assert(
@@ -121,26 +121,24 @@ function CrossPrimMoments:init(tbl)
    -- Dimension of spaces.
    self._pDim = phaseBasis:ndim()
    -- Ensure sanity.
-   assert(phaseBasis:polyOrder() == confBasis:polyOrder(),
+   assert(phaseBasis:polyOrder() == self.confBasis:polyOrder(),
           "Updater.CrossPrimMoments: Polynomial orders of phase and conf basis must match.")
-   assert(phaseBasis:id() == confBasis:id(),
+   assert((phaseBasis:id() == self.confBasis:id()) or
+         ((phaseBasis:id()=="hybrid" or phaseBasis:id()=="gkhybrid") and self.confBasis:id()=="serendipity"),
           "Updater.CrossPrimMoments: Type of phase and conf basis must match.")
    -- Determine configuration and velocity space dims.
-   self._cDim = confBasis:ndim()
+   self._cDim = self.confBasis:ndim()
    self._vDim = self._pDim - self._cDim
 
-   self._numBasisC = confBasis:numBasis()
+   self._numBasisC = self.confBasis:numBasis()
 
-   self._basisID, self._polyOrder = confBasis:id(), confBasis:polyOrder()
+   self._basisID, self._polyOrder = self.confBasis:id(), self.confBasis:polyOrder()
 
    local uDim = self._vDim
-   if self._operator=="GkLBO" or self._operator=="GkBGK" then
-      uDim = 1
-   end
+   if self._operator=="GkLBO" or self._operator=="GkBGK" then uDim = 1 end
+
    self._isLBO = false
-   if self._operator=="VmLBO" or self._operator=="GkLBO" then
-      self._isLBO = true
-   end
+   if self._operator=="VmLBO" or self._operator=="GkLBO" then self._isLBO = true end
 
    -- Need two Eigen matrices: one to divide by (ms*nusr*m0s+mr*nurs*m0r)
    -- and one to compute cross-primitive moments.
@@ -154,12 +152,58 @@ function CrossPrimMoments:init(tbl)
    self._cellAvFac = 1.0/math.sqrt(2.0^self._cDim)
 
    self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
+
+   if GKYL_USE_GPU then
+      if self._operator=="GkLBO" then
+--         self._zero = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_cross_calc_cu_dev_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
+--                             ffiC.gkyl_prim_lbo_cross_calc_release)
+      elseif self._operator=="VmLBO" then
+         self._zero = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_cross_calc_cu_dev_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
+                             ffiC.gkyl_prim_lbo_cross_calc_release)
+      end
+   else
+      if self._operator=="GkLBO" then
+--         self._zero = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_cross_calc_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
+--                             ffiC.gkyl_prim_lbo_cross_calc_release)
+      elseif self._operator=="VmLBO" then
+         self._zero = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_cross_calc_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
+                             ffiC.gkyl_prim_lbo_cross_calc_release)
+      end
+   end
 end
 
 -- Advance method.
 function CrossPrimMoments:_advance(tCurr, inFld, outFld)
-   local grid = self._onGrid
 
+   if self._zero then
+
+      local mSelf, nuSelf   = inFld[1], inFld[2]
+      local momsSelf        = inFld[3]
+      local uSelf, vtSqSelf = inFld[4][1], inFld[4][2]
+      local bCorrsSelf      = inFld[5]
+
+      local mOther, nuOther   = inFld[6], inFld[7]
+      local momsOther         = inFld[8]
+      local uOther, vtSqOther = inFld[9][1], inFld[9][2]
+      local bCorrsOther       = inFld[10]
+
+      local m0sdeltas = inFld[11]
+
+      local uCrossSelf, vtSqCrossSelf = outFld[1], outFld[2]
+      -- Compose the pre-factor:
+      --   m0_s*delta_s*(1+beta)
+      --     = m0_s*(2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs))*(1+beta)
+      m0sdeltas:scale(self._betaP1)
+
+      -- Compute u and vtsq.
+      ffiC.gkyl_prim_lbo_cross_calc_advance(self._zero, self.confBasis._zero, uSelf:localRange(), m0sdeltas._zero,
+         mSelf, uSelf._zero, vtSqSelf._zero, mOther, uOther._zero, vtSqOther._zero, 
+         momsSelf._zero, bCorrsSelf._zero, uCrossSelf._zero, vtSqCrossSelf._zero)
+
+      return
+   end
+
+   local grid = self._onGrid
 
    local mSelf, nuSelfIn, m0Self, uSelf, vtSqSelf
    local mOther, nuOtherIn, m0Other, uOther, vtSqOther
@@ -366,6 +410,33 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
       end    -- end if self._isLBO.
    else    -- Below: collisionality is not cell-wise constant.
    end
+
+end
+
+function CrossPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
+
+   local mSelf, nuSelf   = inFld[1], inFld[2]
+   local momsSelf        = inFld[3]
+   local uSelf, vtSqSelf = inFld[4][1], inFld[4][2]
+   local bCorrsSelf      = inFld[5]
+
+   local mOther, nuOther   = inFld[6], inFld[7]
+   local momsOther         = inFld[8]
+   local uOther, vtSqOther = inFld[9][1], inFld[9][2]
+   local bCorrsOther       = inFld[10]
+
+   local m0sdeltas = inFld[11]
+
+   local uCrossSelf, vtSqCrossSelf = outFld[1], outFld[2]
+   -- Compose the pre-factor:
+   --   m0_s*delta_s*(1+beta)
+   --     = m0_s*(2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs))*(1+beta)
+   m0sdeltas:scale(self._betaP1)
+
+   -- Compute u and vtsq.
+   ffiC.gkyl_prim_lbo_cross_calc_advance_cu(self._zero, self.confBasis._zero, uSelf:localRange(), m0sdeltas._zeroDevice,
+      mSelf, uSelf._zeroDevice, vtSqSelf._zeroDevice, mOther, uOther._zeroDevice, vtSqOther._zeroDevice, 
+      momsSelf._zeroDevice, bCorrsSelf._zeroDevice, uCrossSelf._zeroDevice, vtSqCrossSelf._zeroDevice)
 
 end
 

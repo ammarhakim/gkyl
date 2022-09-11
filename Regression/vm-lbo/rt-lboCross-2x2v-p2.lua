@@ -92,8 +92,6 @@ plasmaApp = Plasma.App {
          frequencies  = { nuElc,  nuElcIon },
 --         collideWith  = { "elc" },
 --         frequencies  = { nuElc },
---         collideWith  = { "ion" },
---         frequencies  = { nuElcIon },
          -- Optional parameters:
 --         betaGreene   = 1.0,    -- Free parameter, must be >-1.
       },
@@ -136,8 +134,6 @@ plasmaApp = Plasma.App {
          frequencies  = { nuIon, nuIonElc },
 --         collideWith  = { "ion" },
 --         frequencies  = { nuIon },
---         collideWith  = { "elc" },
---         frequencies  = { nuIonElc },
          -- Optional parameters:
 --         betaGreene   = 1.0,    -- Free parameter, must be >-1.
       },

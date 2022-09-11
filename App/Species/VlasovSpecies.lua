@@ -354,8 +354,6 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
                      self.collPairs[sN][sO].kind      = species[sN].collisions[collNmN].collKind
                      -- Collision frequency time dependence (e.g. constant, time-varying).
                      self.collPairs[sN][sO].timeDepNu = species[sN].collisions[collNmN].timeDepNu
-                     -- Collision frequency spatial dependence (e.g. homogeneous, spatially varying).
-                     self.collPairs[sN][sO].varNu     = species[sN].collisions[collNmN].varNu
                      if (not self.collPairs[sN][sO].timeDepNu) then
                         -- Constant collisionality. Record it.
                         self.collPairs[sN][sO].nu = species[sN].collisions[collNmN].collFreqs[specInd]
@@ -380,17 +378,10 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
                         -- Collision frequency time dependence (e.g. constant, time-varying).
                         self.collPairs[sO][sN].timeDepNu = species[sO].collisions[collNmN].timeDepNu
                         self.collPairs[sN][sO].timeDepNu = species[sO].collisions[collNmN].timeDepNu
-                        -- Collision frequency spatial dependence (e.g. homogeneous, spatially varying).
-                        self.collPairs[sO][sN].varNu     = species[sO].collisions[collNmO].varNu
-                        self.collPairs[sN][sO].varNu     = species[sO].collisions[collNmO].varNu
                         if (not self.collPairs[sN][sO].timeDepNu) then
                            -- Constant collisionality. Record it.
-                           if (self.collPairs[sN][sO].varNu) then 
-                              -- We will need to first project the nu we do have, and later scale it by the mass ratio.
-                              self.collPairs[sN][sO].nu = species[sO].collisions[collNmO].collFreqs[specInd]
-                           else
-                              self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
-                           end
+                           -- We will need to first project the nu we do have, and later scale it by the mass ratio.
+                           self.collPairs[sN][sO].nu = species[sO].collisions[collNmO].collFreqs[specInd]
                         else
                            -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                            if (species[sO].collisions[collNmO].userInputNormNu) then
@@ -418,16 +409,9 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
                      -- that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
                      local specInd = findInd(species[sO].collisions[collNmO].collidingSpecies, sN)
                      if specInd < (#species[sO].collisions[collNmO].collidingSpecies+1) then
-                        self.collPairs[sO][sN].varNu = species[sO].collisions[collNmO].varNu
-                        self.collPairs[sN][sO].varNu = species[sO].collisions[collNmO].varNu
                         if (not self.collPairs[sN][sO].timeDepNu) then
-                           -- Constant collisionality. Record it.
-                           if (self.collPairs[sN][sO].varNu) then 
-                              -- We will need to first project the nu we do have, and later scale it by the mass ratio.
-                              self.collPairs[sN][sO].nu = species[sO].collisions[collNmO].collFreqs[specInd]
-                           else
-                              self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
-                           end
+                           -- We will need to first project the nu we do have, and later scale it by the mass ratio.
+                           self.collPairs[sN][sO].nu = species[sO].collisions[collNmO].collFreqs[specInd]
                         else
                            -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                            if (species[sO].collisions[collNmO].userInputNormNu) then
@@ -452,7 +436,6 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    self.needCorrectedSelfPrimMom = false
    -- Also check if spatially varying nu is needed, and if the user inputed a spatial
    -- profile for the collisionality (which needs to be projected).
-   local needVarNu               = false
    local userInputNuProfile      = false
    if self.collPairs[self.name][self.name].on then
       self.needSelfPrimMom          = true
@@ -469,11 +452,8 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
             self.needCorrectedSelfPrimMom = true
          end
 
-         if self.collPairs[self.name][sO].varNu or self.collPairs[sO][self.name].varNu then
-            needVarNu = true
-            if (not self.collPairs[self.name][sO].timeDepNu) or (not self.collPairs[sO][self.name].timeDepNu) then
-               userInputNuProfile = true
-            end
+         if (not self.collPairs[self.name][sO].timeDepNu) or (not self.collPairs[sO][self.name].timeDepNu) then
+            userInputNuProfile = true
          end
       end
    end
@@ -562,38 +542,34 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       end
    end
 
-   if needVarNu then
-      self.nuVarXCross = {}    -- Collisionality varying in configuration space.
-      local projectNuX = nil
-      if userInputNuProfile then
-         projectNuX = Updater.ProjectOnBasis {
-            onGrid   = self.confGrid,
-            basis    = self.confBasis,
-            evaluate = function(t,xn) return 0.0 end, -- Function is set below.
-            onGhosts = false,
-         }
+   self.nuVarXCross = {}    -- Collisionality varying in configuration space.
+   local projectNuX = nil
+   if userInputNuProfile then
+      projectNuX = Updater.ProjectOnBasis {
+         onGrid = self.confGrid,   evaluate = function(t,xn) return 0.0 end, -- Function is set below.
+         basis  = self.confBasis,  onGhosts = false,
+      }
+   end
+   for sN, _ in lume.orderedIter(species) do
+      if sN ~= self.name then
+         -- Sixth moment flag is to indicate if spatially varying collisionality has been computed.
+         self.momentFlags[6][sN] = false
       end
-      for sN, _ in lume.orderedIter(species) do
-         if sN ~= self.name then
-            -- Sixth moment flag is to indicate if spatially varying collisionality has been computed.
-            self.momentFlags[6][sN] = false
-         end
 
-         for sO, _ in lume.orderedIter(species) do
-            -- Allocate space for this species' collision frequency 
-            -- only if some other species collides with it.
-            if (sN ~= sO) and (self.collPairs[sN][sO].on or self.collPairs[sO][sN].on) then
-               otherNm = string.gsub(sO .. sN, self.name, "")
-               if self.nuVarXCross[otherNm] == nil then
-                  self.nuVarXCross[otherNm] = self:allocMoment()
-                  if (userInputNuProfile and (not self.collPairs[sN][sO].timeDepNu) or (not self.collPairs[sO][sN].timeDepNu)) then
-                     projectNuX:setFunc(self.collPairs[self.name][otherNm].nu)
-                     projectNuX:advance(0.0,{},{self.nuVarXCross[otherNm]})
-                     if (not self.collPairs[self.name][otherNm].on) then
-                        self.nuVarXCross[otherNm]:scale(species[self.name]:getMass()/species[otherNm]:getMass())
-                     end
-                     self.nuVarXCross[otherNm]:write(string.format("%s_nu-%s_%d.bp",self.name,otherNm,0),0.0,0,true)
+      for sO, _ in lume.orderedIter(species) do
+         -- Allocate space for this species' collision frequency 
+         -- only if some other species collides with it.
+         if (sN ~= sO) and (self.collPairs[sN][sO].on or self.collPairs[sO][sN].on) then
+            otherNm = string.gsub(sO .. sN, self.name, "")
+            if self.nuVarXCross[otherNm] == nil then
+               self.nuVarXCross[otherNm] = self:allocMoment()
+               if (userInputNuProfile and (not self.collPairs[sN][sO].timeDepNu) or (not self.collPairs[sO][sN].timeDepNu)) then
+                  projectNuX:setFunc(self.collPairs[self.name][otherNm].nu)
+                  projectNuX:advance(0.0,{},{self.nuVarXCross[otherNm]})
+                  if (not self.collPairs[self.name][otherNm].on) then
+                     self.nuVarXCross[otherNm]:scale(species[self.name]:getMass()/species[otherNm]:getMass())
                   end
+                  self.nuVarXCross[otherNm]:write(string.format("%s_nu-%s_%d.bp",self.name,otherNm,0),0.0,0,true)
                end
             end
          end
@@ -750,21 +726,11 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
 end
 
-function VlasovSpecies:fluidMoments()
-   return { self.numDensity, self.momDensity, self.ptclEnergy }
-end
+function VlasovSpecies:fluidMoments() return self.fiveMoments end
 
-function VlasovSpecies:boundaryCorrections()
-   return { self.m1Correction, self.m2Correction }
-end
+function VlasovSpecies:boundaryCorrections() return self.fiveMomentsBoundaryCorrections end
 
-function VlasovSpecies:starMoments()
-   return { self.m0Star, self.m1Star, self.m2Star }
-end
-
-function VlasovSpecies:selfPrimitiveMoments()
-   return { self.uSelf, self.vtSqSelf }
-end
+function VlasovSpecies:selfPrimitiveMoments() return { self.uSelf, self.vtSqSelf } end
 
 function VlasovSpecies:crossPrimitiveMoments(otherSpeciesName)
    return { self.uCross[otherSpeciesName], self.vtSqCross[otherSpeciesName] }

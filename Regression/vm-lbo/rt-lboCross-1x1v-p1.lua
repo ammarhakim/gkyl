@@ -74,7 +74,6 @@ vlasovApp = Plasma.App {
          frequencies  = { nu11, nu12, },
 --         collideWith  = { "neut1", },
 --         frequencies  = { nu11, },
---         collideWith  = { "neut2" },
 --         -- Optional arguments:
 --         betaGreene  = 0.0,    -- Free parameter, must be >-1.
       },
@@ -115,7 +114,6 @@ vlasovApp = Plasma.App {
          frequencies = { nu21, nu22, },
 --         collideWith = { "neut2", },
 --         frequencies = { nu22, },
---         collideWith = { "neut1" },
 --         -- Optional arguments:
 --         betaGreene  = 0.0,    -- Free parameter, must be >-1.
       },

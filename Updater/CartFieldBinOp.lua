@@ -213,7 +213,7 @@ function CartFieldBinOp:_advanceMultiplyConfConf(tCurr, inFld, outFld)
 
    local localuRange = self.onGhosts and uOut:localExtRange() or uOut:localRange()
    -- Conf-space scalar * scalar or scalar * vector multiplication.
-   local nVecComp = Bfld:numComponents()/self._numBasis
+   local nVecComp = inFld[3] and inFld[3] or Bfld:numComponents()/self._numBasis
    for d = 0, nVecComp-1 do
       ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, d, uOut._zero, 0, Afld._zero, d, Bfld._zero, localuRange)
    end
@@ -253,7 +253,7 @@ function CartFieldBinOp:_advanceDivide(tCurr, inFld, outFld)
 
    local localuRange = self.onGhosts and uOut:localExtRange() or uOut:localRange()
    -- Conf-space scalar / scalar or vector / scalar division.
-   local nVecComp = Bfld:numComponents()/self._numBasis
+   local nVecComp = inFld[3] and inFld[3] or Bfld:numComponents()/self._numBasis
    for d = 0, nVecComp-1 do
       ffiC.gkyl_dg_div_op_range(self._mem, self._weakBasis._zero, d, uOut._zero, d, Bfld._zero, 0, Afld._zero, localuRange)
    end
@@ -269,7 +269,7 @@ function CartFieldBinOp:_advanceOnDeviceMultiplyConfConf(tCurr, inFld, outFld)
 
    local localuRange = self.onGhosts and uOut:localExtRange() or uOut:localRange()
    -- Conf-space scalar * scalar or scalar * vector multiplication.
-   local nVecComp = Bfld:numComponents()/self._numBasis
+   local nVecComp = inFld[3] and inFld[3] or Bfld:numComponents()/self._numBasis
    for d = 0, nVecComp-1 do
       ffiC.gkyl_dg_mul_op_range(self._weakBasis._zero, d, uOut._zeroDevice,
                                 0, Afld._zeroDevice, d, Bfld._zeroDevice, localuRange)
@@ -311,7 +311,7 @@ function CartFieldBinOp:_advanceOnDeviceDivide(tCurr, inFld, outFld)
 
    local localuRange = self.onGhosts and uOut:localExtRange() or uOut:localRange()
    -- Conf-space scalar / scalar or vector / scalar division.
-   local nVecComp = Bfld:numComponents()/self._numBasis
+   local nVecComp = inFld[3] and inFld[3] or Bfld:numComponents()/self._numBasis
    for d = 0, nVecComp-1 do
       ffiC.gkyl_dg_div_op_range(self._mem, self._weakBasis._zero, d, uOut._zeroDevice,
                                 d, Bfld._zeroDevice, 0, Afld._zeroDevice, localuRange)
