@@ -90,15 +90,15 @@ plasmaApp = Plasma.App {
             return topHat(x, vpar, mu, n0, u0, vt)
          end,
       },
-      -- Evolve species?
-      evolve      = true,
-      evolveCollisionless = false,
-      diagnostics = { "M0", "M1", "M2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
          frequencies = {nu},
       },
+      -- Evolve species?
+      evolve              = true,
+      evolveCollisionless = false,
+      diagnostics = { "M0", "M1", "M2" },
    },
 
    -- Neutral species with a bump in the tail.
@@ -117,24 +117,17 @@ plasmaApp = Plasma.App {
             return bumpMaxwell(x,vpar,mu,n0,u0,vt,ab,ub,sb,vtb)
          end,
       },
-      -- Evolve species?
-      evolve      = true,
-      evolveCollisionless = false,
-      diagnostics = { "M0", "M1", "M2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
          frequencies = {nu},
       },
+      -- Evolve species?
+      evolve              = true,
+      evolveCollisionless = false,
+      diagnostics = { "M0", "M1", "M2" },
    },
 
-   -- Field solver.
-   field = Plasma.Field {
-      evolve      = false, -- Evolve fields?
-      externalPhi = function (t, xn) return 0.0 end,
-      kperpSq     = 0.0 
-   },
-   
    -- Magnetic geometry. 
    externalField = Plasma.Geometry {
       -- Background magnetic field.

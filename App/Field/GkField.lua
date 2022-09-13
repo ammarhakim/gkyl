@@ -87,66 +87,96 @@ function GkField:fullInit(appTbl)
    -- Write ghost cells on boundaries of global domain (for BCs).
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 
-   -- Get boundary conditions.
-   local ndim = #appTbl.lower
-   if appTbl.periodicDirs then self.periodicDirs = appTbl.periodicDirs else self.periodicDirs = {} end
-   local isDirPeriodic = {}
-   for d = 1, ndim do isDirPeriodic[d] = lume.find(self.periodicDirs,d) ~= nil end
-   self.bcLowerPhi, self.bcUpperPhi   = {}, {}
-   self.bcLowerApar, self.bcUpperApar = {}, {}
+   self.externalPhi = tbl.externalPhi
+   if (self.externalPhi and self.evolve) then print("GkField: will not solve Poisson problem and use external phi instead.") end
 
-   -- ******* The following BC options are kept for backwards compatibility ******* --
-   if tbl.phiBcLeft or tbl.phiBcRight or tbl.phiBcBottom or tbl.phiBcTop or tbl.phiBcBack or tbl.phiBcFront then
-      if tbl.phiBcLeft and tbl.phiBcRight then
-         print("App.Field.GkField: warning... phiBcLeft/phiBcRight will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
-         self.bcLowerPhi[1], self.bcUpperPhi[1] = tbl.phiBcLeft, tbl.phiBcRight
-      elseif isDirPeriodic[1] then
-         self.bcLowerPhi[1], self.bcUpperPhi[1] = {T = "P"}, {T = "P"} 
-      end
-      if tbl.phiBcBottom and tbl.phiBcTop then
-         print("App.Field.GkField: warning... phiBcBottom/phiBcTop will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
-         self.bcLowerPhi[2], self.bcUpperPhi[2] = tbl.phiBcBottom, tbl.phiBcTop
-      elseif isDirPeriodic[2] then
-         self.bcLowerPhi[2], self.bcUpperPhi[2] = {T = "P"}, {T = "P"} 
-      end
-      if tbl.phiBcBack and tbl.phiBcFront then
-         print("App.Field.GkField: warning... phiBcBack/phiBcFront will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
-         self.bcLowerPhi[3], self.bcUpperPhi[3] = tbl.phiBcBack, tbl.phiBcFront
-      elseif isDirPeriodic[3] then
-         -- Set it to homogeneous Neumann since this is likely only used for smoothing in z.
-         self.bcLowerPhi[3], self.bcUpperPhi[3] = {T = "N", V = 0.0}, {T = "N", V = 0.0} 
-      end
+   -- This allows us to apply a multiplicative time dependence to externalPhi.
+   if tbl.externalPhiTimeDependence then
+      self.externalPhiTimeDependence = tbl.externalPhiTimeDependence
+   else
+      self.externalPhiTimeDependence = function(t) return 1.0 end
    end
-   if tbl.aparBcLeft or tbl.aparBcRight or tbl.aparBcBottom or tbl.aparBcTop then
-      if tbl.aparBcLeft and tbl.aparBcRight then
-         print("App.Field.GkField: warning... aparBcLeft/aparBcRight will be deprecated. Please use bcLowerApar/bcUpperApar.") 
-         self.bcLowerApar[1], self.bcUpperApar[1]= tbl.aparBcLeft, tbl.aparBcRight
-      elseif isDirPeriodic[1] then
-         self.bcLowerApar[1], self.bcUpperApar[1] = {T = "P"}, {T = "P"} 
-      end
-      if tbl.aparBcBottom and tbl.aparBcTop then
-         print("App.Field.GkField: warning... aparBcBottom/aparBcTop will be deprecated. Please use bcLowerApar/bcUpperApar.") 
-         self.bcLowerApar[2], self.bcUpperApar[2] = tbl.aparBcBottom, tbl.aparBcTop
-      elseif isDirPeriodic[2] then
-         self.bcLowerApar[2], self.bcUpperApar[2] = {T = "P"}, {T = "P"} 
-      end
-   end
-   -- ******* The above BC options are  kept for backwards compatibility ******* --
 
-
-   -- Allow unspecified BCs if domain is periodic. Or if domain is not periodic
-   -- allow unspecified z-BCs, but do not allow unspecified xy-BCs for ndim>1.
-   assert((tbl.bcLowerPhi and tbl.bcUpperPhi) or (tbl.bcLowerPhi==nil and tbl.bcUpperPhi==nil),
-          "App.Field.GkField: must specify both 'bcLowerPhi' and 'bcUpperPhi' or none.")
-   if #self.bcLowerPhi==0 and #self.bcUpperPhi==0 then  -- Needed to not override the backward compatible part above.
-      checkBCs(ndim, isDirPeriodic, tbl.bcLowerPhi, tbl.bcUpperPhi, self.bcLowerPhi, self.bcUpperPhi, true)
-   end
-   if self.isElectromagnetic then
-      assert((tbl.bcLowerApar and tbl.bcUpperApar) or (tbl.bcLowerApar==nil and tbl.bcUpperApar==nil),
-             "App.Field.GkField: must specify both 'bcLowerApar' and 'bcUpperApar' or none.")
-      if #self.bcLowerApar==0 and #self.bcUpperApar==0 then  -- Needed to not override the backward compatible part above.
-         checkBCs(ndim, isDirPeriodic, tbl.bcLowerApar, tbl.bcUpperApar, self.bcLowerApar, self.bcUpperApar, false)
+   if not self.externalPhi then
+      -- Get boundary conditions.
+      local ndim = #appTbl.lower
+      if appTbl.periodicDirs then self.periodicDirs = appTbl.periodicDirs else self.periodicDirs = {} end
+      local isDirPeriodic = {}
+      for d = 1, ndim do isDirPeriodic[d] = lume.find(self.periodicDirs,d) ~= nil end
+      self.bcLowerPhi, self.bcUpperPhi   = {}, {}
+      self.bcLowerApar, self.bcUpperApar = {}, {}
+   
+      -- ******* The following BC options are kept for backwards compatibility ******* --
+      if tbl.phiBcLeft or tbl.phiBcRight or tbl.phiBcBottom or tbl.phiBcTop or tbl.phiBcBack or tbl.phiBcFront then
+         if tbl.phiBcLeft and tbl.phiBcRight then
+            print("App.Field.GkField: warning... phiBcLeft/phiBcRight will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
+            self.bcLowerPhi[1], self.bcUpperPhi[1] = tbl.phiBcLeft, tbl.phiBcRight
+         elseif isDirPeriodic[1] then
+            self.bcLowerPhi[1], self.bcUpperPhi[1] = {T = "P"}, {T = "P"} 
+         end
+         if tbl.phiBcBottom and tbl.phiBcTop then
+            print("App.Field.GkField: warning... phiBcBottom/phiBcTop will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
+            self.bcLowerPhi[2], self.bcUpperPhi[2] = tbl.phiBcBottom, tbl.phiBcTop
+         elseif isDirPeriodic[2] then
+            self.bcLowerPhi[2], self.bcUpperPhi[2] = {T = "P"}, {T = "P"} 
+         end
+         if tbl.phiBcBack and tbl.phiBcFront then
+            print("App.Field.GkField: warning... phiBcBack/phiBcFront will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
+            self.bcLowerPhi[3], self.bcUpperPhi[3] = tbl.phiBcBack, tbl.phiBcFront
+         elseif isDirPeriodic[3] then
+            -- Set it to homogeneous Neumann since this is likely only used for smoothing in z.
+            self.bcLowerPhi[3], self.bcUpperPhi[3] = {T = "N", V = 0.0}, {T = "N", V = 0.0} 
+         end
       end
+      if tbl.aparBcLeft or tbl.aparBcRight or tbl.aparBcBottom or tbl.aparBcTop then
+         if tbl.aparBcLeft and tbl.aparBcRight then
+            print("App.Field.GkField: warning... aparBcLeft/aparBcRight will be deprecated. Please use bcLowerApar/bcUpperApar.") 
+            self.bcLowerApar[1], self.bcUpperApar[1]= tbl.aparBcLeft, tbl.aparBcRight
+         elseif isDirPeriodic[1] then
+            self.bcLowerApar[1], self.bcUpperApar[1] = {T = "P"}, {T = "P"} 
+         end
+         if tbl.aparBcBottom and tbl.aparBcTop then
+            print("App.Field.GkField: warning... aparBcBottom/aparBcTop will be deprecated. Please use bcLowerApar/bcUpperApar.") 
+            self.bcLowerApar[2], self.bcUpperApar[2] = tbl.aparBcBottom, tbl.aparBcTop
+         elseif isDirPeriodic[2] then
+            self.bcLowerApar[2], self.bcUpperApar[2] = {T = "P"}, {T = "P"} 
+         end
+      end
+      -- ******* The above BC options are  kept for backwards compatibility ******* --
+   
+   
+      -- Allow unspecified BCs if domain is periodic. Or if domain is not periodic
+      -- allow unspecified z-BCs, but do not allow unspecified xy-BCs for ndim>1.
+      assert((tbl.bcLowerPhi and tbl.bcUpperPhi) or (tbl.bcLowerPhi==nil and tbl.bcUpperPhi==nil),
+             "App.Field.GkField: must specify both 'bcLowerPhi' and 'bcUpperPhi' or none.")
+      if #self.bcLowerPhi==0 and #self.bcUpperPhi==0 then  -- Needed to not override the backward compatible part above.
+         checkBCs(ndim, isDirPeriodic, tbl.bcLowerPhi, tbl.bcUpperPhi, self.bcLowerPhi, self.bcUpperPhi, true)
+      end
+      if self.isElectromagnetic then
+         assert((tbl.bcLowerApar and tbl.bcUpperApar) or (tbl.bcLowerApar==nil and tbl.bcUpperApar==nil),
+                "App.Field.GkField: must specify both 'bcLowerApar' and 'bcUpperApar' or none.")
+         if #self.bcLowerApar==0 and #self.bcUpperApar==0 then  -- Needed to not override the backward compatible part above.
+            checkBCs(ndim, isDirPeriodic, tbl.bcLowerApar, tbl.bcUpperApar, self.bcLowerApar, self.bcUpperApar, false)
+         end
+      end
+
+      self.adiabatic = false
+      self.discontinuousPhi  = xsys.pickBool(tbl.discontinuousPhi, false)
+      self.discontinuousApar = xsys.pickBool(tbl.discontinuousApar, true)
+
+      -- For ndim=1 only.
+      self.kperpSq = tbl.kperpSq or tbl.kperp2   -- kperp2 for backwards compatibility.
+      assert((ndim==1 and self.kperpSq) or ndim>1, "GkField: must specify kperpSq for ndim=1")
+
+      -- Determine whether to use linearized polarization term in poisson equation,
+      -- which uses background density in polarization weight.
+      -- If not, uses full time-dependent density in polarization weight.
+      self.linearizedPolarization = xsys.pickBool(tbl.linearizedPolarization, true)
+      self.uniformPolarization    = xsys.pickBool(tbl.uniformPolarization, self.linearizedPolarization)
+      assert(not (self.linearizedPolarization==false and self.uniformPolarization==true), "GkField: cannot have nonlinearized and uniform polarization.")
+
+      if self.isElectromagnetic then self.mu0 = tbl.mu0 or Constants.MU0 end
+
    end
 
    -- For storing integrated energies.
@@ -157,36 +187,6 @@ function GkField:fullInit(appTbl)
    self.esEnergy          = DataStruct.DynVector { numComponents = 1 }
    self.emEnergy          = DataStruct.DynVector { numComponents = 1 }
 
-   self.adiabatic = false
-   self.discontinuousPhi  = xsys.pickBool(tbl.discontinuousPhi, false)
-   self.discontinuousApar = xsys.pickBool(tbl.discontinuousApar, true)
-
-   -- For ndim=1 only.
-   self.kperpSq = tbl.kperpSq or tbl.kperp2   -- kperp2 for backwards compatibility.
-   assert((ndim==1 and self.kperpSq) or ndim>1, "GkField: must specify kperpSq for ndim=1")
-
-   -- Determine whether to use linearized polarization term in poisson equation,
-   -- which uses background density in polarization weight.
-   -- If not, uses full time-dependent density in polarization weight.
-   self.linearizedPolarization = xsys.pickBool(tbl.linearizedPolarization, true)
-   self.uniformPolarization    = xsys.pickBool(tbl.uniformPolarization, self.linearizedPolarization)
-   assert(not (self.linearizedPolarization==false and self.uniformPolarization==true), "GkField: cannot have nonlinearized and uniform polarization.")
-
-   if self.isElectromagnetic then self.mu0 = tbl.mu0 or Constants.MU0 end
-
-   self.externalPhi = tbl.externalPhi
-   if self.externalPhi and self.evolve then 
-      print("GkField: warning... specifying externalPhi will make initial phi inconsistent with f") 
-   end
-   assert(not tbl.initPhiFunc, "GkField: initPhiFunc deprecated. Use externalPhi.")
-
-   -- This allows us to apply a multiplicative time dependence to externalPhi.
-   if tbl.externalPhiTimeDependence then
-      self.externalPhiTimeDependence = tbl.externalPhiTimeDependence
-   else
-      self.externalPhiTimeDependence = false
-   end
-
    -- Create trigger for how frequently to compute field energy.
    -- Do not compute the integrated diagnostics less frequently than we output data.
    if appTbl.calcIntQuantEvery then
@@ -196,8 +196,6 @@ function GkField:fullInit(appTbl)
    end
 
    self.bcTime = 0.0 -- Timer for BCs.
-
-   self._first = true
 
    self.timers = {advTime={0.,0.,0.}}
 end
@@ -262,23 +260,14 @@ end
 -- Solve for initial fields self-consistently 
 -- from initial distribution function.
 function GkField:initField(species)
-   if self.externalPhi then
-      local evalOnNodes = Updater.EvalOnNodes {
-         onGrid = self.grid,   evaluate = self.externalPhi,
-         basis  = self.basis,  onGhosts = true
-      }
-      self.externalPhiFld = createField(self.grid,self.basis,{1,1})
-      evalOnNodes:advance(0.0, {}, {self.externalPhiFld})
-      for i = 1, self.nRkDup do
-         if self.externalPhiTimeDependence then
-            self.potentials[i].phi:combine(self.externalPhiTimeDependence(0.0),self.externalPhiFld)
-         else
-            self.potentials[i].phi:copy(self.externalPhiFld)
-         end
-      end
-   else
-      -- Solve for initial phi.
+   if not self.externalPhi then
+      -- Solve for initial phi. Temporarily re-set the calcPhi function in the advance method.
+      local trueCalcPhi = self.calcPhi
+      self.calcPhi = (not self.evolve) and self.calcPhiInitial or self.calcPhi
+
       self:advance(0.0, species, 1, 1)
+
+      if (not self.evolve) then self.calcPhi = trueCalcPhi end
    end
 
    if self.isElectromagnetic then
@@ -324,147 +313,195 @@ function GkField:combineRk(outIdx, a, aIdx, ...)
 end
 
 function GkField:createSolver(species, externalField)
-   -- Get adiabatic species info.
-   for _, s in lume.orderedIter(species) do
-      if Species.AdiabaticSpecies.is(s) then
-         self.adiabatic, self.adiabSpec = true, s
-      end
-   end
-   assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")
+   -- Need to set this flag so that field calculated self-consistently at end of full RK timestep.
+   self.isElliptic = true
 
-   self.unitField = createField(self.grid,self.basis,{1,1})
-   local initUnit = Updater.ProjectOnBasis {
-      onGrid = self.grid,   evaluate = function (t,xn) return 1.0 end,
-      basis  = self.basis,  onGhosts = true,
-   }
-   initUnit:advance(0.,{},{self.unitField})
-
-   -- Metric coefficients in the Poisson and Ampere equations for phi and Apar.
-   local gxxPoisson, gxyPoisson, gyyPoisson
-   local gxxAmpere, gxyAmpere, gyyAmpere
-   if externalField.geo then 
-      -- Include Jacobian factor in metric coefficients (if using linearized polarization density).
-      if self.linearizedPolarization then
-         gxxPoisson = externalField.geo.gxxJ
-         gxyPoisson = externalField.geo.gxyJ
-         gyyPoisson = externalField.geo.gyyJ
-      else  -- If not, Jacobian already included in polarization density or not needed.
-         gxxPoisson = externalField.geo.gxx
-         gxyPoisson = externalField.geo.gxy
-         gyyPoisson = externalField.geo.gyy
-      end
-      gxxAmpere = externalField.geo.gxxJ
-      gxyAmpere = externalField.geo.gxyJ
-      gyyAmpere = externalField.geo.gyyJ
-      self.jacobGeo = externalField.geo.jacobGeo
-   else
-      self.jacobGeo = self.unitField
-   end
-   -- MF 2022/08/23: g2 creation of phiSlvr happens before setting weights,
-   -- but g0 solver creation needs to happen after computing weights.
-   -- So we only do this creation for ndim>1 here since that is still using
-   -- the g2 updater.
-   if self.ndim > 1 then
-      self.phiSlvr = Updater.GkFemPoisson {
-         onGrid = self.grid,   bcLower = self.bcLowerPhi,
-         basis  = self.basis,  bcUpper = self.bcUpperPhi,
-         zContinuous = not self.discontinuousPhi,
-         -- Note these metric coefficients contain the Jacobian.
-         gxx = gxxPoisson,
-         gxy = gxyPoisson,
-         gyy = gyyPoisson,
-         useG0 = false,
+   if self.externalPhi then
+      local evalOnNodes = Updater.EvalOnNodes {
+         onGrid = self.grid,   evaluate = self.externalPhi,
+         basis  = self.basis,  onGhosts = true
       }
-   end
-
-   self.weakMultiply = Updater.CartFieldBinOp {
-      weakBasis = self.basis,  operation = "Multiply",
-      onGhosts  = true,
-   }
-   self.weakDivide = Updater.CartFieldBinOp {
-      weakBasis = self.basis,  operation = "Divide",
-      onRange   = self.chargeDens:localRange(),  onGhosts = false,
-   }
-
-   -- When using a linearizedPolarization term in Poisson equation,
-   -- the density in the polarization density is constant in time.
-   if self.linearizedPolarization then
-      -- Calculate weight on polarization term: sum_s m_s * jacobGeo * n_s / B^2.
-      self.polarizationWeight:clear(0.)
-      for _, s in lume.orderedIter(species) do
-         if Species.GkSpecies.is(s) or Species.GyrofluidSpecies.is(s) then
-            self.polarizationWeight:accumulate(1., s:getPolarizationWeight())
-         end
-      end
-      self.esEnergyFac:combine(.5, self.polarizationWeight)
-
-      -- Set up scalar multipliers on laplacian and modifier terms in Poisson equation.
-      if self.ndim==1 then
-         self.modWeightPoisson:combine(self.kperpSq, self.polarizationWeight)
-         self.esEnergyFac:scale(self.kperpSq)  -- For diagnostics.
-         -- Add contribution from the adiabatic species.
-         if self.adiabatic then 
-            self.modWeightPoisson:accumulate(1., self.adiabSpec:getQneutFac())
-            self.esEnergyFac:accumulate(0.5, self.adiabSpec:getQneutFac())   -- For diagnostics.
-         end
-      else 
-         self.lapWeightPoisson:combine(-1., self.polarizationWeight)
-         self.phiSlvr:setLaplacianWeight(self.lapWeightPoisson)
-
-         self.modWeightPoisson:clear(0.)
-         if self.adiabatic then   -- Add contribution from the adiabatic species.
-            self.modWeightPoisson:accumulate(1., self.adiabSpec:getQneutFac())
-            self.phiSlvr:setModifierWeight(self.modWeightPoisson)
-         end
-
+      self.externalPhiFld = createField(self.grid,self.basis,{1,1})
+      evalOnNodes:advance(0.0, {}, {self.externalPhiFld})
+      for i = 1, self.nRkDup do
+         self.potentials[i].phi:combine(self.externalPhiTimeDependence(0.0),self.externalPhiFld)
       end
 
-      self.setPolarizationWeightFunc = function(specTbl) end  -- Polarization weight is not time dependent.
-   else
-      -- When not using linearizedPolarization, weights are set each step in advance method using these functions.
-      if self.ndim == 1 then
-         self.setPolarizationWeightFunc = function(specTbl)
-            self.polarizationWeight:clear(0.0)
-            for _, s in lume.orderedIter(specTbl) do
-               self.polarizationWeight:accumulate(self.kperpSq, s:getPolarizationMassDensity())
-            end
-         end
-         self.phiSlvr:setWeight(self.polarizationWeight)
+      if self.evolve then
+	 self.calcPhi = function(tCurr, species, potentialsIn, potentialsOut)
+            potentialsIn.phi:combine(self.externalPhiTimeDependence(tCurr), self.externalPhiFld)
+	 end
       else
-         self.setPolarizationWeightFunc = function(specTbl)
-            self.polarizationWeight:clear(0.0)
-            for _, s in lume.orderedIter(specTbl) do
-               self.polarizationWeight:accumulate(-1.0, s:getPolarizationMassDensity())
-            end
-            self.phiSlvr:setLaplacianWeight(self.polarizationWeight)
-         end
-      end
-   end
-
-   if self.ndim == 1 then
-      -- MF 2022/08/23: Construction of modWeightPoisson took place on the device because
-      -- it was assigned with :accumulate and :combine, which use the device
-      -- pointer if the CartField was created with useDevice=nil. Copy to host.
-      self.modWeightPoisson:copyDeviceToHost()
-      self.phiSlvr = Updater.FemParproj {
-         onGrid = self.grid,  basis = self.basis,
-         weight = self.modWeightPoisson,
-         periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
-      }
-   end
-
-   if self.ndim == 3 and not self.discontinuousPhi then
-      self.phiZSmoother = Updater.FemParproj {
-         onGrid = self.grid,  basis = self.basis,
-         periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
-      }
-      self.zSmoothPhi = function(tCurr, phiIn, phiOut)
-         self.phiZSmoother:advance(tCurr, {phiIn}, {phiOut})
-         return phiOut
+	 self.calcPhi = function(tCurr, species, potentialsIn, potentialsOut) end
       end
    else
-      self.zSmoothPhi = function(tCurr, phiIn, phiOut) return phiIn end
-   end
+      -- Get adiabatic species info.
+      for _, s in lume.orderedIter(species) do
+         if Species.AdiabaticSpecies.is(s) then
+            self.adiabatic, self.adiabSpec = true, s
+         end
+      end
+      assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")
+
+      self.unitField = createField(self.grid,self.basis,{1,1})
+      local initUnit = Updater.ProjectOnBasis {
+         onGrid = self.grid,   evaluate = function (t,xn) return 1.0 end,
+         basis  = self.basis,  onGhosts = true,
+      }
+      initUnit:advance(0.,{},{self.unitField})
+
+      -- Metric coefficients in the Poisson and Ampere equations for phi and Apar.
+      local gxxPoisson, gxyPoisson, gyyPoisson
+      local gxxAmpere, gxyAmpere, gyyAmpere
+      if externalField.geo then 
+         -- Include Jacobian factor in metric coefficients (if using linearized polarization density).
+         if self.linearizedPolarization then
+            gxxPoisson = externalField.geo.gxxJ
+            gxyPoisson = externalField.geo.gxyJ
+            gyyPoisson = externalField.geo.gyyJ
+         else  -- If not, Jacobian already included in polarization density or not needed.
+            gxxPoisson = externalField.geo.gxx
+            gxyPoisson = externalField.geo.gxy
+            gyyPoisson = externalField.geo.gyy
+         end
+         gxxAmpere = externalField.geo.gxxJ
+         gxyAmpere = externalField.geo.gxyJ
+         gyyAmpere = externalField.geo.gyyJ
+         self.jacobGeo = externalField.geo.jacobGeo
+      else
+         self.jacobGeo = self.unitField
+      end
+      -- MF 2022/08/23: g2 creation of phiSlvr happens before setting weights,
+      -- but g0 solver creation needs to happen after computing weights.
+      -- So we only do this creation for ndim>1 here since that is still using
+      -- the g2 updater.
+      if self.ndim > 1 then
+         self.phiSlvr = Updater.GkFemPoisson {
+            onGrid = self.grid,   bcLower = self.bcLowerPhi,
+            basis  = self.basis,  bcUpper = self.bcUpperPhi,
+            zContinuous = not self.discontinuousPhi,
+            -- Note these metric coefficients contain the Jacobian.
+            gxx = gxxPoisson,
+            gxy = gxyPoisson,
+            gyy = gyyPoisson,
+            useG0 = false,
+         }
+      end
+
+      self.weakMultiply = Updater.CartFieldBinOp {
+         weakBasis = self.basis,  operation = "Multiply",
+         onGhosts  = true,
+      }
+
+      -- When using a linearizedPolarization term in Poisson equation,
+      -- the density in the polarization density is constant in time.
+      if self.linearizedPolarization then
+         -- Calculate weight on polarization term: sum_s m_s * jacobGeo * n_s / B^2.
+         self.polarizationWeight:clear(0.)
+         for _, s in lume.orderedIter(species) do
+            if Species.GkSpecies.is(s) or Species.GyrofluidSpecies.is(s) then
+               self.polarizationWeight:accumulate(1., s:getPolarizationWeight())
+            end
+         end
+         self.esEnergyFac:combine(.5, self.polarizationWeight)
+
+         -- Set up scalar multipliers on laplacian and modifier terms in Poisson equation.
+         if self.ndim==1 then
+            self.modWeightPoisson:combine(self.kperpSq, self.polarizationWeight)
+            self.esEnergyFac:scale(self.kperpSq)  -- For diagnostics.
+            -- Add contribution from the adiabatic species.
+            if self.adiabatic then 
+               self.modWeightPoisson:accumulate(1., self.adiabSpec:getQneutFac())
+               self.esEnergyFac:accumulate(0.5, self.adiabSpec:getQneutFac())   -- For diagnostics.
+            end
+         else 
+            self.lapWeightPoisson:combine(-1., self.polarizationWeight)
+            self.phiSlvr:setLaplacianWeight(self.lapWeightPoisson)
+
+            self.modWeightPoisson:clear(0.)
+            if self.adiabatic then   -- Add contribution from the adiabatic species.
+               self.modWeightPoisson:accumulate(1., self.adiabSpec:getQneutFac())
+               self.phiSlvr:setModifierWeight(self.modWeightPoisson)
+            end
+
+         end
+
+         self.setPolarizationWeightFunc = function(specTbl) end  -- Polarization weight is not time dependent.
+      else
+         -- When not using linearizedPolarization, weights are set each step in advance method using these functions.
+         if self.ndim == 1 then
+            self.setPolarizationWeightFunc = function(specTbl)
+               self.polarizationWeight:clear(0.0)
+               for _, s in lume.orderedIter(specTbl) do
+                  self.polarizationWeight:accumulate(self.kperpSq, s:getPolarizationMassDensity())
+               end
+            end
+            self.phiSlvr:setWeight(self.polarizationWeight)
+         else
+            self.setPolarizationWeightFunc = function(specTbl)
+               self.polarizationWeight:clear(0.0)
+               for _, s in lume.orderedIter(specTbl) do
+                  self.polarizationWeight:accumulate(-1.0, s:getPolarizationMassDensity())
+               end
+               self.phiSlvr:setLaplacianWeight(self.polarizationWeight)
+            end
+         end
+      end
+
+      if self.ndim == 1 then
+         -- MF 2022/08/23: Construction of modWeightPoisson took place on the device because
+         -- it was assigned with :accumulate and :combine, which use the device
+         -- pointer if the CartField was created with useDevice=nil. Copy to host.
+         self.modWeightPoisson:copyDeviceToHost()
+         self.phiSlvr = Updater.FemParproj {
+            onGrid = self.grid,  basis = self.basis,
+            weight = self.modWeightPoisson,
+            periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
+         }
+      end
+
+      if self.ndim == 3 and not self.discontinuousPhi then
+         self.phiZSmoother = Updater.FemParproj {
+            onGrid = self.grid,  basis = self.basis,
+            periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
+         }
+         self.zSmoothPhi = function(tCurr, phiIn, phiOut)
+            self.phiZSmoother:advance(tCurr, {phiIn}, {phiOut})
+            return phiOut
+         end
+      else
+         self.zSmoothPhi = function(tCurr, phiIn, phiOut) return phiIn end
+      end
+
+      -- Function called in the advance method.
+      self.calcPhiInitial = function(tCurr, species, potentialsIn, potentialsOut)
+         self.chargeDens:clear(0.0)
+         for _, s in lume.orderedIter(species) do
+            self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
+         end
+
+         -- If not using linearized polarization term, set up laplacian weight.
+         self:setPolarizationWeight(species)
+
+         -- Phi solve (elliptic, so update potentials).
+         -- Energy conservation requires phi to be continuous in all directions. 
+         -- The first FEM solve ensures that phi is continuous in x and y.
+         -- The conserved energy is defined in terms of this intermediate result,
+         -- which we denote phiAux, before the final smoothing operation in z.
+         self.phiSlvr:advance(tCurr, {self.chargeDens}, {potentialsIn.phiAux})
+
+         potentialsIn.phi = self.zSmoothPhi(tCurr, potentialsIn.phiAux, potentialsIn.phi)
+      end
+      self.calcPhi = self.evolve
+         and self.calcPhiInitial
+	 or (self.isElectromagnetic
+	     and function(tCurr, species, potentialsIn, potentialsOut)
+                    -- Just copy stuff over.
+                    potentialsOut.apar:copy(potentialsIn.apar)
+	         end
+             or function(tCurr, species, potentialsIn, potentialsOut) end)
+
+   end -- end if (self.externalPhi)
 
    if self.isElectromagnetic then 
       local ndim = self.ndim
@@ -514,32 +551,7 @@ function GkField:createSolver(species, externalField)
       if modifierConstant ~= 0 then self.dApardtSlvr:setModifierWeight(self.modWeightAmpere) end
    end
 
-   -- Need to set this flag so that field calculated self-consistently at end of full RK timestep.
-   self.isElliptic = true
-
    if self.isElectromagnetic then self.nstep = 2 end
-
-   self.boundaryConditions = { }   -- List of Bcs to apply.
-   -- For non-periodic dirs, use BC_OPEN to make sure values on edge of ghost cells match
-   -- values on edge of skin cells, so that field is continuous across skin-ghost boundary.
- 
-   local function makeOpenBcUpdater(dir, edge)  -- Function to construct a BC updater.
-      local bcOpen = function(dir, tm, idxIn, fIn, fOut)
-         self.basis:flipSign(dir, fIn:data(), fOut:data())  -- Requires skinLoop = "pointwise".
-      end
-      return Updater.Bc {
-         onGrid   = self.grid,   edge = edge,
-         dir      = dir,         boundaryConditions = {bcOpen},
-         skinLoop = "pointwise",
-      }
-   end
-
-   for dir = 1, self.ndim do
-      if not lume.any(self.periodicDirs, function(t) return t==dir end) then 
-         table.insert(self.boundaryConditions, makeOpenBcUpdater(dir, "lower"))
-         table.insert(self.boundaryConditions, makeOpenBcUpdater(dir, "upper"))
-      end
-   end
 end
 
 function GkField:createDiagnostics()
@@ -569,79 +581,124 @@ function GkField:createDiagnostics()
          basis  = self.basis,
       }
    end
+
+   -- The following functions streamline diagnostic computation and writing inside the time
+   -- loop. This is akin to what is done in SpeciesDiagnostis, and perhaps we should use a
+   -- diagnostics App for the fields too.
+   self.calcPhiGridDiags = self.evolve
+   and function(tm, force)
+       end
+   or function(tm, force) end
+   
+   self.writePhiGridDiags = self.evolve
+   and function(tm, force)
+          self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
+       end
+   or function(tm, force)
+         if self.ioFrame == 0 then
+   	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
+         end
+      end
+   
+   self.calcPhiIntDiags =  (self.evolve and (not self.externalPhi))
+   and function(tm, force)
+          -- Compute integrated quantities over domain.
+          self.int2Calc:advance(tm, { self.potentials[1].phi }, { self.intPhiSq })
+          if self.energyCalc then 
+             if self.ndim > 1 then
+                self.energyCalc:advance(tm, { self.potentials[1].phi, self.unitField }, { self.gradPerpPhiSq })
+             end
+             if self.linearizedPolarization then
+                if self.uniformPolarization then
+                   if self.ndim == 1 then 
+                      self.weakMultiply:advance(0., {self.potentials[1].phiAux, self.potentials[1].phiAux},
+                                                {self.phiSq})
+                      self.weakMultiply:advance(0., {self.phiSq, self.esEnergyFac}, {self.phiSq})
+                      self.energyCalc:advance(tm, { self.phiSq }, { self.esEnergy })
+                   else
+                      self.energyCalc:advance(tm, { self.potentials[1].phiAux, self.esEnergyFac }, { self.esEnergy })
+                   end
+   
+                   if self.adiabatic and self.ndim > 1 then
+                      self.weakMultiply:advance(0., {self.potentials[1].phi, self.potentials[1].phi},
+                                                {self.phiSq})
+                      self.weakMultiply:advance(0., {self.phiSq, self.adiabSpec:getQneutFac()}, {self.phiSq})
+                      self.intCalc:advance(tm, { self.phiSq, 0.5 }, { self.esEnergyAdiabatic })
+                      local tm, energyVal = self.esEnergy:lastData()
+                      local _, energyValAdiabatic = self.esEnergyAdiabatic:lastData()
+                      energyVal[1] = energyVal[1] + energyValAdiabatic[1]
+   --                   -- MF 2022/07/20: commenting this out for now to facilitate reg test comparison.
+   --                   self.esEnergy:assignLastVal(1., energyVal)  -- Adiabatic species contribution.
+                   end
+                else
+                   -- Something.
+                end
+             else
+                -- Something.
+             end
+          end
+       end
+   or function(tm, force) end
+   
+   self.writePhiIntDiags = (self.evolve and self.isElectromagnetic)
+   and function(tm, force)
+          self.intPhiSq:write(string.format("intPhiSq.bp"), tm, self.ioFrame)
+          self.gradPerpPhiSq:write(string.format("gradPerpPhiSq.bp"), tm, self.ioFrame)
+          self.esEnergy:write(string.format("esEnergy.bp"), tm, self.ioFrame)
+       end
+   or function(tm, force) end
+   
+   self.calcAparGridDiags = (self.evolve and self.isElectromagnetic)
+   and function(tm, force)
+       end
+   or function(tm, force) end
+   
+   self.writeAparGridDiags = self.isElectromagnetic
+   and (self.evolve and function(tm, force)
+          self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
+          self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
+        end or function(tm, force)
+           if self.ioFrame == 0 then
+              self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
+              self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
+           end
+        end)
+   or function(tm, force) end
+   
+   self.calcAparIntDiags = (self.evolve and self.isElectromagnetic)
+   and function(tm, force)
+          -- Compute integrated quantities over domain.
+          self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.aparSq })
+          if self.energyCalc then 
+             local emEnergyFac = .5/self.mu0
+             if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperpSq end
+             self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy })
+          end
+       end
+   or function(tm, force) end
+   
+   self.writeAparIntDiags = (self.evolve and self.isElectromagnetic)
+   and function(tm, force)
+          self.aparSq:write(string.format("aparSq.bp"), tm, self.ioFrame)
+          self.emEnergy:write(string.format("emEnergy.bp"), tm, self.ioFrame)
+       end
+   or function(tm, force) end
+
 end
 
 function GkField:write(tm, force)
-   if self.evolve then
-      if self.calcIntFieldEnergyTrigger(tm) then
-         -- Compute integrated quantities over domain.
-         self.int2Calc:advance(tm, { self.potentials[1].phi }, { self.intPhiSq })
-         if self.isElectromagnetic then 
-            self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.aparSq })
-         end
-         if self.energyCalc then 
-            if self.ndim > 1 then
-               self.energyCalc:advance(tm, { self.potentials[1].phi, self.unitField }, { self.gradPerpPhiSq })
-            end
-            if self.linearizedPolarization then
-               if self.uniformPolarization then
-                  if self.ndim == 1 then 
-                     self.weakMultiply:advance(0., {self.potentials[1].phiAux, self.potentials[1].phiAux},
-                                               {self.phiSq})
-                     self.weakMultiply:advance(0., {self.phiSq, self.esEnergyFac}, {self.phiSq})
-                     self.energyCalc:advance(tm, { self.phiSq }, { self.esEnergy })
-                  else
-                     self.energyCalc:advance(tm, { self.potentials[1].phiAux, self.esEnergyFac }, { self.esEnergy })
-                  end
+   if self.calcIntFieldEnergyTrigger(tm) then
+      self.calcPhiIntDiags(tm, force)
+      self.calcAparIntDiags(tm, force)
+   end
 
-                  if self.adiabatic and self.ndim > 1 then
-                     self.weakMultiply:advance(0., {self.potentials[1].phi, self.potentials[1].phi},
-                                               {self.phiSq})
-                     self.weakMultiply:advance(0., {self.phiSq, self.adiabSpec:getQneutFac()}, {self.phiSq})
-                     self.intCalc:advance(tm, { self.phiSq, 0.5 }, { self.esEnergyAdiabatic })
-                     local tm, energyVal = self.esEnergy:lastData()
-                     local _, energyValAdiabatic = self.esEnergyAdiabatic:lastData()
-                     energyVal[1] = energyVal[1] + energyValAdiabatic[1]
---                     -- MF 2022/07/20: commenting this out for now to facilitate reg test comparison.
---                     self.esEnergy:assignLastVal(1., energyVal)  -- Adiabatic species contribution.
-                  end
-               else
-                  -- Something.
-               end
-            else
-               -- Something.
-            end
-            if self.isElectromagnetic then 
-              local emEnergyFac = .5/self.mu0
-              if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperpSq end
-              self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy })
-            end
-         end
-      end
+   if self.ioTrigger(tm) or force then
+      self.writePhiGridDiags(tm, force)
+      self.writeAparGridDiags(tm, force)
 
-      if self.ioTrigger(tm) or force then
-	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
-	 self.intPhiSq:write(string.format("intPhiSq.bp"), tm, self.ioFrame)
-	 self.gradPerpPhiSq:write(string.format("gradPerpPhiSq.bp"), tm, self.ioFrame)
-	 self.esEnergy:write(string.format("esEnergy.bp"), tm, self.ioFrame)
-         if self.isElectromagnetic then 
-	    self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
-	    self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
-	    self.aparSq:write(string.format("aparSq.bp"), tm, self.ioFrame)
-	    self.emEnergy:write(string.format("emEnergy.bp"), tm, self.ioFrame)
-	 end
-	 
-	 self.ioFrame = self.ioFrame+1
-      end
-   else
-      -- If not evolving species, don't write anything except initial conditions.
-      if self.ioFrame == 0 then
-	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
-         if self.isElectromagnetic then 
-	    self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
-	    self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
-         end
-      end
+      self.writePhiIntDiags(tm, force)
+      self.writeAparIntDiags(tm, force)
+      
       self.ioFrame = self.ioFrame+1
    end
 end
@@ -652,11 +709,6 @@ function GkField:writeRestart(tm)
    if self.isElectromagnetic then
       self.fieldIo:write(self.potentials[1].apar, "apar_restart.bp", tm, self.ioFrame, false)
    end
-
-   -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
-   self.intPhiSq:write("intPhiSq_restart.bp", tm, self.dynVecRestartFrame, false, false)
-   self.dynVecRestartFrame = self.dynVecRestartFrame + 1
-
 end
 
 function GkField:readRestart()
@@ -664,7 +716,6 @@ function GkField:readRestart()
    -- numbering correct. The forward Euler recomputes the potential
    -- before updating the hyperbolic part.
    local tm, fr = self.fieldIo:read(self.potentials[1].phi, "phi_restart.bp")
-   self.intPhiSq:read("intPhiSq_restart.bp", tm)
 
    if self.isElectromagnetic then
       self.fieldIo:read(self.potentials[1].apar, "apar_restart.bp")
@@ -688,33 +739,7 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
    local potRhs  = self:rkStepperFields()[outIdx]
    
-   if self.evolve or (self._first and not self.externalPhi) then
-      if self.externalPhiTimeDependence then
-         potCurr.phi:combine(self.externalPhiTimeDependence(tCurr), self.externalPhiFld)
-      else
-         self.chargeDens:clear(0.0)
-         for _, s in lume.orderedIter(species) do
-            self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
-         end
-
-         -- If not using linearized polarization term, set up laplacian weight.
-         self:setPolarizationWeight(species)
-
-         -- Phi solve (elliptic, so update potCurr).
-         -- Energy conservation requires phi to be continuous in all directions. 
-         -- The first FEM solve ensures that phi is continuous in x and y.
-         -- The conserved energy is defined in terms of this intermediate result,
-         -- which we denote phiAux, before the final smoothing operation in z.
-         self.phiSlvr:advance(tCurr, {self.chargeDens}, {potCurr.phiAux})
-
-         potCurr.phi = self.zSmoothPhi(tCurr, potCurr.phiAux, potCurr.phi)
-
-         self._first = false
-      end
-   else
-      -- Just copy stuff over.
-      if self.isElectromagnetic then potRhs.apar:copy(potCurr.apar) end
-   end
+   self.calcPhi(tCurr, species, potCurr, potRhs)
 
    self.timers.advTime[1] = self.timers.advTime[1] + Time.clock() - tmStart
 end
@@ -744,10 +769,6 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
 
       -- Apply BCs.
       local tmStart = Time.clock()
-      -- make sure dApardt is continuous across skin-ghost boundary
-      for _, bc in ipairs(self.boundaryConditions) do
-         bc:advance(tCurr, {}, {potCurr.dApardt})
-      end
       dApardt:sync(true)
       self.bcTime = self.bcTime + (Time.clock()-tmStart)
 
@@ -762,15 +783,10 @@ end
 -- Also NOTE: this method does not usually get called (because it is not called in applyBcIdx).
 function GkField:applyBc(tCurr, potIn)
    local tmStart = Time.clock()
-   for _, bc in ipairs(self.boundaryConditions) do bc:advance(tCurr, {}, {potIn.phi}) end
    potIn.phi:sync(true)
    if self.isElectromagnetic then 
-     -- make sure apar is continuous across skin-ghost boundary
-     for _, bc in ipairs(self.boundaryConditions) do bc:advance(tCurr, {}, {potIn.apar}) end
-     potIn.apar:sync(true) 
-     -- make sure dApardt is continuous across skin-ghost boundary
-     for _, bc in ipairs(self.boundaryConditions) do bc:advance(tCurr, {}, {potIn.dApardt}) end
-     potIn.dApardt:sync(true) 
+      potIn.apar:sync(true) 
+      potIn.dApardt:sync(true) 
    end
    self.bcTime = self.bcTime + (Time.clock()-tmStart)
 end
