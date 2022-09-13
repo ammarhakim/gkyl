@@ -191,6 +191,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
       local m0sdeltas = inFld[11]
 
       local uCrossSelf, vtSqCrossSelf = outFld[1], outFld[2]
+
       -- Compose the pre-factor:
       --   m0_s*delta_s*(1+beta)
       --     = m0_s*(2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs))*(1+beta)
@@ -429,6 +430,7 @@ function CrossPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
    local m0sdeltas = inFld[11]
 
    local uCrossSelf, vtSqCrossSelf = outFld[1], outFld[2]
+
    -- Compose the pre-factor:
    --   m0_s*delta_s*(1+beta)
    --     = m0_s*(2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs))*(1+beta)

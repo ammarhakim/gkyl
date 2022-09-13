@@ -286,7 +286,7 @@ function GkField:initField(species)
    -- Apply BCs and update ghosts.
    self:applyBc(0, self.potentials[1])
 
-   if self.ndim > 1 and self.ioFrame == 0 then 
+   if self.ndim > 1 and self.ioFrame == 0 and (not self.externalPhi) then 
       self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeightPoisson_0.bp", tm, self.ioFrame, false)
       self.fieldIo:write(self.phiSlvr:getModifierWeight(),  "modifierWeightPoisson_0.bp", tm, self.ioFrame, false)
    end
