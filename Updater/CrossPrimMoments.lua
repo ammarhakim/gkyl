@@ -35,13 +35,14 @@ typedef struct gkyl_prim_lbo_cross_calc gkyl_prim_lbo_cross_calc;
  * @param cbasis_rng Config-space basis functions
  * @param conf_rng Config-space range
  * @param greene Greene's factor
+ * @param self_moms Moments of distribution function (Zeroth, First, and Second)
  * @param self_m Mass of the species
  * @param self_u Drift velocity of the species
  * @param self_vtsq Thermal velocity of the species
- * @param cross_m Mass of the colliding species
- * @param cross_u Drift velocity of the colliding species
- * @param cross_vtsq Thermal velocity of the colliding species
- * @param moms Moments of distribution function (Zeroth, First, and Second)
+ * @param other_moms Moments of distribution function of the colliding species (Zeroth, First, and Second)
+ * @param other_m Mass of the colliding species
+ * @param other_u Drift velocity of the colliding species
+ * @param other_vtsq Thermal velocity of the colliding species
  * @param boundary_corrections Momentum and Energy boundary corrections
  * @param u_out Output drift velocity primitive moment array
  * @param vtsq_out Output thermal velocity primitive moment array
@@ -49,17 +50,17 @@ typedef struct gkyl_prim_lbo_cross_calc gkyl_prim_lbo_cross_calc;
 void gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
   struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
-  double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
-  double cross_m, const struct gkyl_array *cross_u, const struct gkyl_array *cross_vtsq,
-  const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
+  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
+  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_u, const struct gkyl_array *other_vtsq,
+  const struct gkyl_array *boundary_corrections,
   struct gkyl_array *u_out, struct gkyl_array *vtsq_out);
 
 void gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
   struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
-  double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
-  double cross_m, const struct gkyl_array *cross_u, const struct gkyl_array *cross_vtsq,
-  const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
+  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
+  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_u, const struct gkyl_array *other_vtsq,
+  const struct gkyl_array *boundary_corrections,
   struct gkyl_array *u_out, struct gkyl_array *vtsq_out);
 
 /**
@@ -197,8 +198,8 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
 
       -- Compute u and vtsq.
       ffiC.gkyl_prim_lbo_cross_calc_advance(self._zero, self.confBasis._zero, uSelf:localRange(), m0sdeltas._zero,
-         mSelf, uSelf._zero, vtSqSelf._zero, mOther, uOther._zero, vtSqOther._zero, 
-         momsSelf._zero, bCorrsSelf._zero, uCrossSelf._zero, vtSqCrossSelf._zero)
+         mSelf, momsSelf._zero, uSelf._zero, vtSqSelf._zero, mOther, momsOther._zero, uOther._zero, vtSqOther._zero, 
+         bCorrsSelf._zero, uCrossSelf._zero, vtSqCrossSelf._zero)
 
       return
    end
@@ -435,8 +436,9 @@ function CrossPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
 
    -- Compute u and vtsq.
    ffiC.gkyl_prim_lbo_cross_calc_advance_cu(self._zero, self.confBasis._zero, uSelf:localRange(), m0sdeltas._zeroDevice,
-      mSelf, uSelf._zeroDevice, vtSqSelf._zeroDevice, mOther, uOther._zeroDevice, vtSqOther._zeroDevice, 
-      momsSelf._zeroDevice, bCorrsSelf._zeroDevice, uCrossSelf._zeroDevice, vtSqCrossSelf._zeroDevice)
+      mSelf, momsSelf._zeroDevice, uSelf._zeroDevice, vtSqSelf._zeroDevice,
+      mOther, momsOther._zeroDevice, uOther._zeroDevice, vtSqOther._zeroDevice, 
+      bCorrsSelf._zeroDevice, uCrossSelf._zeroDevice, vtSqCrossSelf._zeroDevice)
 
 end
 
