@@ -293,10 +293,10 @@ function VmLBOCollisions:createSolver(mySpecies, extField)
       }
       -- Updater to compute cross-species primitive moments.
       self.primMomCross = Updater.CrossPrimMoments {
-         onGrid           = self.confGrid,    betaGreene       = self.betaGreene, 
-         phaseBasis       = self.phaseBasis,  varyingNu        = self.varNu,
-         confBasis        = self.confBasis,   useCellAverageNu = self.cellConstNu,
-         operator         = "VmLBO",
+         onGrid     = self.confGrid,    betaGreene       = self.betaGreene, 
+         phaseBasis = self.phaseBasis,  varyingNu        = self.varNu,
+         confBasis  = self.confBasis,   useCellAverageNu = self.cellConstNu,
+         operator   = "VmLBO",
       }
    end
 

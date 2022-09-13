@@ -45,6 +45,11 @@ nuIon        = nuFrac*logLambdaIon*(eV^4)*n0
 nuElcIon     = nuElc*2.0
 nuIonElc     = me*nuElcIon/mi -- Ion-electron collision frequency.
 
+print("nuElc = ", nuElc)
+print("nuIon = ", nuIon)
+print("nuElcIon = ",nuElcIon)
+print("nuIonElc = ",nuIonElc)
+
 -- Box size
 Lx = 4 -- [m]
 
@@ -97,8 +102,6 @@ plasmaApp = Plasma.App {
       coll = Plasma.LBOCollisions {
          collideWith = {"elc", "ion", },
          frequencies = {nuElc, nuElcIon, },
---         collideWith = { "ion" },
---         frequencies = { nuElcIon },
          -- Optional arguments:
 --         betaGreene  = 1.0,    -- Free parameter, must be >-1.
       },
@@ -134,8 +137,6 @@ plasmaApp = Plasma.App {
       coll = Plasma.LBOCollisions {
          collideWith = {"ion", "elc"},
          frequencies = {nuIon, nuIonElc},
---         collideWith = { "elc" },
---         frequencies = { nuIonElc },
          -- Optional arguments:
 --         betaGreene  = 1.0,    -- Free parameter, must be >-1.
       },
@@ -143,9 +144,9 @@ plasmaApp = Plasma.App {
 
    -- Field solver.
    field = Plasma.Field {
-      evolve = true,    -- Evolve fields?
-      -- initPhiFunc = function (t, xn) return 0.0 end,
-      kperpSq = 0.0 
+      evolve      = false, -- Evolve fields?
+      externalPhi = function (t, xn) return 0.0 end,
+      kperpSq     = 0.0,
    },
    
    -- Magnetic geometry.

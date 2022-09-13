@@ -436,6 +436,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    self.needCorrectedSelfPrimMom = false
    -- Also check if spatially varying nu is needed, and if the user inputed a spatial
    -- profile for the collisionality (which needs to be projected).
+   local needVarNu               = false
    local userInputNuProfile      = false
    if self.collPairs[self.name][self.name].on then
       self.needSelfPrimMom          = true
@@ -452,6 +453,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
             self.needCorrectedSelfPrimMom = true
          end
 
+         needVarNu = true
          if (not self.collPairs[self.name][sO].timeDepNu) or (not self.collPairs[sO][self.name].timeDepNu) then
             userInputNuProfile = true
          end
@@ -542,34 +544,36 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       end
    end
 
-   self.nuVarXCross = {}    -- Collisionality varying in configuration space.
-   local projectNuX = nil
-   if userInputNuProfile then
-      projectNuX = Updater.ProjectOnBasis {
-         onGrid = self.confGrid,   evaluate = function(t,xn) return 0.0 end, -- Function is set below.
-         basis  = self.confBasis,  onGhosts = false,
-      }
-   end
-   for sN, _ in lume.orderedIter(species) do
-      if sN ~= self.name then
-         -- Sixth moment flag is to indicate if spatially varying collisionality has been computed.
-         self.momentFlags[6][sN] = false
+   if needVarNu then
+      self.nuVarXCross = {}    -- Collisionality varying in configuration space.
+      local projectNuX = nil
+      if userInputNuProfile then
+         projectNuX = Updater.ProjectOnBasis {
+            onGrid = self.confGrid,   evaluate = function(t,xn) return 0.0 end, -- Function is set below.
+            basis  = self.confBasis,  onGhosts = false,
+         }
       end
-
-      for sO, _ in lume.orderedIter(species) do
-         -- Allocate space for this species' collision frequency 
-         -- only if some other species collides with it.
-         if (sN ~= sO) and (self.collPairs[sN][sO].on or self.collPairs[sO][sN].on) then
-            otherNm = string.gsub(sO .. sN, self.name, "")
-            if self.nuVarXCross[otherNm] == nil then
-               self.nuVarXCross[otherNm] = self:allocMoment()
-               if (userInputNuProfile and (not self.collPairs[sN][sO].timeDepNu) or (not self.collPairs[sO][sN].timeDepNu)) then
-                  projectNuX:setFunc(self.collPairs[self.name][otherNm].nu)
-                  projectNuX:advance(0.0,{},{self.nuVarXCross[otherNm]})
-                  if (not self.collPairs[self.name][otherNm].on) then
-                     self.nuVarXCross[otherNm]:scale(species[self.name]:getMass()/species[otherNm]:getMass())
+      for sN, _ in lume.orderedIter(species) do
+         if sN ~= self.name then
+            -- Sixth moment flag is to indicate if spatially varying collisionality has been computed.
+            self.momentFlags[6][sN] = false
+         end
+   
+         for sO, _ in lume.orderedIter(species) do
+            -- Allocate space for this species' collision frequency 
+            -- only if some other species collides with it.
+            if (sN ~= sO) and (self.collPairs[sN][sO].on or self.collPairs[sO][sN].on) then
+               otherNm = string.gsub(sO .. sN, self.name, "")
+               if self.nuVarXCross[otherNm] == nil then
+                  self.nuVarXCross[otherNm] = self:allocMoment()
+                  if (userInputNuProfile and (not self.collPairs[sN][sO].timeDepNu) or (not self.collPairs[sO][sN].timeDepNu)) then
+                     projectNuX:setFunc(self.collPairs[self.name][otherNm].nu)
+                     projectNuX:advance(0.0,{},{self.nuVarXCross[otherNm]})
+                     if (not self.collPairs[self.name][otherNm].on) then
+                        self.nuVarXCross[otherNm]:scale(species[self.name]:getMass()/species[otherNm]:getMass())
+                     end
+                     self.nuVarXCross[otherNm]:write(string.format("%s_nu-%s_%d.bp",self.name,otherNm,0),0.0,0,true)
                   end
-                  self.nuVarXCross[otherNm]:write(string.format("%s_nu-%s_%d.bp",self.name,otherNm,0),0.0,0,true)
                end
             end
          end

@@ -155,16 +155,16 @@ function CrossPrimMoments:init(tbl)
 
    if GKYL_USE_GPU then
       if self._operator=="GkLBO" then
---         self._zero = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_cross_calc_cu_dev_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
---                             ffiC.gkyl_prim_lbo_cross_calc_release)
+         self._zero = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_cross_calc_cu_dev_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
+                             ffiC.gkyl_prim_lbo_cross_calc_release)
       elseif self._operator=="VmLBO" then
          self._zero = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_cross_calc_cu_dev_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
                              ffiC.gkyl_prim_lbo_cross_calc_release)
       end
    else
       if self._operator=="GkLBO" then
---         self._zero = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_cross_calc_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
---                             ffiC.gkyl_prim_lbo_cross_calc_release)
+         self._zero = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_cross_calc_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
+                             ffiC.gkyl_prim_lbo_cross_calc_release)
       elseif self._operator=="VmLBO" then
          self._zero = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_cross_calc_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
                              ffiC.gkyl_prim_lbo_cross_calc_release)

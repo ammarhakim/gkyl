@@ -499,8 +499,6 @@ function GkSpecies:initCrossSpeciesCoupling(species)
                      self.collPairs[sN][sO].kind      = species[sN].collisions[collNmN].collKind
                      -- Collision frequency time dependence (e.g. constant, time-varying).
                      self.collPairs[sN][sO].timeDepNu = species[sN].collisions[collNmN].timeDepNu
-                     -- Collision frequency spatial dependence (e.g. homogeneous, spatially varying).
-                     self.collPairs[sN][sO].varNu     = species[sN].collisions[collNmN].varNu
                      if (not self.collPairs[sN][sO].timeDepNu) then
                         -- Constant collisionality. Record it.
                         self.collPairs[sN][sO].nu = species[sN].collisions[collNmN].collFreqs[specInd]
@@ -525,17 +523,10 @@ function GkSpecies:initCrossSpeciesCoupling(species)
                         -- Collision frequency time dependence (e.g. constant, time-varying).
                         self.collPairs[sO][sN].timeDepNu = species[sO].collisions[collNmN].timeDepNu
                         self.collPairs[sN][sO].timeDepNu = species[sO].collisions[collNmN].timeDepNu
-                        -- Collision frequency spatial dependence (e.g. homogeneous, spatially varying).
-                        self.collPairs[sO][sN].varNu     = species[sO].collisions[collNmO].varNu
-                        self.collPairs[sN][sO].varNu     = species[sO].collisions[collNmO].varNu
                         if (not self.collPairs[sN][sO].timeDepNu) then
                            -- Constant collisionality. Record it.
-                           if (self.collPairs[sN][sO].varNu) then
-                              -- We will need to first project the nu we do have, and later scale it by the mass ratio.
-                              self.collPairs[sN][sO].nu = species[sO].collisions[collNmO].collFreqs[specInd]
-                           else
-                              self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
-                           end
+                           -- We will need to first project the nu we do have, and later scale it by the mass ratio.
+                           self.collPairs[sN][sO].nu = species[sO].collisions[collNmO].collFreqs[specInd]
                         else
                            -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                            if (species[sO].collisions[collNmO].userInputNormNu) then
@@ -563,16 +554,10 @@ function GkSpecies:initCrossSpeciesCoupling(species)
                      -- that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
                      local specInd = findInd(species[sO].collisions[collNmO].collidingSpecies, sN)
                      if specInd < (#species[sO].collisions[collNmO].collidingSpecies+1) then
-                        self.collPairs[sO][sN].varNu = species[sO].collisions[collNmO].varNu
-                        self.collPairs[sN][sO].varNu = species[sO].collisions[collNmO].varNu
                         if (not self.collPairs[sN][sO].timeDepNu) then
                            -- Constant collisionality. Record it.
-                           if (self.collPairs[sN][sO].varNu) then
-                              -- We will need to first project the nu we do have, and later scale it by the mass ratio.
-                              self.collPairs[sN][sO].nu = species[sO].collisions[collNmO].collFreqs[specInd]
-                           else
-                              self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
-                           end
+                           -- We will need to first project the nu we do have, and later scale it by the mass ratio.
+                           self.collPairs[sN][sO].nu = species[sO].collisions[collNmO].collFreqs[specInd]
                         else
                            -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                            if (species[sO].collisions[collNmO].userInputNormNu) then
@@ -614,11 +599,9 @@ function GkSpecies:initCrossSpeciesCoupling(species)
             self.needCorrectedSelfPrimMom = true
          end
 
-         if self.collPairs[self.name][sO].varNu or self.collPairs[sO][self.name].varNu then
-            needVarNu = true
-            if (not self.collPairs[self.name][sO].timeDepNu) or (not self.collPairs[sO][self.name].timeDepNu) then
-               userInputNuProfile = true
-            end
+         needVarNu = true
+         if (not self.collPairs[self.name][sO].timeDepNu) or (not self.collPairs[sO][self.name].timeDepNu) then
+            userInputNuProfile = true
          end
       end
    end
@@ -682,16 +665,6 @@ function GkSpecies:initCrossSpeciesCoupling(species)
 
       -- Allocate fields for boundary corrections.
       self.threeMomentsBoundaryCorrections = self:allocVectorMoment(3)
-
-      -- Allocate fields for boundary corrections.
-      self.m1Correction = self:allocMoment()
-      self.m2Correction = self:allocMoment()
-      -- Allocate fields for star moments (only used with polyOrder=1).
-      if (self.basis:polyOrder()==1) then
-         self.m0Star = self:allocMoment()
-         self.m1Star = self:allocMoment()
-         self.m2Star = self:allocMoment()
-      end
    end
 
    -- Allocate fieds to store cross-species primitive moments.
@@ -724,10 +697,8 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       local projectNuX = nil
       if userInputNuProfile then
          projectNuX = Updater.ProjectOnBasis {
-            onGrid   = self.confGrid,
-            basis    = self.confBasis,
-            evaluate = function(t,xn) return 0.0 end, -- Function is set below.
-            onGhosts = false,
+            onGrid = self.confGrid,   evaluate = function(t,xn) return 0.0 end, -- Function is set below.
+            basis  = self.confBasis,  onGhosts = false,
          }
       end
       for sN, _ in lume.orderedIter(species) do
@@ -921,21 +892,11 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    if not self.evolve then self._firstMomentCalc = false end
 end
 
-function GkSpecies:fluidMoments()
-   return { self.numDensity, self.momDensity, self.ptclEnergy } 
-end
+function GkSpecies:fluidMoments() return self.threeMoments end
 
-function GkSpecies:boundaryCorrections()
-   return { self.m1Correction, self.m2Correction }
-end
+function GkSpecies:boundaryCorrections() return self.threeMomentsBoundaryCorrections end
 
-function GkSpecies:starMoments()
-   return { self.m0Star, self.m1Star, self.m2Star }
-end
-
-function GkSpecies:selfPrimitiveMoments()
-   return { self.uParSelf, self.vtSqSelf }
-end
+function GkSpecies:selfPrimitiveMoments() return { self.uParSelf, self.vtSqSelf } end
 
 function GkSpecies:crossPrimitiveMoments(otherSpeciesName)
    return { self.uParCross[otherSpeciesName], self.vtSqCross[otherSpeciesName] }

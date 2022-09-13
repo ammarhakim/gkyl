@@ -96,8 +96,6 @@ plasmaApp = Plasma.App {
       coll = Plasma.LBOCollisions {
          collideWith = {"elc", "ion", },
          frequencies = {nuElc, nuElcIon, },
---         collideWith = { "ion" },
---         frequencies = { nuElcIon },
          -- Optional arguments:
 --         betaGreene  = 0.0,    -- Free parameter, must be >-1.
       },
@@ -133,8 +131,6 @@ plasmaApp = Plasma.App {
       coll = Plasma.LBOCollisions {
          collideWith = {"ion", "elc"},
          frequencies = {nuIon, nuIonElc},
---         collideWith = { "elc" },
---         frequencies = { nuIonElc },
          -- Optional arguments:
 --         betaGreene  = 0.0,    -- Free parameter, must be >-1.
       },
@@ -142,9 +138,9 @@ plasmaApp = Plasma.App {
 
    -- Field solver.
    field = Plasma.Field {
-      evolve = true,    -- Evolve fields?
-      -- initPhiFunc = function (t, xn) return 0.0 end,
-      kperpSq = 0.0 
+      evolve      = false, -- Evolve fields?
+      externalPhi = function (t, xn) return 0.0 end,
+      kperpSq     = 0.0,
    },
    
    -- Magnetic geometry.

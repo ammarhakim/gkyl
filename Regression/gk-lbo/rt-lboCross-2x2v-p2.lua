@@ -101,8 +101,6 @@ plasmaApp = Plasma.App {
          frequencies = { nuElc, nuElcIon },
 --         collideWith = { "elc" },
 --         frequencies = { nuElc },
---         collideWith = { "ion" },
---         frequencies = { nuElcIon },
          -- Optional arguments:
 --         betaGreene  = 1.0,    -- Free parameter, must be >-1.
       },
@@ -141,8 +139,6 @@ plasmaApp = Plasma.App {
          frequencies = { nuIon, nuIonElc },
 --         collideWith = { "ion" },
 --         frequencies = { nuIon },
---         collideWith = { "elc" },
---         frequencies = { nuIonElc },
          -- Optional arguments:
 --         betaGreene  = 1.0,    -- Free parameter, must be >-1.
       },
@@ -150,9 +146,9 @@ plasmaApp = Plasma.App {
 
    -- Field solver.
    field = Plasma.Field {
-      evolve = false,    -- Evolve fields?
---      initPhiFunc = function (t, xn) return 0.0 end,
-      kperpSq = 0.0,
+      evolve      = false, -- Evolve fields?
+      externalPhi = function (t, xn) return 0.0 end,
+      kperpSq     = 0.0,
    },
    
    -- Magnetic geometry.
