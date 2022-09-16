@@ -295,6 +295,9 @@ local function buildApplication(self, tbl)
    end   
    -- Create field solver (sometimes requires species solver to have been created).
    field:createSolver(species, externalField)
+
+   -- Some objects require an additional createSolver step after self-species
+   -- solvers are created due to cross-species interactions.
    for _, s in lume.orderedIter(species) do
       s:createCouplingSolver(species, field, externalField)
    end
