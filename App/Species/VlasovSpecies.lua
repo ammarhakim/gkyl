@@ -223,7 +223,7 @@ function VlasovSpecies:createSolver(field, externalField)
             -- Compute M0, M1i and M2.
             self.fiveMomentsCalc:advance(tCurr, {fIn}, {self.fiveMoments})
             -- Copy momentum density to its own field.
-            self.momDensity:combineOffset(1., self.fiveMoments, 1*self.confGrid:numBasis())
+            self.momDensity:combineOffset(1., self.fiveMoments, 1*self.confBasis:numBasis())
          end
          or function(tCurr, fIn)
             -- Compute M0, M1i and M2.
@@ -271,161 +271,34 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    -- species that is not mediated by the field (solver), like
    -- collisions.
 
-   -- Function to find the index of an element in table.
-   local function findInd(tblIn, el)
-      for i, v in ipairs(tblIn) do
-         if v == el then return i end
-      end
-      return #tblIn+1    -- If not found return a number larger than the length of the table.
-   end
-
-   -- Function to concatenate two tables.
-   local function tableConcat(t1,t2)
-      for i=1,#t2 do t1[#t1+1] = t2[i] end
-      return t1
-   end
-
+   -- Determine if M0, M1i and M2 are needed.
+   self.needFiveMoments = false
    -- Create a double nested table of colliding species.
    -- In this table we will encode information about that collition such as:
    --   * does the collision take place?
    --   * Operator modeling the collision.
-   --   * Is the collisionality constant in time?
-   --   * If using homogeneous collisionality, record its value/profile.
-   -- Other features of a collision may be added in the future, such as
-   -- velocity dependent collisionality, FLR effects, or some specific
-   -- neutral/impurity effect.
-   self.collPairs  = {}
+   -- Other features of a collision may be added in the future.
+   self.collPairs = {}
    for sN, _ in lume.orderedIter(species) do
       self.collPairs[sN] = {}
       for sO, _ in lume.orderedIter(species) do
          self.collPairs[sN][sO] = {}
          -- Need next below because species[].collisions is created as an empty table. 
          if species[sN].collisions and next(species[sN].collisions) then 
-            -- This species collides with someone.
-            local selfColl, crossColl, collSpecs = false, false, {}
-            -- Obtain the boolean indicating if self/cross collisions affect the sN species.
             for collNm, _ in pairs(species[sN].collisions) do
-               selfColl  = selfColl or species[sN].collisions[collNm].selfCollisions
-               crossColl = crossColl or species[sN].collisions[collNm].crossCollisions
-               collSpecs = tableConcat(collSpecs, species[sN].collisions[collNm].collidingSpecies)
-            end
-
-            -- Record if a specific binary collision is turned on.
-            if sN == sO then
-               self.collPairs[sN][sO].on = selfColl
-            else
-               if crossColl then
-                  local specInd = findInd(collSpecs, sO)
-                  self.collPairs[sN][sO].on = specInd < (#collSpecs+1)
-               else
-                  self.collPairs[sN][sO].on = false
+               -- This species collides with someone.
+               self.collPairs[sN][sO].on = lume.any(species[sN].collisions[collNm].collidingSpecies,
+                                                    function(e) return e==sO end)
+               if self.collPairs[sN][sO].on then
+                  self.collPairs[sN][sO].kind = species[sO].collisions[collNm].collKind
+                  self.needFiveMoments = true  -- MF 2022/09/16: at the moment all collision models need M0, M1, M2.
                end
             end
-
          else
-
             -- This species does not collide with anyone.
             self.collPairs[sN][sO].on = false
-
-         end    -- end if next(species[sN].collisions) statement.
-      end
-   end
-
-   -- Here we wish to record some properties of each collision in collPairs.
-   for sN, _ in lume.orderedIter(species) do
-      -- Need next below because species[].collisions is created as an empty table. 
-      if species[sN].collisions and next(species[sN].collisions) then 
-         for sO, _ in lume.orderedIter(species) do
-            -- Find the kind of a specific collision, and the collision frequency it uses.
-            for collNmN, _ in pairs(species[sN].collisions) do
-               if self.collPairs[sN][sO].on then
-                  local specInd = findInd(species[sN].collisions[collNmN].collidingSpecies, sO)
-                  if specInd < (#species[sN].collisions[collNmN].collidingSpecies+1) then
-                     -- Collision operator kind.
-                     self.collPairs[sN][sO].kind      = species[sN].collisions[collNmN].collKind
-                     -- Collision frequency time dependence (e.g. constant, time-varying).
-                     self.collPairs[sN][sO].timeDepNu = species[sN].collisions[collNmN].timeDepNu
-                     if (not self.collPairs[sN][sO].timeDepNu) then
-                        -- Constant collisionality. Record it.
-                        self.collPairs[sN][sO].nu = species[sN].collisions[collNmN].collFreqs[specInd]
-                     else
-                        -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
-                        if (species[sN].collisions[collNmN].userInputNormNu) then
-                           self.collPairs[sN][sO].normNu = species[sN].collisions[collNmN].normNuIn[specInd]
-                        else
-                           self.collPairs[sN][sO].normNu = 0.0    -- Not used.
-                        end
-                     end
-                  end
-               elseif self.collPairs[sO][sN].on then
-                  -- Species sN doesn't collide with sO, but sO collides with sN.
-                  -- For computing cross-primitive moments, species sO may need the sN-sO
-                  -- collision frequency. Set it such that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
-                  for collNmO, _ in pairs(species[sO].collisions) do
-                     local specInd = findInd(species[sO].collisions[collNmO].collidingSpecies, sN)
-                     if specInd < (#species[sO].collisions[collNmO].collidingSpecies+1) then
-                        -- Collision operator kind.
-                        self.collPairs[sO][sN].kind      = species[sO].collisions[collNmO].collKind
-                        -- Collision frequency time dependence (e.g. constant, time-varying).
-                        self.collPairs[sO][sN].timeDepNu = species[sO].collisions[collNmN].timeDepNu
-                        self.collPairs[sN][sO].timeDepNu = species[sO].collisions[collNmN].timeDepNu
-                        if (not self.collPairs[sN][sO].timeDepNu) then
-                           -- Constant collisionality. Record it.
-                           -- We will need to first project the nu we do have, and later scale it by the mass ratio.
-                           self.collPairs[sN][sO].nu = species[sO].collisions[collNmO].collFreqs[specInd]
-                        else
-                           -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
-                           if (species[sO].collisions[collNmO].userInputNormNu) then
-                              self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
-                           else
-                              self.collPairs[sN][sO].normNu = 0.0    -- Not used.
-                           end
-                        end
-                     end
-                  end
-               end
-            end
-         end    -- end if next(species[sN].collisions) statement.
-      else
-         -- This segment is needed when species sN doesn't have a collision object/table,
-         -- but species sO collides with sN.
-         -- For computing cross-primitive moments, species sO may need the sN-sO
-         -- collision frequency. Set it such that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
-         for sO, _ in lume.orderedIter(species) do
-            if species[sO].collisions and next(species[sO].collisions) then 
-               for collNmO, _ in pairs(species[sO].collisions) do
-                  if self.collPairs[sO][sN].on then
-                     -- Species sO collides with sN. For computing cross-primitive moments,
-                     -- species sO may need the sN-sO collision frequency. Set it such 
-                     -- that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
-                     local specInd = findInd(species[sO].collisions[collNmO].collidingSpecies, sN)
-                     if specInd < (#species[sO].collisions[collNmO].collidingSpecies+1) then
-                        if (not self.collPairs[sN][sO].timeDepNu) then
-                           -- We will need to first project the nu we do have, and later scale it by the mass ratio.
-                           self.collPairs[sN][sO].nu = species[sO].collisions[collNmO].collFreqs[specInd]
-                        else
-                           -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
-                           if (species[sO].collisions[collNmO].userInputNormNu) then
-                              self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
-                           else
-                              self.collPairs[sN][sO].normNu = 0.0    -- Not used.
-                           end
-                        end
-                     end
-                  end
-               end
-            end
          end
       end
-   end
-
-   -- Determine if self primitive moments and boundary corrections are needed.
-   -- If a pair of species only has cross-species collisions (no self-collisions)
-   -- then the self-primitive moments may be computed without boundary corrections.
-   -- Boundary corrections are only needed if there are LBO self-species collisions.
-   self.needFiveMoments    = false
-   if self.collPairs[self.name][self.name].on then
-      self.needFiveMoments = true
    end
 
    -- If ionization collision object exists, locate electrons
@@ -439,12 +312,10 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    		  for collNm, _ in pairs(species[sN].collisions) do
    		     if self.name==species[sN].collisions[collNm].elcNm and counterIz_elc then
    			self.neutNmIz         = species[sN].collisions[collNm].neutNm
-   			self.needFiveMoments  = true
    			self.calcReactRate    = true
    			self.collNmIoniz      = collNm
 			counterIz_elc         = false
 		     elseif self.name==species[sN].collisions[collNm].neutNm and counterIz_neut then
-			self.needFiveMoments = true
 			counterIz_neut       = false
    		     end
    		  end
@@ -466,7 +337,6 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
   			self.calcCXSrc        = true			
 			self.collNmCX         = collNm
    			self.neutNmCX         = species[sN].collisions[collNm].neutNm
-   			self.needFiveMoments  = true
 			species[self.neutNmCX].needFiveMoments = true
    			counterCX = false
     		     end

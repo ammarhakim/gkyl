@@ -155,31 +155,20 @@ function VmLBOCollisions:setPhaseBasis(basis) self.phaseBasis = basis end
 function VmLBOCollisions:setPhaseGrid(grid) self.phaseGrid = grid end
 
 function VmLBOCollisions:createSolver(mySpecies, extField)
-   self.vdim = self.phaseGrid:ndim() - self.confGrid:ndim()
-
-   -- Maximum velocity of the velocity grid (and its square).
-   self.vMax = Lin.Vec(self.vdim)
-   for vd = 1,self.vdim do
-      self.vMax[vd] = self.phaseGrid:upper(self.confGrid:ndim()+vd)
-   end
-   self.vMaxSq = self.vMax[1] 
-   for vd = 1,self.vdim do
-      if (self.vMaxSq < self.vMax[vd]) then self.vMaxSq = self.vMax[vd] end
-   end
-   self.vMaxSq = self.vMaxSq^2
+   local vdim = self.phaseGrid:ndim() - self.confGrid:ndim()
 
    -- Self-species collisionality, which varies in space.
    self.nuSelf = mySpecies:allocMoment()
    -- Allocate fields to store self-species primitive moments.
-   self.uSelf    = mySpecies:allocVectorMoment(self.vdim)
+   self.uSelf    = mySpecies:allocVectorMoment(vdim)
    self.vtSqSelf = mySpecies:allocMoment()
    -- Allocate fields for boundary corrections.
-   self.boundCorrs = mySpecies:allocVectorMoment(self.vdim+1)
+   self.boundCorrs = mySpecies:allocVectorMoment(vdim+1)
 
    local vbounds = ffi.new("double[6]")
-   for i=1, self.vdim do
+   for i=1, vdim do
       vbounds[i-1]           = self.phaseGrid:lower(self.confGrid:ndim()+i)
-      vbounds[i-1+self.vdim] = self.phaseGrid:upper(self.confGrid:ndim()+i)
+      vbounds[i-1+vdim] = self.phaseGrid:upper(self.confGrid:ndim()+i)
    end
    self.primMomSelf = Updater.SelfPrimMoments {
       onGrid     = self.phaseGrid,   operator = "VmLBO",
@@ -189,6 +178,7 @@ function VmLBOCollisions:createSolver(mySpecies, extField)
 
    local projectUserNu
    if self.timeDepNu then 
+      self.m0Self = self.timeDepNu and mySpecies:allocMoment() or nil  -- M0, to be extracted from fiveMoments.
       -- Updater to compute spatially varying (Spitzer) nu.
       self.spitzerNu = Updater.SpitzerCollisionality {
          onGrid           = self.confGrid,     elemCharge = self.elemCharge,
@@ -216,7 +206,7 @@ function VmLBOCollisions:createSolver(mySpecies, extField)
 
    if self.crossCollisions then
       -- Cross-collision u and vtSq multiplied by collisionality.
-      self.nuUCross    = mySpecies:allocVectorMoment(self.vdim)
+      self.nuUCross    = mySpecies:allocVectorMoment(vdim)
       self.nuVtSqCross = mySpecies:allocMoment()
       -- Prefactor m_0s*delta_s in cross primitive moment calculation.
       self.m0s_deltas     = mySpecies:allocMoment()
@@ -248,16 +238,17 @@ function VmLBOCollisions:createSolver(mySpecies, extField)
             projectUserNu:advance(0.0, {}, {self.nuCross[otherNm]})
             self.nuCross[otherNm]:write(string.format("%s_nu-%s_%d.bp",self.speciesName,otherNm,0),0.0,0)
          end
-         self.uCross[otherNm]     = mySpecies:allocVectorMoment(self.vdim)
+         self.uCross[otherNm]     = mySpecies:allocVectorMoment(vdim)
          self.vtSqCross[otherNm]  = mySpecies:allocMoment()
       end
 
+      self.m0Other = self.timeDepNu and mySpecies:allocMoment() or nil  -- M0, to be extracted from fiveMoments.
    end
 
    -- Collisionality, nu, summed over all species pairs.
    self.nuSum = mySpecies:allocMoment()
    -- Sum of flow velocities in vdim directions multiplied by respective collisionalities.
-   self.nuUSum = mySpecies:allocVectorMoment(self.vdim)
+   self.nuUSum = mySpecies:allocVectorMoment(vdim)
    -- Sum of squared thermal speeds, vthSq=T/m, multiplied by respective collisionalities.
    self.nuVtSqSum = mySpecies:allocMoment()
 
@@ -275,10 +266,12 @@ end
 function VmLBOCollisions:createCouplingSolver(species, field, externalField)
    -- Store a pointer to the collision app in the other species, so we know
    -- where to find things stored in the collision app (e.g. primitive momemts, nu).
-   self.collAppOther = {}
-   for _, nm in ipairs(self.crossSpecies) do
-      for _, app in pairs(species[nm].collisions) do
-         if app.collKind == self.collKind then self.collAppOther[nm] = app end
+   if self.crossCollisions then
+      self.collAppOther = {}
+      for _, nm in ipairs(self.crossSpecies) do
+         for _, app in pairs(species[nm].collisions) do
+            if app.collKind == self.collKind then self.collAppOther[nm] = app end
+         end
       end
    end
 end
@@ -309,49 +302,19 @@ function VmLBOCollisions:calcCouplingMoments(tCurr, rkIdx, species)
 end
 
 function VmLBOCollisions:advance(tCurr, fIn, species, out)
+   local tmNonSlvrStart = Time.clock()
 
    local fRhsOut = out[1]
    local cflRateByCell = out[2]
 
-   local tmNonSlvrStart = Time.clock()
-
-   -- NOTE: The following code is commented out because Vm users don't seem
-   -- to be as worried about limit crossings as Gk users, so counting them
-   -- is disabled for now. See the 'write' method as well.
-   ---- Determine whether primitive moments cross limits based on
-   ---- parallel flow speed and thermal speed squared.
-   --self.primMomCrossLimitL[1] = 0
-   --self.primMomCrossLimitG[1] = 0
-   --local confIndexer          = self.velocity:genIndexer()
-   --local uItr                 = self.velocity:get(1)
-   --local vthSqItr             = self.vthSq:get(1)
-   --for idx in self.velocity:localRangeIter() do
-   --   self.velocity:fill(confIndexer(idx), uItr)
-   --   self.vthSq:fill(confIndexer(idx), vthSqItr)
-   --   local primCrossingFound = false
-   --   for vd = 1,self.vdim do
-   --      if (math.abs(uItr[(vd-1)*self.confBasis:numBasis()+1]*self.cellAvFac)>self.vMax[vd]) then
-   --         uCrossingFound = true
-   --         break
-   --      end
-   --   end
-   --   local vthSq0 = vthSqItr[1]*self.cellAvFac
-
-   --   if (uCrossingFound or (vthSq0<0) or (vthSq0>self.vMaxSq)) then
-   --      self.primMomCrossLimitL[1] = self.primMomCrossLimitL[1]+1
-   --   end
-   --end
-   --Mpi.Allreduce(self.primMomCrossLimitL:data(), self.primMomCrossLimitG:data(), 1,
-   --              Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
-   --self.primMomLimitCrossings:appendData(tCurr+dt, self.primMomCrossLimitG)
-
-   -- Fetch coupling moments and primitive moments of this species.
+   -- Fetch coupling moments of this species.
    local momsSelf = species[self.speciesName]:fluidMoments()
 
    if self.timeDepNu then
       -- Compute the Spitzer collisionality.
-      self.spitzerNu:advance(tCurr, {self.charge, self.mass, momsSelf[1], self.uSelf,
-                                     self.charge, self.mass, momsSelf[1], self.vtSqSelf, self.normNuSelf}, {self.nuSum})
+      self.m0Self:combineOffset(1., momsSelf, 0) 
+      self.spitzerNu:advance(tCurr, {self.charge, self.mass, self.m0Self, self.uSelf,
+                                     self.charge, self.mass, self.m0Self, self.vtSqSelf, self.normNuSelf}, {self.nuSum})
    else
       self.nuSum:copy(self.nuSelf)
    end
@@ -377,17 +340,18 @@ function VmLBOCollisions:advance(tCurr, fIn, species, out)
             local chargeOther     = species[otherNm]:getCharge()
             local crossFlagsSelf  = self.crossFlags[otherNm]
             local crossFlagsOther = self.collAppOther[otherNm]:crossFlags(self.speciesName)
+            self.m0Other:combineOffset(1., momsOther, 0) 
             if not crossFlagsSelf then
                local crossNormNuSelf = self.normNuCross[otherNm]
-               self.spitzerNu:advance(tCurr, {self.charge, self.mass, momsSelf[1], self.vtSqSelf,
-                                              chargeOther, mOther, momsOther[1], vtSqOther, crossNormNuSelf},
+               self.spitzerNu:advance(tCurr, {self.charge, self.mass, self.m0Self, self.vtSqSelf,
+                                              chargeOther, mOther,self.m0Other, vtSqOther, crossNormNuSelf},
                                              {nuCrossSelf})
                crossFlagsSelf = true
             end
             if not crossFlagsOther then
                local crossNormNuOther = self.collAppOther[otherNm]:crossNormNu(self.speciesName)
-               self.spitzerNu:advance(tCurr, {chargeOther, mOther, momsOther[1], vtSqOther,
-                                              self.charge, self.mass, momsSelf[1], self.vtSqSelf, crossNormNuOther},
+               self.spitzerNu:advance(tCurr, {chargeOther, mOther, self.m0Other, vtSqOther,
+                                              self.charge, self.mass, self.m0Self, self.vtSqSelf, crossNormNuOther},
                                              {nuCrossOther})
                crossFlagsOther = true
             end
@@ -416,9 +380,9 @@ function VmLBOCollisions:advance(tCurr, fIn, species, out)
          self.nuUSum:accumulate(1.0, self.nuUCross)
          self.nuVtSqSum:accumulate(1.0, self.nuVtSqCross)
 
-      end    -- end loop over other species that this species collides with.
+      end  -- end loop over other species that this species collides with.
 
-   end    -- end if self.crossCollisions.
+   end  -- end if self.crossCollisions.
    self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 
    -- Compute increment from collisions and accumulate it into output.
