@@ -87,6 +87,14 @@ function VmLBOCollisions:fullInit(speciesTbl)
    if self.collFreqs then
       -- Collisionality, provided by user, will remain constant in time.
       self.timeDepNu = false
+      self.calcSelfNu = function(momsIn, nuOut) VmLBOCollisions['calcSelfNuTimeConst'](self,momsIn,nuOut) end
+      self.calcCrossNu = self.crossCollisions
+         and function(species, otherNm, mOther, momsOther,
+                      uOther, vtSqOther, nuCrossSelf, nuCrossOther)
+            VmLBOCollisions['calcCrossNuTimeConst'](self,species, otherNm,
+              mOther, momsOther, uOther, vtSqOther, nuCrossSelf, nuCrossOther)
+         end
+         or nil
 
       -- Ensure that collFreqs inputs are numbers or functions.
       for iC = 1,#self.collFreqs do
@@ -107,6 +115,14 @@ function VmLBOCollisions:fullInit(speciesTbl)
    else
       -- Collisionality not provided by user. It will be calculated in time.
       self.timeDepNu = true
+      self.calcSelfNu = function(momsIn, nuOut) VmLBOCollisions['calcSelfNuTimeDep'](self,momsIn,nuOut) end
+      self.calcCrossNu = self.crossCollisions
+         and function(species, otherNm, mOther, momsOther,
+                      uOther, vtSqOther, nuCrossSelf, nuCrossOther)
+            VmLBOCollisions['calcCrossNuTimeDep'](self,species, otherNm,
+              mOther, momsOther, uOther, vtSqOther, nuCrossSelf, nuCrossOther)
+         end
+         or nil
 
       self.mass   = speciesTbl.mass      -- Mass of this species.
       self.charge = speciesTbl.charge    -- Charge of this species.
@@ -301,6 +317,42 @@ function VmLBOCollisions:calcCouplingMoments(tCurr, rkIdx, species)
                             {self.uSelf, self.vtSqSelf})
 end
 
+function VmLBOCollisions:calcSelfNuTimeConst(momsSelf, nuOut) nuOut:copy(self.nuSelf) end
+
+function VmLBOCollisions:calcSelfNuTimeDep(momsSelf, nuOut)
+   -- Compute the Spitzer collisionality.
+   self.m0Self:combineOffset(1., momsSelf, 0) 
+   self.spitzerNu:advance(tCurr, {self.charge, self.mass, self.m0Self, self.uSelf,
+                                  self.charge, self.mass, self.m0Self, self.vtSqSelf, self.normNuSelf}, {nuOut})
+end
+
+function VmLBOCollisions:calcCrossNuTimeConst(species, otherNm,
+   mOther, momsOther, uOther, vtSqOther, nuCrossSelf, nuCrossOther) end
+
+function VmLBOCollisions:calcCrossNuTimeDep(species, otherNm,
+   mOther, momsOther, uOther, vtSqOther, nuCrossSelf, nuCrossOther)
+
+   -- Compute the Spitzer collisionality if another species hasn't already done so.
+   local chargeOther     = species[otherNm]:getCharge()
+   local crossFlagsSelf  = self.crossFlags[otherNm]
+   local crossFlagsOther = self.collAppOther[otherNm]:crossFlags(self.speciesName)
+   self.m0Other:combineOffset(1., momsOther, 0) 
+   if not crossFlagsSelf then
+      local crossNormNuSelf = self.normNuCross[otherNm]
+      self.spitzerNu:advance(tCurr, {self.charge, self.mass, self.m0Self, self.vtSqSelf,
+                                     chargeOther, mOther,self.m0Other, vtSqOther, crossNormNuSelf},
+                                    {nuCrossSelf})
+      crossFlagsSelf = true
+   end
+   if not crossFlagsOther then
+      local crossNormNuOther = self.collAppOther[otherNm]:crossNormNu(self.speciesName)
+      self.spitzerNu:advance(tCurr, {chargeOther, mOther, self.m0Other, vtSqOther,
+                                     self.charge, self.mass, self.m0Self, self.vtSqSelf, crossNormNuOther},
+                                    {nuCrossOther})
+      crossFlagsOther = true
+   end
+end
+
 function VmLBOCollisions:advance(tCurr, fIn, species, out)
    local tmNonSlvrStart = Time.clock()
 
@@ -310,14 +362,7 @@ function VmLBOCollisions:advance(tCurr, fIn, species, out)
    -- Fetch coupling moments of this species.
    local momsSelf = species[self.speciesName]:fluidMoments()
 
-   if self.timeDepNu then
-      -- Compute the Spitzer collisionality.
-      self.m0Self:combineOffset(1., momsSelf, 0) 
-      self.spitzerNu:advance(tCurr, {self.charge, self.mass, self.m0Self, self.uSelf,
-                                     self.charge, self.mass, self.m0Self, self.vtSqSelf, self.normNuSelf}, {self.nuSum})
-   else
-      self.nuSum:copy(self.nuSelf)
-   end
+   self.calcSelfNu(momsSelf, self.nuSum)
    self.confMul:advance(tCurr, {self.nuSum, self.uSelf}, {self.nuUSum})
    self.confMul:advance(tCurr, {self.nuSum, self.vtSqSelf}, {self.nuVtSqSum})
 
@@ -325,40 +370,22 @@ function VmLBOCollisions:advance(tCurr, fIn, species, out)
 
       local bCorrectionsSelf = self.boundCorrs
 
-      for sInd, otherNm in ipairs(self.crossSpecies) do
+      for _, otherNm in ipairs(self.crossSpecies) do
 
          local mOther            = species[otherNm]:getMass()
          local momsOther         = species[otherNm]:fluidMoments()
          local uOther, vtSqOther = self.collAppOther[otherNm]:selfPrimitiveMoments()
-         local bCorrectionsOther = self.collAppOther[otherNm]:boundaryCorrections()
 
          local nuCrossSelf  = self.nuCross[otherNm]
          local nuCrossOther = self.collAppOther[otherNm]:crossFrequencies(self.speciesName)
 
-         if self.timeDepNu then
-            -- Compute the Spitzer collisionality if another species hasn't already done so.
-            local chargeOther     = species[otherNm]:getCharge()
-            local crossFlagsSelf  = self.crossFlags[otherNm]
-            local crossFlagsOther = self.collAppOther[otherNm]:crossFlags(self.speciesName)
-            self.m0Other:combineOffset(1., momsOther, 0) 
-            if not crossFlagsSelf then
-               local crossNormNuSelf = self.normNuCross[otherNm]
-               self.spitzerNu:advance(tCurr, {self.charge, self.mass, self.m0Self, self.vtSqSelf,
-                                              chargeOther, mOther,self.m0Other, vtSqOther, crossNormNuSelf},
-                                             {nuCrossSelf})
-               crossFlagsSelf = true
-            end
-            if not crossFlagsOther then
-               local crossNormNuOther = self.collAppOther[otherNm]:crossNormNu(self.speciesName)
-               self.spitzerNu:advance(tCurr, {chargeOther, mOther, self.m0Other, vtSqOther,
-                                              self.charge, self.mass, self.m0Self, self.vtSqSelf, crossNormNuOther},
-                                             {nuCrossOther})
-               crossFlagsOther = true
-            end
-         end
+         -- Calculate time-dependent collision frequency if needed.
+         self.calcCrossNu(species, otherNm, mOther, momsOther, uOther, vtSqOther,
+                          nuCrossSelf, nuCrossOther)
 
          -- Compose the pre-factor (we should put this in a single loop/updater):
          --   m0_s*delta_s = m0_s*(2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs))
+         local bCorrectionsOther = self.collAppOther[otherNm]:boundaryCorrections()
          local deltas_num, deltas_den = self.m0s_deltas, self.m0s_deltas_den
          self.confMul:advance(tCurr, {momsSelf, nuCrossSelf, 1}, {deltas_den})
          self.confMul:advance(tCurr, {momsOther, nuCrossOther, 1}, {deltas_num})
