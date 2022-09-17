@@ -147,11 +147,6 @@ function VlasovSpecies:fullInit(appTbl)
    self.numVelFlux = tbl.vFlux
 end
 
-function VlasovSpecies:allocMomCouplingFields()
-   return { currentDensity = self:allocVectorMoment(self.vdim) }
-end
-
-
 function VlasovSpecies:createSolver(field, externalField)
    -- Run the KineticSpecies 'createSolver()' to initialize the collisions solver.
    VlasovSpecies.super.createSolver(self, field, externalField)
@@ -178,13 +173,21 @@ function VlasovSpecies:createSolver(field, externalField)
 
    self.computePlasmaB = true and plasmaB   -- Differentiate plasma B from external B.
 
-   ---- Create updater to advance solution by one time-step.
-   self.solver = Updater.VlasovDG {
-      onGrid     = self.grid,                       hasElectricField = hasE,
-      confBasis  = self.confBasis,                  hasMagneticField = hasB,
-      phaseBasis = self.basis,                      hasExtForce      = self.hasExtForce,
-      confRange  = self.totalEmField:localRange(),  plasmaMagField   = plasmaB
-   }
+   -- Create updater to advance solution by one time-step.
+   if self.evolveCollisionless then
+      self.solver = Updater.VlasovDG {
+         onGrid     = self.grid,                       hasElectricField = hasE,
+         confBasis  = self.confBasis,                  hasMagneticField = hasB,
+         phaseBasis = self.basis,                      hasExtForce      = self.hasExtForce,
+         confRange  = self.totalEmField:localRange(),  plasmaMagField   = plasmaB
+      }
+      self.collisionlessAdvance = function(tCurr, inFlds, outFlds)
+         self.solver:advance(tCurr, inFlds, outFlds)
+      end
+   else
+      self.solver = {totalTime = 0.}
+      self.collisionlessAdvance = function(tCurr, inFlds, outFlds) end
+   end
 
    -- Create updaters to compute various moments.
    self.numDensityCalc = Updater.DistFuncMomentCalc {
@@ -388,9 +391,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       end
    end
 
-   if self.evolveCollisionless then
-      self.solver:advance(tCurr, {fIn, totalEmField, emField}, {fRhsOut, self.cflRateByCell})
-   end
+   self.collisionlessAdvance(tCurr, {fIn, totalEmField, emField}, {fRhsOut, self.cflRateByCell})
 
    -- Perform the collision update.
    for _, c in pairs(self.collisions) do

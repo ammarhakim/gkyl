@@ -191,8 +191,6 @@ function MaxwellField:fullInit(appTbl)
    else
       self.calcIntEMQuantTrigger = function(t) return true end
    end
-
-   self._isFirst = true
 end
 
 -- Methods for EM field object.
@@ -585,10 +583,21 @@ function MaxwellField:createSolver()
    self.bcTime = 0.0 -- Timer for BCs.
 end
 
-function MaxwellField:createDiagnostics()
-end
+function MaxwellField:createDiagnostics() end
 
 function MaxwellField:initField(species)
+   -- Create field for total current density. Need to do this
+   -- here because field object does not know about vdim.
+   local maxVdim = 0
+   for _, s in lume.orderedIter(species) do
+      maxVdim = math.max(maxVdim, s.vdim)
+   end
+   self.currentDens = DataStruct.Field {
+      onGrid        = self.grid,
+      numComponents = self.basis:numBasis()*maxVdim,
+      ghost         = {1, 1},
+   }
+
    if self.hasMagField then   -- Maxwell's induction equations.
       local project = Updater.ProjectOnBasis {
          onGrid = self.grid,
@@ -726,21 +735,6 @@ function MaxwellField:advance(tCurr, species, inIdx, outIdx)
    local emRhsOut = self:rkStepperFields()[outIdx]
 
    if self.hasMagField then   -- Maxwell's induction equations.
-      if self._isFirst then
-         -- Create field for total current density. Need to do this
-         -- here because field object does not know about vdim.
-         do
-            local c = 0
-            for _, s in lume.orderedIter(species) do
-               if c == 0 then
-                  self.currentDens = s:allocMomCouplingFields().currentDensity
-               end
-               c = c+1
-            end
-         end
-         self._isFirst = false
-      end
-
       if self.evolve then
          self.fieldSlvr:advance(tCurr, {emIn}, {emRhsOut, self.cflRateByCell})
          if self.currentDens then -- No currents for source-free Maxwell.

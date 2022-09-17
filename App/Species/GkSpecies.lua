@@ -127,10 +127,6 @@ function GkSpecies:alloc(nRkDup)
    self.first = true
 end
 
-function GkSpecies:allocMomCouplingFields()
-   assert(false, "GkSpecies:allocMomCouplingFields should not be called. Field object should allocate its own coupling fields")
-end
-
 function GkSpecies:createSolver(field, externalField)
    -- Run the KineticSpecies 'createSolver()' to initialize the collisions solver.
    GkSpecies.super.createSolver(self, field, externalField)
@@ -191,68 +187,35 @@ function GkSpecies:createSolver(field, externalField)
       table.insert(self.zeroFluxDirections, self.cdim+1)
       if self.vdim > 1 then table.insert(self.zeroFluxDirections, self.cdim+2) end
 
-      if self.evolveCollisionless then
-         self.solver = Updater.HyperDisCont {
-            onGrid             = self.grid,
-            basis              = self.basis,
-            cfl                = self.cfl,
-            equation           = self.equation,
-            zeroFluxDirections = self.zeroFluxDirections,
-            updateDirections   = upd,
-            clearOut           = false,   -- Continue accumulating into output field.
-            globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
-         }
+      self.solver = Updater.HyperDisCont {
+         onGrid   = self.grid,      zeroFluxDirections = self.zeroFluxDirections,
+         basis    = self.basis,     updateDirections   = upd,
+         cfl      = self.cfl,       clearOut           = false,   -- Continue accumulating into output field.
+         equation = self.equation,  globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
+      }
+      self.collisionlessAdvance = function(tCurr, inFlds, outFlds)
+         self.solver:advance(tCurr, inFlds, outFlds)
       end
       
       if hasApar then
          -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
          self.equationStep2 = GyrokineticEq.GkEqStep2 {
-            onGrid     = self.grid,
-            phaseBasis = self.basis,
-            confBasis  = self.confBasis,
-            charge     = self.charge,
-            mass       = self.mass,
-            positivity = self.positivity,
+            onGrid     = self.grid,       charge     = self.charge,
+            phaseBasis = self.basis,      mass       = self.mass,
+            confBasis  = self.confBasis,  positivity = self.positivity,
          }
 
-         if self.basis:polyOrder()==1 then 
-            -- This solver calculates vpar surface terms for Ohm's law. p=1 only!
-            self.solverStep2 = Updater.HyperDisCont {
-               onGrid             = self.grid,
-               basis              = self.basis,
-               cfl                = self.cfl,
-               equation           = self.equation,
-               zeroFluxDirections = self.zeroFluxDirections,
-               updateDirections   = {self.cdim+1},    -- Only vpar terms.
-               updateVolumeTerm   = false,            -- No volume term.
-               clearOut           = false,            -- Continue accumulating into output field.
-               globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
-            }
-            -- Note that the surface update for this term only involves the vpar direction.
-            self.solverStep3 = Updater.HyperDisCont {
-               onGrid             = self.grid,
-               basis              = self.basis,
-               cfl                = self.cfl,
-               equation           = self.equationStep2,
-               zeroFluxDirections = self.zeroFluxDirections,
-               updateDirections   = {self.cdim+1}, -- Only vpar terms.
-               clearOut           = false,   -- Continue accumulating into output field.
-               globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
-            }
-         else
-            -- Note that the surface update for this term only involves the vpar direction.
-            self.solverStep2 = Updater.HyperDisCont {
-               onGrid             = self.grid,
-               basis              = self.basis,
-               cfl                = self.cfl,
-               equation           = self.equationStep2,
-               zeroFluxDirections = self.zeroFluxDirections,
-               updateDirections   = {self.cdim+1},
-               clearOut           = false,   -- Continue accumulating into output field.
-               globalUpwind       = false,   -- Don't reduce max speed.
-            }
-         end
+         -- Note that the surface update for this term only involves the vpar direction.
+         self.solverStep2 = Updater.HyperDisCont {
+            onGrid   = self.grid,           zeroFluxDirections = self.zeroFluxDirections,
+            basis    = self.basis,          updateDirections   = {self.cdim+1},
+            cfl      = self.cfl,            clearOut           = false,   -- Continue accumulating into output field.
+            equation = self.equationStep2,  globalUpwind       = false,   -- Don't reduce max speed.
+         }
       end
+   else
+      self.solver = {totalTime = 0.}
+      self.collisionlessAdvance = function(tCurr, inFlds, outFlds) end
    end
    
    -- Create updaters to compute various moments.
@@ -303,27 +266,17 @@ function GkSpecies:createSolver(field, externalField)
       phaseBasis = self.basis,  confBasis = self.confBasis,
       mass       = self.mass,
    }
-   if self.needSelfPrimMom then
-      -- This is used in calcCouplingMoments to reduce overhead and multiplications.
-      -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
---      self.threeMomentsLBOCalc = Updater.DistFuncMomentCalc {
---         onGrid     = self.grid,
---         phaseBasis = self.basis,
---         confBasis  = self.confBasis,
---         moment     = "GkThreeMomentsLBO",
---         gkfacs     = {self.mass, self.bmag},
---         positivity = self.positivity,
---      }
-      local vbounds = ffi.new("double[4]")
-      for i=0, self.vdim-1 do 
-         vbounds[i]           = self.grid:lower(self.cdim+i+1)
-         vbounds[i+self.vdim] = self.grid:upper(self.cdim+i+1)
+   if self.needThreeMoments then
+      self.calcSelfCouplingMom = function(tCurr, fIn)
+         -- Compute M0, M1i and M2.
+         self.threeMomentsCalc:advance(tCurr, {fIn}, {self.threeMoments})
+         -- Copy number density to its own field.
+         self.numDensity:combineOffset(1., self.threeMoments, 0)
       end
-      self.primMomSelf = Updater.SelfPrimMoments {
-         onGrid     = self.grid,       operator = "GkLBO",
-         phaseBasis = self.basis,      vbounds  = vbounds,
-         confBasis  = self.confBasis,  mass     = self.mass,
-      }
+   else
+      self.calcSelfCouplingMom = function(tCurr, fIn)
+         self.numDensityCalc:advance(tCurr, {fIn}, { self.numDensity })
+      end
    end
 
    -- Create an updater for volume integrals. Used by diagnostics.
@@ -406,8 +359,6 @@ function GkSpecies:createSolver(field, externalField)
    -- Create species source solvers.
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
 
-   self._firstMomentCalc = true  -- To avoid re-calculating moments when not evolving.
-
    self.timers = {couplingMom = 0., sources = 0.}
 end
 
@@ -416,34 +367,14 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    -- species that is not mediated by the field (solver), like
    -- collisions.
 
-   -- Function to find the index of an element in table.
-   local function findInd(tblIn, el)
-      for i, v in ipairs(tblIn) do
-         if v == el then
-            return i
-         end
-      end
-      return #tblIn+1    -- If not found return a number larger than the length of the table.
-   end
-
-   -- Function to concatenate two tables.
-   local function tableConcat(t1,t2)
-      for i=1,#t2 do
-         t1[#t1+1] = t2[i]
-      end
-      return t1
-   end
+   -- Determine if M0, M1i and M2 are needed.
+   self.needThreeMoments = false
 
    -- Create a double nested table of colliding species.
    -- In this table we will encode information about that collition such as:
    --   * does the collision take place?
    --   * Operator modeling the collision.
-   --   * Is the collisionality constant in time?
-   --   * Does it use spatially varying collisionality?
-   --   * If using homogeneous collisionality, record its value/profile.
-   -- Other features of a collision may be added in the future, such as
-   -- velocity dependent collisionality, FLR effects, or some specific
-   -- neutral/impurity effect.
+   -- Other features of a collision may be added in the future
    self.collPairs = {}
    for sN, _ in lume.orderedIter(species) do
       self.collPairs[sN] = {}
@@ -451,157 +382,18 @@ function GkSpecies:initCrossSpeciesCoupling(species)
          self.collPairs[sN][sO] = {}
          -- Need next below because species[].collisions is created as an empty table.
          if species[sN].collisions and next(species[sN].collisions) then
-            -- This species collides with someone.
-            local selfColl, crossColl, collSpecs = false, false, {}
-            -- Obtain the boolean indicating if self/cross collisions affect the sN species.
             for collNm, _ in pairs(species[sN].collisions) do
-               selfColl  = selfColl or species[sN].collisions[collNm].selfCollisions
-               crossColl = crossColl or species[sN].collisions[collNm].crossCollisions
-               collSpecs = tableConcat(collSpecs, species[sN].collisions[collNm].collidingSpecies)
-            end
-
-            -- Record if a specific binary collision is turned on.
-            if sN == sO then
-               self.collPairs[sN][sO].on = selfColl
-            else
-               if crossColl then
-                  local specInd = findInd(collSpecs, sO)
-                  if specInd < (#collSpecs+1) then
-                     self.collPairs[sN][sO].on = true
-                  else
-                     self.collPairs[sN][sO].on = false
-                  end
-               else
-                  self.collPairs[sN][sO].on = false
+               -- This species collides with someone.
+               self.collPairs[sN][sO].on = lume.any(species[sN].collisions[collNm].collidingSpecies,
+                                                    function(e) return e==sO end)
+               if self.collPairs[sN][sO].on then
+                  self.collPairs[sN][sO].kind = species[sO].collisions[collNm].collKind
+                  self.needThreeMoments = true  -- MF 2022/09/16: at the moment all collision models need M0, M1, M2.
                end
             end
-
          else
-
             -- This species does not collide with anyone.
             self.collPairs[sN][sO].on = false
-
-         end    -- end if next(species[sN].collisions) statement.
-      end
-   end
-
-   -- Here we wish to record some properties of each collision in collPairs.
-   for sN, _ in lume.orderedIter(species) do
-      -- Need next below because species[].collisions is created as an empty table.
-      if species[sN].collisions and next(species[sN].collisions) then
-         for sO, _ in lume.orderedIter(species) do
-            -- Find the kind of a specific collision, and the collision frequency it uses.
-            for collNmN, _ in pairs(species[sN].collisions) do
-               if self.collPairs[sN][sO].on then
-                  local specInd = findInd(species[sN].collisions[collNmN].collidingSpecies, sO)
-                  if specInd < (#species[sN].collisions[collNmN].collidingSpecies+1) then
-                     -- Collision operator kind.
-                     self.collPairs[sN][sO].kind      = species[sN].collisions[collNmN].collKind
-                     -- Collision frequency time dependence (e.g. constant, time-varying).
-                     self.collPairs[sN][sO].timeDepNu = species[sN].collisions[collNmN].timeDepNu
-                     if (not self.collPairs[sN][sO].timeDepNu) then
-                        -- Constant collisionality. Record it.
-                        self.collPairs[sN][sO].nu = species[sN].collisions[collNmN].collFreqs[specInd]
-                     else
-                        -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
-                        if (species[sN].collisions[collNmN].userInputNormNu) then
-                           self.collPairs[sN][sO].normNu = species[sN].collisions[collNmN].normNuIn[specInd]
-                        else
-                           self.collPairs[sN][sO].normNu = 0.0    -- Not used.
-                        end
-                     end
-                  end
-               elseif self.collPairs[sO][sN].on then
-                  -- Species sN doesn't collide with sO, but sO collides with sN.
-                  -- For computing cross-primitive moments, species sO may need the sN-sO
-                  -- collision frequency. Set it such that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
-                  for collNmO, _ in pairs(species[sO].collisions) do
-                     local specInd = findInd(species[sO].collisions[collNmO].collidingSpecies, sN)
-                     if specInd < (#species[sO].collisions[collNmO].collidingSpecies+1) then
-                        -- Collision operator kind.
-                        self.collPairs[sO][sN].kind      = species[sO].collisions[collNmO].collKind
-                        -- Collision frequency time dependence (e.g. constant, time-varying).
-                        self.collPairs[sO][sN].timeDepNu = species[sO].collisions[collNmN].timeDepNu
-                        self.collPairs[sN][sO].timeDepNu = species[sO].collisions[collNmN].timeDepNu
-                        if (not self.collPairs[sN][sO].timeDepNu) then
-                           -- Constant collisionality. Record it.
-                           -- We will need to first project the nu we do have, and later scale it by the mass ratio.
-                           self.collPairs[sN][sO].nu = species[sO].collisions[collNmO].collFreqs[specInd]
-                        else
-                           -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
-                           if (species[sO].collisions[collNmO].userInputNormNu) then
-                              self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
-                           else
-                              self.collPairs[sN][sO].normNu = 0.0    -- Not used.
-                           end
-                        end
-                     end
-                  end
-               end
-            end
-         end    -- end if next(species[sN].collisions) statement.
-      else
-         -- This segment is needed when species sN doesn't have a collision object/table,
-         -- but species sO collides with sN.
-         -- For computing cross-primitive moments, species sO may need the sN-sO
-         -- collision frequency. Set it such that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
-         for sO, _ in lume.orderedIter(species) do
-            if species[sO].collisions and next(species[sO].collisions) then
-               for collNmO, _ in pairs(species[sO].collisions) do
-                  if self.collPairs[sO][sN].on then
-                     -- Species sO collides with sN. For computing cross-primitive moments,
-                     -- species sO may need the sN-sO collision frequency. Set it such
-                     -- that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
-                     local specInd = findInd(species[sO].collisions[collNmO].collidingSpecies, sN)
-                     if specInd < (#species[sO].collisions[collNmO].collidingSpecies+1) then
-                        if (not self.collPairs[sN][sO].timeDepNu) then
-                           -- Constant collisionality. Record it.
-                           -- We will need to first project the nu we do have, and later scale it by the mass ratio.
-                           self.collPairs[sN][sO].nu = species[sO].collisions[collNmO].collFreqs[specInd]
-                        else
-                           -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
-                           if (species[sO].collisions[collNmO].userInputNormNu) then
-                              self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
-                           else
-                              self.collPairs[sN][sO].normNu = 0.0    -- Not used.
-                           end
-                        end
-                     end
-                  end
-               end
-            end
-         end
-      end
-   end
-
-   -- Determine if self primitive moments and boundary corrections are needed.
-   -- If a pair of species only has cross-species collisions (no self-collisions)
-   -- then the self-primitive moments may be computed without boundary corrections.
-   -- Boundary corrections are only needed if there are LBO self-species collisions.
-   self.needSelfPrimMom          = false
-   self.needCorrectedSelfPrimMom = false
-   -- Also check if spatially varying nu is needed, and if the user inputed a spatial
-   -- profile for the collisionality (which needs to be projected).
-   local needVarNu               = false
-   local userInputNuProfile      = false
-   if self.collPairs[self.name][self.name].on then
-      self.needSelfPrimMom          = true
-      if (self.collPairs[self.name][self.name].kind=="GkLBO") or
-         (self.collPairs[self.name][self.name].kind=="VmLBO") then
-         self.needCorrectedSelfPrimMom = true
-      end
-   end
-   for sO, _ in lume.orderedIter(species) do
-      if self.collPairs[self.name][sO].on or self.collPairs[sO][self.name].on then
-         self.needSelfPrimMom = true
-         if ( self.collPairs[sO][sO].on and (self.collPairs[self.name][self.name].kind=="GkLBO" or
-                                             self.collPairs[self.name][self.name].kind=="VmLBO") ) then
-            self.needCorrectedSelfPrimMom = true
-         end
-
-         needVarNu = true
-         if (not self.collPairs[self.name][sO].timeDepNu) or (not self.collPairs[sO][self.name].timeDepNu) then
-            userInputNuProfile = true
          end
       end
    end
@@ -617,7 +409,6 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    		  for collNm, _ in pairs(species[sN].collisions) do
    		     if self.name==species[sN].collisions[collNm].elcNm and counterIz_elc then
    			self.neutNmIz = species[sN].collisions[collNm].neutNm
-   			self.needSelfPrimMom  = true
 			self.calcReactRate    = true
    			self.collNmIoniz      = collNm
 			species[self.neutNmIz].calcIntSrcIz = true
@@ -645,7 +436,6 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    			self.calcCXSrc        = true			
    			self.collNmCX         = collNm
    			self.neutNmCX         = species[sN].collisions[collNm].neutNm
-   			self.needSelfPrimMom  = true
 			species[self.neutNmCX].needSelfPrimMom = true
 			--self.vSigmaCX         = self:allocMoment()
    			species[self.neutNmCX].needSelfPrimMom = true
@@ -658,78 +448,6 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       end
    end
    
-   if self.needSelfPrimMom then
-      -- Allocate fields to store self-species primitive moments.
-      self.uParSelf = self:allocMoment()
-      self.vtSqSelf = self:allocMoment()
-
-      -- Allocate fields for boundary corrections.
-      self.threeMomentsBoundaryCorrections = self:allocVectorMoment(3)
-   end
-
-   -- Allocate fieds to store cross-species primitive moments.
-   self.uParCross = {}
-   self.vtSqCross = {}
-   for sN, _ in lume.orderedIter(species) do
-      if sN ~= self.name then
-         -- Flags for couplingMoments, boundary corrections, star moments,
-         -- self primitive moments, cross primitive moments.
-         self.momentFlags[5][sN] = false
-      end
-
-      for sO, _ in lume.orderedIter(species) do
-         -- Allocate space for this species' cross-primitive moments
-         -- only if some other species collides with it.
-         if (sN ~= sO) and (self.collPairs[sN][sO].on or self.collPairs[sO][sN].on) then
-            otherNm = string.gsub(sO .. sN, self.name, "")
-            if (self.uParCross[otherNm] == nil) then
-               self.uParCross[otherNm] = self:allocMoment()
-            end
-            if (self.vtSqCross[otherNm] == nil) then
-               self.vtSqCross[otherNm] = self:allocMoment()
-            end
-         end
-      end
-   end
-
-   if needVarNu then
-      self.nuVarXCross = {}    -- Collisionality varying in configuration space.
-      local projectNuX = nil
-      if userInputNuProfile then
-         projectNuX = Updater.ProjectOnBasis {
-            onGrid = self.confGrid,   evaluate = function(t,xn) return 0.0 end, -- Function is set below.
-            basis  = self.confBasis,  onGhosts = false,
-         }
-      end
-      for sN, _ in lume.orderedIter(species) do
-         if sN ~= self.name then
-            -- Sixth moment flag is to indicate if spatially varying collisionality has been computed.
-            self.momentFlags[6][sN] = false
-         end
-
-         for sO, _ in lume.orderedIter(species) do
-            -- Allocate space for this species' collision frequency
-            -- only if some other species collides with it.
-            if (sN ~= sO) and (self.collPairs[sN][sO].on or self.collPairs[sO][sN].on) then
-               otherNm = string.gsub(sO .. sN, self.name, "")
-	       if species[sN].charge == 0 or species[sO].charge == 0 then
-		  -- do nothing
-               elseif self.nuVarXCross[otherNm] == nil then
-                  self.nuVarXCross[otherNm] = self:allocMoment()
-                  if (userInputNuProfile and (not self.collPairs[sN][sO].timeDepNu) or (not self.collPairs[sO][sN].timeDepNu)) then
-                     projectNuX:setFunc(self.collPairs[self.name][otherNm].nu)
-                     projectNuX:advance(0.0,{},{self.nuVarXCross[otherNm]})
-                     if (not self.collPairs[self.name][otherNm].on) then
-                        self.nuVarXCross[otherNm]:scale(species[self.name]:getMass()/species[otherNm]:getMass())
-                     end
-                     self.nuVarXCross[otherNm]:write(string.format("%s_nu-%s_%d.bp",self.name,otherNm,0),0.0,0,true)
-                  end
-               end
-            end
-         end
-      end
-   end
-
    -- Initialize the BC cross-coupling interactions.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:initCrossSpeciesCoupling(species) end
 
@@ -760,9 +478,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       c:advance(tCurr, fIn, species, {fRhsOut, self.cflRateByCell})
    end
 
-   if self.evolveCollisionless then
-      self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut, self.cflRateByCell})
-   end
+   self.collisionlessAdvance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut, self.cflRateByCell})
 
    for _, bc in pairs(self.nonPeriodicBCs) do
       bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)   -- Save boundary fluxes.
@@ -832,90 +548,66 @@ end
 
 function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    -- Compute moments needed in coupling to fields and collisions.
-   if self.evolve or self._firstMomentCalc then
-      local fIn     = self:rkStepperFields()[rkIdx]
-      local tmStart = Time.clock()
+   local tmStart = Time.clock()
 
-      fIn = self.getF_or_deltaF(fIn)  -- Return full-F, or compute and return fluctuations.
+   local fIn = self:rkStepperFields()[rkIdx]
 
-      if self.needSelfPrimMom and
-         lume.any({unpack(self.momentFlags,2,4)},function(x) return x==false end) then -- No need to recompute if already computed.
+   fIn = self.getF_or_deltaF(fIn)  -- Return full-F, or compute and return fluctuations.
 
-	 self.threeMomentsCalc:advance(tCurr, {fIn}, {self.threeMoments})
+   -- Compute M0, M1i and/or M2 depending on what fields and collisions need.
+   self.calcSelfCouplingMom(tCurr, fIn)
 
-	 self.primMomSelf:advance(tCurr, {self.threeMoments, fIn, self.threeMomentsBoundaryCorrections},
-                                  {self.uParSelf, self.vtSqSelf})
-
-         -- Indicate that moments, boundary corrections, star moments
-         -- and self-primitive moments have been computed.
-         for iF=2,4 do self.momentFlags[iF] = true end
-      end
-      if self.momentFlags[1]==false then -- No need to recompute if already computed.
-         self.numDensityCalc:advance(tCurr, {fIn}, { self.numDensity })
-         -- Indicate that first moment has been computed.
-         self.momentFlags[1] = true
-      end
-
-      -- For ionization.
-      if self.calcReactRate then
-         local neuts = species[self.neutNmIz]
-         if lume.any({unpack(neuts.momentFlags,1,4)},function(x) return x==false end) then
-            -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments.
-            neuts:calcCouplingMoments(tCurr, rkIdx, species)
-         end
-         local neutM0   = neuts:fluidMoments()[1]
-         local neutVtSq = neuts:selfPrimitiveMoments()[2]
-            
-         if tCurr == 0.0 then
-            species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-         end
-        
-         species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {species[self.name].collisions[self.collNmIoniz].reactRate})
-      end
-
-      if self.calcCXSrc then
-         -- Calculate Vcx*SigmaCX.
-         local neuts = species[self.neutNmCX]
-         if lume.any({unpack(neuts.momentFlags,1,4)},function(x) return x==false end) then
-            -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments.
-            neuts:calcCouplingMoments(tCurr, rkIdx, species)
-         end
-         local m0       = neuts:fluidMoments()[1]
-         local neutU    = neuts:selfPrimitiveMoments()[1]
-         local neutVtSq = neuts:selfPrimitiveMoments()[2]
-
-	 species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, neutVtSq}, {species[self.name].collisions[self.collNmCX].reactRate})
-      end
-      
-      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
+   for _, coll in lume.orderedIter(self.collisions) do
+      coll:calcCouplingMoments(tCurr, rkIdx, species)
    end
-   if not self.evolve then self._firstMomentCalc = false end
+
+   -- For ionization.
+   if self.calcReactRate then
+      local neuts = species[self.neutNmIz]
+      if lume.any({unpack(neuts.momentFlags,1,4)},function(x) return x==false end) then
+         -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments.
+         neuts:calcCouplingMoments(tCurr, rkIdx, species)
+      end
+      local neutM0   = neuts:fluidMoments()[1]
+      local neutVtSq = neuts:selfPrimitiveMoments()[2]
+         
+      if tCurr == 0.0 then
+         species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      end
+     
+      species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {species[self.name].collisions[self.collNmIoniz].reactRate})
+   end
+
+   if self.calcCXSrc then
+      -- Calculate Vcx*SigmaCX.
+      local neuts = species[self.neutNmCX]
+      if lume.any({unpack(neuts.momentFlags,1,4)},function(x) return x==false end) then
+         -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments.
+         neuts:calcCouplingMoments(tCurr, rkIdx, species)
+      end
+      local m0       = neuts:fluidMoments()[1]
+      local neutU    = neuts:selfPrimitiveMoments()[1]
+      local neutVtSq = neuts:selfPrimitiveMoments()[2]
+
+      species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, neutVtSq}, {species[self.name].collisions[self.collNmCX].reactRate})
+   end
+   
+   self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
 end
 
 function GkSpecies:fluidMoments() return self.threeMoments end
-
-function GkSpecies:boundaryCorrections() return self.threeMomentsBoundaryCorrections end
-
-function GkSpecies:selfPrimitiveMoments() return { self.uParSelf, self.vtSqSelf } end
-
-function GkSpecies:crossPrimitiveMoments(otherSpeciesName)
-   return { self.uParCross[otherSpeciesName], self.vtSqCross[otherSpeciesName] }
-end
 
 function GkSpecies:getNumDensity(rkIdx)
    -- If no rkIdx specified, assume numDensity has already been calculated.
    if rkIdx == nil then return self.numDensity end 
    local fIn = self:rkStepperFields()[rkIdx]
 
-   if self.evolve or self._firstMomentCalc then
-      local tmStart = Time.clock()
+   local tmStart = Time.clock()
 
-      fIn = self.getF_or_deltaF(fIn)
-      self.numDensityCalc:advance(nil, {fIn}, { self.numDensityAux })
+   fIn = self.getF_or_deltaF(fIn)
+   self.numDensityCalc:advance(nil, {fIn}, { self.numDensityAux })
 
-      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
-   end
-   if not self.evolve then self._firstMomentCalc = false end
+   self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    return self.numDensityAux
 end
 
@@ -924,15 +616,12 @@ function GkSpecies:getMomDensity(rkIdx)
    if rkIdx == nil then return self.momDensity end 
    local fIn = self:rkStepperFields()[rkIdx]
  
-   if self.evolve or self._firstMomentCalc then
-      local tmStart = Time.clock()
+   local tmStart = Time.clock()
 
-      fIn = self.getF_or_deltaF(fIn)
-      self.momDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
+   fIn = self.getF_or_deltaF(fIn)
+   self.momDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
 
-      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
-   end
-   if not self.evolve then self._firstMomentCalc = false end
+   self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    return self.momDensityAux
 end
 
@@ -942,7 +631,7 @@ function GkSpecies:getMomProjDensity(rkIdx)
    if rkIdx == nil then return self.momDensity end 
    local fIn = self:rkStepperFields()[rkIdx]
  
-   if self.evolve or self._firstMomentCalc then
+   if self.evolve then
       local tmStart = Time.clock()
 
       fIn = self.getF_or_deltaF(fIn)
@@ -950,7 +639,6 @@ function GkSpecies:getMomProjDensity(rkIdx)
 
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
-   if not self.evolve then self._firstMomentCalc = false end
    return self.momDensityAux
 end
 
@@ -960,7 +648,7 @@ function GkSpecies:getEmModifier(rkIdx)
 
    local fIn = self.equation.emMod
 
-   if self.evolve or self._firstMomentCalc then
+   if self.evolve then
       local tmStart = Time.clock()
 
       fIn = self.getF_or_deltaF(fIn)
@@ -968,7 +656,6 @@ function GkSpecies:getEmModifier(rkIdx)
 
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
-   if not self.evolve then self._firstMomentCalc = false end
    fIn:clear(0.0)
    return self.momDensityAux
 end

@@ -8,17 +8,14 @@
 
 local CollisionsBase = require "App.Collisions.CollisionsBase"
 local Constants      = require "Lib.Constants"
-local DataStruct     = require "DataStruct"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
 local xsys           = require "xsys"
-local Lin            = require "Lib.Linalg"
-local Mpi            = require "Comm.Mpi"
 local lume           = require "Lib.lume"
+local ffi            = require "ffi"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local DiagsImplBase  = require "App.Diagnostics.DiagnosticsImplBase"
-local ffi            = require "ffi"
 
 -- ............... IMPLEMENTATION OF DIAGNOSTICS ................. --
 -- Diagnostics could be placed in a separate file if they balloon in
@@ -83,16 +80,16 @@ function VmLBOCollisions:fullInit(speciesTbl)
       self.crossCollisions = false            -- Don't apply cross-species collisions.
    end
 
-   self.collFreqs = tbl.frequencies -- List of collision frequencies, if using spatially constant nu.
+   self.collFreqs = tbl.frequencies -- List of collision frequencies.
    if self.collFreqs then
       -- Collisionality, provided by user, will remain constant in time.
       self.timeDepNu = false
       self.calcSelfNu = function(momsIn, nuOut) VmLBOCollisions['calcSelfNuTimeConst'](self,momsIn,nuOut) end
       self.calcCrossNu = self.crossCollisions
          and function(species, otherNm, mOther, momsOther,
-                      uOther, vtSqOther, nuCrossSelf, nuCrossOther)
+                      vtSqOther, nuCrossSelf, nuCrossOther)
             VmLBOCollisions['calcCrossNuTimeConst'](self,species, otherNm,
-              mOther, momsOther, uOther, vtSqOther, nuCrossSelf, nuCrossOther)
+              mOther, momsOther, vtSqOther, nuCrossSelf, nuCrossOther)
          end
          or nil
 
@@ -118,9 +115,9 @@ function VmLBOCollisions:fullInit(speciesTbl)
       self.calcSelfNu = function(momsIn, nuOut) VmLBOCollisions['calcSelfNuTimeDep'](self,momsIn,nuOut) end
       self.calcCrossNu = self.crossCollisions
          and function(species, otherNm, mOther, momsOther,
-                      uOther, vtSqOther, nuCrossSelf, nuCrossOther)
+                      vtSqOther, nuCrossSelf, nuCrossOther)
             VmLBOCollisions['calcCrossNuTimeDep'](self,species, otherNm,
-              mOther, momsOther, uOther, vtSqOther, nuCrossSelf, nuCrossOther)
+              mOther, momsOther, vtSqOther, nuCrossSelf, nuCrossOther)
          end
          or nil
 
@@ -182,8 +179,8 @@ function VmLBOCollisions:createSolver(mySpecies, extField)
    self.boundCorrs = mySpecies:allocVectorMoment(vdim+1)
 
    local vbounds = ffi.new("double[6]")
-   for i=1, vdim do
-      vbounds[i-1]           = self.phaseGrid:lower(self.confGrid:ndim()+i)
+   for i = 1, vdim do
+      vbounds[i-1]      = self.phaseGrid:lower(self.confGrid:ndim()+i)
       vbounds[i-1+vdim] = self.phaseGrid:upper(self.confGrid:ndim()+i)
    end
    self.primMomSelf = Updater.SelfPrimMoments {
@@ -194,7 +191,7 @@ function VmLBOCollisions:createSolver(mySpecies, extField)
 
    local projectUserNu
    if self.timeDepNu then 
-      self.m0Self = self.timeDepNu and mySpecies:allocMoment() or nil  -- M0, to be extracted from fiveMoments.
+      self.m0Self = mySpecies:allocMoment()  -- M0, to be extracted from fiveMoments.
       -- Updater to compute spatially varying (Spitzer) nu.
       self.spitzerNu = Updater.SpitzerCollisionality {
          onGrid           = self.confGrid,     elemCharge = self.elemCharge,
@@ -267,15 +264,6 @@ function VmLBOCollisions:createSolver(mySpecies, extField)
    self.nuUSum = mySpecies:allocVectorMoment(vdim)
    -- Sum of squared thermal speeds, vthSq=T/m, multiplied by respective collisionalities.
    self.nuVtSqSum = mySpecies:allocMoment()
-
-   -- Number of cells in which number density was negative (somewhere).
-   self.primMomLimitCrossings = DataStruct.DynVector {
-      numComponents = 1,
-   }
-   self.primMomCrossLimitL = Lin.Vec(1)
-   self.primMomCrossLimitG = Lin.Vec(1)
-   -- Factor dividing zeroth-coefficient in configuration space cell average.
-   self.cellAvFac          = 1.0/math.sqrt(2.0^self.confGrid:ndim())
 end
 
 
@@ -322,15 +310,15 @@ function VmLBOCollisions:calcSelfNuTimeConst(momsSelf, nuOut) nuOut:copy(self.nu
 function VmLBOCollisions:calcSelfNuTimeDep(momsSelf, nuOut)
    -- Compute the Spitzer collisionality.
    self.m0Self:combineOffset(1., momsSelf, 0) 
-   self.spitzerNu:advance(tCurr, {self.charge, self.mass, self.m0Self, self.uSelf,
+   self.spitzerNu:advance(tCurr, {self.charge, self.mass, self.m0Self, self.vtSqSelf,
                                   self.charge, self.mass, self.m0Self, self.vtSqSelf, self.normNuSelf}, {nuOut})
 end
 
 function VmLBOCollisions:calcCrossNuTimeConst(species, otherNm,
-   mOther, momsOther, uOther, vtSqOther, nuCrossSelf, nuCrossOther) end
+   mOther, momsOther, vtSqOther, nuCrossSelf, nuCrossOther) end
 
 function VmLBOCollisions:calcCrossNuTimeDep(species, otherNm,
-   mOther, momsOther, uOther, vtSqOther, nuCrossSelf, nuCrossOther)
+   mOther, momsOther, vtSqOther, nuCrossSelf, nuCrossOther)
 
    -- Compute the Spitzer collisionality if another species hasn't already done so.
    local chargeOther     = species[otherNm]:getCharge()
@@ -340,7 +328,7 @@ function VmLBOCollisions:calcCrossNuTimeDep(species, otherNm,
    if not crossFlagsSelf then
       local crossNormNuSelf = self.normNuCross[otherNm]
       self.spitzerNu:advance(tCurr, {self.charge, self.mass, self.m0Self, self.vtSqSelf,
-                                     chargeOther, mOther,self.m0Other, vtSqOther, crossNormNuSelf},
+                                     chargeOther, mOther, self.m0Other, vtSqOther, crossNormNuSelf},
                                     {nuCrossSelf})
       crossFlagsSelf = true
    end
@@ -380,7 +368,7 @@ function VmLBOCollisions:advance(tCurr, fIn, species, out)
          local nuCrossOther = self.collAppOther[otherNm]:crossFrequencies(self.speciesName)
 
          -- Calculate time-dependent collision frequency if needed.
-         self.calcCrossNu(species, otherNm, mOther, momsOther, uOther, vtSqOther,
+         self.calcCrossNu(species, otherNm, mOther, momsOther, vtSqOther,
                           nuCrossSelf, nuCrossOther)
 
          -- Compose the pre-factor (we should put this in a single loop/updater):
@@ -418,10 +406,7 @@ function VmLBOCollisions:advance(tCurr, fIn, species, out)
 
 end
 
-function VmLBOCollisions:write(tm, frame)
--- Since this doesn't seem to be as big a problem in Vm as in Gk, we comment this out for now.
---   self.primMomLimitCrossings:write(string.format("%s_%s.bp", self.speciesName, "primMomLimitCrossings"), tm, frame)
-end
+function VmLBOCollisions:write(tm, frame) end
 
 function VmLBOCollisions:totalTime()
    return self.collisionSlvr.totalTime + self.timers.nonSlvr
