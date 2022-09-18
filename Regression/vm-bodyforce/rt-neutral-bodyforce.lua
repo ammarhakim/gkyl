@@ -12,7 +12,7 @@ endTime = 0.5
 
 App = Vlasov.App {
    tEnd = 1.0,
-   nFrame = 10,
+   nFrame = 1,
    lower = {-L},
    upper = {L},
    cells = {16},
@@ -31,22 +31,21 @@ App = Vlasov.App {
 
       init = Vlasov.MaxwellianProjection {
          density = function (t, xn)
-            local x, y = xn[1], xn[2]
-            return n0*math.exp(-(x*x)/(2*0.5*0.5) + -(y*y)/(2*0.5*0.5))
+            local x = xn[1]
+            return n0*math.exp(-(x*x)/(2*0.5*0.5))
          end,
-         driftSpeed = {0.0,0.0},
+         driftSpeed = {0.0},
          temperature = T0,
-         isInit = true,
       },   
    
-   evolve = true,
-   diagnostics = {"M0", "M1i", "M2"},   
-
-   vlasovExtForceFunc = function(t, xn)
-      return -5.0, 0.0, 0.0
-   end,
+      evolve = true,
+      diagnostics = {"M0", "M1i", "M2"},   
+      
+      vlasovExtForceFunc = function(t, xn)
+         return -5.0, 0.0, 0.0
+      end,
    },   
 
-   }
+}
 
 App:run()

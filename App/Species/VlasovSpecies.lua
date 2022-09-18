@@ -114,12 +114,10 @@ function VlasovSpecies:alloc(nRkDup)
    self.ptclEnergy = self:allocMoment()
    self.fiveMoments = self:allocVectorMoment(self.vdim+2)
 
-   -- Allocate field to accumulate externalField if any.
-   --self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
-
    -- Allocate field for external forces if any.
    if self.hasExtForce then 
       self.vExtForce = self:allocVectorMoment(self.vdim)
+      self.vExtFptr, self.vExtFidxr   = self.vExtForce:get(1), self.vExtForce:genIndexer()
    end
 
    -- Allocate moment array for integrated moments (n, n*u_i, sum_i n*u_i^2, sum_i n*T_ii).
@@ -169,6 +167,9 @@ function VlasovSpecies:createSolver(field, externalField)
    else
       --self.totalEmField = self:allocVectorMoment(3)     -- Electric field only.
       self.totalEmField = self:allocMoment()  -- Phi only (Vlasov-Poisson)
+   end
+   if self.hasExtForce then
+      self.totEmFptr, self.totEmFidxr = self.totalEmField:get(1), self.totalEmField:genIndexer()
    end
 
    self.computePlasmaB = true and plasmaB   -- Differentiate plasma B from external B.
@@ -244,11 +245,26 @@ function VlasovSpecies:createSolver(field, externalField)
          end
    end
 
-   if self.vlasovExtForceFunc then
+   if self.hasExtForce then
       self.evalVlasovExtForce = Updater.ProjectOnBasis {
          onGrid = self.confGrid,   evaluate = self.vlasovExtForceFunc,
          basis  = self.confBasis,  onGhosts = false
       }
+
+      self.accumulateExtForce = function(tCurr, totalEmField)
+         local vExtForce  = self.vExtForce
+         local vItr, eItr = self.vExtFptr, self.totEmFptr
+         self.evalVlasovExtForce:advance(tCurr, {}, {vExtForce})
+
+         -- Analogous to the current, the external force only gets accumulated onto the electric field.
+         for idx in totalEmField:localRangeIter() do
+            vExtForce:fill(self.vExtFidxr(idx), vItr)
+            totalEmField:fill(self.totEmFidxr(idx), eItr)
+            for i = 1, vExtForce:numComponents() do eItr[i] = eItr[i]+vItr[i] end
+         end
+      end
+   else
+      self.accumulateExtForce = function(tCurr, totalEmField) end
    end
 
    -- Create an updater for volume integrals. Used by diagnostics.
@@ -370,26 +386,11 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    totalEmField:clear(0.0)
 
    local qbym = self.charge/self.mass
-   if emField then 
-      totalEmField:accumulate(qbym, emField) 
-   end
+   if emField then totalEmField:accumulate(qbym, emField) end
    if emExternalField then totalEmField:accumulate(qbym, emExternalField) end
 
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
-   if self.hasExtForce then
-      local vExtForce = self.vExtForce
-      self.evalVlasovExtForce:advance(tCurr, {}, {vExtForce})
-
-      -- Analogous to the current, the external force only gets accumulated onto the electric field.
-      local vItr, eItr   = vExtForce:get(1), totalEmField:get(1)
-      local vIdxr, eIdxr = vExtForce:genIndexer(), totalEmField:genIndexer()
-
-      for idx in totalEmField:localRangeIter() do
-         vExtForce:fill(vIdxr(idx), vItr)
-         totalEmField:fill(eIdxr(idx), eItr)
-         for i = 1, vExtForce:numComponents() do eItr[i] = eItr[i]+vItr[i] end
-      end
-   end
+   self.accumulateExtForce(tCurr, totalEmField)
 
    self.collisionlessAdvance(tCurr, {fIn, totalEmField, emField}, {fRhsOut, self.cflRateByCell})
 
