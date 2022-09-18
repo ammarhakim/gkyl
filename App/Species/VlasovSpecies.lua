@@ -22,7 +22,6 @@ local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
 local BasicBC        = require ("App.BCs.VlasovBasic").VlasovBasic
 local BCsBase        = require "App.BCs.BCsBase"
-local ffi            = require "ffi"
 local xsys           = require "xsys"
 local lume           = require "Lib.lume"
 
@@ -115,12 +114,10 @@ function VlasovSpecies:alloc(nRkDup)
    self.ptclEnergy = self:allocMoment()
    self.fiveMoments = self:allocVectorMoment(self.vdim+2)
 
-   -- Allocate field to accumulate externalField if any.
-   --self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
-
    -- Allocate field for external forces if any.
    if self.hasExtForce then 
       self.vExtForce = self:allocVectorMoment(self.vdim)
+      self.vExtFptr, self.vExtFidxr   = self.vExtForce:get(1), self.vExtForce:genIndexer()
    end
 
    -- Allocate moment array for integrated moments (n, n*u_i, sum_i n*u_i^2, sum_i n*T_ii).
@@ -148,11 +145,6 @@ function VlasovSpecies:fullInit(appTbl)
    self.numVelFlux = tbl.vFlux
 end
 
-function VlasovSpecies:allocMomCouplingFields()
-   return { currentDensity = self:allocVectorMoment(self.vdim) }
-end
-
-
 function VlasovSpecies:createSolver(field, externalField)
    -- Run the KineticSpecies 'createSolver()' to initialize the collisions solver.
    VlasovSpecies.super.createSolver(self, field, externalField)
@@ -176,20 +168,27 @@ function VlasovSpecies:createSolver(field, externalField)
       --self.totalEmField = self:allocVectorMoment(3)     -- Electric field only.
       self.totalEmField = self:allocMoment()  -- Phi only (Vlasov-Poisson)
    end
+   if self.hasExtForce then
+      self.totEmFptr, self.totEmFidxr = self.totalEmField:get(1), self.totalEmField:genIndexer()
+   end
 
    self.computePlasmaB = true and plasmaB   -- Differentiate plasma B from external B.
 
-   ---- Create updater to advance solution by one time-step.
-   self.solver = Updater.VlasovDG {
-      onGrid = self.grid,
-      confBasis = self.confBasis,
-      phaseBasis = self.basis,
-      confRange = self.totalEmField:localRange(),
-      hasElectricField = hasE,
-      hasMagneticField = hasB,
-      hasExtForce      = self.hasExtForce,
-      plasmaMagField   = plasmaB
-   }
+   -- Create updater to advance solution by one time-step.
+   if self.evolveCollisionless then
+      self.solver = Updater.VlasovDG {
+         onGrid     = self.grid,                       hasElectricField = hasE,
+         confBasis  = self.confBasis,                  hasMagneticField = hasB,
+         phaseBasis = self.basis,                      hasExtForce      = self.hasExtForce,
+         confRange  = self.totalEmField:localRange(),  plasmaMagField   = plasmaB
+      }
+      self.collisionlessAdvance = function(tCurr, inFlds, outFlds)
+         self.solver:advance(tCurr, inFlds, outFlds)
+      end
+   else
+      self.solver = {totalTime = 0.}
+      self.collisionlessAdvance = function(tCurr, inFlds, outFlds) end
+   end
 
    -- Create updaters to compute various moments.
    self.numDensityCalc = Updater.DistFuncMomentCalc {
@@ -215,37 +214,57 @@ function VlasovSpecies:createSolver(field, externalField)
    -- Create updater to compute M0, M1i, M2 moments sequentially.
    -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
    self.fiveMomentsCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "FiveMoments",
+      onGrid     = self.grid,   confBasis  = self.confBasis,
+      phaseBasis = self.basis,  moment     = "FiveMoments",
    }
    self.calcMaxwell = Updater.MaxwellianOnBasis {
-      onGrid      = self.grid,
-      phaseBasis  = self.basis,
-      confGrid    = self.confGrid,
-      confBasis   = self.confBasis,
+      onGrid     = self.grid,   confGrid  = self.confGrid,
+      phaseBasis = self.basis,  confBasis = self.confBasis,
    }
-   if self.needSelfPrimMom then
-      local vbounds = ffi.new("double[6]")
-      for i=0, self.vdim-1 do 
-         vbounds[i]           = self.grid:lower(self.cdim+i+1)
-         vbounds[i+self.vdim] = self.grid:upper(self.cdim+i+1)
-      end
-      self.primMomSelf = Updater.SelfPrimMoments {
-         onGrid     = self.grid,       operator = "VmLBO",
-         phaseBasis = self.basis,      vbounds  = vbounds,
-         confBasis  = self.confBasis,
-      }
+   if self.needFiveMoments then
+      self.calcSelfCouplingMom = self.computePlasmaB
+         and function(tCurr, fIn)
+            -- Compute M0, M1i and M2.
+            self.fiveMomentsCalc:advance(tCurr, {fIn}, {self.fiveMoments})
+            -- Copy momentum density to its own field.
+            self.momDensity:combineOffset(1., self.fiveMoments, 1*self.confBasis:numBasis())
+         end
+         or function(tCurr, fIn)
+            -- Compute M0, M1i and M2.
+            self.fiveMomentsCalc:advance(tCurr, {fIn}, {self.fiveMoments})
+            -- Copy number density to its own field.
+            self.numDensity:combineOffset(1., self.fiveMoments, 0)
+         end
+   else
+      self.calcSelfCouplingMom = self.computePlasmaB
+         and function(tCurr, fIn)
+            self.momDensityCalc:advance(tCurr, {fIn}, { self.momDensity })
+         end
+         or function(tCurr, fIn)
+            self.numDensityCalc:advance(tCurr, {fIn}, { self.numDensity })
+         end
    end
 
-   if self.vlasovExtForceFunc then
+   if self.hasExtForce then
       self.evalVlasovExtForce = Updater.ProjectOnBasis {
-         onGrid   = self.confGrid,
-         basis    = self.confBasis,
-         evaluate = self.vlasovExtForceFunc,
-         onGhosts = false
+         onGrid = self.confGrid,   evaluate = self.vlasovExtForceFunc,
+         basis  = self.confBasis,  onGhosts = false
       }
+
+      self.accumulateExtForce = function(tCurr, totalEmField)
+         local vExtForce  = self.vExtForce
+         local vItr, eItr = self.vExtFptr, self.totEmFptr
+         self.evalVlasovExtForce:advance(tCurr, {}, {vExtForce})
+
+         -- Analogous to the current, the external force only gets accumulated onto the electric field.
+         for idx in totalEmField:localRangeIter() do
+            vExtForce:fill(self.vExtFidxr(idx), vItr)
+            totalEmField:fill(self.totEmFidxr(idx), eItr)
+            for i = 1, vExtForce:numComponents() do eItr[i] = eItr[i]+vItr[i] end
+         end
+      end
+   else
+      self.accumulateExtForce = function(tCurr, totalEmField) end
    end
 
    -- Create an updater for volume integrals. Used by diagnostics.
@@ -271,191 +290,32 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    -- species that is not mediated by the field (solver), like
    -- collisions.
 
-   -- Function to find the index of an element in table.
-   local function findInd(tblIn, el)
-      for i, v in ipairs(tblIn) do
-         if v == el then
-            return i
-         end
-      end
-      return #tblIn+1    -- If not found return a number larger than the length of the table.
-   end
-
-   -- Function to concatenate two tables.
-   local function tableConcat(t1,t2)
-      for i=1,#t2 do
-         t1[#t1+1] = t2[i]
-      end
-      return t1
-   end
-
+   -- Determine if M0, M1i and M2 are needed.
+   self.needFiveMoments = false
    -- Create a double nested table of colliding species.
    -- In this table we will encode information about that collition such as:
    --   * does the collision take place?
    --   * Operator modeling the collision.
-   --   * Is the collisionality constant in time?
-   --   * Does it use spatially varying collisionality?
-   --   * If using homogeneous collisionality, record its value/profile.
-   -- Other features of a collision may be added in the future, such as
-   -- velocity dependent collisionality, FLR effects, or some specific
-   -- neutral/impurity effect.
-   self.collPairs  = {}
+   -- Other features of a collision may be added in the future.
+   self.collPairs = {}
    for sN, _ in lume.orderedIter(species) do
       self.collPairs[sN] = {}
       for sO, _ in lume.orderedIter(species) do
          self.collPairs[sN][sO] = {}
          -- Need next below because species[].collisions is created as an empty table. 
          if species[sN].collisions and next(species[sN].collisions) then 
-            -- This species collides with someone.
-            local selfColl, crossColl, collSpecs = false, false, {}
-            -- Obtain the boolean indicating if self/cross collisions affect the sN species.
             for collNm, _ in pairs(species[sN].collisions) do
-               selfColl  = selfColl or species[sN].collisions[collNm].selfCollisions
-               crossColl = crossColl or species[sN].collisions[collNm].crossCollisions
-               collSpecs = tableConcat(collSpecs, species[sN].collisions[collNm].collidingSpecies)
-            end
-
-            -- Record if a specific binary collision is turned on.
-            if sN == sO then
-               self.collPairs[sN][sO].on = selfColl
-            else
-               if crossColl then
-                  local specInd = findInd(collSpecs, sO)
-                  if specInd < (#collSpecs+1) then
-                     self.collPairs[sN][sO].on = true
-                  else
-                     self.collPairs[sN][sO].on = false
-                  end
-               else
-                  self.collPairs[sN][sO].on = false
+               -- This species collides with someone.
+               self.collPairs[sN][sO].on = lume.any(species[sN].collisions[collNm].collidingSpecies,
+                                                    function(e) return e==sO end)
+               if self.collPairs[sN][sO].on then
+                  self.collPairs[sN][sO].kind = species[sO].collisions[collNm].collKind
+                  self.needFiveMoments = true  -- MF 2022/09/16: at the moment all collision models need M0, M1, M2.
                end
             end
-
          else
-
             -- This species does not collide with anyone.
             self.collPairs[sN][sO].on = false
-
-         end    -- end if next(species[sN].collisions) statement.
-      end
-   end
-
-   -- Here we wish to record some properties of each collision in collPairs.
-   for sN, _ in lume.orderedIter(species) do
-      -- Need next below because species[].collisions is created as an empty table. 
-      if species[sN].collisions and next(species[sN].collisions) then 
-         for sO, _ in lume.orderedIter(species) do
-            -- Find the kind of a specific collision, and the collision frequency it uses.
-            for collNmN, _ in pairs(species[sN].collisions) do
-               if self.collPairs[sN][sO].on then
-                  local specInd = findInd(species[sN].collisions[collNmN].collidingSpecies, sO)
-                  if specInd < (#species[sN].collisions[collNmN].collidingSpecies+1) then
-                     -- Collision operator kind.
-                     self.collPairs[sN][sO].kind      = species[sN].collisions[collNmN].collKind
-                     -- Collision frequency time dependence (e.g. constant, time-varying).
-                     self.collPairs[sN][sO].timeDepNu = species[sN].collisions[collNmN].timeDepNu
-                     if (not self.collPairs[sN][sO].timeDepNu) then
-                        -- Constant collisionality. Record it.
-                        self.collPairs[sN][sO].nu = species[sN].collisions[collNmN].collFreqs[specInd]
-                     else
-                        -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
-                        if (species[sN].collisions[collNmN].userInputNormNu) then
-                           self.collPairs[sN][sO].normNu = species[sN].collisions[collNmN].normNuIn[specInd]
-                        else
-                           self.collPairs[sN][sO].normNu = 0.0    -- Not used.
-                        end
-                     end
-                  end
-               elseif self.collPairs[sO][sN].on then
-                  -- Species sN doesn't collide with sO, but sO collides with sN.
-                  -- For computing cross-primitive moments, species sO may need the sN-sO
-                  -- collision frequency. Set it such that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
-                  for collNmO, _ in pairs(species[sO].collisions) do
-                     local specInd = findInd(species[sO].collisions[collNmO].collidingSpecies, sN)
-                     if specInd < (#species[sO].collisions[collNmO].collidingSpecies+1) then
-                        -- Collision operator kind.
-                        self.collPairs[sO][sN].kind      = species[sO].collisions[collNmO].collKind
-                        -- Collision frequency time dependence (e.g. constant, time-varying).
-                        self.collPairs[sO][sN].timeDepNu = species[sO].collisions[collNmN].timeDepNu
-                        self.collPairs[sN][sO].timeDepNu = species[sO].collisions[collNmN].timeDepNu
-                        if (not self.collPairs[sN][sO].timeDepNu) then
-                           -- Constant collisionality. Record it.
-                           -- We will need to first project the nu we do have, and later scale it by the mass ratio.
-                           self.collPairs[sN][sO].nu = species[sO].collisions[collNmO].collFreqs[specInd]
-                        else
-                           -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
-                           if (species[sO].collisions[collNmO].userInputNormNu) then
-                              self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
-                           else
-                              self.collPairs[sN][sO].normNu = 0.0    -- Not used.
-                           end
-                        end
-                     end
-                  end
-               end
-            end
-         end    -- end if next(species[sN].collisions) statement.
-      else
-         -- This segment is needed when species sN doesn't have a collision object/table,
-         -- but species sO collides with sN.
-         -- For computing cross-primitive moments, species sO may need the sN-sO
-         -- collision frequency. Set it such that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
-         for sO, _ in lume.orderedIter(species) do
-            if species[sO].collisions and next(species[sO].collisions) then 
-               for collNmO, _ in pairs(species[sO].collisions) do
-                  if self.collPairs[sO][sN].on then
-                     -- Species sO collides with sN. For computing cross-primitive moments,
-                     -- species sO may need the sN-sO collision frequency. Set it such 
-                     -- that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
-                     local specInd = findInd(species[sO].collisions[collNmO].collidingSpecies, sN)
-                     if specInd < (#species[sO].collisions[collNmO].collidingSpecies+1) then
-                        if (not self.collPairs[sN][sO].timeDepNu) then
-                           -- We will need to first project the nu we do have, and later scale it by the mass ratio.
-                           self.collPairs[sN][sO].nu = species[sO].collisions[collNmO].collFreqs[specInd]
-                        else
-                           -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
-                           if (species[sO].collisions[collNmO].userInputNormNu) then
-                              self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
-                           else
-                              self.collPairs[sN][sO].normNu = 0.0    -- Not used.
-                           end
-                        end
-                     end
-                  end
-               end
-            end
-         end
-      end
-   end
-
-   -- Determine if self primitive moments and boundary corrections are needed.
-   -- If a pair of species only has cross-species collisions (no self-collisions)
-   -- then the self-primitive moments may be computed without boundary corrections.
-   -- Boundary corrections are only needed if there are LBO self-species collisions.
-   self.needSelfPrimMom          = false
-   self.needCorrectedSelfPrimMom = false
-   -- Also check if spatially varying nu is needed, and if the user inputed a spatial
-   -- profile for the collisionality (which needs to be projected).
-   local needVarNu               = false
-   local userInputNuProfile      = false
-   if self.collPairs[self.name][self.name].on then
-      self.needSelfPrimMom          = true
-      if (self.collPairs[self.name][self.name].kind=="GkLBO") or
-         (self.collPairs[self.name][self.name].kind=="VmLBO") then
-         self.needCorrectedSelfPrimMom = true
-      end
-   end
-   for sO, _ in lume.orderedIter(species) do
-      if self.collPairs[self.name][sO].on or self.collPairs[sO][self.name].on then
-         self.needSelfPrimMom = true
-         if ( self.collPairs[sO][sO].on and (self.collPairs[self.name][self.name].kind=="GkLBO" or
-                                             self.collPairs[self.name][self.name].kind=="VmLBO") ) then
-            self.needCorrectedSelfPrimMom = true
-         end
-
-         needVarNu = true
-         if (not self.collPairs[self.name][sO].timeDepNu) or (not self.collPairs[sO][self.name].timeDepNu) then
-            userInputNuProfile = true
          end
       end
    end
@@ -471,12 +331,10 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    		  for collNm, _ in pairs(species[sN].collisions) do
    		     if self.name==species[sN].collisions[collNm].elcNm and counterIz_elc then
    			self.neutNmIz         = species[sN].collisions[collNm].neutNm
-   			self.needSelfPrimMom  = true
    			self.calcReactRate    = true
    			self.collNmIoniz      = collNm
 			counterIz_elc         = false
 		     elseif self.name==species[sN].collisions[collNm].neutNm and counterIz_neut then
-			self.needSelfPrimMom = true
 			counterIz_neut       = false
    		     end
    		  end
@@ -498,85 +356,13 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
   			self.calcCXSrc        = true			
 			self.collNmCX         = collNm
    			self.neutNmCX         = species[sN].collisions[collNm].neutNm
-   			self.needSelfPrimMom  = true
-			species[self.neutNmCX].needSelfPrimMom = true
+			species[self.neutNmCX].needFiveMoments = true
    			counterCX = false
     		     end
    		  end
    	       end
    	    end
    	 end
-      end
-   end
-
-   if self.needSelfPrimMom then
-      -- Allocate fields to store self-species primitive moments.
-      self.uSelf    = self:allocVectorMoment(self.vdim)
-      self.vtSqSelf = self:allocMoment()
-
-      -- Allocate fields for boundary corrections.
-      self.fiveMomentsBoundaryCorrections = self:allocVectorMoment(self.vdim+1)
-
-   end
-
-   -- Allocate fieds to store cross-species primitive moments.
-   self.uCross    = {}
-   self.vtSqCross = {}
-   for sN, _ in lume.orderedIter(species) do
-      if sN ~= self.name then
-         -- Flags for couplingMoments, boundary corrections, star moments,
-         -- self primitive moments, cross primitive moments.
-         self.momentFlags[5][sN] = false
-      end
-
-      for sO, _ in lume.orderedIter(species) do
-         -- Allocate space for this species' cross-primitive moments
-         -- only if some other species collides with it.
-         if (sN ~= sO) and (self.collPairs[sN][sO].on or self.collPairs[sO][sN].on) then
-            otherNm = string.gsub(sO .. sN, self.name, "")
-            if self.uCross[otherNm] == nil then
-               self.uCross[otherNm] = self:allocVectorMoment(self.vdim)
-            end
-            if self.vtSqCross[otherNm] == nil then
-               self.vtSqCross[otherNm] = self:allocMoment()
-            end
-         end
-      end
-   end
-
-   if needVarNu then
-      self.nuVarXCross = {}    -- Collisionality varying in configuration space.
-      local projectNuX = nil
-      if userInputNuProfile then
-         projectNuX = Updater.ProjectOnBasis {
-            onGrid = self.confGrid,   evaluate = function(t,xn) return 0.0 end, -- Function is set below.
-            basis  = self.confBasis,  onGhosts = false,
-         }
-      end
-      for sN, _ in lume.orderedIter(species) do
-         if sN ~= self.name then
-            -- Sixth moment flag is to indicate if spatially varying collisionality has been computed.
-            self.momentFlags[6][sN] = false
-         end
-   
-         for sO, _ in lume.orderedIter(species) do
-            -- Allocate space for this species' collision frequency 
-            -- only if some other species collides with it.
-            if (sN ~= sO) and (self.collPairs[sN][sO].on or self.collPairs[sO][sN].on) then
-               otherNm = string.gsub(sO .. sN, self.name, "")
-               if self.nuVarXCross[otherNm] == nil then
-                  self.nuVarXCross[otherNm] = self:allocMoment()
-                  if (userInputNuProfile and (not self.collPairs[sN][sO].timeDepNu) or (not self.collPairs[sO][sN].timeDepNu)) then
-                     projectNuX:setFunc(self.collPairs[self.name][otherNm].nu)
-                     projectNuX:advance(0.0,{},{self.nuVarXCross[otherNm]})
-                     if (not self.collPairs[self.name][otherNm].on) then
-                        self.nuVarXCross[otherNm]:scale(species[self.name]:getMass()/species[otherNm]:getMass())
-                     end
-                     self.nuVarXCross[otherNm]:write(string.format("%s_nu-%s_%d.bp",self.name,otherNm,0),0.0,0,true)
-                  end
-               end
-            end
-         end
       end
    end
 
@@ -600,30 +386,13 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    totalEmField:clear(0.0)
 
    local qbym = self.charge/self.mass
-   if emField then 
-      totalEmField:accumulate(qbym, emField) 
-   end
+   if emField then totalEmField:accumulate(qbym, emField) end
    if emExternalField then totalEmField:accumulate(qbym, emExternalField) end
 
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
-   if self.hasExtForce then
-      local vExtForce = self.vExtForce
-      self.evalVlasovExtForce:advance(tCurr, {}, {vExtForce})
+   self.accumulateExtForce(tCurr, totalEmField)
 
-      -- Analogous to the current, the external force only gets accumulated onto the electric field.
-      local vItr, eItr   = vExtForce:get(1), totalEmField:get(1)
-      local vIdxr, eIdxr = vExtForce:genIndexer(), totalEmField:genIndexer()
-
-      for idx in totalEmField:localRangeIter() do
-         vExtForce:fill(vIdxr(idx), vItr)
-         totalEmField:fill(eIdxr(idx), eItr)
-         for i = 1, vExtForce:numComponents() do eItr[i] = eItr[i]+vItr[i] end
-      end
-   end
-
-   if self.evolveCollisionless then
-      self.solver:advance(tCurr, {fIn, totalEmField, emField}, {fRhsOut, self.cflRateByCell})
-   end
+   self.collisionlessAdvance(tCurr, {fIn, totalEmField, emField}, {fRhsOut, self.cflRateByCell})
 
    -- Perform the collision update.
    for _, c in pairs(self.collisions) do
@@ -670,31 +439,16 @@ function VlasovSpecies:createDiagnostics(field)
 end
 
 function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
-
-   local tmStart = Time.clock()
    -- Compute moments needed in coupling to fields and collisions.
+   local tmStart = Time.clock()
+
    local fIn = self:rkStepperFields()[rkIdx]
-   if self.needSelfPrimMom and
-      lume.any({unpack(self.momentFlags,2,4)},function(x) return x==false end) then -- No need to recompute if already computed.
 
-      self.fiveMomentsCalc:advance(tCurr, {fIn}, {self.fiveMoments})
+   -- Compute M0, M1i and/or M2 depending on what fields and collisions need.
+   self.calcSelfCouplingMom(tCurr, fIn)
 
-      -- Also compute self-primitive moments u and vtSq.
-      self.primMomSelf:advance(tCurr, {self.fiveMoments, fIn, self.fiveMomentsBoundaryCorrections},
-                               {self.uSelf, self.vtSqSelf})
-
-      -- Indicate that moments, boundary corrections, star moments
-      -- and self-primitive moments have been computed.
-      for iF=2,4 do self.momentFlags[iF] = true end
-   end
-   if self.momentFlags[1]==false then -- No need to recompute if already computed.
-      if self.computePlasmaB then
-         self.momDensityCalc:advance(tCurr, {fIn}, { self.momDensity })
-      else
-         self.numDensityCalc:advance(tCurr, {fIn}, { self.numDensity })
-      end
-      -- Indicate that the coupling moment has been computed.
-      self.momentFlags[1] = true
+   for _, coll in lume.orderedIter(self.collisions) do
+      coll:calcCouplingMoments(tCurr, rkIdx, species)
    end
 
    -- For Ionization.
@@ -731,14 +485,6 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 end
 
 function VlasovSpecies:fluidMoments() return self.fiveMoments end
-
-function VlasovSpecies:boundaryCorrections() return self.fiveMomentsBoundaryCorrections end
-
-function VlasovSpecies:selfPrimitiveMoments() return { self.uSelf, self.vtSqSelf } end
-
-function VlasovSpecies:crossPrimitiveMoments(otherSpeciesName)
-   return { self.uCross[otherSpeciesName], self.vtSqCross[otherSpeciesName] }
-end
 
 function VlasovSpecies:getNumDensity(rkIdx)
    -- If no rkIdx specified, assume numDensity has already been calculated.

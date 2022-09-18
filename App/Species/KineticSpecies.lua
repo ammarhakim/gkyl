@@ -473,6 +473,9 @@ function KineticSpecies:createCouplingSolver(species, field, externalField)
    -- After all species have called their createSolver methods, we here create the objects
    -- needed for cross-species solves (e.g. cross-species collisions).
 
+   -- Create cross collision solvers.
+   for _, coll in lume.orderedIter(self.collisions) do coll:createCouplingSolver(species, field, externalField) end
+
    -- Create BC solvers.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createCouplingSolver(species, field, externalField) end
 end
@@ -521,17 +524,9 @@ function KineticSpecies:alloc(nRkDup)
    self.dtGlobal[0], self.dtGlobal[1] = 1.0, 1.0   -- Temporary value (so diagnostics at t=0 aren't inf).
 
    -- Create a table of flags to indicate whether moments have been computed.
-   -- At first we consider 6 flags: coupling moments (M0, M1i, M2)
-   -- boundary corrections (m1Correction, m2Correction), star moments
-   -- (m0Star, m1Star, m2Star), self primitive moments (uSelf, vtSqSelf),
-   -- cross primitive moments (uCross, vtSqCross), and spatially varying
-   -- cross-species collisionality (varNuXCross).
+   -- At first we consider 4 flags: coupling moments (M0, M1i, M2).
    self.momentFlags = {}
    for iF = 1,4 do self.momentFlags[iF] = false end
-   -- The fifth and sixth entries need a table to store 
-   -- a flag for each pair of species colliding.
-   self.momentFlags[5] = {}  -- Corresponds to uCross and vtSqCross.
-   self.momentFlags[6] = {}  -- Corresponds to varNuXCross.
 end
 
 -- Note: do not call applyBc here. It is called later in initialization sequence.
@@ -672,12 +667,6 @@ function KineticSpecies:clearMomentFlags(species)
    -- Clear the momentFlags table to indicate that moments (and other
    -- quantities) need to be computed again.
    for iF = 1,4 do self.momentFlags[iF] = false end
-   for sN, _ in lume.orderedIter(species) do
-      if sN ~= self.name then
-         self.momentFlags[5][sN] = false
-         self.momentFlags[6][sN] = false
-      end
-   end
 end
 
 function KineticSpecies:checkPositivity(tCurr, idx)

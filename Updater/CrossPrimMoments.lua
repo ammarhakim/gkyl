@@ -180,15 +180,15 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
 
       local mSelf, nuSelf   = inFld[1], inFld[2]
       local momsSelf        = inFld[3]
-      local uSelf, vtSqSelf = inFld[4][1], inFld[4][2]
-      local bCorrsSelf      = inFld[5]
+      local uSelf, vtSqSelf = inFld[4], inFld[5]
+      local bCorrsSelf      = inFld[6]
 
-      local mOther, nuOther   = inFld[6], inFld[7]
-      local momsOther         = inFld[8]
-      local uOther, vtSqOther = inFld[9][1], inFld[9][2]
-      local bCorrsOther       = inFld[10]
+      local mOther, nuOther   = inFld[7], inFld[8]
+      local momsOther         = inFld[9]
+      local uOther, vtSqOther = inFld[10], inFld[11]
+      local bCorrsOther       = inFld[12]
 
-      local m0sdeltas = inFld[11]
+      local m0sdeltas = inFld[13]
 
       local uCrossSelf, vtSqCrossSelf = outFld[1], outFld[2]
 
@@ -419,15 +419,15 @@ function CrossPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
 
    local mSelf, nuSelf   = inFld[1], inFld[2]
    local momsSelf        = inFld[3]
-   local uSelf, vtSqSelf = inFld[4][1], inFld[4][2]
-   local bCorrsSelf      = inFld[5]
+   local uSelf, vtSqSelf = inFld[4], inFld[5]
+   local bCorrsSelf      = inFld[6]
 
-   local mOther, nuOther   = inFld[6], inFld[7]
-   local momsOther         = inFld[8]
-   local uOther, vtSqOther = inFld[9][1], inFld[9][2]
-   local bCorrsOther       = inFld[10]
+   local mOther, nuOther   = inFld[7], inFld[8]
+   local momsOther         = inFld[9]
+   local uOther, vtSqOther = inFld[10], inFld[11]
+   local bCorrsOther       = inFld[12]
 
-   local m0sdeltas = inFld[11]
+   local m0sdeltas = inFld[13]
 
    local uCrossSelf, vtSqCrossSelf = outFld[1], outFld[2]
 

@@ -39,4 +39,18 @@ function SeparateVectorComponents:_advance(tCurr, inFld, outFld)
 
 end
 
+function SeparateVectorComponents:_advanceOnDevice(tCurr, inFld, outFld)
+   -- Copy input fields from device -> host.
+   for _, fld in ipairs(inFld) do
+      if type(fld)=="table" and fld._zero then fld:copyDeviceToHost() end
+   end
+    -- Also copy output fields in case they are inputs too,
+    -- or are incremented rather than overwritten.
+   for _, fld in ipairs(outFld) do
+      if type(fld)=="table" and fld._zero then fld:copyDeviceToHost() end
+   end
+
+   self:_advance(tCurr, inFld, outFld)
+end
+
 return SeparateVectorComponents

@@ -69,10 +69,6 @@ function FuncVlasovSpecies:alloc(nRkDup)
    self.momDensity = self:allocVectorMoment(self.vdim)
 end
 
-function FuncVlasovSpecies:allocMomCouplingFields()
-   return { currentDensity = self:allocVectorMoment(self.vdim) }
-end
-
 function FuncVlasovSpecies:createSolver()
    self.momDensitySlvr = Updater.ProjectOnBasis {
       onGrid   = self.confGrid,

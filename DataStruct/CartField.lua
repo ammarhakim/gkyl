@@ -613,6 +613,9 @@ local function Field_meta_ctor(elct)
       _assign = function(self, fact, fld)
          self._zeroForOps:set(fact, fld._zeroForOps)
       end,
+      _assignRange = function(self, fact, fld, rng)
+         self._zeroForOps:setRange(fact, fld._zeroForOps, rng)
+      end,
       -- assignOffsetOneFld assumes that one of the input or output fields have fewer components than the other.
       --   a) nCompOut > nCompIn: assigns all of the input field w/ part of the output field, the (0-based)
       --                          offset indicating which is the 1st component in the output field to assign.
@@ -626,11 +629,16 @@ local function Field_meta_ctor(elct)
 		"CartField:assignOffsetOneFld: Factor not a number")
          assert(self:layout() == fld:layout(),
 		"CartField:assignOffsetOneFld: Fields should have same layout for sums to make sense")
-
-         -- Get number of cells for outer loop.
-         -- We do not need to use an indexer since we are simply accumulating cell-wise a subset of the components.
-         local numCells = self:_localShape()/self:numComponents()
-	 ffiC.gkylCartFieldAssignOffset(fld:_localLower(), self:_localLower(), numCells, compStart, fld:numComponents(), self:numComponents(), fact, fld._data, self._data)
+         self._zeroForOps:setOffset(fact, fld._zeroForOps, compStart)
+      end,
+      _assignOffsetOneFldRange = function(self, fact, fld, compStart, rng)
+	 assert(field_check_range(self, fld),
+		"CartField:assignOffsetOneFld: Can only assign fields with the same range")
+	 assert(type(fact) == "number",
+		"CartField:assignOffsetOneFld: Factor not a number")
+         assert(self:layout() == fld:layout(),
+		"CartField:assignOffsetOneFld: Fields should have same layout for sums to make sense")
+         self._zeroForOps:setOffsetRange(fact, fld._zeroForOps, compStart, rng)
       end,
       _accumulateOneFld = function(self, fact, fld)
          self._zeroForOps:accumulate(fact, fld._zeroForOps)
@@ -651,11 +659,16 @@ local function Field_meta_ctor(elct)
 		"CartField:accumulateOffsetOneFld: Factor not a number")
          assert(self:layout() == fld:layout(),
 		"CartField:accumulateOffsetOneFld: Fields should have same layout for sums to make sense")
-
-         -- Get number of cells for outer loop.
-         -- We do not need to use an indexer since we are simply accumulating cell-wise a subset of the components.
-         local numCells = self:_localShape()/self:numComponents()
-	 ffiC.gkylCartFieldAccumulateOffset(fld:_localLower(), self:_localLower(), numCells, compStart, fld:numComponents(), self:numComponents(), fact, fld._data, self._data)
+         self._zeroForOps:accumulateOffset(fact, fld._zeroForOps, compStart)
+      end,
+      _accumulateOffsetOneFldRange = function(self, fact, fld, compStart, rng)
+	 assert(field_check_range(self, fld),
+		"CartField:accumulateOffsetOneFld: Can only accumulate fields with the same range")
+	 assert(type(fact) == "number",
+		"CartField:accumulateOffsetOneFld: Factor not a number")
+         assert(self:layout() == fld:layout(),
+		"CartField:accumulateOffsetOneFld: Fields should have same layout for sums to make sense")
+         self._zeroForOps:accumulateOffsetRange(fact, fld._zeroForOps, compStart, rng)
       end,
       accumulate = isNumberType and
 	 function (self, c1, fld1, ...)
@@ -664,19 +677,6 @@ local function Field_meta_ctor(elct)
 	    self:_accumulateOneFld(c1, fld1) -- Accumulate first field.
 	    for i = 1, nFlds do -- Accumulate rest of the fields.
 	       self:_accumulateOneFld(args[2*i-1], args[2*i])
-	    end
-	 end or
-	 function (self, c1, fld1, ...)
-	    assert(false, "CartField:accumulate: Accumulate only works on numeric fields")
-	 end,
-      accumulateRange = isNumberType and
-	 function (self, c1, fld1, ...)
-	    local args = {...} -- Package up rest of args as table.
-	    local nFlds = (#args-1)/2
-	    local rng = args[#args]
-	    self:_accumulateOneFldRange(c1, fld1, rng) -- Accumulate first field.
-	    for i = 1, nFlds do -- Accumulate rest of the fields.
-	       self:_accumulateOneFldRange(args[2*i-1], args[2*i], rng)
 	    end
 	 end or
 	 function (self, c1, fld1, ...)
@@ -721,6 +721,67 @@ local function Field_meta_ctor(elct)
                   notAssigned[cOff+1] = false
                else
                   self:_accumulateOffsetOneFld(args[3*i-2], args[3*i-1], cOff)
+               end
+            end
+         end or
+         function (self, c1, fld1, ...)
+            assert(false, "CartField:combineOffset: Combine only works on numeric fields")
+         end,
+      accumulateRange = isNumberType and
+	 function (self, c1, fld1, ...)
+	    local args = {...} -- Package up rest of args as table.
+	    local nFlds = (#args-1)/2
+	    local rng = args[#args]
+	    self:_accumulateOneFldRange(c1, fld1, rng) -- Accumulate first field.
+	    for i = 1, nFlds do -- Accumulate rest of the fields.
+	       self:_accumulateOneFldRange(args[2*i-1], args[2*i], rng)
+	    end
+	 end or
+	 function (self, c1, fld1, ...)
+	    assert(false, "CartField:accumulate: Accumulate only works on numeric fields")
+	 end,
+      accumulateOffsetRange = isNumberType and
+	 function (self, c1, fld1, compStart1, ...)
+	    local args = {...} -- Package up rest of args as table.
+	    local nFlds = #args/3
+	    local rng = args[#args]
+	    self:_accumulateOffsetOneFldRange(c1, fld1, compStart1, rng) -- Accumulate first field.
+	    for i = 1, nFlds do -- Accumulate rest of the fields
+	       self:_accumulateOffsetOneFldRange(args[3*i-2], args[3*i-1], args[3*i], rng)
+	    end
+	 end or
+	 function (self, c1, fld1, compStart1, ...)
+	    assert(false, "CartField:accumulateOffset: Accumulate only works on numeric fields")
+	 end,
+      combineRange = isNumberType and
+         function (self, c1, fld1, ...)
+            local args = {...} -- Package up rest of args as table.
+            local nFlds = #args/2
+	    local rng = args[#args]
+            self:_assignRange(c1, fld1, rng) -- Assign first field.
+            for i = 1, nFlds do -- Accumulate rest of the fields.
+               self:_accumulateOneFldRange(args[2*i-1], args[2*i], rng)
+            end
+         end or
+         function (self, c1, fld1, ...)
+            assert(false, "CartField:combine: Combine only works on numeric fields")
+         end,
+      combineOffsetRange = isNumberType and
+	 function (self, c1, fld1, compStart1, ...)
+            local args = {...} -- Package up rest of args as table.
+            local nFlds = #args/3
+	    local rng = args[#args]
+            local notAssigned = {}
+            for i = 1, self:numComponents() do table.insert(notAssigned,true) end   -- Boolean indicates if already assigned.
+            self:_assignOffsetOneFldRange(c1, fld1, compStart1, rng) -- Assign first field.
+            notAssigned[compStart1+1] = false
+            for i = 1, nFlds do -- Accumulate rest of the fields.
+               local cOff = args[3*i]
+               if notAssigned[cOff+1] then
+                  self:_assignOffsetOneFldRange(args[3*i-2], args[3*i-1], cOff, rng)
+                  notAssigned[cOff+1] = false
+               else
+                  self:_accumulateOffsetOneFldRange(args[3*i-2], args[3*i-1], cOff, rng)
                end
             end
          end or
