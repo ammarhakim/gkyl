@@ -529,7 +529,7 @@ local function buildApplication(self, tbl)
       dtMinLocal[1], dtMinGlobal[1] = GKYL_MAX_DOUBLE, GKYL_MAX_DOUBLE
       for _, s in population.iterLocal() do dtMinLocal[1] = math.min(dtMinLocal[1], s:suggestDt()) end
       -- Reduce dtMin across species communicator.
-      Mpi.Allreduce(dtMinLocal:data(), dtMinGlobal:data(), 1, Mpi.DOUBLE, Mpi.MAX, speciesComm)
+      Mpi.Allreduce(dtMinLocal:data(), dtMinGlobal:data(), 1, Mpi.DOUBLE, Mpi.MIN, speciesComm)
 
       -- Field dt:
       local dtMin = math.min(dtMinGlobal[1], field:suggestDt())

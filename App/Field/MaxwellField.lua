@@ -239,7 +239,7 @@ function MaxwellField:esEnergy(tCurr, fldIn, outDynV)
 
    -- All-reduce across processors and push result into dyn-vector.
    Mpi.Allreduce(
-      self.localEnergy:data(), self.globalEnergy:data(), dim, Mpi.DOUBLE, Mpi.SUM, Mpi.COMM_WORLD)
+      self.localEnergy:data(), self.globalEnergy:data(), dim, Mpi.DOUBLE, Mpi.SUM, grid:commSet().comm)
 
    esE:appendData(tCurr, self.globalEnergy)
 
