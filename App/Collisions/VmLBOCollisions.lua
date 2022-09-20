@@ -341,11 +341,12 @@ function VmLBOCollisions:calcCrossNuTimeDep(species, otherNm,
    end
 end
 
-function VmLBOCollisions:advance(tCurr, fIn, species, out)
+function VmLBOCollisions:advance(tCurr, fIn, population, out)
    local tmNonSlvrStart = Time.clock()
 
    local fRhsOut = out[1]
    local cflRateByCell = out[2]
+   local species = population.species
 
    -- Fetch coupling moments of this species.
    local momsSelf = species[self.speciesName]:fluidMoments()
