@@ -298,12 +298,6 @@ function MaxwellField:alloc(nRkDup)
             ghost = {1, 1}
          }
       end
-      -- Create fields for total charge and current densities.
-      self.chargeDens = DataStruct.Field {
-         onGrid = self.grid,
-         numComponents = self.basis:numBasis(),
-         ghost = {1, 1}
-      }
 
       -- For storing integrated energy components.
       self.emEnergy = DataStruct.DynVector { numComponents = self.grid:ndim() }
@@ -325,22 +319,17 @@ function MaxwellField:createSolver()
    if self.hasMagField then   -- Maxwell's induction equations.
 
       self.equation = PerfMaxwell {
-         lightSpeed = self.lightSpeed,
-         elcErrorSpeedFactor = self.ce,
-         mgnErrorSpeedFactor = self.cb,
-         tau = self.tau,
-         numFlux = self.numFlux,
-         basis = self.basis:numBasis() > 1 and self.basis or nil,
+         lightSpeed          = self.lightSpeed,  tau     = self.tau,
+         elcErrorSpeedFactor = self.ce,          numFlux = self.numFlux,
+         mgnErrorSpeedFactor = self.cb,          basis   = self.basis:numBasis() > 1 and self.basis or nil,
       }
 
       self.fieldSlvr, self.fieldHyperSlvr = nil, {}
       if self.basis:numBasis() > 1 then
          -- Using DG scheme.
          self.fieldSlvr = Updater.HyperDisCont {
-            onGrid = self.grid,
-            basis = self.basis,
-            cfl = self.cfl,
-            equation = self.equation,
+            onGrid = self.grid,   cfl      = self.cfl,
+            basis  = self.basis,  equation = self.equation,
          }
       else
          -- Using FV scheme.
@@ -375,10 +364,8 @@ function MaxwellField:createSolver()
       end
 
       self.emEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.grid,
-         basis = self.basis,
-         numComponents = 8,
-         quantity = "V2"
+         onGrid = self.grid,   quantity      = "V2",
+         basis  = self.basis,  numComponents = 8,
       }
       self.emEnergyCalc = function(tCurr, inFld, outDynV) self.emEnergyUpd:advance(tCurr, inFld, outDynV) end
 
@@ -398,9 +385,8 @@ function MaxwellField:createSolver()
             epsilon_0 = self.epsilon0,
          }
          self.esEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
-            onGrid   = self.grid,
-            basis    = self.basis,
-            quantity = "V2"
+            onGrid = self.grid,   quantity = "V2",
+            basis  = self.basis,
          }
          self.emEnergyCalc = function(tCurr, inFld, outDynV) self:esEnergy(tCurr, inFld, outDynV) end
 --      else
@@ -585,33 +571,37 @@ end
 
 function MaxwellField:createDiagnostics() end
 
-function MaxwellField:initField(species)
-   -- Create field for total current density. Need to do this
-   -- here because field object does not know about vdim.
-   local maxVdim = 0
-   for _, s in lume.orderedIter(species) do
-      maxVdim = math.max(maxVdim, s.vdim)
-   end
-   self.currentDens = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = self.basis:numBasis()*maxVdim,
-      ghost         = {1, 1},
-   }
-
+function MaxwellField:initField(population)
    if self.hasMagField then   -- Maxwell's induction equations.
+      -- Create field for total current density. Need to do this
+      -- here because field object does not know about vdim.
+      self.currentDensLocal, self.currentDens = nil, nil
+      local vdim = nil
+      for _, s in population.iterLocal() do
+         vdim = vdim and vdim or s.vdim
+         self.currentDens = self.currentDens and self.currentDens or s:allocVectorMoment(vdim)
+         self.currentDensLocal = self.currentDensLocal and self.currentDensLocal or s:allocVectorMoment(vdim)
+         assert(vdim == s.vdim, "MaxwellField: currently don't support species with different vdim.")
+      end
+
       local project = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         evaluate = self.initFunc
+         onGrid = self.grid,   evaluate = self.initFunc,
+         basis  = self.basis,
       }
       project:advance(0.0, {}, {self.em[1]})
       self:applyBc(0.0, self.em[1])
    else   -- Poisson equation. Solve for initial phi.
-      self:advance(0.0, species, 1, 1)
-      local emStart = self:rkStepperFields()[1]
-      for i = 1, self.phiPrevNum do
-         self.phiFldPrev[i]["fld"]:copy(emStart)
+      -- Create field for total charge density.
+      self.chargeDensLocal, self.chargeDens = nil, nil
+      for _, s in population.iterLocal() do
+         self.chargeDens = self.chargeDens and self.chargeDens or s:allocMoment()
+         self.chargeDensLocal = self.chargeDensLocal and self.chargeDensLocal or s:allocMoment()
+         break
       end
+
+      self:advance(0.0, population, 1, 1)
+      local emStart = self:rkStepperFields()[1]
+      for i = 1, self.phiPrevNum do self.phiFldPrev[i]["fld"]:copy(emStart) end
    end
 end
 
@@ -700,8 +690,8 @@ function MaxwellField:accumulateCurrent(current, emRhs)
 
    local tmStart = Time.clock()
 
-   local cItr, eItr = current:get(1), emRhs:get(1)
-   local cIdxr, eIdxr = current:genIndexer(), emRhs:genIndexer()
+--   local cItr, eItr = current:get(1), emRhs:get(1)
+--   local cIdxr, eIdxr = current:genIndexer(), emRhs:genIndexer()
 
    -- If we are to use ghost currents, compute mean current first.
    local ghostCurrent = 0.0
@@ -730,7 +720,7 @@ function MaxwellField:accumulateCurrent(current, emRhs)
    self.tmCurrentAccum = self.tmCurrentAccum + Time.clock()-tmStart
 end
 
-function MaxwellField:advance(tCurr, species, inIdx, outIdx)
+function MaxwellField:advance(tCurr, population, inIdx, outIdx)
    local emIn = self:rkStepperFields()[inIdx]
    local emRhsOut = self:rkStepperFields()[outIdx]
 
@@ -738,21 +728,29 @@ function MaxwellField:advance(tCurr, species, inIdx, outIdx)
       if self.evolve then
          self.fieldSlvr:advance(tCurr, {emIn}, {emRhsOut, self.cflRateByCell})
          if self.currentDens then -- No currents for source-free Maxwell.
-            self.currentDens:clear(0.0)
-            for _, s in lume.orderedIter(species) do
-               self.currentDens:accumulate(s:getCharge(), s:getMomDensity())
+            self.currentDensLocal:clear(0.0)
+            -- Accumulate currents of local species.
+            for _, s in population.iterLocal() do
+               self.currentDensLocal:accumulate(s:getCharge(), s:getMomDensity())
             end
+            -- Reduce currents across species communicator.
+            self.currentDens:clear(0.0)
+            self.currentDens:reduceByCell('sum', population.comm, self.currentDensLocal)
+            -- Add species current to curl{B} in Amepere's equation.
             self:accumulateCurrent(self.currentDens, emRhsOut)
          end
       else
          emRhsOut:clear(0.0)   -- No RHS.
       end
    else   -- Poisson equation. Solve for phi.
-      -- Accumulate the charge density (divided by epsilon_0).
-      self.chargeDens:clear(0.0)
-      for _, s in lume.orderedIter(species) do
-         self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
+      -- Accumulate the charge density of local species.
+      self.chargeDensLocal:clear(0.0)
+      for _, s in population.iterLocal() do
+         self.chargeDensLocal:accumulate(s:getCharge(), s:getNumDensity())
       end
+      -- Reduce charge density across species communicator.
+      self.chargeDens:clear(0.0)
+      self.chargeDens:reduceByCell('sum', population.comm, self.chargeDensLocal)
 
 --      if self.isSlvrMG then
 --         self.chargeDens:scale(1.0/self.epsilon0)
@@ -935,10 +933,8 @@ end
 
 function ExternalMaxwellField:createSolver()
    self.fieldSlvr = Updater.ProjectOnBasis {
-      onGrid = self.grid,
-      basis = self.basis,
-      evaluate = self.emFunc,
-      onGhosts = true,
+      onGrid = self.grid,   evaluate = self.emFunc,
+      basis  = self.basis,  onGhosts = true,
    }
 end
 

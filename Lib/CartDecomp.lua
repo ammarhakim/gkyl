@@ -148,24 +148,23 @@ function CartProdDecomp:init(tbl)
    self._cutsRange = Range.Range(ones, tbl.cuts)
 
    local comm = Mpi.COMM_WORLD
-   -- Use a different communicator if one is specified.
+   -- UwriteRankse a different communicator if one is specified.
    if tbl.comm then comm = tbl.comm end
    -- Denote specific ranks from which writes should happen (defaults to all ranks).
-   local writeRank = tbl.writeRank or Mpi.Comm_rank(Mpi.COMM_WORLD)
+   local writeRank = tbl.writeRank or Mpi.Comm_rank(comm)
 
    -- MF 2022/08/09: node communicator is a remnant from MPI-shm. We'll keep it for potential
    -- future use but for now we just set it to the world comm.
    local nodeComm = comm
-
    -- Check if total number of domains specified by 'cuts' matches
    -- number of MPI ranks in nodeComm.
    if not tbl.__serTesting then   -- Skip check if just testing.
-      if Mpi.Is_comm_valid(nodeComm) then
-	 if Mpi.Comm_size(nodeComm) ~= self._cutsRange:volume() then
+      if Mpi.Is_comm_valid(comm) then
+	 if Mpi.Comm_size(comm) ~= self._cutsRange:volume() then
 	    assert(false,
 		   string.format(
-		      "CartProdDecomp: Number of sub-domains (%d) and processors (%d) must match",
-		      self._cutsRange:volume(), Mpi.Comm_size(nodeComm)))
+		      "CartProdDecomp: Number of sub-domains (%d) and comm size (%d) must match",
+		      self._cutsRange:volume(), Mpi.Comm_size(comm)))
 	 end
       end
    end
@@ -305,7 +304,7 @@ end
 --------------------------------------------------------------------------------
 
 -- check if numSubDoms^(1/ndim) is an integer
-local function isEvenDecomp(ndim, numSubDoms)
+local function isEvenDecomp(ndim, numSubDoms, dofs)
 
    -- This code is tricky as round off errors can mess the simple (and
    -- obvious) test for even decomposition, i.e. math.ceil(v) =
@@ -317,20 +316,20 @@ local function isEvenDecomp(ndim, numSubDoms)
 
    local cuts = {}
    if cdown^ndim == numSubDoms then
-      for i = 1, ndim do cuts[i] = cdown end
+      for i = 1, ndim do cuts[i] = dofs[i]==1 and 1 or cdown end
       return true, cuts
    end
    if cup^ndim == numSubDoms then
-      for i = 1, ndim do cuts[i] = cup end
+      for i = 1, ndim do cuts[i] = dofs[i]==1 and 1 or cup end
       return true, cuts      
    end
    return false, cuts
 end
 
-local function calcCuts(ndim, numSubDoms)
+local function calcCuts(ndim, numSubDoms, dofs)
 
    -- first check if we can create an "even" decomposition
-   local evFlag, evCuts = isEvenDecomp(ndim, numSubDoms)
+   local evFlag, evCuts = isEvenDecomp(ndim, numSubDoms, dofs)
    if evFlag then return evCuts end
    
    -- Compute prime factorization of numSubDoms and then use this to
@@ -366,7 +365,7 @@ local function makeCuts(ndim, numSubDoms, cells)
    -- in any particular order. The sort ensures that the rearrangement
    -- of cuts (done in the second for-loop) then matches order of
    -- cells table
-   local rawCuts = calcCuts(ndim, numSubDoms); table.sort(rawCuts)
+   local rawCuts = calcCuts(ndim, numSubDoms, cells); table.sort(rawCuts)
 
    -- The idea here is that we need cuts arranged in same order as
    -- cell sizes. This is needed as "rawCuts" is not returned in any

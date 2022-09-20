@@ -126,18 +126,61 @@ local function buildApplication(self, tbl)
    local cflFrac = tbl.cflFrac or timeStepper.cflFrac   -- CFL fraction.
 
    -- Tracker for timestep
-   local dtTracker = DataStruct.DynVector { numComponents = 1, }
-   local dtPtr     = Lin.Vec(1)
+   local dtTracker   = DataStruct.DynVector { numComponents = 1, }
+   local dtPtr       = Lin.Vec(1)
 
-   -- Parallel decomposition stuff.
-   local decompCuts = tbl.decompCuts
-   if tbl.decompCuts then
-      assert(cdim == #tbl.decompCuts, "decompCuts should have exactly " .. cdim .. " entries")
+   -- Used in reducing time step across species communicator.
+   local dtMinLocal, dtMinGlobal = Lin.Vec(1), Lin.Vec(1)
+
+   -- Count the number species, needed for decomposition.
+   local numSpecies = 0
+   for _, val in pairs(tbl) do
+      if SpeciesBase.is(val) then numSpecies = numSpecies+1 end
+   end
+
+   -- Check the configuration space parallel decomposition and
+   -- establish the decomposition of the species.
+   local decompCutsConf      = tbl.decompCuts
+   local parallelizeSpecies  = xsys.pickBool(tbl.parallelizeSpecies, false)
+   local numRanks, worldRank = Mpi.Comm_size(Mpi.COMM_WORLD), Mpi.Comm_rank(Mpi.COMM_WORLD)
+   local decompCutsSpecies, numCutsConf
+   if decompCutsConf then
+      assert(cdim == #decompCutsConf, "decompCuts should have exactly " .. cdim .. " entries")
+      numCutsConf = lume.reduce(decompCutsConf, function(a,b) return a*b end)
+      -- Calculate the species decomposition.
+      decompCutsSpecies = numSpecies==1 and 1 or (parallelizeSpecies and numRanks/numCutsConf or 1)
+      assert(numRanks == decompCutsSpecies*numCutsConf, " decompCuts*decompCutSpecies must equal the number of MPI processes")
    else
       -- If not specified, construct a decompCuts automatically for configuration space.
-      local numRanks = Mpi.Comm_size(Mpi.COMM_WORLD)
-      decompCuts = DecompRegionCalc.makeCuts(cdim, numRanks, tbl.cells)
+      if parallelizeSpecies then
+         local dofs = {}
+         for d = 1, #tbl.cells do table.insert(dofs, tbl.cells[d]) end
+         table.insert(dofs, numSpecies)
+         decompCutsWspec = DecompRegionCalc.makeCuts(#dofs, numRanks, dofs)
+         for d = 1, #tbl.cells do decompCutsConf[d] = decompCutsWspec[d] end
+         decompCutsSpecies = decompCutsWspec[cdim+1]
+      else
+         decompCutsConf = DecompRegionCalc.makeCuts(cdim, numRanks, tbl.cells)
+         decompCutsSpecies = 1
+      end
+      numCutsConf = lume.reduce(decompCutsConf, function(a,b) return a*b end)
    end
+
+   -- Create species and domain communicators.
+   local confColor = math.floor(worldRank/numCutsConf)
+   local confComm  = Mpi.Comm_split(Mpi.COMM_WORLD, confColor, worldRank)
+   local confRank  = Mpi.Comm_rank(confComm)
+   local speciesColor = worldRank % numCutsConf
+   local speciesComm  = Mpi.Comm_split(Mpi.COMM_WORLD, speciesColor, worldRank)
+   local speciesRank  = Mpi.Comm_rank(speciesComm)
+
+   -- Configuration space decomp object.
+   local decomp = DecompRegionCalc.CartProd {cuts = decompCutsConf, comm = confComm}
+
+   -- Some timers.
+   local fwdEulerCombineTime = 0.
+   local writeDataTime       = 0.
+   local writeRestartTime    = 0.
 
    -- Extract periodic directions.
    local periodicDirs = {}
@@ -149,16 +192,6 @@ local function buildApplication(self, tbl)
 	 periodicDirs[i] = d
       end
    end
-
-   -- Configuration space decomp object.
-   local decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts,
-   }
-
-   -- Some timers.
-   local fwdEulerCombineTime = 0.
-   local writeDataTime       = 0.
-   local writeRestartTime    = 0.
 
    -- Pick grid ctor based on uniform/non-uniform grid.
    local GridConstructor = Grid.RectCart
@@ -182,19 +215,53 @@ local function buildApplication(self, tbl)
    end
 
    -- Read in information about each species.
-   local species = {}
+   local population = {}
+   population["comm"] = speciesComm
+   population["rank"] = speciesRank
+   population["species"] = {}
    for nm, val in pairs(tbl) do
       if SpeciesBase.is(val) then
-	 species[nm] = val
-	 species[nm]:setName(nm)
-	 species[nm]:setIoMethod(ioMethod)
-	 val:fullInit(tbl) -- Initialize species.
+	 population.species[nm] = val
+	 population.species[nm]:setName(nm)
+	 population.species[nm]:setIoMethod(ioMethod)
       end
    end
-   lume.setOrder(species)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
+   lume.setOrder(population.species)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
+
+   -- Distribute species across decompCutSpecies
+   -- (set local and global iterators in species table).
+   local shapes = Lin.IntVec(decompCutsSpecies)
+   local baseShape = math.floor(numSpecies/decompCutsSpecies)
+   local remSpec = numSpecies % decompCutsSpecies -- Extra species left over.
+   for c = 1, decompCutsSpecies do
+      shapes[c] = baseShape + (remSpec>0 and 1 or 0) -- Add extra species if any remain.
+      remSpec = remSpec-1
+   end
+   local starts = Lin.IntVec(decompCutsSpecies)
+   starts[1] = 1
+   for c = 2, decompCutsSpecies do starts[c] = starts[c-1] + shapes[c-1] end
+
+   population.iterLocal = function()
+      local idx, keys = 0, getmetatable(population.species)
+      local keysLocal = {}
+      local j = 0
+      for i = starts[speciesRank+1], starts[speciesRank+1]+shapes[speciesRank+1]-1 do
+         j = j+1
+         keysLocal[j] = keys[i]
+      end
+      local n = table.getn(keysLocal)
+      return function()
+         idx = idx+1
+         if idx <= n then return keysLocal[idx], population.species[keysLocal[idx]] end
+      end
+   end
+
+   for _, s in population.iterLocal() do
+      s:fullInit(tbl) -- Initialize species.
+   end
 
    -- Setup each species.
-   for _, s in lume.orderedIter(species) do
+   for _, s in population.iterLocal() do
       -- Set up conf grid and basis.
       s:setConfGrid(confGrid)
       s:setConfBasis(confBasis)
@@ -225,7 +292,7 @@ local function buildApplication(self, tbl)
 
    local cflMin = GKYL_MAX_DOUBLE
    -- Compute CFL numbers.
-   for _, s in lume.orderedIter(species) do
+   for _, s in population.iterLocal() do
       local ndim = s:getNdim()
       local myCfl = tbl.cfl and tbl.cfl or cflFrac
       cflMin = math.min(cflMin, myCfl)
@@ -283,10 +350,10 @@ local function buildApplication(self, tbl)
    externalField:initField()
    
    -- Initialize species solvers and diagnostics.
-   for _, s in lume.orderedIter(species) do
-      s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
+   for _, s in population.iterLocal() do
+      s:initCrossSpeciesCoupling(population.species)    -- Call this before createSolver if updaters are all created in createSolver.
    end
-   for _, s in lume.orderedIter(species) do
+   for _, s in population.iterLocal() do
       s:createSolver(field, externalField)
       s:initDist(externalField, species)
    end
@@ -294,41 +361,41 @@ local function buildApplication(self, tbl)
       flSrc:createSolver(species, field)    -- Initialize fluid source solvers.
    end   
    -- Create field solver (sometimes requires species solver to have been created).
-   field:createSolver(species, externalField)
+   field:createSolver(population.species, externalField)
 
    -- Some objects require an additional createSolver step after self-species
    -- solvers are created due to cross-species interactions.
-   for _, s in lume.orderedIter(species) do
-      s:createCouplingSolver(species, field, externalField)
+   for _, s in population.iterLocal() do
+      s:createCouplingSolver(population.species, field, externalField)
    end
 
-   for _, s in lume.orderedIter(species) do
+   for _, s in population.iterLocal() do
       -- Compute the coupling moments.
-      s:clearMomentFlags(species)
-      s:calcCouplingMoments(0.0, 1, species)
+      s:clearMomentFlags(population.species)
+      s:calcCouplingMoments(0.0, 1, population.species)
    end
 
    -- Initialize field (sometimes requires species to have been initialized).
-   field:initField(species)
+   field:initField(population)
 
    -- Initialize diagnostic objects.
-   for _, s in lume.orderedIter(species) do s:createDiagnostics(field) end
+   for _, s in population.iterLocal() do s:createDiagnostics(field) end
 
    -- Apply species BCs.
-   for _, s in lume.orderedIter(species) do
+   for _, s in population.iterLocal() do
       -- This is a dummy forwardEuler call because some BCs require 
       -- auxFields to be set, which is controlled by species solver.
       if s.charge == 0.0 then
-      	 s:advance(0, species, {NoField {}, NoField {}}, 1, 2)
+      	 s:advance(0, population, {NoField {}, NoField {}}, 1, 2)
       else
-	 s:advance(0, species, {field, externalField}, 1, 2)
+	 s:advance(0, population, {field, externalField}, 1, 2)
       end
       s:applyBcInitial(0, field, externalField, 1, 1)
    end
 
    -- Function to write data to file.
    local function writeData(tCurr, force)
-      for _, s in lume.orderedIter(species) do s:write(tCurr, force) end
+      for _, s in population.iterLocal() do s:write(tCurr, force) end
       for _, flSrc in lume.orderedIter(fluidSources) do flSrc:write(tCurr) end 
       field:write(tCurr, force)
       externalField:write(tCurr, force)
@@ -336,7 +403,7 @@ local function buildApplication(self, tbl)
 
    -- Function to write restart frames to file.
    local function writeRestart(tCurr)
-      for _, s in lume.orderedIter(species) do s:writeRestart(tCurr) end
+      for _, s in population.iterLocal() do s:writeRestart(tCurr) end
       field:writeRestart(tCurr)
       externalField:writeRestart(tCurr)
    end
@@ -349,13 +416,13 @@ local function buildApplication(self, tbl)
       -- Read fields first, in case needed for species init or BCs.
       field:readRestart()
       externalField:readRestart()
-      for _, s in lume.orderedIter(species) do
+      for _, s in population.iterLocal() do
          -- This is a dummy forwardEuler call because some BCs require 
          -- auxFields to be set, which is controlled by species solver.
 	 if s.charge == 0 then
-	    s:advance(0, species, {NoField {}, NoField {}}, 1, 2)
+	    s:advance(0, population, {NoField {}, NoField {}}, 1, 2)
 	 else
-	    s:advance(0, species, {field, externalField}, 1, 2)
+	    s:advance(0, population, {field, externalField}, 1, 2)
 	 end
          s:setDtGlobal(dtLast[1])
 	 rTime = s:readRestart(field, externalField)
@@ -379,15 +446,15 @@ local function buildApplication(self, tbl)
 
    -- Various functions to copy/increment fields.
    local function copy(outIdx, aIdx)
-      for _, s in lume.orderedIter(species) do s:copyRk(outIdx, aIdx) end
+      for _, s in population.iterLocal() do s:copyRk(outIdx, aIdx) end
       field:copyRk(outIdx, aIdx)
    end
    local function combine(outIdx, a, aIdx, ...)
-      for _, s in lume.orderedIter(species) do s:combineRk(outIdx, a, aIdx, ...) end
+      for _, s in population.iterLocal() do s:combineRk(outIdx, a, aIdx, ...) end
       field:combineRk(outIdx, a, aIdx, ...)
    end
    local function applyBc(tCurr, inIdx, outIdx, ...)
-      for _, s in lume.orderedIter(species) do s:applyBcIdx(tCurr, field, externalField, inIdx, outIdx, ...) end
+      for _, s in population.iterLocal() do s:applyBcIdx(tCurr, field, externalField, inIdx, outIdx, ...) end
       field:applyBcIdx(tCurr, outIdx)
    end
 
@@ -407,34 +474,34 @@ local function buildApplication(self, tbl)
    -- Compute the time rate of change (dy/dt).
    local function dydt(tCurr, inIdx, outIdx)
       field:clearCFL()
-      for _, s in lume.orderedIter(species) do
+      for _, s in population.iterLocal() do
          s:clearCFL()
          s:clearMomentFlags(species)
       end
       -- Compute functional field (if any).
       externalField:advance(tCurr)
       
-      for _, s in lume.orderedIter(species) do
+      for _, s in population.iterLocal() do
          -- Compute moments needed in coupling with fields and
          -- collisions (the species should update internal datastructures). 
-         s:calcCouplingMoments(tCurr, inIdx, species)
+         s:calcCouplingMoments(tCurr, inIdx, population.species)
       end
 
       -- Update EM field.
       -- Note that this can be either an elliptic solve, which updates inIdx
       -- or a hyperbolic solve, which updates outIdx = RHS, or a combination of both.
-      field:advance(tCurr, species, inIdx, outIdx)
+      field:advance(tCurr, population, inIdx, outIdx)
 
       -- Update species.
-      for _, s in lume.orderedIter(species) do
+      for _, s in population.iterLocal() do
          if s.charge == 0 then
-            s:advance(tCurr, species, {NoField {}, NoField {}}, inIdx, outIdx)
+            s:advance(tCurr, population, {NoField {}, NoField {}}, inIdx, outIdx)
          else
-            s:advance(tCurr, species, {field, externalField}, inIdx, outIdx)
+            s:advance(tCurr, population, {field, externalField}, inIdx, outIdx)
          end
       end
-      for _, s in lume.orderedIter(species) do
-         s:advanceCrossSpeciesCoupling(tCurr, species, {field, externalField}, inIdx, outIdx)
+      for _, s in population.iterLocal() do
+         s:advanceCrossSpeciesCoupling(tCurr, population, {field, externalField}, inIdx, outIdx)
       end
 
       -- Some systems (e.g. EM GK) require additional step(s) to complete the forward Euler.
@@ -444,11 +511,11 @@ local function buildApplication(self, tbl)
          -- either reuses already calculated moments, or other moments are
          -- calculated in field:forwardEulerStep2.
          local advanceString = "advanceStep" .. istep
-         field[advanceString](field, tCurr, species, inIdx, outIdx)
+         field[advanceString](field, tCurr, population, inIdx, outIdx)
 
          -- Update species.. step 2 (if necessary).
-         for _, s in lume.orderedIter(species) do
-            s[advanceString](s, tCurr, species, {field, externalField}, inIdx, outIdx)
+         for _, s in population.iterLocal() do
+            s[advanceString](s, tCurr, population, {field, externalField}, inIdx, outIdx)
          end
       end
    end
@@ -457,10 +524,15 @@ local function buildApplication(self, tbl)
    local function forwardEuler(tCurr, dt, inIdx, outIdx, stat)
       appStatus.nFwdEuler = appStatus.nFwdEuler + 1
 
-      local dtMin = GKYL_MAX_DOUBLE
       -- Get suggested dt from each field and species.
-      dtMin = math.min(dtMin, field:suggestDt())
-      for nm, s in pairs(species) do dtMin = math.min(dtMin, s:suggestDt()) end
+      -- Species dt:
+      dtMinLocal[1], dtMinGlobal[1] = GKYL_MAX_DOUBLE, GKYL_MAX_DOUBLE
+      for _, s in population.iterLocal() do dtMinLocal[1] = math.min(dtMinLocal[1], s:suggestDt()) end
+      -- Reduce dtMin across species communicator.
+      Mpi.Allreduce(dtMinLocal:data(), dtMinGlobal:data(), 1, Mpi.DOUBLE, Mpi.MAX, speciesComm)
+
+      -- Field dt:
+      local dtMin = math.min(dtMinGlobal[1], field:suggestDt())
 
       -- MF 2021/08/04: We will disable this criteria for now, so that the dt is
       --                as it's been in g2 and not quite like it is in g0 now.
@@ -477,7 +549,7 @@ local function buildApplication(self, tbl)
       stat.dt_actual = math.min(math.min(stat.dt_actual, tbl.tEnd - tCurr + 1e-20), maxDt)
       
       -- After deciding global dt, tell species.
-      for nm, s in pairs(species) do s:setDtGlobal(stat.dt_actual) end
+      for _, s in population.iterLocal() do s:setDtGlobal(stat.dt_actual) end
       -- Take forward Euler step in fields and species
       -- NOTE: order of these arguments matters... outIdx must come before inIdx.
       combine(outIdx, stat.dt_actual, outIdx, 1.0, inIdx)
@@ -486,7 +558,7 @@ local function buildApplication(self, tbl)
 
    -- Set functions in time stepper object.
    timeStepper:createSolver(appStatus, {combine, copy, dydt, forwardEuler},
-                            {species, field, externalField, fluidSources})
+                            {population.species, field, externalField, fluidSources})
 
    local devDiagnose = function()
       -- Perform performance/numerics-related diagnostics.
@@ -632,19 +704,16 @@ local function buildApplication(self, tbl)
 
       -- Compute time spent in various parts of code.
       local tmSlvr = 0.0
-      for _, s in lume.orderedIter(species) do
-	 tmSlvr = tmSlvr+s:totalSolverTime()
-      end
-
       local tmMom, tmIntMom, tmBc, tmColl = 0.0, 0.0, 0.0, 0.0
       local tmSrc, tmCollNonSlvr = 0.0, 0.0
-      for _, s in lume.orderedIter(species) do
-         tmMom = tmMom + s:momCalcTime()
+      for _, s in population.iterLocal() do
+	 tmSlvr   = tmSlvr+s:totalSolverTime()
+         tmMom    = tmMom + s:momCalcTime()
          tmIntMom = tmIntMom + s:intMomCalcTime()
-         tmBc = tmBc + s:totalBcTime()
+         tmBc     = tmBc + s:totalBcTime()
          if s.collisions then
 	    for _, c in pairs(s.collisions) do
-	       tmColl = tmColl + c:slvrTime()
+	       tmColl        = tmColl + c:slvrTime()
                tmCollNonSlvr = tmCollNonSlvr + c:nonSlvrTime()
 	    end
          end

@@ -130,19 +130,13 @@ function VlasovSpecies:fullInit(appTbl)
    VlasovSpecies.super.fullInit(self, appTbl)
 
    local tbl = self.tbl
+
    -- If there is an external force, get the force function.
    self.hasExtForce = false
-
    if tbl.vlasovExtForceFunc then
       self.vlasovExtForceFunc = tbl.vlasovExtForceFunc
       self.hasExtForce = true
    end
-
-   -- vFlux used for selecting which type of numerical flux function to use in velocity space
-   -- defaults to "penalty" in Eq object, supported options: "penalty," "recovery," and "upwind"
-   -- Note: "recovery" and "upwind" only supported by p=1 Serendipity and p=2 Tensor
-   -- Note: only used for DG Vlasov-Maxwell.
-   self.numVelFlux = tbl.vFlux
 end
 
 function VlasovSpecies:createSolver(field, externalField)
@@ -373,7 +367,7 @@ end
 
 function VlasovSpecies:setActiveRKidx(rkIdx) self.activeRKidx = rkIdx end
 
-function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
+function VlasovSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
    self:setActiveRKidx(inIdx)
    local fIn     = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
@@ -396,7 +390,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    -- Perform the collision update.
    for _, c in pairs(self.collisions) do
-      c:advance(tCurr, fIn, species, {fRhsOut, self.cflRateByCell})   -- 'species' needed for cross-species collisions.
+      c:advance(tCurr, fIn, population, {fRhsOut, self.cflRateByCell})   -- 'population' needed for cross-species collisions.
    end
 
    for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end

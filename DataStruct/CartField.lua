@@ -94,6 +94,9 @@ genIndexerMakerFuncs[colMajLayout] = Range.makeColMajorGenIndexer
 local function field_compatible(y, x)
    return y:localRange() == x:localRange() and y:numComponents() == x:numComponents()
 end
+local function field_compatible_ext(y, x)
+   return y:localExtRange() == x:localExtRange() and y:numComponents() == x:numComponents()
+end
 -- Helper function to check if two fields have the same range.
 -- Useful when manipulating two fields with different number of components, but same range.
 local function field_check_range(y, x)
@@ -911,15 +914,13 @@ local function Field_meta_ctor(elct)
       reduce = isNumberType and
 	 function(self, opIn)
             self._zeroForOps:reduceRange(self.localReductionVal:data(), opIn, self._localRange)
-	    if self.useDevice then
-	      self.localReductionVal_h:copy(self.localReductionVal)
-	    end
+	    if self.useDevice then self.localReductionVal_h:copy(self.localReductionVal) end
 	      
 	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
 	    local grid = self._grid
 	    local localVal = {}
-	    Mpi.Allreduce(self.localReductionVal_h:data(), self.globalReductionVal:data(),
-			  self._numComponents, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
+            Mpi.Allreduce(self.localReductionVal_h:data(), self.globalReductionVal:data(),
+               self._numComponents, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
 
             --self.localReductionVal:copy(self.globalReductionVal)
             for k = 1, self._numComponents do localVal[k] = self.globalReductionVal:data()[k-1] end
@@ -929,6 +930,13 @@ local function Field_meta_ctor(elct)
 	 function (self, opIn)
 	    assert(false, "CartField:reduce: Reduce only works on numeric fields")
 	 end,
+      reduceByCell = function(self, opIn, comm, localFldIn)
+         -- Reduce the CartField 'localFldIn' across communicator 'comm',
+         -- and put the result in this CartField.
+         assert(field_compatible_ext(self, localFldIn))
+         Mpi.Allreduce(localFldIn:dataPointer(), self._data,
+            self:size(), elctCommType, reduceOpsMPI[opIn], comm)
+      end,
       _copy_from_field_region = function (self, rgn, data)
 	 self._zeroForOps:copy_to_buffer(data:data(), rgn)
       end,

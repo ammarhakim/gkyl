@@ -266,7 +266,7 @@ function KineticSpecies:createGrid(confGridIn)
    for d = 1, self.cdim do table.insert(decompCuts, confGrid:cuts(d)) end
    for d = 1, self.vdim do table.insert(decompCuts, self.decompCuts[d]) end
    self.decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts,
+      cuts = decompCuts, comm = confGrid:commSet().comm,
    }
 
    -- Create computational domain.
