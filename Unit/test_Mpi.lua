@@ -329,74 +329,73 @@ function test_6c(comm)
    local rank = Mpi.Comm_rank(comm)
    local sz = Mpi.Comm_size(comm)
       
-   local nz = 1000
-   local vIn0, vOut0 = Alloc.Double(nz), Alloc.Double(nz)
-   local vIn1, vOut1 = Alloc.Double(nz), Alloc.Double(nz)
-   for i = 1, nz do
+   local nz0, nz1 = 1000, 600
+   local vIn0, vOut0 = Alloc.Double(nz0), Alloc.Double(nz0)
+   local vIn1, vOut1 = Alloc.Double(nz1), Alloc.Double(nz1)
+   for i = 1, nz0 do
       vIn0[i] = (rank+1)*(i+0.5)
+   end
+   for i = 1, nz1 do
       vIn1[i] = (rank+2)*(i+0.1)
    end
 
    -- Send message from rank 0 -> rank 1
    local requests = Mpi.Request_vec(2)
-   --print("requests = ",requests)
-   --print("requests[0] = ",requests[0])
    if rank == 0 then
       local err
-      err = Mpi.Isend(vIn0:data(), nz, Mpi.DOUBLE, 1, 32, comm, requests+0)
-      --print("err00 = ",err)
-      err = Mpi.Isend(vIn1:data(), nz, Mpi.DOUBLE, 1, 42, comm, requests+1)
-      --print("err01 = ",err)
+      err = Mpi.Isend(vIn0:data(), nz0, Mpi.DOUBLE, 1, 32, comm, requests+0)
+      err = Mpi.Isend(vIn1:data(), nz1, Mpi.DOUBLE, 1, 42, comm, requests+1)
    end   
    if rank == 1 then
       local err
-      err = Mpi.Irecv(vOut0:data(), nz, Mpi.DOUBLE, 0, 32, comm, requests+0)
-      --print("err10 = ",err)
-      err = Mpi.Irecv(vOut1:data(), nz, Mpi.DOUBLE, 0, 42, comm, requests+1)
-      --print("err11 = ",err)
+      err = Mpi.Irecv(vOut0:data(), nz0, Mpi.DOUBLE, 0, 32, comm, requests+0)
+      err = Mpi.Irecv(vOut1:data(), nz1, Mpi.DOUBLE, 0, 42, comm, requests+1)
    end
    local status = Mpi.Status_vec(2)
-   --print("status = ",status.mpiStatus)
-   --print("status[0] = ",status.mpiStatus[0])
    local mpierr = Mpi.Waitall(2, requests, status)
 
---   local count = {Mpi.Get_count(status.mpiStatus[0], Mpi.DOUBLE),
---                  Mpi.Get_count(status.mpiStatus[1], Mpi.DOUBLE)}
---   assert_equal(32, status.TAG[1], "Checking tag")
---   assert_equal(42, status.TAG[2], "Checking tag")
---   assert_equal(nz, count[1], "Checking if correct number of elements were sent/received")
---   assert_equal(nz, count[2], "Checking if correct number of elements were sent/received")
---   if rank == 1 then
---      for i = 1, nz do
---	 assert_equal((0+1)*(i+0.5), vOut0[i], "rank 1: Checking recv-ed data0")
---	 assert_equal((0+2)*(i+0.1), vOut1[i], "rank 1: Checking recv-ed data1")
---      end
---   end
+   local count = {Mpi.Get_count(status.mpiStatus, Mpi.DOUBLE, 0),
+                  Mpi.Get_count(status.mpiStatus, Mpi.DOUBLE, 1)}
+   assert_equal(32, status.TAG[1], "Checking tag")
+   assert_equal(42, status.TAG[2], "Checking tag")
+   assert_equal(nz0, count[1], "Checking if correct number of elements were sent/received")
+   assert_equal(nz1, count[2], "Checking if correct number of elements were sent/received")
+   if rank == 1 then
+      for i = 1, nz0 do
+	 assert_equal((0+1)*(i+0.5), vOut0[i], "rank 1: Checking recv-ed data0")
+      end
+      for i = 1, nz1 do
+	 assert_equal((0+2)*(i+0.1), vOut1[i], "rank 1: Checking recv-ed data1")
+      end
+   end
 
---   -- Send message from rank 1 -> rank 0
---   if rank == 1 then
---      local request = Mpi.Request()
---      local err = Mpi.Isend(vIn:data(), nz, Mpi.DOUBLE, 0, 42, comm, request)
---      local status = Mpi.Status()
---      Mpi.Wait(request, status)
---      local count = Mpi.Get_count(status, Mpi.DOUBLE)
---
---      assert_equal(42, status.TAG, "rank 1: Checking tag")
---      assert_equal(nz, count, "rank 1: Checking if correct number of elements were sent")
---   end      
---   if rank == 0 then
---      local request = Mpi.Request()
---      local err = Mpi.Irecv(vOut:data(), nz, Mpi.DOUBLE, 1, 42, comm, request)
---      local status = Mpi.Status()
---      Mpi.Wait(request, status)
---      local count = Mpi.Get_count(status, Mpi.DOUBLE)
---
---      assert_equal(42, status.TAG, "rank 0: Checking tag")
---      assert_equal(nz, count, "rank 0: Checking if correct number of elements were recv-ed")
---      for i = 1, nz do
---	 assert_equal(2*(i+0.5), vOut[i], "rank 0: Checking recv-ed data")
---      end      
---   end
+   -- Send message from rank 1 -> rank 0
+   if rank == 1 then
+      local err
+      err = Mpi.Isend(vIn0:data(), nz0, Mpi.DOUBLE, 0, 32, comm, requests+0)
+      err = Mpi.Isend(vIn1:data(), nz1, Mpi.DOUBLE, 0, 42, comm, requests+1)
+   end      
+   if rank == 0 then
+      local err
+      err = Mpi.Irecv(vOut0:data(), nz0, Mpi.DOUBLE, 1, 32, comm, requests+0)
+      err = Mpi.Irecv(vOut1:data(), nz1, Mpi.DOUBLE, 1, 42, comm, requests+1)
+   end
+   local mpierr = Mpi.Waitall(2, requests, status)
+
+   local count = {Mpi.Get_count(status.mpiStatus, Mpi.DOUBLE, 0),
+                  Mpi.Get_count(status.mpiStatus, Mpi.DOUBLE, 1)}
+   assert_equal(32, status.TAG[1], "Checking tag")
+   assert_equal(42, status.TAG[2], "Checking tag")
+   assert_equal(nz0, count[1], "Checking if correct number of elements were sent/received")
+   assert_equal(nz1, count[2], "Checking if correct number of elements were sent/received")
+   if rank == 0 then
+      for i = 1, nz0 do
+	 assert_equal((1+1)*(i+0.5), vOut0[i], "rank 0: Checking recv-ed data0")
+      end
+      for i = 1, nz1 do
+	 assert_equal((1+2)*(i+0.1), vOut1[i], "rank 1: Checking recv-ed data1")
+      end
+   end
    
    Mpi.Barrier(comm)
 end

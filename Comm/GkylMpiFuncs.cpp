@@ -86,3 +86,9 @@ GkMPI_fillStatusArray(int count, const MPI_Status* inStatus, int *outStatus) {
     outStatus[i*3+2] = inStatus[i].MPI_ERROR;
   }
 }
+
+int
+GkMPI_Get_count_from_array(int off, const MPI_Status *status, MPI_Datatype datatype, int *count) {
+  int err = MPI_Get_count(status+off, datatype, count);
+  return err;
+}

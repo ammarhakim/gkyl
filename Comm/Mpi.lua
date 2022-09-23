@@ -174,6 +174,8 @@ ffi.cdef [[
 
   // Gkyl utility functions
   void GkMPI_fillStatus(const MPI_Status* inStatus, int *outStatus);
+  void GkMPI_fillStatusArray(int count, const MPI_Status* inStatus, int *outStatus);
+  int GkMPI_Get_count_from_array(int off, const MPI_Status *status, MPI_Datatype datatype, int *count);
 ]]
 
 -- Predefined objects and constants
@@ -251,11 +253,6 @@ end
 local function new_MPI_Status_vec(sz)
    local sz = sz or 1
    return ffi.cast("MPI_Status*", new("uint8_t[?]", sz*_M.SIZEOF_STATUS))
---   local vec = ffi.cast("MPI_Status**", new("uint8_t[?]", sz*_M.SIZEOF_STATUS_PTR))
---   for i = 1, sz do
---      vec[i-1] = ffi.gc(ffi.cast("MPI_Status*", ffi.C.malloc(_M.SIZEOF_STATUS)), ffi.C.free)
---   end
---   return vec
 end
 local function new_MPI_Comm()
    return new("MPI_Comm[1]")
@@ -420,9 +417,18 @@ function _M.Type_free(datatype)
 end
 
 -- MPI_Get_count
-function _M.Get_count(status, datatype)
+function _M.Get_count(status, datatype, off)
    local r = int_1()
-   local _ = ffiC.MPI_Get_count(status.mpiStatus, datatype, r)
+   if off then
+      local _ = ffiC.GkMPI_Get_count_from_array(off, status, datatype, r)
+   else
+      local _ = ffiC.MPI_Get_count(status.mpiStatus, datatype, r)
+   end
+   return r[0]
+end
+function _M.Get_count_from_array(off, status, datatype)
+   local r = int_1()
+   local _ = ffiC.GkMPI_Get_count_from_array(off, status, datatype, r)
    return r[0]
 end
 -- MPI_Allreduce
@@ -464,15 +470,16 @@ end
 -- MPI_Waitall
 function _M.Waitall(count, requestArray, statusArray)
    local st = statusArray and statusArray.mpiStatus or _M.STATUS_IGNORE
-   return ffiC.MPI_Waitall(count, requestArray, st)
---   -- store MPI_Status
---   if statusArray ~= nil then
---      local gks = new("int[?]", 3*count)
---      ffiC.GkMPI_fillStatusArray(count, st, gks)
---      for i=1,count do
---         status.SOURCE[i], status.TAG[i], status.ERROR[i] = gks[(i-1)*3+0], gks[(i-1)*3+1], gks[(i-1)*3+2]
---      end
---   end
+   local err = ffiC.MPI_Waitall(count, requestArray, st)
+   -- store MPI_Status
+   if statusArray ~= nil then
+      local gks = new("int[?]", 3*count)
+      ffiC.GkMPI_fillStatusArray(count, st, gks)
+      for i=1,count do
+         statusArray.SOURCE[i], statusArray.TAG[i], statusArray.ERROR[i] = gks[(i-1)*3+0], gks[(i-1)*3+1], gks[(i-1)*3+2]
+      end
+   end
+   return err
 end
 ---- MPI_Waitany
 ----  int MPI_Waitany(int count, MPI_Request array_of_requests[],

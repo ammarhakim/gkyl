@@ -77,6 +77,9 @@ extern "C" {
     /* Fill the outStatus with MPI_Status public data */
     void GkMPI_fillStatus(const MPI_Status* inStatus, int *outStatus);
     void GkMPI_fillStatusArray(int count, const MPI_Status* inStatus, int *outStatus);
+
+    // Get_count of a status in an array of statuses.
+    int GkMPI_Get_count_from_array(int off, const MPI_Status *status, MPI_Datatype datatype, int *count);
 }
 
 #endif // GK_MPI_FUNCS_H
