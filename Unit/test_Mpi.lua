@@ -339,26 +339,26 @@ function test_6c(comm)
 
    -- Send message from rank 0 -> rank 1
    local requests = Mpi.Request_vec(2)
-   print("requests = ",requests)
-   print("requests[0] = ",requests[0])
+   --print("requests = ",requests)
+   --print("requests[0] = ",requests[0])
    if rank == 0 then
       local err
-      err = Mpi.Isend(vIn0:data(), nz, Mpi.DOUBLE, 1, 32, comm, requests[0])
-      print("err00 = ",err)
-      err = Mpi.Isend(vIn1:data(), nz, Mpi.DOUBLE, 1, 42, comm, requests[1])
-      print("err01 = ",err)
+      err = Mpi.Isend(vIn0:data(), nz, Mpi.DOUBLE, 1, 32, comm, requests+0)
+      --print("err00 = ",err)
+      err = Mpi.Isend(vIn1:data(), nz, Mpi.DOUBLE, 1, 42, comm, requests+1)
+      --print("err01 = ",err)
    end   
    if rank == 1 then
       local err
-      err = Mpi.Irecv(vOut0:data(), nz, Mpi.DOUBLE, 0, 32, comm, requests[0])
-      print("err10 = ",err)
-      err = Mpi.Irecv(vOut1:data(), nz, Mpi.DOUBLE, 0, 42, comm, requests[1])
-      print("err11 = ",err)
+      err = Mpi.Irecv(vOut0:data(), nz, Mpi.DOUBLE, 0, 32, comm, requests+0)
+      --print("err10 = ",err)
+      err = Mpi.Irecv(vOut1:data(), nz, Mpi.DOUBLE, 0, 42, comm, requests+1)
+      --print("err11 = ",err)
    end
    local status = Mpi.Status_vec(2)
-   print("status = ",status.mpiStatus)
-   print("status[0] = ",status.mpiStatus[0])
-   local mpierr = Mpi.Waitall(2, requests[0], status)
+   --print("status = ",status.mpiStatus)
+   --print("status[0] = ",status.mpiStatus[0])
+   local mpierr = Mpi.Waitall(2, requests, status)
 
 --   local count = {Mpi.Get_count(status.mpiStatus[0], Mpi.DOUBLE),
 --                  Mpi.Get_count(status.mpiStatus[1], Mpi.DOUBLE)}

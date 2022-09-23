@@ -268,16 +268,7 @@ local function new_MPI_Request()
 end
 local function new_MPI_Request_vec(sz)
    local sz = sz or 1
---   return new("MPI_Request[?]", sz)
---   return ffi.cast("MPI_Request*", new("uint8_t[?]", sz*_M.SIZEOF_REQUEST))
---   local vec = ffi.cast("MPI_Request**", new("uint8_t[?]", sz*_M.SIZEOF_REQUEST_PTR))
-   local vec = new("MPI_Request*[?]", sz*_M.SIZEOF_REQUEST_PTR)
-   for i = 1, sz do
---      vec[i-1] = ffi.gc(ffi.C.malloc(_M.SIZEOF_REQUEST), ffi.C.free)
-      vec[i-1] = ffi.gc(ffi.cast("MPI_Request*", ffi.C.malloc(_M.SIZEOF_REQUEST)), ffi.C.free)
-   end
-   return vec
---   return ffi.gc(ffi.cast("MPI_Request*", ffi.C.malloc(sz*_M.SIZEOF_REQUEST)), ffi.C.free)
+   return new("MPI_Request[?]", sz)
 end
 local function new_MPI_Win()
    return new("MPI_Win[1]")
