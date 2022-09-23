@@ -12,6 +12,9 @@
 
 // Sizeof operators for various objects
 GET_MPI_OBJ_SIZE(MPI_Status);
+GET_MPI_OBJ_SIZE(MPI_Request);
+GET_MPI_OBJ_PTR_SIZE(MPI_Status);
+GET_MPI_OBJ_PTR_SIZE(MPI_Request);
 
 // Pre-defined objects and constants
 GET_MPI_OBJECT(Comm, MPI_COMM_WORLD);
@@ -73,4 +76,13 @@ GkMPI_fillStatus(const MPI_Status* inStatus, int *outStatus) {
   outStatus[0] = inStatus->MPI_SOURCE;
   outStatus[1] = inStatus->MPI_TAG;
   outStatus[2] = inStatus->MPI_ERROR;
+}
+
+void
+GkMPI_fillStatusArray(int count, const MPI_Status* inStatus, int *outStatus) {
+  for (int i=0; i<count; i++) {
+    outStatus[i*3+0] = inStatus[i].MPI_SOURCE;
+    outStatus[i*3+1] = inStatus[i].MPI_TAG;
+    outStatus[i*3+2] = inStatus[i].MPI_ERROR;
+  }
 }

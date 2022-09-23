@@ -307,6 +307,7 @@ local function Field_meta_ctor(elct)
       -- what parts of the data structure are being sent and received to.
       self._sendMPIDataType, self._recvMPIDataType = {}, {}
       self._sendMPILoc, self._recvMPILoc = {}, {}
+      self._recvMPIReq = {}
       local localExtRange   = self._localExtRange
       local indexer         = self:genIndexer()
       local decomposedRange = self._grid:decomposedRange()
@@ -332,6 +333,7 @@ local function Field_meta_ctor(elct)
          self._recvMPILoc[recvId]      = (indexer(idx)-1)*self._numComponents
          self._recvMPIDataType[recvId] = Mpi.createDataTypeFromRangeAndSubRange(
             recvRgn, localExtRange, self._numComponents, self._layout, elctCommType)
+         self._recvMPIReq[recvId]      = Mpi.Request()
       end
 
       -- Create MPI DataTypes for periodic directions.
@@ -340,6 +342,8 @@ local function Field_meta_ctor(elct)
       self._sendUpperPerMPIDataType, self._recvUpperPerMPIDataType = {}, {}
       self._sendLowerPerMPILoc, self._recvLowerPerMPILoc = {}, {}
       self._sendUpperPerMPILoc, self._recvUpperPerMPILoc = {}, {}
+      self._recvLowerPerMPIReq = {}
+      self._recvUpperPerMPIReq = {}
 
       -- Create buffers for periodic copy if Mpi.Comm_size(nodeComm) = 1.
       if Mpi.Comm_size(nodeComm) == 1 then
@@ -378,6 +382,7 @@ local function Field_meta_ctor(elct)
                   self._recvLowerPerMPILoc[dir]      = (indexer(idx)-1)*self._numComponents
                   self._recvLowerPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(
                      rgnRecv, localExtRange, self._numComponents, self._layout, elctCommType)
+                  self._recvLowerPerMPIReq[dir]      = Mpi.Request()
                end
                if myId == upId then
                   local rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
@@ -397,6 +402,7 @@ local function Field_meta_ctor(elct)
                   self._recvUpperPerMPILoc[dir]      = (indexer(idx)-1)*self._numComponents
                   self._recvUpperPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(
                      rgnRecv, localExtRange, self._numComponents, self._layout, elctCommType)
+                  self._recvUpperPerMPIReq[dir]      = Mpi.Request()
                end	       
             end
          end
@@ -458,11 +464,14 @@ local function Field_meta_ctor(elct)
       self._sendUpperCornerPerMPIDataType, self._recvUpperCornerPerMPIDataType = {}, {}
       self._sendLowerCornerPerMPILoc, self._recvLowerCornerPerMPILoc = {}, {}
       self._sendUpperCornerPerMPILoc, self._recvUpperCornerPerMPILoc = {}, {}
+      self._recvLowerCornerPerMPIReq = {}
+      self._recvUpperCornerPerMPIReq = {}
       for dir = 1, self._ndim do
          self._sendLowerCornerPerMPILoc[dir]     , self._sendUpperCornerPerMPILoc[dir]      = {}, {}
          self._sendLowerCornerPerMPIDataType[dir], self._sendUpperCornerPerMPIDataType[dir] = {}, {}
          self._recvLowerCornerPerMPILoc[dir]     , self._recvUpperCornerPerMPILoc[dir]      = {}, {}
          self._recvLowerCornerPerMPIDataType[dir], self._recvUpperCornerPerMPIDataType[dir] = {}, {}
+         self._recvLowerCornerPerMPIReq[dir]     , self._recvUpperCornerPerMPIReq[dir]      = {}, {}
          if grid:isDirPeriodic(dir) then
             local cTs = self._cornersToSync[dir]
             for dI, bD in ipairs(cTs) do   -- Loop over lower boundary subdomains.
@@ -499,6 +508,7 @@ local function Field_meta_ctor(elct)
                      table.insert(self._recvLowerCornerPerMPILoc[dir], (indexer(idx)-1)*self._numComponents)
                      table.insert(self._recvLowerCornerPerMPIDataType[dir], Mpi.createDataTypeFromRangeAndSubRange(
                         rgnRecv, localExtRange, self._numComponents, self._layout, elctCommType))
+                     table.insert(self._recvLowerCornerPerMPIReq[dir], Mpi.Request())
                   end
                   if myId == upId then
                      local rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
@@ -531,6 +541,7 @@ local function Field_meta_ctor(elct)
                      table.insert(self._recvUpperCornerPerMPILoc[dir], (indexer(idx)-1)*self._numComponents)
                      table.insert(self._recvUpperCornerPerMPIDataType[dir], Mpi.createDataTypeFromRangeAndSubRange(
                         rgnRecv, localExtRange, self._numComponents, self._layout, elctCommType))
+                     table.insert(self._recvUpperCornerPerMPIReq[dir], Mpi.Request())
                   end
                end
             end
@@ -961,13 +972,13 @@ local function Field_meta_ctor(elct)
          local myId    = self._grid:subGridId() -- grid ID on this processor
          local neigIds = self._decompNeigh:neighborData(myId) -- list of neighbors
          local tag     = 42 -- Communicator tag for regular (non-periodic) messages
-         local recvReq = {} -- list of recv requests
          -- post a non-blocking recv request
          for _, recvId in ipairs(neigIds) do
             local dataType = self._recvMPIDataType[recvId]
             local loc      = self._recvMPILoc[recvId]
+            local recvReq  = self._recvMPIReq[recvId]
             -- recv data: (its from recvId-1 as MPI ranks are zero indexed)
-            recvReq[recvId] = Mpi.Irecv(dataPtr+loc, 1, dataType, recvId-1, tag, comm)
+            local err = Mpi.Irecv(dataPtr+loc, 1, dataType, recvId-1, tag, comm, recvReq)
          end
          
          -- Do a blocking send (does not really block as recv requests
@@ -982,7 +993,7 @@ local function Field_meta_ctor(elct)
          -- Complete recv.
          -- Since MPI DataTypes eliminate the need for buffers, 
          -- all we have to do is wait for non-blocking receives to finish.
-         for _, recvId in ipairs(neigIds) do Mpi.Wait(recvReq[recvId], nil) end
+         for _, recvId in ipairs(neigIds) do Mpi.Wait(self._recvMPIReq[recvId], nil) end
       end,
       _field_periodic_sync = function (self, dataPtr)
          local comm = self._grid:commSet().nodeComm -- Communicator to use.
@@ -1023,29 +1034,28 @@ local function Field_meta_ctor(elct)
          -- these tag numbers identical is to have them be composed of the
          -- ID of the participating ranks and the corner directions.
          
-         local recvUpperReq, recvLowerReq = {}, {}
-         local recvUpperCornerReq, recvLowerCornerReq = {}, {}
          -- Post non-blocking recv requests for periodic directions.
          for dir = 1, self._ndim do
-            recvUpperCornerReq[dir], recvLowerCornerReq[dir] = {}, {}
             if grid:isDirPeriodic(dir) then
                local skelIds = decomposedRange:boundarySubDomainIds(dir)
                for i = 1, #skelIds do
                   local loId, upId = skelIds[i].lower, skelIds[i].upper
          
                   if myId == loId then
-                     local loTag       = basePerTag+dir+10
-                     local dataType    = self._recvLowerPerMPIDataType[dir]
-                     local loc         = self._recvLowerPerMPILoc[dir]
-                     recvLowerReq[dir] = Mpi.Irecv(dataPtr+loc, 1, dataType,
-                                                   upId-1, loTag, comm)
+                     local loTag    = basePerTag+dir+10
+                     local dataType = self._recvLowerPerMPIDataType[dir]
+                     local loc      = self._recvLowerPerMPILoc[dir]
+                     local req      = self._recvLowerPerMPIReq[dir]
+                     local err      = Mpi.Irecv(dataPtr+loc, 1, dataType,
+                                                upId-1, loTag, comm, req)
                   end
                   if myId == upId then
-                     local upTag       = basePerTag+dir
-                     local dataType    = self._recvUpperPerMPIDataType[dir]
-                     local loc         = self._recvUpperPerMPILoc[dir]
-                     recvUpperReq[dir] = Mpi.Irecv(dataPtr+loc, 1, dataType,
-                                                   loId-1, upTag, comm)
+                     local upTag    = basePerTag+dir
+                     local dataType = self._recvUpperPerMPIDataType[dir]
+                     local loc      = self._recvUpperPerMPILoc[dir]
+                     local req      = self._recvUpperPerMPIReq[dir]
+                     local err      = Mpi.Irecv(dataPtr+loc, 1, dataType,
+                                                loId-1, upTag, comm, req)
                   end
                end
 
@@ -1060,16 +1070,18 @@ local function Field_meta_ctor(elct)
                            local loTag    = cornerBasePerTag+tonumber(loId..upId..tblToStr(corDirs)..1)
                            local dataType = self._recvLowerCornerPerMPIDataType[dir][ccLo]
                            local loc      = self._recvLowerCornerPerMPILoc[dir][ccLo]
-                           recvLowerCornerReq[dir][ccLo] = Mpi.Irecv(dataPtr+loc, 1, dataType,
-                                                                     upId-1, loTag, comm)
+                           local req      = self._recvLowerCornerPerMPIReq[dir][ccLo]
+                           local err      = Mpi.Irecv(dataPtr+loc, 1, dataType,
+                                                      upId-1, loTag, comm, req)
                         end
                         if myId == upId then
                            ccUp = ccUp+1
                            local upTag    = cornerBasePerTag+tonumber(loId..upId..tblToStr(corDirs)..2)
                            local dataType = self._recvUpperCornerPerMPIDataType[dir][ccUp]
                            local loc      = self._recvUpperCornerPerMPILoc[dir][ccUp]
-                           recvUpperCornerReq[dir][ccUp] = Mpi.Irecv(dataPtr+loc, 1, dataType,
-                                                                     loId-1, upTag, comm)
+                           local req      = self._recvUpperCornerPerMPIReq[dir][ccUp]
+                           local err      = Mpi.Irecv(dataPtr+loc, 1, dataType,
+                                                      loId-1, upTag, comm, req)
                         end
                      end
                   end
@@ -1133,8 +1145,8 @@ local function Field_meta_ctor(elct)
                local skelIds = decomposedRange:boundarySubDomainIds(dir)
                for i = 1, #skelIds do
                   local loId, upId = skelIds[i].lower, skelIds[i].upper
-                  if myId == loId then Mpi.Wait(recvLowerReq[dir], nil) end
-                  if myId == upId then Mpi.Wait(recvUpperReq[dir], nil) end
+                  if myId == loId then Mpi.Wait(self._recvLowerPerMPIReq[dir], nil) end
+                  if myId == upId then Mpi.Wait(self._recvUpperPerMPIReq[dir], nil) end
                end
 
                if self._syncCorners then
@@ -1145,11 +1157,11 @@ local function Field_meta_ctor(elct)
                         local loId, upId = dC.lower, dC.upper
                         if myId == loId then
                            ccLo = ccLo+1
-                           Mpi.Wait(recvLowerCornerReq[dir][ccLo], nil)
+                           Mpi.Wait(self._recvLowerCornerPerMPIReq[dir][ccLo], nil)
                         end
                         if myId == upId then
                            ccUp = ccUp+1
-                           Mpi.Wait(recvUpperCornerReq[dir][ccUp], nil)
+                           Mpi.Wait(self._recvUpperCornerPerMPIReq[dir][ccUp], nil)
                         end
                      end
                   end

@@ -41,6 +41,9 @@ ffi.cdef [[
   int sizeof_MPI_Group();
   int sizeof_MPI_Comm();
   int sizeof_MPI_Request();
+  // size of various object pointers
+  int sizeof_ptr_MPI_Status();
+  int sizeof_ptr_MPI_Request();
 
   // Pre-defined objects and constants
   MPI_Comm get_MPI_COMM_WORLD();
@@ -131,10 +134,16 @@ ffi.cdef [[
   int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 	       MPI_Comm comm, MPI_Status *status);
   int MPI_Wait(MPI_Request *request, MPI_Status *status);
+  int MPI_Waitall(int count, MPI_Request array_of_requests[],
+                  MPI_Status *array_of_statuses);
+  int MPI_Waitany(int count, MPI_Request array_of_requests[],
+                  int *index, MPI_Status *status);
 
   // Nonblocking
   int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source,
 		int tag, MPI_Comm comm, MPI_Request *request);
+  int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
+                int tag, MPI_Comm comm, MPI_Request *request);
   int MPI_Iallreduce(const void *sendbuf, void *recvbuf, int count,
                      MPI_Datatype datatype, MPI_Op op, MPI_Comm comm,
                      MPI_Request *request);
@@ -182,7 +191,10 @@ _M.ORDER_C          = ffiC.get_MPI_ORDER_C()
 _M.ORDER_FORTRAN    = ffiC.get_MPI_ORDER_FORTRAN()
 
 -- Object sizes
-_M.SIZEOF_STATUS = ffiC.sizeof_MPI_Status()
+_M.SIZEOF_STATUS  = ffiC.sizeof_MPI_Status()
+_M.SIZEOF_REQUEST = ffiC.sizeof_MPI_Request()
+_M.SIZEOF_STATUS_PTR  = ffiC.sizeof_ptr_MPI_Status()
+_M.SIZEOF_REQUEST_PTR = ffiC.sizeof_ptr_MPI_Request()
 
 -- Datatypes
 _M.CHAR            = ffiC.get_MPI_CHAR()
@@ -236,6 +248,15 @@ local voidp  = typeof("void *[1]")
 local function new_MPI_Status()
    return ffi.cast("MPI_Status*", new("uint8_t[?]", _M.SIZEOF_STATUS))
 end
+local function new_MPI_Status_vec(sz)
+   local sz = sz or 1
+   return ffi.cast("MPI_Status*", new("uint8_t[?]", sz*_M.SIZEOF_STATUS))
+--   local vec = ffi.cast("MPI_Status**", new("uint8_t[?]", sz*_M.SIZEOF_STATUS_PTR))
+--   for i = 1, sz do
+--      vec[i-1] = ffi.gc(ffi.cast("MPI_Status*", ffi.C.malloc(_M.SIZEOF_STATUS)), ffi.C.free)
+--   end
+--   return vec
+end
 local function new_MPI_Comm()
    return new("MPI_Comm[1]")
 end
@@ -244,6 +265,19 @@ local function new_MPI_Group()
 end
 local function new_MPI_Request()
    return new("MPI_Request[1]")
+end
+local function new_MPI_Request_vec(sz)
+   local sz = sz or 1
+--   return new("MPI_Request[?]", sz)
+--   return ffi.cast("MPI_Request*", new("uint8_t[?]", sz*_M.SIZEOF_REQUEST))
+--   local vec = ffi.cast("MPI_Request**", new("uint8_t[?]", sz*_M.SIZEOF_REQUEST_PTR))
+   local vec = new("MPI_Request*[?]", sz*_M.SIZEOF_REQUEST_PTR)
+   for i = 1, sz do
+--      vec[i-1] = ffi.gc(ffi.C.malloc(_M.SIZEOF_REQUEST), ffi.C.free)
+      vec[i-1] = ffi.gc(ffi.cast("MPI_Request*", ffi.C.malloc(_M.SIZEOF_REQUEST)), ffi.C.free)
+   end
+   return vec
+--   return ffi.gc(ffi.cast("MPI_Request*", ffi.C.malloc(sz*_M.SIZEOF_REQUEST)), ffi.C.free)
 end
 local function new_MPI_Win()
    return new("MPI_Win[1]")
@@ -272,6 +306,20 @@ function _M.Status:new()
 end
 -- make object callable, and redirect call to the :new method
 setmetatable(_M.Status, { __call = function (self, o) return self.new(self, o) end })
+_M.Status_vec = {}
+function _M.Status_vec:new(sz)
+   local self = setmetatable({}, _M.Status_vec)
+   self.SOURCE, self.TAG, self.ERROR = {}, {}, {}
+   for i=1,sz do self.SOURCE[i], self.TAG[i], self.ERROR[i] = 0, 0, 0 end
+   self.mpiStatus = new_MPI_Status_vec(sz)
+   return self
+end
+-- make object callable, and redirect call to the :new method
+setmetatable(_M.Status_vec, { __call = function (self, o) return self.new(self, o) end })
+
+-- MPI_Request types.
+function _M.Request() return new_MPI_Request() end 
+function _M.Request_vec(sz) return new_MPI_Request_vec(sz) end 
 
 -- MPI_Comm object
 function _M.Comm()  return new_MPI_Comm() end
@@ -422,13 +470,43 @@ function _M.Wait(request, status)
       status.SOURCE, status.TAG, status.ERROR = gks[0], gks[1], gks[2]
    end
 end
+-- MPI_Waitall
+function _M.Waitall(count, requestArray, statusArray)
+   local st = statusArray and statusArray.mpiStatus or _M.STATUS_IGNORE
+   return ffiC.MPI_Waitall(count, requestArray, st)
+--   -- store MPI_Status
+--   if statusArray ~= nil then
+--      local gks = new("int[?]", 3*count)
+--      ffiC.GkMPI_fillStatusArray(count, st, gks)
+--      for i=1,count do
+--         status.SOURCE[i], status.TAG[i], status.ERROR[i] = gks[(i-1)*3+0], gks[(i-1)*3+1], gks[(i-1)*3+2]
+--      end
+--   end
+end
+---- MPI_Waitany
+----  int MPI_Waitany(int count, MPI_Request array_of_requests[],
+----                  int *index, MPI_Status *status);
+--function _M.Waitany(count, requestArray, ind, status)
+--   local st = status and status.mpiStatus or _M.STATUS_IGNORE
+--   local _ = ffiC.MPI_Waitany(count, request, st)
+--   -- store MPI_Status
+--   if statusArray ~= nil then
+--      local gks = new("int[3]")
+--      ffiC.GkMPI_fillStatus(st, gks)
+--      status.SOURCE, status.TAG, status.ERROR = gks[0], gks[1], gks[2]
+--   end
+--end
+
 
 -- MPI_Irecv
-function _M.Irecv(buf, count, datatype, source, tag, comm)
-   local req = new_MPI_Request()
-   local _ = ffiC.MPI_Irecv(
+function _M.Irecv(buf, count, datatype, source, tag, comm, req)
+   return ffiC.MPI_Irecv(
       buf, count, getObj(datatype, "MPI_Datatype[1]"), source, tag, getObj(comm, "MPI_Comm[1]"), req)
-   return req
+end
+-- MPI_Isend
+function _M.Isend(buf, count, datatype, dest, tag, comm, req)
+   return ffiC.MPI_Isend(
+      buf, count, getObj(datatype, "MPI_Datatype[1]"), dest, tag, getObj(comm, "MPI_Comm[1]"), req)
 end
 -- MPI_Iallreduce
 function _M.Iallreduce(sendbuf, recvbuf, count, datatype, op, tag, comm)

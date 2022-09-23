@@ -191,11 +191,11 @@ function test_5(comm)
 end
 
 -- Non-blocking recv
-function test_6(comm)
+function test_6a(comm)
    local sz = Mpi.Comm_size(comm)
    local rnk = Mpi.Comm_rank(comm)
    if sz ~= 2 then
-      log("Test for non-blocking calls not run as number of procs not exactly 2")
+      log("Test for non-blocking recv not run as number of procs not exactly 2")
       return
    end
    
@@ -213,7 +213,8 @@ function test_6(comm)
       Mpi.Send(vIn:data(), nz, Mpi.DOUBLE, 1, 42, comm)
    end   
    if rank == 1 then
-      local request = Mpi.Irecv(vOut:data(), nz, Mpi.DOUBLE, 0, 42, comm)
+      local request = Mpi.Request()
+      local err = Mpi.Irecv(vOut:data(), nz, Mpi.DOUBLE, 0, 42, comm, request)
       local status = Mpi.Status()
       Mpi.Wait(request, status)
       local count = Mpi.Get_count(status, Mpi.DOUBLE)
@@ -230,7 +231,8 @@ function test_6(comm)
       Mpi.Send(vIn:data(), nz, Mpi.DOUBLE, 0, 42, comm)
    end      
    if rank == 0 then
-      local request = Mpi.Irecv(vOut:data(), nz, Mpi.DOUBLE, 1, 42, comm)
+      local request = Mpi.Request()
+      local err = Mpi.Irecv(vOut:data(), nz, Mpi.DOUBLE, 1, 42, comm, request)
       local status = Mpi.Status()
       Mpi.Wait(request, status)
       local count = Mpi.Get_count(status, Mpi.DOUBLE)
@@ -241,6 +243,160 @@ function test_6(comm)
 	 assert_equal(2*(i+0.5), vOut[i], "Checking recv-ed data on rank 0")
       end      
    end
+   
+   Mpi.Barrier(comm)
+end
+
+-- Non-blocking send and recv
+function test_6b(comm)
+   local sz = Mpi.Comm_size(comm)
+   local rnk = Mpi.Comm_rank(comm)
+   if sz ~= 2 then
+      log("Test for non-blocking send/recv not run as number of procs not exactly 2")
+      return
+   end
+   
+   local rank = Mpi.Comm_rank(comm)
+   local sz = Mpi.Comm_size(comm)
+      
+   local nz = 1000
+   local vIn, vOut = Alloc.Double(nz), Alloc.Double(nz)
+   for i = 1, nz do
+      vIn[i] = (rank+1)*(i+0.5)
+   end
+
+   -- Send message from rank 0 -> rank 1
+   if rank == 0 then
+      local request = Mpi.Request()
+      local err = Mpi.Isend(vIn:data(), nz, Mpi.DOUBLE, 1, 42, comm, request)
+      local status = Mpi.Status()
+      Mpi.Wait(request, status)
+      local count = Mpi.Get_count(status, Mpi.DOUBLE)
+      assert_equal(42, status.TAG, "rank 0: Checking tag")
+      assert_equal(nz, count, "rank 0: Checking if correct number of elements were sent")
+   end   
+   if rank == 1 then
+      local request = Mpi.Request()
+      local err = Mpi.Irecv(vOut:data(), nz, Mpi.DOUBLE, 0, 42, comm, request)
+      local status = Mpi.Status()
+      Mpi.Wait(request, status)
+      local count = Mpi.Get_count(status, Mpi.DOUBLE)
+
+      assert_equal(42, status.TAG, "rank 1: Checking tag")
+      assert_equal(nz, count, "rank 1: Checking if correct number of elements were recv-ed")
+      for i = 1, nz do
+	 assert_equal(i+0.5, vOut[i], "rank 1: Checking recv-ed data")
+      end
+   end
+
+   -- Send message from rank 1 -> rank 0
+   if rank == 1 then
+      local request = Mpi.Request()
+      local err = Mpi.Isend(vIn:data(), nz, Mpi.DOUBLE, 0, 42, comm, request)
+      local status = Mpi.Status()
+      Mpi.Wait(request, status)
+      local count = Mpi.Get_count(status, Mpi.DOUBLE)
+
+      assert_equal(42, status.TAG, "rank 1: Checking tag")
+      assert_equal(nz, count, "rank 1: Checking if correct number of elements were sent")
+   end      
+   if rank == 0 then
+      local request = Mpi.Request()
+      local err = Mpi.Irecv(vOut:data(), nz, Mpi.DOUBLE, 1, 42, comm, request)
+      local status = Mpi.Status()
+      Mpi.Wait(request, status)
+      local count = Mpi.Get_count(status, Mpi.DOUBLE)
+
+      assert_equal(42, status.TAG, "rank 0: Checking tag")
+      assert_equal(nz, count, "rank 0: Checking if correct number of elements were recv-ed")
+      for i = 1, nz do
+	 assert_equal(2*(i+0.5), vOut[i], "rank 0: Checking recv-ed data")
+      end      
+   end
+   
+   Mpi.Barrier(comm)
+end
+
+-- Waitall with non-blocking send and recv
+function test_6c(comm)
+   local sz = Mpi.Comm_size(comm)
+   local rnk = Mpi.Comm_rank(comm)
+   if sz ~= 2 then
+      log("Test for non-blocking send/recv not run as number of procs not exactly 2")
+      return
+   end
+   
+   local rank = Mpi.Comm_rank(comm)
+   local sz = Mpi.Comm_size(comm)
+      
+   local nz = 1000
+   local vIn0, vOut0 = Alloc.Double(nz), Alloc.Double(nz)
+   local vIn1, vOut1 = Alloc.Double(nz), Alloc.Double(nz)
+   for i = 1, nz do
+      vIn0[i] = (rank+1)*(i+0.5)
+      vIn1[i] = (rank+2)*(i+0.1)
+   end
+
+   -- Send message from rank 0 -> rank 1
+   local requests = Mpi.Request_vec(2)
+   print("requests = ",requests)
+   print("requests[0] = ",requests[0])
+   if rank == 0 then
+      local err
+      err = Mpi.Isend(vIn0:data(), nz, Mpi.DOUBLE, 1, 32, comm, requests[0])
+      print("err00 = ",err)
+      err = Mpi.Isend(vIn1:data(), nz, Mpi.DOUBLE, 1, 42, comm, requests[1])
+      print("err01 = ",err)
+   end   
+   if rank == 1 then
+      local err
+      err = Mpi.Irecv(vOut0:data(), nz, Mpi.DOUBLE, 0, 32, comm, requests[0])
+      print("err10 = ",err)
+      err = Mpi.Irecv(vOut1:data(), nz, Mpi.DOUBLE, 0, 42, comm, requests[1])
+      print("err11 = ",err)
+   end
+   local status = Mpi.Status_vec(2)
+   print("status = ",status.mpiStatus)
+   print("status[0] = ",status.mpiStatus[0])
+   local mpierr = Mpi.Waitall(2, requests[0], status)
+
+--   local count = {Mpi.Get_count(status.mpiStatus[0], Mpi.DOUBLE),
+--                  Mpi.Get_count(status.mpiStatus[1], Mpi.DOUBLE)}
+--   assert_equal(32, status.TAG[1], "Checking tag")
+--   assert_equal(42, status.TAG[2], "Checking tag")
+--   assert_equal(nz, count[1], "Checking if correct number of elements were sent/received")
+--   assert_equal(nz, count[2], "Checking if correct number of elements were sent/received")
+--   if rank == 1 then
+--      for i = 1, nz do
+--	 assert_equal((0+1)*(i+0.5), vOut0[i], "rank 1: Checking recv-ed data0")
+--	 assert_equal((0+2)*(i+0.1), vOut1[i], "rank 1: Checking recv-ed data1")
+--      end
+--   end
+
+--   -- Send message from rank 1 -> rank 0
+--   if rank == 1 then
+--      local request = Mpi.Request()
+--      local err = Mpi.Isend(vIn:data(), nz, Mpi.DOUBLE, 0, 42, comm, request)
+--      local status = Mpi.Status()
+--      Mpi.Wait(request, status)
+--      local count = Mpi.Get_count(status, Mpi.DOUBLE)
+--
+--      assert_equal(42, status.TAG, "rank 1: Checking tag")
+--      assert_equal(nz, count, "rank 1: Checking if correct number of elements were sent")
+--   end      
+--   if rank == 0 then
+--      local request = Mpi.Request()
+--      local err = Mpi.Irecv(vOut:data(), nz, Mpi.DOUBLE, 1, 42, comm, request)
+--      local status = Mpi.Status()
+--      Mpi.Wait(request, status)
+--      local count = Mpi.Get_count(status, Mpi.DOUBLE)
+--
+--      assert_equal(42, status.TAG, "rank 0: Checking tag")
+--      assert_equal(nz, count, "rank 0: Checking if correct number of elements were recv-ed")
+--      for i = 1, nz do
+--	 assert_equal(2*(i+0.5), vOut[i], "rank 0: Checking recv-ed data")
+--      end      
+--   end
    
    Mpi.Barrier(comm)
 end
@@ -1114,7 +1270,9 @@ test_2(Mpi.COMM_WORLD)
 test_3(Mpi.COMM_WORLD)
 test_4(Mpi.COMM_WORLD)
 test_5(Mpi.COMM_WORLD)
-test_6(Mpi.COMM_WORLD)
+test_6a(Mpi.COMM_WORLD)
+test_6b(Mpi.COMM_WORLD)
+test_6c(Mpi.COMM_WORLD)
 test_7(Mpi.COMM_WORLD)
 test_8(Mpi.COMM_WORLD)
 test_9(Mpi.COMM_WORLD)

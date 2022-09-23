@@ -196,7 +196,7 @@ function test_3(comm)
 
    field:sync()
 
-   field._zero:clear(0)
+--   field._zero:clear(0)
 
    if GKYL_USE_GPU then
       field:copyDeviceToHost()
@@ -251,7 +251,7 @@ function test_4(comm)
 
    field:sync()
 
-   field._zero:clear(0)
+--   field._zero:clear(0)
 
    if GKYL_USE_GPU then
       field:copyDeviceToHost()
@@ -305,7 +305,7 @@ function test_5(comm)
 
    field:sync()
 
-   field._zero:clear(0)
+--   field._zero:clear(0)
 
    if GKYL_USE_GPU then
       field:copyDeviceToHost()
@@ -707,42 +707,6 @@ function test_8(comm)
 end
 
 function test_9(comm)
-   local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
-   log(string.format("Running shared CartField tests on %d procs", nz))
-
-   local decomp = DecompRegionCalc.CartProd {
-      cuts = {1, 1}, useShared = true
-   }
-   local grid = Grid.RectCart {
-      lower = {0.0, 0.0},
-      upper = {1.0, 1.0},
-      cells = {10, 10},
-      decomposition = decomp,
-   }
-   local field = DataStruct.Field {
-      onGrid = grid,
-      numComponents = 3,
-      ghost = {1, 2},
-   }
-   local field1 = DataStruct.Field {
-      onGrid = grid,
-      numComponents = 3,
-      ghost = {1, 2},
-   }   
-
-   field:clear(10.0)
-   field1:clear(20.0)
-
-   -- check if loop covers full grid
-   local localCount = 0
-   for idx in field:localRangeIter() do
-      localCount = localCount+1
-   end
-   local totalCount = allReduceOneInt(localCount)
-   assert_equal(grid:localRange():volume(), totalCount, "Checking if total count is correct")
-end
-
-function test_10(comm)
    local nz = Mpi.Comm_size(comm)
    if nz ~= 2 then
       log("Not running test_10 as numProcs not exactly 2")
@@ -799,8 +763,7 @@ test_5(comm)
 test_6(comm)
 test_7(comm)
 test_8(comm)
---test_9(comm)
-test_10(comm)
+test_9(comm)
 
 totalFail = allReduceOneInt(stats.fail)
 totalPass = allReduceOneInt(stats.pass)

@@ -13,6 +13,9 @@
 extern "C" {
     // Sizes of various objects
     DECL_GET_MPI_OBJ_SIZE(MPI_Status);
+    DECL_GET_MPI_OBJ_SIZE(MPI_Request);
+    DECL_GET_MPI_OBJ_PTR_SIZE(MPI_Status);
+    DECL_GET_MPI_OBJ_PTR_SIZE(MPI_Request);
     
     // Pre-defined objects and constants
     DECL_GET_MPI_OBJECT(Comm, MPI_COMM_WORLD);
@@ -73,6 +76,7 @@ extern "C" {
 
     /* Fill the outStatus with MPI_Status public data */
     void GkMPI_fillStatus(const MPI_Status* inStatus, int *outStatus);
+    void GkMPI_fillStatusArray(int count, const MPI_Status* inStatus, int *outStatus);
 }
 
 #endif // GK_MPI_FUNCS_H
