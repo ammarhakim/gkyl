@@ -107,6 +107,8 @@ function VmSteadyStateSource:advance(tCurr, fIn, species, fRhsOut)
       local flux = self.momDensityBuf
       flux:combineOffset(1., moms, 1*numConfBasis)
 
+      if GKYL_USE_GPU then flux:copyDeviceToHost() end
+
       local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(1)
       for idx in flux:localRangeIter() do
          if idx[1] == self.confGrid:numCells(1) then
