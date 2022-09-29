@@ -104,9 +104,9 @@ function GkLBOCollisions:fullInit(speciesTbl)
       -- normNuSelf, epsilon0 and elemCharge may not used, but are
       -- initialized to avoid if-statements in advance method.
       if self.normNuIn then
-         self.normNuSelf  = self.normNuIn[selfSpecInd]
+         self.normNuSelf = self.normNuIn[selfSpecInd]
          if self.crossCollisions then
-            self.normNuCrossIn = lume.clone(self.normNuIn)
+            local normNuCrossIn = lume.clone(self.normNuIn)
             table.remove(normNuCrossIn, selfSpecInd)
             self.normNuCross = {}  -- Need a name-value pairs table.
             for i, nm in ipairs(self.crossSpecies) do self.normNuCross[nm] = normNuCrossIn[i] end
