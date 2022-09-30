@@ -88,11 +88,11 @@ function SheathRarePot:init(tbl)
    local localExtRange = onField:localExtRange()
    local numGhostVec   = self._edge == 'lower' and onField._lowerGhostVec or onField._upperGhostVec
 
-   local basis = useGPU and self._basis._zeroDevice or self._basis._zero
-
-   self._zero = ffi.gc(ffiC.gkyl_sheath_rarefaction_pot_new(edge, localExtRange, numGhostVec:data(), basis,
+   print("here")
+   self._zero = ffi.gc(ffiC.gkyl_sheath_rarefaction_pot_new(edge, localExtRange, numGhostVec:data(), self._basis._zero,
                                                             self._grid._zero, elem_q, mass_e, mass_i, useGPU),
                        ffiC.gkyl_sheath_rarefaction_pot_release)
+   print("here 2")
 end
 
 function SheathRarePot:_advance(tCurr, inFld, outFld)
