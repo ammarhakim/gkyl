@@ -74,7 +74,7 @@ function SheathRarePot:init(tbl)
 
    self._grid    = assert(tbl.onGrid, "Updater.SheathRarePot: Must specify configuration space grid with 'onGrid'.")
    self._edge    = assert(tbl.edge, "Updater.SheathRarePot: Must specify edge to apply BCs with 'edge' (lower', 'upper').")
-   self._basis   = assert(tbl.basis, "Updater.SheathRarePot: Must specify the conf-space basis in 'basis'.")
+   local basis   = assert(tbl.basis, "Updater.SheathRarePot: Must specify the conf-space basis in 'basis'.")
    self._phiWall = assert(tbl.phiWall, "Updater.SheathRarePot: Must specify the wall potential in 'phiWall'.")
    local onField = assert(tbl.onField, "Updater.SheathRarePot: Must specify the field we'll apply BCs to in 'onField'.")
    local elem_q  = assert(tbl.elem_charge, "Updater.SheathRarePot: Must specify the elementary charge with 'elem_q'.")
@@ -88,11 +88,9 @@ function SheathRarePot:init(tbl)
    local localExtRange = onField:localExtRange()
    local numGhostVec   = self._edge == 'lower' and onField._lowerGhostVec or onField._upperGhostVec
 
-   print("here")
-   self._zero = ffi.gc(ffiC.gkyl_sheath_rarefaction_pot_new(edge, localExtRange, numGhostVec:data(), self._basis._zero,
+   self._zero = ffi.gc(ffiC.gkyl_sheath_rarefaction_pot_new(edge, localExtRange, numGhostVec:data(), basis._zero,
                                                             self._grid._zero, elem_q, mass_e, mass_i, useGPU),
                        ffiC.gkyl_sheath_rarefaction_pot_release)
-   print("here 2")
 end
 
 function SheathRarePot:_advance(tCurr, inFld, outFld)
