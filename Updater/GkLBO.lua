@@ -38,6 +38,7 @@ void
 gkyl_dg_updater_lbo_gyrokinetic_advance(gkyl_dg_updater_lbo_gyrokinetic *lbo,
   const struct gkyl_range *update_rng, const struct gkyl_array *bmagInv,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
+  const struct gkyl_array *m2self,
   const struct gkyl_array* fIn,
   struct gkyl_array* cflrate, struct gkyl_array* rhs);
 
@@ -45,6 +46,7 @@ void
 gkyl_dg_updater_lbo_gyrokinetic_advance_cu(gkyl_dg_updater_lbo_gyrokinetic *lbo,
   const struct gkyl_range *update_rng, const struct gkyl_array *bmagInv,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
+  const struct gkyl_array *m2self,
   const struct gkyl_array* fIn,
   struct gkyl_array* cflrate, struct gkyl_array* rhs);
 
@@ -79,12 +81,13 @@ function GkLBO:_advance(tCurr, inFld, outFld)
    local nu_u    = assert(inFld[3], "GkLBO.advance: Must pass nu_u")
    local nu_vtsq = assert(inFld[4], "GkLBO.advance: Must pass nu_vtsq")
    local nu_sum  = assert(inFld[5], "GkLBO.advance: Must pass nu_sum")
+   local m2self  = assert(inFld[6], "GkLBO.advance: Must pass m2self") 
  
    local fRhsOut       = assert(outFld[1], "GkLBO.advance: Must specify an output field")
    local cflRateByCell = assert(outFld[2], "GkLBO.advance: Must pass cflRate field in output table")
 
    local localRange = fRhsOut:localRange()
-   ffiC.gkyl_dg_updater_lbo_gyrokinetic_advance(self._zero, localRange, bmagInv._zero, nu_sum._zero, nu_u._zero, nu_vtsq._zero, fIn._zero, cflRateByCell._zero, fRhsOut._zero)
+   ffiC.gkyl_dg_updater_lbo_gyrokinetic_advance(self._zero, localRange, bmagInv._zero, nu_sum._zero, nu_u._zero, nu_vtsq._zero, m2self._zero, fIn._zero, cflRateByCell._zero, fRhsOut._zero)
 
 end
 
@@ -96,12 +99,13 @@ function GkLBO:_advanceOnDevice(tCurr, inFld, outFld)
    local nu_u    = assert(inFld[3], "GkLBO.advance: Must pass nu_u")
    local nu_vtsq = assert(inFld[4], "GkLBO.advance: Must pass nu_vtsq")
    local nu_sum  = assert(inFld[5], "GkLBO.advance: Must pass nu_sum")
+   local m2self  = assert(inFld[6], "GkLBO.advance: Must pass m2self") 
  
    local fRhsOut       = assert(outFld[1], "GkLBO.advance: Must specify an output field")
    local cflRateByCell = assert(outFld[2], "GkLBO.advance: Must pass cflRate field in output table")
 
    local localRange = fRhsOut:localRange()
-   ffiC.gkyl_dg_updater_lbo_gyrokinetic_advance_cu(self._zero, localRange, bmagInv._zeroDevice, nu_sum._zeroDevice, nu_u._zeroDevice, nu_vtsq._zeroDevice, fIn._zeroDevice, cflRateByCell._zeroDevice, fRhsOut._zeroDevice)
+   ffiC.gkyl_dg_updater_lbo_gyrokinetic_advance_cu(self._zero, localRange, bmagInv._zeroDevice, nu_sum._zeroDevice, nu_u._zeroDevice, nu_vtsq._zeroDevice, m2self._zeroDevice, fIn._zeroDevice, cflRateByCell._zeroDevice, fRhsOut._zeroDevice)
 
 end
 

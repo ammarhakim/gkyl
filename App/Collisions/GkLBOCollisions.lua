@@ -243,6 +243,8 @@ function GkLBOCollisions:createSolver(mySpecies, externalField)
    self.nuUParSum = mySpecies:allocMoment()
    -- Sum of squared thermal speeds, vthSq=T/m, multiplied by respective collisionalities.
    self.nuVtSqSum = mySpecies:allocMoment()
+
+   self.m2Self = mySpecies:allocMoment() -- M2, to be extracted from threeMoments.
 end
 
 function GkLBOCollisions:createCouplingSolver(species, field, externalField)
@@ -380,9 +382,12 @@ function GkLBOCollisions:advance(tCurr, fIn, species, out)
    end    -- end if self.crossCollisions.
    self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 
+   -- M2 self is needed as a precaution in GkLBO.
+   self.m2Self:combineOffset(1., momsSelf, 2*self.confBasis:numBasis())
+
    -- Compute increment from collisions and accumulate it into output.
    self.collisionSlvr:advance(
-      tCurr, {fIn, self.bmagInv, self.nuUParSum, self.nuVtSqSum, self.nuSum}, {fRhsOut, cflRateByCell})
+      tCurr, {fIn, self.bmagInv, self.nuUParSum, self.nuVtSqSum, self.nuSum, self.m2Self}, {fRhsOut, cflRateByCell})
 end
 
 function GkLBOCollisions:write(tm, frame) end
