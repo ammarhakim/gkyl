@@ -328,11 +328,14 @@ function GkField:createSolver(species, externalField)
       end
 
       if self.evolve then
-	 self.calcPhi = function(tCurr, species, potentialsIn, potentialsOut)
+	 self.calcPhi = function(tCurr, species, inIdx, outIdx)
+            local potentialsIn = self:rkStepperFields()[inIdx]
+            local potentialsOut = self:rkStepperFields()[outIdx]
+   
             potentialsIn.phi:combine(self.externalPhiTimeDependence(tCurr), self.externalPhiFld)
 	 end
       else
-	 self.calcPhi = function(tCurr, species, potentialsIn, potentialsOut) end
+	 self.calcPhi = function(tCurr, species, inIdx, outIdx) end
       end
    else
       -- Get adiabatic species info.
@@ -458,6 +461,44 @@ function GkField:createSolver(species, externalField)
             weight = self.modWeightPoisson,
             periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
          }
+
+         -- Detect sheath BCs. If so use the rarefaction potential updater to modify
+         -- phi at the sheath entrance in order to enforce the Bohm criterion.
+         local hasSheathBC = true
+         self.elc_nm, self.ion_nm = "", ""
+         for nm, s in lume.orderedIter(species) do
+            if Species.GkSpecies.is(s) or Species.GyrofluidSpecies.is(s) then
+               for _, bc in lume.orderedIter(s.nonPeriodicBCs) do
+                  hasSheathBC = hasSheathBC and bc:getKind()=='sheath'
+               end
+               if s.charge<0. then self.elc_nm = s.name end
+               if s.charge>0. then self.ion_nm = s.name end
+            end
+         end
+         local elc_mass = species[self.elc_nm]:getMass()
+         local ion_mass = species[self.ion_nm]:getMass()
+         if hasSheathBC then
+            self.phiRareMod = {}
+            for _, ed in ipairs({"lower","upper"}) do
+               self.phiRareMod[ed] = Updater.SheathRarefactionPotential {
+                  onGrid  = self.grid,   edge    = ed,
+                  basis   = self.basis,  phiWall = externalField.geo.phiWall,
+                  mass_i  = ion_mass,    mass_e  = elc_mass,
+                  elem_charge = Constants.ELEMENTARY_CHARGE,
+                  onField     = self:rkStepperFields()[1].phi,
+               }
+            end
+            self.applyRarefactionPhiMod = function(tCurr, species, inIdx, phiInOut)
+               local moms_e  = species[self.elc_nm]:fluidMoments() 
+               local m2par_e = species[self.elc_nm]:getParKinEnergyDensity(inIdx) 
+               local moms_i  = species[self.ion_nm]:fluidMoments() 
+               local m2par_i = species[self.ion_nm]:getParKinEnergyDensity(inIdx) 
+               self.phiRareMod["lower"]:advance(tCurr, {moms_e, m2par_e, moms_i, m2par_i}, {phiInOut})
+               self.phiRareMod["upper"]:advance(tCurr, {moms_e, m2par_e, moms_i, m2par_i}, {phiInOut})
+            end
+         else
+            self.applyRarefactionPhiMod = function(tCurr, species, inIdx, phiInOut) end
+         end
       end
 
       if self.ndim == 3 and not self.discontinuousPhi then
@@ -474,7 +515,10 @@ function GkField:createSolver(species, externalField)
       end
 
       -- Function called in the advance method.
-      self.calcPhiInitial = function(tCurr, species, potentialsIn, potentialsOut)
+      self.calcPhiInitial = function(tCurr, species, inIdx, outIdx)
+         local potentialsIn = self:rkStepperFields()[inIdx]
+         local potentialsOut = self:rkStepperFields()[outIdx]
+
          self.chargeDens:clear(0.0)
          for _, s in lume.orderedIter(species) do
             self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
@@ -491,15 +535,19 @@ function GkField:createSolver(species, externalField)
          self.phiSlvr:advance(tCurr, {self.chargeDens}, {potentialsIn.phiAux})
 
          potentialsIn.phi = self.zSmoothPhi(tCurr, potentialsIn.phiAux, potentialsIn.phi)
+
+         self.applyRarefactionPhiMod(tCurr, species, inIdx, potentialsIn.phi)
       end
       self.calcPhi = self.evolve
          and self.calcPhiInitial
 	 or (self.isElectromagnetic
-	     and function(tCurr, species, potentialsIn, potentialsOut)
+	     and function(tCurr, species, inIdx, outIdx)
+                    local potentialsIn = self:rkStepperFields()[inIdx]
+                    local potentialsOut = self:rkStepperFields()[outIdx]
                     -- Just copy stuff over.
                     potentialsOut.apar:copy(potentialsIn.apar)
 	         end
-             or function(tCurr, species, potentialsIn, potentialsOut) end)
+             or function(tCurr, species, inIdx, outIdx) end)
 
    end -- end if (self.externalPhi)
 
@@ -736,10 +784,7 @@ end
 function GkField:advance(tCurr, species, inIdx, outIdx)
    local tmStart = Time.clock()
 
-   local potCurr = self:rkStepperFields()[inIdx]
-   local potRhs  = self:rkStepperFields()[outIdx]
-   
-   self.calcPhi(tCurr, species, potCurr, potRhs)
+   self.calcPhi(tCurr, species, inIdx, outIdx)
 
    self.timers.advTime[1] = self.timers.advTime[1] + Time.clock() - tmStart
 end

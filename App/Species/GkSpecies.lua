@@ -116,6 +116,7 @@ function GkSpecies:alloc(nRkDup)
    self.ptclEnergy    = self:allocMoment()
    self.ptclEnergyAux = self:allocMoment()
    self.threeMoments  = self:allocVectorMoment(3)
+   self.parKinEnergyDensity = self:allocMoment()
    if self.positivity then
       self.numDensityPos = self:allocMoment()
       self.momDensityPos = self:allocMoment()
@@ -623,6 +624,20 @@ function GkSpecies:getMomDensity(rkIdx)
 
    self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    return self.momDensityAux
+end
+
+function GkSpecies:getParKinEnergyDensity(rkIdx)
+   -- If no rkIdx specified, assume numDensity has already been calculated.
+   if rkIdx == nil then return self.parKinEnergyDensity end
+   local fIn = self:rkStepperFields()[rkIdx]
+
+   local tmStart = Time.clock()
+
+   fIn = self.getF_or_deltaF(fIn)
+   self.M2parCalc:advance(nil, {fIn}, { self.parKinEnergyDensity })
+
+   self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
+   return self.parKinEnergyDensity
 end
 
 -- Like getMomDensity, but use GkM1proj instead of GkM1, which uses cell-average v_parallel in moment calculation.
