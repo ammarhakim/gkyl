@@ -151,12 +151,14 @@ function SpeciesDiagnostics:fullInit(mySpecies, field, diagOwner)
          elemType = elemType or fldElemType
          assert(elemType==fldElemType, "SpeciesDiagnostics: elemType of all diagnostics must be the same.")
       end
+      local basisID = (mySpecies.basis:id()=="gkhybrid" or mySpecies.basis:id()=="hybrid")
+         and "serendipity" or mySpecies.basis:id()
       self.diagIo = AdiosCartFieldIo {
          elemType   = elemType,
          method     = self.ioMethod,
          writeGhost = self.writeGhost,
          metaData   = {polyOrder = mySpecies.basis:polyOrder(),
-                       basisType = mySpecies.basis:id(),},
+                       basisType = basisID,},
       }
       self.writeFunc = function(tm, fr)
          SpeciesDiagnostics["writeGridDiagnostics_oneFile"](self, tm, fr)
