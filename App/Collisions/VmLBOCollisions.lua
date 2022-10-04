@@ -284,7 +284,7 @@ function VmLBOCollisions:boundaryCorrections() return self.boundCorrs end
 function VmLBOCollisions:selfPrimitiveMoments() return self.uSelf, self.vtSqSelf end
 function VmLBOCollisions:crossFrequencies(speciesName) return self.nuCross[speciesName] end
 function VmLBOCollisions:crossNormNu(speciesName) return self.normNuCross[speciesName] end
-function VmLBOCollisions:crossFlags(speciesName) return self.crossFlags[speciesName] end
+function VmLBOCollisions:getCrossFlags(speciesName) return self.crossFlags[speciesName] end
 
 function VmLBOCollisions:createDiagnostics(mySpecies, field)
    -- Create source diagnostics.
@@ -323,7 +323,7 @@ function VmLBOCollisions:calcCrossNuTimeDep(species, otherNm,
    -- Compute the Spitzer collisionality if another species hasn't already done so.
    local chargeOther     = species[otherNm]:getCharge()
    local crossFlagsSelf  = self.crossFlags[otherNm]
-   local crossFlagsOther = self.collAppOther[otherNm]:crossFlags(self.speciesName)
+   local crossFlagsOther = self.collAppOther[otherNm]:getCrossFlags(self.speciesName)
    self.m0Other:combineOffset(1., momsOther, 0) 
    if not crossFlagsSelf then
       local crossNormNuSelf = self.normNuCross[otherNm]
