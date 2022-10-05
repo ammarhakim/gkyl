@@ -147,6 +147,7 @@ ffi.cdef [[
   int MPI_Iallreduce(const void *sendbuf, void *recvbuf, int count,
                      MPI_Datatype datatype, MPI_Op op, MPI_Comm comm,
                      MPI_Request *request);
+  int MPI_Request_free(MPI_Request *request);
 
   // Groups
   int MPI_Comm_group(MPI_Comm comm, MPI_Group *group);
@@ -172,10 +173,36 @@ ffi.cdef [[
   // CUDA test 
   int MPIX_Query_cuda_support();
 
-  // Gkyl utility functions
-  void GkMPI_fillStatus(const MPI_Status* inStatus, int *outStatus);
-  void GkMPI_fillStatusArray(int count, const MPI_Status* inStatus, int *outStatus);
-  int GkMPI_Get_count_from_array(int off, const MPI_Status *status, MPI_Datatype datatype, int *count);
+  // Gkyl structs holding status and requests.
+  typedef struct {
+    MPI_Request *req;
+  } gkyl_mpi_request;
+
+  typedef struct {
+    MPI_Status *stat;
+  } gkyl_mpi_status;
+
+  typedef struct {
+    MPI_Request *req;
+    MPI_Status *stat;
+  } gkyl_mpi_request_status;
+
+  // Functions to allocate and free structs holding requests and statuses.
+  void gkyl_mpi_request_alloc(gkyl_mpi_request *rs, int num);
+  void gkyl_mpi_request_release(gkyl_mpi_request *rs);
+  void gkyl_mpi_status_alloc(gkyl_mpi_status *ss, int num);
+  void gkyl_mpi_status_release(gkyl_mpi_status *ss);
+  void gkyl_mpi_request_status_alloc(gkyl_mpi_request_status *rss, int num);
+  void gkyl_mpi_request_status_release(gkyl_mpi_request_status *rss);
+
+  // Functions to fetch members of status.
+  int gkyl_mpi_get_status_SOURCE(const MPI_Status* instat, int off);
+  int gkyl_mpi_get_status_TAG(const MPI_Status* instat, int off);
+  int gkyl_mpi_get_status_ERROR(const MPI_Status* instat, int off);
+
+  // Get count from a status (which may be one of several in an array of
+  // statuses).
+  int gkyl_mpi_get_status_count(const MPI_Status *instat, MPI_Datatype datatype, int *count, int off);
 ]]
 
 -- Predefined objects and constants
@@ -242,30 +269,35 @@ local int_1  = typeof("int[1]")
 local uint_1 = typeof("unsigned[1]")
 local voidp  = typeof("void *[1]")
 
--- ctors for various MPI objects: MPI_Status object is not a opaque
--- pointer and so we need to allocate memory for it. Other object
--- resources are managed by MPI itself, so we can't allocate space for
--- them. Doing so will lead to program crash as the LJ GC will try to
--- free memory which is managed by MPI. A very bad thing.
-local function new_MPI_Status()
-   return ffi.cast("MPI_Status*", new("uint8_t[?]", _M.SIZEOF_STATUS))
-end
-local function new_MPI_Status_vec(sz)
+-- ctors for various MPI objects.
+-- MF 2022/10/04: we keep requests and statuses in our own structs
+-- because we encountered some seg faults when using non-blocking
+-- send and receives and couldn't find another way to do it safely.
+-- Probably something to do with Lua's GC not handling these objects
+-- robustly, in general.
+local function new_MPI_Request(sz)
    local sz = sz or 1
-   return ffi.cast("MPI_Status*", new("uint8_t[?]", sz*_M.SIZEOF_STATUS))
+   local rs = ffi.gc(new("gkyl_mpi_request"), ffiC.gkyl_mpi_request_release)
+   ffiC.gkyl_mpi_request_alloc(rs, sz)
+   return rs
+end
+local function new_MPI_Status(sz)
+   local sz = sz or 1
+   local ss = ffi.gc(new("gkyl_mpi_status"), ffiC.gkyl_mpi_status_release)
+   ffiC.gkyl_mpi_status_alloc(ss, sz)
+   return ss
+end
+local function new_MPI_RequestStatus(sz)
+   local sz = sz or 1
+   local rss = ffi.gc(new("gkyl_mpi_request_status"), ffiC.gkyl_mpi_request_status_release) 
+   ffiC.allocReqStatPair(rss, sz)
+   return rss
 end
 local function new_MPI_Comm()
    return new("MPI_Comm[1]")
 end
 local function new_MPI_Group()
    return new("MPI_Group[1]")
-end
-local function new_MPI_Request()
-   return new("MPI_Request[1]")
-end
-local function new_MPI_Request_vec(sz)
-   local sz = sz or 1
-   return new("MPI_Request[?]", sz)
 end
 local function new_MPI_Win()
    return new("MPI_Win[1]")
@@ -278,6 +310,16 @@ end
 local function getObj(obj, ptyp)
    return ffi.istype(typeof(ptyp), obj) and obj[0] or obj
 end
+local function getRequest(obj)
+   return (ffi.istype(typeof("gkyl_mpi_request"), obj)
+           or ffi.istype(typeof("gkyl_mpi_request_status"), obj))
+          and obj.req or obj
+end
+local function getStatus(obj)
+   return (ffi.istype(typeof("gkyl_mpi_status"), obj)
+           or ffi.istype(typeof("gkyl_mpi_request_status"), obj))
+          and obj.stat or obj
+end
 
 -- Extract object from (potentially) a pointer
 function _M.getComm(obj)
@@ -285,29 +327,25 @@ function _M.getComm(obj)
 end
 
 -- MPI_Status object
-_M.Status = {}
-function _M.Status:new()
-   local self = setmetatable({}, _M.Status)
-   self.SOURCE, self.TAG, self.ERROR = 0, 0, 0
-   self.mpiStatus = new_MPI_Status()
-   return self
-end
--- make object callable, and redirect call to the :new method
-setmetatable(_M.Status, { __call = function (self, o) return self.new(self, o) end })
-_M.Status_vec = {}
-function _M.Status_vec:new(sz)
-   local self = setmetatable({}, _M.Status_vec)
-   self.SOURCE, self.TAG, self.ERROR = {}, {}, {}
-   for i=1,sz do self.SOURCE[i], self.TAG[i], self.ERROR[i] = 0, 0, 0 end
-   self.mpiStatus = new_MPI_Status_vec(sz)
-   return self
-end
--- make object callable, and redirect call to the :new method
-setmetatable(_M.Status_vec, { __call = function (self, o) return self.new(self, o) end })
-
+function _M.Status(sz) return new_MPI_Status(sz) end 
 -- MPI_Request types.
-function _M.Request() return new_MPI_Request() end 
-function _M.Request_vec(sz) return new_MPI_Request_vec(sz) end 
+function _M.Request(sz) return new_MPI_Request(sz) end 
+-- MPI_Request/MPI_Status pair.
+function _M.RequestStatus(sz) return new_MPI_RequestStatus(sz) end 
+
+-- Functions to obtain members of MPI_Status.
+function _M.getStatusSOURCE(stat, off)
+   local off = off or 0
+   return ffiC.gkyl_mpi_get_status_SOURCE(getStatus(stat), off);
+end
+function _M.getStatusTAG(stat, off)
+   local off = off or 0
+   return ffiC.gkyl_mpi_get_status_TAG(getStatus(stat), off);
+end
+function _M.getStatusERROR(stat, off)
+   local off = off or 0
+   return ffiC.gkyl_mpi_get_status_ERROR(getStatus(stat), off);
+end
 
 -- MPI_Comm object
 function _M.Comm()  return new_MPI_Comm() end
@@ -418,17 +456,9 @@ end
 
 -- MPI_Get_count
 function _M.Get_count(status, datatype, off)
+   local off = off or 0
    local r = int_1()
-   if off then
-      local _ = ffiC.GkMPI_Get_count_from_array(off, status, datatype, r)
-   else
-      local _ = ffiC.MPI_Get_count(status.mpiStatus, datatype, r)
-   end
-   return r[0]
-end
-function _M.Get_count_from_array(off, status, datatype)
-   local r = int_1()
-   local _ = ffiC.GkMPI_Get_count_from_array(off, status, datatype, r)
+   local _ = ffiC.gkyl_mpi_get_status_count(getStatus(status), datatype, r, off)
    return r[0]
 end
 -- MPI_Allreduce
@@ -446,39 +476,20 @@ function _M.Send(buf, count, datatype, dest, tag, comm)
 end
 -- MPI_Recv
 function _M.Recv(buf, count, datatype, source, tag, comm, status)
-   local st = status and status.mpiStatus or _M.STATUS_IGNORE
+   local st = status or _M.STATUS_IGNORE
    local _ = ffiC.MPI_Recv(
-      buf, count, getObj(datatype, "MPI_Datatype[1]"), source, tag, getObj(comm, "MPI_Comm[1]"), st)
-   -- store MPI_Status
-   if status ~= nil then
-      local gks = new("int[3]")
-      ffiC.GkMPI_fillStatus(st, gks)
-      status.SOURCE, status.TAG, status.ERROR = gks[0], gks[1], gks[2]
-   end
+      buf, count, getObj(datatype, "MPI_Datatype[1]"), source, tag, getObj(comm, "MPI_Comm[1]"), getStatus(st))
 end
 -- MPI_Wait
 function _M.Wait(request, status)
-   local st = status and status.mpiStatus or _M.STATUS_IGNORE
-   local _ = ffiC.MPI_Wait(request, st)
-   -- store MPI_Status
-   if status ~= nil then
-      local gks = new("int[3]")
-      ffiC.GkMPI_fillStatus(st, gks)
-      status.SOURCE, status.TAG, status.ERROR = gks[0], gks[1], gks[2]
-   end
+   local st = status or _M.STATUS_IGNORE
+   local err = ffiC.MPI_Wait(getRequest(request), getStatus(st))
+   return err
 end
 -- MPI_Waitall
-function _M.Waitall(count, requestArray, statusArray)
-   local st = statusArray and statusArray.mpiStatus or _M.STATUS_IGNORE
-   local err = ffiC.MPI_Waitall(count, requestArray, st)
-   -- store MPI_Status
-   if statusArray ~= nil then
-      local gks = new("int[?]", 3*count)
-      ffiC.GkMPI_fillStatusArray(count, st, gks)
-      for i=1,count do
-         statusArray.SOURCE[i], statusArray.TAG[i], statusArray.ERROR[i] = gks[(i-1)*3+0], gks[(i-1)*3+1], gks[(i-1)*3+2]
-      end
-   end
+function _M.Waitall(count, request, status)
+   local st = status or _M.STATUS_IGNORE
+   local err = ffiC.MPI_Waitall(count, getRequest(request), getStatus(st))
    return err
 end
 ---- MPI_Waitany
@@ -499,18 +510,20 @@ end
 -- MPI_Irecv
 function _M.Irecv(buf, count, datatype, source, tag, comm, req)
    return ffiC.MPI_Irecv(
-      buf, count, getObj(datatype, "MPI_Datatype[1]"), source, tag, getObj(comm, "MPI_Comm[1]"), req)
+      buf, count, getObj(datatype, "MPI_Datatype[1]"), source, tag, getObj(comm, "MPI_Comm[1]"), getRequest(req))
 end
 -- MPI_Isend
 function _M.Isend(buf, count, datatype, dest, tag, comm, req)
    return ffiC.MPI_Isend(
-      buf, count, getObj(datatype, "MPI_Datatype[1]"), dest, tag, getObj(comm, "MPI_Comm[1]"), req)
+      buf, count, getObj(datatype, "MPI_Datatype[1]"), dest, tag, getObj(comm, "MPI_Comm[1]"), getRequest(req))
 end
 -- MPI_Iallreduce
-function _M.Iallreduce(sendbuf, recvbuf, count, datatype, op, tag, comm)
-   local req = new_MPI_Request()
-   local _ = ffiC.MPI_Iallreduce(sendbuf, recvbuf, count, datatype, op, getObj(comm, "MPI_Comm[1]"), req)
-   return req
+function _M.Iallreduce(sendbuf, recvbuf, count, datatype, op, tag, comm, req)
+   return ffiC.MPI_Iallreduce(sendbuf, recvbuf, count, datatype, op, getObj(comm, "MPI_Comm[1]"), getRequest(req))
+end
+-- MPI_Request_free
+function _M.Request_free(req)
+  return ffiC.MPI_Request_free(getRequest(req))
 end
 
 -- MPI_Barrier

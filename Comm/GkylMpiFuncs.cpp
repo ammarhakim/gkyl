@@ -70,25 +70,43 @@ GET_INT_OBJECT(MPI_UNDEFINED);
 GET_INT_OBJECT(MPI_ORDER_C);
 GET_INT_OBJECT(MPI_ORDER_FORTRAN);
 
-// utility functions
-void
-GkMPI_fillStatus(const MPI_Status* inStatus, int *outStatus) {
-  outStatus[0] = inStatus->MPI_SOURCE;
-  outStatus[1] = inStatus->MPI_TAG;
-  outStatus[2] = inStatus->MPI_ERROR;
+// Functions to allocate and free structs holding requests and statuses.
+void gkyl_mpi_request_alloc(gkyl_mpi_request *rs, int num) {
+  rs->req = (MPI_Request *) malloc(num*sizeof(MPI_Request));
+}
+void gkyl_mpi_request_release(gkyl_mpi_request *rs) {
+  free(rs->req);
+}
+void gkyl_mpi_status_alloc(gkyl_mpi_status *ss, int num) {
+  ss->stat = (MPI_Status *) malloc(num*sizeof(MPI_Status));
+}
+void gkyl_mpi_status_release(gkyl_mpi_status *ss) {
+  free(ss->stat);
+}
+void gkyl_mpi_request_status_alloc(gkyl_mpi_request_status *rss, int num) {
+  rss->req = (MPI_Request *) malloc(num*sizeof(MPI_Request));
+  rss->stat = (MPI_Status *) malloc(num*sizeof(MPI_Status));
+}
+void gkyl_mpi_request_status_release(gkyl_mpi_request_status *rss) {
+  free(rss->req);
+  free(rss->stat);
 }
 
-void
-GkMPI_fillStatusArray(int count, const MPI_Status* inStatus, int *outStatus) {
-  for (int i=0; i<count; i++) {
-    outStatus[i*3+0] = inStatus[i].MPI_SOURCE;
-    outStatus[i*3+1] = inStatus[i].MPI_TAG;
-    outStatus[i*3+2] = inStatus[i].MPI_ERROR;
-  }
+// Functions to fetch members of status.
+int gkyl_mpi_get_status_SOURCE(const MPI_Status* instat, int off) {
+  return instat[off].MPI_SOURCE;
+}
+int gkyl_mpi_get_status_TAG(const MPI_Status* instat, int off) {
+  return instat[off].MPI_TAG;
+}
+int gkyl_mpi_get_status_ERROR(const MPI_Status* instat, int off) {
+  return instat[off].MPI_ERROR;
 }
 
-int
-GkMPI_Get_count_from_array(int off, const MPI_Status *status, MPI_Datatype datatype, int *count) {
-  int err = MPI_Get_count(status+off, datatype, count);
+// Get count from a status (which may be one of several in an array of
+// statuses).
+int gkyl_mpi_get_status_count(const MPI_Status *instat, MPI_Datatype datatype, int *count, int off) {
+  int err = MPI_Get_count(instat+off, datatype, count);
   return err;
 }
+

@@ -219,7 +219,7 @@ function test_6a(comm)
       Mpi.Wait(request, status)
       local count = Mpi.Get_count(status, Mpi.DOUBLE)
 
-      assert_equal(42, status.TAG, "Checking tag")
+      assert_equal(42, Mpi.getStatusTAG(status), "Checking tag")
       assert_equal(nz, count, "Checking if correct number of elements were recv-ed")
       for i = 1, nz do
 	 assert_equal(i+0.5, vOut[i], "Checking recv-ed data on rank 1")
@@ -237,7 +237,7 @@ function test_6a(comm)
       Mpi.Wait(request, status)
       local count = Mpi.Get_count(status, Mpi.DOUBLE)
 
-      assert_equal(42, status.TAG, "Checking tag")
+      assert_equal(42, Mpi.getStatusTAG(status), "Checking tag")
       assert_equal(nz, count, "Checking if correct number of elements were recv-ed")
       for i = 1, nz do
 	 assert_equal(2*(i+0.5), vOut[i], "Checking recv-ed data on rank 0")
@@ -272,7 +272,7 @@ function test_6b(comm)
       local status = Mpi.Status()
       Mpi.Wait(request, status)
       local count = Mpi.Get_count(status, Mpi.DOUBLE)
-      assert_equal(42, status.TAG, "rank 0: Checking tag")
+      assert_equal(42, Mpi.getStatusTAG(status), "rank 0: Checking tag")
       assert_equal(nz, count, "rank 0: Checking if correct number of elements were sent")
    end   
    if rank == 1 then
@@ -282,7 +282,7 @@ function test_6b(comm)
       Mpi.Wait(request, status)
       local count = Mpi.Get_count(status, Mpi.DOUBLE)
 
-      assert_equal(42, status.TAG, "rank 1: Checking tag")
+      assert_equal(42, Mpi.getStatusTAG(status), "rank 1: Checking tag")
       assert_equal(nz, count, "rank 1: Checking if correct number of elements were recv-ed")
       for i = 1, nz do
 	 assert_equal(i+0.5, vOut[i], "rank 1: Checking recv-ed data")
@@ -297,7 +297,7 @@ function test_6b(comm)
       Mpi.Wait(request, status)
       local count = Mpi.Get_count(status, Mpi.DOUBLE)
 
-      assert_equal(42, status.TAG, "rank 1: Checking tag")
+      assert_equal(42, Mpi.getStatusTAG(status), "rank 1: Checking tag")
       assert_equal(nz, count, "rank 1: Checking if correct number of elements were sent")
    end      
    if rank == 0 then
@@ -307,7 +307,7 @@ function test_6b(comm)
       Mpi.Wait(request, status)
       local count = Mpi.Get_count(status, Mpi.DOUBLE)
 
-      assert_equal(42, status.TAG, "rank 0: Checking tag")
+      assert_equal(42, Mpi.getStatusTAG(status), "rank 0: Checking tag")
       assert_equal(nz, count, "rank 0: Checking if correct number of elements were recv-ed")
       for i = 1, nz do
 	 assert_equal(2*(i+0.5), vOut[i], "rank 0: Checking recv-ed data")
@@ -340,24 +340,24 @@ function test_6c(comm)
    end
 
    -- Send message from rank 0 -> rank 1
-   local requests = Mpi.Request_vec(2)
+   local requests = Mpi.Request(2)
    if rank == 0 then
       local err
-      err = Mpi.Isend(vIn0:data(), nz0, Mpi.DOUBLE, 1, 32, comm, requests+0)
-      err = Mpi.Isend(vIn1:data(), nz1, Mpi.DOUBLE, 1, 42, comm, requests+1)
+      err = Mpi.Isend(vIn0:data(), nz0, Mpi.DOUBLE, 1, 32, comm, requests.req+0)
+      err = Mpi.Isend(vIn1:data(), nz1, Mpi.DOUBLE, 1, 42, comm, requests.req+1)
    end   
    if rank == 1 then
       local err
-      err = Mpi.Irecv(vOut0:data(), nz0, Mpi.DOUBLE, 0, 32, comm, requests+0)
-      err = Mpi.Irecv(vOut1:data(), nz1, Mpi.DOUBLE, 0, 42, comm, requests+1)
+      err = Mpi.Irecv(vOut0:data(), nz0, Mpi.DOUBLE, 0, 32, comm, requests.req+0)
+      err = Mpi.Irecv(vOut1:data(), nz1, Mpi.DOUBLE, 0, 42, comm, requests.req+1)
    end
-   local status = Mpi.Status_vec(2)
+   local status = Mpi.Status(2)
    local mpierr = Mpi.Waitall(2, requests, status)
 
-   local count = {Mpi.Get_count(status.mpiStatus, Mpi.DOUBLE, 0),
-                  Mpi.Get_count(status.mpiStatus, Mpi.DOUBLE, 1)}
-   assert_equal(32, status.TAG[1], "Checking tag")
-   assert_equal(42, status.TAG[2], "Checking tag")
+   local count = {Mpi.Get_count(status, Mpi.DOUBLE, 0),
+                  Mpi.Get_count(status, Mpi.DOUBLE, 1)}
+   assert_equal(32, Mpi.getStatusTAG(status,0), "Checking tag")
+   assert_equal(42, Mpi.getStatusTAG(status,1), "Checking tag")
    assert_equal(nz0, count[1], "Checking if correct number of elements were sent/received")
    assert_equal(nz1, count[2], "Checking if correct number of elements were sent/received")
    if rank == 1 then
@@ -372,20 +372,20 @@ function test_6c(comm)
    -- Send message from rank 1 -> rank 0
    if rank == 1 then
       local err
-      err = Mpi.Isend(vIn0:data(), nz0, Mpi.DOUBLE, 0, 32, comm, requests+0)
-      err = Mpi.Isend(vIn1:data(), nz1, Mpi.DOUBLE, 0, 42, comm, requests+1)
+      err = Mpi.Isend(vIn0:data(), nz0, Mpi.DOUBLE, 0, 32, comm, requests.req+0)
+      err = Mpi.Isend(vIn1:data(), nz1, Mpi.DOUBLE, 0, 42, comm, requests.req+1)
    end      
    if rank == 0 then
       local err
-      err = Mpi.Irecv(vOut0:data(), nz0, Mpi.DOUBLE, 1, 32, comm, requests+0)
-      err = Mpi.Irecv(vOut1:data(), nz1, Mpi.DOUBLE, 1, 42, comm, requests+1)
+      err = Mpi.Irecv(vOut0:data(), nz0, Mpi.DOUBLE, 1, 32, comm, requests.req+0)
+      err = Mpi.Irecv(vOut1:data(), nz1, Mpi.DOUBLE, 1, 42, comm, requests.req+1)
    end
    local mpierr = Mpi.Waitall(2, requests, status)
 
-   local count = {Mpi.Get_count(status.mpiStatus, Mpi.DOUBLE, 0),
-                  Mpi.Get_count(status.mpiStatus, Mpi.DOUBLE, 1)}
-   assert_equal(32, status.TAG[1], "Checking tag")
-   assert_equal(42, status.TAG[2], "Checking tag")
+   local count = {Mpi.Get_count(status, Mpi.DOUBLE, 0),
+                  Mpi.Get_count(status, Mpi.DOUBLE, 1)}
+   assert_equal(32, Mpi.getStatusTAG(status,0), "Checking tag")
+   assert_equal(42, Mpi.getStatusTAG(status,1), "Checking tag")
    assert_equal(nz0, count[1], "Checking if correct number of elements were sent/received")
    assert_equal(nz1, count[2], "Checking if correct number of elements were sent/received")
    if rank == 0 then
