@@ -77,24 +77,24 @@ extern "C" {
   // Gkyl structs holding status and requests.
   typedef struct {
     MPI_Request *req;
-  } gkyl_mpi_request;
+  } gkyl_MPI_Request;
 
   typedef struct {
     MPI_Status *stat;
-  } gkyl_mpi_status;
+  } gkyl_MPI_Status;
 
   typedef struct {
     MPI_Request *req;
     MPI_Status *stat;
-  } gkyl_mpi_request_status;
+  } gkyl_MPI_Request_Status;
 
   // Functions to allocate and free structs holding requests and statuses.
-  void gkyl_mpi_request_alloc(gkyl_mpi_request *rs, int num);
-  void gkyl_mpi_request_release(gkyl_mpi_request *rs);
-  void gkyl_mpi_status_alloc(gkyl_mpi_status *ss, int num);
-  void gkyl_mpi_status_release(gkyl_mpi_status *ss);
-  void gkyl_mpi_request_status_alloc(gkyl_mpi_request_status *rss, int num);
-  void gkyl_mpi_request_status_release(gkyl_mpi_request_status *rss);
+  void gkyl_MPI_Request_alloc(gkyl_MPI_Request *rs, int num);
+  void gkyl_MPI_Request_release(gkyl_MPI_Request *rs);
+  void gkyl_MPI_Status_alloc(gkyl_MPI_Status *ss, int num);
+  void gkyl_MPI_Status_release(gkyl_MPI_Status *ss);
+  void gkyl_MPI_Request_Status_alloc(gkyl_MPI_Request_Status *rss, int num);
+  void gkyl_MPI_Request_Status_release(gkyl_MPI_Request_Status *rss);
 
   // Functions to fetch members of status.
   int gkyl_mpi_get_status_SOURCE(const MPI_Status* instat, int off);

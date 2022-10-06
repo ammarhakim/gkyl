@@ -176,24 +176,24 @@ ffi.cdef [[
   // Gkyl structs holding status and requests.
   typedef struct {
     MPI_Request *req;
-  } gkyl_mpi_request;
+  } gkyl_MPI_Request;
 
   typedef struct {
     MPI_Status *stat;
-  } gkyl_mpi_status;
+  } gkyl_MPI_Status;
 
   typedef struct {
     MPI_Request *req;
     MPI_Status *stat;
-  } gkyl_mpi_request_status;
+  } gkyl_MPI_Request_Status;
 
   // Functions to allocate and free structs holding requests and statuses.
-  void gkyl_mpi_request_alloc(gkyl_mpi_request *rs, int num);
-  void gkyl_mpi_request_release(gkyl_mpi_request *rs);
-  void gkyl_mpi_status_alloc(gkyl_mpi_status *ss, int num);
-  void gkyl_mpi_status_release(gkyl_mpi_status *ss);
-  void gkyl_mpi_request_status_alloc(gkyl_mpi_request_status *rss, int num);
-  void gkyl_mpi_request_status_release(gkyl_mpi_request_status *rss);
+  void gkyl_MPI_Request_alloc(gkyl_MPI_Request *rs, int num);
+  void gkyl_MPI_Request_release(gkyl_MPI_Request *rs);
+  void gkyl_MPI_Status_alloc(gkyl_MPI_Status *ss, int num);
+  void gkyl_MPI_Status_release(gkyl_MPI_Status *ss);
+  void gkyl_MPI_Request_Status_alloc(gkyl_MPI_Request_Status *rss, int num);
+  void gkyl_MPI_Request_Status_release(gkyl_MPI_Request_Status *rss);
 
   // Functions to fetch members of status.
   int gkyl_mpi_get_status_SOURCE(const MPI_Status* instat, int off);
@@ -277,19 +277,19 @@ local voidp  = typeof("void *[1]")
 -- robustly, in general.
 local function new_MPI_Request(sz)
    local sz = sz or 1
-   local rs = ffi.gc(new("gkyl_mpi_request"), ffiC.gkyl_mpi_request_release)
-   ffiC.gkyl_mpi_request_alloc(rs, sz)
+   local rs = ffi.gc(new("gkyl_MPI_Request"), ffiC.gkyl_MPI_Request_release)
+   ffiC.gkyl_MPI_Request_alloc(rs, sz)
    return rs
 end
 local function new_MPI_Status(sz)
    local sz = sz or 1
-   local ss = ffi.gc(new("gkyl_mpi_status"), ffiC.gkyl_mpi_status_release)
-   ffiC.gkyl_mpi_status_alloc(ss, sz)
+   local ss = ffi.gc(new("gkyl_MPI_Status"), ffiC.gkyl_MPI_Status_release)
+   ffiC.gkyl_MPI_Status_alloc(ss, sz)
    return ss
 end
 local function new_MPI_RequestStatus(sz)
    local sz = sz or 1
-   local rss = ffi.gc(new("gkyl_mpi_request_status"), ffiC.gkyl_mpi_request_status_release) 
+   local rss = ffi.gc(new("gkyl_MPI_Request_Status"), ffiC.gkyl_MPI_Request_Status_release) 
    ffiC.allocReqStatPair(rss, sz)
    return rss
 end
@@ -311,13 +311,13 @@ local function getObj(obj, ptyp)
    return ffi.istype(typeof(ptyp), obj) and obj[0] or obj
 end
 local function getRequest(obj)
-   return (ffi.istype(typeof("gkyl_mpi_request"), obj)
-           or ffi.istype(typeof("gkyl_mpi_request_status"), obj))
+   return (ffi.istype(typeof("gkyl_MPI_Request"), obj)
+           or ffi.istype(typeof("gkyl_MPI_Request_Status"), obj))
           and obj.req or obj
 end
 local function getStatus(obj)
-   return (ffi.istype(typeof("gkyl_mpi_status"), obj)
-           or ffi.istype(typeof("gkyl_mpi_request_status"), obj))
+   return (ffi.istype(typeof("gkyl_MPI_Status"), obj)
+           or ffi.istype(typeof("gkyl_MPI_Request_Status"), obj))
           and obj.stat or obj
 end
 

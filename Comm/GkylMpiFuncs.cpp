@@ -71,23 +71,23 @@ GET_INT_OBJECT(MPI_ORDER_C);
 GET_INT_OBJECT(MPI_ORDER_FORTRAN);
 
 // Functions to allocate and free structs holding requests and statuses.
-void gkyl_mpi_request_alloc(gkyl_mpi_request *rs, int num) {
+void gkyl_MPI_Request_alloc(gkyl_MPI_Request *rs, int num) {
   rs->req = (MPI_Request *) malloc(num*sizeof(MPI_Request));
 }
-void gkyl_mpi_request_release(gkyl_mpi_request *rs) {
+void gkyl_MPI_Request_release(gkyl_MPI_Request *rs) {
   free(rs->req);
 }
-void gkyl_mpi_status_alloc(gkyl_mpi_status *ss, int num) {
+void gkyl_MPI_Status_alloc(gkyl_MPI_Status *ss, int num) {
   ss->stat = (MPI_Status *) malloc(num*sizeof(MPI_Status));
 }
-void gkyl_mpi_status_release(gkyl_mpi_status *ss) {
+void gkyl_MPI_Status_release(gkyl_MPI_Status *ss) {
   free(ss->stat);
 }
-void gkyl_mpi_request_status_alloc(gkyl_mpi_request_status *rss, int num) {
+void gkyl_MPI_Request_Status_alloc(gkyl_MPI_Request_Status *rss, int num) {
   rss->req = (MPI_Request *) malloc(num*sizeof(MPI_Request));
   rss->stat = (MPI_Status *) malloc(num*sizeof(MPI_Status));
 }
-void gkyl_mpi_request_status_release(gkyl_mpi_request_status *rss) {
+void gkyl_MPI_Request_Status_release(gkyl_MPI_Request_Status *rss) {
   free(rss->req);
   free(rss->stat);
 }
