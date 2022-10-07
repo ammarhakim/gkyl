@@ -569,6 +569,9 @@ local function Field_meta_ctor(elct)
       elemSize = function (self)
 	 return elctSize
       end,      
+      elemCommType = function (self)
+	 return elctCommType
+      end,
       ndim = function (self)
 	 return self._ndim
       end,
@@ -978,7 +981,7 @@ local function Field_meta_ctor(elct)
             local loc      = self._recvMPILoc[recvId]
             local recvReq  = self._recvMPIReq[recvId]
             -- recv data: (its from recvId-1 as MPI ranks are zero indexed)
-            local err = Mpi.Irecv(dataPtr+loc, 1, dataType, recvId-1, tag, comm, recvReq)
+            local _ = Mpi.Irecv(dataPtr+loc, 1, dataType, recvId-1, tag, comm, recvReq)
          end
          
          -- Do a blocking send (does not really block as recv requests
@@ -993,7 +996,7 @@ local function Field_meta_ctor(elct)
          -- Complete recv.
          -- Since MPI DataTypes eliminate the need for buffers, 
          -- all we have to do is wait for non-blocking receives to finish.
-         for _, recvId in ipairs(neigIds) do Mpi.Wait(self._recvMPIReq[recvId], nil) end
+         for _, recvId in ipairs(neigIds) do local _ = Mpi.Wait(self._recvMPIReq[recvId], nil) end
       end,
       _field_periodic_sync = function (self, dataPtr)
          local comm = self._grid:commSet().nodeComm -- Communicator to use.
@@ -1046,7 +1049,7 @@ local function Field_meta_ctor(elct)
                      local dataType = self._recvLowerPerMPIDataType[dir]
                      local loc      = self._recvLowerPerMPILoc[dir]
                      local req      = self._recvLowerPerMPIReq[dir]
-                     local err      = Mpi.Irecv(dataPtr+loc, 1, dataType,
+                     local _        = Mpi.Irecv(dataPtr+loc, 1, dataType,
                                                 upId-1, loTag, comm, req)
                   end
                   if myId == upId then
@@ -1054,7 +1057,7 @@ local function Field_meta_ctor(elct)
                      local dataType = self._recvUpperPerMPIDataType[dir]
                      local loc      = self._recvUpperPerMPILoc[dir]
                      local req      = self._recvUpperPerMPIReq[dir]
-                     local err      = Mpi.Irecv(dataPtr+loc, 1, dataType,
+                     local _        = Mpi.Irecv(dataPtr+loc, 1, dataType,
                                                 loId-1, upTag, comm, req)
                   end
                end
@@ -1071,7 +1074,7 @@ local function Field_meta_ctor(elct)
                            local dataType = self._recvLowerCornerPerMPIDataType[dir][ccLo]
                            local loc      = self._recvLowerCornerPerMPILoc[dir][ccLo]
                            local req      = self._recvLowerCornerPerMPIReq[dir][ccLo]
-                           local err      = Mpi.Irecv(dataPtr+loc, 1, dataType,
+                           local _        = Mpi.Irecv(dataPtr+loc, 1, dataType,
                                                       upId-1, loTag, comm, req)
                         end
                         if myId == upId then
@@ -1080,7 +1083,7 @@ local function Field_meta_ctor(elct)
                            local dataType = self._recvUpperCornerPerMPIDataType[dir][ccUp]
                            local loc      = self._recvUpperCornerPerMPILoc[dir][ccUp]
                            local req      = self._recvUpperCornerPerMPIReq[dir][ccUp]
-                           local err      = Mpi.Irecv(dataPtr+loc, 1, dataType,
+                           local _        = Mpi.Irecv(dataPtr+loc, 1, dataType,
                                                       loId-1, upTag, comm, req)
                         end
                      end
@@ -1145,8 +1148,8 @@ local function Field_meta_ctor(elct)
                local skelIds = decomposedRange:boundarySubDomainIds(dir)
                for i = 1, #skelIds do
                   local loId, upId = skelIds[i].lower, skelIds[i].upper
-                  if myId == loId then Mpi.Wait(self._recvLowerPerMPIReq[dir], nil) end
-                  if myId == upId then Mpi.Wait(self._recvUpperPerMPIReq[dir], nil) end
+                  if myId == loId then local _ = Mpi.Wait(self._recvLowerPerMPIReq[dir], nil) end
+                  if myId == upId then local _ = Mpi.Wait(self._recvUpperPerMPIReq[dir], nil) end
                end
 
                if self._syncCorners then
@@ -1157,11 +1160,11 @@ local function Field_meta_ctor(elct)
                         local loId, upId = dC.lower, dC.upper
                         if myId == loId then
                            ccLo = ccLo+1
-                           Mpi.Wait(self._recvLowerCornerPerMPIReq[dir][ccLo], nil)
+                           local _ = Mpi.Wait(self._recvLowerCornerPerMPIReq[dir][ccLo], nil)
                         end
                         if myId == upId then
                            ccUp = ccUp+1
-                           Mpi.Wait(self._recvUpperCornerPerMPIReq[dir][ccUp], nil)
+                           local _ = Mpi.Wait(self._recvUpperCornerPerMPIReq[dir][ccUp], nil)
                         end
                      end
                   end

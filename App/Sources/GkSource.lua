@@ -101,6 +101,11 @@ function GkSource:createSolver(mySpecies, extField)
    end
 
    local momsSrc = mySpecies:allocVectorMoment(3)
+   local threeMomentsCalc = Updater.DistFuncMomentCalc {
+      onGrid     = mySpecies.grid,   confBasis = mySpecies.confBasis,
+      phaseBasis = mySpecies.basis,  moment    = "GkThreeMoments",
+      gkfacs     = {mySpecies.mass, mySpecies.bmag},
+   }
    mySpecies.threeMomentsCalc:advance(0.0, {self.fSource}, {momsSrc})
 
    self.fSource:write(string.format("%s_0.bp", self.name), 0., 0, self.writeGhost)

@@ -127,6 +127,10 @@ function GkSpecies:alloc(nRkDup)
    self.first = true
 end
 
+function GkSpecies:fullInit(appTbl)
+   GkSpecies.super.fullInit(self, appTbl)
+end
+
 function GkSpecies:createSolver(field, externalField)
    -- Run the KineticSpecies 'createSolver()' to initialize the collisions solver.
    GkSpecies.super.createSolver(self, field, externalField)
@@ -256,17 +260,18 @@ function GkSpecies:createSolver(field, externalField)
          moment     = "GkM3perp", -- GkM3perp = < vpar*(mu*B/m) f >
       }
    end
-   self.threeMomentsCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,   confBasis = self.confBasis,
-      phaseBasis = self.basis,  moment    = "GkThreeMoments",
-      gkfacs     = {self.mass, self.bmag},
-   }
    self.calcMaxwell = Updater.MaxwellianOnBasis {
       onGrid     = self.grid,   confGrid  = self.confGrid,
       phaseBasis = self.basis,  confBasis = self.confBasis,
       mass       = self.mass,
    }
    if self.needThreeMoments then
+      -- Create updater to compute M0, M1, M2 moments.
+      self.threeMomentsCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.grid,   confBasis = self.confBasis,
+         phaseBasis = self.basis,  moment    = "GkThreeMoments",
+         gkfacs     = {self.mass, self.bmag},
+      }
       self.calcSelfCouplingMom = function(tCurr, fIn)
          -- Compute M0, M1i and M2.
          self.threeMomentsCalc:advance(tCurr, {fIn}, {self.threeMoments})
@@ -362,10 +367,12 @@ function GkSpecies:createSolver(field, externalField)
    self.timers = {couplingMom = 0., sources = 0.}
 end
 
-function GkSpecies:initCrossSpeciesCoupling(species)
+function GkSpecies:initCrossSpeciesCoupling(population)
    -- This method establishes the interaction between different
    -- species that is not mediated by the field (solver), like
    -- collisions.
+
+   local species = population:getSpecies()
 
    -- Determine if M0, M1i and M2 are needed.
    self.needThreeMoments = false
@@ -388,7 +395,7 @@ function GkSpecies:initCrossSpeciesCoupling(species)
                                                     function(e) return e==sO end)
                if self.collPairs[sN][sO].on then
                   self.collPairs[sN][sO].kind = species[sO].collisions[collNm].collKind
-                  self.needThreeMoments = true  -- MF 2022/09/16: at the moment all collision models need M0, M1, M2.
+                  self.needThreeMoments = true  -- MF 2022/09/16: currently all collision models need M0, M1, M2.
                end
             end
          else
@@ -564,10 +571,8 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    -- For ionization.
    if self.calcReactRate then
       local neuts = species[self.neutNmIz]
-      if lume.any({unpack(neuts.momentFlags,1,4)},function(x) return x==false end) then
-         -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments.
-         neuts:calcCouplingMoments(tCurr, rkIdx, species)
-      end
+      -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments.
+      neuts:calcCouplingMoments(tCurr, rkIdx, species)
       local neutM0   = neuts:fluidMoments()[1]
       local neutVtSq = neuts:selfPrimitiveMoments()[2]
          
@@ -581,10 +586,8 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    if self.calcCXSrc then
       -- Calculate Vcx*SigmaCX.
       local neuts = species[self.neutNmCX]
-      if lume.any({unpack(neuts.momentFlags,1,4)},function(x) return x==false end) then
-         -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments.
-         neuts:calcCouplingMoments(tCurr, rkIdx, species)
-      end
+      -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments.
+      neuts:calcCouplingMoments(tCurr, rkIdx, species)
       local m0       = neuts:fluidMoments()[1]
       local neutU    = neuts:selfPrimitiveMoments()[1]
       local neutVtSq = neuts:selfPrimitiveMoments()[2]

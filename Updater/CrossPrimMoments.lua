@@ -186,9 +186,8 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
       local mOther, nuOther   = inFld[7], inFld[8]
       local momsOther         = inFld[9]
       local uOther, vtSqOther = inFld[10], inFld[11]
-      local bCorrsOther       = inFld[12]
 
-      local m0sdeltas = inFld[13]
+      local m0sdeltas = inFld[12]
 
       local uCrossSelf, vtSqCrossSelf = outFld[1], outFld[2]
 
@@ -425,9 +424,8 @@ function CrossPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
    local mOther, nuOther   = inFld[7], inFld[8]
    local momsOther         = inFld[9]
    local uOther, vtSqOther = inFld[10], inFld[11]
-   local bCorrsOther       = inFld[12]
 
-   local m0sdeltas = inFld[13]
+   local m0sdeltas = inFld[12]
 
    local uCrossSelf, vtSqCrossSelf = outFld[1], outFld[2]
 

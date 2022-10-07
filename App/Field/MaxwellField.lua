@@ -302,6 +302,9 @@ function MaxwellField:alloc(nRkDup)
       -- For storing integrated energy components.
       self.emEnergy = DataStruct.DynVector { numComponents = self.grid:ndim() }
    end
+end
+
+function MaxwellField:createSolver(population)
 
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
@@ -312,10 +315,9 @@ function MaxwellField:alloc(nRkDup)
                   epsilon0  = self.epsilon0,
                   mu0       = self.mu0,
                   grid      = GKYL_OUT_PREFIX .. "_grid.bp"},
+      writeRankInComm = {0, population:getComm(),},
    }
-end
 
-function MaxwellField:createSolver()
    if self.hasMagField then   -- Maxwell's induction equations.
 
       self.equation = PerfMaxwell {
@@ -735,7 +737,7 @@ function MaxwellField:advance(tCurr, population, inIdx, outIdx)
             end
             -- Reduce currents across species communicator.
             self.currentDens:clear(0.0)
-            self.currentDens:reduceByCell('sum', population.comm, self.currentDensLocal)
+            self.currentDens:reduceByCell('sum', population:getComm(), self.currentDensLocal)
             -- Add species current to curl{B} in Amepere's equation.
             self:accumulateCurrent(self.currentDens, emRhsOut)
          end
@@ -750,7 +752,7 @@ function MaxwellField:advance(tCurr, population, inIdx, outIdx)
       end
       -- Reduce charge density across species communicator.
       self.chargeDens:clear(0.0)
-      self.chargeDens:reduceByCell('sum', population.comm, self.chargeDensLocal)
+      self.chargeDens:reduceByCell('sum', population:getComm(), self.chargeDensLocal)
 
 --      if self.isSlvrMG then
 --         self.chargeDens:scale(1.0/self.epsilon0)
@@ -918,6 +920,13 @@ function ExternalMaxwellField:alloc(nField)
       numComponents = emVecComp*self.basis:numBasis(),
       ghost         = {nGhost, nGhost},
    }
+end
+
+function ExternalMaxwellField:createSolver(population)
+   self.fieldSlvr = Updater.ProjectOnBasis {
+      onGrid = self.grid,   evaluate = self.emFunc,
+      basis  = self.basis,  onGhosts = true,
+   }
       
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
@@ -928,14 +937,8 @@ function ExternalMaxwellField:alloc(nField)
                   epsilon0  = self.epsilon0,
                   mu0       = self.mu0,
                   grid      = GKYL_OUT_PREFIX .. "_grid.bp"},
+      writeRankInComm = {0, population:getComm(),},
    }   
-end
-
-function ExternalMaxwellField:createSolver()
-   self.fieldSlvr = Updater.ProjectOnBasis {
-      onGrid = self.grid,   evaluate = self.emFunc,
-      basis  = self.basis,  onGhosts = true,
-   }
 end
 
 function ExternalMaxwellField:createDiagnostics()

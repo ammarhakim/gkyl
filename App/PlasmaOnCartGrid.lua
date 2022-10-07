@@ -35,6 +35,7 @@ local FluidSourceBase   = require "App.FluidSources.FluidSourceBase"
 local FieldBase         = require ("App.Field.FieldBase").FieldBase
 local ExternalFieldBase = require ("App.Field.FieldBase").ExternalFieldBase
 local NoField           = require ("App.Field.FieldBase").NoField
+local PopApp            = require "App.Species.Population"
 
 -- Function to create basis functions.
 local function createBasis(nm, ndim, polyOrder)
@@ -126,7 +127,7 @@ local function buildApplication(self, tbl)
    local cflFrac = tbl.cflFrac or timeStepper.cflFrac   -- CFL fraction.
 
    -- Tracker for timestep
-   local dtTracker   = DataStruct.DynVector { numComponents = 1, }
+--   local dtTracker   = DataStruct.DynVector { numComponents = 1, }
    local dtPtr       = Lin.Vec(1)
 
    -- Used in reducing time step across species communicator.
@@ -169,10 +170,8 @@ local function buildApplication(self, tbl)
    -- Create species and domain communicators.
    local confColor = math.floor(worldRank/numCutsConf)
    local confComm  = Mpi.Comm_split(Mpi.COMM_WORLD, confColor, worldRank)
-   local confRank  = Mpi.Comm_rank(confComm)
    local speciesColor = worldRank % numCutsConf
    local speciesComm  = Mpi.Comm_split(Mpi.COMM_WORLD, speciesColor, worldRank)
-   local speciesRank  = Mpi.Comm_rank(speciesComm)
 
    -- Configuration space decomp object.
    local decomp = DecompRegionCalc.CartProd {cuts = decompCutsConf, comm = confComm}
@@ -215,10 +214,7 @@ local function buildApplication(self, tbl)
    end
 
    -- Read in information about each species.
-   local population = {}
-   population["comm"] = speciesComm
-   population["rank"] = speciesRank
-   population["species"] = {}
+   local population = PopApp{ comm = speciesComm }
    for nm, val in pairs(tbl) do
       if SpeciesBase.is(val) then
 	 population.species[nm] = val
@@ -226,48 +222,25 @@ local function buildApplication(self, tbl)
 	 population.species[nm]:setIoMethod(ioMethod)
       end
    end
-   lume.setOrder(population.species)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
+   lume.setOrder(population:getSpecies())  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
-   -- Distribute species across decompCutSpecies
-   -- (set local and global iterators in species table).
-   local shapes = Lin.IntVec(decompCutsSpecies)
-   local baseShape = math.floor(numSpecies/decompCutsSpecies)
-   local remSpec = numSpecies % decompCutsSpecies -- Extra species left over.
-   for c = 1, decompCutsSpecies do
-      shapes[c] = baseShape + (remSpec>0 and 1 or 0) -- Add extra species if any remain.
-      remSpec = remSpec-1
-   end
-   local starts = Lin.IntVec(decompCutsSpecies)
-   starts[1] = 1
-   for c = 2, decompCutsSpecies do starts[c] = starts[c-1] + shapes[c-1] end
+   -- Distribute species across MPI ranks in species communicator.
+   population:decompose()
 
-   population.iterLocal = function()
-      local idx, keys = 0, getmetatable(population.species)
-      local keysLocal = {}
-      local j = 0
-      for i = starts[speciesRank+1], starts[speciesRank+1]+shapes[speciesRank+1]-1 do
-         j = j+1
-         keysLocal[j] = keys[i]
-      end
-      local n = table.getn(keysLocal)
-      return function()
-         idx = idx+1
-         if idx <= n then return keysLocal[idx], population.species[keysLocal[idx]] end
-      end
-   end
-
-   for _, s in population.iterLocal() do
+   for _, s in population.iterGlobal() do
       s:fullInit(tbl) -- Initialize species.
    end
 
    -- Setup each species.
-   for _, s in population.iterLocal() do
+   for _, s in population.iterGlobal() do
       -- Set up conf grid and basis.
       s:setConfGrid(confGrid)
       s:setConfBasis(confBasis)
       -- Set up phase grid and basis.
       s:createGrid(confGrid)
       s:createBasis(basisNm, polyOrder)
+   end
+   for _, s in population.iterLocal() do -- Only allocate fields for species in this rank.
       s:alloc(timeStepper.numFields)
    end
 
@@ -275,9 +248,9 @@ local function buildApplication(self, tbl)
    local fluidSources = {}
    for nm, val in pairs(tbl) do
       if FluidSourceBase.is(val) then
-	 fluidSources[nm] = val
-	 fluidSources[nm]:setName(nm)
-	 val:fullInit(tbl) -- Initialize fluid sources.
+         fluidSources[nm] = val
+         fluidSources[nm]:setName(nm)
+         val:fullInit(tbl) -- Initialize fluid sources.
       end
    end
    lume.setOrder(fluidSources)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
@@ -293,7 +266,6 @@ local function buildApplication(self, tbl)
    local cflMin = GKYL_MAX_DOUBLE
    -- Compute CFL numbers.
    for _, s in population.iterLocal() do
-      local ndim = s:getNdim()
       local myCfl = tbl.cfl and tbl.cfl or cflFrac
       cflMin = math.min(cflMin, myCfl)
       s:setCfl(cflMin)
@@ -346,12 +318,12 @@ local function buildApplication(self, tbl)
    end
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one ExternalField object!")
    if externalField == nil then externalField = NoField {} end
-   externalField:createSolver()
+   externalField:createSolver(population)
    externalField:initField()
    
    -- Initialize species solvers and diagnostics.
-   for _, s in population.iterLocal() do
-      s:initCrossSpeciesCoupling(population.species)    -- Call this before createSolver if updaters are all created in createSolver.
+   for _, s in population.iterGlobal() do
+      s:initCrossSpeciesCoupling(population)    -- Call this before createSolver if updaters are all created in createSolver.
    end
    for _, s in population.iterLocal() do
       s:createSolver(field, externalField)
@@ -361,18 +333,20 @@ local function buildApplication(self, tbl)
       flSrc:createSolver(species, field)    -- Initialize fluid source solvers.
    end   
    -- Create field solver (sometimes requires species solver to have been created).
-   field:createSolver(population.species, externalField)
+   field:createSolver(population, externalField)
 
    -- Some objects require an additional createSolver step after self-species
    -- solvers are created due to cross-species interactions.
-   for _, s in population.iterLocal() do
-      s:createCouplingSolver(population.species, field, externalField)
+   for _, s in population.iterGlobal() do
+      s:createCouplingSolver(population, field, externalField)
    end
 
    for _, s in population.iterLocal() do
       -- Compute the coupling moments.
-      s:clearMomentFlags(population.species)
-      s:calcCouplingMoments(0.0, 1, population.species)
+      s:calcCouplingMoments(0.0, 1, population:getSpecies())
+   end
+   for _, s in population.iterGlobal() do
+      s:calcCrossCouplingMoments(0., 1, population)
    end
 
    -- Initialize field (sometimes requires species to have been initialized).
@@ -391,6 +365,9 @@ local function buildApplication(self, tbl)
 	 s:advance(0, population, {field, externalField}, 1, 2)
       end
       s:applyBcInitial(0, field, externalField, 1, 1)
+   end
+   for _, s in population.iterGlobal() do
+      s:advanceCrossSpeciesCoupling(0, population, {field, externalField}, 1, 2)
    end
 
    -- Function to write data to file.
@@ -426,6 +403,9 @@ local function buildApplication(self, tbl)
 	 end
          s:setDtGlobal(dtLast[1])
 	 rTime = s:readRestart(field, externalField)
+      end
+      for _, s in population.iterGlobal() do
+         s:advanceCrossSpeciesCoupling(0, population, {field, externalField}, 1, 2)
       end
       return rTime
    end
@@ -474,17 +454,17 @@ local function buildApplication(self, tbl)
    -- Compute the time rate of change (dy/dt).
    local function dydt(tCurr, inIdx, outIdx)
       field:clearCFL()
-      for _, s in population.iterLocal() do
-         s:clearCFL()
-         s:clearMomentFlags(species)
-      end
+      for _, s in population.iterLocal() do s:clearCFL() end
       -- Compute functional field (if any).
       externalField:advance(tCurr)
       
       for _, s in population.iterLocal() do
          -- Compute moments needed in coupling with fields and
          -- collisions (the species should update internal datastructures). 
-         s:calcCouplingMoments(tCurr, inIdx, population.species)
+         s:calcCouplingMoments(tCurr, inIdx, population:getSpecies())
+      end
+      for _, s in population.iterGlobal() do
+         s:calcCrossCouplingMoments(tCurr, inIdx, population)
       end
 
       -- Update EM field.
@@ -500,7 +480,7 @@ local function buildApplication(self, tbl)
             s:advance(tCurr, population, {field, externalField}, inIdx, outIdx)
          end
       end
-      for _, s in population.iterLocal() do
+      for _, s in population.iterGlobal() do
          s:advanceCrossSpeciesCoupling(tCurr, population, {field, externalField}, inIdx, outIdx)
       end
 
@@ -558,7 +538,7 @@ local function buildApplication(self, tbl)
 
    -- Set functions in time stepper object.
    timeStepper:createSolver(appStatus, {combine, copy, dydt, forwardEuler},
-                            {population.species, field, externalField, fluidSources})
+                            {population:getSpecies(), field, externalField, fluidSources})
 
    local devDiagnose = function()
       -- Perform performance/numerics-related diagnostics.
@@ -663,7 +643,7 @@ local function buildApplication(self, tbl)
 	    tCurr = tCurr + stepStatus.dt_actual
             -- Track dt.
             dtPtr:data()[0] = stepStatus.dt_actual
-            dtTracker:appendData(tCurr, dtPtr)
+--            dtTracker:appendData(tCurr, dtPtr)
             -- Write log
 	    writeLogMessage(tCurr)
 	    -- We must write data first before calling writeRestart in
@@ -674,7 +654,7 @@ local function buildApplication(self, tbl)
 	    if checkWriteRestart(tCurr) then
                local tmRestart = Time.clock()
 	       writeRestart(tCurr)
-               dtTracker:write(string.format("dt.bp"), tCurr, irestart)
+--               dtTracker:write(string.format("dt.bp"), tCurr, irestart)
                irestart = irestart + 1
                writeRestartTime = writeRestartTime + Time.clock() - tmRestart
 	    end	    
@@ -692,7 +672,7 @@ local function buildApplication(self, tbl)
             log(string.format("WARNING: Timestep dt = %g is below 1e-4*dt_init. Fail counter = %d...\n", dt_next, failcount))
             if failcount > 20 then
                writeData(tCurr+stepStatus.dt_actual, true)
-               dtTracker:write(string.format("dt.bp"), tCurr+stepStatus.dt_actual)
+--               dtTracker:write(string.format("dt.bp"), tCurr+stepStatus.dt_actual)
                log(string.format("ERROR: Timestep below 1e-4*dt_init for 20 consecutive steps. Exiting...\n"))
                break
             end

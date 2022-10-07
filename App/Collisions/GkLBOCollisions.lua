@@ -279,8 +279,8 @@ function GkLBOCollisions:calcCouplingMoments(tCurr, rkIdx, species)
    local fIn      = species[self.speciesName]:rkStepperFields()[rkIdx]
    local momsSelf = species[self.speciesName]:fluidMoments()
 
-   self.primMomSelf:advance(tCurr, {momsSelf, fIn, self.boundCorrs},
-                            {self.uParSelf, self.vtSqSelf})
+   self.primMomSelf:advance(tCurr, {momsSelf, fIn},
+                            {self.boundCorrs, self.uParSelf, self.vtSqSelf})
 end
 
 function GkLBOCollisions:calcSelfNuTimeConst(momsSelf, nuOut) nuOut:copy(self.nuSelf) end
@@ -364,8 +364,7 @@ function GkLBOCollisions:advance(tCurr, fIn, species, out)
 
          -- Cross-primitive moments for the collision of these two species has not been computed.
          self.primMomCross:advance(tCurr, {self.mass, nuCrossSelf, momsSelf, self.uParSelf, self.vtSqSelf, bCorrectionsSelf,
-                                           mOther, nuCrossOther, momsOther, uParOther, vtSqOther, bCorrectionsOther,
-                                           self.m0s_deltas},
+                                           mOther, nuCrossOther, momsOther, uParOther, vtSqOther, self.m0s_deltas},
                                           {self.uParCross[otherNm], self.vtSqCross[otherNm]})
 
          self.confMul:advance(tCurr, {nuCrossSelf, self.uParCross[otherNm]}, {self.nuUParCross})

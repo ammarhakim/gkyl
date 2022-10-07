@@ -312,9 +312,11 @@ function GkField:combineRk(outIdx, a, aIdx, ...)
    end
 end
 
-function GkField:createSolver(species, externalField)
+function GkField:createSolver(population, externalField)
    -- Need to set this flag so that field calculated self-consistently at end of full RK timestep.
    self.isElliptic = true
+
+   local species = population:getSpecies()
 
    if self.externalPhi then
       local evalOnNodes = Updater.EvalOnNodes {

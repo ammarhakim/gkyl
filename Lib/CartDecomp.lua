@@ -148,7 +148,7 @@ function CartProdDecomp:init(tbl)
    self._cutsRange = Range.Range(ones, tbl.cuts)
 
    local comm = Mpi.COMM_WORLD
-   -- UwriteRankse a different communicator if one is specified.
+   -- Use a different communicator if one is specified.
    if tbl.comm then comm = tbl.comm end
    -- Denote specific ranks from which writes should happen (defaults to all ranks).
    local writeRank = tbl.writeRank or Mpi.Comm_rank(comm)

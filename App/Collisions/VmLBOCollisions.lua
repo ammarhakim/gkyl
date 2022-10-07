@@ -14,6 +14,7 @@ local Updater        = require "Updater"
 local xsys           = require "xsys"
 local lume           = require "Lib.lume"
 local ffi            = require "ffi"
+local Mpi            = require "Comm.Mpi"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local DiagsImplBase  = require "App.Diagnostics.DiagnosticsImplBase"
 
@@ -86,9 +87,9 @@ function VmLBOCollisions:fullInit(speciesTbl)
       self.timeDepNu = false
       self.calcSelfNu = function(momsIn, nuOut) VmLBOCollisions['calcSelfNuTimeConst'](self,momsIn,nuOut) end
       self.calcCrossNu = self.crossCollisions
-         and function(species, otherNm, mOther, momsOther,
+         and function(otherNm, qOther, mOther, momsOther,
                       vtSqOther, nuCrossSelf, nuCrossOther)
-            VmLBOCollisions['calcCrossNuTimeConst'](self,species, otherNm,
+            VmLBOCollisions['calcCrossNuTimeConst'](self, otherNm, qOther,
               mOther, momsOther, vtSqOther, nuCrossSelf, nuCrossOther)
          end
          or nil
@@ -114,9 +115,9 @@ function VmLBOCollisions:fullInit(speciesTbl)
       self.timeDepNu = true
       self.calcSelfNu = function(momsIn, nuOut) VmLBOCollisions['calcSelfNuTimeDep'](self,momsIn,nuOut) end
       self.calcCrossNu = self.crossCollisions
-         and function(species, otherNm, mOther, momsOther,
+         and function(otherNm, qOther, mOther, momsOther,
                       vtSqOther, nuCrossSelf, nuCrossOther)
-            VmLBOCollisions['calcCrossNuTimeDep'](self,species, otherNm,
+            VmLBOCollisions['calcCrossNuTimeDep'](self, otherNm, qOther,
               mOther, momsOther, vtSqOther, nuCrossSelf, nuCrossOther)
          end
          or nil
@@ -239,21 +240,17 @@ function VmLBOCollisions:createSolver(mySpecies, extField)
 
       -- Allocate (and assign if needed) cross-species collision frequencies,
       -- and cross primitive moments.
-      self.nuCross, self.uCross, self.vtSqCross = {}, {}, {}
-      -- Flag to indicate if cross collision frequency has been computed.
-      self.crossFlags = self.timeDepNu and {} or nil
+      self.nuCross = {}
       for ispec, otherNm in ipairs(self.crossSpecies) do
          self.nuCross[otherNm] = mySpecies:allocMoment()
-         if self.timeDepNu then 
-            self.crossFlags[otherNm] = false
-         else
+         if not self.timeDepNu then 
             projectUserNu:setFunc(self.collFreqCross[ispec])
             projectUserNu:advance(0.0, {}, {self.nuCross[otherNm]})
-            self.nuCross[otherNm]:write(string.format("%s_nu-%s_%d.bp",self.speciesName,otherNm,0),0.0,0)
+--            self.nuCross[otherNm]:write(string.format("%s_nu-%s_%d.bp",self.speciesName,otherNm,0),0.0,0)
          end
-         self.uCross[otherNm]     = mySpecies:allocVectorMoment(vdim)
-         self.vtSqCross[otherNm]  = mySpecies:allocMoment()
       end
+      self.uCross    = mySpecies:allocVectorMoment(vdim)
+      self.vtSqCross = mySpecies:allocMoment()
 
       self.m0Other = self.timeDepNu and mySpecies:allocMoment() or nil  -- M0, to be extracted from fiveMoments.
    end
@@ -267,9 +264,10 @@ function VmLBOCollisions:createSolver(mySpecies, extField)
 end
 
 
-function VmLBOCollisions:createCouplingSolver(species, field, externalField)
+function VmLBOCollisions:createCouplingSolver(population, field, externalField)
    -- Store a pointer to the collision app in the other species, so we know
    -- where to find things stored in the collision app (e.g. primitive momemts, nu).
+   local species = population:getSpecies()
    if self.crossCollisions then
       self.collAppOther = {}
       for _, nm in ipairs(self.crossSpecies) do
@@ -278,13 +276,72 @@ function VmLBOCollisions:createCouplingSolver(species, field, externalField)
          end
       end
    end
+
+   if self.crossCollisions then
+      local isThisSpeciesMine = population:isSpeciesMine(self.speciesName)
+      if not isThisSpeciesMine then
+         local mySpecies = population:getSpecies()[self.speciesName]
+         local vdim      = self.phaseGrid:ndim() - self.confGrid:ndim()
+         -- Allocate primMoms if we collide with other species not in this rank.
+         self.uSelf    = mySpecies:allocVectorMoment(vdim)
+         self.vtSqSelf = mySpecies:allocMoment()
+
+         -- Allocate (and assign if needed) cross-species collision frequencies
+         -- of species not in this rank.
+         local projectUserNu = Updater.ProjectOnBasis {
+            onGrid = self.confGrid,   evaluate = function(t, xn) return 0. end,
+            basis  = self.confBasis,  onGhosts = false
+         }
+         self.nuCross = {}
+         for ispec, otherNm in ipairs(self.crossSpecies) do
+            self.nuCross[otherNm] = mySpecies:allocMoment()
+            if not self.timeDepNu then 
+               projectUserNu:setFunc(self.collFreqCross[ispec])
+               projectUserNu:advance(0.0, {}, {self.nuCross[otherNm]})
+            end
+         end
+      end
+
+      -- Create list of ranks we need to send/recv local self primitive moments to/from.
+      self.selfPrimMomsXfer = {}
+      self.selfPrimMomsXfer.destRank,     self.selfPrimMomsXfer.srcRank  = {}, {}
+      self.selfPrimMomsXfer.sendReqU,     self.selfPrimMomsXfer.recvReqU  = nil, nil
+      self.selfPrimMomsXfer.sendStatU,    self.selfPrimMomsXfer.recvStatU = nil, nil
+      self.selfPrimMomsXfer.sendReqVtSq,  self.selfPrimMomsXfer.recvReqVtSq  = nil, nil
+      self.selfPrimMomsXfer.sendStatVtSq, self.selfPrimMomsXfer.recvStatVtSq = nil, nil
+      for _, sO in ipairs(self.crossSpecies) do
+         local sOrank = population:getSpeciesOwner(sO)
+         local selfRank = population:getSpeciesOwner(self.speciesName)
+         if isThisSpeciesMine then
+            -- Only species owned by this rank send primMoms other ranks.
+            if #self.selfPrimMomsXfer.destRank == 0 and (not population:isSpeciesMine(sO)) then
+               table.insert(self.selfPrimMomsXfer.destRank, sOrank)
+               self.selfPrimMomsXfer.sendReqU  = Mpi.Request()
+               self.selfPrimMomsXfer.sendStatU = Mpi.Status()
+               self.selfPrimMomsXfer.sendReqVtSq  = Mpi.Request()
+               self.selfPrimMomsXfer.sendStatVtSq = Mpi.Status()
+            end
+         else
+            -- Only species not owned by this rank receive primMoms from other ranks.
+            if #self.selfPrimMomsXfer.srcRank == 0 and (not population:isSpeciesMine(self.speciesName)) then
+               table.insert(self.selfPrimMomsXfer.srcRank, selfRank)
+               self.selfPrimMomsXfer.recvReqU  = Mpi.Request()
+               self.selfPrimMomsXfer.recvStatU = Mpi.Status()
+               self.selfPrimMomsXfer.recvReqVtSq  = Mpi.Request()
+               self.selfPrimMomsXfer.recvStatVtSq = Mpi.Status()
+            end
+         end
+      end
+   else
+      self.selfPrimMomsXfer = {}
+      self.selfPrimMomsXfer.destRank, self.selfPrimMomsXfer.srcRank = {}, {}
+   end
 end
 
 function VmLBOCollisions:boundaryCorrections() return self.boundCorrs end
 function VmLBOCollisions:selfPrimitiveMoments() return self.uSelf, self.vtSqSelf end
 function VmLBOCollisions:crossFrequencies(speciesName) return self.nuCross[speciesName] end
 function VmLBOCollisions:crossNormNu(speciesName) return self.normNuCross[speciesName] end
-function VmLBOCollisions:crossFlags(speciesName) return self.crossFlags[speciesName] end
 
 function VmLBOCollisions:createDiagnostics(mySpecies, field)
    -- Create source diagnostics.
@@ -301,9 +358,48 @@ function VmLBOCollisions:calcCouplingMoments(tCurr, rkIdx, species)
    local fIn      = species[self.speciesName]:rkStepperFields()[rkIdx]
    local momsSelf = species[self.speciesName]:fluidMoments()
 
-   self.primMomSelf:advance(tCurr, {momsSelf, fIn, self.boundCorrs},
-                            {self.uSelf, self.vtSqSelf})
+   self.primMomSelf:advance(tCurr, {momsSelf, fIn},
+                           {self.boundCorrs, self.uSelf, self.vtSqSelf})
 end
+
+function VmLBOCollisions:calcCrossCouplingMoments(tCurr, rkIdx, population)
+   -- Perform cross-species calculation related to coupling moments that require the
+   -- self-species coupling moments.
+
+   local tag = 33
+   -- Begin sending/receiving primitive moments if needed.
+   local xferObj = self.selfPrimMomsXfer
+   local recvFld = self.uSelf
+   for _, rank in ipairs(xferObj.srcRank) do
+      local req = xferObj.recvReqU
+      local err = Mpi.Irecv(recvFld:dataPointer(), recvFld:size(),
+                            recvFld:elemCommType(), rank, tag, population:getComm(), req)
+   end
+   -- Post sends for every species in this rank.
+   local sendFld = self.uSelf
+   for _, rank in ipairs(xferObj.destRank) do
+      local req = xferObj.sendReqU
+      local err = Mpi.Isend(sendFld:dataPointer(), sendFld:size(),
+                            sendFld:elemCommType(), rank, tag, population:getComm(), req)
+   end
+
+   local tag = 34
+   -- Begin sending/receiving primitive moments if needed.
+   local recvFld = self.vtSqSelf
+   for _, rank in ipairs(xferObj.srcRank) do
+      local req = xferObj.recvReqVtSq
+      local err = Mpi.Irecv(recvFld:dataPointer(), recvFld:size(),
+                            recvFld:elemCommType(), rank, tag, population:getComm(), req)
+   end
+   -- Post sends for every species in this rank.
+   local sendFld = self.vtSqSelf
+   for _, rank in ipairs(xferObj.destRank) do
+      local req = xferObj.sendReqVtSq
+      local err = Mpi.Isend(sendFld:dataPointer(), sendFld:size(),
+                            sendFld:elemCommType(), rank, tag, population:getComm(), req)
+   end
+end
+
 
 function VmLBOCollisions:calcSelfNuTimeConst(momsSelf, nuOut) nuOut:copy(self.nuSelf) end
 
@@ -314,31 +410,25 @@ function VmLBOCollisions:calcSelfNuTimeDep(momsSelf, nuOut)
                                   self.charge, self.mass, self.m0Self, self.vtSqSelf, self.normNuSelf}, {nuOut})
 end
 
-function VmLBOCollisions:calcCrossNuTimeConst(species, otherNm,
+function VmLBOCollisions:calcCrossNuTimeConst(otherNm, chargeOther,
    mOther, momsOther, vtSqOther, nuCrossSelf, nuCrossOther) end
 
-function VmLBOCollisions:calcCrossNuTimeDep(species, otherNm,
+function VmLBOCollisions:calcCrossNuTimeDep(otherNm, chargeOther,
    mOther, momsOther, vtSqOther, nuCrossSelf, nuCrossOther)
-
-   -- Compute the Spitzer collisionality if another species hasn't already done so.
-   local chargeOther     = species[otherNm]:getCharge()
-   local crossFlagsSelf  = self.crossFlags[otherNm]
-   local crossFlagsOther = self.collAppOther[otherNm]:crossFlags(self.speciesName)
+   -- Compute the Spitzer collisionality. There's some duplication here in which
+   -- two species compute the same cross collision frequency, but that is simpler
+   -- and better for species parallelization.
    self.m0Other:combineOffset(1., momsOther, 0) 
-   if not crossFlagsSelf then
-      local crossNormNuSelf = self.normNuCross[otherNm]
-      self.spitzerNu:advance(tCurr, {self.charge, self.mass, self.m0Self, self.vtSqSelf,
-                                     chargeOther, mOther, self.m0Other, vtSqOther, crossNormNuSelf},
-                                    {nuCrossSelf})
-      crossFlagsSelf = true
-   end
-   if not crossFlagsOther then
-      local crossNormNuOther = self.collAppOther[otherNm]:crossNormNu(self.speciesName)
-      self.spitzerNu:advance(tCurr, {chargeOther, mOther, self.m0Other, vtSqOther,
-                                     self.charge, self.mass, self.m0Self, self.vtSqSelf, crossNormNuOther},
-                                    {nuCrossOther})
-      crossFlagsOther = true
-   end
+
+   local crossNormNuSelf = self.normNuCross[otherNm]
+   self.spitzerNu:advance(tCurr, {self.charge, self.mass, self.m0Self, self.vtSqSelf,
+                                  chargeOther, mOther, self.m0Other, vtSqOther, crossNormNuSelf},
+                                 {nuCrossSelf})
+
+   local crossNormNuOther = self.collAppOther[otherNm]:crossNormNu(self.speciesName)
+   self.spitzerNu:advance(tCurr, {chargeOther, mOther, self.m0Other, vtSqOther,
+                                  self.charge, self.mass, self.m0Self, self.vtSqSelf, crossNormNuOther},
+                                 {nuCrossOther})
 end
 
 function VmLBOCollisions:advance(tCurr, fIn, population, out)
@@ -346,7 +436,7 @@ function VmLBOCollisions:advance(tCurr, fIn, population, out)
 
    local fRhsOut = out[1]
    local cflRateByCell = out[2]
-   local species = population.species
+   local species = population:getSpecies()
 
    -- Fetch coupling moments of this species.
    local momsSelf = species[self.speciesName]:fluidMoments()
@@ -361,6 +451,19 @@ function VmLBOCollisions:advance(tCurr, fIn, population, out)
 
       for _, otherNm in ipairs(self.crossSpecies) do
 
+         -- If we don't own the other species wait for its moments to be transferred. 
+         if not population:isSpeciesMine(otherNm) then
+            local xferObj = population:getSpecies()[otherNm].fiveMomentsXfer
+            for _, rank in ipairs(xferObj.srcRank) do
+               local _ = Mpi.Wait(xferObj.recvReq, xferObj.recvStat)
+            end
+            local xferObj = self.collAppOther[otherNm].selfPrimMomsXfer
+            for _, rank in ipairs(xferObj.srcRank) do
+               local _ = Mpi.Wait(xferObj.recvReqU, xferObj.recvStatU)
+               local _ = Mpi.Wait(xferObj.recvReqVtSq, xferObj.recvStatVtSq)
+            end
+         end
+
          local mOther            = species[otherNm]:getMass()
          local momsOther         = species[otherNm]:fluidMoments()
          local uOther, vtSqOther = self.collAppOther[otherNm]:selfPrimitiveMoments()
@@ -369,12 +472,12 @@ function VmLBOCollisions:advance(tCurr, fIn, population, out)
          local nuCrossOther = self.collAppOther[otherNm]:crossFrequencies(self.speciesName)
 
          -- Calculate time-dependent collision frequency if needed.
-         self.calcCrossNu(species, otherNm, mOther, momsOther, vtSqOther,
+         local chargeOther = species[otherNm]:getCharge()
+         self.calcCrossNu(otherNm, chargeOther, mOther, momsOther, vtSqOther,
                           nuCrossSelf, nuCrossOther)
 
          -- Compose the pre-factor (we should put this in a single loop/updater):
          --   m0_s*delta_s = m0_s*(2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs))
-         local bCorrectionsOther = self.collAppOther[otherNm]:boundaryCorrections()
          local deltas_num, deltas_den = self.m0s_deltas, self.m0s_deltas_den
          self.confMul:advance(tCurr, {momsSelf, nuCrossSelf, 1}, {deltas_den})
          self.confMul:advance(tCurr, {momsOther, nuCrossOther, 1}, {deltas_num})
@@ -385,12 +488,11 @@ function VmLBOCollisions:advance(tCurr, fIn, population, out)
          self.confDiv:advance(tCurr, {deltas_den, deltas_num}, {self.m0s_deltas})
 
          self.primMomCross:advance(tCurr, {self.mass, nuCrossSelf, momsSelf, self.uSelf, self.vtSqSelf, bCorrectionsSelf,
-                                           mOther, nuCrossOther, momsOther, uOther, vtSqOther, bCorrectionsOther,
-                                           self.m0s_deltas},
-                                          {self.uCross[otherNm], self.vtSqCross[otherNm]})
+                                           mOther, nuCrossOther, momsOther, uOther, vtSqOther, self.m0s_deltas},
+                                          {self.uCross, self.vtSqCross})
 
-         self.confMul:advance(tCurr, {nuCrossSelf, self.uCross[otherNm]}, {self.nuUCross})
-         self.confMul:advance(tCurr, {nuCrossSelf, self.vtSqCross[otherNm]}, {self.nuVtSqCross})
+         self.confMul:advance(tCurr, {nuCrossSelf, self.uCross}, {self.nuUCross})
+         self.confMul:advance(tCurr, {nuCrossSelf, self.vtSqCross}, {self.nuVtSqCross})
 
          self.nuSum:accumulate(1.0, nuCrossSelf)
          self.nuUSum:accumulate(1.0, self.nuUCross)
@@ -405,6 +507,15 @@ function VmLBOCollisions:advance(tCurr, fIn, population, out)
    self.collisionSlvr:advance(
       tCurr, {fIn, self.nuUSum, self.nuVtSqSum, self.nuSum}, {fRhsOut, cflRateByCell})
 
+end
+
+function VmLBOCollisions:advanceCrossSpeciesCoupling(tCurr, species, emIn, inIdx, outIdx)
+   -- Wait to finish sending selfPrimMoms if needed.
+   local xferObj = self.selfPrimMomsXfer
+   for _, rank in ipairs(xferObj.destRank) do
+      local _ = Mpi.Wait(xferObj.sendReqU, xferObj.sendStatU)
+      local _ = Mpi.Wait(xferObj.sendReqVtSq, xferObj.sendStatVtSq)
+   end
 end
 
 function VmLBOCollisions:write(tm, frame) end

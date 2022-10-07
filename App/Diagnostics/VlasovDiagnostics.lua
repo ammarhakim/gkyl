@@ -168,7 +168,7 @@ local implementation = function()
    -- ~~~~ Integrated number density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM0 = Proto(DiagsImplBase)
    function _intM0:fullInit(diagApp, specIn, field, owner)
-      self.field   = DataStruct.DynVector { numComponents = 1 }
+      self.field   = DataStruct.DynVector { numComponents = 1, comm = owner.confGrid:commSet().comm }
       self.updater = owner.volIntegral and owner.volIntegral.scalar or specIn.volIntegral.scalar
       self.done    = false
    end
@@ -183,7 +183,7 @@ local implementation = function()
    -- ~~~~ Integrated momentum density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM1i = Proto(DiagsImplBase)
    function _intM1i:fullInit(diagApp, specIn, field, owner)
-      self.field   = DataStruct.DynVector { numComponents = specIn.vdim }
+      self.field   = DataStruct.DynVector { numComponents = specIn.vdim, comm = owner.confGrid:commSet().comm }
       self.updater = owner.volIntegral and owner.volIntegral.vector or specIn.volIntegral.vector
       self.done    = false
    end
@@ -198,7 +198,7 @@ local implementation = function()
    -- ~~~~ Integrated particle energy density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM2 = Proto(DiagsImplBase)
    function _intM2:fullInit(diagApp, specIn, field, owner)
-      self.field   = DataStruct.DynVector { numComponents = 1 }
+      self.field   = DataStruct.DynVector { numComponents = 1, comm = owner.confGrid:commSet().comm }
       self.updater = owner.volIntegral and owner.volIntegral.scalar or specIn.volIntegral.scalar
       self.done    = false
    end
@@ -213,7 +213,7 @@ local implementation = function()
    -- ~~~~ Integrated mean flow energy density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM2Flow = Proto(DiagsImplBase)
    function _intM2Flow:fullInit(diagApp, specIn, field, owner)
-      self.field   = DataStruct.DynVector { numComponents = 1 }
+      self.field   = DataStruct.DynVector { numComponents = 1, comm = owner.confGrid:commSet().comm }
       self.updater = owner.volIntegral and owner.volIntegral.scalar or specIn.volIntegral.scalar
       self.done    = false
    end
@@ -228,7 +228,7 @@ local implementation = function()
    -- ~~~~ Integrated thermal energy density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM2Thermal = Proto(DiagsImplBase)
    function _intM2Thermal:fullInit(diagApp, specIn, field, owner)
-      self.field   = DataStruct.DynVector { numComponents = 1 }
+      self.field   = DataStruct.DynVector { numComponents = 1, comm = owner.confGrid:commSet().comm }
       self.updater = owner.volIntegral and owner.volIntegral.scalar or specIn.volIntegral.scalar
       self.done    = false
    end
@@ -243,7 +243,7 @@ local implementation = function()
    -- ~~~~ L2 norm of the distribution function ~~~~~~~~~~~~~~~~~~~~~~
    local _intL2 = Proto(DiagsImplBase)
    function _intL2:fullInit(diagApp, specIn, field, owner)
-      self.field   = DataStruct.DynVector { numComponents = 1 }
+      self.field   = DataStruct.DynVector { numComponents = 1, comm = owner.confGrid:commSet().comm }
       self.updater = Updater.CartFieldIntegratedQuantCalc {
          onGrid = specIn.grid,   numComponents = 1,
          basis  = specIn.basis,  quantity      = "V2",

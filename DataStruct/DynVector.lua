@@ -73,10 +73,12 @@ function DynVector:init(tbl)
    -- Construct various functions from template representations.
    self._copyToTempData = loadstring( copyTempl {NCOMP=self._numComponents} )()
 
+   -- Write only from rank-0 of the specified communicator. Use world comm otherwise.
+   self._parentComm = tbl.comm or Mpi.COMM_WORLD
    -- Write only from rank-0: create sub-communicator and use that for
    -- writing data (perhaps one needs a user-specified write-rank).
    local ranks  = Lin.IntVec(1); ranks[1] = 0
-   self._ioComm = Mpi.Split_comm(Mpi.COMM_WORLD, ranks)
+   self._ioComm = Mpi.Split_comm(self._parentComm, ranks)
 
    -- Allocate space for IO buffer.
    self._ioBuff = Alloc.Double()
@@ -258,7 +260,7 @@ function DynVector:numComponents() return self._numComponents end
 
 -- Returns time-stamp and frame number.
 function DynVector:read(fName)
-   local comm = Mpi.COMM_WORLD -- Need to read from all processors.
+   local comm = self._parentComm
 
    local fullNm = GKYL_OUT_PREFIX .. "_" .. fName
    local reader = AdiosReader.Reader(fullNm, comm)
@@ -315,14 +317,8 @@ end
 function DynVector:timeMesh() return self._timeMesh end
 
 function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
-   local comm = self._ioComm
-   local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
-   if rank ~= 0 then  -- Only run on rank 0 ...
-      self:clear()    -- ... but clear data on all ranks.
-      return
-   end
+   local rank = Mpi.Comm_rank(self._parentComm)
 
-   if not tmStamp then tmStamp = 0.0 end -- Default time-stamp.
    local flushData  = xsys.pickBool(flushData, true)  -- Default flush data on write.
    local appendData = xsys.pickBool(appendData, true) -- Default append data to single file.
 
@@ -334,10 +330,18 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
    end
 
    -- Create group and set I/O method.
+   -- MF 2022/10/06: Had to place this before some ranks return (below) because
+   -- after parallelizing over species and giving DynVector a comm input this
+   -- method caused hangs. It may mean that select_method is collective.
    local grpNm = "DynVector"..frNum..outNm
    local grpId = Adios.declare_group(grpNm, "", Adios.flag_no)
    Adios.select_method(grpId, "MPI", "", "")
    
+   if rank ~= 0 then  -- Only run on rank 0 ...
+      self:clear()    -- ... but clear data on all ranks.
+      return
+   end
+
    -- ADIOS expects CSV string to specify data shape
    local localTmSz  = toCSV( {self._data:size()} )
    local localDatSz = toCSV( {self._data:size(), self._numComponents} )
@@ -366,9 +370,9 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
 
    local fullNm = GKYL_OUT_PREFIX .. "_" .. outNm
    if frNum == 0 or not appendData then
-      fd = Adios.open(grpNm, fullNm, "w", comm[0])
+      fd = Adios.open(grpNm, fullNm, "w", self._ioComm[0])
    else
-      fd = Adios.open(grpNm, fullNm, "u", comm[0])
+      fd = Adios.open(grpNm, fullNm, "u", self._ioComm[0])
    end
 
    Adios.write(fd, "TimeMesh"..self.frNum, self._timeMesh:data())

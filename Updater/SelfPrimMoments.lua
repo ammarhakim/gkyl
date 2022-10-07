@@ -215,8 +215,8 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
 
    if self._zero_prim_calc then
 
-      local moments, fIn, boundaryCorrections = inFld[1], inFld[2], inFld[3]
-      local u, vtsq = outFld[1], outFld[2]
+      local moments, fIn = inFld[1], inFld[2]
+      local boundaryCorrections, u, vtsq = outFld[1], outFld[2], outFld[3]
 
       -- Compute boundary corrections.
       ffiC.gkyl_mom_calc_bcorr_advance(self._zero_bcorr_calc, fIn:localRange(), u:localRange(), fIn._zero, boundaryCorrections._zero)
@@ -307,12 +307,8 @@ end
 
 function SelfPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
 
-   local moments = inFld[1]
-   local fIn     = inFld[2]
-   local boundaryCorrections = inFld[3]
-
-   local u    = outFld[1]
-   local vtsq = outFld[2]
+   local moments, fIn = inFld[1], inFld[2]
+   local boundaryCorrections, u, vtsq = outFld[1], outFld[2], outFld[3]
 
    -- Compute boundary corrections.
    ffiC.gkyl_mom_calc_bcorr_advance_cu(self._zero_bcorr_calc, fIn:localRange(), u:localRange(), fIn._zeroDevice, boundaryCorrections._zeroDevice)

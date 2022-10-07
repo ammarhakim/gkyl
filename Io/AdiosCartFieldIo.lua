@@ -53,6 +53,11 @@ function AdiosCartFieldIo:init(tbl)
    self._elemType = elct -- element type stored in field
    self._method   = tbl.method and tbl.method or "MPI"
 
+   -- Can specify a table with rank and comm, so only that rank in that comm writes.
+   local writeRankCommTbl = tbl.writeRankInComm
+   self._writeRank = writeRankCommTbl and writeRankCommTbl[1] or nil
+   self._writeComm = writeRankCommTbl and writeRankCommTbl[2] or nil
+
    -- Set ADIOS data-types.
    self._elctIoType = Adios.double
    if ffi.istype(new(elct), new("double")) then
@@ -151,14 +156,13 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
       break
    end
 
-   local comm = Mpi.getComm(field:grid():commSet().nodeComm)
+   local dataComm = Mpi.getComm(field:grid():commSet().comm)
    -- (the extra getComm() is needed as Lua has no concept of
    -- pointers and hence we don't know before hand if nodeComm is a
    -- pointer or an object)
 
    -- No need to do anything if communicator is not valid.
-   if not Mpi.Is_comm_valid(comm) then return end
-   local rank = Mpi.Comm_rank(comm)
+   if not Mpi.Is_comm_valid(dataComm) then return end
 
    if not frNum then frNum = 5000 end    -- Default frame-number.
    if not tmStamp then tmStamp = 0.0 end -- Default time-stamp.
@@ -258,17 +262,18 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
       end
    end
 
-   local writeRank = field:grid():commSet().writeRank
+   local writeRank = self._writeRank or field:grid():commSet().writeRank
+   local writeComm = self._writeComm or dataComm
    -- Don't do anything if the writeRank of the field (which is the rank from which data should be written)
    -- does not match the rank of the global communicator.
    -- This is for cases when the communicator has been split, and the write only happens over
    -- a subset of the domain (and a subset of the global ranks).
-   if writeRank ~= Mpi.Comm_rank(Mpi.COMM_WORLD) then return end
+   if writeRank ~= Mpi.Comm_rank(writeComm) then return end
 
    local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- Concatenate prefix.
 
    -- Open file to write out group.
-   local fd = Adios.open(grpNm, fullNm, "w", comm)
+   local fd = Adios.open(grpNm, fullNm, "w", dataComm)
 
    local tmStampBuff = new("double[1]"); tmStampBuff[0] = tmStamp
    Adios.write(fd, "time", tmStampBuff)
@@ -309,7 +314,7 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
       break
    end
 
-   local comm = Mpi.getComm(field:grid():commSet().nodeComm)
+   local comm = Mpi.getComm(field:grid():commSet().comm)
    -- (the extra getComm() is needed as Lua has no concept of
    -- pointers and hence we don't know before hand if nodeComm is a
    -- pointer or an object)
@@ -333,8 +338,6 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
          globalRange = field:globalExtRange() 
       end
             
-      local rank = Mpi.Comm_rank(comm)
-
       -- Get group name based on fName with frame and suffix chopped off.
       local grpNm = string.gsub(string.gsub(fName, "_(%d+).bp", ""), ".bp", "")
 
