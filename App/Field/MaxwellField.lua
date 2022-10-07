@@ -98,6 +98,7 @@ function MaxwellField:fullInit(appTbl)
 
       -- No ghost current by default.
       self.useGhostCurrent = xsys.pickBool(tbl.useGhostCurrent, false)
+      assert(self.useGhostCurrent==false, "ghost current not yet implemented in g0 merge")
 
       self.limiter = self.tbl.limiter and self.tbl.limiter or "monotonized-centered"
 
@@ -247,10 +248,7 @@ function MaxwellField:esEnergy(tCurr, fldIn, outDynV)
 end
 
 function MaxwellField:alloc(nRkDup)
-   local nGhost = 2
-   if self.basis:numBasis() > 1 then
-      nGhost = 1
-   end
+   local nGhost = self.basis:numBasis()>1 and 1 or 2
    
    self.em = {}
    if self.hasMagField then   -- Maxwell's induction equations.
@@ -689,35 +687,7 @@ end
 
 function MaxwellField:accumulateCurrent(current, emRhs)
    if current == nil then return end
-
    local tmStart = Time.clock()
-
---   local cItr, eItr = current:get(1), emRhs:get(1)
---   local cIdxr, eIdxr = current:genIndexer(), emRhs:genIndexer()
-
-   -- If we are to use ghost currents, compute mean current first.
-   local ghostCurrent = 0.0
-   if self.useGhostCurrent then
-      assert(false, "ghost current not yet implemented in g0 merge")
-      --local nx = self.grid:numCells(1)
-      --local localMeanCurrent = ffi.new("double[2]")
-      --for idx in emRhs:localRangeIter() do
-      --   current:fill(cIdxr(idx), cItr)
-      --   localMeanCurrent[0] = localMeanCurrent[0]+cItr[1]
-      --end
-      --local globalMeanCurrent = ffi.new("double[2]")
-      --Mpi.Allreduce(localMeanCurrent, globalMeanCurrent, 1, Mpi.DOUBLE, Mpi.SUM, self.grid:commSet().comm)
-      --ghostCurrent = globalMeanCurrent[0]/nx
-   end
-
-   --for idx in emRhs:localRangeIter() do
-   --   current:fill(cIdxr(idx), cItr)
-   --   emRhs:fill(eIdxr(idx), eItr)
-   --   --eItr[1] = eItr[1]-1.0/self.epsilon0*(cItr[1]-ghostCurrent)
-   --   for i = 1, current:numComponents() do
-   --      eItr[i] = eItr[i]-1.0/self.epsilon0*cItr[i]
-   --   end
-   --end
    emRhs:accumulateRange(-1.0/self.epsilon0, current, emRhs:localRange())
    self.tmCurrentAccum = self.tmCurrentAccum + Time.clock()-tmStart
 end
@@ -907,16 +877,13 @@ function ExternalMaxwellField:hasEB() return true, self.hasMagField end
 function ExternalMaxwellField:setGrid(grid) self.grid = grid end
 
 function ExternalMaxwellField:alloc(nField)
-   local nGhost = 2
-   if self.basis:numBasis() > 1 then
-      nGhost = 1
-   end
+   local nGhost = self.basis:numBasis()>1 and 1 or 2
 
    -- Allocate fields needed in RK update.
    local emVecComp = 8
    if not self.hasMagField then emVecComp = 1 end  -- Electric field only.
    self.em = DataStruct.Field {
-      onGrid = self.grid,
+      onGrid        = self.grid,
       numComponents = emVecComp*self.basis:numBasis(),
       ghost         = {nGhost, nGhost},
    }

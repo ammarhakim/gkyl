@@ -109,105 +109,33 @@ end
 function Population:getComm() return self.comm end
 function Population:getSpecies() return self.species end
 
---function Population:beginCartFieldTransfer(srcDestRank, fldIn, fldOut)
---   local tag = 32
---   local recvReq = Mpi.Irecv(fldOut:dataPointer(), fldOut:size(), fldOut:elemCommType(), srcDestRank, tag, self.comm)
---   local sendReq = Mpi.Isend(fldIn:dataPointer(), fldIn:size(), fldIn:elemCommType(), srcDestRank, tag, self.comm)
---   return recvReq, sendReq
---end
---
---function Population:initCrossSpeciesCoupling()
---   -- Create a double nested table of colliding species.
---   -- In this table we will encode information about that collition such as:
---   --   * does the collision take place?
---   -- Other features of a collision may be added in the future.
---   self.collPairs = {}
---   for sN, _ in lume.orderedIter(species) do
---      self.collPairs[sN] = {}
---      for sO, _ in lume.orderedIter(species) do
---         self.collPairs[sN][sO] = {}
---         -- Need next below because species[].collisions is created as an empty table.
---         if species[sN].collisions and next(species[sN].collisions) then
---            for collNm, _ in pairs(species[sN].collisions) do
---               -- This species collides with someone.
---               self.collPairs[sN][sO].on = lume.any(species[sN].collisions[collNm].collidingSpecies,
---                                                    function(e) return e==sO end)
---            end
---         else
---            -- This species does not collide with anyone.
---            self.collPairs[sN][sO].on = false
---         end
---      end
---   end
---
-----   -- Create list of ranks we need to send/recv local threeMoments to/from.
-----   self.threeMomentsXfer = {}
-----   self.threeMomentsXfer.to, self.threeMoments.from = {}, {}
-----   self.threeMomentsXfer.sendReq, self.threeMoments.recvReq = {}, {}
-----   for sN, _ in self.iterLocal() do
-----      for sO, v in pairs(self.collPairs[sN]) do
-----         local sOrank = self:getSpeciesOwner(sO)
-----         if sO~=sN and v.on and (not self:isSpeciesMine(sO)) then
-----            if (not lume.any(self.threeMomentsXfer.to, function(e) return e==sOrank end)) then 
-----               self.threeMomentsXfer.to[sN] = sOrank 
-----               self.threeMomentsXfer.sendReq[sN] = Mpi.Request()
-----            end
-----            self.threeMomentsXfer.from[sO] = sOrank 
-----            self.threeMomentsXfer.recvReq[sO] = Mpi.Request()
-----         end
-----      end
-----   end
-----
-----   -- Allocate space threeMoments in species we collide with but not in this rank.
-----   for sLnm, _ in self.iterLocal() do
-----      for sOnm, v in pairs(self.collPairs[sLnm]) do
-----         local sO = self.species[sOnm]
-----         if v.on and (not self:isSpeciesMine(sOnm)) and sO.threeMoments==nil then
-----            sO.threeMoments = sO:allocVectorMoment(sO.udim+2)
-----         end
-----      end
-----   end
---end
---
---function Population:beginCouplingMomentsXfer()
---   -- When parallelizing over species, and if we don't own other species
---   -- this species collides with, we'll need to communicate threeMoments.
---
---   -- Post receives for every species not in this rank.
---   local tag = 32
---   for nm, rank in pairs(self.threeMomentsXfer.from) do
---      local recvFld = self.species[nm].threeMoments
---      local req = self.threeMomentsXfer.recvReq[nm]
---      local err = Mpi.Irecv(recvFld:dataPointer(), recvFld:size(),
---                            recvFld:elemCommType(), rank, tag, self.comm, req)
---   end
---   -- Post sends for every species in this rank.
---   for nm, rank in pairs(self.threeMomentsXfer.to) do
---      local sendFld = self.species[nm].threeMoments
---      local req = self.threeMomentsXfer.sendReq[nm]
---      local err = Mpi.Isend(sendFld:dataPointer(), sendFld:size(),
---                            sendFld:elemCommType(), rank, tag, self.comm, req)
---   end
---end
---
---function Population:beginSpeciesXfer(speciesNm, fld)
---   -- Begin nonblocking communicaiton of field 'fld' from species named 'speciesNm'. 
---
---   -- Post receives for every species not in this rank.
---   local tag = 32
---   for nm, rank in pairs(self.threeMomentsXfer.from) do
---      local recvFld = self.species[nm].threeMoments
---      local req = self.threeMomentsXfer.recvReq[nm]
---      local err = Mpi.Irecv(recvFld:dataPointer(), recvFld:size(),
---                            recvFld:elemCommType(), rank, tag, self.comm, req)
---   end
---   -- Post sends for every species in this rank.
---   for nm, rank in pairs(self.threeMomentsXfer.to) do
---      local sendFld = self.species[nm].threeMoments
---      local req = self.threeMomentsXfer.sendReq[nm]
---      local err = Mpi.Isend(sendFld:dataPointer(), sendFld:size(),
---                            sendFld:elemCommType(), rank, tag, self.comm, req)
---   end
---end
+function Population:speciesXferField_begin(xferObj, fld, tag)
+   -- Initiate the communication of a CartField between species. This is to be called
+   -- by a species or collision App, which has to specify a transfer object containing
+   -- the destination and source ranks, and the necessary MPI requests/statuses.
+
+   -- Post receive from rank owning this species.
+   for _, rank in ipairs(xferObj.srcRank) do
+      local _ = Mpi.Irecv(fld:dataPointer(), fld:size(), fld:elemCommType(),
+                          rank, tag, self:getComm(), xferObj.recvReqStat)
+   end
+   -- Post sends to species that don't have this species.
+   for _, rank in ipairs(xferObj.destRank) do
+      local _ = Mpi.Isend(fld:dataPointer(), fld:size(), fld:elemCommType(),
+                          rank, tag, self:getComm(), xferObj.sendReqStat)
+   end
+end
+
+function Population:speciesXferField_waitRecv(xferObj)
+   for _, rank in ipairs(xferObj.srcRank) do
+      local _ = Mpi.Wait(xferObj.recvReqStat, xferObj.recvReqStat)
+   end
+end
+
+function Population:speciesXferField_waitSend(xferObj)
+   for _, rank in ipairs(xferObj.destRank) do
+      local _ = Mpi.Wait(xferObj.sendReqStat, xferObj.sendReqStat)
+   end
+end
 
 return Population

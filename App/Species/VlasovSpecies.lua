@@ -320,8 +320,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(population)
    -- Create list of ranks we need to send/recv local fiveMoments to/from.
    self.fiveMomentsXfer = {}
    self.fiveMomentsXfer.destRank, self.fiveMomentsXfer.srcRank  = {}, {}
-   self.fiveMomentsXfer.sendReq,  self.fiveMomentsXfer.recvReq  = nil, nil
-   self.fiveMomentsXfer.sendStat, self.fiveMomentsXfer.recvStat = nil, nil
+   self.fiveMomentsXfer.sendReqStat, self.fiveMomentsXfer.recvReqStat = nil, nil
    for sO, info in pairs(self.collPairs[self.name]) do
       local sOrank = population:getSpeciesOwner(sO)
       local selfRank = population:getSpeciesOwner(self.name)
@@ -330,15 +329,13 @@ function VlasovSpecies:initCrossSpeciesCoupling(population)
             -- Only species owned by this rank send fiveMoments to other ranks.
             if #self.fiveMomentsXfer.destRank == 0 and (not population:isSpeciesMine(sO)) then
                table.insert(self.fiveMomentsXfer.destRank, sOrank)
-               self.fiveMomentsXfer.sendReq  = Mpi.Request()
-               self.fiveMomentsXfer.sendStat = Mpi.Status()
+               self.fiveMomentsXfer.sendReqStat = Mpi.RequestStatus()
             end
          else
             -- Only species not owned by this rank receive fiveMoments from other ranks.
             if #self.fiveMomentsXfer.srcRank == 0 and (not population:isSpeciesMine(self.name)) then
                table.insert(self.fiveMomentsXfer.srcRank, selfRank)
-               self.fiveMomentsXfer.recvReq  = Mpi.Request()
-               self.fiveMomentsXfer.recvStat = Mpi.Status()
+               self.fiveMomentsXfer.recvReqStat = Mpi.RequestStatus()
             end
          end
       end
@@ -391,10 +388,7 @@ function VlasovSpecies:advanceCrossSpeciesCoupling(tCurr, population, emIn, inId
    local species = population:getSpecies()
 
    -- Wait to finish sending fiveMoments if needed.
-   local xferObj = self.fiveMomentsXfer
-   for _, rank in ipairs(xferObj.destRank) do
-      local _ = Mpi.Wait(xferObj.sendReq, xferObj.sendStat)
-   end
+   population:speciesXferField_waitSend(self.fiveMomentsXfer)
 
    for _, coll in lume.orderedIter(self.collisions) do
       coll:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
@@ -473,20 +467,8 @@ function VlasovSpecies:calcCrossCouplingMoments(tCurr, rkIdx, population)
    -- Perform cross-species calculation related to coupling moments that require the
    -- self-species coupling moments.
 
-   local tag = 22
-   local xferObj = self.fiveMomentsXfer
    -- Begin sending/receiving fiveMoments if needed.
-   local recvFld = self.fiveMoments
-   for _, rank in ipairs(xferObj.srcRank) do
-      local _ = Mpi.Irecv(recvFld:dataPointer(), recvFld:size(), recvFld:elemCommType(),
-                          rank, tag, population:getComm(), xferObj.recvReq)
-   end
-   -- Post sends for every species in this rank.
-   local sendFld = self.fiveMoments
-   for _, rank in ipairs(xferObj.destRank) do
-      local _ = Mpi.Isend(sendFld:dataPointer(), sendFld:size(), sendFld:elemCommType(),
-                          rank, tag, population:getComm(), xferObj.sendReq)
-   end
+   population:speciesXferField_begin(self.fiveMomentsXfer, self.fiveMoments, 22)
 
    for _, coll in lume.orderedIter(self.collisions) do
       coll:calcCrossCouplingMoments(tCurr, rkIdx, population)
@@ -529,12 +511,12 @@ function VlasovSpecies:momCalcTime()
 end
 
 -- Please test this for higher than 1x1v... (MF: JJ?).
-function VlasovSpecies:Maxwellian(xn, n0, T0, vdnIn)
+function VlasovSpecies:Maxwellian(xn, n0, vdnIn, T0)
    local vdn = vdnIn or {0, 0, 0}
    local vt2 = T0/self.mass
    local v2 = 0.0
    for d = self.cdim+1, self.cdim+self.vdim do
-     v2 = v2 + (xn[d] - vdnIn[d-self.cdim])^2
+      v2 = v2 + (xn[d] - vdnIn[d-self.cdim])^2
    end
    return n0 / math.sqrt(2*math.pi*vt2)^self.vdim * math.exp(-v2/(2*vt2))
 end

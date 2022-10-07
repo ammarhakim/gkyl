@@ -303,38 +303,52 @@ function VmLBOCollisions:createCouplingSolver(population, field, externalField)
       end
 
       -- Create list of ranks we need to send/recv local self primitive moments to/from.
-      self.selfPrimMomsXfer = {}
-      self.selfPrimMomsXfer.destRank,     self.selfPrimMomsXfer.srcRank  = {}, {}
-      self.selfPrimMomsXfer.sendReqU,     self.selfPrimMomsXfer.recvReqU  = nil, nil
-      self.selfPrimMomsXfer.sendStatU,    self.selfPrimMomsXfer.recvStatU = nil, nil
-      self.selfPrimMomsXfer.sendReqVtSq,  self.selfPrimMomsXfer.recvReqVtSq  = nil, nil
-      self.selfPrimMomsXfer.sendStatVtSq, self.selfPrimMomsXfer.recvStatVtSq = nil, nil
+      -- MF: We'll merge uDrift and vtSq into a single CartField, and merge these two Xfer objects.
+      self.uSelfXfer = {}
+      self.uSelfXfer.destRank, self.uSelfXfer.srcRank = {}, {}
+      self.uSelfXfer.sendReqStat, self.uSelfXfer.recvReqStat = nil, nil
       for _, sO in ipairs(self.crossSpecies) do
          local sOrank = population:getSpeciesOwner(sO)
          local selfRank = population:getSpeciesOwner(self.speciesName)
          if isThisSpeciesMine then
             -- Only species owned by this rank send primMoms other ranks.
-            if #self.selfPrimMomsXfer.destRank == 0 and (not population:isSpeciesMine(sO)) then
-               table.insert(self.selfPrimMomsXfer.destRank, sOrank)
-               self.selfPrimMomsXfer.sendReqU  = Mpi.Request()
-               self.selfPrimMomsXfer.sendStatU = Mpi.Status()
-               self.selfPrimMomsXfer.sendReqVtSq  = Mpi.Request()
-               self.selfPrimMomsXfer.sendStatVtSq = Mpi.Status()
+            if #self.uSelfXfer.destRank == 0 and (not population:isSpeciesMine(sO)) then
+               table.insert(self.uSelfXfer.destRank, sOrank)
+               self.uSelfXfer.sendReqStat = Mpi.RequestStatus()
             end
          else
             -- Only species not owned by this rank receive primMoms from other ranks.
-            if #self.selfPrimMomsXfer.srcRank == 0 and (not population:isSpeciesMine(self.speciesName)) then
-               table.insert(self.selfPrimMomsXfer.srcRank, selfRank)
-               self.selfPrimMomsXfer.recvReqU  = Mpi.Request()
-               self.selfPrimMomsXfer.recvStatU = Mpi.Status()
-               self.selfPrimMomsXfer.recvReqVtSq  = Mpi.Request()
-               self.selfPrimMomsXfer.recvStatVtSq = Mpi.Status()
+            if #self.uSelfXfer.srcRank == 0 and (not population:isSpeciesMine(self.speciesName)) then
+               table.insert(self.uSelfXfer.srcRank, selfRank)
+               self.uSelfXfer.recvReqStat = Mpi.RequestStatus()
+            end
+         end
+      end
+      self.vtSqSelfXfer = {}
+      self.vtSqSelfXfer.destRank, self.vtSqSelfXfer.srcRank = {}, {}
+      self.vtSqSelfXfer.sendReqStat, self.vtSqSelfXfer.recvReqStat = nil, nil
+      for _, sO in ipairs(self.crossSpecies) do
+         local sOrank = population:getSpeciesOwner(sO)
+         local selfRank = population:getSpeciesOwner(self.speciesName)
+         if isThisSpeciesMine then
+            -- Only species owned by this rank send primMoms other ranks.
+            if #self.vtSqSelfXfer.destRank == 0 and (not population:isSpeciesMine(sO)) then
+               table.insert(self.vtSqSelfXfer.destRank, sOrank)
+               self.vtSqSelfXfer.sendReqStat = Mpi.RequestStatus()
+            end
+         else
+            -- Only species not owned by this rank receive primMoms from other ranks.
+            if #self.vtSqSelfXfer.srcRank == 0 and (not population:isSpeciesMine(self.speciesName)) then
+               table.insert(self.vtSqSelfXfer.srcRank, selfRank)
+               self.vtSqSelfXfer.recvReqStat = Mpi.RequestStatus()
             end
          end
       end
    else
-      self.selfPrimMomsXfer = {}
-      self.selfPrimMomsXfer.destRank, self.selfPrimMomsXfer.srcRank = {}, {}
+      self.uSelfXfer = {}
+      self.uSelfXfer.destRank, self.uSelfXfer.srcRank = {}, {}
+      self.vtSqSelfXfer = {}
+      self.vtSqSelfXfer.destRank, self.vtSqSelfXfer.srcRank = {}, {}
    end
 end
 
@@ -366,38 +380,9 @@ function VmLBOCollisions:calcCrossCouplingMoments(tCurr, rkIdx, population)
    -- Perform cross-species calculation related to coupling moments that require the
    -- self-species coupling moments.
 
-   local tag = 33
-   -- Begin sending/receiving primitive moments if needed.
-   local xferObj = self.selfPrimMomsXfer
-   local recvFld = self.uSelf
-   for _, rank in ipairs(xferObj.srcRank) do
-      local req = xferObj.recvReqU
-      local err = Mpi.Irecv(recvFld:dataPointer(), recvFld:size(),
-                            recvFld:elemCommType(), rank, tag, population:getComm(), req)
-   end
-   -- Post sends for every species in this rank.
-   local sendFld = self.uSelf
-   for _, rank in ipairs(xferObj.destRank) do
-      local req = xferObj.sendReqU
-      local err = Mpi.Isend(sendFld:dataPointer(), sendFld:size(),
-                            sendFld:elemCommType(), rank, tag, population:getComm(), req)
-   end
-
-   local tag = 34
-   -- Begin sending/receiving primitive moments if needed.
-   local recvFld = self.vtSqSelf
-   for _, rank in ipairs(xferObj.srcRank) do
-      local req = xferObj.recvReqVtSq
-      local err = Mpi.Irecv(recvFld:dataPointer(), recvFld:size(),
-                            recvFld:elemCommType(), rank, tag, population:getComm(), req)
-   end
-   -- Post sends for every species in this rank.
-   local sendFld = self.vtSqSelf
-   for _, rank in ipairs(xferObj.destRank) do
-      local req = xferObj.sendReqVtSq
-      local err = Mpi.Isend(sendFld:dataPointer(), sendFld:size(),
-                            sendFld:elemCommType(), rank, tag, population:getComm(), req)
-   end
+   -- Begin sending/receiving drift velocity and thermal speed squared if needed.
+   population:speciesXferField_begin(self.uSelfXfer, self.uSelf, 33)
+   population:speciesXferField_begin(self.vtSqSelfXfer, self.vtSqSelf, 34)
 end
 
 
@@ -453,15 +438,9 @@ function VmLBOCollisions:advance(tCurr, fIn, population, out)
 
          -- If we don't own the other species wait for its moments to be transferred. 
          if not population:isSpeciesMine(otherNm) then
-            local xferObj = population:getSpecies()[otherNm].fiveMomentsXfer
-            for _, rank in ipairs(xferObj.srcRank) do
-               local _ = Mpi.Wait(xferObj.recvReq, xferObj.recvStat)
-            end
-            local xferObj = self.collAppOther[otherNm].selfPrimMomsXfer
-            for _, rank in ipairs(xferObj.srcRank) do
-               local _ = Mpi.Wait(xferObj.recvReqU, xferObj.recvStatU)
-               local _ = Mpi.Wait(xferObj.recvReqVtSq, xferObj.recvStatVtSq)
-            end
+            population:speciesXferField_waitRecv(population:getSpecies()[otherNm].fiveMomentsXfer)
+            population:speciesXferField_waitRecv(self.collAppOther[otherNm].uSelfXfer)
+            population:speciesXferField_waitRecv(self.collAppOther[otherNm].vtSqSelfXfer)
          end
 
          local mOther            = species[otherNm]:getMass()
@@ -509,13 +488,10 @@ function VmLBOCollisions:advance(tCurr, fIn, population, out)
 
 end
 
-function VmLBOCollisions:advanceCrossSpeciesCoupling(tCurr, species, emIn, inIdx, outIdx)
+function VmLBOCollisions:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
    -- Wait to finish sending selfPrimMoms if needed.
-   local xferObj = self.selfPrimMomsXfer
-   for _, rank in ipairs(xferObj.destRank) do
-      local _ = Mpi.Wait(xferObj.sendReqU, xferObj.sendStatU)
-      local _ = Mpi.Wait(xferObj.sendReqVtSq, xferObj.sendStatVtSq)
-   end
+   population:speciesXferField_waitSend(self.uSelfXfer)
+   population:speciesXferField_waitSend(self.vtSqSelfXfer)
 end
 
 function VmLBOCollisions:write(tm, frame) end

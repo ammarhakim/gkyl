@@ -686,7 +686,7 @@ function GkSpecies:totalSolverTime()
    return timer
 end
 
-function GkSpecies:Maxwellian(xn, n0, T0, vdIn)
+function GkSpecies:Maxwellian(xn, n0, vdIn, T0)
    local vd   = vdIn or 0.0
    local vt2  = T0/self.mass
    local vpar = xn[self.cdim+1]

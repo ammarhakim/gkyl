@@ -290,7 +290,7 @@ end
 local function new_MPI_RequestStatus(sz)
    local sz = sz or 1
    local rss = ffi.gc(new("gkyl_MPI_Request_Status"), ffiC.gkyl_MPI_Request_Status_release) 
-   ffiC.allocReqStatPair(rss, sz)
+   ffiC.gkyl_MPI_Request_Status_alloc(rss, sz)
    return rss
 end
 local function new_MPI_Comm()
