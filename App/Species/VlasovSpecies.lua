@@ -300,7 +300,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(population)
                self.collPairs[sN][sO].on = lume.any(species[sN].collisions[collNm].collidingSpecies,
                                                     function(e) return e==sO end)
                if self.collPairs[sN][sO].on then
-                  self.collPairs[sN][sO].kind = species[sO].collisions[collNm].collKind
+                  self.collPairs[sN][sO].kind = species[sN].collisions[collNm].collKind
                   self.needFiveMoments = true  -- MF 2022/09/16: currently all collision models need M0, M1, M2.
                end
             end

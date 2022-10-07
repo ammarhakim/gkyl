@@ -16,6 +16,50 @@ local Proto         = require "Lib.Proto"
 local SpitzerNuDecl = require "Updater.spitzerNuCalcData.SpitzerNuModDecl"
 local xsys          = require "xsys"
 local Lin           = require "Lib.Linalg"
+local ffi           = require "ffi"
+
+local ffiC = ffi.C
+ffi.cdef [[
+// Object type
+typedef struct gkyl_spitzer_coll_freq gkyl_spitzer_coll_freq;
+
+/**
+ * Create new updater to either compute the Spitzer collision frequency from
+ * scratch based on local parameters, or scale a normalized collision frequency
+ * by the local n_r/(v_ts^2+v_tr^2)^(3/2).
+ *
+ * @param basis Basis object (configuration space).
+ * @param num_quad Number of quadrature nodes.
+ * @param use_gpu boolean indicating whether to use the GPU.
+ * @return New updater pointer.
+ */
+gkyl_spitzer_coll_freq* gkyl_spitzer_coll_freq_new(
+  const struct gkyl_basis *basis, int num_quad, bool use_gpu);
+
+/**
+ * Scale the normalized collision frequency, normNu, by
+ * n_r/(v_ts^2+v_tr^2)^(3/2) and project it on to the basis.
+ *
+ * @param up Spizer collision frequency updater object.
+ * @param range Config-space range
+ * @param vtSqSelf Thermal speed squared of this species.
+ * @param m0Other Thermal speed squared of the other species.
+ * @param vtSqOther Thermal speed squared of the other species.
+ * @param normNu Normalized collision frequency to scale.
+ * @param nuOut Output collision frequency.
+ */
+void gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
+  const struct gkyl_range *range, const struct gkyl_array *vtSqSelf,
+  const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther,
+  double normNu, struct gkyl_array *nuOut);
+
+/**
+ * Delete updater.
+ *
+ * @param pob Updater to delete.
+ */
+void gkyl_spitzer_coll_freq_release(gkyl_spitzer_coll_freq* up);
+]]
 
 -- Updater object.
 local SpitzerCollisionality = Proto(UpdaterBase)
@@ -48,50 +92,95 @@ function SpitzerCollisionality:init(tbl)
       self._nuFrac = 1.0
    end
 
-   -- Dimension of configuration space.
-   self._cDim = confBasis:ndim()
-   -- Basis name and polynomial order.
-   self._basisID   = confBasis:id()
-   self._polyOrder = confBasis:polyOrder()
-
-   -- Number of basis functions.
-   self._numBasisC = confBasis:numBasis()
+   self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
 
    if self._isNormNu then
-      if self._cellConstNu then
-         self._SpitzerNuCalc = SpitzerNuDecl.selectCellAvSpitzerNuScale(self._basisID, self._cDim, self._polyOrder)
-      else
-         self._SpitzerNuCalc = SpitzerNuDecl.selectSpitzerNuScale(self._basisID, self._cDim, self._polyOrder)
+      local numQuad = confBasis:polyOrder()+1
+      self._zero = ffi.gc(ffiC.gkyl_spitzer_coll_freq_new(confBasis._zero, numQuad, self._useGPU),
+                          ffiC.gkyl_spitzer_coll_freq_release)
+      self.advanceFunc = function(tCurr, inFld, outFld)
+         SpitzerCollisionality["_advance_normNu"](self, tCurr, inFld, outFld)
+      end
+      self.advanceOnDeviceFunc = function(tCurr, inFld, outFld)
+         SpitzerCollisionality["_advanceOnDevice_normNu"](self, tCurr, inFld, outFld)
       end
    else
-      if self._cellConstNu then
-         self._SpitzerNuCalc = SpitzerNuDecl.selectCellAvSpitzerNuBuild(self._basisID, self._cDim, self._polyOrder)
+
+      -- Dimension of configuration space.
+      local cDim = confBasis:ndim()
+      -- Basis name and polynomial order.
+      local basisID   = confBasis:id()
+      local polyOrder = confBasis:polyOrder()
+      -- Number of basis functions.
+      local numBasisC = confBasis:numBasis()
+
+      if self._isNormNu then
+         if self._cellConstNu then
+            self._SpitzerNuCalc = SpitzerNuDecl.selectCellAvSpitzerNuScale(basisID, cDim, polyOrder)
+         else
+            self._SpitzerNuCalc = SpitzerNuDecl.selectSpitzerNuScale(basisID, cDim, polyOrder)
+         end
       else
-         self._SpitzerNuCalc = SpitzerNuDecl.selectSpitzerNuBuild(self._basisID, self._cDim, self._polyOrder)
+         if self._cellConstNu then
+            self._SpitzerNuCalc = SpitzerNuDecl.selectCellAvSpitzerNuBuild(basisID, cDim, polyOrder)
+         else
+            self._SpitzerNuCalc = SpitzerNuDecl.selectSpitzerNuBuild(basisID, cDim, polyOrder)
+         end
+      end
+      self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
+
+      self._BmagZero = Lin.Vec(numBasisC)
+      for iC = 1,numBasisC do self._BmagZero[iC] = 0.0 end
+   
+      self.advanceFunc = function(tCurr, inFld, outFld)
+         SpitzerCollisionality["_advance_build"](self, tCurr, inFld, outFld)
       end
    end
-   self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
 
-   self._BmagZero = Lin.Vec(self._numBasisC)
-   for iC = 1,self._numBasisC do
-      self._BmagZero[iC] = 0.0
-   end
-   
 end
 
--- Advance method.
-function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
-   local grid = self._onGrid
-
+-- Advance methods.
+function SpitzerCollisionality:_advance_normNu(tCurr, inFld, outFld)
    local chargeSelf, massSelf   = inFld[1], inFld[2]
    local m0Self, vtSqSelf       = inFld[3], inFld[4]
    local chargeOther, massOther = inFld[5], inFld[6]
    local m0Other, vtSqOther     = inFld[7], inFld[8]
-
    local normNu = inFld[9]
-   local Bmag, BmagItr
+   local Bmag   = inFld[10]
 
-   local firstInput, massFac = 0.0, 0.0
+   local nuOut = outFld[1]
+
+   local range = self.onGhost and nuOut:localExtRange() or nuOut:localRange()
+
+   ffiC.gkyl_spitzer_coll_freq_advance_normnu(self._zero, range,
+      vtSqSelf._zero, m0Other._zero, vtSqOther._zero, normNu*self._nuFrac, nuOut._zero)
+end
+
+function SpitzerCollisionality:_advanceOnDevice_normNu(tCurr, inFld, outFld)
+   local chargeSelf, massSelf   = inFld[1], inFld[2]
+   local m0Self, vtSqSelf       = inFld[3], inFld[4]
+   local chargeOther, massOther = inFld[5], inFld[6]
+   local m0Other, vtSqOther     = inFld[7], inFld[8]
+   local normNu = inFld[9]
+   local Bmag   = inFld[10]
+
+   local nuOut = outFld[1]
+
+   local range = self.onGhost and nuOut:localExtRange() or nuOut:localRange()
+
+   ffiC.gkyl_spitzer_coll_freq_advance_normnu(self._zero, range,
+      vtSqSelf._zeroDevice, m0Other._zeroDevice, vtSqOther._zeroDevice, normNu*self._nuFrac, nuOut._zeroDevice)
+end
+
+function SpitzerCollisionality:_advance_build(tCurr, inFld, outFld)
+   local chargeSelf, massSelf   = inFld[1], inFld[2]
+   local m0Self, vtSqSelf       = inFld[3], inFld[4]
+   local chargeOther, massOther = inFld[5], inFld[6]
+   local m0Other, vtSqOther     = inFld[7], inFld[8]
+   local normNu = inFld[9]
+   local Bmag   = inFld[10]
+
+   local nuOut = outFld[1]
 
    local confIndexer = m0Self:genIndexer()
 
@@ -100,16 +189,16 @@ function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
    local m0OtherItr   = m0Other:get(1)
    local vtSqOtherItr = vtSqOther:get(1)
 
-   local nuOut    = outFld[1]
    local nuOutItr = nuOut:get(1)
 
    local confRange = m0Self:localRange()
    if self.onGhosts then confRange = m0Self:localExtRange() end
 
+   local grid = self._onGrid
+
    -- Fork logic here to avoid if-statement in space loop.
-   if (inFld[10] ~= nil) then
-      Bmag    = inFld[10]
-      BmagItr = Bmag:get(1)
+   if (Bmag ~= nil) then
+      local BmagItr = Bmag:get(1)
       for cIdx in confRange:rowMajorIter() do
          grid:setIndex(cIdx)
  
@@ -125,7 +214,7 @@ function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
          self._SpitzerNuCalc(self._elemCharge, self._epsilon0, self._hBar, self._nuFrac, chargeSelf, massSelf, m0SelfItr:data(), vtSqSelfItr:data(), chargeOther, massOther, m0OtherItr:data(), vtSqOtherItr:data(), normNu, BmagItr:data(), nuOutItr:data())
       end
    else
-      BmagItr = self._BmagZero
+      local BmagItr = self._BmagZero
       for cIdx in confRange:rowMajorIter() do
          grid:setIndex(cIdx)
  
@@ -139,6 +228,14 @@ function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
          self._SpitzerNuCalc(self._elemCharge, self._epsilon0, self._hBar, self._nuFrac, chargeSelf, massSelf, m0SelfItr:data(), vtSqSelfItr:data(), chargeOther, massOther, m0OtherItr:data(), vtSqOtherItr:data(), normNu, BmagItr:data(), nuOutItr:data())
       end
    end
+end
+
+function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
+   self.advanceFunc(tCurr, inFld, outFld)
+end
+
+function SpitzerCollisionality:_advanceOnDevice(tCurr, inFld, outFld)
+   self.advanceOnDeviceFunc(tCurr, inFld, outFld)
 end
 
 return SpitzerCollisionality

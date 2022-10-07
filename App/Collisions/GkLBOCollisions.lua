@@ -104,9 +104,9 @@ function GkLBOCollisions:fullInit(speciesTbl)
       -- normNuSelf, epsilon0 and elemCharge may not used, but are
       -- initialized to avoid if-statements in advance method.
       if self.normNuIn then
-         self.normNuSelf  = self.normNuIn[selfSpecInd]
+         self.normNuSelf = self.normNuIn[selfSpecInd]
          if self.crossCollisions then
-            self.normNuCrossIn = lume.clone(self.normNuIn)
+            local normNuCrossIn = lume.clone(self.normNuIn)
             table.remove(normNuCrossIn, selfSpecInd)
             self.normNuCross = {}  -- Need a name-value pairs table.
             for i, nm in ipairs(self.crossSpecies) do self.normNuCross[nm] = normNuCrossIn[i] end
@@ -243,6 +243,8 @@ function GkLBOCollisions:createSolver(mySpecies, externalField)
    self.nuUParSum = mySpecies:allocMoment()
    -- Sum of squared thermal speeds, vthSq=T/m, multiplied by respective collisionalities.
    self.nuVtSqSum = mySpecies:allocMoment()
+
+   self.m2Self = mySpecies:allocMoment() -- M2, to be extracted from threeMoments.
 end
 
 function GkLBOCollisions:createCouplingSolver(species, field, externalField)
@@ -262,7 +264,7 @@ function GkLBOCollisions:boundaryCorrections() return self.boundCorrs end
 function GkLBOCollisions:selfPrimitiveMoments() return self.uParSelf, self.vtSqSelf end
 function GkLBOCollisions:crossFrequencies(speciesName) return self.nuCross[speciesName] end
 function GkLBOCollisions:crossNormNu(speciesName) return self.normNuCross[speciesName] end
-function GkLBOCollisions:crossFlags(speciesName) return self.crossFlags[speciesName] end
+function GkLBOCollisions:getCrossFlags(speciesName) return self.crossFlags[speciesName] end
 
 function GkLBOCollisions:createDiagnostics(mySpecies, field)
    -- Create source diagnostics.
@@ -302,7 +304,7 @@ function GkLBOCollisions:calcCrossNuTimeDep(species, otherNm,
    -- Compute the Spitzer collisionality if another species hasn't already done so.
    local chargeOther     = species[otherNm]:getCharge()
    local crossFlagsSelf  = self.crossFlags[otherNm]
-   local crossFlagsOther = self.collAppOther[otherNm]:crossFlags(self.speciesName)
+   local crossFlagsOther = self.collAppOther[otherNm]:getCrossFlags(self.speciesName)
    self.m0Other:combineOffset(1., momsOther, 0)
    if not crossFlagsSelf then
       local crossNormNuSelf = self.normNuCross[otherNm]
@@ -379,9 +381,12 @@ function GkLBOCollisions:advance(tCurr, fIn, species, out)
    end    -- end if self.crossCollisions.
    self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 
+   -- M2 self is needed as a precaution in GkLBO.
+   self.m2Self:combineOffset(1., momsSelf, 2*self.confBasis:numBasis())
+
    -- Compute increment from collisions and accumulate it into output.
    self.collisionSlvr:advance(
-      tCurr, {fIn, self.bmagInv, self.nuUParSum, self.nuVtSqSum, self.nuSum}, {fRhsOut, cflRateByCell})
+      tCurr, {fIn, self.bmagInv, self.nuUParSum, self.nuVtSqSum, self.nuSum, self.m2Self}, {fRhsOut, cflRateByCell})
 end
 
 function GkLBOCollisions:write(tm, frame) end

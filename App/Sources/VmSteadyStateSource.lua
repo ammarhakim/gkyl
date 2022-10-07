@@ -80,45 +80,52 @@ function VmSteadyStateSource:createSolver(mySpecies, extField)
    numDensitySrc:write(string.format("%s_M0_0.bp", self.name), 0., 0)
    momDensitySrc:write(string.format("%s_M1_0.bp", self.name), 0., 0)
    ptclEnergySrc:write(string.format("%s_M2_0.bp", self.name), 0., 0)
+
+   self.momDensityBuf = mySpecies:allocVectorMoment(mySpecies.vdim)
+
+   local numConfDims  = self.confBasis:ndim()
+   local numConfBasis = self.confBasis:numBasis()
+   assert(numConfDims==1, "VlasovSpecies: The steady state source is available only for 1X.")
+
+   local blowerV, bupperV = Lin.Vec(numConfDims), Lin.Vec(numConfDims)
+   blowerV[1], bupperV[1] = -1.0, 1.0
+   self.basisUpper, self.basisLower = Lin.Vec(numConfBasis),  Lin.Vec(numConfBasis)
+   self.confBasis:evalBasis(bupperV:data(), self.basisUpper:data())
+   self.confBasis:evalBasis(blowerV:data(), self.basisLower:data())
+
+   self.localEdgeFlux = ffi.new("double[1]")
+   self.globalEdgeFlux = ffi.new("double[1]")
 end
 
 function VmSteadyStateSource:advance(tCurr, fIn, species, fRhsOut)
    local tm = Time.clock()
-   local localEdgeFlux = ffi.new("double[3]")
-   localEdgeFlux[0] = 0.0
-   localEdgeFlux[1] = 0.0
-   localEdgeFlux[2] = 0.0
-   for sInd, otherNm in ipairs(self.sourceSpecies) do
-      local numConfDims = self.confBasis:ndim()
-      assert(numConfDims==1, "VlasovSpecies: The steady state source is available only for 1X.")
-      local numConfBasis = self.confBasis:numBasis()
-      local lower, upper = Lin.Vec(numConfDims), Lin.Vec(numConfDims)
-      lower[1], upper[1] = -1.0, 1.0
-      local basisUpper = Lin.Vec(numConfBasis)
-      local basisLower = Lin.Vec(numConfBasis)
+   self.localEdgeFlux[0] = 0.0
+   local numConfBasis = self.confBasis:numBasis()
+   for _, otherNm in ipairs(self.sourceSpecies) do
 
-      self.confBasis:evalBasis(upper, basisUpper)
-      self.confBasis:evalBasis(lower, basisLower)
+      local moms = species[otherNm]:fluidMoments()
+      local flux = self.momDensityBuf
+      flux:combineOffset(1., moms, 1*numConfBasis)
 
-      local flux = species[otherNm]:fluidMoments()[2]
+      if GKYL_USE_GPU then flux:copyDeviceToHost() end
+
       local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(1)
       for idx in flux:localRangeIter() do
          if idx[1] == self.confGrid:numCells(1) then
             flux:fill(fluxIndexer(idx), fluxItr)
             for k = 1, numConfBasis do
-               localEdgeFlux[0] = localEdgeFlux[0] + fluxItr[k]*basisUpper[k]
+               self.localEdgeFlux[0] = self.localEdgeFlux[0] + fluxItr[k]*self.basisUpper[k]
             end
          elseif idx[1] == 1 then
             flux:fill(fluxIndexer(idx), fluxItr)
             for k = 1, numConfBasis do
-               localEdgeFlux[0] = localEdgeFlux[0] - fluxItr[k]*basisLower[k]
+               self.localEdgeFlux[0] = self.localEdgeFlux[0] - fluxItr[k]*self.basisLower[k]
             end
          end
       end
    end
-   local globalEdgeFlux = ffi.new("double[3]")
-   Mpi.Allreduce(localEdgeFlux, globalEdgeFlux, 1, Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
-   local densFactor = globalEdgeFlux[0]/self.sourceLength
+   Mpi.Allreduce(self.localEdgeFlux, self.globalEdgeFlux, 1, Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
+   local densFactor = self.globalEdgeFlux[0]/self.sourceLength
    fRhsOut:accumulate(densFactor, self.fSource)
    self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
 end
