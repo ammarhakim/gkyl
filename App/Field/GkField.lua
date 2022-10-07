@@ -640,7 +640,7 @@ function GkField:createDiagnostics()
        end
    or function(tm, force) end
    
-   self.writePhiIntDiags = (self.evolve and self.isElectromagnetic)
+   self.writePhiIntDiags = (self.evolve and (not self.externalPhi))
    and function(tm, force)
           self.intPhiSq:write(string.format("intPhiSq.bp"), tm, self.ioFrame)
           self.gradPerpPhiSq:write(string.format("gradPerpPhiSq.bp"), tm, self.ioFrame)
@@ -653,7 +653,7 @@ function GkField:createDiagnostics()
        end
    or function(tm, force) end
    
-   self.writeAparGridDiags = self.isElectromagnetic
+   self.writeAparGridDiags = (self.evolve and self.isElectromagnetic)
    and (self.evolve and function(tm, force)
           self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
           self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
