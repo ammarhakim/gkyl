@@ -13,7 +13,6 @@ local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Constants        = require "Lib.Constants"
 local DataStruct       = require "DataStruct"
 local LinearTrigger    = require "LinearTrigger"
-local Mpi              = require "Comm.Mpi"
 local Proto            = require "Lib.Proto"
 local Updater          = require "Updater"
 local xsys             = require "xsys"
@@ -238,18 +237,22 @@ function GkField:alloc(nRkDup)
 
    self.dApardtProv = createField(self.grid,self.basis,{1,1})
 
-   -- Create fields for total charge and current densities.
-   self.chargeDens  = createField(self.grid,self.basis,{1,1})
-   self.currentDens = createField(self.grid,self.basis,{1,1})
-
-   -- Set up some other fields.
+   -- Create fields for total charge density and other things needed for Poisson solve.
+   self.chargeDens      = createField(self.grid,self.basis,{1,1})
+   self.chargeDensLocal = createField(self.grid,self.basis,{1,1})
    self.polarizationWeight = createField(self.grid,self.basis,{1,1})
+   self.polarizationWeightLocal = createField(self.grid,self.basis,{1,1})
    self.lapWeightPoisson   = self.ndim > 1 and createField(self.grid,self.basis,{1,1}) or nil
    self.modWeightPoisson   = createField(self.grid,self.basis,{1,1})
+
    if self.isElectromagnetic then
+      -- Create fields for total current density and other things needed for Ampere solve.
+      self.currentDens           = createField(self.grid,self.basis,{1,1})
+      self.currentDensLocal      = createField(self.grid,self.basis,{1,1})
       self.dApardtSlvr_lapModFac = createField(self.grid,self.basis,{1,1})
       self.lapWeightAmpere       = createField(self.grid,self.basis,{1,1})
       self.modWeightAmpere       = createField(self.grid,self.basis,{1,1})
+      self.modWeightAmpereLocal  = createField(self.grid,self.basis,{1,1})
    end
    
    -- For diagnostics:
@@ -259,13 +262,13 @@ end
 
 -- Solve for initial fields self-consistently 
 -- from initial distribution function.
-function GkField:initField(species)
+function GkField:initField(population)
    if not self.externalPhi then
       -- Solve for initial phi. Temporarily re-set the calcPhi function in the advance method.
       local trueCalcPhi = self.calcPhi
       self.calcPhi = (not self.evolve) and self.calcPhiInitial or self.calcPhi
 
-      self:advance(0.0, species, 1, 1)
+      self:advance(0.0, population, 1, 1)
 
       if (not self.evolve) then self.calcPhi = trueCalcPhi end
    end
@@ -273,10 +276,14 @@ function GkField:initField(species)
    if self.isElectromagnetic then
       -- Solve for initial Apar.
       local apar = self.potentials[1].apar
-      self.currentDens:clear(0.0)
-      for _, s in lume.orderedIter(species) do
-         self.currentDens:accumulate(s:getCharge(), s:getMomDensity())
+      self.currentDensLocal:clear(0.0)
+      for _, s in population.iterLocal() do
+         self.currentDensLocal:accumulate(s:getCharge(), s:getMomDensity())
       end
+      -- Reduce currents across species communicator.
+      self.currentDens:clear(0.0)
+      self.currentDens:reduceByCell('sum', population:getComm(), self.currentDensLocal)
+
       self.aparSlvr:advance(0.0, {self.currentDens}, {apar})
 
       -- Clear dApar/dt ... will be solved for before being used.
@@ -316,8 +323,6 @@ function GkField:createSolver(population, externalField)
    -- Need to set this flag so that field calculated self-consistently at end of full RK timestep.
    self.isElliptic = true
 
-   local species = population:getSpecies()
-
    if self.externalPhi then
       local evalOnNodes = Updater.EvalOnNodes {
          onGrid = self.grid,   evaluate = self.externalPhi,
@@ -330,15 +335,15 @@ function GkField:createSolver(population, externalField)
       end
 
       if self.evolve then
-	 self.calcPhi = function(tCurr, species, potentialsIn, potentialsOut)
+	 self.calcPhi = function(tCurr, populationIn, potentialsIn, potentialsOut)
             potentialsIn.phi:combine(self.externalPhiTimeDependence(tCurr), self.externalPhiFld)
 	 end
       else
-	 self.calcPhi = function(tCurr, species, potentialsIn, potentialsOut) end
+	 self.calcPhi = function(tCurr, populationIn, potentialsIn, potentialsOut) end
       end
    else
       -- Get adiabatic species info.
-      for _, s in lume.orderedIter(species) do
+      for _, s in population.iterGlobal() do
          if Species.AdiabaticSpecies.is(s) then
             self.adiabatic, self.adiabSpec = true, s
          end
@@ -399,12 +404,16 @@ function GkField:createSolver(population, externalField)
       -- the density in the polarization density is constant in time.
       if self.linearizedPolarization then
          -- Calculate weight on polarization term: sum_s m_s * jacobGeo * n_s / B^2.
-         self.polarizationWeight:clear(0.)
-         for _, s in lume.orderedIter(species) do
+         self.polarizationWeightLocal:clear(0.)
+         for _, s in population.iterLocal() do
             if Species.GkSpecies.is(s) or Species.GyrofluidSpecies.is(s) then
-               self.polarizationWeight:accumulate(1., s:getPolarizationWeight())
+               self.polarizationWeightLocal:accumulate(1., s:getPolarizationWeight())
             end
          end
+         -- Reduce polarization weight across species communicator.
+         self.polarizationWeight:clear(0.0)
+         self.polarizationWeight:reduceByCell('sum', population:getComm(), self.polarizationWeightLocal)
+
          self.esEnergyFac:combine(.5, self.polarizationWeight)
 
          -- Set up scalar multipliers on laplacian and modifier terms in Poisson equation.
@@ -425,26 +434,32 @@ function GkField:createSolver(population, externalField)
                self.modWeightPoisson:accumulate(1., self.adiabSpec:getQneutFac())
                self.phiSlvr:setModifierWeight(self.modWeightPoisson)
             end
-
          end
 
-         self.setPolarizationWeightFunc = function(specTbl) end  -- Polarization weight is not time dependent.
+         self.setPolarizationWeightFunc = function(populationTbl) end  -- Polarization weight is not time dependent.
       else
          -- When not using linearizedPolarization, weights are set each step in advance method using these functions.
          if self.ndim == 1 then
-            self.setPolarizationWeightFunc = function(specTbl)
-               self.polarizationWeight:clear(0.0)
-               for _, s in lume.orderedIter(specTbl) do
-                  self.polarizationWeight:accumulate(self.kperpSq, s:getPolarizationMassDensity())
+            self.setPolarizationWeightFunc = function(populationTbl)
+               self.polarizationWeightLocal:clear(0.)
+               for _, s in populationTbl.iterLocal() do
+                  self.polarizationWeightLocal:accumulate(self.kperpSq, s:getPolarizationMassDensity())
                end
+               -- Reduce polarization weight across species communicator.
+               self.polarizationWeight:clear(0.0)
+               self.polarizationWeight:reduceByCell('sum', populationTbl:getComm(), self.polarizationWeightLocal)
             end
             self.phiSlvr:setWeight(self.polarizationWeight)
          else
-            self.setPolarizationWeightFunc = function(specTbl)
-               self.polarizationWeight:clear(0.0)
-               for _, s in lume.orderedIter(specTbl) do
-                  self.polarizationWeight:accumulate(-1.0, s:getPolarizationMassDensity())
+            self.setPolarizationWeightFunc = function(populationTbl)
+               self.polarizationWeightLocal:clear(0.)
+               for _, s in populationTbl.iterLocal() do
+                  self.polarizationWeightLocal:accumulate(-1.0, s:getPolarizationMassDensity())
                end
+               -- Reduce polarization weight across species communicator.
+               self.polarizationWeight:clear(0.0)
+               self.polarizationWeight:reduceByCell('sum', populationTbl:getComm(), self.polarizationWeightLocal)
+
                self.phiSlvr:setLaplacianWeight(self.polarizationWeight)
             end
          end
@@ -476,14 +491,17 @@ function GkField:createSolver(population, externalField)
       end
 
       -- Function called in the advance method.
-      self.calcPhiInitial = function(tCurr, species, potentialsIn, potentialsOut)
-         self.chargeDens:clear(0.0)
-         for _, s in lume.orderedIter(species) do
-            self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
+      self.calcPhiInitial = function(tCurr, populationIn, potentialsIn, potentialsOut)
+         self.chargeDensLocal:clear(0.0)
+         for _, s in populationIn.iterLocal() do
+            self.chargeDensLocal:accumulate(s:getCharge(), s:getNumDensity())
          end
+         -- Reduce charge density across species communicator.
+         self.chargeDens:clear(0.0)
+         self.chargeDens:reduceByCell('sum', populationIn:getComm(), self.chargeDensLocal)
 
          -- If not using linearized polarization term, set up laplacian weight.
-         self:setPolarizationWeight(species)
+         self:setPolarizationWeight(populationIn)
 
          -- Phi solve (elliptic, so update potentials).
          -- Energy conservation requires phi to be continuous in all directions. 
@@ -497,11 +515,11 @@ function GkField:createSolver(population, externalField)
       self.calcPhi = self.evolve
          and self.calcPhiInitial
 	 or (self.isElectromagnetic
-	     and function(tCurr, species, potentialsIn, potentialsOut)
+	     and function(tCurr, populationIn, potentialsIn, potentialsOut)
                     -- Just copy stuff over.
                     potentialsOut.apar:copy(potentialsIn.apar)
 	         end
-             or function(tCurr, species, potentialsIn, potentialsOut) end)
+             or function(tCurr, populationIn, potentialsIn, potentialsOut) end)
 
    end -- end if (self.externalPhi)
 
@@ -554,9 +572,7 @@ function GkField:createSolver(population, externalField)
    end
 
    if self.isElectromagnetic then self.nstep = 2 end
-end
 
-function GkField:createDiagnostics()
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
       elemType   = self.potentials[1].phi:elemType(),
@@ -564,8 +580,11 @@ function GkField:createDiagnostics()
       writeGhost = self.writeGhost,
       metaData   = {polyOrder = self.basis:polyOrder(),
                     basisType = self.basis:id(),},
+      writeRankInComm = {0, population:getComm(),}
    }
+end
 
+function GkField:createDiagnostics()
    -- Updaters for computing integrated quantities.
    self.int2Calc = Updater.CartFieldIntegratedQuantCalc {
       onGrid = self.grid,   quantity = "V2",
@@ -588,8 +607,7 @@ function GkField:createDiagnostics()
    -- loop. This is akin to what is done in SpeciesDiagnostis, and perhaps we should use a
    -- diagnostics App for the fields too.
    self.calcPhiGridDiags = self.evolve
-   and function(tm, force)
-       end
+   and function(tm, force) end
    or function(tm, force) end
    
    self.writePhiGridDiags = self.evolve
@@ -598,7 +616,7 @@ function GkField:createDiagnostics()
        end
    or function(tm, force)
          if self.ioFrame == 0 then
-   	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
+            self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
          end
       end
    
@@ -642,7 +660,7 @@ function GkField:createDiagnostics()
        end
    or function(tm, force) end
    
-   self.writePhiIntDiags = (self.evolve and self.isElectromagnetic)
+   self.writePhiIntDiags = (self.evolve and (not self.externalPhi))
    and function(tm, force)
           self.intPhiSq:write(string.format("intPhiSq.bp"), tm, self.ioFrame)
           self.gradPerpPhiSq:write(string.format("gradPerpPhiSq.bp"), tm, self.ioFrame)
@@ -651,11 +669,10 @@ function GkField:createDiagnostics()
    or function(tm, force) end
    
    self.calcAparGridDiags = (self.evolve and self.isElectromagnetic)
-   and function(tm, force)
-       end
+   and function(tm, force) end
    or function(tm, force) end
    
-   self.writeAparGridDiags = self.isElectromagnetic
+   self.writeAparGridDiags = (self.evolve and self.isElectromagnetic)
    and (self.evolve and function(tm, force)
           self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
           self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
@@ -730,24 +747,24 @@ function GkField:readRestart()
    self.ioTrigger(tm)
 end
 
-function GkField:setPolarizationWeight(speciesIn)
-   self.setPolarizationWeightFunc(speciesIn)
+function GkField:setPolarizationWeight(populationIn)
+   self.setPolarizationWeightFunc(populationIn)
 end
 
 -- Solve for electrostatic potential phi.
-function GkField:advance(tCurr, species, inIdx, outIdx)
+function GkField:advance(tCurr, population, inIdx, outIdx)
    local tmStart = Time.clock()
 
    local potCurr = self:rkStepperFields()[inIdx]
    local potRhs  = self:rkStepperFields()[outIdx]
    
-   self.calcPhi(tCurr, species, potCurr, potRhs)
+   self.calcPhi(tCurr, population, potCurr, potRhs)
 
    self.timers.advTime[1] = self.timers.advTime[1] + Time.clock() - tmStart
 end
 
 -- Solve for dApardt in p>=2, or solve for a provisional dApardtProv in p=1.
-function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
+function GkField:advanceStep2(tCurr, population, inIdx, outIdx)
    local tmStart = Time.clock()
 
    local potCurr = self:rkStepperFields()[inIdx]
@@ -755,15 +772,21 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
 
    if self.evolve then
 
-      self.currentDens:clear(0.0)
-      self.modWeightAmpere:copy(self.dApardtSlvr_lapModFac)
-      for _, s in lume.orderedIter(species) do
+      self.currentDensLocal:clear(0.0)
+      self.modWeightAmpereLocal:copy(self.dApardtSlvr_lapModFac)
+      for _, s in population.iterLocal() do
          if s:isEvolving() then 
-            self.modWeightAmpere:accumulate((s:getCharge()^2)/s:getMass(), s:getNumDensity())
+            self.modWeightAmpereLocal:accumulate((s:getCharge()^2)/s:getMass(), s:getNumDensity())
             -- Taking momDensity at outIdx gives momentum moment of df/dt.
-            self.currentDens:accumulate(s:getCharge(), s:getMomDensity(outIdx))
+            self.currentDensLocal:accumulate(s:getCharge(), s:getMomDensity(outIdx))
          end
       end
+      -- Reduce currents and Ampere weight across species communicator.
+      self.currentDens:clear(0.0)
+      self.currentDens:reduceByCell('sum', population:getComm(), self.currentDensLocal)
+      self.modWeightAmpere:clear(0.0)
+      self.modWeightAmpere:reduceByCell('sum', population:getComm(), self.modWeightAmpereLocal)
+
       self.dApardtSlvr:setModifierWeight(self.modWeightAmpere)
       -- dApar/dt solve.
       local dApardt = potCurr.dApardt
@@ -917,20 +940,9 @@ function GkGeometry:alloc()
 
    -- Wall potential for sheath BCs.
    self.geo.phiWall = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-      
-   -- Create Adios object for field I/O.
-   self.fieldIo = AdiosCartFieldIo {
-      elemType   = self.geo.bmag:elemType(),
-      method     = self.ioMethod,
-      writeGhost = self.writeGhost,
-      metaData   = {
-	 polyOrder = self.basis:polyOrder(),
-	 basisType = self.basis:id()
-      },
-   }   
 end
 
-function GkGeometry:createSolver()
+function GkGeometry:createSolver(population)
 
    -- Get configuration-space Jacobian from grid (used by App/Projection/GkProjection, via GkSpecies).
    self.jacobGeoFunc = function (t, xn) return self.grid:calcJacobian(xn) end
@@ -1051,11 +1063,22 @@ function GkGeometry:createSolver()
    self.separateComponents = Updater.SeparateVectorComponents {
       onGrid = self.grid,  basis = self.basis,
    }
+      
+   -- Create Adios object for field I/O.
+   self.fieldIo = AdiosCartFieldIo {
+      elemType   = self.geo.bmag:elemType(),
+      method     = self.ioMethod,
+      writeGhost = self.writeGhost,
+      metaData   = { polyOrder = self.basis:polyOrder(),
+	             basisType = self.basis:id(),
+                     grid      = GKYL_OUT_PREFIX .. "_grid.bp", },
+      writeRankInComm = {0, population:getComm(),}
+   }   
 end
 
 function GkGeometry:createDiagnostics() end
 
-function GkGeometry:initField()
+function GkGeometry:initField(population)
    local log = Logger { logToFile = true }
    log("...Initializing the geometry...\n")
    if self.fromFile then
@@ -1135,12 +1158,8 @@ function GkGeometry:write(tm)
       end
 
       -- Write a grid file.
-      local metaData = {
-         polyOrder = self.basis:polyOrder(),
-         basisType = self.basis:id(),
-         grid      = GKYL_OUT_PREFIX .. "_grid.bp"
-      }
-      self.grid:write("grid.bp", 0.0, metaData)
+      local gridNodalCoords = self.grid:getNodalCoords()
+      if gridNodalCoords then self.fieldIo:write(gridNodalCoords, "grid.bp", tm, self.ioFrame) end
    end
    self.ioFrame = self.ioFrame+1
 end

@@ -18,7 +18,6 @@ local Constants      = require "Lib.Constants"
 local Lin            = require "Lib.Linalg"
 local xsys           = require "xsys"
 local Source         = require "App.Sources.GkSource"
-local VlasovEq       = require "Eq.Vlasov"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local GkDiags        = require "App.Diagnostics.GkDiagnostics"
 local BasicBC        = require("App.BCs.GkBasic").GkBasic
@@ -405,62 +404,42 @@ function GkSpecies:initCrossSpeciesCoupling(population)
       end
    end
 
-   -- If ionization collision object exists, locate electrons
-   local counterIz_elc = true
-   local counterIz_neut = true
-   for sN, _ in lume.orderedIter(species) do
-      if species[sN].collisions and next(species[sN].collisions) then 
-         for sO, _ in lume.orderedIter(species) do
-   	    if self.collPairs[sN][sO].on then
-   	       if (self.collPairs[sN][sO].kind == 'Ionization') then
-   		  for collNm, _ in pairs(species[sN].collisions) do
-   		     if self.name==species[sN].collisions[collNm].elcNm and counterIz_elc then
-   			self.neutNmIz = species[sN].collisions[collNm].neutNm
-			self.calcReactRate    = true
-   			self.collNmIoniz      = collNm
-			species[self.neutNmIz].calcIntSrcIz = true
-			species[self.neutNmIz].collNmIoniz = collNm
-   			counterIz_elc = false
-		     elseif self.name==species[sN].collisions[collNm].neutNm and counterIz_neut then
-			self.needSelfPrimMom = true
-   		     end
-   		  end
-   	       end
-   	    end
-   	 end
-      end
+   local isThisSpeciesMine = population:isSpeciesMine(self.name)
+   -- Allocate threeMoments if we collide with other species not in this rank.
+   if self.needThreeMoments and (not isThisSpeciesMine) then
+      self.threeMoments = self:allocVectorMoment(3)
    end
 
-   -- If Charge Exchange collision object exists, locate ions
-   local counterCX_ion = true
-   for sN, _ in lume.orderedIter(species) do
-      if species[sN].collisions and next(species[sN].collisions) then 
-         for sO, _ in lume.orderedIter(species) do
-   	    if self.collPairs[sN][sO].on then
-   	       if (self.collPairs[sN][sO].kind == 'CX') then
-   		  for collNm, _ in pairs(species[sN].collisions) do
-   		     if self.name==species[sN].collisions[collNm].ionNm and counterCX_ion then
-   			self.calcCXSrc        = true			
-   			self.collNmCX         = collNm
-   			self.neutNmCX         = species[sN].collisions[collNm].neutNm
-			species[self.neutNmCX].needSelfPrimMom = true
-			--self.vSigmaCX         = self:allocMoment()
-   			species[self.neutNmCX].needSelfPrimMom = true
-   			counterCX_ion = false
-    		     end
-   		  end
-   	       end
-   	    end
-   	 end
-      end
-   end
-   
+   -- Create list of ranks we need to send/recv local threeMoments to/from.
+   self.threeMomentsXfer = {}
+   self.threeMomentsXfer.destRank, self.threeMomentsXfer.srcRank  = {}, {}
+   self.threeMomentsXfer.sendReqStat, self.threeMomentsXfer.recvReqStat = nil, nil
+   for sO, info in pairs(self.collPairs[self.name]) do
+      local sOrank = population:getSpeciesOwner(sO)
+      local selfRank = population:getSpeciesOwner(self.name)
+      if sO~=self.name and info.on then
+         if isThisSpeciesMine then
+            -- Only species owned by this rank send threeMoments to other ranks.
+            if #self.threeMomentsXfer.destRank == 0 and (not population:isSpeciesMine(sO)) then
+               table.insert(self.threeMomentsXfer.destRank, sOrank)
+               self.threeMomentsXfer.sendReqStat = Mpi.RequestStatus()
+            end
+         else
+            -- Only species not owned by this rank receive threeMoments from other ranks.
+            if #self.threeMomentsXfer.srcRank == 0 and (not population:isSpeciesMine(self.name)) then
+               table.insert(self.threeMomentsXfer.srcRank, selfRank)
+               self.threeMomentsXfer.recvReqStat = Mpi.RequestStatus()
+            end
+         end
+       end
+    end
+
    -- Initialize the BC cross-coupling interactions.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:initCrossSpeciesCoupling(species) end
 
 end
 
-function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
+function GkSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
    self:setActiveRKidx(inIdx)
    self.tCurr = tCurr
    local fIn     = self:rkStepperFields()[inIdx]
@@ -481,8 +460,8 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    fRhsOut:clear(0.0)
 
    -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
-   for nm, c in pairs(self.collisions) do
-      c:advance(tCurr, fIn, species, {fRhsOut, self.cflRateByCell})
+   for _, c in pairs(self.collisions) do
+      c:advance(tCurr, fIn, population, {fRhsOut, self.cflRateByCell})
    end
 
    self.collisionlessAdvance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut, self.cflRateByCell})
@@ -492,10 +471,10 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
    emIn[1]:useBoundaryFlux(tCurr, outIdx)  -- Some field objects need to use the boundary fluxes right away.
 
-   for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
+   for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, population:getSpecies(), fRhsOut) end
 end
 
-function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
+function GkSpecies:advanceStep2(tCurr, population, emIn, inIdx, outIdx)
    local fIn = self:rkStepperFields()[inIdx]
    if self.positivityRescale then
       fIn = self.fPos
@@ -512,7 +491,7 @@ function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
    end
 end
 
-function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
+function GkSpecies:advanceStep3(tCurr, population, emIn, inIdx, outIdx)
    local fIn = self:rkStepperFields()[inIdx]
    if self.positivityRescale then
       fIn = self.fPos
@@ -527,6 +506,22 @@ function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
       self.solverStep3:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solverStep3:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
    end
+end
+
+function GkSpecies:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
+   -- Perform some operations after the updates have been computed, but before
+   -- the combine RK (in PlasmaOnCartGrid) is called.
+
+   local species = population:getSpecies()
+
+   -- Wait to finish sending threeMoments if needed.
+   population:speciesXferField_waitSend(self.threeMomentsXfer)
+
+   for _, coll in lume.orderedIter(self.collisions) do
+      coll:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
+   end
+
+   for _, bc in pairs(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
 end
 
 function GkSpecies:createDiagnostics(field)
@@ -596,6 +591,18 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    end
    
    self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
+end
+
+function GkSpecies:calcCrossCouplingMoments(tCurr, rkIdx, population)
+   -- Perform cross-species calculation related to coupling moments that require the
+   -- self-species coupling moments.
+
+   -- Begin sending/receiving threeMoments if needed.
+   population:speciesXferField_begin(self.threeMomentsXfer, self.threeMoments, 22)
+
+   for _, coll in lume.orderedIter(self.collisions) do
+      coll:calcCrossCouplingMoments(tCurr, rkIdx, population)
+   end
 end
 
 function GkSpecies:fluidMoments() return self.threeMoments end

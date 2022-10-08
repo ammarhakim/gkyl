@@ -106,7 +106,7 @@ function GkSource:createSolver(mySpecies, extField)
       phaseBasis = mySpecies.basis,  moment    = "GkThreeMoments",
       gkfacs     = {mySpecies.mass, mySpecies.bmag},
    }
-   mySpecies.threeMomentsCalc:advance(0.0, {self.fSource}, {momsSrc})
+   threeMomentsCalc:advance(0.0, {self.fSource}, {momsSrc})
 
    self.fSource:write(string.format("%s_0.bp", self.name), 0., 0, self.writeGhost)
    momsSrc:write(string.format("%s_Moms_0.bp", self.name), 0., 0)

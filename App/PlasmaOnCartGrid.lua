@@ -127,7 +127,7 @@ local function buildApplication(self, tbl)
    local cflFrac = tbl.cflFrac or timeStepper.cflFrac   -- CFL fraction.
 
    -- Tracker for timestep
---   local dtTracker   = DataStruct.DynVector { numComponents = 1, }
+   local dtTracker   = DataStruct.DynVector { numComponents = 1, }
    local dtPtr       = Lin.Vec(1)
 
    -- Used in reducing time step across species communicator.
@@ -327,10 +327,10 @@ local function buildApplication(self, tbl)
    end
    for _, s in population.iterLocal() do
       s:createSolver(field, externalField)
-      s:initDist(externalField, species)
+      s:initDist(externalField, population:getSpecies())
    end
    for _, flSrc in lume.orderedIter(fluidSources) do
-      flSrc:createSolver(species, field)    -- Initialize fluid source solvers.
+      flSrc:createSolver(population:getSpecies(), field)    -- Initialize fluid source solvers.
    end   
    -- Create field solver (sometimes requires species solver to have been created).
    field:createSolver(population, externalField)
@@ -643,7 +643,7 @@ local function buildApplication(self, tbl)
 	    tCurr = tCurr + stepStatus.dt_actual
             -- Track dt.
             dtPtr:data()[0] = stepStatus.dt_actual
---            dtTracker:appendData(tCurr, dtPtr)
+            dtTracker:appendData(tCurr, dtPtr)
             -- Write log
 	    writeLogMessage(tCurr)
 	    -- We must write data first before calling writeRestart in
@@ -654,7 +654,7 @@ local function buildApplication(self, tbl)
 	    if checkWriteRestart(tCurr) then
                local tmRestart = Time.clock()
 	       writeRestart(tCurr)
---               dtTracker:write(string.format("dt.bp"), tCurr, irestart)
+               dtTracker:write(string.format("dt.bp"), tCurr, irestart)
                irestart = irestart + 1
                writeRestartTime = writeRestartTime + Time.clock() - tmRestart
 	    end	    
@@ -672,7 +672,7 @@ local function buildApplication(self, tbl)
             log(string.format("WARNING: Timestep dt = %g is below 1e-4*dt_init. Fail counter = %d...\n", dt_next, failcount))
             if failcount > 20 then
                writeData(tCurr+stepStatus.dt_actual, true)
---               dtTracker:write(string.format("dt.bp"), tCurr+stepStatus.dt_actual)
+               dtTracker:write(string.format("dt.bp"), tCurr+stepStatus.dt_actual)
                log(string.format("ERROR: Timestep below 1e-4*dt_init for 20 consecutive steps. Exiting...\n"))
                break
             end

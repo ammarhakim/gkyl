@@ -275,9 +275,7 @@ function VmLBOCollisions:createCouplingSolver(population, field, externalField)
             if app.collKind == self.collKind then self.collAppOther[nm] = app end
          end
       end
-   end
 
-   if self.crossCollisions then
       local isThisSpeciesMine = population:isSpeciesMine(self.speciesName)
       if not isThisSpeciesMine then
          local mySpecies = population:getSpecies()[self.speciesName]
@@ -303,7 +301,7 @@ function VmLBOCollisions:createCouplingSolver(population, field, externalField)
       end
 
       -- Create list of ranks we need to send/recv local self primitive moments to/from.
-      -- MF: We'll merge uDrift and vtSq into a single CartField, and merge these two Xfer objects.
+      -- MF: We'll merge u and vtSq into a single CartField, and merge these two Xfer objects.
       self.uSelfXfer = {}
       self.uSelfXfer.destRank, self.uSelfXfer.srcRank = {}, {}
       self.uSelfXfer.sendReqStat, self.uSelfXfer.recvReqStat = nil, nil

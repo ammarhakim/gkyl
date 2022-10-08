@@ -90,6 +90,7 @@ plasmaApp = Plasma.App {
    calcIntQuantEvery = 1./60.,
 
    decompCuts  = {1},    -- MPI subdomains/processes.
+--   parallelizeSpecies = true,
 
    -- Gyrokinetic electrons.
    elc = Plasma.Species {

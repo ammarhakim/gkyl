@@ -311,9 +311,8 @@ function RectCart:findCell(point, cellIdx, pickLower, knownIdx)
    end
 end
 
-function RectCart:write(fName)
-   -- nothing to write
-end
+function RectCart:getNodalCoords() return nil end
+function RectCart:write(fName) end
 
 function RectCart:getMappings(dir)
    return nil
