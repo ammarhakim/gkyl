@@ -8,7 +8,7 @@ import os
 def build(bld):
     # CUDA specific code
     if bld.env['CUTOOLS_FOUND']:
-        bld(source = 'test_SimpleKernel.cpp', 
+        bld(source = 'test_SimpleKernel.cpp',
             name = 'unit_cu', target='unit_cu',
             includes='../Grid ../Lib ../Basis ../DataStruct ../Cuda', features='cxx nvcc cushlib'
         )
@@ -22,16 +22,4 @@ def build(bld):
         source = 'ctest_ForwardDiff.cxx',
         target = 'ctest_ForwardDiff',
         includes = '../Lib .'
-    )
-    
-    bld.program(
-        source = 'ctest_Range.cxx',
-        target = 'ctest_Range',
-        includes = '../Lib . ../Cuda', use = "CUTOOLS"
-    )
-
-    bld.program(
-        source = 'ctest_BasisTypes.cxx',
-        target = 'ctest_BasisTypes',
-        includes = '. ../Lib ../Basis ../Cuda', use = "CUTOOLS"
     )

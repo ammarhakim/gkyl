@@ -250,7 +250,7 @@ def buildExec(bld):
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
     if bld.env['CUTOOLS_FOUND']:
-        useListCuda = ' cuda CUTOOLS lib_cu datastruct_cu eq_cu unit_cu comm_cu updater_cu proto_cu basis_cu grid_cu '
+        useListCuda = ' cuda CUTOOLS unit_cu updater_cu '
         useList = useListCuda + useList
 
     # set RPATH
@@ -264,6 +264,9 @@ def buildExec(bld):
     # build gkyl executable
 
     source = ['gkyl.cxx']
+#   MF 2022/10/09: commenting this out for now because if we have no code
+#   using the nvcc feature then no CUDA object files are created and the
+#   step that links them into a single object/library file fails.
     if bld.env['CUTOOLS_FOUND']:
         bld(
             target='culink',

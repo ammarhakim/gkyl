@@ -22,7 +22,7 @@ def build(bld):
     
     useList = ' lib datastruct eq unit comm updater tool proto basis grid M DL '
     if bld.env['CUTOOLS_FOUND']:
-        useListCuda = '  CUTOOLS lib_cu datastruct_cu eq_cu  comm_cu  proto_cu basis_cu grid_cu '
+        useListCuda = '  CUTOOLS '
         useList = useListCuda + useList
 
     # set RPATH

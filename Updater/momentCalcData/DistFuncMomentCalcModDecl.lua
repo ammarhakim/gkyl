@@ -7,9 +7,6 @@
 --------------------------------------------------------------------------------
 
 local ffi = require "ffi"
-if GKYL_HAVE_CUDA then
-   _ = require "Updater.momentCalcData._DistFuncMomentCalcDeviceCdef"
-end
 
 local vvars = {"VX","VY","VZ"}
 

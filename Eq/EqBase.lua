@@ -11,8 +11,6 @@ local ffi   = require "ffi"
 require "Lib.ZeroUtil"
 
 ffi.cdef [[ 
-  typedef struct GkylEquation_t GkylEquation_t; 
-
 struct gkyl_dg_eqn;
 
 // Function pointer type for volume kernel
