@@ -264,9 +264,6 @@ def buildExec(bld):
     # build gkyl executable
 
     source = ['gkyl.cxx']
-#   MF 2022/10/09: commenting this out for now because if we have no code
-#   using the nvcc feature then no CUDA object files are created and the
-#   step that links them into a single object/library file fails.
     if bld.env['CUTOOLS_FOUND']:
         bld(
             target='culink',

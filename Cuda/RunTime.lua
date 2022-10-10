@@ -106,6 +106,13 @@ ffi.cdef [[
   // Flags for cudaMallocManaged
   unsigned get_cudaMemAttachGlobal();
   unsigned get_cudaMemAttachHost();
+
+  // Stream management
+  // typedef struct cudaStream_t cudaStream_t;
+  // typedef __device_builtin__ struct CUstream_st *cudaStream_t;
+  typedef struct CUstream_st *cudaStream_t;
+  int cudaStreamCreate ( cudaStream_t* pStream );
+  int cudaStreamSynchronize ( cudaStream_t stream );
 ]]
 
 -- CUDA runtime error codes
@@ -217,6 +224,18 @@ end
 
 function _M.Memset(data, val, count)
    return ffiC.cudaMemset(data, val, count)
+end
+
+-- Create a new stream.
+function _M.StreamCreate()
+  local custr = ffi.new("cudaStream_t[1]")
+  local err = ffiC.cudaStreamCreate(custr)
+  return custr, err
+end
+
+-- cudaStreamSynchronize.
+function _M.StreamSynchronize(stream)
+  return ffiC.cudaStreamSynchronize(stream[0])
 end
 
 return _M
