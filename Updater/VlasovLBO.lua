@@ -27,26 +27,52 @@ local new, sizeof, typeof, metatype = xsys.from(ffi,
 
 ffi.cdef [[ 
 
+// Object type
 typedef struct gkyl_dg_updater_lbo_vlasov gkyl_dg_updater_lbo_vlasov;
 
-gkyl_dg_updater_lbo_vlasov*
-gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, bool use_gpu);
+/**
+ * Create new updater to update lbo equations using hyper dg.
+ *
+ * @param grid Grid object
+ * @param cbasis Configuration space basis functions
+ * @param pbasis Phase-space basis function
+ * @param conf_range Config space range
+ * @return New LBO updater object
+ */
+gkyl_dg_updater_lbo_vlasov* gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, bool use_gpu);
 
-void
-gkyl_dg_updater_lbo_vlasov_advance(gkyl_dg_updater_lbo_vlasov *lbo,
+/**
+ * Compute RHS of DG update. The update_rng MUST be a sub-range of the
+ * range on which the array is defined. That is, it must be either the
+ * same range as the array range, or one created using the
+ * gkyl_sub_range_init method.
+ *
+ * @param lbo LBO updater object
+ * @param update_rng Range on which to compute.
+ * @param nu_sum Sum of coll freq
+ * @param nu_prim_moms Sum of coll freq*u and freq*vtsq
+ * @param fIn Input to updater
+ * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
+ * @param rhs RHS output
+ */
+void gkyl_dg_updater_lbo_vlasov_advance(gkyl_dg_updater_lbo_vlasov *lbo,
   const struct gkyl_range *update_rng,
-  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
+  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
   const struct gkyl_array* fIn,
   struct gkyl_array* cflrate, struct gkyl_array* rhs);
 
-void
-gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo,
+void gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo,
   const struct gkyl_range *update_rng,
-  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
+  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
   const struct gkyl_array* fIn,
   struct gkyl_array* cflrate, struct gkyl_array* rhs);
 
+/**
+ * Delete updater.
+ *
+ * @param lbo Updater to delete.
+ */
 void gkyl_dg_updater_lbo_vlasov_release(gkyl_dg_updater_lbo_vlasov *lbo);
 ]]
 
@@ -73,31 +99,29 @@ end
 function VlasovLBO:_advance(tCurr, inFld, outFld)
 
    local fIn = assert(inFld[1], "VlasovLBO.advance: Must pass input distf")
-   local nu_u = assert(inFld[2], "VlasovLBO.advance: Must pass nu_u")
-   local nu_vthsq = assert(inFld[3], "VlasovLBO.advance: Must pass nu_vthsq")
-   local nu_sum = assert(inFld[4], "VlasovLBO.advance: Must pass nu_sum")
+   local nu_prim_moms = assert(inFld[2], "VlasovLBO.advance: Must pass nu_prim_moms")
+   local nu_sum = assert(inFld[3], "VlasovLBO.advance: Must pass nu_sum")
  
    local fRhsOut = assert(outFld[1], "VlasovLBO.advance: Must specify an output field")
    local cflRateByCell = assert(outFld[2], "VlasovLBO.advance: Must pass cflRate field in output table")
 
    local localRange = fRhsOut:localRange()
-   ffiC.gkyl_dg_updater_lbo_vlasov_advance(self._zero, localRange, nu_sum._zero, nu_u._zero, nu_vthsq._zero, fIn._zero, cflRateByCell._zero, fRhsOut._zero)
+   ffiC.gkyl_dg_updater_lbo_vlasov_advance(self._zero, localRange, nu_sum._zero, nu_prim_moms._zero, fIn._zero, cflRateByCell._zero, fRhsOut._zero)
 
 end
 
--- advance method
+-- advanceOnDevice method
 function VlasovLBO:_advanceOnDevice(tCurr, inFld, outFld)
 
    local fIn = assert(inFld[1], "VlasovLBO.advance: Must pass input distf")
-   local nu_u = assert(inFld[2], "VlasovLBO.advance: Must pass nu_u")
-   local nu_vthsq = assert(inFld[3], "VlasovLBO.advance: Must pass nu_vthsq")
-   local nu_sum = assert(inFld[4], "VlasovLBO.advance: Must pass nu_sum")
+   local nu_prim_moms = assert(inFld[2], "VlasovLBO.advance: Must pass nu_prim_moms")
+   local nu_sum = assert(inFld[3], "VlasovLBO.advance: Must pass nu_sum")
  
    local fRhsOut = assert(outFld[1], "VlasovLBO.advance: Must specify an output field")
    local cflRateByCell = assert(outFld[2], "VlasovLBO.advance: Must pass cflRate field in output table")
 
    local localRange = fRhsOut:localRange()
-   ffiC.gkyl_dg_updater_lbo_vlasov_advance_cu(self._zero, localRange, nu_sum._zeroDevice, nu_u._zeroDevice, nu_vthsq._zeroDevice, fIn._zeroDevice, cflRateByCell._zeroDevice, fRhsOut._zeroDevice)
+   ffiC.gkyl_dg_updater_lbo_vlasov_advance_cu(self._zero, localRange, nu_sum._zeroDevice, nu_prim_moms._zeroDevice, fIn._zeroDevice, cflRateByCell._zeroDevice, fRhsOut._zeroDevice)
 
 end
 

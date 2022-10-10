@@ -70,8 +70,8 @@ plasmaApp = Plasma.App {
    cflFrac     = 0.6,
    
    -- Decomposition for configuration space.
-   decompCuts = {2},            -- Cuts in each configuration direction.
-   parallelizeSpecies = true,
+   decompCuts = {1},            -- Cuts in each configuration direction.
+--   parallelizeSpecies = true,
 
    -- Boundary conditions for configuration space.
    periodicDirs = {1},          -- Periodic directions.
