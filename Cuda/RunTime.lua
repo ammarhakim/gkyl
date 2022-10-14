@@ -113,6 +113,7 @@ ffi.cdef [[
   typedef struct CUstream_st *cudaStream_t;
   int cudaStreamCreate ( cudaStream_t* pStream );
   int cudaStreamSynchronize ( cudaStream_t stream );
+  int cudaStreamDestroy ( cudaStream_t stream );
 ]]
 
 -- CUDA runtime error codes
@@ -226,16 +227,28 @@ function _M.Memset(data, val, count)
    return ffiC.cudaMemset(data, val, count)
 end
 
+local function getObj(obj, ptyp)
+   return ffi.istype(typeof(ptyp), obj) and obj[0] or obj
+end
+
 -- Create a new stream.
 function _M.StreamCreate()
-  local custr = ffi.new("cudaStream_t[1]")
-  local err = ffiC.cudaStreamCreate(custr)
-  return custr, err
+   local custr = ffi.new("cudaStream_t[1]")
+   local err = ffiC.cudaStreamCreate(custr)
+   ffi.gc(custr, function(s) ffiC.cudaStreamDestroy(s[0]) end)
+   return custr, err
 end
 
 -- cudaStreamSynchronize.
 function _M.StreamSynchronize(stream)
-  return ffiC.cudaStreamSynchronize(stream[0])
+   return ffiC.cudaStreamSynchronize(getObj(stream, "cudaStream_t[1]"))
+end
+
+-- cudaStreamDestroy.
+function _M.StreamDestroy(custr)
+   -- Assume custr is of type cudaStream_t[1].
+   local err = ffiC.cudaStreamDestroy(custr[0])
+   return err
 end
 
 return _M

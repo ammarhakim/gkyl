@@ -43,6 +43,17 @@ typedef enum { ncclSuccess                 =  0,
                ncclInvalidUsage            =  5,
                ncclNumResults              =  6 } ncclResult_t;
 
+/* Communicator configuration. Users can assign value to attributes to specify the
+ * behavior of a communicator. */
+typedef struct ncclConfig_v21400 {
+  /* attributes that users should never touch. */
+  size_t size;
+  unsigned int magic;
+  unsigned int version;
+  /* attributes that users are able to customize. */
+  int blocking;
+} ncclConfig_t;
+
 /* Data types */
 typedef enum { ncclInt8       = 0, ncclChar       = 0,
                ncclUint8      = 1,
@@ -100,6 +111,36 @@ ncclResult_t  ncclCommDestroy(ncclComm_t comm);
  * In-place operation will happen if sendbuff == recvbuff.
  */
 ncclResult_t ncclAllReduce(const void* sendbuff, void* recvbuff, size_t count, ncclDataType_t datatype, ncclRedOp_t op, ncclComm_t comm, cudaStream_t stream);
+
+/*
+ * Send
+ *
+ * Send data from sendbuff to rank peer.
+ *
+ * Rank peer needs to call ncclRecv with the same datatype and the same count from this
+ * rank.
+ *
+ * This operation is blocking for the GPU. If multiple ncclSend and ncclRecv operations
+ * need to progress concurrently to complete, they must be fused within a ncclGroupStart/
+ * ncclGroupEnd section.
+ */
+ncclResult_t  ncclSend(const void* sendbuff, size_t count, ncclDataType_t datatype, int peer,
+    ncclComm_t comm, cudaStream_t stream);
+
+/*
+ * Receive
+ *
+ * Receive data from rank peer into recvbuff.
+ *
+ * Rank peer needs to call ncclSend with the same datatype and the same count to this
+ * rank.
+ *
+ * This operation is blocking for the GPU. If multiple ncclSend and ncclRecv operations
+ * need to progress concurrently to complete, they must be fused within a ncclGroupStart/
+ * ncclGroupEnd section.
+ */
+ncclResult_t  ncclRecv(void* recvbuff, size_t count, ncclDataType_t datatype, int peer,
+    ncclComm_t comm, cudaStream_t stream);
 ]]
 
 -- ncclDataType_t enums. Have to match what's in nccl.h
@@ -119,11 +160,22 @@ local function new_ncclComm()
    return comm
 end
 
+local function getObj(obj, ptyp)
+   return ffi.istype(typeof(ptyp), obj) and obj[0] or obj
+end
+
+local function new_ncclConfig()
+   return new("ncclConfig_t[1]")
+end
+
 -- ncclUniqueId object.
 function _M.UniqueId() return new("ncclUniqueId") end
 
 -- ncclComm_t object.
-function _M.Comm()  return new_ncclComm() end
+function _M.Comm() return new_ncclComm() end
+
+-- ncclConfig_t object.
+function _M.Config() return new_ncclConfig() end
 
 -- ncclGetUniqueId.
 function _M.GetUniqueId(id)
@@ -137,12 +189,25 @@ end
 
 -- ncclAllReduce.
 function _M.AllReduce(sendbuff, recvbuff, count, datatype, op, comm, stream)
-   return ffiC.ncclAllReduce(sendbuff, recvbuff, count, datatype, op, comm, stream)
+   return ffiC.ncclAllReduce(sendbuff, recvbuff, count, datatype, op,
+      getObj(comm, "ncclComm_t[1]"), getObj(stream, "cudaStream_t[1]"))
+end
+
+-- ncclSend
+function _M.Send(sendbuff, count, datatype, peer, comm, stream)
+   return ffiC.ncclSend(sendbuff, count, datatype, peer,
+      getObj(comm, "ncclComm_t[1]"), getObj(stream, "cudaStream_t[1]"))
+end
+
+-- ncclRecv
+function _M.Recv(recvbuff, count, datatype, peer, comm, stream)
+   return ffiC.ncclRecv(recvbuff, count, datatype, peer,
+      getObj(comm, "ncclComm_t[1]"), getObj(stream, "cudaStream_t[1]"))
 end
 
 -- ncclCommDestroy.
 function _M.CommDestroy(comm)
-   return ffiC.ncclCommDestroy(comm)
+   return ffiC.ncclCommDestroy(getObj(comm, "ncclComm_t[1]"))
 end
 
 return _M

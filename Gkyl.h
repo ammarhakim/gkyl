@@ -45,6 +45,7 @@
 #ifdef HAVE_CUDA_H
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include "nccl.h"
 #endif
 
 #include <lua.hpp>
