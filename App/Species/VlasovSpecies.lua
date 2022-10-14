@@ -151,7 +151,6 @@ function VlasovSpecies:createSolver(field, externalField)
       -- Calculate alphaGeo here. Use an Updater.
       self.calcAlphaGeo:advance(0.0, {self.tanVecComp, self.gxx, self.gxy, self.gxz, self.gyy, self.gyz, self.gzz}, {self.alphaGeo})
       self.alphaGeo:write(string.format("%s_alphaGeo_%d.bp",self.name,0),0.0,0,false)
-      if self.vdim == 3 then self.needGkMom = true end
    end
       
    local plasmaE, plasmaB = field:hasEB()
@@ -535,7 +534,8 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
 		     elseif self.name==species[sN].collisions[collNm].neutNm and counterCX_neut then
 			self.needSelfPrimMom = true
 			counterCX_neut       = false
-   		     end
+			self.needGkMom = true
+		     end
    		  end
    	       end
    	    end
