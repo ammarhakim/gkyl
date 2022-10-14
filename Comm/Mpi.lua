@@ -59,6 +59,7 @@ ffi.cdef [[
   int get_MPI_ORDER_FORTRAN();
 
   // Datatypes
+  MPI_Datatype get_MPI_C_BOOL();
   MPI_Datatype get_MPI_CHAR();
   MPI_Datatype get_MPI_BYTE();
   MPI_Datatype get_MPI_SHORT();
@@ -226,6 +227,7 @@ _M.SIZEOF_STATUS_PTR  = ffiC.sizeof_ptr_MPI_Status()
 _M.SIZEOF_REQUEST_PTR = ffiC.sizeof_ptr_MPI_Request()
 
 -- Datatypes
+_M.C_BOOL          = ffiC.get_MPI_C_BOOL()
 _M.CHAR            = ffiC.get_MPI_CHAR()
 _M.BYTE            = ffiC.get_MPI_BYTE()
 _M.SHORT           = ffiC.get_MPI_SHORT()
