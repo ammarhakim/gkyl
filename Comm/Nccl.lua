@@ -12,8 +12,7 @@ assert(GKYL_HAVE_MPI, "Gkyl was not built with MPI!")
 local ffi  = require "ffi"
 local ffiC = ffi.C
 local xsys = require "xsys"
-local new, typeof = xsys.from(ffi,
-     "new, typeof")
+local new, typeof = xsys.from(ffi, "new, typeof")
 
 local Lin = require "Lib.Linalg"
 local Time = require "Lib.Time"
@@ -41,7 +40,9 @@ typedef enum { ncclSuccess                 =  0,
                ncclInternalError           =  3,
                ncclInvalidArgument         =  4,
                ncclInvalidUsage            =  5,
-               ncclNumResults              =  6 } ncclResult_t;
+               ncclRemoteError             =  6,
+               ncclInProgress              =  7,
+               ncclNumResults              =  8 } ncclResult_t;
 
 /* Communicator configuration. Users can assign value to attributes to specify the
  * behavior of a communicator. */
@@ -99,8 +100,15 @@ ncclResult_t  ncclGetUniqueId(ncclUniqueId* uniqueId);
 /* Comm creation. */
 ncclResult_t  ncclCommInitRank(ncclComm_t* comm, int nranks, ncclUniqueId commId, int rank);
 
+/* Create a new communicator (multi thread/process version) with a configuration
+ * set by users. */
+ncclResult_t  ncclCommInitRankConfig(ncclComm_t* comm, int nranks, ncclUniqueId commId, int rank, ncclConfig_t* config);
+
 /* Frees communicator. */
 ncclResult_t  ncclCommDestroy(ncclComm_t comm);
+
+/* Checks whether the comm has encountered any asynchronous errors */
+ncclResult_t  ncclCommGetAsyncError(ncclComm_t comm, ncclResult_t *asyncError);
 
 /**
  * Allreduce
@@ -141,7 +149,23 @@ ncclResult_t  ncclSend(const void* sendbuff, size_t count, ncclDataType_t dataty
  */
 ncclResult_t  ncclRecv(void* recvbuff, size_t count, ncclDataType_t datatype, int peer,
     ncclComm_t comm, cudaStream_t stream);
+
+/*
+   Gkyl functions to wrap other NCCL objects/functions.
+*/
+void gkyl_NCCL_CONFIG_INITIALIZER(ncclConfig_t *nc);
 ]]
+
+-- ncclResult_t enums. Have to match what's in nccl.h
+_M.Success                 =  0
+_M.UnhandledCudaError      =  1
+_M.SystemError             =  2
+_M.InternalError           =  3
+_M.InvalidArgument         =  4
+_M.InvalidUsage            =  5
+_M.RemoteError             =  6
+_M.InProgress              =  7
+_M.NumResults              =  8
 
 -- ncclDataType_t enums. Have to match what's in nccl.h
 _M.Int = 2
@@ -174,8 +198,15 @@ function _M.UniqueId() return new("ncclUniqueId") end
 -- ncclComm_t object.
 function _M.Comm() return new_ncclComm() end
 
+-- ncclResult_t enum.
+function _M.Result() return ffi.new("ncclResult_t[1]") end
+
 -- ncclConfig_t object.
-function _M.Config() return new_ncclConfig() end
+function _M.Config()
+   local conf = new_ncclConfig()
+   ffiC.gkyl_NCCL_CONFIG_INITIALIZER(conf)
+   return conf
+end
 
 -- ncclGetUniqueId.
 function _M.GetUniqueId(id)
@@ -185,6 +216,11 @@ end
 -- ncclCommInitRank.
 function _M.CommInitRank(comm, nranks, commId, rank)
    return ffiC.ncclCommInitRank(comm, nranks, commId, rank)
+end
+
+-- ncclCommInitRankConfig.
+function _M.CommInitRankConfig(comm, nranks, commId, rank, config)
+   return ffiC.ncclCommInitRankConfig(comm, nranks, commId, rank, config)
 end
 
 -- ncclAllReduce.
@@ -208,6 +244,11 @@ end
 -- ncclCommDestroy.
 function _M.CommDestroy(comm)
    return ffiC.ncclCommDestroy(getObj(comm, "ncclComm_t[1]"))
+end
+
+-- ncclCommGetAsyncError.
+function _M.CommGetAsyncError(comm, asyncError)
+   return ffiC.ncclCommGetAsyncError(getObj(comm, "ncclComm_t[1]"), asyncError)
 end
 
 return _M
