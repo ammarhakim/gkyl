@@ -15,6 +15,9 @@ local Unit  = require "Unit"
 local Mpi   = require "Comm.Mpi"
 local Alloc = require "Lib.Alloc"
 local Nccl  = require "Comm.Nccl"
+local Grid             = require "Grid"
+local DecompRegionCalc = require "Lib.CartDecomp"
+local DataStruct       = require "DataStruct"
 
 local cuda
 local cuAlloc
@@ -282,9 +285,193 @@ function test_3(comm)
    cuda.Free(d_sendbuff); cuda.Free(d_recvbuff)
 end
 
+-- ncclSend and ncclRecv a whole CartField.
+function test_4(comm)
+
+   local defaultCommSize = 2
+   local comm_sz = Mpi.Comm_size(comm)
+   if comm_sz ~= defaultCommSize then
+      log(string.format("Not running test_4 as numProcs not exactly %d",defaultCommSize))
+      return
+   end
+
+   local worldRank = Mpi.Comm_rank(Mpi.COMM_WORLD)
+   local numCutsConf = 1
+
+   local confColor = math.floor(worldRank/numCutsConf)
+   local confComm  = Mpi.Comm_split(Mpi.COMM_WORLD, confColor, worldRank)
+   local speciesColor = worldRank % numCutsConf
+   local speciesComm  = Mpi.Comm_split(Mpi.COMM_WORLD, speciesColor, worldRank)
+   local confRank = Mpi.Comm_rank(confComm)
+   local speciesRank = Mpi.Comm_rank(speciesComm)
+
+   local rank = numCutsConf==1 and speciesRank or confRank
+   local comm = numCutsConf==1 and speciesComm or confComm
+
+   local decomp = DecompRegionCalc.CartProd { cuts = {numCutsConf}, comm = confComm }
+   local grid = Grid.RectCart {
+      lower = {0.0},  cells = {12},
+      upper = {1.0},  decomposition = decomp,
+   }
+   local field0 = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 3,
+      ghost         = {1, 1},
+   }
+   local field1 = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 3,
+      ghost         = {1, 1},
+   }
+   if speciesRank==0 then field0:clear(0.3) end
+   if speciesRank==1 then field1:clear(1.5) end
+
+   local speciesComm_sz = Mpi.Comm_size(speciesComm)
+   local num_devices, _ = cuda.GetDeviceCount() 
+   local local_rank = speciesRank % num_devices
+
+   -- Picking a GPU based on localRank, allocate device buffers.
+   local err = cuda.SetDevice(local_rank)
+
+   -- Get NCCL unique ID at rank 0 and broadcast it to all others.
+   local ncclId = Nccl.UniqueId()
+   if speciesRank == 0 then
+      local _ = Nccl.GetUniqueId(ncclId)
+   end
+   Mpi.Bcast(ncclId, sizeof(ncclId), Mpi.BYTE, 0, speciesComm)
+
+   -- Create a new CUDA stream (needed by NCCL).
+   local custream = cuda.StreamCreate()
+
+   -- Initializing NCCL.
+   local devComm = Nccl.Comm()
+   local _ = Nccl.CommInitRank(devComm, speciesComm_sz, ncclId, speciesRank)
+
+   -- Communicate data from rank 0 to rank 1.
+   if speciesRank == 0 then
+      local err = Nccl.Recv(field1:deviceDataPointer(), field1:size(), Nccl.Double, 1, devComm, custream)
+      local err = Nccl.Send(field0:deviceDataPointer(), field0:size(), Nccl.Double, 1, devComm, custream)
+   end
+   if speciesRank == 1 then
+      local err = Nccl.Send(field1:deviceDataPointer(), field1:size(), Nccl.Double, 0, devComm, custream)
+      local err = Nccl.Recv(field0:deviceDataPointer(), field0:size(), Nccl.Double, 0, devComm, custream)
+   end
+
+   -- Completing NCCL operation by synchronizing on the CUDA stream.
+   local _ = cuda.StreamSynchronize(custream)
+
+   -- Copy data to host and check results.
+   field1:copyDeviceToHost()
+   field0:copyDeviceToHost()
+
+   local field = speciesRank==0 and field1 or field0
+   local value = speciesRank==0 and 1.5 or 0.3
+   local localRange = field:localRange()
+   local indexer = field:indexer()
+   for i = localRange:lower(1), localRange:upper(1) do
+      local fitr = field:get(indexer(i))
+      assert_equal(value, fitr[1], "test_4: Checking field value")
+      assert_equal(value, fitr[2], "test_4: Checking field value")
+      assert_equal(value, fitr[3], "test_4: Checking field value")
+   end
+
+   Mpi.Barrier(comm)
+end
+
+-- ncclAllReduce a whole CartField.
+function test_5(comm)
+
+   local defaultCommSize = 2
+   local comm_sz = Mpi.Comm_size(comm)
+   if comm_sz ~= defaultCommSize then
+      log(string.format("Not running test_4 as numProcs not exactly %d",defaultCommSize))
+      return
+   end
+
+   local worldRank = Mpi.Comm_rank(Mpi.COMM_WORLD)
+   local numCutsConf = 1
+
+   local confColor = math.floor(worldRank/numCutsConf)
+   local confComm  = Mpi.Comm_split(Mpi.COMM_WORLD, confColor, worldRank)
+   local speciesColor = worldRank % numCutsConf
+   local speciesComm  = Mpi.Comm_split(Mpi.COMM_WORLD, speciesColor, worldRank)
+   local confRank = Mpi.Comm_rank(confComm)
+   local speciesRank = Mpi.Comm_rank(speciesComm)
+
+   local rank = numCutsConf==1 and speciesRank or confRank
+   local comm = numCutsConf==1 and speciesComm or confComm
+
+   local decomp = DecompRegionCalc.CartProd { cuts = {numCutsConf}, comm = confComm }
+   local grid = Grid.RectCart {
+      lower = {0.0},  cells = {12},
+      upper = {1.0},  decomposition = decomp,
+   }
+   local field0 = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 3,
+      ghost         = {1, 1},
+   }
+   local field1 = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 3,
+      ghost         = {1, 1},
+   }
+   local localRange = field0:localRange()
+   local indexer = field0:indexer()
+   for i = localRange:lower(1), localRange:upper(1) do
+      local fitr = field0:get(indexer(i))
+      for k = 1, field0:numComponents() do
+         fitr[k] = speciesRank*0.3 + k*i
+      end
+   end
+   field0:copyHostToDevice()
+
+   local speciesComm_sz = Mpi.Comm_size(speciesComm)
+   local num_devices, _ = cuda.GetDeviceCount() 
+   local local_rank = speciesRank % num_devices
+
+   -- Picking a GPU based on localRank, allocate device buffers.
+   local err = cuda.SetDevice(local_rank)
+
+   -- Get NCCL unique ID at rank 0 and broadcast it to all others.
+   local ncclId = Nccl.UniqueId()
+   if speciesRank == 0 then
+      local _ = Nccl.GetUniqueId(ncclId)
+   end
+   Mpi.Bcast(ncclId, sizeof(ncclId), Mpi.BYTE, 0, speciesComm)
+
+   -- Create a new CUDA stream (needed by NCCL).
+   local custream = cuda.StreamCreate()
+
+   -- Initializing NCCL.
+   local devComm = Nccl.Comm()
+   local _ = Nccl.CommInitRank(devComm, speciesComm_sz, ncclId, speciesRank)
+
+   -- Reduce using NCCL.
+   local _ Nccl.AllReduce(field0:deviceDataPointer(), field1:deviceDataPointer(),
+        field0:size(), Nccl.Double, Nccl.Sum, devComm, custream)
+
+   -- Completing NCCL operation by synchronizing on the CUDA stream.
+   local _ = cuda.StreamSynchronize(custream)
+
+   -- Copy data to host and check results.
+   field1:copyDeviceToHost()
+
+   for i = localRange:lower(1), localRange:upper(1) do
+      local fitr = field1:get(indexer(i))
+      for k = 1, field0:numComponents() do
+         assert_equal(0*0.3 + k*i + 1*0.3 + k*i, fitr[k], "test_5: Checking field value")
+      end
+   end
+
+   Mpi.Barrier(comm)
+end
+
 test_1(Mpi.COMM_WORLD)
 test_2(Mpi.COMM_WORLD)
 test_3(Mpi.COMM_WORLD)
+test_4(Mpi.COMM_WORLD)
+test_5(Mpi.COMM_WORLD)
 
 
 function allReduceOneInt(localv)
