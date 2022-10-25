@@ -31,17 +31,6 @@ end
 
 ffi.cdef [[ 
     typedef struct { double c, chi, gamma; } MaxwellEq_t;
-    typedef struct GkylEquation_t GkylEquation_t ;
-    GkylEquation_t *new_MaxwellOnDevice(unsigned cdim, unsigned polyOrder, unsigned basisType,
-      MaxwellEq_t *mdata, double tau);
-
-  typedef struct {
-    int numWaves;
-    int numEquations;
-    double lightSpeed;
-    double elcErrorSpeedFactor;
-    double mgnErrorSpeedFactor;
-  } GkylEquationFvPerfMaxwell_t;
 
   void PerfMaxwell_rp(
       const void *eqn,
@@ -66,15 +55,6 @@ ffi.cdef [[
       const int dir,
       const double *qIn,
       double *fOut);
-
-  GkylEquationFvPerfMaxwell_t *new_EquationFvPerfMaxwellOnHost(
-      const double lightSpeed, const double elcErrorSpeedFactor,
-      const double mgnErrorSpeedFactor);
-
-  typedef struct GkylEquationFv_t GkylEquationFv_t;
-  GkylEquationFv_t *new_EquationFvPerfMaxwellOnDevice(
-      const double lightSpeed, const double elcErrorSpeedFactor,
-      const double mgnErrorSpeedFactor);
 
    struct gkyl_wv_eqn* gkyl_wv_maxwell_new(
       double c, double e_fact, double b_fact);
@@ -176,8 +156,8 @@ function PerfMaxwell:initDevice(tbl)
       if bId == "serendipity" then 
         b = 2
       end 
-      self._onDevice = ffi.C.new_MaxwellOnDevice(
-         self._basis:ndim(), self._basis:polyOrder(), b, self._ceqn, self._tau)
+--      self._onDevice = ffi.C.new_MaxwellOnDevice(
+--         self._basis:ndim(), self._basis:polyOrder(), b, self._ceqn, self._tau)
    end
 
    self._onHost = ffi.C.new_EquationFvPerfMaxwellOnHost(self._c, self._ce, self._cb)

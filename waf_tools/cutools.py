@@ -10,12 +10,12 @@ from waflib.Tools import ccroot, c_preproc
 from waflib.Tools.cxx import cxxprogram
 
 class nvcc(Task.Task):
-        run_str = '${NVCC} -x cu -c -dc -O3 -std=c++14 -lineinfo --maxrregcount=255 -arch=sm_70 --compiler-options="-fPIC" ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CXX_SRC_F} ${SRC} -o ${OUT}/${TGT}'
-        color   = 'GREEN'
-        ext_in  = ['.h']
-        vars    = ['CCDEPS']
-        scan    = c_preproc.scan
-        shell   = False
+    run_str = '${NVCC} -x cu -c -dc -O3 -std=c++14 -lineinfo --maxrregcount=255 -arch=sm_70 --compiler-options="-fPIC" ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CXX_SRC_F} ${SRC} -o ${OUT}/${TGT}'
+    color   = 'GREEN'
+    ext_in  = ['.h']
+    vars    = ['CCDEPS']
+    scan    = c_preproc.scan
+    shell   = False
 
 @extension('.cu', '.cuda')
 def hook(self, node):
@@ -28,7 +28,7 @@ def hook(self, node):
 def change_to_cu(self):
     self.source = self.to_nodes(getattr(self, 'source', []))
     for x in self.source:
-       self.create_compiled_task('nvcc', x)
+        self.create_compiled_task('nvcc', x)
 
     self.source = []
 

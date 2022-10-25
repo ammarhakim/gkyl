@@ -34,23 +34,6 @@ if GKYL_HAVE_CUDA then
 end
 
 ffi.cdef [[ 
-  typedef struct GkylEquationFv_t GkylEquationFv_t;
-  typedef struct {
-      int updateDirs[6];
-      int numUpdateDirs;
-      double dt;
-      double _cfl;
-      double _cflm;
-      GkylEquationFv_t *equation;
-      GkylCartField_t *dtByCell;
-  } GkylWavePropagation_t;
-    
-  void wavePropagationAdvanceOnDevice(
-    const int meqn, const int mwave, const int numBlocks, const int numThreads,
-    GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut);
-
-  void setDt(GkylWavePropagation_t *hyper, double dt);
-
 
 /* gkylzero components */
 typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
@@ -310,7 +293,7 @@ function WavePropagation:initDevice(tbl)
       createDeviceCopy = true,
    }
    self.dtPtr = cuAlloc.Double(1)  -- FIXME pass in address of self.dt?
-   local hyper = ffi.new("GkylWavePropagation_t")
+--   local hyper = ffi.new("GkylWavePropagation_t")
    hyper.updateDirs = ffi.new("int[6]", self._updateDirs)
    hyper.numUpdateDirs = #self._updateDirs
    hyper.equation = self._equation._onDevice
@@ -318,7 +301,7 @@ function WavePropagation:initDevice(tbl)
    hyper._cflm = self._cflm
    hyper.dtByCell = self.dtByCell._onDevice
    self._onHost = hyper
-   local sz = sizeof("GkylWavePropagation_t")
+--   local sz = sizeof("GkylWavePropagation_t")
    self._onDevice, err = cuda.Malloc(sz)
    cuda.Memcpy(self._onDevice, hyper, sz, cuda.MemcpyHostToDevice)
 
@@ -539,9 +522,9 @@ function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
       --    numBlocks, numThreads, qIn:numComponents(), self._onDevice,
       --    qIn._onDevice, qOut._onDevice)
    else
-      ffi.C.wavePropagationAdvanceOnDevice(
-         meqn, mwave, numBlocks, numThreads, self._onDevice, qIn._onDevice,
-         qOut._onDevice)
+--      ffi.C.wavePropagationAdvanceOnDevice(
+--         meqn, mwave, numBlocks, numThreads, self._onDevice, qIn._onDevice,
+--         qOut._onDevice)
    end
 
    -- self.dtByCell:deviceReduce('min', self.dtPtr)

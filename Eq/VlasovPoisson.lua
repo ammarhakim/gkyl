@@ -25,7 +25,6 @@ end
 ffi.cdef [[ 
   typedef struct VlasovPoisson VlasovPoisson;
   Vlasov* new_VlasovPoisson(unsigned cdim, unsigned vdim, unsigned polyOrder, const char* basisType, double qbym, bool hasForceTerm);
-  void setAuxFields(GkylEquation_t *eq, GkylCartField_t *phi);
 ]]
 
 -- Vlasov-Poisson equation on a rectangular mesh.

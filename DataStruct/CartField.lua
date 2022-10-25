@@ -36,31 +36,8 @@ local RangeVec = Lin.new_vec_ct(ffi.typeof("struct gkyl_range"))
 
 -- C interfaces
 ffi.cdef [[
-    typedef struct {
-        int ndim;
-        int elemSize;
-        int numComponents;
-        struct gkyl_range *localRange, *localExtRange;
-        struct gkyl_range *localEdgeRange, *localExtEdgeRange;
-        struct gkyl_range *globalRange, *globalExtRange;
-        struct gkyl_rect_grid *grid;
-        double *_data;
-    } GkylCartField_t;
-
     // s: start index. nv: number of values.
-    void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out);
-    void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out);
-    void gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out);
-    void gkylCartFieldScaleByCell(unsigned s, unsigned nv, unsigned ncomp, double *fact, double *out);
     void gkylCartFieldAbs(unsigned s, unsigned nv, double *out);
-    void gkylCopyFromField(double *data, double *f, unsigned numComponents, unsigned c);
-    void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned c);
-    void gkylCartFieldAssignAll(unsigned s, unsigned nv, double val, double *out);
-
-    // sInp/sOut: start index for input/output fields. nCells: number of cells being looped over. 
-    // compStart: starting component for offset. nCompInp/nCompOut: input/output field's number of components.
-    void gkylCartFieldAccumulateOffset(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out);
-    void gkylCartFieldAssignOffset(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out);
 
 /**
  * Create ghost and skin sub-ranges given parent range. The skin and

@@ -29,19 +29,6 @@ typedef struct {
    double _fl[6], _fr[6]; /* Storage for left/right fluxes ([6] as we want to index from 1) */
 } EulerEqn_t;
 
-  // c/cuda implementation
-  typedef struct {
-    int numWaves;
-    int numEquations;
-    double gasGamma;
-  } GkylEquationFvEuler_t;
-
-  typedef struct GkylEquationFv_t GkylEquationFv_t;
-  GkylEquationFv_t *new_EquationFvEulerOnDevice(const int gasGamma);
-
-  // following are exposed to be called without gpu for unit test
-  GkylEquationFvEuler_t *new_EquationFvEulerOnHost(const double gasGamma);
-
   inline double Euler_pressure(
       const double gasGamma,
       const double *q);

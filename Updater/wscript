@@ -379,30 +379,14 @@ def build(bld):
     # CUDA specific code
     if bld.env['CUTOOLS_FOUND']:
         cusources = r"""
-        HyperDisContDevice.cu
-        
-        momentCalcData/DistFuncMomentCalcSer1x1v.cpp
-        momentCalcData/DistFuncMomentCalcSer1x2v.cpp
-        momentCalcData/DistFuncMomentCalcSer1x3v.cpp
-        momentCalcData/DistFuncMomentCalcSer2x2v.cpp
-        momentCalcData/DistFuncMomentCalcSer2x3v.cpp
-        momentCalcData/DistFuncMomentCalcSer3x3v.cpp
-
-        momentCalcData/DistFuncMomentCalcTensor1x1v.cpp
-        momentCalcData/DistFuncMomentCalcTensor1x2v.cpp
-        momentCalcData/DistFuncMomentCalcTensor1x3v.cpp
-        momentCalcData/DistFuncMomentCalcTensor2x2v.cpp
-
-        momentCalcData/DistFuncMomentCalcDeviceWrappers.cu
-
-        WavePropagationDevice.cu
-        MomentSrcCommonDevice.cu
+        DummyStructDevice.cu
         """
-        
+
         bld(source = cusources,
             name = 'updater_cu', target='updater_cu',
             includes = '. ../Cuda ../Grid ../Lib ../Basis ../Eq ../DataStruct momentCalcData ../Eq/vlasovData', features = 'cxx nvcc '
         )
+
 
     bld.shlib(source = sources,
 
