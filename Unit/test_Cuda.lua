@@ -25,14 +25,6 @@ local stats = Unit.stats
 ffi.cdef [[
   void unit_sumArray(int numBlocks, int numThreads, int n, double a, double *x, double *y);
   void unit_sayHello();
-  void unit_showRange(GkylRange_t *range);
-
-  void unit_test_BasisTypes_1xp1_ser();
-  void unit_test_BasisTypes_2xp2_ser();
-  void unit_test_BasisTypes_5xp2_ser();
-
-  void unit_showGrid(GkylRectCart_t *grid);
-  void unit_getCellCenter(GkylRectCart_t *grid, int *idx, double *xc);
 
   typedef double (*sumFunc_t)(void *self, double a, double b);
   typedef struct {
@@ -259,46 +251,6 @@ function test_5()
    assert_equal(true, pass, "Checking if sumArray kernel worked")
 end
 
--- range tests
-function test_6()
-   local range = Range.Range({5}, {20})
-   local cuRange = Range.copyHostToDevice(range)
-   --ffi.C.unit_showRange(cuRange)
-
-   cuda.Free(cuRange)
-end
-
--- grid tests
-function test_7()
-   local grid = Grid.RectCart {
-      lower = {0.0, 1.0},
-      upper = {2.0, 5.0},
-      cells = {10, 20}
-   }
-   local cuGrid = grid:copyHostToDevice()
-   --ffi.C.unit_showGrid(cuGrid)
-
-   local h_idx = Alloc.Int(2)
-   h_idx[1] = 1
-   h_idx[2] = 2
-   local d_idx = cuAlloc.Int(2)
-   d_idx:copyHostToDevice(h_idx)
- 
-   local d_xc = cuAlloc.Double(2)
-   ffi.C.unit_getCellCenter(cuGrid, d_idx:data(), d_xc:data())
-
-   local h_xc = Alloc.Double(2)
-   d_xc:copyDeviceToHost(h_xc)
-
-   assert_equal(h_xc[1]==0.1 and h_xc[2]==1.3, true, "Checking cell centers")
-end
-
-function test_8()
-   ffi.C.unit_test_BasisTypes_1xp1_ser()
-   ffi.C.unit_test_BasisTypes_2xp2_ser()
-   ffi.C.unit_test_BasisTypes_5xp2_ser()
-end
-
 function test_9()
    -- Create Euler equation object on host
    local eulerEqn = ffi.new("SimpleEulerEquation_t")
@@ -339,9 +291,6 @@ test_2()
 test_3()
 test_4()
 test_5()
-test_6()
-test_7()
-test_8()
 test_9()
 
 if stats.fail > 0 then

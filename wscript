@@ -25,7 +25,7 @@ from waflib.Options import options
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkyl luajit mpi adios eigen sqlite3 cutools gkylzero superlu openblas',
+    opt.load('gkyl luajit mpi adios eigen sqlite3 cutools nccl gkylzero superlu openblas',
              tooldir='waf_tools')
 
 def configure(conf):
@@ -41,6 +41,7 @@ def configure(conf):
     conf.check_eigen()
     conf.check_sqlite3()
     conf.check_cutools()
+    conf.check_nccl()
     conf.check_superlu()
     conf.check_openblas()
     conf.check_gkylzero()
@@ -248,9 +249,9 @@ def buildExec(bld):
     # list of objects to use
     useList = 'lib datastruct eq unit comm updater tool proto basis grid gkylzero LUAJIT ADIOS EIGEN MPI SUPERLU OPENBLAS M DL'
     if bld.env['USE_SQLITE']:
-        useList = 'sqlite3 ' + useList
+        useList = ' sqlite3 ' + useList
     if bld.env['CUTOOLS_FOUND']:
-        useListCuda = ' cuda CUTOOLS lib_cu datastruct_cu eq_cu unit_cu comm_cu updater_cu proto_cu basis_cu grid_cu '
+        useListCuda = ' cuda CUTOOLS unit_cu updater_cu NCCL comm_cu '
         useList = useListCuda + useList
 
     # set RPATH

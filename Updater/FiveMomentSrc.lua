@@ -70,10 +70,6 @@ typedef struct {
   GkylMomentSrcDeviceData_t *cuda_gkylMomentSrcInit(
     const char *scheme, const int nFluids, const int numBlocks, const int numThreads);
   void cuda_gkylMomentSrcDestroy(const GkylMomentSrcDeviceData_t *context);
-  void momentSrcAdvanceOnDevice(
-      const MomentSrcData_t *sd, const FluidData_t *fd, const double dt,
-      GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
-      const GkylMomentSrcDeviceData_t *context);
 ]]
 
 -- Explicit, SSP RK3 scheme
@@ -209,7 +205,7 @@ function FiveMomentSrc:initDevice(tbl)
    cuda.Memcpy(
       self.fd_onDevice, self._fd, sz_fd , cuda.MemcpyHostToDevice)
 
-   local sz_fluidFlds = sizeof("GkylCartField_t*") * nFluids
+--   local sz_fluidFlds = sizeof("GkylCartField_t*") * nFluids
    self.d_fluidFlds, err = cuda.Malloc(sz_fluidFlds)
 
    self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
@@ -289,9 +285,9 @@ function FiveMomentSrc:_advanceDispatch(tCurr, inFld, outFld, target)
       local numCellsLocal = emFld:localRange():volume()
       assert(numCellsLocal == self.numCellsLocal)
 
-      ffi.C.momentSrcAdvanceOnDevice(
-         self.sd_onDevice, self.fd_onDevice, dt, self.d_fluidFlds, self.d_emFld,
-         self.device_context)
+--      ffi.C.momentSrcAdvanceOnDevice(
+--         self.sd_onDevice, self.fd_onDevice, dt, self.d_fluidFlds, self.d_emFld,
+--         self.device_context)
 
       return true, GKYL_MAX_DOUBLE
    elseif target=="cpu" then
