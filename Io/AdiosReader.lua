@@ -139,7 +139,7 @@ local Reader = Proto()
 function Reader:init(fName, comm)
    if not comm then comm = Mpi.COMM_WORLD end
 
-   self._fd = Adios.read_open_file(fName, comm)
+   self._fd = Adios.read_open_file(fName, Mpi.getComm(comm))
    assert(not (self._fd == nil), string.format(
 	     "Unable to open ADIOS file %s for reading", fName))
 
