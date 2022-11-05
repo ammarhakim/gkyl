@@ -1,7 +1,9 @@
 module load PrgEnv-gnu/8.3.3
-module load nvhpc-mixed/21.11
-module load cray-mpich/8.1.15
+module load cray-mpich/8.1.17
 module load python/3.9-anaconda-2021.11
+module load cudatoolkit/11.7
+module load nccl/2.14.3
+module unload darshan
 CC=cc
 CXX=CC
 MPICC=cc
