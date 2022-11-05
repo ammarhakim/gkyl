@@ -218,10 +218,19 @@ function test_3(comm)
    -- Create a new CUDA stream (needed by NCCL).
    local custream = cuda.StreamCreate()
 
-   -- Initializing NCCL.
+   -- Initializing NCCL comm.
    local commConfig = Nccl.Config()
+--   config.blocking = 1;   -- Standard comm.
+   commConfig[0].blocking = 0;   -- Nonblocking comm.
    local devComm = Nccl.Comm()
+   local devResult = Nccl.Result()
    local _ = Nccl.CommInitRankConfig(devComm, comm_sz, ncclId, rank, commConfig)
+   if commConfig[0].blocking == 0 then
+      local _ = Nccl.CommGetAsyncError(devComm, devResult)
+      while (devResult[0] == Nccl.InProgress) do
+         local _ = Nccl.CommGetAsyncError(devComm, devResult)
+      end
+   end
 
    -- Communicate data from rank 0 to rank 1.
    if rank == 0 then
@@ -236,7 +245,6 @@ function test_3(comm)
       local err = Nccl.Send(d_sendbuff, data_len, Nccl.Double, 1, devComm, custream)
    end
 
-   local devResult = Nccl.Result()
    local _ = Nccl.CommGetAsyncError(devComm, devResult)
    while (devResult[0] == Nccl.InProgress) do
       local _ = Nccl.CommGetAsyncError(devComm, devResult)
