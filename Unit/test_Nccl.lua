@@ -39,8 +39,8 @@ function log(msg)
    if rank == 0 then print(msg) end
 end
 
--- ncclComm and ncclAllReduce.
 function test_1(comm)
+   -- ncclComm and ncclAllReduce.
    assert_equal(true, Mpi.Is_comm_valid(comm))
 
    local comm_sz = Mpi.Comm_size(comm)
@@ -95,8 +95,8 @@ function test_1(comm)
    cuda.Free(d_sendbuff); cuda.Free(d_recvbuff)
 end
 
--- ncclSend and ncclRecv.
 function test_2(comm)
+   -- ncclSend and ncclRecv.
    assert_equal(true, Mpi.Is_comm_valid(comm))
 
    local comm_sz = Mpi.Comm_size(comm)
@@ -185,8 +185,8 @@ function test_2(comm)
    cuda.Free(d_sendbuff); cuda.Free(d_recvbuff)
 end
 
--- ncclSend and ncclRecv with a nonblocking comm.
 function test_3(comm)
+   -- ncclSend and ncclRecv with a nonblocking comm.
    assert_equal(true, Mpi.Is_comm_valid(comm))
 
    local comm_sz = Mpi.Comm_size(comm)
@@ -285,8 +285,8 @@ function test_3(comm)
    cuda.Free(d_sendbuff); cuda.Free(d_recvbuff)
 end
 
--- ncclSend and ncclRecv a whole CartField.
 function test_4(comm)
+   -- ncclSend and ncclRecv a whole CartField.
 
    local defaultCommSize = 2
    local comm_sz = Mpi.Comm_size(comm)
@@ -378,18 +378,21 @@ function test_4(comm)
    Mpi.Barrier(comm)
 end
 
--- ncclAllReduce a whole CartField.
 function test_5(comm)
+   -- ncclAllReduce a whole CartField, and create Nccl multiple communicators.
+   -- Multiple communicator creation appears to require distinct unique IDs,
+   -- and although there may be multiple communicators one should not initiate
+   -- new comms between the same GPUs if previous comms haven't finished.
 
-   local defaultCommSize = 2
+   local defaultCommSize, numCutsConf = 2, 1
+--   local defaultCommSize, numCutsConf = 4, 2
    local comm_sz = Mpi.Comm_size(comm)
    if comm_sz ~= defaultCommSize then
-      log(string.format("Not running test_4 as numProcs not exactly %d",defaultCommSize))
+      log(string.format("Not running test_5 as numProcs not exactly %d",defaultCommSize))
       return
    end
 
    local worldRank = Mpi.Comm_rank(Mpi.COMM_WORLD)
-   local numCutsConf = 1
 
    local confColor = math.floor(worldRank/numCutsConf)
    local confComm  = Mpi.Comm_split(Mpi.COMM_WORLD, confColor, worldRank)
@@ -398,8 +401,11 @@ function test_5(comm)
    local confRank = Mpi.Comm_rank(confComm)
    local speciesRank = Mpi.Comm_rank(speciesComm)
 
-   local rank = numCutsConf==1 and speciesRank or confRank
-   local comm = numCutsConf==1 and speciesComm or confComm
+   local num_devices, _ = cuda.GetDeviceCount() 
+   local deviceRank = worldRank % num_devices
+
+   -- Picking a GPU based on deviceRank, allocate device buffers.
+   local err = cuda.SetDevice(deviceRank)
 
    local decomp = DecompRegionCalc.CartProd { cuts = {numCutsConf}, comm = confComm }
    local grid = Grid.RectCart {
@@ -426,30 +432,29 @@ function test_5(comm)
    end
    field0:copyHostToDevice()
 
-   local speciesComm_sz = Mpi.Comm_size(speciesComm)
-   local num_devices, _ = cuda.GetDeviceCount() 
-   local local_rank = speciesRank % num_devices
-
-   -- Picking a GPU based on localRank, allocate device buffers.
-   local err = cuda.SetDevice(local_rank)
-
    -- Get NCCL unique ID at rank 0 and broadcast it to all others.
-   local ncclId = Nccl.UniqueId()
-   if speciesRank == 0 then
-      local _ = Nccl.GetUniqueId(ncclId)
-   end
-   Mpi.Bcast(ncclId, sizeof(ncclId), Mpi.BYTE, 0, speciesComm)
+   local confNcclId = Nccl.UniqueId()
+   if confRank == 0 then local _ = Nccl.GetUniqueId(confNcclId) end
+   Mpi.Bcast(confNcclId, sizeof(confNcclId), Mpi.BYTE, 0, confComm)
+   local speciesNcclId = Nccl.UniqueId()
+   if speciesRank == 0 then local _ = Nccl.GetUniqueId(speciesNcclId) end
+   Mpi.Bcast(speciesNcclId, sizeof(speciesNcclId), Mpi.BYTE, 0, speciesComm)
+
+   local confComm_sz    = Mpi.Comm_size(confComm)
+   local speciesComm_sz = Mpi.Comm_size(speciesComm)
+
+   -- Initializing NCCL.
+   local confComm_dev = Nccl.Comm()
+   local _ = Nccl.CommInitRank(confComm_dev, confComm_sz, confNcclId, confRank)
+   local speciesComm_dev = Nccl.Comm()
+   local _ = Nccl.CommInitRank(speciesComm_dev, speciesComm_sz, speciesNcclId, speciesRank)
 
    -- Create a new CUDA stream (needed by NCCL).
    local custream = cuda.StreamCreate()
 
-   -- Initializing NCCL.
-   local devComm = Nccl.Comm()
-   local _ = Nccl.CommInitRank(devComm, speciesComm_sz, ncclId, speciesRank)
-
    -- Reduce using NCCL.
    local _ Nccl.AllReduce(field0:deviceDataPointer(), field1:deviceDataPointer(),
-        field0:size(), Nccl.Double, Nccl.Sum, devComm, custream)
+        field0:size(), Nccl.Double, Nccl.Sum, speciesComm_dev, custream)
 
    -- Completing NCCL operation by synchronizing on the CUDA stream.
    local _ = cuda.StreamSynchronize(custream)
