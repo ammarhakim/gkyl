@@ -16,10 +16,7 @@ local Population = Proto()
 
 -- Functions that must be defined by subclasses.
 function Population:init(tbl)
-   self.comm = assert(tbl.comm, "App.Population: must specify the species communicator with 'comm'.")
-   self.rank = Mpi.Comm_rank(self.comm)
-
-   self.decompCuts = Mpi.Comm_size(self.comm)
+   self.messenger = assert(tbl.messenger, "App.Population: must specify the communications manager with 'messenger'.")
 
    self.species = {}
 end
@@ -30,22 +27,24 @@ function Population:decompose()
    local numSpecies = 0
    for nm, _ in pairs(self.species) do numSpecies=numSpecies+1 end
 
-   local shapes     = Lin.IntVec(self.decompCuts)
-   local baseShape  = math.floor(numSpecies/self.decompCuts)
+   local decompCuts = self.messenger:getSpeciesDecompCuts()
+   local shapes     = Lin.IntVec(decompCuts)
+   local baseShape  = math.floor(numSpecies/decompCuts)
 
-   local remSpec = numSpecies % self.decompCuts -- Extra species left over.
-   for c = 1, self.decompCuts do
+   local remSpec = numSpecies % decompCuts -- Extra species left over.
+   for c = 1, decompCuts do
       shapes[c] = baseShape + (remSpec>0 and 1 or 0) -- Add extra species if any remain.
       remSpec = remSpec-1
    end
-   local starts = Lin.IntVec(self.decompCuts)
+   local starts = Lin.IntVec(decompCuts)
    starts[1] = 1
-   for c = 2, self.decompCuts do starts[c] = starts[c-1] + shapes[c-1] end
+   for c = 2, decompCuts do starts[c] = starts[c-1] + shapes[c-1] end
 
    -- Create a table of the species in this rank.
    self.mySpeciesNames = {}
    local keys = getmetatable(self.species)
-   for i = starts[self.rank+1], starts[self.rank+1]+shapes[self.rank+1]-1 do
+   local rank = self.messenger:getSpeciesRank()
+   for i = starts[rank+1], starts[rank+1]+shapes[rank+1]-1 do
       table.insert(self.mySpeciesNames, keys[i])
    end
 
@@ -71,7 +70,7 @@ function Population:decompose()
 
    -- Create a table of ranks containing other species:
    self.speciesOwnerRank = {}
-   for r = 1, self.decompCuts do
+   for r = 1, decompCuts do
       for i = starts[r], starts[r]+shapes[r]-1 do self.speciesOwnerRank[keys[i]] = r-1 end
    end
 
@@ -106,8 +105,12 @@ function Population:getSpeciesOwner(speciesName)
    return self.speciesOwnerRank[speciesName]
 end
 
-function Population:getComm() return self.comm end
+function Population:getComm() return self.messenger:getSpeciesComm() end
 function Population:getSpecies() return self.species end
+
+function Population:AllreduceByCell(fieldIn, fieldOut, op)
+   self.messenger:AllreduceByCell(fieldIn, fieldOut, op, self:getComm())
+end
 
 function Population:speciesXferField_begin(xferObj, fld, tag)
    -- Initiate the communication of a CartField between species. This is to be called

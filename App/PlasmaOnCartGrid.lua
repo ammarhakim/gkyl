@@ -16,6 +16,7 @@ local DecompRegionCalc = require "Lib.CartDecomp"
 local Grid             = require "Grid"
 local Lin              = require "Lib.Linalg"
 local LinearTrigger    = require "Lib.LinearTrigger"
+local Messenger        = require "Comm.Messenger"
 local Logger = require "Lib.Logger"
 local Mpi    = require "Comm.Mpi"
 local Proto  = require "Lib.Proto"
@@ -151,42 +152,10 @@ local function buildApplication(self, tbl)
       if SpeciesBase.is(val) then numSpecies = numSpecies+1 end
    end
 
-   -- Check the configuration space parallel decomposition and
-   -- establish the decomposition of the species.
-   local decompCutsConf      = tbl.decompCuts
-   local parallelizeSpecies  = xsys.pickBool(tbl.parallelizeSpecies, false)
-   local numRanks, worldRank = Mpi.Comm_size(Mpi.COMM_WORLD), Mpi.Comm_rank(Mpi.COMM_WORLD)
-   local decompCutsSpecies, numCutsConf
-   if decompCutsConf then
-      assert(cdim == #decompCutsConf, "decompCuts should have exactly " .. cdim .. " entries")
-      numCutsConf = lume.reduce(decompCutsConf, function(a,b) return a*b end)
-      -- Calculate the species decomposition.
-      decompCutsSpecies = numSpecies==1 and 1 or (parallelizeSpecies and numRanks/numCutsConf or 1)
-      assert(numRanks == decompCutsSpecies*numCutsConf, " decompCuts*decompCutSpecies must equal the number of MPI processes")
-   else
-      -- If not specified, construct a decompCuts automatically for configuration space.
-      if parallelizeSpecies then
-         local dofs = {}
-         for d = 1, #tbl.cells do table.insert(dofs, tbl.cells[d]) end
-         table.insert(dofs, numSpecies)
-         decompCutsWspec = DecompRegionCalc.makeCuts(#dofs, numRanks, dofs)
-         for d = 1, #tbl.cells do decompCutsConf[d] = decompCutsWspec[d] end
-         decompCutsSpecies = decompCutsWspec[cdim+1]
-      else
-         decompCutsConf = DecompRegionCalc.makeCuts(cdim, numRanks, tbl.cells)
-         decompCutsSpecies = 1
-      end
-      numCutsConf = lume.reduce(decompCutsConf, function(a,b) return a*b end)
-   end
-
-   -- Create species and domain communicators.
-   local confColor = math.floor(worldRank/numCutsConf)
-   local confComm  = Mpi.Comm_split(Mpi.COMM_WORLD, confColor, worldRank)
-   local speciesColor = worldRank % numCutsConf
-   local speciesComm  = Mpi.Comm_split(Mpi.COMM_WORLD, speciesColor, worldRank)
-
-   -- Configuration space decomp object.
-   local decomp = DecompRegionCalc.CartProd {cuts = decompCutsConf, comm = confComm}
+   local commManager = Messenger{
+      cells      = tbl.cells,   decompCutsConf     = tbl.decompCuts,
+      numSpecies = numSpecies,  parallelizeSpecies = tbl.parallelizeSpecies,
+   }
 
    -- Some timers.
    local fwdEulerCombineTime = 0.
@@ -213,7 +182,7 @@ local function buildApplication(self, tbl)
    end
    -- Setup configuration space grid.
    local confGrid = GridConstructor {
-      lower = tbl.lower,            decomposition = decomp,
+      lower = tbl.lower,            decomposition = commManager:getConfDecomp(),
       upper = tbl.upper,            mappings      = tbl.coordinateMap,
       cells = tbl.cells,            mapc2p        = tbl.mapc2p,
       periodicDirs = periodicDirs,  world         = tbl.world,
@@ -226,7 +195,7 @@ local function buildApplication(self, tbl)
    end
 
    -- Read in information about each species.
-   local population = PopApp{ comm = speciesComm }
+   local population = PopApp{ messenger = commManager }
    for nm, val in pairs(tbl) do
       if SpeciesBase.is(val) then
 	 population.species[nm] = val

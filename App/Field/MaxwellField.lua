@@ -707,7 +707,7 @@ function MaxwellField:advance(tCurr, population, inIdx, outIdx)
             end
             -- Reduce currents across species communicator.
             self.currentDens:clear(0.0)
-            self.currentDens:reduceByCell('sum', population:getComm(), self.currentDensLocal)
+	    population:AllreduceByCell(self.currentDensLocal, self.currentDens, 'sum')
             -- Add species current to curl{B} in Amepere's equation.
             self:accumulateCurrent(self.currentDens, emRhsOut)
          end
@@ -722,7 +722,7 @@ function MaxwellField:advance(tCurr, population, inIdx, outIdx)
       end
       -- Reduce charge density across species communicator.
       self.chargeDens:clear(0.0)
-      self.chargeDens:reduceByCell('sum', population:getComm(), self.chargeDensLocal)
+      population:AllreduceByCell(self.chargeDensLocal, self.chargeDens, 'sum')
 
 --      if self.isSlvrMG then
 --         self.chargeDens:scale(1.0/self.epsilon0)

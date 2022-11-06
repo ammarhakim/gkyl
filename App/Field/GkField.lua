@@ -282,7 +282,7 @@ function GkField:initField(population)
       end
       -- Reduce currents across species communicator.
       self.currentDens:clear(0.0)
-      self.currentDens:reduceByCell('sum', population:getComm(), self.currentDensLocal)
+      population:AllreduceByCell(self.currentDensLocal, self.currentDens, 'sum')
 
       self.aparSlvr:advance(0.0, {self.currentDens}, {apar})
 
@@ -412,7 +412,7 @@ function GkField:createSolver(population, externalField)
          end
          -- Reduce polarization weight across species communicator.
          self.polarizationWeight:clear(0.0)
-         self.polarizationWeight:reduceByCell('sum', population:getComm(), self.polarizationWeightLocal)
+         population:AllreduceByCell(self.polarizationWeightLocal, self.polarizationWeight, 'sum')
 
          self.esEnergyFac:combine(.5, self.polarizationWeight)
 
@@ -447,7 +447,7 @@ function GkField:createSolver(population, externalField)
                end
                -- Reduce polarization weight across species communicator.
                self.polarizationWeight:clear(0.0)
-               self.polarizationWeight:reduceByCell('sum', populationTbl:getComm(), self.polarizationWeightLocal)
+               populationTbl:AllreduceByCell(self.polarizationWeightLocal, self.polarizationWeight, 'sum')
             end
             self.phiSlvr:setWeight(self.polarizationWeight)
          else
@@ -458,7 +458,7 @@ function GkField:createSolver(population, externalField)
                end
                -- Reduce polarization weight across species communicator.
                self.polarizationWeight:clear(0.0)
-               self.polarizationWeight:reduceByCell('sum', populationTbl:getComm(), self.polarizationWeightLocal)
+               populationTbl:AllreduceByCell(self.polarizationWeightLocal, self.polarizationWeight, 'sum')
 
                self.phiSlvr:setLaplacianWeight(self.polarizationWeight)
             end
@@ -498,7 +498,7 @@ function GkField:createSolver(population, externalField)
          end
          -- Reduce charge density across species communicator.
          self.chargeDens:clear(0.0)
-         self.chargeDens:reduceByCell('sum', populationIn:getComm(), self.chargeDensLocal)
+         populationIn:AllreduceByCell(self.chargeDensLocal, self.chargeDens, 'sum')
 
          -- If not using linearized polarization term, set up laplacian weight.
          self:setPolarizationWeight(populationIn)
@@ -783,9 +783,9 @@ function GkField:advanceStep2(tCurr, population, inIdx, outIdx)
       end
       -- Reduce currents and Ampere weight across species communicator.
       self.currentDens:clear(0.0)
-      self.currentDens:reduceByCell('sum', population:getComm(), self.currentDensLocal)
+      population:AllreduceByCell(self.currentDensLocal, self.currentDens, 'sum')
       self.modWeightAmpere:clear(0.0)
-      self.modWeightAmpere:reduceByCell('sum', population:getComm(), self.modWeightAmpereLocal)
+      population:AllreduceByCell(self.modWeightAmpereLocal, self.modWeightAmpere, 'sum')
 
       self.dApardtSlvr:setModifierWeight(self.modWeightAmpere)
       -- dApar/dt solve.
