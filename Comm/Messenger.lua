@@ -46,6 +46,7 @@ function Messenger:init(tbl)
          for d = 1, #cells do table.insert(dofs, cells[d]) end
          table.insert(dofs, numSpecies)
          decompCutsWspec = DecompRegionCalc.makeCuts(#dofs, self.worldSize, dofs)
+         self.decompCutsConf = {}
          for d = 1, #cells do self.decompCutsConf[d] = decompCutsWspec[d] end
          self.decompCutsSpecies = decompCutsWspec[cdim+1]
       else
@@ -60,7 +61,7 @@ function Messenger:init(tbl)
    self.confComm   = Mpi.Comm_split(Mpi.COMM_WORLD, confColor, self.worldRank)
    local speciesColor = self.worldRank % numCutsConf
    self.speciesComm   = Mpi.Comm_split(Mpi.COMM_WORLD, speciesColor, self.worldRank)
-   self.confRank, self.speciesRank = Mpi.Comm_rank(confComm), Mpi.Comm_rank(speciesComm)
+   self.confRank, self.speciesRank = Mpi.Comm_rank(self.confComm), Mpi.Comm_rank(self.speciesComm)
 
    -- Configuration space decomp object.
    self.decompConf = DecompRegionCalc.CartProd {cuts = self.decompCutsConf, comm = self.confComm}
@@ -94,6 +95,15 @@ function Messenger:init(tbl)
       self.IsendFunc = function(data, dataSize, dataType, dest, tag, comm, req)
          Nccl.Send(data, dataDize, dataType, dest, comm, self.ncclStream)
       end
+
+      self.WaitFunc = function(req, stat, comm)
+         local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
+         while (self.ncclResult[0] == Nccl.InProgress) do
+            local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
+         end
+         -- Completing NCCL operation by synchronizing on the CUDA stream.
+         local _ = cuda.StreamSynchronize(self.ncclStream)
+      end
    else
       self.defaultComms = {world=Mpi.COMM_WORLD, conf=self.confComm, species=self.speciesComm}
       self.reduceOps    = {max = Mpi.MAX, min = Mpi.MIN, sum = Mpi.SUM}
@@ -113,6 +123,10 @@ function Messenger:init(tbl)
 
       self.IsendFunc = function(data, dataSize, dataType, dest, tag, comm, req)
          Mpi.Isend(data, dataSize, dataType, dest, tag, comm, req)
+      end
+
+      self.WaitFunc = function(req, stat, comm)
+         local _ = Mpi.Wait(req, stat)
       end
    end
 end
@@ -136,8 +150,8 @@ function Messenger:initGPUcomms()
    -- NCCL Result object needed to query status of a communicator.
    self.ncclResult = Nccl.Result()
 
-   local confComm_sz    = Mpi.Comm_size(confComm)
-   local speciesComm_sz = Mpi.Comm_size(speciesComm)
+   local confComm_sz    = Mpi.Comm_size(self.confComm)
+   local speciesComm_sz = Mpi.Comm_size(self.speciesComm)
    
    -- Initializing NCCL comms.
    local commConfig = Nccl.Config()
@@ -177,7 +191,7 @@ function Messenger:getSpeciesDecompCuts() return self.decompCutsSpecies end
 function Messenger:getConfDecomp() return self.decompConf end
 
 function Messenger:AllreduceByCell(fieldIn, fieldOut, op, comm)
-   self.AllreduceByCell(fieldIn, fieldOut, self.reduceOps[op], comm)
+   self.AllreduceByCellFunc(fieldIn, fieldOut, self.reduceOps[op], comm)
 end
 
 function Messenger:Send(data, dataSize, dataType, dest, tag, comm)
@@ -191,6 +205,8 @@ end
 function Messenger:Irecv(data, dataSize, dataType, src, tag, comm, req)
    self.IrecvFunc(data, dataSize, dataType, src, tag, comm, req)
 end
+
+function Messenger:Wait(req, stat, comm) self.WaitFunc(req, stat, comm) end
 
 function Messenger:func() end
 

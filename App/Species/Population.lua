@@ -7,7 +7,6 @@
 --------------------------------------------------------------------------------
 
 local Proto = require "Lib.Proto"
-local Mpi   = require "Comm.Mpi"
 local Lin   = require "Lib.Linalg"
 local lume  = require "Lib.lume"
 
@@ -119,25 +118,25 @@ function Population:speciesXferField_begin(xferObj, fld, tag)
 
    -- Post receive from rank owning this species.
    for _, rank in ipairs(xferObj.srcRank) do
-      local _ = Mpi.Irecv(fld:dataPointer(), fld:size(), fld:elemCommType(),
-                          rank, tag, self:getComm(), xferObj.recvReqStat)
+      self.messenger:Irecv(fld:dataPointer(), fld:size(), fld:elemCommType(),
+                           rank, tag, self:getComm(), xferObj.recvReqStat)
    end
    -- Post sends to species that don't have this species.
    for _, rank in ipairs(xferObj.destRank) do
-      local _ = Mpi.Isend(fld:dataPointer(), fld:size(), fld:elemCommType(),
-                          rank, tag, self:getComm(), xferObj.sendReqStat)
+      self.messenger:Isend(fld:dataPointer(), fld:size(), fld:elemCommType(),
+                           rank, tag, self:getComm(), xferObj.sendReqStat)
    end
 end
 
 function Population:speciesXferField_waitRecv(xferObj)
    for _, rank in ipairs(xferObj.srcRank) do
-      local _ = Mpi.Wait(xferObj.recvReqStat, xferObj.recvReqStat)
+      messenger:Wait(xferObj.recvReqStat, xferObj.recvReqStat)
    end
 end
 
 function Population:speciesXferField_waitSend(xferObj)
    for _, rank in ipairs(xferObj.destRank) do
-      local _ = Mpi.Wait(xferObj.sendReqStat, xferObj.sendReqStat)
+      messenger:Wait(xferObj.sendReqStat, xferObj.sendReqStat)
    end
 end
 
