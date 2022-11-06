@@ -168,7 +168,8 @@ _M.InProgress              =  7
 _M.NumResults              =  8
 
 -- ncclDataType_t enums. Have to match what's in nccl.h
-_M.Int = 2
+_M.Int    = 2
+_M.Float  = 7
 _M.Double = 8
 
 -- ncclRedOp_t enum have to match the definition in nccl.h

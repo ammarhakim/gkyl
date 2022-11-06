@@ -580,7 +580,7 @@ function GkField:createSolver(population, externalField)
       writeGhost = self.writeGhost,
       metaData   = {polyOrder = self.basis:polyOrder(),
                     basisType = self.basis:id(),},
-      writeRankInComm = {0, population:getComm(),}
+      writeRankInComm = {0, population:getComm_host(),}
    }
 end
 
@@ -1072,7 +1072,7 @@ function GkGeometry:createSolver(population)
       metaData   = { polyOrder = self.basis:polyOrder(),
 	             basisType = self.basis:id(),
                      grid      = GKYL_OUT_PREFIX .. "_grid.bp", },
-      writeRankInComm = {0, population:getComm(),}
+      writeRankInComm = {0, population:getComm_host(),}
    }   
 end
 

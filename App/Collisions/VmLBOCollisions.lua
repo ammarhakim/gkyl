@@ -278,7 +278,7 @@ function VmLBOCollisions:createCouplingSolver(population, field, externalField)
       if not isThisSpeciesMine then
          local mySpecies = population:getSpecies()[self.speciesName]
          -- Allocate primMoms if we collide with other species not in this rank.
-         self.primMomsSelf = mySpecies:allocVectorMoment(self.vdim+1)
+         self.primMomsSelf = mySpecies:allocVectorMoment(mySpecies:getVdim()+1)
 
          -- Allocate (and assign if needed) cross-species collision frequencies
          -- of species not in this rank.

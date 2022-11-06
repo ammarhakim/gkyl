@@ -313,7 +313,7 @@ function MaxwellField:createSolver(population)
                   epsilon0  = self.epsilon0,
                   mu0       = self.mu0,
                   grid      = GKYL_OUT_PREFIX .. "_grid.bp"},
-      writeRankInComm = {0, population:getComm(),},
+      writeRankInComm = {0, population:getComm_host(),},
    }
 
    if self.hasMagField then   -- Maxwell's induction equations.

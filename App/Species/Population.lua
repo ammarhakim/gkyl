@@ -105,6 +105,8 @@ function Population:getSpeciesOwner(speciesName)
 end
 
 function Population:getComm() return self.messenger:getSpeciesComm() end
+function Population:getComm_host() return self.messenger:getSpeciesComm_host() end
+function Population:getComm_device() return self.messenger:getSpeciesComm_device() end
 function Population:getSpecies() return self.species end
 
 function Population:AllreduceByCell(fieldIn, fieldOut, op)
@@ -118,25 +120,25 @@ function Population:speciesXferField_begin(xferObj, fld, tag)
 
    -- Post receive from rank owning this species.
    for _, rank in ipairs(xferObj.srcRank) do
-      self.messenger:Irecv(fld:dataPointer(), fld:size(), fld:elemCommType(),
+      self.messenger:Irecv(fld:dataPointer(), fld:size(), fld:elemType(),
                            rank, tag, self:getComm(), xferObj.recvReqStat)
    end
    -- Post sends to species that don't have this species.
    for _, rank in ipairs(xferObj.destRank) do
-      self.messenger:Isend(fld:dataPointer(), fld:size(), fld:elemCommType(),
+      self.messenger:Isend(fld:dataPointer(), fld:size(), fld:elemType(),
                            rank, tag, self:getComm(), xferObj.sendReqStat)
    end
 end
 
 function Population:speciesXferField_waitRecv(xferObj)
    for _, rank in ipairs(xferObj.srcRank) do
-      messenger:Wait(xferObj.recvReqStat, xferObj.recvReqStat)
+      self.messenger:Wait(xferObj.recvReqStat, xferObj.recvReqStat)
    end
 end
 
 function Population:speciesXferField_waitSend(xferObj)
    for _, rank in ipairs(xferObj.destRank) do
-      messenger:Wait(xferObj.sendReqStat, xferObj.sendReqStat)
+      self.messenger:Wait(xferObj.sendReqStat, xferObj.sendReqStat)
    end
 end
 
