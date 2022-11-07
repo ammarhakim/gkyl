@@ -61,6 +61,7 @@ enum gkyl_wave_limiter {
 struct gkyl_wave_prop_status {
   int success; // 1 if step worked, 0 otherwise
   double dt_suggested; // suggested time-step
+  double max_speed; // max wave speed due to sweep in one direction
 };
 
 typedef struct gkyl_wave_prop gkyl_wave_prop;
@@ -73,12 +74,15 @@ struct gkyl_wave_prop_inp {
   int update_dirs[7]; // directions to update FIXME GKYL_MAX_DIM=7
   double cfl; // CFL number to use
 
+  bool force_low_order_flux; // if true, only low-order flux is used
+  bool check_inv_domain; // flag to indicate if invariant domains are checked
+
   const struct gkyl_wave_geom *geom; // geometry
 };
 
-gkyl_wave_prop* gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp);
+gkyl_wave_prop* gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp);
 
-struct gkyl_wave_prop_status gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
+struct gkyl_wave_prop_status gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   double tm, double dt, const struct gkyl_range *update_range,
   const struct gkyl_array *qin, struct gkyl_array *qout);
 
