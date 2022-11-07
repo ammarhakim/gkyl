@@ -588,7 +588,7 @@ local function buildApplication(self, tbl)
             writeData(tlatest, true)
             writeRestart(tlatest)
             dtPtr:data()[0] = stepStatus.dt_actual
-            dtTracker:appendData(tlatest dtPtr)
+            dtTracker:appendData(tlatest, dtPtr)
             dtTracker:write(string.format("dt.bp"), tlatest, irestart)
             break
          end
