@@ -118,15 +118,15 @@ function Messenger:init(tbl)
             fldOut:size(), fldOut:elemCommType(), mpiOp, comm)
       end
 
-      self.SendFunc = function(fld, dest, tag, comm)
+      self.SendCartFieldFunc = function(fld, dest, tag, comm)
          Mpi.Send(fld:dataPointer(), fld:size(), fld:elemCommType(), dest, tag, comm)
       end
 
-      self.IrecvFunc = function(fld, src, tag, comm, req)
+      self.IrecvCartFieldFunc = function(fld, src, tag, comm, req)
          Mpi.Irecv(fld:dataPointer(), fld:size(), fld:elemCommType(), src, tag, comm, req)
       end
 
-      self.IsendFunc = function(fld, dest, tag, comm, req)
+      self.IsendCartFieldFunc = function(fld, dest, tag, comm, req)
          Mpi.Isend(fld:dataPointer(), fld:size(), fld:elemCommType(), dest, tag, comm, req)
       end
 
