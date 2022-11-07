@@ -88,16 +88,16 @@ function Messenger:init(tbl)
          local _ = cuda.StreamSynchronize(self.ncclStream)
       end
 
-      self.SendFunc = function(data, dataSize, dataType, dest, tag, comm)
-         Nccl.Send(data, dataSize, dataType, dest, comm, self.ncclStream)
+      self.SendCartFieldFunc = function(fld, dest, tag, comm)
+         Nccl.Send(fld:deviceDataPointer(), fld:size(), self:getCommDataType(fld:elemType()), dest, comm, self.ncclStream)
       end
 
-      self.IrecvFunc = function(data, dataSize, dataType, src, tag, comm, req)
-         Nccl.Recv(data, dataSize, dataType, src, comm, self.ncclStream)
+      self.IrecvCartFieldFunc = function(fld, src, tag, comm, req)
+         Nccl.Recv(fld:deviceDataPointer(), fld:size(), self:getCommDataType(fld:elemType()), src, comm, self.ncclStream)
       end
 
-      self.IsendFunc = function(data, dataSize, dataType, dest, tag, comm, req)
-         Nccl.Send(data, dataSize, dataType, dest, comm, self.ncclStream)
+      self.IsendCartFieldFunc = function(fld, dest, tag, comm, req)
+         Nccl.Send(fld:deviceDataPointer(), fld:size(), self:getCommDataType(fld:elemType()), dest, comm, self.ncclStream)
       end
 
       self.WaitFunc = function(req, stat, comm)
@@ -118,16 +118,16 @@ function Messenger:init(tbl)
             fldOut:size(), fldOut:elemCommType(), mpiOp, comm)
       end
 
-      self.SendFunc = function(data, dataSize, dataType, dest, tag, comm)
-         Mpi.Send(data, dataSize, dataType, dest, tag, comm)
+      self.SendFunc = function(fld, dest, tag, comm)
+         Mpi.Send(fld:dataPointer(), fld:size(), fld:elemCommType(), dest, tag, comm)
       end
 
-      self.IrecvFunc = function(data, dataSize, dataType, src, tag, comm, req)
-         Mpi.Irecv(data, dataSize, dataType, src, tag, comm, req)
+      self.IrecvFunc = function(fld, src, tag, comm, req)
+         Mpi.Irecv(fld:dataPointer(), fld:size(), fld:elemCommType(), src, tag, comm, req)
       end
 
-      self.IsendFunc = function(data, dataSize, dataType, dest, tag, comm, req)
-         Mpi.Isend(data, dataSize, dataType, dest, tag, comm, req)
+      self.IsendFunc = function(fld, dest, tag, comm, req)
+         Mpi.Isend(fld:dataPointer(), fld:size(), fld:elemCommType(), dest, tag, comm, req)
       end
 
       self.WaitFunc = function(req, stat, comm)
@@ -148,6 +148,7 @@ function Messenger:initGPUcomms()
    self.ncclIdConf = Nccl.UniqueId()
    if self.confRank == 0 then local _ = Nccl.GetUniqueId(self.ncclIdConf) end
    Mpi.Bcast(self.ncclIdConf, sizeof(self.ncclIdConf), Mpi.BYTE, 0, self.confComm)
+
    self.ncclIdSpecies = Nccl.UniqueId()
    if self.speciesRank == 0 then local _ = Nccl.GetUniqueId(self.ncclIdSpecies) end
    Mpi.Bcast(self.ncclIdSpecies, sizeof(self.ncclIdSpecies), Mpi.BYTE, 0, self.speciesComm)
@@ -200,7 +201,7 @@ function Messenger:getSpeciesDecompCuts() return self.decompCutsSpecies end
 
 function Messenger:getConfDecomp() return self.decompConf end
 
-function Messenger:getDataCommType(dataType)
+function Messenger:getCommDataType(dataType)
    local dataCommType = type(dataType)=="string" and self.commTypes[dataType]
                        or (ffi.istype("double",dataType) and self.commTypes["double"] or
                            (ffi.istype("int",dataType) and self.commTypes["int"] or
@@ -213,16 +214,16 @@ function Messenger:AllreduceByCell(fieldIn, fieldOut, op, comm)
    self.AllreduceByCellFunc(fieldIn, fieldOut, self.reduceOps[op], comm)
 end
 
-function Messenger:Send(data, dataSize, dataType, dest, tag, comm)
-   self.SendFunc(data, dataSize, self:getDataCommType(dataType), dest, tag, comm)
+function Messenger:SendCartField(fld, dest, tag, comm)
+   self.SendCartFieldFunc(fld, dest, tag, comm)
 end
 
-function Messenger:Isend(data, dataSize, dataType, dest, tag, comm, req)
-   self.IsendFunc(data, dataSize, self:getDataCommType(dataType), dest, tag, comm, req)
+function Messenger:IsendCartField(fld, dest, tag, comm, req)
+   self.IsendCartFieldFunc(fld, dest, tag, comm, req)
 end
 
-function Messenger:Irecv(data, dataSize, dataType, src, tag, comm, req)
-   self.IrecvFunc(data, dataSize, self:getDataCommType(dataType), src, tag, comm, req)
+function Messenger:IrecvCartField(fld, src, tag, comm, req)
+   self.IrecvCartFieldFunc(fld, src, tag, comm, req)
 end
 
 function Messenger:Wait(req, stat, comm) self.WaitFunc(req, stat, comm) end
