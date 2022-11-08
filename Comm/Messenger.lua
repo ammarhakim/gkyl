@@ -79,7 +79,7 @@ function Messenger:init(tbl)
 
       self.AllreduceByCellFunc = function(fldIn, fldOut, ncclOp, comm)
          Nccl.AllReduce(fldIn:deviceDataPointer(), fldOut:deviceDataPointer(),
-	    fldIn:size(), self:getDataCommType(fldIn:elemType()), ncclOp, comm, self.ncclStream)
+	    fldIn:size(), self:getCommDataType(fldIn:elemType()), ncclOp, comm, self.ncclStream)
          local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
          while (self.ncclResult[0] == Nccl.InProgress) do
             local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
