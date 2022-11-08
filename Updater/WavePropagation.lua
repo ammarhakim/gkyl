@@ -347,7 +347,7 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
             winp.update_dirs[d-1] = self._updateDirs[d]-1
          end
          winp.cfl = self._cfl
-         winp.geom = winp.grid.geom;
+         winp.geom = qOut._grid.geom;
 
          self._zero = ffi.gc(
             ffi.C.gkyl_wave_prop_new(winp), ffi.C.gkyl_wave_prop_release)
