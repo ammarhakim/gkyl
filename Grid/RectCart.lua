@@ -194,8 +194,10 @@ function RectCart:init(tbl)
    ffi.C.gkyl_create_grid_ranges(
       self._zero, ghost, self.local_ext, self.local_range);
 
-   self.geom = ffi.C.gkyl_wave_geom_new(
-      self._zero, self.local_ext, fv_mapc2p, fv_mapc2p_ctx);
+   self.geom = ffi.gc(
+      ffi.C.gkyl_wave_geom_new(
+         self._zero, self.local_ext, fv_mapc2p, fv_mapc2p_ctx),
+      gkyl_wave_geom_release);
 end
 
 -- Member functions.
