@@ -61,17 +61,6 @@ local function out_of_walltime(startTime, wallTime, boolC)
    return boolC[0]
 end
 
-local function gkyl_eval_mapc2p(func)
-   return function(t, xn, fout, ctx)
-      local xnl = ffi.new("double[10]")
-      for i=1, 3 do xnl[i] = xn[i-1] end
-      local ret = { func(t, xnl) } -- package return into table
-      for i=1,#ret do
-         fout[i-1] = ret[i]
-      end
-   end
-end
-
 -- Top-level method to build application "run" method.
 local function buildApplication(self, tbl)
    local log = Logger {
