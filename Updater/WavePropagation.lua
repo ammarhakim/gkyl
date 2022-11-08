@@ -34,7 +34,6 @@ if GKYL_HAVE_CUDA then
 end
 
 ffi.cdef [[ 
-
 /* gkylzero components */
 
 enum gkyl_wave_limiter {
@@ -76,8 +75,6 @@ struct gkyl_wave_prop_status gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   const struct gkyl_array *qin, struct gkyl_array *qout);
 
 void gkyl_wave_prop_release(gkyl_wave_prop* up);
-
-void gkyl_wave_geom_release(const struct gkyl_wave_geom* wg);
 ]]
 
 local function gkyl_eval_mapc2p(func)
@@ -366,13 +363,10 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
          if self._mapc2p then
             mapc2p = gkyl_eval_mapc2p(self._mapc2p)
          end
-         winp.geom = ffi.C.gkyl_wave_geom_new(
-            winp.grid, qOut._localExtRange, mapc2p, ctx);
+         winp.geom = winp.grid.geom;
 
          self._zero = ffi.gc(
             ffi.C.gkyl_wave_prop_new(winp), ffi.C.gkyl_wave_prop_release)
-
-         ffi.C.gkyl_wave_geom_release(winp.geom)
 
          self._isFirst = false
       end

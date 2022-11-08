@@ -73,6 +73,8 @@ struct gkyl_wave_geom {
 
 struct gkyl_wave_geom *gkyl_wave_geom_new(const struct gkyl_rect_grid *grid,
   struct gkyl_range *range, evalf_t mapc2p, void *ctx);
+
+void gkyl_wave_geom_release(const struct gkyl_wave_geom* wg);
 ]]
 
 local function gkyl_eval_mapc2p(func)
@@ -597,7 +599,7 @@ local function buildApplication(self, tbl)
       local logCount = 0 -- This is needed to avoid initial log message.
       -- For writing out log messages.
       local function writeLogMessage(tCurr)
-	 if logTrigger(tCurr) then
+	 if logTrigger(tCurr) or true then
 	    if logCount > 0 then
 	       log (string.format(
 		       " Step %6d at time  %#11.8g.  Time step  %.6e.  Completed %g%s\n", 
