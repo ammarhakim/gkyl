@@ -555,7 +555,7 @@ local function buildApplication(self, tbl)
       local logCount = 0 -- This is needed to avoid initial log message.
       -- For writing out log messages.
       local function writeLogMessage(tCurr)
-	 if logTrigger(tCurr) or true then
+	 if logTrigger(tCurr) then
 	    if logCount > 0 then
 	       log (string.format(
 		       " Step %6d at time  %#11.8g.  Time step  %.6e.  Completed %g%s\n", 
