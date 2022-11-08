@@ -36,17 +36,6 @@ end
 ffi.cdef [[ 
 
 /* gkylzero components */
-typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
-
-struct gkyl_wave_geom {
-  struct gkyl_range range; // range over which geometry is defined
-  struct gkyl_array *geom; // geometry in each cell
-  struct gkyl_ref_count ref_count;
-};
-
-struct gkyl_wave_geom *gkyl_wave_geom_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_range *range,
-  evalf_t mapc2p, void *ctx);
 
 enum gkyl_wave_limiter {
   GKYL_NO_LIMITER = 1, // to allow default to be 0
