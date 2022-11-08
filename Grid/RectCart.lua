@@ -20,6 +20,7 @@ local Mpi   = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 local lume  = require "Lib.lume"
+require "Lib.ZeroUtil"
 
 local cuda = nil
 if GKYL_HAVE_CUDA then
@@ -64,6 +65,20 @@ void gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
  */
 void gkyl_create_grid_ranges(const struct gkyl_rect_grid *grid,
   const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range);
+
+/* gkylzero wave_geom wrapper */
+typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
+
+struct gkyl_wave_geom {
+  struct gkyl_range range; // range over which geometry is defined
+  struct gkyl_array *geom; // geometry in each cell
+  struct gkyl_ref_count ref_count;
+};
+
+struct gkyl_wave_geom *gkyl_wave_geom_new(const struct gkyl_rect_grid *grid,
+  struct gkyl_range *range, evalf_t mapc2p, void *ctx);
+
+void gkyl_wave_geom_release(const struct gkyl_wave_geom* wg);
 ]]
 
 local rectCartSz = sizeof("struct gkyl_rect_grid")
@@ -152,6 +167,24 @@ function RectCart:init(tbl)
       self._block = 1
       self._cuts  = cuts
    end
+
+   -- Compute wave_geom for finite-volume solvers
+   if tbl.fv_mapc2p then
+      local fv_mapc2p = gkyl_eval_mapc2p(tbl.fv_mapc2p)
+      local fv_mapc2p_ctx = nil
+
+      local ghost = ffi.new("int[3]")
+      ghost[0], ghost[1], ghost[2] = 2, 2, 2;
+      self.local_ext = ffi.new("struct gkyl_range")
+      self.local_range = ffi.new("struct gkyl_range")
+
+      ffi.C.gkyl_create_grid_ranges(
+         confGrid._zero, ghost, self.local_ext, self.local_range);
+
+      self.geom = ffi.C.gkyl_wave_geom_new(
+         confGrid._zero, self.local_ext, fv_mapc2p, fv_mapc2p_ctx);
+   end
+
 end
 
 -- Member functions.

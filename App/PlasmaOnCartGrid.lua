@@ -61,22 +61,6 @@ local function out_of_walltime(startTime, wallTime, boolC)
    return boolC[0]
 end
 
--- for gkylzero wave_geom wrapper FIXME move to a better place
-ffi.cdef [[
-typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
-
-struct gkyl_wave_geom {
-  struct gkyl_range range; // range over which geometry is defined
-  struct gkyl_array *geom; // geometry in each cell
-  struct gkyl_ref_count ref_count;
-};
-
-struct gkyl_wave_geom *gkyl_wave_geom_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_range *range, evalf_t mapc2p, void *ctx);
-
-void gkyl_wave_geom_release(const struct gkyl_wave_geom* wg);
-]]
-
 local function gkyl_eval_mapc2p(func)
    return function(t, xn, fout, ctx)
       local xnl = ffi.new("double[10]")
@@ -213,23 +197,6 @@ local function buildApplication(self, tbl)
       cells = tbl.cells,            mapc2p        = tbl.mapc2p,
       periodicDirs = periodicDirs,  world         = tbl.world,
    }
-
-   -- Wrapping over gkylzero's wave_geom for reuse in wave_prop solver creation.
-   if tbl.fv_mapc2p then 
-      local fv_mapc2p = gkyl_eval_mapc2p(tbl.fv_mapc2p)
-      local fv_mapc2p_ctx = nil
-
-      local ghost = ffi.new("int[3]")
-      ghost[0], ghost[1], ghost[2] = 2, 2, 2;
-      self.local_ext = ffi.new("struct gkyl_range")
-      self.local_range = ffi.new("struct gkyl_range")
-
-      ffi.C.gkyl_create_grid_ranges(
-         confGrid._zero, ghost, self.local_ext, self.local_range);
-
-      confGrid.geom = ffi.C.gkyl_wave_geom_new(
-         confGrid._zero, self.local_ext, fv_mapc2p, fv_mapc2p_ctx);
-   end
 
    if tbl.coordinateMap or tbl.mapc2p then 
       local metaData = {polyOrder = confBasis:polyOrder(),
