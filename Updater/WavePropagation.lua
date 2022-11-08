@@ -77,17 +77,6 @@ struct gkyl_wave_prop_status gkyl_wave_prop_advance(gkyl_wave_prop *wv,
 void gkyl_wave_prop_release(gkyl_wave_prop* up);
 ]]
 
-local function gkyl_eval_mapc2p(func)
-   return function(t, xn, fout, ctx)
-      local xnl = ffi.new("double[10]")
-      for i=1, 3 do xnl[i] = xn[i-1] end
-      local ret = { func(t, xnl) } -- package return into table
-      for i=1,#ret do
-         fout[i-1] = ret[i]
-      end
-   end
-end
-
 -- Template for function to compute jump
 local calcDeltaTempl = xsys.template([[
 return function (ql, qr, delta)
@@ -241,7 +230,6 @@ function WavePropagation:init(tbl)
    self._cflm = tbl.cflm and tbl.cflm or 1.1*self._cfl
    self._hasSsBnd = xsys.pickBool(tbl.hasSsBnd, false)
    self._inOut = tbl.inOut
-   self._mapc2p = tbl.mapc2p
 
    self._updateDirs = {}
    local upDirs = tbl.updateDirections and tbl.updateDirections or {1, 2, 3, 4, 5, 6}
@@ -359,10 +347,6 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
             winp.update_dirs[d-1] = self._updateDirs[d]-1
          end
          winp.cfl = self._cfl
-         local mapc2p, ctx = nil, nil
-         if self._mapc2p then
-            mapc2p = gkyl_eval_mapc2p(self._mapc2p)
-         end
          winp.geom = winp.grid.geom;
 
          self._zero = ffi.gc(
