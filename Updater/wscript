@@ -212,8 +212,6 @@ def build(bld):
     chargeExchangeCalcData/SigmaCXcellAvSer2x3v.cpp
     chargeExchangeCalcData/SigmaCXcellAvSer3x3v.cpp
 
-    MappedPoissonImpl.cpp
-
     maxwellianOnBasisData/MaxwellianOnBasisImpl.cpp
     maxwellianOnBasisData/MaxwellianOnBasisSer1x1vP1.cpp
     maxwellianOnBasisData/MaxwellianOnBasisSer1x1vP2.cpp
@@ -271,6 +269,8 @@ def build(bld):
               use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     
 ## Removed the following files from the build for now
+#    MappedPoissonImpl.cpp
+#
 #     binOpCalcData/CartFieldBinOpSer3x3vP2.cpp
 #    lagrangeFixData/lagrangeFix_gk_1x2v_ser_p2.cpp
 #    lagrangeFixData/lagrangeFix_gk_1x2v_tensor_p2.cpp
