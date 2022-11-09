@@ -594,11 +594,13 @@ function MaxwellField:initField(species)
    for _, s in lume.orderedIter(species) do
       maxVdim = math.max(maxVdim, s.vdim)
    end
-   self.currentDens = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = self.basis:numBasis()*maxVdim,
-      ghost         = {1, 1},
-   }
+   if maxVdim > 0 then
+      self.currentDens = DataStruct.Field {
+         onGrid        = self.grid,
+         numComponents = self.basis:numBasis()*maxVdim,
+         ghost         = {1, 1},
+      }
+   end
 
    if self.hasMagField then   -- Maxwell's induction equations.
       local project = Updater.ProjectOnBasis {

@@ -28,16 +28,16 @@ def check_openblas(conf):
         conf.env.INCLUDES_OPENBLAS = conf.options.gkylDepsDir+'/OpenBLAS/include'
 
     if conf.options.openblasLibDir:
-        #conf.env.STLIBPATH_OPENBLAS = conf.options.openblasLibDir
-        conf.env.STLIBPATH_OPENBLAS = conf.options.openblasLibDir.split(',')
+        #conf.env.LIBPATH_OPENBLAS = conf.options.openblasLibDir
+        conf.env.LIBPATH_OPENBLAS = conf.options.openblasLibDir.split(',')
     else:
-        conf.env.STLIBPATH_OPENBLAS = conf.options.gkylDepsDir+'/OpenBLAS/lib'
+        conf.env.LIBPATH_OPENBLAS = conf.options.gkylDepsDir+'/OpenBLAS/lib'
 
-    conf.env.STLIB_OPENBLAS = ["openblas"]
+    conf.env.LIB_OPENBLAS = ["openblas"]
 
     if conf.options.openblasLinkLibs:
         libList = conf.options.openblasLinkLibs
-        conf.env.append_value('STLIB_OPENBLAS', libList.split(','))
+        conf.env.append_value('LIB_OPENBLAS', libList.split(','))
          
     conf.start_msg('Checking for OPENBLAS')
     conf.check(header_name='lapack.h', features='cxx cxxprogram', use="OPENBLAS", mandatory=True)
