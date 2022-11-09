@@ -100,7 +100,6 @@ function MaxwellField:fullInit(appTbl)
       self.useGhostCurrent = xsys.pickBool(tbl.useGhostCurrent, false)
 
       self.limiter = self.tbl.limiter and self.tbl.limiter or "monotonized-centered"
-      self.mapc2p = self.tbl.mapc2p
 
       -- numFlux used for selecting which type of numerical flux function to use
       -- defaults to "upwind" in Eq object, supported options: "central," "upwind"
@@ -369,7 +368,6 @@ function MaxwellField:createSolver()
                limiter = self.limiter,
                cfl = self.cfl,
                updateDirections = {d},
-               mapc2p = self.mapc2p,
                hasSsBnd = self._hasSsBnd,
                inOut = self._inOut
             }
@@ -594,13 +592,11 @@ function MaxwellField:initField(species)
    for _, s in lume.orderedIter(species) do
       maxVdim = math.max(maxVdim, s.vdim)
    end
-   if maxVdim > 0 then
-      self.currentDens = DataStruct.Field {
-         onGrid        = self.grid,
-         numComponents = self.basis:numBasis()*maxVdim,
-         ghost         = {1, 1},
-      }
-   end
+   self.currentDens = DataStruct.Field {
+      onGrid        = self.grid,
+      numComponents = self.basis:numBasis()*maxVdim,
+      ghost         = {1, 1},
+   }
 
    if self.hasMagField then   -- Maxwell's induction equations.
       local project = Updater.ProjectOnBasis {
