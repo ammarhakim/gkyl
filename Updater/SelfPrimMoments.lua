@@ -140,44 +140,23 @@ function SelfPrimMoments:init(tbl)
    local operator = assert(
       tbl.operator, "Updater.SelfPrimMoments: Must specify the collision operator (VmLBO or GkLBO for now) using 'operator'.")
 
-   -- Dimension of phase space.
-   self._pDim = phaseBasis:ndim()
-   -- Basis name and polynomial order.
-   self._basisID   = confBasis:id()
-   self._polyOrder = confBasis:polyOrder()
-
    -- Ensure sanity.
-   assert(phaseBasis:polyOrder() == self._polyOrder,
+   local basisID = confBasis:id()  -- Basis name.
+   assert(phaseBasis:polyOrder() == confBasis:polyOrder(),
           "Polynomial orders of phase and conf basis must match.")
-   assert((phaseBasis:id() == self._basisID) or
-          ((phaseBasis:id()=="hybrid" or phaseBasis:id()=="gkhybrid") and self._basisID=="serendipity"),
+   assert((phaseBasis:id() == basisID) or
+          ((phaseBasis:id()=="hybrid" or phaseBasis:id()=="gkhybrid") and basisID=="serendipity"),
           "Type of phase and conf basis must match.")
-   -- Determine configuration and velocity space dims.
-   self._cDim = confBasis:ndim()
-   self._vDim = self._pDim - self._cDim
 
-   -- Number of basis functions. Used to compute number of vector components.
-   self._numBasisP = phaseBasis:numBasis()
-   self._numBasisC = confBasis:numBasis()
-
-   local uDim       = self._vDim  -- Dimensionality of flow velocity vector.
-   self._kinSpecies = "Vm"        -- Vlasov-Maxwell species.
    self._isGkLBO    = false
    if isOperatorGood(operator) then
-     if operator == "GkLBO" then
-        self._isGkLBO    = true
-        self._kinSpecies = "Gk"    -- Gyrokinetic species.
-        uDim             = 1       -- A (vpar,mu) simulation has 3 physical velocity dimensions.
-     end
+     if operator == "GkLBO" then self._isGkLBO = true end
    else
       assert(false, string.format(
                 "SelfPrimMoments: Operator option must be 'VmLBO' or 'GkLBO'. Requested %s instead.", operator))
    end
 
-   self._SelfPrimMomentsCalc = PrimMomentsDecl.selectSelfPrimMomentsCalc(self._kinSpecies, self._basisID, self._cDim, self._vDim, self._polyOrder)
    self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
-
-   self._binOpData = ffiC.new_binOpData_t(self._numBasisC*(uDim+1), 0) 
 
    local vbounds = assert(tbl.vbounds, "SelfPrimMoments: must pass vbounds")
    local mass
@@ -212,96 +191,15 @@ end
 -- Advance method.
 function SelfPrimMoments:_advance(tCurr, inFld, outFld)
 
-   if self._zero_prim_calc then
+   local moments, fIn = inFld[1], inFld[2]
+   local boundaryCorrections, primMoms = outFld[1], outFld[2]
 
-      local moments, fIn = inFld[1], inFld[2]
-      local boundaryCorrections, primMoms = outFld[1], outFld[2]
+   -- Compute boundary corrections.
+   ffiC.gkyl_mom_calc_bcorr_advance(self._zero_bcorr_calc, fIn:localRange(), primMoms:localRange(), fIn._zero, boundaryCorrections._zero)
 
-      -- Compute boundary corrections.
-      ffiC.gkyl_mom_calc_bcorr_advance(self._zero_bcorr_calc, fIn:localRange(), primMoms:localRange(), fIn._zero, boundaryCorrections._zero)
+   -- Compute u and vtsq.
+   ffiC.gkyl_prim_lbo_calc_advance(self._zero_prim_calc, self.confBasis._zero, primMoms:localRange(), moments._zero, boundaryCorrections._zero, primMoms._zero)
 
-      -- Compute u and vtsq.
-      ffiC.gkyl_prim_lbo_calc_advance(self._zero_prim_calc, self.confBasis._zero, primMoms:localRange(), moments._zero, boundaryCorrections._zero, primMoms._zero)
-
-      return
-   end
-
-   local grid = self._onGrid
-
-   local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
-
-   local uOut           = outFld[1]
-   local vtSqOut        = outFld[2]
-
-   local uOutItr        = uOut:get(1)
-   local vtSqOutItr     = vtSqOut:get(1)
-
-   -- Moments used for all polyOrders.
-   local m0, m1 = inFld[1], inFld[2]
-   local confIndexer = m0:genIndexer()
-   local m0Itr       = m0:get(1)
-   local m1Itr       = m1:get(1)
-
-   -- Boundary corrections.
-   local cMomB, cEnergyB = inFld[4], inFld[5]
-   local cMomBItr        = cMomB:get(1)
-   local cEnergyBItr     = cEnergyB:get(1)
-
-   local m2, m2Itr
-   local m0Star, m0StarItr
-   local m1Star, m1StarItr
-   local m2Star, m2StarItr
-   if self._polyOrder > 1 then
-      m2    = inFld[3]
-      m2Itr = m2:get(1)
-   else
-      m0Star, m1Star, m2Star = inFld[6], inFld[7], inFld[8]
-      m0StarItr = m0Star:get(1)
-      m1StarItr = m1Star:get(1)
-      m2StarItr = m2Star:get(1)
-   end
-
-   local confRange = self.onGhosts and m0:localExtRange() or m0:localRange()
-
-   -- polyOrder=1 and >1 each use separate velocity grid loops to
-   -- avoid evaluating (if polyOrder==1) at each cell.
-   if self._polyOrder > 1 then
-
-      for cIdx in confRange:rowMajorIter() do
-         grid:setIndex(cIdx)
-
-         m0:fill(confIndexer(cIdx), m0Itr)
-         m1:fill(confIndexer(cIdx), m1Itr)
-         m2:fill(confIndexer(cIdx), m2Itr)
-         cMomB:fill(confIndexer(cIdx), cMomBItr)
-         cEnergyB:fill(confIndexer(cIdx), cEnergyBItr)
-
-         uOut:fill(confIndexer(cIdx), uOutItr)
-         vtSqOut:fill(confIndexer(cIdx), vtSqOutItr)
-
-         self._SelfPrimMomentsCalc(self._binOpData, m0Itr:data(), m1Itr:data(), m2Itr:data(), cMomBItr:data(), cEnergyBItr:data(), uOutItr:data(), vtSqOutItr:data())
-      end
-
-   else
-
-      for cIdx in confRange:rowMajorIter() do
-         grid:setIndex(cIdx)
-
-         m0:fill(confIndexer(cIdx), m0Itr)
-         m1:fill(confIndexer(cIdx), m1Itr)
-         cMomB:fill(confIndexer(cIdx), cMomBItr)
-         cEnergyB:fill(confIndexer(cIdx), cEnergyBItr)
-         m0Star:fill(confIndexer(cIdx), m0StarItr)
-         m1Star:fill(confIndexer(cIdx), m1StarItr)
-         m2Star:fill(confIndexer(cIdx), m2StarItr)
-
-         uOut:fill(confIndexer(cIdx), uOutItr)
-         vtSqOut:fill(confIndexer(cIdx), vtSqOutItr)
-
-         self._SelfPrimMomentsCalc(self._binOpData, m0Itr:data(), m1Itr:data(), m0StarItr:data(), m1StarItr:data(), m2StarItr:data(), cMomBItr:data(), cEnergyBItr:data(), uOutItr:data(), vtSqOutItr:data())
-      end
-
-   end
 end
 
 function SelfPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
