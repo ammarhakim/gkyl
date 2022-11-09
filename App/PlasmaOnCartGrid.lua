@@ -33,7 +33,6 @@ math = require("sci.math").generic -- this is global so that it affects input fi
 -- needed to run the App itself. Specific objects should be loaded in
 -- the  methods defined at the bottom of this file)
 local SpeciesBase       = require "App.Species.SpeciesBase"
-local FluidSourceBase   = require "App.FluidSources.FluidSourceBase"
 local FieldBase         = require ("App.Field.FieldBase").FieldBase
 local ExternalFieldBase = require ("App.Field.FieldBase").ExternalFieldBase
 local NoField           = require ("App.Field.FieldBase").NoField
@@ -88,6 +87,7 @@ local function buildApplication(self, tbl)
    local tmStart = Time.clock()
 
    local cdim = #tbl.lower -- Configuration space dimensions.
+   assert(tbl.cells, "Must specify the number of cells in 'cells'.")
    assert(cdim == #tbl.upper, "upper should have exactly " .. cdim .. " entries")
    assert(cdim == #tbl.cells, "cells should have exactly " .. cdim .. " entries")
 
@@ -97,8 +97,7 @@ local function buildApplication(self, tbl)
       assert(false, "Incorrect basis type " .. basisNm .. " specified")
    end
 
-   -- FV methods don't need to specify polyOrder.
-   local polyOrder = tbl.polyOrder and tbl.polyOrder or 0 -- Polynomial order.
+   local polyOrder = assert(tbl.polyOrder, "Must specify polynomial order in 'polyOrder'.")
 
    -- Create basis function for configuration space.
    local confBasis = createBasis(basisNm, cdim, polyOrder)
@@ -113,7 +112,7 @@ local function buildApplication(self, tbl)
    local maxWallTime = tbl.maxWallTime and tbl.maxWallTime or GKYL_MAX_DOUBLE
 
    -- Time-stepper.
-   local goodStepperNames = { "rk1", "rk2", "rk3", "rk3s4", "fvDimSplit" }
+   local goodStepperNames = { "rk1", "rk2", "rk3", "rk3s4" }
    local timeStepperNm = warnDefault(tbl.timeStepper, "timeStepper", "rk3")
    local timeIntegrator
    if lume.find(goodStepperNames, timeStepperNm) then
@@ -125,8 +124,6 @@ local function buildApplication(self, tbl)
          timeIntegrator = require "App.TimeSteppers.SSP_RK3"
       elseif timeStepperNm == "rk3s4" then
          timeIntegrator = require "App.TimeSteppers.SSP_RK3s4"
-      elseif timeStepperNm == "fvDimSplit" then
-         timeIntegrator = require "App.TimeSteppers.FVdimSplit"
       else
          assert(false, "Time stepper not implemented.")
       end
@@ -152,6 +149,7 @@ local function buildApplication(self, tbl)
       if SpeciesBase.is(val) then numSpecies = numSpecies+1 end
    end
 
+   -- Object that handles MPI/NCCL communication (some comms are still elsewhere).
    local commManager = Messenger{
       cells      = tbl.cells,   decompCutsConf     = tbl.decompCuts,
       numSpecies = numSpecies,  parallelizeSpecies = tbl.parallelizeSpecies,
@@ -225,24 +223,8 @@ local function buildApplication(self, tbl)
       s:alloc(timeStepper.numFields)
    end
 
-   -- Read in information about each fluid source
-   local fluidSources = {}
-   for nm, val in pairs(tbl) do
-      if FluidSourceBase.is(val) then
-         fluidSources[nm] = val
-         fluidSources[nm]:setName(nm)
-         val:fullInit(tbl) -- Initialize fluid sources.
-      end
-   end
-   lume.setOrder(fluidSources)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
-
    -- Add grid to app object.
    self._confGrid = confGrid
-
-   -- Set conf grid for each fluid source.
-   for _, flSrc in lume.orderedIter(fluidSources) do
-      flSrc:setConfGrid(confGrid)
-   end  
 
    local cflMin = GKYL_MAX_DOUBLE
    -- Compute CFL numbers.
@@ -310,9 +292,6 @@ local function buildApplication(self, tbl)
       s:createSolver(field, externalField)
       s:initDist(externalField, population:getSpecies())
    end
-   for _, flSrc in lume.orderedIter(fluidSources) do
-      flSrc:createSolver(population:getSpecies(), field)    -- Initialize fluid source solvers.
-   end   
    -- Create field solver (sometimes requires species solver to have been created).
    field:createSolver(population, externalField)
 
@@ -354,7 +333,6 @@ local function buildApplication(self, tbl)
    -- Function to write data to file.
    local function writeData(tCurr, force)
       for _, s in population.iterLocal() do s:write(tCurr, force) end
-      for _, flSrc in lume.orderedIter(fluidSources) do flSrc:write(tCurr) end 
       field:write(tCurr, force)
       externalField:write(tCurr, force)
    end
@@ -519,7 +497,7 @@ local function buildApplication(self, tbl)
 
    -- Set functions in time stepper object.
    timeStepper:createSolver(appStatus, {combine, copy, dydt, forwardEuler},
-                            {population:getSpecies(), field, externalField, fluidSources})
+                            {population:getSpecies(), field, externalField})
 
    local devDiagnose = function()
       -- Perform performance/numerics-related diagnostics.
@@ -690,8 +668,6 @@ local function buildApplication(self, tbl)
 	 end
       end
 
-      for _, flSrc in lume.orderedIter(fluidSources) do tmSrc = tmSrc + flSrc:totalTime() end
-
       local tmTotal = tmSimEnd-tmSimStart
       local tmAccounted = 0.0
       log(string.format("\n\nTotal number of time-steps %s\n", appStatus.step))
@@ -807,13 +783,9 @@ end
 -- PlasmaOnCartGrid application object.
 local App = Proto()
 
-function App:init(tbl)
-   self._runApplication = buildApplication(self, tbl)
-end
+function App:init(tbl) self._runApplication = buildApplication(self, tbl) end
 
-function App:getConfGrid()
-   return self._confGrid
-end
+function App:getConfGrid() return self._confGrid end
 
 function App:run()
    -- By default command is "run".
@@ -942,23 +914,6 @@ return {
       }
    end,
    
-   Moments = function ()
-      App.label = "Multi-fluid"
-      return {
-         App = App,
-         Species = require "App.Species.MomentSpecies",
-         Field = require ("App.Field.MaxwellField").MaxwellField,
-         ExternalField = require ("App.Field.MaxwellField").ExternalMaxwellField,
-         CollisionlessEmSource = require "App.FluidSources.CollisionlessEmSource",
-         TenMomentRelaxSource  = require "App.FluidSources.TenMomentRelaxSource",
-         MomentFrictionSource = require "App.FluidSources.MomentFrictionSource",
-         AxisymmetricMomentSource = require "App.FluidSources.AxisymmetricMomentSource",
-         AxisymmetricPhMaxwellSource = require "App.FluidSources.AxisymmetricPhMaxwellSource",
-         BraginskiiHeatConductionSource = require "App.FluidSources.BraginskiiHeatConductionSource",
-         BraginskiiViscosityDiffusionSource = require "App.FluidSources.BraginskiiViscosityDiffusionSource",
-      }
-   end,
-
    PassiveAdvection = function ()
       App.label = "Passively-advected scalar fluid"
       return {

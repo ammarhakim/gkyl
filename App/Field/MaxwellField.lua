@@ -42,20 +42,18 @@ local EM_BC_COPY = 3
 local EM_BC_OPEN = EM_BC_COPY
 local EM_BC_AXIS = 7
 
-MaxwellField.bcOpen = EM_BC_OPEN    -- Zero gradient.
-MaxwellField.bcCopy = EM_BC_COPY    -- Copy fields.
-MaxwellField.bcReflect = EM_BC_REFLECT -- Perfect electric conductor.
+MaxwellField.bcOpen     = EM_BC_OPEN    -- Zero gradient.
+MaxwellField.bcCopy     = EM_BC_COPY    -- Copy fields.
+MaxwellField.bcReflect  = EM_BC_REFLECT -- Perfect electric conductor.
 MaxwellField.bcSymmetry = EM_BC_SYMMETRY
-MaxwellField.bcAxis = EM_BC_AXIS
+MaxwellField.bcAxis     = EM_BC_AXIS
 
 -- Function to check if BC type is good.
 local function isBcGood(bcType)
    if bcType == EM_BC_OPEN or bcType == EM_BC_REFLECT or bcType == EM_BC_SYMMETRY then
       return true
    end
-   if type(bcType) == "table" then
-     return true
-   end
+   if type(bcType) == "table" then return true end
    return false
 end
 
@@ -93,7 +91,6 @@ function MaxwellField:fullInit(appTbl)
       -- the speed of light.
       self.tau = tbl.tau
 
-      self._hasSsBnd = tbl.hasSsBnd
       self._inOutFunc = tbl.inOutFunc
 
       -- No ghost current by default.
@@ -178,11 +175,6 @@ function MaxwellField:fullInit(appTbl)
       self.hasNonPeriodicBc = true
    end
 
-   self.ssBc = {}
-   if tbl.ssBc then
-      self.ssBc[1] = tbl.ssBc[1]
-   end
-
    self.tmCurrentAccum = 0.0 -- Time spent in current accumulate.
    self.integratedEMTime = 0.0 -- Time spent integrating EM fields.
 
@@ -248,16 +240,16 @@ function MaxwellField:esEnergy(tCurr, fldIn, outDynV)
 end
 
 function MaxwellField:alloc(nRkDup)
-   local nGhost = self.basis:numBasis()>1 and 1 or 2
+   local nGhost = 1
    
    self.em = {}
    if self.hasMagField then   -- Maxwell's induction equations.
       -- Allocate fields needed in RK update.
       for i = 1, nRkDup do
          self.em[i] = DataStruct.Field {
-            onGrid = self.grid,
+            onGrid        = self.grid,
             numComponents = 8*self.basis:numBasis(),
-            ghost = {nGhost, nGhost}
+            ghost         = {nGhost, nGhost}
          }
       end
 
@@ -268,9 +260,9 @@ function MaxwellField:alloc(nRkDup)
          ghost         = {1, 1},
       }
       self.cflRateByCell:clear(0.0)
-      self.cflRatePtr = self.cflRateByCell:get(1)
+      self.cflRatePtr  = self.cflRateByCell:get(1)
       self.cflRateIdxr = self.cflRateByCell:genIndexer()
-      self.dtGlobal = ffi.new("double[2]")
+      self.dtGlobal    = ffi.new("double[2]")
       
       -- For storing integrated energy components.
       self.emEnergy = DataStruct.DynVector { numComponents = 8 }
@@ -278,9 +270,9 @@ function MaxwellField:alloc(nRkDup)
    else   -- Poisson equation.
       -- Electrostatic potential, phi.
       local phiFld = DataStruct.Field {
-         onGrid = self.grid,
+         onGrid        = self.grid,
          numComponents = self.basis:numBasis(),
-         ghost = {1, 1}
+         ghost         = {1, 1}
       }
       for i = 1, nRkDup do self.em[i] = phiFld end
       -- Keep copies of previous potentials so we can use three point
@@ -291,9 +283,9 @@ function MaxwellField:alloc(nRkDup)
          self.phiFldPrev[i] = {}
          self.phiFldPrev[i]["time"] = 0.0
          self.phiFldPrev[i]["fld"] = DataStruct.Field {
-            onGrid = self.grid,
+            onGrid        = self.grid,
             numComponents = self.basis:numBasis(),
-            ghost = {1, 1}
+            ghost         = {1, 1}
          }
       end
 
@@ -321,47 +313,13 @@ function MaxwellField:createSolver(population)
       self.equation = PerfMaxwell {
          lightSpeed          = self.lightSpeed,  tau     = self.tau,
          elcErrorSpeedFactor = self.ce,          numFlux = self.numFlux,
-         mgnErrorSpeedFactor = self.cb,          basis   = self.basis:numBasis() > 1 and self.basis or nil,
+         mgnErrorSpeedFactor = self.cb,          basis   = self.basis,
       }
 
-      self.fieldSlvr, self.fieldHyperSlvr = nil, {}
-      if self.basis:numBasis() > 1 then
-         -- Using DG scheme.
-         self.fieldSlvr = Updater.HyperDisCont {
-            onGrid = self.grid,   cfl      = self.cfl,
-            basis  = self.basis,  equation = self.equation,
-         }
-      else
-         -- Using FV scheme.
-         if self._hasSsBnd then
-            self._inOut = DataStruct.Field {
-               onGrid = self.grid,
-               numComponents = 1,
-               ghost = {2, 2}
-            }
-            local project = Updater.ProjectOnBasis {
-               onGrid = self.grid,
-               basis = self.basis,
-               evaluate = self._inOutFunc,
-               onGhosts = true,
-            }
-            project:advance(0.0, {}, {self._inOut})
-            self.fieldIo:write(self._inOut, string.format("%s_inOut.bp", "field"), 0, 0)
-         end
-
-         local ndim = self.grid:ndim()
-         for d = 1, ndim do
-            self.fieldHyperSlvr[d] = Updater.WavePropagation {
-               onGrid = self.grid,
-               equation = self.equation,
-               limiter = self.limiter,
-               cfl = self.cfl,
-               updateDirections = {d},
-               hasSsBnd = self._hasSsBnd,
-               inOut = self._inOut
-            }
-         end
-      end
+      self.fieldSlvr = Updater.HyperDisCont {
+         onGrid = self.grid,   cfl      = self.cfl,
+         basis  = self.basis,  equation = self.equation,
+      }
 
       self.emEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
          onGrid = self.grid,   quantity      = "V2",
@@ -427,10 +385,8 @@ function MaxwellField:createSolver(population)
    -- Function to construct a BC updater.
    local function makeBcUpdater(dir, edge, bcList)
       return Updater.Bc {
-         onGrid             = self.grid,
-         boundaryConditions = bcList,
-         dir                = dir,
-         edge               = edge,
+         onGrid             = self.grid,  dir  = dir,
+         boundaryConditions = bcList,     edge = edge,
       }
    end
 
@@ -528,44 +484,6 @@ function MaxwellField:createSolver(population)
    handleBc(2, self.bcy)
    handleBc(3, self.bcz)
 
-   self.ssBoundaryConditions = { }
-   if self._hasSsBnd then
-      function makeSsBcUpdater(dir, inOut, bcList)
-         return Updater.StairSteppedBc {
-            onGrid = self.grid,
-            inOut = inOut,
-            boundaryConditions = bcList,
-            dir = dir,
-         }
-      end
-      local function appendSsBoundaryConditions(dir, inOut, bcType)
-         if bcType == EM_BC_OPEN then
-            table.insert(self.ssBoundaryConditions,
-                         makeSsBcUpdater(dir, inOut, { bcCopy }))
-         elseif bcType == EM_BC_COPY then
-            table.insert(self.ssBoundaryConditions,
-                         makeSsBcUpdater(dir, inOut, { bcCopy }))
-         elseif bcType == EM_BC_REFLECT then
-            table.insert(self.ssBoundaryConditions,
-                         makeSsBcUpdater(dir, inOut, { bcReflect }))
-         elseif bcType == EM_BC_SYMMETRY then
-            table.insert(self.ssBoundaryConditions,
-                         makeSsBcUpdater(dir, inOut, { bcSymmetry }))
-         elseif bcType == EM_BC_AXIS then
-            table.insert(self.ssBoundaryConditions,
-                         makeSsBcUpdater(dir, inOut,  PerfMaxwell.bcAxis ))
-         elseif type(bcType) == "table" then
-            table.insert(self.ssBoundaryConditions,
-                         makeSsBcUpdater(dir, inOut, bcType))
-         else
-            assert(false, "MaxwellField.ssBoundaryConditions: Unsupported BC type!")
-         end
-      end
-      for dir = 1, self.grid:ndim() do
-         appendSsBoundaryConditions(dir, self._inOut, self.ssBc[1])
-      end
-   end
-
    self.bcTime = 0.0 -- Timer for BCs.
 end
 
@@ -652,9 +570,7 @@ function MaxwellField:readRestart()
    return tm
 end
 
-function MaxwellField:rkStepperFields()
-   return self.em
-end
+function MaxwellField:rkStepperFields() return self.em end
 
 -- For RK timestepping.
 function MaxwellField:copyRk(outIdx, aIdx)
@@ -762,18 +678,6 @@ function MaxwellField:advance(tCurr, population, inIdx, outIdx)
    end
 end
 
-function MaxwellField:updateInDirection(dir, tCurr, dt, fIn, fOut)
-   local status, dtSuggested = true, GKYL_MAX_DOUBLE
-   if self.evolve then
-      self:applyBc(tCurr, fIn, dir)
-      self.fieldHyperSlvr[dir]:setDtAndCflRate(dt, nil)
-      status, dtSuggested = self.fieldHyperSlvr[dir]:advance(tCurr, {fIn}, {fOut})
-   else
-      fOut:copy(fIn)
-   end
-   return status, dtSuggested   
-end
-
 function MaxwellField:applyBcIdx(tCurr, idx)
    self:applyBc(tCurr, self:rkStepperFields()[idx])
 end 
@@ -787,15 +691,6 @@ function MaxwellField:applyBc(tCurr, emIn, dir)
          end
       end
    end   
-
-   if self._hasSsBnd then
-      emIn:sync()
-      for _, bc in ipairs(self.ssBoundaryConditions) do
-         if (not dir) or dir == bc:getDir() then
-            bc:advance(tCurr, {}, {emIn})
-         end
-      end
-   end
 
    emIn:sync()
    self.bcTime = self.bcTime + Time.clock()-tmStart
@@ -813,21 +708,13 @@ function MaxwellField:totalSolverTime()
    local ftm = 0.0
    if self.fieldSlvr then
       ftm = self.fieldSlvr.totalTime
-   else
-      for d = 1, self.grid:ndim() do
-	 ftm = ftm+self.fieldHyperSlvr[d].totalTime
-      end
    end
    return ftm + self.tmCurrentAccum
 end
 
-function MaxwellField:totalBcTime()
-   return self.bcTime
-end
+function MaxwellField:totalBcTime() return self.bcTime end
 
-function MaxwellField:energyCalcTime()
-   return self.integratedEMTime
-end
+function MaxwellField:energyCalcTime() return self.integratedEMTime end
 
 -- ExternalMaxwellField ---------------------------------------------------------------------
 --
@@ -877,7 +764,7 @@ function ExternalMaxwellField:hasEB() return true, self.hasMagField end
 function ExternalMaxwellField:setGrid(grid) self.grid = grid end
 
 function ExternalMaxwellField:alloc(nField)
-   local nGhost = self.basis:numBasis()>1 and 1 or 2
+   local nGhost = 1
 
    -- Allocate fields needed in RK update.
    local emVecComp = 8
@@ -908,8 +795,7 @@ function ExternalMaxwellField:createSolver(population)
    }   
 end
 
-function ExternalMaxwellField:createDiagnostics()
-end
+function ExternalMaxwellField:createDiagnostics() end
 
 function ExternalMaxwellField:initField()
    self.fieldSlvr:advance(0.0, {}, {self.em})
@@ -958,9 +844,7 @@ function ExternalMaxwellField:applyBcIdx(tCurr, idx)
    self:applyBc(tCurr, self:rkStepperFields()[1])
 end
 
-function ExternalMaxwellField:applyBc(tCurr, emIn)
-   emIn:sync()
-end
+function ExternalMaxwellField:applyBc(tCurr, emIn) emIn:sync() end
 
 function ExternalMaxwellField:totalSolverTime()
    return self.fieldSlvr.totalTime
@@ -970,7 +854,7 @@ function ExternalMaxwellField:totalBcTime() return 0.0 end
 function ExternalMaxwellField:energyCalcTime() return 0.0 end
 
 return {
-   MaxwellField = MaxwellField,
+   MaxwellField         = MaxwellField,
    ExternalMaxwellField = ExternalMaxwellField,
-   FuncMaxwellField = ExternalMaxwellField,   -- For backwards compatibility.
+   FuncMaxwellField     = ExternalMaxwellField,   -- For backwards compatibility.
 }
