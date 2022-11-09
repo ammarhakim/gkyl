@@ -186,6 +186,7 @@ local function buildApplication(self, tbl)
       cells = tbl.cells,            mapc2p        = tbl.mapc2p,
       periodicDirs = periodicDirs,  world         = tbl.world,
       fv_mapc2p = tbl.fv_mapc2p,
+      use_fv_mapc2p = true,
    }
 
    if tbl.coordinateMap or tbl.mapc2p then 
