@@ -931,8 +931,8 @@ return {
       return {
          App = App,
          Species = require "App.Species.MomentSpecies",
-         Field = require ("App.Field.MaxwellField").MaxwellField,
-         ExternalField = require ("App.Field.MaxwellField").ExternalMaxwellField,
+         Field = require ("App.Field.MaxwellFieldFV").MaxwellField,
+         ExternalField = require ("App.Field.MaxwellFieldFV").ExternalMaxwellField,
          CollisionlessEmSource = require "App.FluidSources.CollisionlessEmSource",
          TenMomentRelaxSource  = require "App.FluidSources.TenMomentRelaxSource",
          MomentFrictionSource = require "App.FluidSources.MomentFrictionSource",
