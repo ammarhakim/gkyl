@@ -144,7 +144,9 @@ function CrossPrimMoments:init(tbl)
    self._binOpDataDiv = ffiC.new_binOpData_t(self._numBasisC, 0)
 
    -- Select C kernel to be used.
-   self._crossPrimMomentsCalc = PrimMomentsDecl.selectCrossPrimMomentsCalc(self._operator, self._basisID, self._cDim, self._vDim, self._polyOrder)
+   if self._operator=="VmBGK"or self._operator=="GkBGK" then
+      self._crossPrimMomentsCalc = PrimMomentsDecl.selectCrossPrimMomentsCalc(self._operator, self._basisID, self._cDim, self._vDim, self._polyOrder)
+   end
 
    -- To obtain the cell average, multiply the zeroth coefficient by this factor.
    self._cellAvFac = 1.0/math.sqrt(2.0^self._cDim)
