@@ -11,8 +11,6 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local BinOpDecl   = require "Updater.binOpCalcData.CartFieldBinOpModDecl"
-local Lin         = require "Lib.Linalg"
 local Proto       = require "Lib.Proto"
 local UpdaterBase = require "Updater.Base"
 local xsys        = require "xsys"

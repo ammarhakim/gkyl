@@ -123,56 +123,6 @@ def build(bld):
     primMomentsCalcData/GkBGKCrossPrimMomentsSer2x2vP3.cpp
 
     binOpCalcData/CartFieldBinOpImpl.cpp
-    binOpCalcData/CartFieldBinOpSer1xP1.cpp
-    binOpCalcData/CartFieldBinOpSer2xP1.cpp
-    binOpCalcData/CartFieldBinOpSer3xP1.cpp
-    binOpCalcData/CartFieldBinOpSer1x1vP1.cpp
-    binOpCalcData/CartFieldBinOpSer1x2vP1.cpp
-    binOpCalcData/CartFieldBinOpSer1x3vP1.cpp
-    binOpCalcData/CartFieldBinOpSer2x2vP1.cpp
-    binOpCalcData/CartFieldBinOpSer2x3vP1.cpp
-    binOpCalcData/CartFieldBinOpSer3x2vP1.cpp
-    binOpCalcData/CartFieldBinOpSer3x3vP1.cpp
-
-    binOpCalcData/CartFieldBinOpTensor1xP1.cpp
-    binOpCalcData/CartFieldBinOpTensor2xP1.cpp
-    binOpCalcData/CartFieldBinOpTensor3xP1.cpp
-    binOpCalcData/CartFieldBinOpTensor1x1vP1.cpp
-    binOpCalcData/CartFieldBinOpTensor1x2vP1.cpp
-    binOpCalcData/CartFieldBinOpTensor1x3vP1.cpp
-    binOpCalcData/CartFieldBinOpTensor2x2vP1.cpp
-
-    binOpCalcData/CartFieldBinOpSer1xP2.cpp
-    binOpCalcData/CartFieldBinOpSer2xP2.cpp
-    binOpCalcData/CartFieldBinOpSer3xP2.cpp
-    binOpCalcData/CartFieldBinOpSer1x1vP2.cpp
-    binOpCalcData/CartFieldBinOpSer1x2vP2.cpp
-    binOpCalcData/CartFieldBinOpSer1x3vP2.cpp
-    binOpCalcData/CartFieldBinOpSer2x2vP2.cpp
-    binOpCalcData/CartFieldBinOpSer2x3vP2.cpp
-    binOpCalcData/CartFieldBinOpSer3x2vP2.cpp
-    binOpCalcData/CartFieldBinOpSer3x3vP2.cpp
-
-    binOpCalcData/CartFieldBinOpTensor1xP2.cpp
-    binOpCalcData/CartFieldBinOpTensor2xP2.cpp
-    binOpCalcData/CartFieldBinOpTensor3xP2.cpp
-    binOpCalcData/CartFieldBinOpTensor1x1vP2.cpp
-    binOpCalcData/CartFieldBinOpTensor1x2vP2.cpp
-    binOpCalcData/CartFieldBinOpTensor1x3vP2.cpp
-    binOpCalcData/CartFieldBinOpTensor2x2vP2.cpp
-
-    binOpCalcData/CartFieldBinOpSer1xP3.cpp
-    binOpCalcData/CartFieldBinOpSer2xP3.cpp
-    binOpCalcData/CartFieldBinOpSer3xP3.cpp
-    binOpCalcData/CartFieldBinOpSer1x1vP3.cpp
-    binOpCalcData/CartFieldBinOpSer1x2vP3.cpp
-    binOpCalcData/CartFieldBinOpSer1x3vP3.cpp
-    binOpCalcData/CartFieldBinOpSer2x2vP3.cpp
-
-    binOpCalcData/CartFieldBinOpTensor1xP3.cpp
-    binOpCalcData/CartFieldBinOpTensor2xP3.cpp
-    binOpCalcData/CartFieldBinOpTensor1x1vP3.cpp
-    binOpCalcData/CartFieldBinOpTensor1x2vP3.cpp
 
     lagrangeFixData/lagrangeFix_vlasov_1x1v_ser_p1.cpp
     lagrangeFixData/lagrangeFix_vlasov_1x1v_ser_p2.cpp
@@ -262,8 +212,6 @@ def build(bld):
     chargeExchangeCalcData/SigmaCXcellAvSer2x3v.cpp
     chargeExchangeCalcData/SigmaCXcellAvSer3x3v.cpp
 
-    MappedPoissonImpl.cpp
-
     maxwellianOnBasisData/MaxwellianOnBasisImpl.cpp
     maxwellianOnBasisData/MaxwellianOnBasisSer1x1vP1.cpp
     maxwellianOnBasisData/MaxwellianOnBasisSer1x1vP2.cpp
@@ -321,6 +269,8 @@ def build(bld):
               use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     
 ## Removed the following files from the build for now
+#    MappedPoissonImpl.cpp
+#
 #     binOpCalcData/CartFieldBinOpSer3x3vP2.cpp
 #    lagrangeFixData/lagrangeFix_gk_1x2v_ser_p2.cpp
 #    lagrangeFixData/lagrangeFix_gk_1x2v_tensor_p2.cpp

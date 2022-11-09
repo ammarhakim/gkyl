@@ -69,55 +69,6 @@ def build(bld):
     constDiffusionData/ConstDiffusionSurfTensor4xP2.cpp
     constDiffusionData/ConstDiffusionBoundarySurfTensor4xP2.cpp
 
-    maxwellData/MaxwellVolSer1xP1.cpp
-    maxwellData/MaxwellVolSer2xP1.cpp
-    maxwellData/MaxwellVolSer3xP1.cpp
-
-    maxwellData/MaxwellVolSer1xP2.cpp
-    maxwellData/MaxwellVolSer2xP2.cpp
-
-    maxwellData/MaxwellVolSer1xP3.cpp
-    maxwellData/MaxwellVolSer2xP3.cpp
-
-    maxwellData/MaxwellSurfSer1xP1.cpp
-    maxwellData/MaxwellSurfSer2xP1.cpp
-    maxwellData/MaxwellSurfSer3xP1.cpp
-
-    maxwellData/MaxwellSurfSer1xP2.cpp
-    maxwellData/MaxwellSurfSer2xP2.cpp
-
-    maxwellData/MaxwellSurfSer1xP3.cpp
-    maxwellData/MaxwellSurfSer2xP3.cpp
-
-    maxwellData/MaxwellCentralSurfSer1xP1.cpp
-    maxwellData/MaxwellCentralSurfSer2xP1.cpp
-    maxwellData/MaxwellCentralSurfSer3xP1.cpp
-
-    maxwellData/MaxwellCentralSurfSer1xP2.cpp
-    maxwellData/MaxwellCentralSurfSer2xP2.cpp
-
-    maxwellData/MaxwellCentralSurfSer1xP3.cpp
-    maxwellData/MaxwellCentralSurfSer2xP3.cpp
-
-
-    maxwellData/MaxwellVolTensor1xP2.cpp
-    maxwellData/MaxwellVolTensor2xP2.cpp
-
-    maxwellData/MaxwellVolTensor1xP3.cpp
-    maxwellData/MaxwellVolTensor2xP3.cpp
-
-    maxwellData/MaxwellSurfTensor1xP2.cpp
-    maxwellData/MaxwellSurfTensor2xP2.cpp
-
-    maxwellData/MaxwellSurfTensor1xP3.cpp
-    maxwellData/MaxwellSurfTensor2xP3.cpp
-
-    maxwellData/MaxwellCentralSurfTensor1xP2.cpp
-    maxwellData/MaxwellCentralSurfTensor2xP2.cpp
-
-    maxwellData/MaxwellCentralSurfTensor1xP3.cpp
-    maxwellData/MaxwellCentralSurfTensor2xP3.cpp
-
     pbData/CanonicalSer1x1v.cpp
     pbData/CanonicalSer2x2v.cpp
     pbData/CanonicalSurfSer1x1v.cpp
@@ -279,7 +230,7 @@ def build(bld):
 
     """,
               name = 'eq',
-              target = 'eq', use='EIGEN CUTOOLS', includes = '. hasegawaWakataniData incompEulerData constDiffusionData maxwellData pbData gkData gyrofluidData gfHeatFluxData passiveAdvectionData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct',
+              target = 'eq', use='EIGEN CUTOOLS', includes = '. hasegawaWakataniData incompEulerData constDiffusionData pbData gkData gyrofluidData gfHeatFluxData passiveAdvectionData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct',
               vnum = '1.0',
               
     )

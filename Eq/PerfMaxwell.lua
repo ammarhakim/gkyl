@@ -10,7 +10,7 @@
 -- system libraries
 local BoundaryCondition = require "Updater.BoundaryCondition"
 local EqBase = require "Eq.EqBase"
-local MaxwellModDecl = require "Eq.maxwellData.MaxwellModDecl"
+--local MaxwellModDecl = require "Eq.maxwellData.MaxwellModDecl"
 local Proto = require "Lib.Proto"
 local ffi = require "ffi"
 local ffiC = ffi.C
@@ -116,16 +116,16 @@ function PerfMaxwell:init(tbl)
    self._volTerm, self._surfTerms = nil, nil
    if self._basis then
       local nm, ndim, p = self._basis:id(), self._basis:ndim(), self._basis:polyOrder()
-      self._volTerm = MaxwellModDecl.selectVol(nm, ndim, p)
+--      self._volTerm = MaxwellModDecl.selectVol(nm, ndim, p)
 
       -- numFlux used for selecting which type of numerical flux function to use
       -- default is "upwind," supported options: "central," "upwind"
       self._numFlux = tbl.numFlux and tbl.numFlux or "upwind"
       if self._numFlux == "upwind" then
-         self._surfTerms = MaxwellModDecl.selectSurf(nm, ndim, p)
+--         self._surfTerms = MaxwellModDecl.selectSurf(nm, ndim, p)
       elseif self._numFlux == "central" then
          print("selecting central fluxes")
-         self._surfTerms = MaxwellModDecl.selectCentralSurf(nm, ndim, p)
+--         self._surfTerms = MaxwellModDecl.selectCentralSurf(nm, ndim, p)
       else
          assert(self._numFLux, "Eq.PerfMaxwell: Incorrect numerical flux specified, options supported: 'central' and 'upwind' ")
       end
