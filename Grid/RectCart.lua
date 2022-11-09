@@ -180,24 +180,26 @@ function RectCart:init(tbl)
    end
 
    -- Compute wave_geom for finite-volume solvers TODO skip if not needed
-   local fv_mapc2p = nil
-   if tbl.fv_mapc2p then
-      fv_mapc2p = gkyl_eval_mapc2p(tbl.fv_mapc2p)
+   if tbl.use_fv_mapc2p == true then
+      local fv_mapc2p = nil
+      if tbl.fv_mapc2p then
+         fv_mapc2p = gkyl_eval_mapc2p(tbl.fv_mapc2p)
+      end
+      local fv_mapc2p_ctx = nil
+
+      local ghost = ffi.new("int[3]")
+      ghost[0], ghost[1], ghost[2] = 2, 2, 2;
+      self.local_ext = ffi.new("struct gkyl_range")
+      self.local_range = ffi.new("struct gkyl_range")
+
+      ffi.C.gkyl_create_grid_ranges(
+         self._zero, ghost, self.local_ext, self.local_range);
+
+      self.geom = ffi.gc(
+         ffi.C.gkyl_wave_geom_new(
+            self._zero, self.local_ext, fv_mapc2p, fv_mapc2p_ctx),
+         gkyl_wave_geom_release);
    end
-   local fv_mapc2p_ctx = nil
-
-   local ghost = ffi.new("int[3]")
-   ghost[0], ghost[1], ghost[2] = 2, 2, 2;
-   self.local_ext = ffi.new("struct gkyl_range")
-   self.local_range = ffi.new("struct gkyl_range")
-
-   ffi.C.gkyl_create_grid_ranges(
-      self._zero, ghost, self.local_ext, self.local_range);
-
-   self.geom = ffi.gc(
-      ffi.C.gkyl_wave_geom_new(
-         self._zero, self.local_ext, fv_mapc2p, fv_mapc2p_ctx),
-      gkyl_wave_geom_release);
 end
 
 -- Member functions.
