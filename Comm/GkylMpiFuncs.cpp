@@ -12,6 +12,9 @@
 
 // Sizeof operators for various objects
 GET_MPI_OBJ_SIZE(MPI_Status);
+GET_MPI_OBJ_SIZE(MPI_Request);
+GET_MPI_OBJ_PTR_SIZE(MPI_Status);
+GET_MPI_OBJ_PTR_SIZE(MPI_Request);
 
 // Pre-defined objects and constants
 GET_MPI_OBJECT(Comm, MPI_COMM_WORLD);
@@ -68,10 +71,43 @@ GET_INT_OBJECT(MPI_UNDEFINED);
 GET_INT_OBJECT(MPI_ORDER_C);
 GET_INT_OBJECT(MPI_ORDER_FORTRAN);
 
-// utility functions
-void
-GkMPI_fillStatus(const MPI_Status* inStatus, int *outStatus) {
-  outStatus[0] = inStatus->MPI_SOURCE;
-  outStatus[1] = inStatus->MPI_TAG;
-  outStatus[2] = inStatus->MPI_ERROR;
+// Functions to allocate and free structs holding requests and statuses.
+void gkyl_MPI_Request_alloc(gkyl_MPI_Request *rs, int num) {
+  rs->req = (MPI_Request *) malloc(num*sizeof(MPI_Request));
 }
+void gkyl_MPI_Request_release(gkyl_MPI_Request *rs) {
+  free(rs->req);
+}
+void gkyl_MPI_Status_alloc(gkyl_MPI_Status *ss, int num) {
+  ss->stat = (MPI_Status *) malloc(num*sizeof(MPI_Status));
+}
+void gkyl_MPI_Status_release(gkyl_MPI_Status *ss) {
+  free(ss->stat);
+}
+void gkyl_MPI_Request_Status_alloc(gkyl_MPI_Request_Status *rss, int num) {
+  rss->req = (MPI_Request *) malloc(num*sizeof(MPI_Request));
+  rss->stat = (MPI_Status *) malloc(num*sizeof(MPI_Status));
+}
+void gkyl_MPI_Request_Status_release(gkyl_MPI_Request_Status *rss) {
+  free(rss->req);
+  free(rss->stat);
+}
+
+// Functions to fetch members of status.
+int gkyl_mpi_get_status_SOURCE(const MPI_Status* instat, int off) {
+  return instat[off].MPI_SOURCE;
+}
+int gkyl_mpi_get_status_TAG(const MPI_Status* instat, int off) {
+  return instat[off].MPI_TAG;
+}
+int gkyl_mpi_get_status_ERROR(const MPI_Status* instat, int off) {
+  return instat[off].MPI_ERROR;
+}
+
+// Get count from a status (which may be one of several in an array of
+// statuses).
+int gkyl_mpi_get_status_count(const MPI_Status *instat, MPI_Datatype datatype, int *count, int off) {
+  int err = MPI_Get_count(instat+off, datatype, count);
+  return err;
+}
+

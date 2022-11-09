@@ -32,13 +32,14 @@ function SpeciesBase:suggestDt() end
 function SpeciesBase:clearCFL() end
 function SpeciesBase:clearMomentFlags(species) end
 function SpeciesBase:initDist() end
-function SpeciesBase:initCrossSpeciesCoupling() end
+function SpeciesBase:initCrossSpeciesCoupling(population) end
 function SpeciesBase:calcCouplingMoments() end
+function SpeciesBase:calcCrossCouplingMoments(tCurr, rkIdx, population) end
 function SpeciesBase:write(tm) end
 function SpeciesBase:writeRestart(tm) end
 function SpeciesBase:readRestart(field, externalField) return 0.0 end
-function SpeciesBase:advance(tCurr, species, emIn, inIdx, outIdx) return true, GKYL_MAX_DOUBLE end
-function SpeciesBase:advanceCrossSpeciesCoupling(tCurr, species, emIn, inIdx, outIdx) end
+function SpeciesBase:advance(tCurr, population, emIn, inIdx, outIdx) return true, GKYL_MAX_DOUBLE end
+function SpeciesBase:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx) end
 function SpeciesBase:updateInDirection(dir, tCurr, dt, fIn, fOut) return true, GKYL_MAX_DOUBLE end
 function SpeciesBase:applyBcIdx(tCurr, field, externalField, inIdx, outIdx) end
 function SpeciesBase:applyBc(tCurr, field, externalField, inIdx, outIdx) end

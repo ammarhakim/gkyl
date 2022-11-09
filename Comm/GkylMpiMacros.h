@@ -22,6 +22,8 @@
 
 // Macros to declare/define functions to get sizes of various MPI objects
 #define GET_MPI_OBJ_SIZE(type) int sizeof_##type() { return sizeof(type); }
+#define GET_MPI_OBJ_PTR_SIZE(type) int sizeof_ptr_##type() { return sizeof(type *); }
 #define DECL_GET_MPI_OBJ_SIZE(type) int sizeof_##type()
+#define DECL_GET_MPI_OBJ_PTR_SIZE(type) int sizeof_ptr_##type()
 
 #endif // GKYL_MPI_MACROS_H

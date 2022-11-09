@@ -35,33 +35,30 @@ typedef struct gkyl_prim_lbo_cross_calc gkyl_prim_lbo_cross_calc;
  * @param cbasis_rng Config-space basis functions
  * @param conf_rng Config-space range
  * @param greene Greene's factor
- * @param self_moms Moments of distribution function (Zeroth, First, and Second)
  * @param self_m Mass of the species
- * @param self_u Drift velocity of the species
- * @param self_vtsq Thermal velocity of the species
- * @param other_moms Moments of distribution function of the colliding species (Zeroth, First, and Second)
+ * @param self_moms Moments of distribution function (Zeroth, First, and Second)
+ * @param self_prim_moms Drift velocity & thermal speed squared of this species
  * @param other_m Mass of the colliding species
- * @param other_u Drift velocity of the colliding species
- * @param other_vtsq Thermal velocity of the colliding species
+ * @param other_moms Moments of distribution function (Zeroth, First, and Second)
+ * @param other_prim_moms Drift velocity & thermal speed squared of the colliding species
  * @param boundary_corrections Momentum and Energy boundary corrections
- * @param u_out Output drift velocity primitive moment array
- * @param vtsq_out Output thermal velocity primitive moment array
+ * @param prim_moms_out Output drift velocity and thermal speed squared
  */
 void gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
   struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
-  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
-  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_u, const struct gkyl_array *other_vtsq,
+  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
+  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
   const struct gkyl_array *boundary_corrections,
-  struct gkyl_array *u_out, struct gkyl_array *vtsq_out);
+  struct gkyl_array *prim_moms_out);
 
 void gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
   struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
-  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
-  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_u, const struct gkyl_array *other_vtsq,
+  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
+  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
   const struct gkyl_array *boundary_corrections,
-  struct gkyl_array *u_out, struct gkyl_array *vtsq_out);
+  struct gkyl_array *prim_moms_out);
 
 /**
  * Delete pointer to primitive moment calculator updater.
@@ -178,19 +175,18 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
 
    if self._zero then
 
-      local mSelf, nuSelf   = inFld[1], inFld[2]
-      local momsSelf        = inFld[3]
-      local uSelf, vtSqSelf = inFld[4], inFld[5]
-      local bCorrsSelf      = inFld[6]
+      local mSelf, nuSelf = inFld[1], inFld[2]
+      local momsSelf      = inFld[3]
+      local primMomsSelf  = inFld[4]
+      local bCorrsSelf    = inFld[5]
 
-      local mOther, nuOther   = inFld[7], inFld[8]
-      local momsOther         = inFld[9]
-      local uOther, vtSqOther = inFld[10], inFld[11]
-      local bCorrsOther       = inFld[12]
+      local mOther, nuOther = inFld[6], inFld[7]
+      local momsOther       = inFld[8]
+      local primMomsOther   = inFld[9]
 
-      local m0sdeltas = inFld[13]
+      local m0sdeltas = inFld[10]
 
-      local uCrossSelf, vtSqCrossSelf = outFld[1], outFld[2]
+      local primMomsCrossSelf = outFld[1]
 
       -- Compose the pre-factor:
       --   m0_s*delta_s*(1+beta)
@@ -198,9 +194,9 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
       m0sdeltas:scale(self._betaP1)
 
       -- Compute u and vtsq.
-      ffiC.gkyl_prim_lbo_cross_calc_advance(self._zero, self.confBasis._zero, uSelf:localRange(), m0sdeltas._zero,
-         mSelf, momsSelf._zero, uSelf._zero, vtSqSelf._zero, mOther, momsOther._zero, uOther._zero, vtSqOther._zero, 
-         bCorrsSelf._zero, uCrossSelf._zero, vtSqCrossSelf._zero)
+      ffiC.gkyl_prim_lbo_cross_calc_advance(self._zero, self.confBasis._zero, primMomsSelf:localRange(), m0sdeltas._zero,
+         mSelf, momsSelf._zero, primMomsSelf._zero, mOther, momsOther._zero, primMomsOther._zero, 
+         bCorrsSelf._zero, primMomsCrossSelf._zero)
 
       return
    end
@@ -417,19 +413,18 @@ end
 
 function CrossPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
 
-   local mSelf, nuSelf   = inFld[1], inFld[2]
-   local momsSelf        = inFld[3]
-   local uSelf, vtSqSelf = inFld[4], inFld[5]
-   local bCorrsSelf      = inFld[6]
+   local mSelf, nuSelf = inFld[1], inFld[2]
+   local momsSelf      = inFld[3]
+   local primMomsSelf  = inFld[4]
+   local bCorrsSelf    = inFld[5]
 
-   local mOther, nuOther   = inFld[7], inFld[8]
-   local momsOther         = inFld[9]
-   local uOther, vtSqOther = inFld[10], inFld[11]
-   local bCorrsOther       = inFld[12]
+   local mOther, nuOther = inFld[6], inFld[7]
+   local momsOther       = inFld[8]
+   local primMomsOther   = inFld[9]
 
-   local m0sdeltas = inFld[13]
+   local m0sdeltas = inFld[10]
 
-   local uCrossSelf, vtSqCrossSelf = outFld[1], outFld[2]
+   local primMomsCrossSelf = outFld[1]
 
    -- Compose the pre-factor:
    --   m0_s*delta_s*(1+beta)
@@ -437,10 +432,10 @@ function CrossPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
    m0sdeltas:scale(self._betaP1)
 
    -- Compute u and vtsq.
-   ffiC.gkyl_prim_lbo_cross_calc_advance_cu(self._zero, self.confBasis._zero, uSelf:localRange(), m0sdeltas._zeroDevice,
-      mSelf, momsSelf._zeroDevice, uSelf._zeroDevice, vtSqSelf._zeroDevice,
-      mOther, momsOther._zeroDevice, uOther._zeroDevice, vtSqOther._zeroDevice, 
-      bCorrsSelf._zeroDevice, uCrossSelf._zeroDevice, vtSqCrossSelf._zeroDevice)
+   ffiC.gkyl_prim_lbo_cross_calc_advance_cu(self._zero, self.confBasis._zero, primMomsSelf:localRange(), m0sdeltas._zeroDevice,
+      mSelf, momsSelf._zeroDevice, primMomsSelf._zeroDevice,
+      mOther, momsOther._zeroDevice, primMomsOther._zeroDevice, 
+      bCorrsSelf._zeroDevice, primMomsCrossSelf._zeroDevice)
 
 end
 

@@ -262,9 +262,7 @@ function MappedCart:cellCenterPhys(xp)
    self:_mapc2p_vec(self._xc, xp)
 end
 
-function MappedCart:write(fName)
-   -- Write a file containing the grid node coordinates.
-
+function MappedCart:getNodalCoords()
    -- Create a grid over nodes and a field to store nodal coordinates.
    local cells, lower, upper = {}, {}, {}
    for d = 1, self:ndim() do
@@ -275,10 +273,8 @@ function MappedCart:write(fName)
    end
    -- Create a grid of nodes.
    local grid = RectCart {
-      lower = lower,
-      upper = upper,
-      cells = cells,
-      decomposition = self.decomp,
+      lower = lower,  cells = cells,
+      upper = upper,  decomposition = self.decomp,
    }
    local nodalCoords = DataStruct.Field {
       onGrid        = grid,
@@ -306,6 +302,12 @@ function MappedCart:write(fName)
       local nPtr = nodalCoords:get(indexer(idx))
       for d = 1, self._rdim do nPtr[d] = xnp[d] end
    end
+   return nodalCoords
+end
+
+function MappedCart:write(fName)
+   -- Write a file containing the grid node coordinates.
+   local nodalCoords = self:getNodalCoords()
    nodalCoords:write(fName)
 end
 

@@ -52,6 +52,7 @@ plasmaApp = Plasma.App {
    periodicDirs = {1}, -- Periodic directions.
    -- Decomposition for configuration space.
    decompCuts = {1},   -- Cuts in each configuration direction.
+--   parallelizeSpecies = true,
 
    -- Integrated moment flag, compute quantities 1000 times in simulation.
    calcIntQuantEvery = 0.0025,

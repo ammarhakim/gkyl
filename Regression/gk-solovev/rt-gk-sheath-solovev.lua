@@ -290,10 +290,12 @@ plasmaApp = Plasma.App {
    timeStepper = "rk3",                    -- One of "rk2" or "rk3".
    cflFrac     = 0.4,
    restartFrameEvery = .5,
-   --decompCuts = {2, 1, 4},
 
    -- Boundary conditions for configuration space.
    periodicDirs = {2},     -- Periodic in y only.
+
+   decompCuts = {1, 1, 1},
+--   parallelizeSpecies = true,
 
    -- Gyrokinetic electrons.
    electron = Plasma.Species {

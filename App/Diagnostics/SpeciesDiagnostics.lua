@@ -25,7 +25,7 @@ local contains=function(tbl, elem)
    return false
 end
 
-local function orgDiagnostics(diagsImpl, diagsTbl, diagGroups)
+local function orgDiagnostics(comm, diagsImpl, diagsTbl, diagGroups)
    -- Insert other diagnostics needed by the requested diagnostics. Then organize them
    -- so the dependents are computed last. 
 
@@ -83,7 +83,8 @@ local function orgDiagnostics(diagsImpl, diagsTbl, diagGroups)
       if numIDs > 0 then
          local Cint = new("int [?]", numIDs)
          for i, id in ipairs(myOrderedIDs) do Cint[i-1] = id end
-         Mpi.Bcast(Cint, numIDs, Mpi.INT, 0, Mpi.COMM_WORLD)
+--         Mpi.Bcast(Cint, numIDs, Mpi.INT, 0, Mpi.COMM_WORLD)
+         Mpi.Bcast(Cint, numIDs, Mpi.INT, 0, comm)
          for i = 1,numIDs do myOrderedIDs[i] = Cint[i-1] end
          for i, id in ipairs(myOrderedIDs) do diagList[i] = lume.find(diagIDs, id) end 
       end
@@ -129,7 +130,8 @@ function SpeciesDiagnostics:fullInit(mySpecies, field, diagOwner)
    end
 
    -- Organize diagnostics and identify dependencies.
-   orgDiagnostics(diagsImpl, self.diags, self.diagGroups)
+   local comm = mySpecies.confGrid:commSet().comm
+   orgDiagnostics(comm, diagsImpl, self.diags, self.diagGroups)
 
    -- Initialize diagnostics.
    for _, dG in pairs(self.diagGroups) do
@@ -295,11 +297,11 @@ function SpeciesDiagnostics:writeRestartGridDiagnostics_separateFiles(tm, fr)
    end
 end
 function SpeciesDiagnostics:writeRestartIntegratedDiagnostics_separateFiles(tm, fr)
-   -- Write a restart file for each integrated diagnostic.
-   for _, diagNm in ipairs(self.diagGroups["integrated"]) do 
-      local diag = self.diags[diagNm]
-      diag.field:write(string.format("%s_%s_restart.bp", self.name, diagNm), tm, fr, false, false)
-   end
+--   -- Write a restart file for each integrated diagnostic.
+--   for _, diagNm in ipairs(self.diagGroups["integrated"]) do 
+--      local diag = self.diags[diagNm]
+--      diag.field:write(string.format("%s_%s_restart.bp", self.name, diagNm), tm, fr, false, false)
+--   end
 end
 
 function SpeciesDiagnostics:writeRestartGridDiagnostics_oneFile(tm, fr)

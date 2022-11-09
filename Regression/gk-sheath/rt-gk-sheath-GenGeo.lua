@@ -111,6 +111,9 @@ plasmaApp = Plasma.App {
    -- Boundary conditions for configuration space.
    periodicDirs = {2},     -- Periodic in y only.
 
+   decompCuts = {1, 1, 1},
+--   parallelizeSpecies = true,
+
    -- Gyrokinetic electrons.
    electron = Plasma.Species {
       charge = qe,  mass = me,

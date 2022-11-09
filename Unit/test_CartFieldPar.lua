@@ -196,7 +196,7 @@ function test_3(comm)
 
    field:sync()
 
-   field._zero:clear(0)
+--   field._zero:clear(0)
 
    if GKYL_USE_GPU then
       field:copyDeviceToHost()
@@ -251,7 +251,7 @@ function test_4(comm)
 
    field:sync()
 
-   field._zero:clear(0)
+--   field._zero:clear(0)
 
    if GKYL_USE_GPU then
       field:copyDeviceToHost()
@@ -305,7 +305,7 @@ function test_5(comm)
 
    field:sync()
 
-   field._zero:clear(0)
+--   field._zero:clear(0)
 
    if GKYL_USE_GPU then
       field:copyDeviceToHost()
@@ -707,45 +707,9 @@ function test_8(comm)
 end
 
 function test_9(comm)
-   local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
-   log(string.format("Running shared CartField tests on %d procs", nz))
-
-   local decomp = DecompRegionCalc.CartProd {
-      cuts = {1, 1}, useShared = true
-   }
-   local grid = Grid.RectCart {
-      lower = {0.0, 0.0},
-      upper = {1.0, 1.0},
-      cells = {10, 10},
-      decomposition = decomp,
-   }
-   local field = DataStruct.Field {
-      onGrid = grid,
-      numComponents = 3,
-      ghost = {1, 2},
-   }
-   local field1 = DataStruct.Field {
-      onGrid = grid,
-      numComponents = 3,
-      ghost = {1, 2},
-   }   
-
-   field:clear(10.0)
-   field1:clear(20.0)
-
-   -- check if loop covers full grid
-   local localCount = 0
-   for idx in field:localRangeIter() do
-      localCount = localCount+1
-   end
-   local totalCount = allReduceOneInt(localCount)
-   assert_equal(grid:localRange():volume(), totalCount, "Checking if total count is correct")
-end
-
-function test_10(comm)
    local nz = Mpi.Comm_size(comm)
    if nz ~= 2 then
-      log("Not running test_10 as numProcs not exactly 2")
+      log("Not running test_9 as numProcs not exactly 2")
       return
    end
 
@@ -789,6 +753,80 @@ function test_10(comm)
    end
 end
 
+function test_10(comm)
+   -- Test sending/receving a whole CartField with Isend/Irecv and Wait.
+   local defaultCommSize = 4
+   local nz = Mpi.Comm_size(comm)
+   if nz ~= defaultCommSize then
+      log(string.format("Not running test_10 as numProcs not exactly %d",defaultCommSize))
+      return
+   end
+
+   local worldRank = Mpi.Comm_rank(Mpi.COMM_WORLD)
+   local numCutsConf = 2 --defaultCommSize
+   
+   local confColor = math.floor(worldRank/numCutsConf)
+   local confComm  = Mpi.Comm_split(Mpi.COMM_WORLD, confColor, worldRank)
+   local speciesColor = worldRank % numCutsConf
+   local speciesComm  = Mpi.Comm_split(Mpi.COMM_WORLD, speciesColor, worldRank)
+   local confRank = Mpi.Comm_rank(confComm)
+   local speciesRank = Mpi.Comm_rank(speciesComm)
+
+   local rank = numCutsConf==2 and speciesRank or confRank
+   local comm = numCutsConf==2 and speciesComm or confComm
+
+   local decomp = DecompRegionCalc.CartProd { cuts = {numCutsConf}, comm = confComm }
+   local grid = Grid.RectCart {
+      lower = {0.0},
+      upper = {1.0},
+      cells = {12},
+      decomposition = decomp,
+   }
+   local field0 = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 3,
+      ghost         = {1, 1},
+   }
+   local field1 = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 3,
+      ghost         = {1, 1},
+   }
+   if rank==0 then field0:clear(0.3) end
+   if rank==1 then field1:clear(1.5) end
+
+   local recvReq, sendReq = Mpi.Request(), Mpi.Request()
+   local recvStat, sendStat = Mpi.Status(), Mpi.Status()
+   local tag = 32
+   if rank==0 then
+      local _ = Mpi.Irecv(field1:dataPointer(), field1:size(), field1:elemCommType(),
+                          1, tag, comm, recvReq)
+      local _ = Mpi.Isend(field0:dataPointer(), field0:size(), field0:elemCommType(),
+                          1, tag, comm, sendReq)
+   else
+      local _ = Mpi.Irecv(field0:dataPointer(), field0:size(), field0:elemCommType(),
+                          0, tag, comm, recvReq)
+      local _ = Mpi.Isend(field1:dataPointer(), field1:size(), field1:elemCommType(),
+                          0, tag, comm, sendReq)
+   end
+
+   local _ = Mpi.Wait(recvReq, recvStat)
+
+   local field = rank==0 and field1 or field0
+   local value = rank==0 and 1.5 or 0.3
+   local localRange = field:localRange()
+   local indexer = field:indexer()
+   for i = localRange:lower(1), localRange:upper(1) do
+      local fitr = field:get(indexer(i))
+      assert_equal(value, fitr[1], "test_10: Checking field value")
+      assert_equal(value, fitr[2], "test_10: Checking field value")
+      assert_equal(value, fitr[3], "test_10: Checking field value")
+   end
+
+   local _ = Mpi.Wait(sendReq, sendStat)
+   Mpi.Barrier(comm)
+end
+
 
 comm = Mpi.COMM_WORLD
 test_1(comm)
@@ -799,7 +837,7 @@ test_5(comm)
 test_6(comm)
 test_7(comm)
 test_8(comm)
---test_9(comm)
+test_9(comm)
 test_10(comm)
 
 totalFail = allReduceOneInt(stats.fail)

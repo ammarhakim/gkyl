@@ -98,6 +98,7 @@ function MaxwellField:fullInit(appTbl)
 
       -- No ghost current by default.
       self.useGhostCurrent = xsys.pickBool(tbl.useGhostCurrent, false)
+      assert(self.useGhostCurrent==false, "ghost current not yet implemented in g0 merge")
 
       self.limiter = self.tbl.limiter and self.tbl.limiter or "monotonized-centered"
 
@@ -239,7 +240,7 @@ function MaxwellField:esEnergy(tCurr, fldIn, outDynV)
 
    -- All-reduce across processors and push result into dyn-vector.
    Mpi.Allreduce(
-      self.localEnergy:data(), self.globalEnergy:data(), dim, Mpi.DOUBLE, Mpi.SUM, Mpi.COMM_WORLD)
+      self.localEnergy:data(), self.globalEnergy:data(), dim, Mpi.DOUBLE, Mpi.SUM, grid:commSet().comm)
 
    esE:appendData(tCurr, self.globalEnergy)
 
@@ -247,10 +248,7 @@ function MaxwellField:esEnergy(tCurr, fldIn, outDynV)
 end
 
 function MaxwellField:alloc(nRkDup)
-   local nGhost = 2
-   if self.basis:numBasis() > 1 then
-      nGhost = 1
-   end
+   local nGhost = self.basis:numBasis()>1 and 1 or 2
    
    self.em = {}
    if self.hasMagField then   -- Maxwell's induction equations.
@@ -298,16 +296,13 @@ function MaxwellField:alloc(nRkDup)
             ghost = {1, 1}
          }
       end
-      -- Create fields for total charge and current densities.
-      self.chargeDens = DataStruct.Field {
-         onGrid = self.grid,
-         numComponents = self.basis:numBasis(),
-         ghost = {1, 1}
-      }
 
       -- For storing integrated energy components.
       self.emEnergy = DataStruct.DynVector { numComponents = self.grid:ndim() }
    end
+end
+
+function MaxwellField:createSolver(population)
 
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
@@ -318,29 +313,23 @@ function MaxwellField:alloc(nRkDup)
                   epsilon0  = self.epsilon0,
                   mu0       = self.mu0,
                   grid      = GKYL_OUT_PREFIX .. "_grid.bp"},
+      writeRankInComm = {0, population:getComm_host(),},
    }
-end
 
-function MaxwellField:createSolver()
    if self.hasMagField then   -- Maxwell's induction equations.
 
       self.equation = PerfMaxwell {
-         lightSpeed = self.lightSpeed,
-         elcErrorSpeedFactor = self.ce,
-         mgnErrorSpeedFactor = self.cb,
-         tau = self.tau,
-         numFlux = self.numFlux,
-         basis = self.basis:numBasis() > 1 and self.basis or nil,
+         lightSpeed          = self.lightSpeed,  tau     = self.tau,
+         elcErrorSpeedFactor = self.ce,          numFlux = self.numFlux,
+         mgnErrorSpeedFactor = self.cb,          basis   = self.basis:numBasis() > 1 and self.basis or nil,
       }
 
       self.fieldSlvr, self.fieldHyperSlvr = nil, {}
       if self.basis:numBasis() > 1 then
          -- Using DG scheme.
          self.fieldSlvr = Updater.HyperDisCont {
-            onGrid = self.grid,
-            basis = self.basis,
-            cfl = self.cfl,
-            equation = self.equation,
+            onGrid = self.grid,   cfl      = self.cfl,
+            basis  = self.basis,  equation = self.equation,
          }
       else
          -- Using FV scheme.
@@ -375,10 +364,8 @@ function MaxwellField:createSolver()
       end
 
       self.emEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.grid,
-         basis = self.basis,
-         numComponents = 8,
-         quantity = "V2"
+         onGrid = self.grid,   quantity      = "V2",
+         basis  = self.basis,  numComponents = 8,
       }
       self.emEnergyCalc = function(tCurr, inFld, outDynV) self.emEnergyUpd:advance(tCurr, inFld, outDynV) end
 
@@ -398,9 +385,8 @@ function MaxwellField:createSolver()
             epsilon_0 = self.epsilon0,
          }
          self.esEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
-            onGrid   = self.grid,
-            basis    = self.basis,
-            quantity = "V2"
+            onGrid = self.grid,   quantity = "V2",
+            basis  = self.basis,
          }
          self.emEnergyCalc = function(tCurr, inFld, outDynV) self:esEnergy(tCurr, inFld, outDynV) end
 --      else
@@ -585,33 +571,37 @@ end
 
 function MaxwellField:createDiagnostics() end
 
-function MaxwellField:initField(species)
-   -- Create field for total current density. Need to do this
-   -- here because field object does not know about vdim.
-   local maxVdim = 0
-   for _, s in lume.orderedIter(species) do
-      maxVdim = math.max(maxVdim, s.vdim)
-   end
-   self.currentDens = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = self.basis:numBasis()*maxVdim,
-      ghost         = {1, 1},
-   }
-
+function MaxwellField:initField(population)
    if self.hasMagField then   -- Maxwell's induction equations.
+      -- Create field for total current density. Need to do this
+      -- here because field object does not know about vdim.
+      self.currentDensLocal, self.currentDens = nil, nil
+      local vdim = nil
+      for _, s in population.iterLocal() do
+         vdim = vdim and vdim or s.vdim
+         self.currentDens = self.currentDens and self.currentDens or s:allocVectorMoment(vdim)
+         self.currentDensLocal = self.currentDensLocal and self.currentDensLocal or s:allocVectorMoment(vdim)
+         assert(vdim == s.vdim, "MaxwellField: currently don't support species with different vdim.")
+      end
+
       local project = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         evaluate = self.initFunc
+         onGrid = self.grid,   evaluate = self.initFunc,
+         basis  = self.basis,
       }
       project:advance(0.0, {}, {self.em[1]})
       self:applyBc(0.0, self.em[1])
    else   -- Poisson equation. Solve for initial phi.
-      self:advance(0.0, species, 1, 1)
-      local emStart = self:rkStepperFields()[1]
-      for i = 1, self.phiPrevNum do
-         self.phiFldPrev[i]["fld"]:copy(emStart)
+      -- Create field for total charge density.
+      self.chargeDensLocal, self.chargeDens = nil, nil
+      for _, s in population.iterLocal() do
+         self.chargeDens = self.chargeDens and self.chargeDens or s:allocMoment()
+         self.chargeDensLocal = self.chargeDensLocal and self.chargeDensLocal or s:allocMoment()
+         break
       end
+
+      self:advance(0.0, population, 1, 1)
+      local emStart = self:rkStepperFields()[1]
+      for i = 1, self.phiPrevNum do self.phiFldPrev[i]["fld"]:copy(emStart) end
    end
 end
 
@@ -697,40 +687,12 @@ end
 
 function MaxwellField:accumulateCurrent(current, emRhs)
    if current == nil then return end
-
    local tmStart = Time.clock()
-
-   local cItr, eItr = current:get(1), emRhs:get(1)
-   local cIdxr, eIdxr = current:genIndexer(), emRhs:genIndexer()
-
-   -- If we are to use ghost currents, compute mean current first.
-   local ghostCurrent = 0.0
-   if self.useGhostCurrent then
-      assert(false, "ghost current not yet implemented in g0 merge")
-      --local nx = self.grid:numCells(1)
-      --local localMeanCurrent = ffi.new("double[2]")
-      --for idx in emRhs:localRangeIter() do
-      --   current:fill(cIdxr(idx), cItr)
-      --   localMeanCurrent[0] = localMeanCurrent[0]+cItr[1]
-      --end
-      --local globalMeanCurrent = ffi.new("double[2]")
-      --Mpi.Allreduce(localMeanCurrent, globalMeanCurrent, 1, Mpi.DOUBLE, Mpi.SUM, self.grid:commSet().comm)
-      --ghostCurrent = globalMeanCurrent[0]/nx
-   end
-
-   --for idx in emRhs:localRangeIter() do
-   --   current:fill(cIdxr(idx), cItr)
-   --   emRhs:fill(eIdxr(idx), eItr)
-   --   --eItr[1] = eItr[1]-1.0/self.epsilon0*(cItr[1]-ghostCurrent)
-   --   for i = 1, current:numComponents() do
-   --      eItr[i] = eItr[i]-1.0/self.epsilon0*cItr[i]
-   --   end
-   --end
    emRhs:accumulateRange(-1.0/self.epsilon0, current, emRhs:localRange())
    self.tmCurrentAccum = self.tmCurrentAccum + Time.clock()-tmStart
 end
 
-function MaxwellField:advance(tCurr, species, inIdx, outIdx)
+function MaxwellField:advance(tCurr, population, inIdx, outIdx)
    local emIn = self:rkStepperFields()[inIdx]
    local emRhsOut = self:rkStepperFields()[outIdx]
 
@@ -738,21 +700,29 @@ function MaxwellField:advance(tCurr, species, inIdx, outIdx)
       if self.evolve then
          self.fieldSlvr:advance(tCurr, {emIn}, {emRhsOut, self.cflRateByCell})
          if self.currentDens then -- No currents for source-free Maxwell.
-            self.currentDens:clear(0.0)
-            for _, s in lume.orderedIter(species) do
-               self.currentDens:accumulate(s:getCharge(), s:getMomDensity())
+            self.currentDensLocal:clear(0.0)
+            -- Accumulate currents of local species.
+            for _, s in population.iterLocal() do
+               self.currentDensLocal:accumulate(s:getCharge(), s:getMomDensity())
             end
+            -- Reduce currents across species communicator.
+            self.currentDens:clear(0.0)
+	    population:AllreduceByCell(self.currentDensLocal, self.currentDens, 'sum')
+            -- Add species current to curl{B} in Amepere's equation.
             self:accumulateCurrent(self.currentDens, emRhsOut)
          end
       else
          emRhsOut:clear(0.0)   -- No RHS.
       end
    else   -- Poisson equation. Solve for phi.
-      -- Accumulate the charge density (divided by epsilon_0).
-      self.chargeDens:clear(0.0)
-      for _, s in lume.orderedIter(species) do
-         self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
+      -- Accumulate the charge density of local species.
+      self.chargeDensLocal:clear(0.0)
+      for _, s in population.iterLocal() do
+         self.chargeDensLocal:accumulate(s:getCharge(), s:getNumDensity())
       end
+      -- Reduce charge density across species communicator.
+      self.chargeDens:clear(0.0)
+      population:AllreduceByCell(self.chargeDensLocal, self.chargeDens, 'sum')
 
 --      if self.isSlvrMG then
 --         self.chargeDens:scale(1.0/self.epsilon0)
@@ -907,18 +877,22 @@ function ExternalMaxwellField:hasEB() return true, self.hasMagField end
 function ExternalMaxwellField:setGrid(grid) self.grid = grid end
 
 function ExternalMaxwellField:alloc(nField)
-   local nGhost = 2
-   if self.basis:numBasis() > 1 then
-      nGhost = 1
-   end
+   local nGhost = self.basis:numBasis()>1 and 1 or 2
 
    -- Allocate fields needed in RK update.
    local emVecComp = 8
    if not self.hasMagField then emVecComp = 1 end  -- Electric field only.
    self.em = DataStruct.Field {
-      onGrid = self.grid,
+      onGrid        = self.grid,
       numComponents = emVecComp*self.basis:numBasis(),
       ghost         = {nGhost, nGhost},
+   }
+end
+
+function ExternalMaxwellField:createSolver(population)
+   self.fieldSlvr = Updater.ProjectOnBasis {
+      onGrid = self.grid,   evaluate = self.emFunc,
+      basis  = self.basis,  onGhosts = true,
    }
       
    -- Create Adios object for field I/O.
@@ -930,16 +904,8 @@ function ExternalMaxwellField:alloc(nField)
                   epsilon0  = self.epsilon0,
                   mu0       = self.mu0,
                   grid      = GKYL_OUT_PREFIX .. "_grid.bp"},
+      writeRankInComm = {0, population:getComm(),},
    }   
-end
-
-function ExternalMaxwellField:createSolver()
-   self.fieldSlvr = Updater.ProjectOnBasis {
-      onGrid = self.grid,
-      basis = self.basis,
-      evaluate = self.emFunc,
-      onGhosts = true,
-   }
 end
 
 function ExternalMaxwellField:createDiagnostics()

@@ -30,8 +30,10 @@ local lume             = require "Lib.lume"
 -- Base class for kinetic species.
 local KineticSpecies = Proto(SpeciesBase)
 
--- This ctor simply stores what is passed to it and defers actual
+-- This ctor stores what is passed to it and defers most of the
 -- construction to the fullInit() method below.
+-- We also place here the things we want every species to know about
+-- every other species (when we parallelize over species).
 function KineticSpecies:init(tbl) self.tbl = tbl end
 
 -- Actual function for initialization. This indirection is needed as
@@ -42,8 +44,8 @@ function KineticSpecies:fullInit(appTbl)
    self.charge = tbl.charge or 1.0
    self.mass   = tbl.mass or 1.0
    self.lower, self.upper = tbl.lower, tbl.upper
-   self.cells  = tbl.cells
-   self.vdim   = #self.cells -- Velocity dimensions.
+   self.cells = tbl.cells
+   self.vdim  = #self.cells -- Velocity dimensions.
 
    self.evolve              = xsys.pickBool(tbl.evolve, true) -- By default, evolve species.
    self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless, self.evolve) 
@@ -212,9 +214,6 @@ function KineticSpecies:fullInit(appTbl)
       assert(false, "KineticSpecies: 'self.positivity' and 'self.nonconPositvity cannot both be 'true'")
    end
    
-   -- for GK only: flag for gyroaveraging.
-   self.gyavg = xsys.pickBool(tbl.gyroaverage, false)
-
    self.ioMethod           = "MPI"
    self.distIoFrame        = 0 -- Frame number for distribution function.
    self.diagIoFrame        = 0 -- Frame number for diagnostics.
@@ -266,7 +265,7 @@ function KineticSpecies:createGrid(confGridIn)
    for d = 1, self.cdim do table.insert(decompCuts, confGrid:cuts(d)) end
    for d = 1, self.vdim do table.insert(decompCuts, self.decompCuts[d]) end
    self.decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts,
+      cuts = decompCuts, comm = confGrid:commSet().comm,
    }
 
    -- Create computational domain.
@@ -469,12 +468,14 @@ function KineticSpecies:createSolver(field, externalField)
    end
 end
 
-function KineticSpecies:createCouplingSolver(species, field, externalField)
+function KineticSpecies:createCouplingSolver(population, field, externalField)
    -- After all species have called their createSolver methods, we here create the objects
    -- needed for cross-species solves (e.g. cross-species collisions).
 
+   local species = population:getSpecies()
+
    -- Create cross collision solvers.
-   for _, coll in lume.orderedIter(self.collisions) do coll:createCouplingSolver(species, field, externalField) end
+   for _, c in lume.orderedIter(self.collisions) do c:createCouplingSolver(population, field, externalField) end
 
    -- Create BC solvers.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createCouplingSolver(species, field, externalField) end
@@ -522,11 +523,6 @@ function KineticSpecies:alloc(nRkDup)
    self.cflRateIdxr   = self.cflRateByCell:genIndexer()
    self.dtGlobal      = ffi.new("double[2]")
    self.dtGlobal[0], self.dtGlobal[1] = 1.0, 1.0   -- Temporary value (so diagnostics at t=0 aren't inf).
-
-   -- Create a table of flags to indicate whether moments have been computed.
-   -- At first we consider 4 flags: coupling moments (M0, M1i, M2).
-   self.momentFlags = {}
-   for iF = 1,4 do self.momentFlags[iF] = false end
 end
 
 -- Note: do not call applyBc here. It is called later in initialization sequence.
@@ -580,24 +576,6 @@ function KineticSpecies:initDist(extField)
    end
 
    self.distf[2]:clear(0.0)
-   
-   -- Calculate initial density averaged over simulation domain.
-   --self.n0 = nil
-   --local dens0 = self:allocMoment()
-   --self.numDensityCalc:advance(0, {self.distf[1]}, {dens0})
-   --local data
-   --local dynVec = DataStruct.DynVector { numComponents = 1 }
-   ---- integrate 
-   --local calcInt = Updater.CartFieldIntegratedQuantCalc {
-   --   onGrid = self.confGrid,
-   --   basis = self.confBasis,
-   --   numComponents = 1,
-   --   quantity = "V"
-   --}
-   --calcInt:advance(0.0, {dens0}, {dynVec})
-   --_, data = dynVec:lastData()
-   --self.n0 = data[1]/self.confGrid:gridVolume()
-   --print("Average density is " .. self.n0)
 end
 
 function KineticSpecies:setActiveRKidx(rkIdx) self.activeRKidx = rkIdx end
@@ -661,12 +639,6 @@ function KineticSpecies:setDtGlobal(dtGlobal) self.dtGlobal[0] = dtGlobal end
 function KineticSpecies:clearCFL()
    -- Clear cflRateByCell for next cfl calculation.
    self.cflRateByCell:clear(0.0)
-end
-
-function KineticSpecies:clearMomentFlags(species)
-   -- Clear the momentFlags table to indicate that moments (and other
-   -- quantities) need to be computed again.
-   for iF = 1,4 do self.momentFlags[iF] = false end
 end
 
 function KineticSpecies:checkPositivity(tCurr, idx)

@@ -122,8 +122,8 @@ function MaxwellianProjection:fullInit(species)
 
    self.initFunc = function (t, zn)
       return species:Maxwellian(zn, self.density(t, zn, species),
-				self.temperature(t, zn, species),
-				self.driftSpeed(t, zn, species))
+				self.driftSpeed(t, zn, species),
+				self.temperature(t, zn, species))
    end
 
    if self.fromFile then

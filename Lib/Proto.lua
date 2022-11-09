@@ -48,9 +48,7 @@ ProtoTable.__index = ProtoTable -- so functions can be called
 function ProtoTable.new(...)
    local t = setmetatable({}, ProtoTable)
    for _, o in ipairs{...} do
-      for k, v in pairs(o) do
-	 t[k] = v
-      end
+      for k, v in pairs(o) do t[k] = v end
    end
    return t
 end

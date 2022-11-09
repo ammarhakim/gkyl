@@ -109,40 +109,30 @@ function VlasovSpecies:alloc(nRkDup)
 
    -- Allocate fields to store coupling moments (for use in coupling
    -- to field and collisions).
-   self.numDensity = self:allocMoment()
-   self.momDensity = self:allocVectorMoment(self.vdim)
-   self.ptclEnergy = self:allocMoment()
+   self.numDensity  = self:allocMoment()
+   self.momDensity  = self:allocVectorMoment(self.vdim)
    self.fiveMoments = self:allocVectorMoment(self.vdim+2)
+
+   self.ptclEnergyAux = self:allocMoment()
 
    -- Allocate field for external forces if any.
    if self.hasExtForce then 
       self.vExtForce = self:allocVectorMoment(self.vdim)
-      self.vExtFptr, self.vExtFidxr   = self.vExtForce:get(1), self.vExtForce:genIndexer()
+      self.vExtFptr, self.vExtFidxr = self.vExtForce:get(1), self.vExtForce:genIndexer()
    end
-
-   -- Allocate moment array for integrated moments (n, n*u_i, sum_i n*u_i^2, sum_i n*T_ii).
-   self.flow                 = self:allocVectorMoment(self.vdim)
-   self.kineticEnergyDensity = self:allocMoment()
-   self.thermalEnergyDensity = self:allocMoment()
 end
 
 function VlasovSpecies:fullInit(appTbl)
    VlasovSpecies.super.fullInit(self, appTbl)
 
    local tbl = self.tbl
+
    -- If there is an external force, get the force function.
    self.hasExtForce = false
-
    if tbl.vlasovExtForceFunc then
       self.vlasovExtForceFunc = tbl.vlasovExtForceFunc
       self.hasExtForce = true
    end
-
-   -- vFlux used for selecting which type of numerical flux function to use in velocity space
-   -- defaults to "penalty" in Eq object, supported options: "penalty," "recovery," and "upwind"
-   -- Note: "recovery" and "upwind" only supported by p=1 Serendipity and p=2 Tensor
-   -- Note: only used for DG Vlasov-Maxwell.
-   self.numVelFlux = tbl.vFlux
 end
 
 function VlasovSpecies:createSolver(field, externalField)
@@ -158,8 +148,7 @@ function VlasovSpecies:createSolver(field, externalField)
    -- External forces are accumulated to the electric field part of
    -- totalEmField
    if self.hasExtForce then
-      hasE = true
-      hasB = true
+      hasE, hasB = true, true
    end
 
    if hasB then
@@ -211,17 +200,16 @@ function VlasovSpecies:createSolver(field, externalField)
       onGrid     = self.grid,   confBasis = self.confBasis,
       phaseBasis = self.basis,  moment    = "M3i",
    }
-   -- Create updater to compute M0, M1i, M2 moments sequentially.
-   -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
-   self.fiveMomentsCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,   confBasis  = self.confBasis,
-      phaseBasis = self.basis,  moment     = "FiveMoments",
-   }
    self.calcMaxwell = Updater.MaxwellianOnBasis {
       onGrid     = self.grid,   confGrid  = self.confGrid,
       phaseBasis = self.basis,  confBasis = self.confBasis,
    }
    if self.needFiveMoments then
+      -- Create updater to compute M0, M1i, M2 moments.
+      self.fiveMomentsCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.grid,   confBasis  = self.confBasis,
+         phaseBasis = self.basis,  moment     = "FiveMoments",
+      }
       self.calcSelfCouplingMom = self.computePlasmaB
          and function(tCurr, fIn)
             -- Compute M0, M1i and M2.
@@ -285,13 +273,16 @@ function VlasovSpecies:createSolver(field, externalField)
    self.tmCouplingMom = 0.0    -- For timer.
 end
 
-function VlasovSpecies:initCrossSpeciesCoupling(species)
+function VlasovSpecies:initCrossSpeciesCoupling(population)
    -- This method establishes the interaction between different
    -- species that is not mediated by the field (solver), like
    -- collisions.
 
+   local species = population:getSpecies()
+
    -- Determine if M0, M1i and M2 are needed.
    self.needFiveMoments = false
+
    -- Create a double nested table of colliding species.
    -- In this table we will encode information about that collition such as:
    --   * does the collision take place?
@@ -310,7 +301,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
                                                     function(e) return e==sO end)
                if self.collPairs[sN][sO].on then
                   self.collPairs[sN][sO].kind = species[sN].collisions[collNm].collKind
-                  self.needFiveMoments = true  -- MF 2022/09/16: at the moment all collision models need M0, M1, M2.
+                  self.needFiveMoments = true  -- MF 2022/09/16: currently all collision models need M0, M1, M2.
                end
             end
          else
@@ -320,60 +311,43 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       end
    end
 
-   -- If ionization collision object exists, locate electrons
-   local counterIz_elc = true
-   local counterIz_neut = true
-   for sN, _ in lume.orderedIter(species) do
-      if species[sN].collisions and next(species[sN].collisions) then 
-         for sO, _ in lume.orderedIter(species) do
-	    if self.collPairs[sN][sO].on then
-   	       if (self.collPairs[sN][sO].kind == 'Ionization') then
-   		  for collNm, _ in pairs(species[sN].collisions) do
-   		     if self.name==species[sN].collisions[collNm].elcNm and counterIz_elc then
-   			self.neutNmIz         = species[sN].collisions[collNm].neutNm
-   			self.calcReactRate    = true
-   			self.collNmIoniz      = collNm
-			counterIz_elc         = false
-		     elseif self.name==species[sN].collisions[collNm].neutNm and counterIz_neut then
-			counterIz_neut       = false
-   		     end
-   		  end
-   	       end
-   	    end
-   	 end
-      end
+   local isThisSpeciesMine = population:isSpeciesMine(self.name)
+   -- Allocate fiveMoments if we collide with other species not in this rank.
+   if self.needFiveMoments and (not isThisSpeciesMine) then
+      self.fiveMoments = self:allocVectorMoment(self.vdim+2)
    end
 
-   -- If Charge Exchange collision object exists, locate ions
-   local counterCX = true
-   for sN, _ in lume.orderedIter(species) do
-      if species[sN].collisions and next(species[sN].collisions) then 
-         for sO, _ in lume.orderedIter(species) do
-   	    if self.collPairs[sN][sO].on then
-   	       if (self.collPairs[sN][sO].kind == 'CX') then
-   		  for collNm, _ in pairs(species[sN].collisions) do
-   		     if self.name==species[sN].collisions[collNm].ionNm and counterCX then
-  			self.calcCXSrc        = true			
-			self.collNmCX         = collNm
-   			self.neutNmCX         = species[sN].collisions[collNm].neutNm
-			species[self.neutNmCX].needFiveMoments = true
-   			counterCX = false
-    		     end
-   		  end
-   	       end
-   	    end
-   	 end
+   -- Create list of ranks we need to send/recv local fiveMoments to/from.
+   self.fiveMomentsXfer = {}
+   self.fiveMomentsXfer.destRank, self.fiveMomentsXfer.srcRank  = {}, {}
+   self.fiveMomentsXfer.sendReqStat, self.fiveMomentsXfer.recvReqStat = nil, nil
+   for sO, info in pairs(self.collPairs[self.name]) do
+      local sOrank = population:getSpeciesOwner(sO)
+      local selfRank = population:getSpeciesOwner(self.name)
+      if sO~=self.name and info.on then
+         if isThisSpeciesMine then
+            -- Only species owned by this rank send fiveMoments to other ranks.
+            if #self.fiveMomentsXfer.destRank == 0 and (not population:isSpeciesMine(sO)) then
+               table.insert(self.fiveMomentsXfer.destRank, sOrank)
+               self.fiveMomentsXfer.sendReqStat = Mpi.RequestStatus()
+            end
+         else
+            -- Only species not owned by this rank receive fiveMoments from other ranks.
+            if #self.fiveMomentsXfer.srcRank == 0 and (not population:isSpeciesMine(self.name)) then
+               table.insert(self.fiveMomentsXfer.srcRank, selfRank)
+               self.fiveMomentsXfer.recvReqStat = Mpi.RequestStatus()
+            end
+         end
       end
    end
 
    -- Initialize the BC cross-coupling interactions.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:initCrossSpeciesCoupling(species) end
-
 end
 
 function VlasovSpecies:setActiveRKidx(rkIdx) self.activeRKidx = rkIdx end
 
-function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
+function VlasovSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
    self:setActiveRKidx(inIdx)
    local fIn     = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
@@ -396,10 +370,10 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    -- Perform the collision update.
    for _, c in pairs(self.collisions) do
-      c:advance(tCurr, fIn, species, {fRhsOut, self.cflRateByCell})   -- 'species' needed for cross-species collisions.
+      c:advance(tCurr, fIn, population, {fRhsOut, self.cflRateByCell})   -- 'population' needed for cross-species collisions.
    end
 
-   for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
+   for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, population:getSpecies(), fRhsOut) end
    
    for _, bc in pairs(self.nonPeriodicBCs) do
       bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)   -- Save boundary fluxes.
@@ -407,9 +381,18 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
 end
 
-function VlasovSpecies:advanceCrossSpeciesCoupling(tCurr, species, emIn, inIdx, outIdx)
+function VlasovSpecies:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
    -- Perform some operations after the updates have been computed, but before
    -- the combine RK (in PlasmaOnCartGrid) is called.
+
+   local species = population:getSpecies()
+
+   -- Wait to finish sending fiveMoments if needed.
+   population:speciesXferField_waitSend(self.fiveMomentsXfer)
+
+   for _, coll in lume.orderedIter(self.collisions) do
+      coll:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
+   end
 
    for _, bc in pairs(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
 end
@@ -454,10 +437,8 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    -- For Ionization.
    if self.calcReactRate then
       local neuts = species[self.neutNmIz]
-      if lume.any({unpack(neuts.momentFlags,1,4)},function(x) return x==false end) then
-         -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments. 
-         neuts:calcCouplingMoments(tCurr, rkIdx, species)
-      end
+      -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments. 
+      neuts:calcCouplingMoments(tCurr, rkIdx, species)
       local neutM0   = neuts:fluidMoments()[1]
       local neutVtSq = neuts:selfPrimitiveMoments()[2]
       
@@ -468,10 +449,8 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    if self.calcCXSrc then
       -- Calculate Vcx*SigmaCX.
       local neuts = species[self.neutNmCX]
-      if lume.any({unpack(neuts.momentFlags,1,4)},function(x) return x==false end) then
-         -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments. 
-         neuts:calcCouplingMoments(tCurr, rkIdx, species)
-      end
+      -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments. 
+      neuts:calcCouplingMoments(tCurr, rkIdx, species)
       local m0       = neuts:fluidMoments()[1]
       local neutU    = neuts:selfPrimitiveMoments()[1]
       local neutVtSq = neuts:selfPrimitiveMoments()[2]
@@ -482,6 +461,18 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:calcCouplingMoments(tCurr, rkIdx, species) end
 
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
+end
+
+function VlasovSpecies:calcCrossCouplingMoments(tCurr, rkIdx, population)
+   -- Perform cross-species calculation related to coupling moments that require the
+   -- self-species coupling moments.
+
+   -- Begin sending/receiving fiveMoments if needed.
+   population:speciesXferField_begin(self.fiveMomentsXfer, self.fiveMoments, 22)
+
+   for _, coll in lume.orderedIter(self.collisions) do
+      coll:calcCrossCouplingMoments(tCurr, rkIdx, population)
+   end
 end
 
 function VlasovSpecies:fluidMoments() return self.fiveMoments end
@@ -520,12 +511,12 @@ function VlasovSpecies:momCalcTime()
 end
 
 -- Please test this for higher than 1x1v... (MF: JJ?).
-function VlasovSpecies:Maxwellian(xn, n0, T0, vdnIn)
+function VlasovSpecies:Maxwellian(xn, n0, vdnIn, T0)
    local vdn = vdnIn or {0, 0, 0}
    local vt2 = T0/self.mass
    local v2 = 0.0
    for d = self.cdim+1, self.cdim+self.vdim do
-     v2 = v2 + (xn[d] - vdnIn[d-self.cdim])^2
+      v2 = v2 + (xn[d] - vdnIn[d-self.cdim])^2
    end
    return n0 / math.sqrt(2*math.pi*vt2)^self.vdim * math.exp(-v2/(2*vt2))
 end
