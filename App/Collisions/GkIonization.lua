@@ -117,30 +117,13 @@ function GkIonization:fullInit(speciesTbl)
    self.timeDepNu       = false
    self.collFreqs       = {1}
    
-   self.collideNm   = tbl.collideWith[1]
+   self.collideNm = tbl.collideWith[1]
    
-   self.elcNm       = assert(tbl.electrons, "App.GkIonization: Must specify electron species name in 'electrons'.")
-   self.neutNm      = assert(tbl.neutrals, "App.GkIonization: Must specify electron species name in 'neutrals'.")
-   
-   self.plasma      = tbl.plasma
-   self.mass        = tbl.elcMass
-   self.charge      = tbl.elemCharge
-
-   if self.plasma == "H" then
-      self._E = 13.6
-      self._P = 0
-      self._A = 0.291e-7
-      self._K = 0.39
-      self._X = 0.232
-   end
-
-   if self.plasma == "Ar" then
-      self._E = 15.8
-      self._P = 1
-      self._A = 0.599e-7
-      self._K = 0.26
-      self._X = 0.136
-   end
+   self.elcNm  = assert(tbl.electrons, "App.GkIonization: Must specify electron species name in 'electrons'.")
+   self.neutNm = assert(tbl.neutrals, "App.GkIonization: Must specify electron species name in 'neutrals'.")
+   self.plasma = tbl.plasma
+   self.mass   = tbl.elcMass
+   self.charge = tbl.elemCharge
 
    self.timers = {nonSlvr = 0.}
 end
@@ -168,122 +151,93 @@ function GkIonization:setPhaseGrid(grid) self.phaseGrid = grid end
 
 function GkIonization:createSolver(funcField)
    self.collisionSlvr = Updater.Ionization {
-      onGrid     = self.confGrid,
       confBasis  = self.confBasis,
-      phaseGrid  = self.phaseGrid,
-      phaseBasis = self.phaseBasis,
       elcMass    = self.mass,
       elemCharge = self.charge,
-      reactRate  = true,
-	 
-      -- Voronov parameters
-      A = self._A,
-      E = self._E,
-      K = self._K,
-      P = self._P,
-      X = self._X,
+      ionType    = self.plasma,
    }
+   -- Reaction rate computed by each species for ease of species parallelization
+   self.reactRate = DataStruct.Field {
+      onGrid        = self.confGrid,
+      numComponents = self.confBasis:numBasis(),
+      ghost         = {1, 1},
+      metaData      = { polyOrder = self.confBasis:polyOrder(),
+                        basisType = self.confBasis:id() },
+   }
+   self.calcReactRate = function(tCurr, inFlds, outFlds)
+      self.collisionSlvr:reactRateCoef(tCurr, inFlds, outFlds)
+   end
+
    if (self.speciesName == self.elcNm) then
-      self.calcIonizationTemp = Updater.Ionization {
-	 onGrid     = self.confGrid,
-	 confBasis  = self.confBasis,
-	 phaseGrid  = self.phaseGrid,
-	 phaseBasis = self.phaseBasis,
-      	 elcMass    = self.mass,
-      	 elemCharge = self.charge,
-	 reactRate  = false, 
-      	 E          = self._E,
-      }
-      self.reactRate = DataStruct.Field {
-	 onGrid        = self.confGrid,
-	 numComponents = self.confBasis:numBasis(),
-	 ghost         = {1, 1},
-	 metaData = {
-	    polyOrder = self.confBasis:polyOrder(),
-	    basisType = self.confBasis:id()
-	 },
-      }
+      -- Electrons need to calculate the ionization temperature
       self.vtSqIz =  DataStruct.Field {
-	 onGrid        = self.confGrid,
-	 numComponents = self.confBasis:numBasis(),
-	 ghost         = {1, 1},
-	 metaData = {
-	    polyOrder = self.confBasis:polyOrder(),
-	    basisType = self.confBasis:id()
-	 },
+         onGrid        = self.confGrid,
+         numComponents = self.confBasis:numBasis(),
+         ghost         = {1, 1},
+         metaData      = { polyOrder = self.confBasis:polyOrder(),
+                           basisType = self.confBasis:id() },
       }
+      self.calcIonizationTemp = function(tCurr, inFlds, outFlds)
+         self.collisionSlvr:ionizationTemp(tCurr, inFlds, outFlds)
+      end
+
       self.m0fMax =  DataStruct.Field {
-	 onGrid        = self.confGrid,
-	 numComponents = self.confBasis:numBasis(),
-	 ghost         = {1, 1},
-	 metaData = {
-	    polyOrder = self.confBasis:polyOrder(),
-	    basisType = self.confBasis:id()
-	 },
+         onGrid        = self.confGrid,
+         numComponents = self.confBasis:numBasis(),
+         ghost         = {1, 1},
+         metaData      = { polyOrder = self.confBasis:polyOrder(),
+                           basisType = self.confBasis:id() },
       }
       self.m0mod =  DataStruct.Field {
-	 onGrid        = self.confGrid,
-	 numComponents = self.confBasis:numBasis(),
-	 ghost         = {1, 1},
-	 metaData = {
-	    polyOrder = self.confBasis:polyOrder(),
-	    basisType = self.confBasis:id()
-	 },
+         onGrid        = self.confGrid,
+         numComponents = self.confBasis:numBasis(),
+         ghost         = {1, 1},
+         metaData      = { polyOrder = self.confBasis:polyOrder(),
+                           basisType = self.confBasis:id() },
       }
       self.fMaxElc = DataStruct.Field {
-	 onGrid        = self.phaseGrid,
-	 numComponents = self.phaseBasis:numBasis(),
-	 ghost         = {1, 1},
-	 metaData = {
-	    polyOrder = self.phaseBasis:polyOrder(),
-	    basisType = self.phaseBasis:id()
-	 },
+         onGrid        = self.phaseGrid,
+         numComponents = self.phaseBasis:numBasis(),
+         ghost         = {1, 1},
+         metaData      = { polyOrder = self.confBasis:polyOrder(),
+                           basisType = self.confBasis:id() },
       }
-      self.sumDistF = DataStruct.Field {
-	 onGrid        = self.phaseGrid,
-	 numComponents = self.phaseBasis:numBasis(),
-	 ghost         = {1, 1},
-	 metaData = {
-	    polyOrder = self.phaseBasis:polyOrder(),
-	    basisType = self.phaseBasis:id()
-	 },
+      self.sumDistF =  DataStruct.Field {
+         onGrid        = self.phaseGrid,
+         numComponents = self.phaseBasis:numBasis(),
+         ghost         = {1, 1},
+         metaData      = { polyOrder = self.confBasis:polyOrder(),
+                           basisType = self.confBasis:id() },
       }
    end
+
    self.m0elc = DataStruct.Field {
       onGrid        = self.confGrid,
       numComponents = self.confBasis:numBasis(),
       ghost         = {1, 1},
-      metaData = {
-	 polyOrder = self.confBasis:polyOrder(),
-	 basisType = self.confBasis:id()
-      },
+      metaData      = { polyOrder = self.confBasis:polyOrder(),
+                        basisType = self.confBasis:id() },
    }
    self.coefM0 = DataStruct.Field {
       onGrid        = self.confGrid,
       numComponents = self.confBasis:numBasis(),
       ghost         = {1, 1},
-      metaData = {
-	 polyOrder = self.confBasis:polyOrder(),
-	 basisType = self.confBasis:id()
-      },
+      metaData      = { polyOrder = self.confBasis:polyOrder(),
+                        basisType = self.confBasis:id() },
    }
    self.fMaxNeut = DataStruct.Field {
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
-      metaData = {
-	 polyOrder = self.phaseBasis:polyOrder(),
-	 basisType = self.phaseBasis:id()
-      },
+      metaData      = { polyOrder = self.confBasis:polyOrder(),
+                        basisType = self.confBasis:id() },
    }
    self.ionizSrc = DataStruct.Field {
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
-      metaData = {
-	 polyOrder = self.phaseBasis:polyOrder(),
-	 basisType = self.phaseBasis:id()
-      },
+      metaData      = { polyOrder = self.phaseBasis:polyOrder(),
+                        basisType = self.phaseBasis:id() },
    }
 end
 
@@ -302,7 +256,7 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       local elcDistF   = species[self.elcNm]:getDistF()
 
       -- Calculate ioniz fMax
-      self.calcIonizationTemp:advance(tCurr, {elcVtSq}, {self.vtSqIz})
+      self.calcIonizationTemp(tCurr, {elcVtSq}, {self.vtSqIz})
       species[self.speciesName].calcMaxwell:advance(tCurr, {self.m0elc, neutU, self.vtSqIz, species[self.speciesName].bmag}, {self.fMaxElc})
       species[self.speciesName].numDensityCalc:advance(tCurr, {self.fMaxElc}, {self.m0fMax})
       species[self.speciesName].confWeakDivide:advance(tCurr, {self.m0fMax, self.m0elc}, {self.m0mod})

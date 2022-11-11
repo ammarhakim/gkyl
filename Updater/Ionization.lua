@@ -5,14 +5,95 @@
 --
 --------------------------------------------------------------------------------
 
--- Gkyl libraries.
-local UpdaterBase    = require "Updater.Base"
-local Proto          = require "Lib.Proto"
-local IonizationDecl = require "Updater.ionizationCalcData.IonizationModDecl"
-local xsys = require "xsys"
-local Lin  = require "Lib.Linalg"
-local Time = require "Lib.Time"
+-- Gkyl libraries
+local Alloc       = require "Lib.Alloc"
+local Basis       = require "Basis.BasisCdef"
+local DataStruct  = require "DataStruct"
+local EqBase      = require "Eq.EqBase"
+local Grid        = require "Grid.RectCart"
+local CartField   = require "DataStruct.CartField"
+local Lin         = require "Lib.Linalg"
+local Mpi         = require "Comm.Mpi"
+local Proto       = require "Lib.Proto"
+local Range       = require "Lib.Range"
+local Time        = require "Lib.Time"
+local UpdaterBase = require "Updater.Base"
+local ffi         = require "ffi"
+local xsys        = require "xsys"
 
+local ffiC = ffi.C
+local new, sizeof, typeof, metatype = xsys.from(ffi,
+     "new, sizeof, typeof, metatype")
+
+ffi.cdef [[ 
+// Identifiers for different ionization types
+enum gkyl_dg_iz_type
+{
+  GKYL_H, // Hydrogen plasma
+  GKYL_AR, // Argon plasma
+};
+
+// Object type
+typedef struct gkyl_dg_iz gkyl_dg_iz;
+
+/**
+ * Create new updater to calculate ionization temperature or reaction rate
+ * @param cbasis Configuration-space basis-functions
+ * @param elem_charge Elementary charge value
+ * @param mass_elc Mass of the electron value
+ * @param type_ion Enum for type of ion for ionization (support H^+ and Ar^+)
+ * @param use_gpu Boolean for whether struct is on host or device
+ */
+struct gkyl_dg_iz* gkyl_dg_iz_new(const struct gkyl_basis* cbasis, 
+  double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion, 
+  bool use_gpu);
+
+/**
+ * Compute ionization temperature for use in neutral reactions. 
+ * The update_rng MUST be a sub-range of the
+ * range on which the array is defined.  That is, it must be either
+ * the same range as the array range, or one created using the
+ * gkyl_sub_range_init method.
+ *
+ * @param iz Ionization object.
+ * @param update_rng Update range (Configuration space)
+ * @param vth_sq_elc Input electron vth^2 = T/m
+ * @param vth_sq_iz Output ionization vth^2 = T_iz/m
+ */
+
+void gkyl_dg_iz_temp(const struct gkyl_dg_iz *iz,
+  const struct gkyl_range *update_rng, const struct gkyl_array *vth_sq_elc,
+  struct gkyl_array *vth_sq_iz);
+
+/**
+ * Compute reaction rate coefficient for use in neutral reactions. 
+ * The update_rng MUST be a sub-range of the
+ * range on which the array is defined.  That is, it must be either
+ * the same range as the array range, or one created using the
+ * gkyl_sub_range_init method.
+ *
+ * @param iz Ionization object.
+ * @param update_rng Update range (Configuration space)
+ * @param phase_rng Phase-space range (for indexing cflrate for stable timestep)
+ * @param n_neut Input neutral density 
+ * @param vth_sq_neut Input neutral vth^2 = T/m
+ * @param vth_sq_elc Input electron vth^2 = T/m
+ * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
+ * @param coef_iz Output reaction rate coefficient
+ */
+
+void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *viz,
+  const struct gkyl_range *update_rng, const struct gkyl_range *phase_rng, 
+  const struct gkyl_array *n_neut, const struct gkyl_array *vth_sq_neut, const struct gkyl_array *vth_sq_elc,
+  struct gkyl_array *cflrate, struct gkyl_array *coef_iz);
+
+/**
+ * Delete updater.
+ *
+ * @param iz Updater to delete.
+ */
+void gkyl_dg_iz_release(gkyl_dg_iz *iz);
+]]
 -- Voronov Collisions updater object.
 local Ionization = Proto(UpdaterBase)
 
@@ -21,141 +102,57 @@ local Ionization = Proto(UpdaterBase)
 function Ionization:init(tbl)
    Ionization.super.init(self, tbl) -- setup base object
    
-   self._onGrid = assert(tbl.onGrid,
-			  "Updater.Ionization: Must provide grid object using 'onGrid'")
-   self._confBasis = assert(tbl.confBasis,
-			    "Updater.Ionization: Must provide configuration space basis object using 'confBasis'")
-   self._phaseGrid = assert(tbl.phaseGrid,
-			  "Updater.Ionization: Must provide grid object using 'phaseGrid'")
-   self._phaseBasis = assert(tbl.phaseBasis,
-			    "Updater.Ionization: Must provide configuration space basis object using 'phaseBasis'")
-   self._elcMass = assert(tbl.elcMass,
-			  "Updater.Ionization: Must provide electron mass using 'elcMass'")
-   self._elemCharge = assert(tbl.elemCharge,
-			     "Updater.Ionization: Must provide elementary charge using 'elemCharge'")
-   self._E = assert(tbl.E,
-		    "Updater.Ionization: Must provide Voronov constant E using 'E'")
-   self._reactRate = tbl.reactRate
-   
-   if self._reactRate then
-      self._A = assert(tbl.A,
-		       "Updater.Ionization: Must provide Voronov constant A using 'A'")
-      self._K = assert(tbl.K,
-		       "Updater.Ionization: Must provide Voronov constant K using 'K'")
-      self._P = assert(tbl.P,
-		       "Updater.Ionization: Must provide Voronov constant P using 'P'")
-      self._X = assert(tbl.X,
-		       "Updater.Ionization: Must provide Voronov constant X using 'X'")
+   self._confBasis = assert(tbl.confBasis, "Updater.Ionization: Must provide configuration space basis object using 'confBasis'")
+   self._elemCharge = assert(tbl.elemCharge, "Updater.Ionization: Must provide elementary charge using 'elemCharge'")
+   self._elcMass = assert(tbl.elcMass, "Updater.Ionization: Must provide electron mass using 'elcMass'")
+   self._plasma = assert(tbl.plasma, "Updater.Ionization: Must provide ion type using 'plasma'")
+
+   if self._plasma == "H" then
+      self._ionType = "GKYL_H"
+   else if self._plasma == "Ar" then
+      self._ionType = "GKYL_AR"
    end
-      
-   -- Dimension of phase space.
-   self._pDim = self._phaseBasis:ndim()      
-   -- Dimension of configuration space.
-   self._cDim = self._confBasis:ndim()
-   -- Basis name and polynomial order.
-   self._basisID   = self._confBasis:id()
-   self._polyOrder = self._confBasis:polyOrder()
-   self.idxP       = Lin.IntVec(self._pDim)
 
-   -- Number of basis functions.
-   self._numBasisC = self._confBasis:numBasis()
-
-   -- Define ionization temperature calculation
-   self._IonizationTempCalc = IonizationDecl.ionizationTemp(self._basisID, self._cDim, self._polyOrder)
-   -- Define Voronov reaction rate
-   self._VoronovReactRateCalc = IonizationDecl.voronovCoef(self._basisID, self._cDim, self._polyOrder)
-
-   self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
+   self._zero = ffi.gc(
+                  ffiC.gkyl_dg_iz_new(self._confBasis._zero, self._elemCharge, self._elcMass, self._ionType, GKYL_USE_GPU or 0),
+                  ffiC.gkyl_dg_iz_release
+                )
 
    self._tmEvalMom = 0.0
+
+   return self
 end
 
-function Ionization:ionizationTemp(elcVtSq, vtSqIz)
+function Ionization:ionizationTemp(tCurr, inFld, outFld)
    local tmEvalMomStart = Time.clock()
-   local grid           = self._onGrid
-   
-   local confIndexer = elcVtSq:genIndexer()
-   local elcVtSqItr  = elcVtSq:get(1)
-   local vtSqIzItr   = vtSqIz:get(1)
 
-   local confRange = elcVtSq:localRange()
-   if self.onGhosts then confRange = elcVtSq:localExtRange() end
-   
-   -- Configuration space loop
-   for cIdx in confRange:rowMajorIter() do
-      grid:setIndex(cIdx)
+   local elcVtSq = inFld[1]
+   local vtSqIz  = outFld[1]
 
-      elcVtSq:fill(confIndexer(cIdx), elcVtSqItr)
-      vtSqIz:fill(confIndexer(cIdx), vtSqIzItr)
+   local localRange = vtSqIz:localRange()
+   ffiC.gkyl_dg_iz_temp(self._zero, localRange, elcVtSq._zero, vtSqIz._zero)
 
-      self._IonizationTempCalc(self._elemCharge, self._elcMass, elcVtSqItr:data(), self._E, vtSqIzItr:data())
-     
-   end
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
 end
 
-function Ionization:reactRateCoef(neutM0, neutVtSq, elcVtSq, coefIz) --, cflRateByCell)
+function Ionization:reactRateCoef(tCurr, inFld, outFld) 
    local tmEvalMomStart = Time.clock()
-   local grid = self._onGrid
-   local vDim = self._pDim - self._cDim
 
-   local confIndexer = elcVtSq:genIndexer()
-   local neutM0Itr   = neutM0:get(1)
-   local neutVtSqItr = neutVtSq:get(1)
-   local elcVtSqItr  = elcVtSq:get(1)
-   local coefIzItr   = coefIz:get(1)
+   local neutM0   = inFld[1]
+   local neutVtSq = inFld[2]
+   local elcVtSq  = inFld[3]
+   local coefIz   = outFld[1]
+   local cflRateByCell = outFld[2]
 
-   local confRange = elcVtSq:localRange()
-   if self.onGhosts then confRange = elcVtSq:localExtRange() end
-
-   -- Get the interface for setting global CFL frequencies
-   local cflRateByCell     = self._cflRateByCell
-   local cflRateByCellIdxr = cflRateByCell:genIndexer()
-   local cflRateByCellPtr  = cflRateByCell:get(1)
+   local localRange = coefIz:localRange()
+   -- Reaction rate sets a cflrate for a stable timestep
+   -- Note: This is a phase space cflrate, localRange for cflRateByCell is phaseRange
    local cflRange = cflRateByCell:localRange()
-   local velRange = cflRange:selectLast(vDim)
-   
-   local cflRate
-   -- Configuration space loop
-   for cIdx in confRange:rowMajorIter() do
-      grid:setIndex(cIdx)
 
-      neutM0:fill(confIndexer(cIdx), neutM0Itr)
-      neutVtSq:fill(confIndexer(cIdx), neutVtSqItr)
-      elcVtSq:fill(confIndexer(cIdx), elcVtSqItr)
-      coefIz:fill(confIndexer(cIdx), coefIzItr)
+   ffiC.gkyl_dg_iz_react_rate(self._zero, localRange, cflRange, 
+      neutM0._zero, neutVtSq._zero, elcVtSq._zero, cflRateByCell._zero, coefIz._zero)
 
-      cflRate = self._VoronovReactRateCalc(self._elemCharge, self._elcMass, neutM0Itr:data(), neutVtSqItr:data(), elcVtSqItr:data(), self._E, self._A, self._K, self._P, self._X, coefIzItr:data())
-      for vIdx in velRange:rowMajorIter() do
-      	 -- Construct the phase space index ot of the configuration
-      	 -- space and velocity space indices
-         cIdx:copyInto(self.idxP)
-         for d = 1, vDim do self.idxP[self._cDim+d] = vIdx[d] end
-      	 cflRateByCell:fill(cflRateByCellIdxr(self.idxP), cflRateByCellPtr)
-      	 cflRateByCellPtr:data()[0] = cflRateByCellPtr:data()[0] + cflRate
-      end
-     
-   end
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
-end
-
-----------------------------------------------------------------------
--- Updater Advance ---------------------------------------------------
-function Ionization:_advance(tCurr, inFld, outFld)
-
-   if not self._reactRate then
-      local elcVtSq = inFld[1]
-      local vtSqIz  = outFld[1]
-      self:ionizationTemp(elcVtSq, vtSqIz)
-   else
-      --local cflRateByCell = self._cflRateByCell
-      local neutM0   = inFld[1]
-      local neutVtSq = inFld[2]
-      local elcVtSq  = inFld[3]
-      local coefIz   = outFld[1]
-      self:reactRateCoef(neutM0, neutVtSq, elcVtSq, coefIz)
-   end
-   
 end
 
 function Ionization:evalMomTime() return self._tmEvalMom end

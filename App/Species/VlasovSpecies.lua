@@ -17,7 +17,6 @@ local Proto          = require "Lib.Proto"
 local Source         = require "App.Sources.VmSource"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
-local VlasovEq       = require "Eq.Vlasov"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
 local BasicBC        = require ("App.BCs.VlasovBasic").VlasovBasic
@@ -442,7 +441,9 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       local neutM0   = neuts:fluidMoments()[1]
       local neutVtSq = neuts:selfPrimitiveMoments()[2]
       
-      species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {species[self.name].collisions[self.collNmIoniz].reactRate, self.cflRateByCell})
+      species[self.name].collisions[self.collNmIoniz].calcReactRate(tCurr, 
+         {neutM0, neutVtSq, self.vtSqSelf}, 
+         {species[self.name].collisions[self.collNmIoniz].reactRate, self.cflRateByCell})
    end
 
    -- For charge exchange.

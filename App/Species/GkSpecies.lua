@@ -570,12 +570,10 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       neuts:calcCouplingMoments(tCurr, rkIdx, species)
       local neutM0   = neuts:fluidMoments()[1]
       local neutVtSq = neuts:selfPrimitiveMoments()[2]
-         
-      if tCurr == 0.0 then
-         species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      end
      
-      species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {species[self.name].collisions[self.collNmIoniz].reactRate})
+      species[self.name].collisions[self.collNmIoniz].calcReactRate(tCurr, 
+         {neutM0, neutVtSq, self.vtSqSelf}, 
+         {species[self.name].collisions[self.collNmIoniz].reactRate, self.cflRateByCell})
    end
 
    if self.calcCXSrc then
