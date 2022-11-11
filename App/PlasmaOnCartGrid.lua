@@ -928,6 +928,7 @@ return {
          CollisionlessEmSource = require "App.FluidSources.CollisionlessEmSource",
          TenMomentRelaxSource  = require "App.FluidSources.TenMomentRelaxSource",
          MomentFrictionSource = require "App.FluidSources.MomentFrictionSource",
+         MomentUserSource = require "App.FluidSources.MomentUserSource",
          AxisymmetricMomentSource = require "App.FluidSources.AxisymmetricMomentSource",
          AxisymmetricPhMaxwellSource = require "App.FluidSources.AxisymmetricPhMaxwellSource",
          BraginskiiHeatConductionSource = require "App.FluidSources.BraginskiiHeatConductionSource",

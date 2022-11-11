@@ -15,6 +15,7 @@ def build(bld):
     AxisymmetricFiveMomentSrcImpl.cpp
     AxisymmetricPhMaxwellSrcImpl.cpp
     FiveMomentFrictionSrcImpl.cpp
+    FiveMomentUserSrcImpl.cpp
 
     aSheathPotentialData/asheath_potential_1x_p1_ser.cpp
     aSheathPotentialData/asheath_potential_1x_p2_ser.cpp
