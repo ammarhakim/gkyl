@@ -85,6 +85,7 @@ function MomentUserSource:createSolver(species, field)
          evolve = evolveLists[5],
          mass = mass,
          gasGamma = tbl.gasGamma,
+         kBoltzmann = tbl.kBoltzmann,
       }
    end
    if #speciesLists[10]>0 then

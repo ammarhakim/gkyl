@@ -16,6 +16,7 @@ typedef struct {
 typedef struct {
   int nFluids;
   double gasGamma;
+  double kBoltzmann;
 } FiveMomentUserSrcData_t;
 
 void

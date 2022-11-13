@@ -20,6 +20,7 @@ typedef struct {
 typedef struct {
  int nFluids;
  double gasGamma;
+ double kBoltzmann;
 } FiveMomentUserSrcData_t;
 
 void gkylFiveMomentUserSrcForwardEuler(
@@ -48,6 +49,7 @@ function FiveMomentUserSrc:init(tbl)
    self._sd = ffi.new(ffi.typeof("FiveMomentUserSrcData_t"))
    self._sd.nFluids = nFluids
    self._sd.gasGamma = assert(tbl.gasGamma, pfx.."Must specify 'gasGamma'.")
+   self._sd.kBoltzmann = assert(tbl.kBoltzmann, pfx.."Must specify 'kBoltzmann'.")
 
    assert(#tbl.mass == nFluids,
           pfx.."mass table must have "..nFluids.." entries.")

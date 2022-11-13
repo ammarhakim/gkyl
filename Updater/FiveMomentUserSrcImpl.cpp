@@ -30,24 +30,25 @@ eulerUpdate(const FiveMomentUserSrcData_t *sd,
             double *q1,
             const double *S)
 {
-  double m = fd->mass, gamma = sd->gasGamma;
+  double m = fd->mass, gamma = sd->gasGamma, kB = sd->kBoltzmann;
+
   double rho0 = q[RHO];
   double n0 = rho0 / m;
   double u = q[MX] / rho0;
   double v = q[MY] / rho0;
   double w = q[MZ] / rho0;
   double v2 = u*u + v*v + w*w;
-  double T0 = (q[ER] - 0.5 * rho0 * v2) * (gamma-1.0) / n0; // literally kB*T
+  double T0 = (q[ER] - 0.5 * rho0 * v2) * (gamma-1.0) / n0 / kB;
 
-  double rho1 = rho0 + dt * S[NN] * m;
+  double n1 = n0 + dt * S[NN];
   double T1 = T0 + dt * S[TT];
-  double n1 = rho1 / m;
 
+  double rho1 = n0 * m;
   q[RHO] = rho1;
   q1[MX] = rho1 * u;
   q1[MY] = rho1 * v;
   q1[MZ] = rho1 * w;
-  q1[ER] = n1 * T1 / (gamma-1.0) + 0.5 * rho1 * v2;
+  q1[ER] = n1 * kB * T1 / (gamma-1.0) + 0.5 * rho1 * v2;
 }
 
 void
