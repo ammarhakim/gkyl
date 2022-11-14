@@ -12,6 +12,7 @@ local Proto = require "Lib.Proto"
 local Updater = require "Updater"
 local DataStruct = require "DataStruct"
 local Basis = require "Basis"
+local AdiosCartFieldIo  = require "Io.AdiosCartFieldIo"
 
 local MomentUserSource = Proto(FluidSourceBase)
 
@@ -49,6 +50,14 @@ function MomentUserSource:createSolver(species, field)
       polyOrder = 0
    }
 
+   self.fieldIo = AdiosCartFieldIo {
+      metaData = {
+         polyOrder = basis:polyOrder(),
+         basisType = basis:id(),
+         grid      = GKYL_OUT_PREFIX .. "_grid.bp",
+      },
+   }
+
    for i, nm in ipairs(tbl.species) do
       local nMoments = species[nm].nMoments
       assert(nMoments==5 or nMoments==10,
@@ -73,6 +82,8 @@ function MomentUserSource:createSolver(species, field)
       }
       project:advance(0.0, {}, {source})
       self.sourceLists[nMoments][nm] = source
+      local filename = string.format("user_source_%s.bp", nm)
+      self.fieldIo:write(source, filename, 0.0, 0.0)
    end
    self.speciesLists = speciesLists
 
