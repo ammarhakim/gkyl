@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- PlasmaOnCartGrid support code: Inter-species friction for multifluid five-
+-- PlasmaOnCartGrid support code: User-specified source for multifluid five-
 -- and ten-moment models.
 --
 --    _______     ___

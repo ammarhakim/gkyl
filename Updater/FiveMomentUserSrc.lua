@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Updater to apply inter-species friction for the multifluid five-moment
+-- Updater to apply user-specified sources for the multifluid five-moment
 -- (Euler) model.
 --------------------------------------------------------------------------------
 

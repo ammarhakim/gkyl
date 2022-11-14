@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// C++ back-end for inter-species friction for the five-moment (Euler) model.
+// C++ back-end for user-specified sources for the five-moment (Euler) model.
 //------------------------------------------------------------------------------
 
 #ifndef GK_FIVE_MOMENT_FRICTION_SRC_H
