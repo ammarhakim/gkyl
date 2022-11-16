@@ -15,6 +15,7 @@ qe   = -eV
 qi   =  eV
 me   = Constants.ELECTRON_MASS --*1836.0
 mi   = Constants.PROTON_MASS   -- Hydrogen ions.
+print(me, mi)
 
 B0  = 0.5     -- Magnetic field amplitude [T].
 
@@ -77,7 +78,7 @@ plasmaApp = Plasma.App {
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
             local x, vpar = xn[1], xn[2]
-            return n0
+            return n0*0.5*(1.+0.5*math.cos(2.*math.pi*x/Lx))
          end,
          driftSpeed = function (t, xn)
             local x, vpar = xn[1], xn[2]
@@ -90,6 +91,7 @@ plasmaApp = Plasma.App {
       },
       -- Evolve species?
       evolve = true,
+      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
@@ -112,7 +114,7 @@ plasmaApp = Plasma.App {
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
             local x, vpar = xn[1], xn[2]
-            return n0
+            return n0*0.5*(1.+0.5*math.cos(2.*math.pi*x/Lx))
          end,
          driftSpeed = function (t, xn)
             local x, vpar = xn[1], xn[2]
@@ -125,6 +127,7 @@ plasmaApp = Plasma.App {
       },
       -- Evolve species?
       evolve = true,
+      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.

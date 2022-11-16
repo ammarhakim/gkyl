@@ -44,8 +44,8 @@ local function bumpMaxwell(x,vx,n,u,vth,bA,bU,bS,bVth)
    local vSq  = ((vx-u)/(math.sqrt(2.0)*vth))^2
    local vbSq = ((vx-u)/(math.sqrt(2.0)*bVth))^2
 
-   return (n/math.sqrt(2.0*Pi*vth))*math.exp(-vSq)
-         +(n/math.sqrt(2.0*Pi*bVth))*math.exp(-vbSq)*(bA^2)/((vx-bU)^2+bS^2)
+   return (n*0.5*(1.+0.5*math.cos(2.*math.pi*x))/math.sqrt(2.0*Pi*vth))*math.exp(-vSq)
+         +(n*0.5*(1.+0.5*math.cos(2.*math.pi*x))/math.sqrt(2.0*Pi*bVth))*math.exp(-vbSq)*(bA^2)/((vx-bU)^2+bS^2)
 end
 
 plasmaApp = Plasma.App {
@@ -55,7 +55,7 @@ plasmaApp = Plasma.App {
    nFrame      = 1,             -- Number of frames to write.
    lower       = {0.0},         -- Configuration space lower coordinate.
    upper       = {1.0},         -- Configuration space upper coordinate.
-   cells       = {2},           -- Configuration space cells.
+   cells       = {3},           -- Configuration space cells.
    basis       = "serendipity", -- One of "serendipity" or "maximal-order".
    polyOrder   = polyOrder,     -- Polynomial order.
    timeStepper = "rk3",         -- One of "rk2", "rk3" or "rk3s4".
@@ -88,7 +88,7 @@ plasmaApp = Plasma.App {
       },
       evolve              = true,
       evolveCollisionless = false,
-      diagnostics = { "M0", "M1", "M2" },
+      diagnostics = { "M0", "M1", "M2", "intM0", "intM1", "intM2" },
    },
 
    -- Neutral species with a bump in the tail.
@@ -111,7 +111,7 @@ plasmaApp = Plasma.App {
       },
       evolve              = true,
       evolveCollisionless = false,
-      diagnostics = { "M0", "M1", "M2" },
+      diagnostics = { "M0", "M1", "M2", "intM0", "intM1", "intM2" },
    },
 
    -- Field solver.
