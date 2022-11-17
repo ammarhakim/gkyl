@@ -25,6 +25,8 @@ local xsys         = require "xsys"
 local lume         = require "Lib.lume"
 local ffi          = require "ffi"
 local GyrokineticModDecl = require "Eq.gkData.GyrokineticModDecl"
+--Akash
+local Time             = require "Lib.Time"
 
 local sizeof = xsys.from(ffi, "sizeof")
 
@@ -1037,6 +1039,8 @@ function TokamakEdgeBC:rkStepperFields() return {self.boundaryFluxRate, self.bou
 function TokamakEdgeBC:getFlucF() return self.boundaryFluxRate end
 
 function TokamakEdgeBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
+  --Akash
+  local t0 = Time.clock()
 
    local fIn = mySpecies:rkStepperFields()[outIdx]
 
@@ -1048,6 +1052,10 @@ function TokamakEdgeBC:advance(tCurr, mySpecies, field, externalField, inIdx, ou
    self.setPhiWall:advance(tCurr, {}, {self.phiWallFld}) -- Compute wall potential if needed (i.e. sheath BC).
    self.phi = self.getPhi(field, inIdx)              -- If needed get the current plasma potential (for sheath BC).
    self.bcSolverSOL:advance(tCurr, {fIn}, {fIn})
+   --Akash
+   local tf = Time.clock()
+   local dtbc = tf-t0
+   self.tbc= dtbc
 end
 
 function TokamakEdgeBC:getBoundaryFluxFields() return self.boundaryFluxFields end
