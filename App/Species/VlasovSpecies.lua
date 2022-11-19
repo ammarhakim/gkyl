@@ -207,8 +207,8 @@ function VlasovSpecies:createSolver(field, externalField)
    if self.needFiveMoments then
       -- Create updater to compute M0, M1i, M2 moments.
       self.fiveMomentsCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.grid,   confBasis  = self.confBasis,
-         phaseBasis = self.basis,  moment     = "FiveMoments",
+         onGrid     = self.grid,   confBasis = self.confBasis,
+         phaseBasis = self.basis,  moment    = "FiveMoments",
       }
       self.calcSelfCouplingMom = self.computePlasmaB
          and function(tCurr, fIn)

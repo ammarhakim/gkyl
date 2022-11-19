@@ -60,10 +60,9 @@ function VmLBOCollisions:init(tbl) self.tbl = tbl end
 function VmLBOCollisions:fullInit(speciesTbl)
    local tbl = self.tbl -- Previously stored table.
 
-   self.selfCollisions = true -- MF: to be deleted.
    self.collKind = "VmLBO"  -- Type of collisions model.
 
-   -- For now only cell-wise constant nu is implemented.
+   -- (MF 2022/11/18: not entirely true) For now only cell-wise constant nu is implemented.
    self.cellConstNu = true     -- Cell-wise constant nu?
 
    self.collidingSpecies = assert(tbl.collideWith, "App.VmLBOCollisions: Must specify names of species to collide with in 'collideWith'.")
@@ -154,8 +153,6 @@ function VmLBOCollisions:fullInit(speciesTbl)
    end
 
    self.nuFrac = tbl.nuFrac and tbl.nuFrac or 1.0
-
-   self.cfl = 0.0    -- Will be replaced.
 
    self.timers = {nonSlvr = 0.}
 end
@@ -355,7 +352,6 @@ function VmLBOCollisions:calcCrossCouplingMoments(tCurr, rkIdx, population)
    population:speciesXferField_begin(self.primMomsSelfXfer, self.primMomsSelf, 33)
 end
 
-
 function VmLBOCollisions:calcSelfNuTimeConst(momsSelf, nuOut) nuOut:copy(self.nuSelf) end
 
 function VmLBOCollisions:calcSelfNuTimeDep(momsSelf, nuOut)
@@ -391,8 +387,7 @@ end
 function VmLBOCollisions:advance(tCurr, fIn, population, out)
    local tmNonSlvrStart = Time.clock()
 
-   local fRhsOut = out[1]
-   local cflRateByCell = out[2]
+   local fRhsOut, cflRateByCell = out[1], out[2]
    local species = population:getSpecies()
 
    -- Fetch coupling moments of this species.

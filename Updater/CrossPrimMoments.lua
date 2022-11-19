@@ -132,20 +132,23 @@ function CrossPrimMoments:init(tbl)
 
    self._basisID, self._polyOrder = self.confBasis:id(), self.confBasis:polyOrder()
 
-   local uDim = self._vDim
-   if self._operator=="GkLBO" or self._operator=="GkBGK" then uDim = 1 end
+   self._uDim = self._vDim
+   if self._operator=="GkLBO" or self._operator=="GkBGK" then self._uDim = 1 end
 
    self._isLBO = false
    if self._operator=="VmLBO" or self._operator=="GkLBO" then self._isLBO = true end
 
    -- Need two Eigen matrices: one to divide by (ms*nusr*m0s+mr*nurs*m0r)
    -- and one to compute cross-primitive moments.
-   self._binOpData    = ffiC.new_binOpData_t(self._numBasisC*2*(uDim+1), 0)
+   self._binOpData    = ffiC.new_binOpData_t(self._numBasisC*2*(self._uDim+1), 0)
    self._binOpDataDiv = ffiC.new_binOpData_t(self._numBasisC, 0)
 
    -- Select C kernel to be used.
    if self._operator=="VmBGK"or self._operator=="GkBGK" then
       self._crossPrimMomentsCalc = PrimMomentsDecl.selectCrossPrimMomentsCalc(self._operator, self._basisID, self._cDim, self._vDim, self._polyOrder)
+
+      self._uCrossOtherBuf    = Lin.Vec(self._uDim*self.confBasis:numBasis())
+      self._vtSqCrossOtherBuf = Lin.Vec(self.confBasis:numBasis())
    end
 
    -- To obtain the cell average, multiply the zeroth coefficient by this factor.
@@ -203,212 +206,58 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
       return
    end
 
-   local grid = self._onGrid
+   local mSelf, nuSelf = inFld[1], inFld[2]
+   local momsSelf      = inFld[3]
+   local primMomsSelf  = inFld[4]
 
-   local mSelf, nuSelfIn, m0Self, uSelf, vtSqSelf
-   local mOther, nuOtherIn, m0Other, uOther, vtSqOther
-   mSelf, nuSelfIn   = inFld[1], inFld[2]
-   m0Self            = inFld[3][1]
-   uSelf, vtSqSelf   = inFld[4][1], inFld[4][2]
+   local mOther, nuOther = inFld[5], inFld[6]
+   local momsOther       = inFld[7]
+   local primMomsOther   = inFld[8]
 
-   mOther, nuOtherIn = inFld[5], inFld[6]
-   m0Other           = inFld[7][1]
-   uOther, vtSqOther = inFld[8][1], inFld[8][2]
+   local m0sdeltas = inFld[9]
 
-   local uCrossSelf     = outFld[1]
-   local vtSqCrossSelf  = outFld[2]
-   local uCrossOther    = outFld[3]
-   local vtSqCrossOther = outFld[4]
+   local primMomsCrossSelf = outFld[1]
 
-   local confRange = uSelf:localRange()
-   if self.onGhosts then confRange = uSelf:localExtRange() end
+   local confRange = self.onGhosts and nuSelf:localExtRange() or nuSelf:localRange()
 
-   local confIndexer   = m0Self:genIndexer()
+   local confIndexer = nuSelf:genIndexer()
 
-   local m0SelfItr   = m0Self:get(1)
-   local uSelfItr    = uSelf:get(1)
-   local vtSqSelfItr = vtSqSelf:get(1)
+   local momsSelfItr     = momsSelf:get(1)
+   local primMomsSelfItr = primMomsSelf:get(1)
 
-   local m0OtherItr   = m0Other:get(1)
-   local uOtherItr    = uOther:get(1)
-   local vtSqOtherItr = vtSqOther:get(1)
+   local momsOtherItr     = momsOther:get(1)
+   local primMomsOtherItr = primMomsOther:get(1)
 
-   local uCrossSelfItr     = uCrossSelf:get(1)
-   local vtSqCrossSelfItr  = vtSqCrossSelf:get(1)
-   local uCrossOtherItr    = uCrossOther:get(1)
-   local vtSqCrossOtherItr = vtSqCrossOther:get(1)
+   local primMomsCrossSelfItr = primMomsCrossSelf:get(1)
 
+   local nuSelf0, nuSelfItr
+   local nuOther0, nuOtherItr
+   nuSelfItr  = nuSelf:get(1) 
+   nuOtherItr = nuOther:get(1)
 
-   -- For LBO need a few more inputs. Also, in order to avoid evaluation
-   -- of if-statements in the spatial loop, we have separate loops for each
-   -- operator, and for each of cellConstNu. Makes the code longer but slightly more efficient.
-   local m1Self, m2Self, m1CorrectionSelf, m2CorrectionSelf
-   local m1Other, m2Other, m1CorrectionOther, m2CorrectionOther
-   local m0StarSelf, m1StarSelf, m2StarSelf
-   local m0StarOther, m1StarOther, m2StarOther
-   local m0StarSelfItr, m1StarSelfItr, m2StarSelfItr
-   local m0StarOtherItr, m1StarOtherItr, m2StarOtherItr
-   local m1SelfItr, m2SelfItr, m1CorrectionSelfItr, m2CorrectionSelfItr
-   local m1OtherItr, m2OtherItr, m1CorrectionOtherItr, m2CorrectionOtherItr
-   local nuSelf, nuSelfItr
-   local nuOther, nuOtherItr
-   if self._cellConstNu then
-
-      if self._varNu then
-         nuSelfItr  = nuSelfIn:get(1) 
-         nuOtherItr = nuOtherIn:get(1)
-      end
-
-      if self._isLBO then
-         m1Self, m2Self                       = inFld[3][2], inFld[3][3]
-         m1Other, m2Other                     = inFld[7][2], inFld[7][3]
-         m1CorrectionSelf, m2CorrectionSelf   = inFld[9][1], inFld[9][2]
-         m1CorrectionOther, m2CorrectionOther = inFld[11][1], inFld[11][2]
-
-         if self._polyOrder == 1 then
-            m0StarSelf, m1StarSelf, m2StarSelf = inFld[10][1], inFld[10][2], inFld[10][3]
-            m0StarSelfItr = m0StarSelf:get(1)
-            m1StarSelfItr = m1StarSelf:get(1)
-            m2StarSelfItr = m2StarSelf:get(1)
-
-            m0StarOther, m1StarOther, m2StarOther = inFld[12][1], inFld[12][2], inFld[12][3]
-            m0StarOtherItr = m0StarOther:get(1)
-            m1StarOtherItr = m1StarOther:get(1)
-            m2StarOtherItr = m2StarOther:get(1)
-         end
-
-         m1SelfItr            = m1Self:get(1)
-         m2SelfItr            = m2Self:get(1)
-         m1CorrectionSelfItr  = m1CorrectionSelf:get(1)
-         m2CorrectionSelfItr  = m2CorrectionSelf:get(1)
-         m1OtherItr           = m1Other:get(1)
-         m2OtherItr           = m2Other:get(1)
-         m1CorrectionOtherItr = m1CorrectionOther:get(1)
-         m2CorrectionOtherItr = m2CorrectionOther:get(1)
-
-         -- polyOrder=1 and >1 each use separate velocity grid loops to
-         -- avoid evaluating (if polyOrder==1) at each cell.
-         if self._polyOrder > 1 then
-
-            for cIdx in confRange:rowMajorIter() do
-               grid:setIndex(cIdx)
-         
-               m0Self:fill(confIndexer(cIdx), m0SelfItr)
-               m1Self:fill(confIndexer(cIdx), m1SelfItr)
-               m2Self:fill(confIndexer(cIdx), m2SelfItr)
-               uSelf:fill(confIndexer(cIdx), uSelfItr)
-               vtSqSelf:fill(confIndexer(cIdx), vtSqSelfItr)
-               m1CorrectionSelf:fill(confIndexer(cIdx), m1CorrectionSelfItr)
-               m2CorrectionSelf:fill(confIndexer(cIdx), m2CorrectionSelfItr)
-         
-               m0Other:fill(confIndexer(cIdx), m0OtherItr)
-               m1Other:fill(confIndexer(cIdx), m1OtherItr)
-               m2Other:fill(confIndexer(cIdx), m2OtherItr)
-               uOther:fill(confIndexer(cIdx), uOtherItr)
-               vtSqOther:fill(confIndexer(cIdx), vtSqOtherItr)
-               m1CorrectionOther:fill(confIndexer(cIdx), m1CorrectionOtherItr)
-               m2CorrectionOther:fill(confIndexer(cIdx), m2CorrectionOtherItr)
-         
-               uCrossSelf:fill(confIndexer(cIdx), uCrossSelfItr)
-               vtSqCrossSelf:fill(confIndexer(cIdx), vtSqCrossSelfItr)
-               uCrossOther:fill(confIndexer(cIdx), uCrossOtherItr)
-               vtSqCrossOther:fill(confIndexer(cIdx), vtSqCrossOtherItr)
-
-               if self._varNu then
-                  nuSelfIn:fill(confIndexer(cIdx), nuSelfItr)
-                  nuOtherIn:fill(confIndexer(cIdx), nuOtherItr)
-
-                  nuSelf  = nuSelfItr[1]*self._cellAvFac 
-                  nuOther = nuOtherItr[1]*self._cellAvFac 
-               else
-                  nuSelf  = nuSelfIn
-                  nuOther = nuOtherIn
-               end
-         
-               self._crossPrimMomentsCalc(self._binOpData, self._binOpDataDiv, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), m1SelfItr:data(), m2SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), m1CorrectionSelfItr:data(), m2CorrectionSelfItr:data(), mOther, nuOther, m0OtherItr:data(), m1OtherItr:data(), m2OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), m1CorrectionOtherItr:data(), m2CorrectionOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
-            end
-
-         else    -- Piecewise linear polynomial basis below.
-
-            for cIdx in confRange:rowMajorIter() do
-               grid:setIndex(cIdx)
-         
-               m0Self:fill(confIndexer(cIdx), m0SelfItr)
-               m1Self:fill(confIndexer(cIdx), m1SelfItr)
-               m2Self:fill(confIndexer(cIdx), m2SelfItr)
-               uSelf:fill(confIndexer(cIdx), uSelfItr)
-               vtSqSelf:fill(confIndexer(cIdx), vtSqSelfItr)
-               m1CorrectionSelf:fill(confIndexer(cIdx), m1CorrectionSelfItr)
-               m2CorrectionSelf:fill(confIndexer(cIdx), m2CorrectionSelfItr)
-               m0StarSelf:fill(confIndexer(cIdx), m0StarSelfItr)
-               m1StarSelf:fill(confIndexer(cIdx), m1StarSelfItr)
-               m2StarSelf:fill(confIndexer(cIdx), m2StarSelfItr)
-         
-               m0Other:fill(confIndexer(cIdx), m0OtherItr)
-               m1Other:fill(confIndexer(cIdx), m1OtherItr)
-               m2Other:fill(confIndexer(cIdx), m2OtherItr)
-               uOther:fill(confIndexer(cIdx), uOtherItr)
-               vtSqOther:fill(confIndexer(cIdx), vtSqOtherItr)
-               m1CorrectionOther:fill(confIndexer(cIdx), m1CorrectionOtherItr)
-               m2CorrectionOther:fill(confIndexer(cIdx), m2CorrectionOtherItr)
-               m0StarOther:fill(confIndexer(cIdx), m0StarOtherItr)
-               m1StarOther:fill(confIndexer(cIdx), m1StarOtherItr)
-               m2StarOther:fill(confIndexer(cIdx), m2StarOtherItr)
-         
-               uCrossSelf:fill(confIndexer(cIdx), uCrossSelfItr)
-               vtSqCrossSelf:fill(confIndexer(cIdx), vtSqCrossSelfItr)
-               uCrossOther:fill(confIndexer(cIdx), uCrossOtherItr)
-               vtSqCrossOther:fill(confIndexer(cIdx), vtSqCrossOtherItr)
-         
-               if self._varNu then
-                  nuSelfIn:fill(confIndexer(cIdx), nuSelfItr)
-                  nuOtherIn:fill(confIndexer(cIdx), nuOtherItr)
-
-                  nuSelf  = nuSelfItr[1]*self._cellAvFac 
-                  nuOther = nuOtherItr[1]*self._cellAvFac 
-               else
-                  nuSelf  = nuSelfIn
-                  nuOther = nuOtherIn
-               end
-         
-               self._crossPrimMomentsCalc(self._binOpData, self._binOpDataDiv, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), m1SelfItr:data(), m2SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), m1CorrectionSelfItr:data(), m2CorrectionSelfItr:data(), m0StarSelfItr:data(), m1StarSelfItr:data(), m2StarSelfItr:data(), mOther, nuOther, m0OtherItr:data(), m1OtherItr:data(), m2OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), m1CorrectionOtherItr:data(), m2CorrectionOtherItr:data(), m0StarOtherItr:data(), m1StarOtherItr:data(), m2StarOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
-            end
-
-         end    -- end if polyOrder>1.
-      else    -- BGK operator below (needs fewer inputs).
-
-         for cIdx in confRange:rowMajorIter() do
-            grid:setIndex(cIdx)
-         
-            m0Self:fill(confIndexer(cIdx), m0SelfItr)
-            uSelf:fill(confIndexer(cIdx), uSelfItr)
-            vtSqSelf:fill(confIndexer(cIdx), vtSqSelfItr)
-         
-            m0Other:fill(confIndexer(cIdx), m0OtherItr)
-            uOther:fill(confIndexer(cIdx), uOtherItr)
-            vtSqOther:fill(confIndexer(cIdx), vtSqOtherItr)
-         
-            uCrossSelf:fill(confIndexer(cIdx), uCrossSelfItr)
-            vtSqCrossSelf:fill(confIndexer(cIdx), vtSqCrossSelfItr)
-            uCrossOther:fill(confIndexer(cIdx), uCrossOtherItr)
-            vtSqCrossOther:fill(confIndexer(cIdx), vtSqCrossOtherItr)
-         
-            if self._varNu then
-               nuSelfIn:fill(confIndexer(cIdx), nuSelfItr)
-               nuOtherIn:fill(confIndexer(cIdx), nuOtherItr)
-
-               nuSelf  = nuSelfItr[1]*self._cellAvFac 
-               nuOther = nuOtherItr[1]*self._cellAvFac 
-            else
-               nuSelf  = nuSelfIn
-               nuOther = nuOtherIn
-            end
-         
-            self._crossPrimMomentsCalc(self._binOpDataDiv, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), mOther, nuOther, m0OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
-         end
-
-      end    -- end if self._isLBO.
-   else    -- Below: collisionality is not cell-wise constant.
+   for cIdx in confRange:rowMajorIter() do
+      momsSelf:fill(confIndexer(cIdx), momsSelfItr)
+      primMomsSelf:fill(confIndexer(cIdx), primMomsSelfItr)
+      local uSelfItr    = primMomsSelfItr:data()
+      local vtSqSelfItr = primMomsSelfItr:data()+self._uDim*self.confBasis:numBasis()
+   
+      momsOther:fill(confIndexer(cIdx), momsOtherItr)
+      primMomsOther:fill(confIndexer(cIdx), primMomsOtherItr)
+      local uOtherItr    = primMomsOtherItr:data()
+      local vtSqOtherItr = primMomsOtherItr:data()+self._uDim*self.confBasis:numBasis()
+   
+      primMomsCrossSelf:fill(confIndexer(cIdx), primMomsCrossSelfItr)
+      local uCrossSelfItr     = primMomsCrossSelfItr:data()
+      local vtSqCrossSelfItr  = primMomsCrossSelfItr:data()+self._uDim*self.confBasis:numBasis()
+      local uCrossOtherItr    = self._uCrossOtherBuf:data()
+      local vtSqCrossOtherItr = self._vtSqCrossOtherBuf:data()
+   
+      nuSelf:fill(confIndexer(cIdx), nuSelfItr)
+      nuOther:fill(confIndexer(cIdx), nuOtherItr)
+      local nuSelf0  = nuSelfItr[1]*self._cellAvFac 
+      local nuOther0 = nuOtherItr[1]*self._cellAvFac 
+   
+      self._crossPrimMomentsCalc(self._binOpDataDiv, self._betaP1, mSelf, nuSelf0, momsSelfItr:data(), uSelfItr, vtSqSelfItr, mOther, nuOther0, momsOtherItr:data(), uOtherItr, vtSqOtherItr, uCrossSelfItr, vtSqCrossSelfItr, uCrossOtherItr, vtSqCrossOtherItr)
    end
 
 end

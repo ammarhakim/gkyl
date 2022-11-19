@@ -371,8 +371,7 @@ end
 function GkLBOCollisions:advance(tCurr, fIn, population, out)
    local tmNonSlvrStart = Time.clock()
 
-   local fRhsOut = out[1]
-   local cflRateByCell = out[2]
+   local fRhsOut, cflRateByCell = out[1], out[2]
    local species = population:getSpecies()
 
    -- Fetch coupling moments of this species.
