@@ -13,6 +13,7 @@ local Time           = require "Lib.Time"
 local Updater        = require "Updater"
 local xsys           = require "xsys"
 local lume           = require "Lib.lume"
+local ffi            = require "ffi"
 local Mpi            = require "Comm.Mpi"
 
 -- VmBGKCollisions ---------------------------------------------------------------
@@ -161,29 +162,17 @@ function VmBGKCollisions:createSolver(mySpecies, externalField)
    self.nuSelf = mySpecies:allocMoment()
    -- Allocate fields to store self-species primitive moments.
    self.primMomsSelf = mySpecies:allocVectorMoment(self.vdim+1)
+   -- Allocate fields for boundary corrections (kept as 0).
+   self.boundCorrs = mySpecies:allocVectorMoment(self.vdim+1)
+
+   -- We'll use the LBO SelfPrimMom updater with zero boundary corrections.
+   self.primMomSelf = Updater.SelfPrimMoments {
+      onGrid     = self.phaseGrid,   operator  = "VmBGK",
+      phaseBasis = self.phaseBasis,  confBasis = self.confBasis,
+   }
+
    -- Sum of Maxwellians multiplied by respective collisionalities.
    self.nufMaxwellSum = mySpecies:allocDistf()
-
---   -- MF 2022/11/18: not ready.
---   self.primMomSelf = Updater.SelfPrimMoments {
---      onGrid     = self.phaseGrid,   operator  = "VmBGK",
---      phaseBasis = self.phaseBasis,  confBasis = self.confBasis,
---   }
-   self.numDensity = mySpecies:allocMoment()
-   self.momDensity = mySpecies:allocVectorMoment(self.vdim)
-   self.keDensity  = mySpecies:allocMoment()
-   self.flowEnergyDensity = mySpecies:allocMoment()
-   self.thermalEnergyDensity = mySpecies:allocMoment()
-   self.uDrift = mySpecies:allocVectorMoment(self.vdim)
-   self.vtSq   = mySpecies:allocMoment()
-   self.confDivision = Updater.CartFieldBinOp {
-      weakBasis = self.confBasis,                operation = "Divide",
-      onRange   = self.numDensity:localRange(),  onGhosts  = false,
-   }
-   self.confDotProduct = Updater.CartFieldBinOp {
-      weakBasis = self.confBasis,  operation = "DotProduct",
-      onGhosts  = false,
-   }
 
    local projectUserNu
    if self.timeDepNu then
@@ -261,6 +250,10 @@ function VmBGKCollisions:createSolver(mySpecies, externalField)
       self.m0Other = self.timeDepNu and mySpecies:allocMoment() or nil  -- M0, to be extracted from fiveMoments.
 
       if self.exactLagFixM012 then
+         -- Temp buffers.
+         self.numDensity = mySpecies:allocMoment()
+         self.uDrift = mySpecies:allocVectorMoment(self.vdim)
+         self.vtSq   = mySpecies:allocMoment()
          -- Will need the 1st and 2nd moment of the cross-species Maxwellian.
          self.crossMaxwellianM1 = mySpecies:allocVectorMoment(self.vdim)
          self.crossMaxwellianM2 = mySpecies:allocMoment()
@@ -270,6 +263,7 @@ function VmBGKCollisions:createSolver(mySpecies, externalField)
          }
          self.confDotProduct = Updater.CartFieldBinOp {
             weakBasis = self.confBasis,  operation = "DotProduct",
+            onGhosts  = false,
          }
       end
    end
@@ -349,18 +343,7 @@ function VmBGKCollisions:calcCouplingMoments(tCurr, rkIdx, species)
    local fIn      = species[self.speciesName]:rkStepperFields()[rkIdx]
    local momsSelf = species[self.speciesName]:fluidMoments()
 
---   MF 2022/11:18: not ready.
---   self.primMomSelf:advance(tCurr, {momsSelf, fIn}, {self.boundCorrs, self.primMomsSelf})
-   -- Compute self-primitive moments with binOp updater.
-   self.numDensity:combineOffset(1., momsSelf, 0)
-   self.momDensity:combineOffset(1., momsSelf, self.confBasis:numBasis())
-   self.keDensity:combineOffset(1., momsSelf, (self.vdim+1)*self.confBasis:numBasis())
-   self.confDivision:advance(tCurr, {self.numDensity, self.momDensity}, {self.uDrift})
-   self.confDotProduct:advance(tCurr, {self.uDrift, self.momDensity}, {self.flowEnergyDensity})
-   self.thermalEnergyDensity:combine( 1.0/self.vdim, self.keDensity,
-                                     -1.0/self.vdim, self.flowEnergyDensity )
-   self.confDivision:advance(tCurr, {self.numDensity, self.thermalEnergyDensity}, {self.vtSq})
-   self.primMomsSelf:combineOffset(1., self.uDrift, 0, 1., self.vtSq, self.vdim*self.confBasis:numBasis())
+   self.primMomSelf:advance(tCurr, {momsSelf, fIn}, {self.boundCorrs, self.primMomsSelf})
 end
 
 function VmBGKCollisions:calcCrossCouplingMoments(tCurr, rkIdx, population)
