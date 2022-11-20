@@ -163,6 +163,8 @@ function CrossPrimMoments:init(tbl)
       elseif self._operator=="VmLBO" then
          self._zero = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_cross_calc_cu_dev_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
                              ffiC.gkyl_prim_lbo_cross_calc_release)
+      else -- MF 2022/11/19: BGK not implemented on GPU.
+         self._advanceFunc = self._advanceNoDeviceImpl
       end
    else
       if self._operator=="GkLBO" then
