@@ -151,7 +151,7 @@ function SelfPrimMoments:init(tbl)
    local isLBO, isGK = true, false
    if isOperatorGood(operator) then
      if operator == "VmBGK" or operator=="GkBGK" then isLBO = false end
-     if operator == "GkLBO" or operator=="GkBGK"  then isLBO = true end
+     if operator == "GkLBO" or operator=="GkBGK"  then isGK = true end
    else
       assert(false, string.format(
          "SelfPrimMoments: Operator option must be 'VmLBO', 'GkLBO', 'VmBGK' or 'GkBGK'. Requested %s instead.", operator))
