@@ -220,19 +220,12 @@ function VmLBOCollisions:createSolver(mySpecies, extField)
       -- Cross-collision u and vtSq multiplied by collisionality.
       self.nuPrimMomsCross = mySpecies:allocVectorMoment(self.vdim+1)
       -- Prefactor m_0s*delta_s in cross primitive moment calculation.
-      self.m0s_deltas     = mySpecies:allocMoment()
-      self.m0s_deltas_den = mySpecies:allocMoment()
-      -- Weak division to compute the pre-factor in cross collision primitive moments.
-      self.confDiv = Updater.CartFieldBinOp {
-         weakBasis = self.confBasis,            operation = "Divide",
-         onRange   = self.nuSelf:localRange(),  onGhosts  = false,
-      }
+      self.m0s_deltas = mySpecies:allocMoment()
       -- Updater to compute cross-species primitive moments.
       self.primMomCross = Updater.CrossPrimMoments {
-         onGrid     = self.confGrid,    betaGreene       = self.betaGreene, 
-         phaseBasis = self.phaseBasis,  varyingNu        = true,
-         confBasis  = self.confBasis,   useCellAverageNu = self.cellConstNu,
-         operator   = "VmLBO",
+         onGrid     = self.confGrid,    betaGreene = self.betaGreene, 
+         phaseBasis = self.phaseBasis,  operator   = "VmLBO",
+         confBasis  = self.confBasis,   m0s_deltas = self.m0s_deltas,
       }
 
       -- Allocate (and assign if needed) cross-species collision frequencies,
@@ -420,19 +413,9 @@ function VmLBOCollisions:advance(tCurr, fIn, population, out)
          self.calcCrossNu(otherNm, chargeOther, mOther, momsOther, primMomsOther,
                           nuCrossSelf, nuCrossOther)
 
-         -- Compose the pre-factor (we should put this in a single loop/updater):
-         --   m0_s*delta_s = m0_s*(2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs))
-         local deltas_num, deltas_den = self.m0s_deltas, self.m0s_deltas_den
-         self.confMul:advance(tCurr, {momsSelf, nuCrossSelf, 1}, {deltas_den})
-         self.confMul:advance(tCurr, {momsOther, nuCrossOther, 1}, {deltas_num})
-         deltas_den:scale(self.mass)
-         deltas_den:accumulate(mOther, deltas_num)
-         deltas_num:scale(2.*mOther)
-         self.confMul:advance(tCurr, {momsSelf, deltas_num, 1}, {deltas_num})
-         self.confDiv:advance(tCurr, {deltas_den, deltas_num}, {self.m0s_deltas})
-
+         -- Calculate cross primitive moments.
          self.primMomCross:advance(tCurr, {self.mass, nuCrossSelf, momsSelf, self.primMomsSelf, bCorrectionsSelf,
-                                           mOther, nuCrossOther, momsOther, primMomsOther, self.m0s_deltas},
+                                           mOther, nuCrossOther, momsOther, primMomsOther},
                                           {self.primMomsCross})
 
          self.confMul:advance(tCurr, {nuCrossSelf, self.primMomsCross}, {self.nuPrimMomsCross})

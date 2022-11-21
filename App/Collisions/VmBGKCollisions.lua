@@ -228,10 +228,9 @@ function VmBGKCollisions:createSolver(mySpecies, externalField)
       }
       -- Updater to compute cross-species primitive moments.
       self.primMomCross = Updater.CrossPrimMoments {
-         onGrid     = self.confGrid,    betaGreene       = self.betaGreene,
-         phaseBasis = self.phaseBasis,  varyingNu        = true,
-         confBasis  = self.confBasis,   useCellAverageNu = self.cellConstNu,
-         operator   = "VmBGK",
+         onGrid     = self.confGrid,    betaGreene = self.betaGreene,
+         phaseBasis = self.phaseBasis,  operator   = "VmBGK",
+         confBasis  = self.confBasis, 
       }
 
       -- Allocate (and assign if needed) cross-species collision frequencies,

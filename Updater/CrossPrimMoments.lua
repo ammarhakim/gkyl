@@ -79,6 +79,53 @@ gkyl_prim_lbo_vlasov_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid, co
 
 gkyl_prim_lbo_cross_calc*
 gkyl_prim_lbo_gyrokinetic_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+
+
+// Object type
+typedef struct gkyl_prim_cross_m0deltas gkyl_prim_cross_m0deltas;
+
+/**
+ * Create a new updater that computes the m0_s*delta_s prefactor
+ * in the calculation of cross-primitive moments for LBO and BGK
+ * collisions. That is:
+ *   m0_s*delta_s = m0_s*2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs)
+ *
+ * @param basis Basis object (configuration space).
+ * @param range Range in which we'll compute m0_s*delta_s.
+ * @param betap1 beta+1 parameter in Greene's formulism.
+ * @param use_gpu boolean indicating whether to use the GPU.
+ * @return New updater pointer.
+ */
+gkyl_prim_cross_m0deltas* gkyl_prim_cross_m0deltas_new(
+  const struct gkyl_basis *basis, const struct gkyl_range *range,
+  double betap1, bool use_gpu);
+
+/**
+ * Compute m0_s*delta_s.
+ *
+ * @param up Struct defining this updater..
+ * @param basis Basis object (configuration space).
+ * @param massself Mass of this species, m_s.
+ * @param m0self Number density of this species, m0_s.
+ * @param nuself Cross collision frequency of this species, nu_sr.
+ * @param massother Mass of the other species, m_r.
+ * @param m0other Number density of the other species, m0_r.
+ * @param nuother Cross collision frequency of the other species, nu_rs.
+ * @param range Range in which we'll compute m0_s*delta_s.
+ * @param out Output array.
+ * @return New updater pointer.
+ */
+void gkyl_prim_cross_m0deltas_advance(gkyl_prim_cross_m0deltas *up, struct gkyl_basis basis,
+  double massself, struct gkyl_array* m0self, struct gkyl_array* nuself,
+  double massother, struct gkyl_array* m0other, struct gkyl_array* nuother,
+  const struct gkyl_range *range, struct gkyl_array* out);
+
+/**
+ * Delete updater.
+ *
+ * @param pob Updater to delete.
+ */
+void gkyl_prim_cross_m0deltas_release(gkyl_prim_cross_m0deltas* up);
 ]]
 
 -- Function to check if operator option is correct.
@@ -104,76 +151,75 @@ function CrossPrimMoments:init(tbl)
    self.confBasis = assert(
       tbl.confBasis, "Updater.CrossPrimMoments: Must provide the configuration basis object using 'confBasis'.")
 
-   self._operator = assert(
+   local operator = assert(
       tbl.operator, "Updater.CrossPrimMoments: Must specify the collision operator (VmLBO, GkLBO, VmBGK or GkBGK) using 'operator'.")
-   assert(isOperatorGood(self._operator), string.format("CrossPrimMoments: Operator option must be 'VmLBO', 'GkLBO', 'VmBGK' or 'GkBGK'. Requested %s instead.", self._operator))
+   assert(isOperatorGood(operator), string.format("CrossPrimMoments: Operator option must be 'VmLBO', 'GkLBO', 'VmBGK' or 'GkBGK'. Requested %s instead.", operator))
 
-   -- Indicate if collisionality is spatially varying and if it is cell-wise constant.
-   self._varNu       = tbl.varyingNu
-   self._cellConstNu = tbl.useCellAverageNu 
+   self.m0deltas = assert(tbl.m0s_deltas, "Updater.CrossPrimMoments: Must provide the film to hold m0_s*delta_s in 'm0s_deltas'.")
 
    -- Free-parameter in John Greene's equations.
    self._beta   = tbl.betaGreene
    self._betaP1 = self._beta+1
 
-   -- Dimension of spaces.
-   self._pDim = phaseBasis:ndim()
+   self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
+
+   self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
+
    -- Ensure sanity.
    assert(phaseBasis:polyOrder() == self.confBasis:polyOrder(),
           "Updater.CrossPrimMoments: Polynomial orders of phase and conf basis must match.")
    assert((phaseBasis:id() == self.confBasis:id()) or
          ((phaseBasis:id()=="hybrid" or phaseBasis:id()=="gkhybrid") and self.confBasis:id()=="serendipity"),
           "Updater.CrossPrimMoments: Type of phase and conf basis must match.")
-   -- Determine configuration and velocity space dims.
-   self._cDim = self.confBasis:ndim()
-   self._vDim = self._pDim - self._cDim
 
-   self._numBasisC = self.confBasis:numBasis()
+   if operator=="VmBGK"or operator=="GkBGK" then
+      -- Determine configuration and velocity space dims.
+      local cDim = self.confBasis:ndim()
+      local vDim = phaseBasis:ndim() - cDim
+      self._uDim = vDim
+      if operator=="GkLBO" or operator=="GkBGK" then self._uDim = 1 end
 
-   self._basisID, self._polyOrder = self.confBasis:id(), self.confBasis:polyOrder()
+      -- Need two Eigen matrices: one to divide by (ms*nusr*m0s+mr*nurs*m0r)
+      -- and one to compute cross-primitive moments.
+      local numBasisC = self.confBasis:numBasis()
+      self._binOpData    = ffiC.new_binOpData_t(numBasisC*2*(self._uDim+1), 0)
+      self._binOpDataDiv = ffiC.new_binOpData_t(numBasisC, 0)
 
-   self._uDim = self._vDim
-   if self._operator=="GkLBO" or self._operator=="GkBGK" then self._uDim = 1 end
-
-   self._isLBO = false
-   if self._operator=="VmLBO" or self._operator=="GkLBO" then self._isLBO = true end
-
-   -- Need two Eigen matrices: one to divide by (ms*nusr*m0s+mr*nurs*m0r)
-   -- and one to compute cross-primitive moments.
-   self._binOpData    = ffiC.new_binOpData_t(self._numBasisC*2*(self._uDim+1), 0)
-   self._binOpDataDiv = ffiC.new_binOpData_t(self._numBasisC, 0)
-
-   -- Select C kernel to be used.
-   if self._operator=="VmBGK"or self._operator=="GkBGK" then
-      self._crossPrimMomentsCalc = PrimMomentsDecl.selectCrossPrimMomentsCalc(self._operator, self._basisID, self._cDim, self._vDim, self._polyOrder)
+      -- Select C kernel to be used.
+      local basisID, polyOrder = self.confBasis:id(), self.confBasis:polyOrder()
+      self._crossPrimMomentsCalc = PrimMomentsDecl.selectCrossPrimMomentsCalc(operator, basisID, cDim, vDim, polyOrder)
 
       self._uCrossOtherBuf    = Lin.Vec(self._uDim*self.confBasis:numBasis())
       self._vtSqCrossOtherBuf = Lin.Vec(self.confBasis:numBasis())
+
+      -- To obtain the cell average, multiply the zeroth coefficient by this factor.
+      self._cellAvFac = 1.0/math.sqrt(2.0^cDim)
    end
 
-   -- To obtain the cell average, multiply the zeroth coefficient by this factor.
-   self._cellAvFac = 1.0/math.sqrt(2.0^self._cDim)
-
-   self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
-
-   if GKYL_USE_GPU then
-      if self._operator=="GkLBO" then
+   if self._useGPU then
+      if operator=="GkLBO" then
          self._zero = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_cross_calc_cu_dev_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
                              ffiC.gkyl_prim_lbo_cross_calc_release)
-      elseif self._operator=="VmLBO" then
+      elseif operator=="VmLBO" then
          self._zero = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_cross_calc_cu_dev_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
                              ffiC.gkyl_prim_lbo_cross_calc_release)
       else -- MF 2022/11/19: BGK not implemented on GPU.
          self._advanceFunc = self._advanceNoDeviceImpl
       end
    else
-      if self._operator=="GkLBO" then
+      if operator=="GkLBO" then
          self._zero = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_cross_calc_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
                              ffiC.gkyl_prim_lbo_cross_calc_release)
-      elseif self._operator=="VmLBO" then
+      elseif operator=="VmLBO" then
          self._zero = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_cross_calc_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
                              ffiC.gkyl_prim_lbo_cross_calc_release)
       end
+   end
+   
+   if operator=="VmLBO" or operator=="GkLBO" then
+      local onRange = self.onGhosts and self.m0deltas:localExtRange() or self.m0deltas:localRange()
+      self._zero_m0deltas = ffi.gc(ffiC.gkyl_prim_cross_m0deltas_new(self.confBasis._zero, onRange, self._betaP1, self._useGPU),
+                                   ffiC.gkyl_prim_cross_m0deltas_release)
    end
 end
 
@@ -191,17 +237,17 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
       local momsOther       = inFld[8]
       local primMomsOther   = inFld[9]
 
-      local m0sdeltas = inFld[10]
-
       local primMomsCrossSelf = outFld[1]
 
       -- Compose the pre-factor:
       --   m0_s*delta_s*(1+beta)
       --     = m0_s*(2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs))*(1+beta)
-      m0sdeltas:scale(self._betaP1)
+      ffiC.gkyl_prim_cross_m0deltas_advance(self._zero_m0deltas, self.confBasis._zero,
+         mSelf, momsSelf._zero, nuSelf._zero, mOther, momsOther._zero, nuOther._zero,
+         momsSelf:localRange(), self.m0deltas._zero)
 
       -- Compute u and vtsq.
-      ffiC.gkyl_prim_lbo_cross_calc_advance(self._zero, self.confBasis._zero, primMomsSelf:localRange(), m0sdeltas._zero,
+      ffiC.gkyl_prim_lbo_cross_calc_advance(self._zero, self.confBasis._zero, primMomsSelf:localRange(), self.m0deltas._zero,
          mSelf, momsSelf._zero, primMomsSelf._zero, mOther, momsOther._zero, primMomsOther._zero, 
          bCorrsSelf._zero, primMomsCrossSelf._zero)
 
@@ -275,17 +321,17 @@ function CrossPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
    local momsOther       = inFld[8]
    local primMomsOther   = inFld[9]
 
-   local m0sdeltas = inFld[10]
-
    local primMomsCrossSelf = outFld[1]
 
    -- Compose the pre-factor:
    --   m0_s*delta_s*(1+beta)
    --     = m0_s*(2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs))*(1+beta)
-   m0sdeltas:scale(self._betaP1)
+   ffiC.gkyl_prim_cross_m0deltas_advance(self._zero_m0deltas, self.confBasis._zero,
+      mSelf, momsSelf._zeroDevice, nuSelf._zeroDevice, mOther, momsOther._zeroDevice, nuOther._zeroDevice,
+      momsSelf:localRange(), self.m0deltas._zeroDevice)
 
    -- Compute u and vtsq.
-   ffiC.gkyl_prim_lbo_cross_calc_advance_cu(self._zero, self.confBasis._zero, primMomsSelf:localRange(), m0sdeltas._zeroDevice,
+   ffiC.gkyl_prim_lbo_cross_calc_advance_cu(self._zero, self.confBasis._zero, primMomsSelf:localRange(), self.m0deltas._zeroDevice,
       mSelf, momsSelf._zeroDevice, primMomsSelf._zeroDevice,
       mOther, momsOther._zeroDevice, primMomsOther._zeroDevice, 
       bCorrsSelf._zeroDevice, primMomsCrossSelf._zeroDevice)

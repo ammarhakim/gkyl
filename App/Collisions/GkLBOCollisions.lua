@@ -211,10 +211,9 @@ function GkLBOCollisions:createSolver(mySpecies, externalField)
       }
       -- Updater to compute cross-species primitive moments.
       self.primMomCross = Updater.CrossPrimMoments {
-         onGrid     = self.confGrid,    betaGreene       = self.betaGreene,
-         phaseBasis = self.phaseBasis,  varyingNu        = true,
-         confBasis  = self.confBasis,   useCellAverageNu = self.cellConstNu,
-         operator   = "GkLBO",
+         onGrid     = self.confGrid,    betaGreene = self.betaGreene,
+         phaseBasis = self.phaseBasis,  operator   = "GkLBO",
+         confBasis  = self.confBasis,   
       }
 
       -- Allocate (and assign if needed) cross-species collision frequencies,
