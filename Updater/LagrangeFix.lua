@@ -38,16 +38,17 @@ function LagrangeFix:init(tbl)
    assert(self.mode == 'vlasov' or self.mode == 'gk',
 	  "Updater.LagrangeFix: Supported options of 'mode' are: 'vlasov' and 'gk' for gyrokinetics")
 
-   self.isGK = false
-   if self.mode == 'gk' then
-      self.isGK = true
-      self.mass = assert(tbl.mass, "Updater.LagrangeFix: Must provide 'mass' when in 'gk' mode")
-   end
-
    -- Dimension of spaces.
    self._pDim = self.phaseBasis:ndim() 
    self._cDim = self.confBasis:ndim()
    self._vDim = self._pDim - self._cDim
+
+   self._uDim = self._vDim
+   self.isGK = false
+   if self.mode == 'gk' then
+      self.isGK, self._uDim = true, 1
+      self.mass = assert(tbl.mass, "Updater.LagrangeFix: Must provide 'mass' when in 'gk' mode")
+   end
 
    self.basisID   = self.confBasis:id()
    self.polyOrder = self.confBasis:polyOrder()
@@ -114,7 +115,7 @@ function LagrangeFix:_advance(tCurr, inFld, outFld)
       dmoms:fill(confIndexer(cIdx), dmomsItr)
       dm0Itr = dmomsItr:data()+0
       dm1Itr = dmomsItr:data()+self.confBasis:numBasis()
-      dm2Itr = dmomsItr:data()+(vDim+1)*self.confBasis:numBasis()
+      dm2Itr = dmomsItr:data()+(self._uDim+1)*self.confBasis:numBasis()
       if self.isGK then B:fill(confIndexer(cIdx), BItr) end
 
       -- The velocity space loop.

@@ -262,8 +262,6 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
    local momsOther       = inFld[7]
    local primMomsOther   = inFld[8]
 
-   local m0sdeltas = inFld[9]
-
    local primMomsCrossSelf = outFld[1]
 
    local confRange = self.onGhosts and nuSelf:localExtRange() or nuSelf:localRange()

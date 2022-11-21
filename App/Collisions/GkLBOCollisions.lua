@@ -142,7 +142,7 @@ function GkLBOCollisions:setPhaseGrid(grid) self.phaseGrid = grid end
 function GkLBOCollisions:createSolver(mySpecies, externalField)
    local vDim = self.phaseGrid:ndim() - self.confGrid:ndim()
 
-   -- Inverse of background magnetic field.
+   -- Background magnetic field.
    self.bmag    = externalField.geo.bmag
    -- Inverse of background magnetic field.
    self.bmagInv = externalField.geo.bmagInv
@@ -159,7 +159,7 @@ function GkLBOCollisions:createSolver(mySpecies, externalField)
       vbounds[i-1]      = self.phaseGrid:lower(self.confGrid:ndim()+i)
       vbounds[i-1+vDim] = self.phaseGrid:upper(self.confGrid:ndim()+i)
    end
-   self.primMomSelf = Updater.SelfPrimMoments {
+   self.primMomsSelfCalc = Updater.SelfPrimMoments {
       onGrid     = self.phaseGrid,   operator = "GkLBO",
       phaseBasis = self.phaseBasis,  vbounds  = vbounds,
       confBasis  = self.confBasis,   mass     = self.mass,
@@ -169,7 +169,7 @@ function GkLBOCollisions:createSolver(mySpecies, externalField)
    if self.timeDepNu then
       self.m0Self    = mySpecies:allocMoment()  -- M0, to be extracted from fiveMoments.
       self.vtSqSelf  = mySpecies:allocMoment()
-      self.vtSqOther = mySpecies:allocMoment()
+      self.vtSqOther = self.crossCollisions and mySpecies:allocMoment() or nil
       -- Updater to compute spatially varying (Spitzer) nu.
       self.spitzerNu = Updater.SpitzerCollisionality {
          onGrid           = self.confGrid,     elemCharge = self.elemCharge,
@@ -314,7 +314,7 @@ function GkLBOCollisions:calcCouplingMoments(tCurr, rkIdx, species)
    local fIn      = species[self.speciesName]:rkStepperFields()[rkIdx]
    local momsSelf = species[self.speciesName]:fluidMoments()
 
-   self.primMomSelf:advance(tCurr, {momsSelf, fIn}, {self.boundCorrs, self.primMomsSelf})
+   self.primMomsSelfCalc:advance(tCurr, {momsSelf, fIn}, {self.boundCorrs, self.primMomsSelf})
 end
 
 function GkLBOCollisions:calcCrossCouplingMoments(tCurr, rkIdx, population)

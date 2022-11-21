@@ -180,7 +180,7 @@ function VmLBOCollisions:createSolver(mySpecies, extField)
       vbounds[i-1]           = self.phaseGrid:lower(self.confGrid:ndim()+i)
       vbounds[i-1+self.vdim] = self.phaseGrid:upper(self.confGrid:ndim()+i)
    end
-   self.primMomSelf = Updater.SelfPrimMoments {
+   self.primMomsSelfCalc = Updater.SelfPrimMoments {
       onGrid     = self.phaseGrid,   operator = "VmLBO",
       phaseBasis = self.phaseBasis,  vbounds  = vbounds,
       confBasis  = self.confBasis,
@@ -334,7 +334,7 @@ function VmLBOCollisions:calcCouplingMoments(tCurr, rkIdx, species)
    local fIn      = species[self.speciesName]:rkStepperFields()[rkIdx]
    local momsSelf = species[self.speciesName]:fluidMoments()
 
-   self.primMomSelf:advance(tCurr, {momsSelf, fIn}, {self.boundCorrs, self.primMomsSelf})
+   self.primMomsSelfCalc:advance(tCurr, {momsSelf, fIn}, {self.boundCorrs, self.primMomsSelf})
 end
 
 function VmLBOCollisions:calcCrossCouplingMoments(tCurr, rkIdx, population)

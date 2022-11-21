@@ -132,7 +132,7 @@ function VmBGKCollisions:fullInit(speciesTbl)
    self.timers = {nonSlvr = 0.}
 end
 
-function VmBGKCollisions:setName(nm) self.name = nm end
+function VmBGKCollisions:setName(nm) self.name = self.speciesName.."_"..nm end
 function VmBGKCollisions:setSpeciesName(nm) self.speciesName = nm end
 function VmBGKCollisions:setCfl(cfl) self.cfl = cfl end
 function VmBGKCollisions:setConfBasis(basis) self.confBasis = basis end
@@ -166,7 +166,7 @@ function VmBGKCollisions:createSolver(mySpecies, externalField)
    self.boundCorrs = mySpecies:allocVectorMoment(self.vdim+1)
 
    -- We'll use the LBO SelfPrimMom updater with zero boundary corrections.
-   self.primMomSelf = Updater.SelfPrimMoments {
+   self.primMomsSelfCalc = Updater.SelfPrimMoments {
       onGrid     = self.phaseGrid,   operator  = "VmBGK",
       phaseBasis = self.phaseBasis,  confBasis = self.confBasis,
    }
@@ -230,7 +230,7 @@ function VmBGKCollisions:createSolver(mySpecies, externalField)
       self.primMomCross = Updater.CrossPrimMoments {
          onGrid     = self.confGrid,    betaGreene = self.betaGreene,
          phaseBasis = self.phaseBasis,  operator   = "VmBGK",
-         confBasis  = self.confBasis, 
+         confBasis  = self.confBasis,   m0s_deltas = self.m0s_deltas,
       }
 
       -- Allocate (and assign if needed) cross-species collision frequencies,
@@ -342,7 +342,7 @@ function VmBGKCollisions:calcCouplingMoments(tCurr, rkIdx, species)
    local fIn      = species[self.speciesName]:rkStepperFields()[rkIdx]
    local momsSelf = species[self.speciesName]:fluidMoments()
 
-   self.primMomSelf:advance(tCurr, {momsSelf, fIn}, {self.boundCorrs, self.primMomsSelf})
+   self.primMomsSelfCalc:advance(tCurr, {momsSelf, fIn}, {self.boundCorrs, self.primMomsSelf})
 end
 
 function VmBGKCollisions:calcCrossCouplingMoments(tCurr, rkIdx, population)
@@ -427,19 +427,9 @@ function VmBGKCollisions:advance(tCurr, fIn, population, out)
          self.calcCrossNu(otherNm, chargeOther, mOther, momsOther, primMomsOther,
                           nuCrossSelf, nuCrossOther)
 
-         -- Compose the pre-factor (we should put this in a single loop/updater):
-         --   m0_s*delta_s = m0_s*(2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs))
-         local deltas_num, deltas_den = self.m0s_deltas, self.m0s_deltas_den
-         self.confMul:advance(tCurr, {momsSelf, nuCrossSelf, 1}, {deltas_den})
-         self.confMul:advance(tCurr, {momsOther, nuCrossOther, 1}, {deltas_num})
-         deltas_den:scale(self.mass)
-         deltas_den:accumulate(mOther, deltas_num)
-         deltas_num:scale(2.*mOther)
-         self.confMul:advance(tCurr, {momsSelf, deltas_num, 1}, {deltas_num})
-         self.confDiv:advance(tCurr, {deltas_den, deltas_num}, {self.m0s_deltas})
-
+         -- Compute cross primitive moments.
          self.primMomCross:advance(tCurr, {self.mass, nuCrossSelf, momsSelf, self.primMomsSelf,
-                                           mOther, nuCrossOther, momsOther, primMomsOther, self.m0s_deltas},
+                                           mOther, nuCrossOther, momsOther, primMomsOther},
                                           {self.primMomsCross})
 
 	 self.maxwellian:advance(tCurr, {momsSelf, self.primMomsCross}, {self.nufMaxwellCross})

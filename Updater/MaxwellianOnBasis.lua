@@ -133,12 +133,13 @@ function MaxwellianOnBasis:init(tbl)
    local phaseBasis = assert(tbl.phaseBasis,
                             "Updater.MaxwellianOnBasis: Must provide phase space basis object 'phaseBasis'")
 
-   self.mass = tbl.mass  -- Mass needed to project a gyrokinetic Maxwellian.
    local usePrimMoms = xsys.pickBool(tbl.usePrimMoms, false)
 
    self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
 
    self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
+
+   self.mass = tbl.mass  -- Mass needed to project a gyrokinetic Maxwellian.
 
    -- Number of quadrature points in each direction.
    local numQuad1D = confBasis:polyOrder()+1
