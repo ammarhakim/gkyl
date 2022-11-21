@@ -1016,11 +1016,16 @@ function TokamakEdgeBC:zSyncGlobalY(fIn, bufferOut)
    -- bcEdge=upper: each lower-z rank sends their lower-z skin cell data in the fIn field
    --               to all lower-z ranks who receive them into a buffer with 1-cell in z (+ghosts).
 
+  local t0 = Time.clock()
+
    if not Mpi.Is_comm_valid(self.graphComm) then return end
 
    Mpi.Neighbor_alltoallw(fIn:dataPointer()+self.sendLoc, self.sendCount:data(), self.sendDispl, self.sendDataType,
                           bufferOut:dataPointer(), self.recvCount:data(), self.recvDispl, self.recvDataType,
                           self.graphComm)
+   local tf = Time.clock()
+   local dtmpi = tf-t0
+   self.tmpi= dtmpi
 end
 
 function TokamakEdgeBC:zSyncCore(fIn)

@@ -648,6 +648,7 @@ local function buildApplication(self, tbl)
       local tmMom, tmIntMom, tmBc, tmColl = 0.0, 0.0, 0.0, 0.0
       --Akash
       local tmtbc = 0.0
+      local tmmpi = 0.0
       local tmSrc, tmCollNonSlvr = 0.0, 0.0
       for _, s in lume.orderedIter(species) do
          tmMom = tmMom + s:momCalcTime()
@@ -655,6 +656,7 @@ local function buildApplication(self, tbl)
          tmBc = tmBc + s:totalBcTime()
          --Akash
          tmtbc = tmtbc + s:totalTokamakBcTime()
+         tmtbc = tmmpi + s:totalTokamakBcMpiTime()
          if s.collisions then
 	    for _, c in pairs(s.collisions) do
 	       tmColl = tmColl + c:slvrTime()
@@ -699,6 +701,12 @@ local function buildApplication(self, tbl)
        log(string.format(
 	      "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	      "Tokamak BCs took", tmtbc, tmtbc/appStatus.step, 100*tmtbc/tmTotal))
+       --tmAccounted = tmAccounted + tmBc
+
+      --Akash
+       log(string.format(
+	      "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	      "Tokamak BCs took", tmtmpi, tmtmpi/appStatus.step, 100*tmtmpi/tmTotal))
        --tmAccounted = tmAccounted + tmBc
 
       log(string.format(

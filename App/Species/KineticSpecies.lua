@@ -243,6 +243,7 @@ function KineticSpecies:fullInit(appTbl)
    self.bcTime = 0.0   -- Timer for BCs.
    --Akash
    self.tbc=0.0
+   self.tmpi=0.0
 
 end
 
@@ -944,6 +945,7 @@ function KineticSpecies:totalSolverTime() return self.solver.totalTime end
 function KineticSpecies:totalBcTime() return self.bcTime end
 --Akash
 function KineticSpecies:totalTokamakBcTime() return self.tbc end
+function KineticSpecies:totalTokamakBcMpiTime() return self.tmpi end
 function KineticSpecies:intMomCalcTime() return self.integratedMomentsTime end
 
 return KineticSpecies
