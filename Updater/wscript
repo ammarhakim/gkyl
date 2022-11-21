@@ -163,8 +163,6 @@ def build(bld):
     FemParPoissonImpl.cpp
     FemMatrices.cpp
 
-    DiscontPoissonImpl.cpp
-  
     confToPhaseData/ConfToPhaseSer1x1v.cpp
     confToPhaseData/ConfToPhaseSer1x2v.cpp
     confToPhaseData/ConfToPhaseSer1x3v.cpp
@@ -216,6 +214,8 @@ def build(bld):
               use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     
 ## Removed the following files from the build for now
+#    DiscontPoissonImpl.cpp  
+#    FemGyroaverageImpl.cpp
 #    MappedPoissonImpl.cpp
 #
 #     binOpCalcData/CartFieldBinOpSer3x3vP2.cpp
