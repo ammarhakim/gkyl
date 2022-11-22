@@ -190,11 +190,6 @@ def build(bld):
     gkData/EmGyrokineticGenGeoSurfTensor1x1vP2.cpp
     gkData/EmGyrokineticGenGeoSurfTensor1x2vP2.cpp
 
-    gkData/GkSheathFuncsSerP1.cpp
-    gkData/GkSheathFuncsSerP2.cpp
-
-    gkData/GkSheathFuncsTensorP2.cpp
-
     gyrofluidData/gyrofluid_surf_1x_p0_ser.cpp
     gyrofluidData/gyrofluid_surf_1x_p1_ser.cpp
     gyrofluidData/gyrofluid_surf_1x_p2_ser.cpp

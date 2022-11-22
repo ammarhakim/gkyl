@@ -288,6 +288,12 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
          phaseBasis = self.phaseBasis,  operator   = "GkBGK",
          confBasis  = self.confBasis,   m0s_deltas = self.m0s_deltas,
       }
+      self.unitFld = mySpecies:allocMoment()
+      local projectUnit = Updater.ProjectOnBasis {
+         onGrid = self.confGrid,   evaluate = function(t,xn) return 1. end,
+         basis  = self.confBasis,  onGhosts = false
+      }
+      projectUnit:advance(0.0, {}, {self.unitFld})
 
       -- Allocate (and assign if needed) cross-species collision frequencies,
       -- and cross primitive moments.
@@ -482,7 +488,7 @@ function GkBGKCollisions:advance(tCurr, fIn, population, out)
 
          -- Compute cross primitive moments.
          self.primMomCross:advance(tCurr, {self.mass, nuCrossSelf, momsSelf, self.primMomsSelf,
-                                           mOther, nuCrossOther, momsOther, primMomsOther},
+                                           mOther, nuCrossOther, momsOther, primMomsOther, self.unitFld},
                                           {self.primMomsCross})
 
 	 self.maxwellian:advance(tCurr, {momsSelf, self.primMomsCross, self.bmag, self.jacobTot}, {self.nufMaxwellCross})

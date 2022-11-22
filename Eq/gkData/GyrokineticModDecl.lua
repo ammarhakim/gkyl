@@ -145,56 +145,56 @@ function _M.selectStep2Surf(basisNm, CDIM, VDIM, polyOrder, positivity)
    return ffi.C[funcNm]
 end
 
-function _M.selectSheathDeltaPhi(basisNm, CDIM, polyOrder)
-   local pOrder
-   if CDIM+VDIM==5 and polyOrder>1 then
-      pOrder = 1
-      print("GyrokineticModDecl: Forcing selection of 3x2v p=1 gyrokinetic kernels (instead of p=2). Not used by g0.")
-   else
-      pOrder = polyOrder
-   end
-
-   local funcType = "double"
-   local funcNm = string.format("calcSheathDeltaPhi%dx%s_P%d", CDIM, basisNmMap[basisNm], pOrder)
-   local funcSign = "(const double *phi, const double *phiWall, const double zVal)"
-
-   ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
-   return ffi.C[funcNm]
-end
-
-function _M.selectSheathPartialReflection(basisNm, CDIM, VDIM, polyOrder)
-
-   local pOrder
-   if CDIM+VDIM==5 and polyOrder>1 then
-      pOrder = 1
-      print("GyrokineticModDecl: Forcing selection of 3x2v p=1 gyrokinetic kernels (instead of p=2). Not used by g0.")
-   else
-      pOrder = polyOrder
-   end
-
-   local funcType = "void"
-   local funcNm = string.format("calcSheathPartialReflectionScaled%dx%dv%s_P%d", CDIM, VDIM, basisNmMap[basisNm], pOrder)
-   local funcSign = "(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat)"
-
-   ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
-   return ffi.C[funcNm]
-end
-
-function _M.selectSheathReflection(basisNm, CDIM, VDIM, polyOrder)
-   local pOrder
-   if CDIM+VDIM==5 and polyOrder>1 then
-      pOrder = 1
-      print("GyrokineticModDecl: Forcing selection of 3x2v p=1 gyrokinetic kernels (instead of p=2). Not used by g0.")
-   else
-      pOrder = polyOrder
-   end
-
-   local funcType = "void"
-   local funcNm = string.format("calcSheathReflection%dx%dv%s_P%d", CDIM, VDIM, basisNmMap[basisNm], pOrder)
-   local funcSign = "(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double zVal, const double q_, const double m_, const double *phi, const double *phiWall, const double *f, double *fRefl)"
-
-   ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
-   return ffi.C[funcNm]
-end
+--function _M.selectSheathDeltaPhi(basisNm, CDIM, polyOrder)
+--   local pOrder
+--   if CDIM+VDIM==5 and polyOrder>1 then
+--      pOrder = 1
+--      print("GyrokineticModDecl: Forcing selection of 3x2v p=1 gyrokinetic kernels (instead of p=2). Not used by g0.")
+--   else
+--      pOrder = polyOrder
+--   end
+--
+--   local funcType = "double"
+--   local funcNm = string.format("calcSheathDeltaPhi%dx%s_P%d", CDIM, basisNmMap[basisNm], pOrder)
+--   local funcSign = "(const double *phi, const double *phiWall, const double zVal)"
+--
+--   ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
+--   return ffi.C[funcNm]
+--end
+--
+--function _M.selectSheathPartialReflection(basisNm, CDIM, VDIM, polyOrder)
+--
+--   local pOrder
+--   if CDIM+VDIM==5 and polyOrder>1 then
+--      pOrder = 1
+--      print("GyrokineticModDecl: Forcing selection of 3x2v p=1 gyrokinetic kernels (instead of p=2). Not used by g0.")
+--   else
+--      pOrder = polyOrder
+--   end
+--
+--   local funcType = "void"
+--   local funcNm = string.format("calcSheathPartialReflectionScaled%dx%dv%s_P%d", CDIM, VDIM, basisNmMap[basisNm], pOrder)
+--   local funcSign = "(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat)"
+--
+--   ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
+--   return ffi.C[funcNm]
+--end
+--
+--function _M.selectSheathReflection(basisNm, CDIM, VDIM, polyOrder)
+--   local pOrder
+--   if CDIM+VDIM==5 and polyOrder>1 then
+--      pOrder = 1
+--      print("GyrokineticModDecl: Forcing selection of 3x2v p=1 gyrokinetic kernels (instead of p=2). Not used by g0.")
+--   else
+--      pOrder = polyOrder
+--   end
+--
+--   local funcType = "void"
+--   local funcNm = string.format("calcSheathReflection%dx%dv%s_P%d", CDIM, VDIM, basisNmMap[basisNm], pOrder)
+--   local funcSign = "(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double zVal, const double q_, const double m_, const double *phi, const double *phiWall, const double *f, double *fRefl)"
+--
+--   ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
+--   return ffi.C[funcNm]
+--end
 
 return _M

@@ -219,8 +219,7 @@ function VmBGKCollisions:createSolver(mySpecies, externalField)
       -- Cross-collision Maxwellian multiplied by collisionality.
       self.nufMaxwellCross = mySpecies:allocDistf()
       -- Prefactor m_0s*delta_s in cross primitive moment calculation.
-      self.m0s_deltas     = mySpecies:allocMoment()
-      self.m0s_deltas_den = mySpecies:allocMoment()
+      self.m0s_deltas = mySpecies:allocMoment()
       -- Weak division to compute the pre-factor in cross collision primitive moments.
       self.confDiv = Updater.CartFieldBinOp {
          weakBasis = self.confBasis,            operation = "Divide",
@@ -232,6 +231,12 @@ function VmBGKCollisions:createSolver(mySpecies, externalField)
          phaseBasis = self.phaseBasis,  operator   = "VmBGK",
          confBasis  = self.confBasis,   m0s_deltas = self.m0s_deltas,
       }
+      self.unitFld = mySpecies:allocMoment()
+      local projectUnit = Updater.ProjectOnBasis {
+         onGrid = self.confGrid,   evaluate = function(t,xn) return 1. end,
+         basis  = self.confBasis,  onGhosts = false
+      }
+      projectUnit:advance(0.0, {}, {self.unitFld})
 
       -- Allocate (and assign if needed) cross-species collision frequencies,
       -- and cross primitive moments.
@@ -429,7 +434,7 @@ function VmBGKCollisions:advance(tCurr, fIn, population, out)
 
          -- Compute cross primitive moments.
          self.primMomCross:advance(tCurr, {self.mass, nuCrossSelf, momsSelf, self.primMomsSelf,
-                                           mOther, nuCrossOther, momsOther, primMomsOther},
+                                           mOther, nuCrossOther, momsOther, primMomsOther, self.unitFld},
                                           {self.primMomsCross})
 
 	 self.maxwellian:advance(tCurr, {momsSelf, self.primMomsCross}, {self.nufMaxwellCross})

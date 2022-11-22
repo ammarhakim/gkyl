@@ -415,7 +415,7 @@ function VmLBOCollisions:advance(tCurr, fIn, population, out)
 
          -- Calculate cross primitive moments.
          self.primMomCross:advance(tCurr, {self.mass, nuCrossSelf, momsSelf, self.primMomsSelf, bCorrectionsSelf,
-                                           mOther, nuCrossOther, momsOther, primMomsOther},
+                                           mOther, nuCrossOther, momsOther, primMomsOther, momsSelf},
                                           {self.primMomsCross})
 
          self.confMul:advance(tCurr, {nuCrossSelf, self.primMomsCross}, {self.nuPrimMomsCross})

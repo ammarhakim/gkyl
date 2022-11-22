@@ -3,7 +3,6 @@
 #include <cmath> 
 #include <algorithm> 
 #include <Positivity.h> 
-#include <CartFieldBinOpModDecl.h> 
 #define SURFAVG 1 
 #define QUAD 2 
 #define cflType QUAD 

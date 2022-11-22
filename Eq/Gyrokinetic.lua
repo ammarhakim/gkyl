@@ -94,9 +94,9 @@ function Gyrokinetic:init(tbl)
    end
 
    -- For sheath BCs.
-   if tbl.hasSheathBCs then
-      self._calcSheathReflection = ModDecl.selectSheathReflection(nm, self._cdim, self._vdim, p)
-   end
+--   if tbl.hasSheathBCs then
+--      self._calcSheathReflection = ModDecl.selectSheathReflection(nm, self._cdim, self._vdim, p)
+--   end
 
    if self._isElectromagnetic then
       self.emMod = DataStruct.Field {
@@ -302,12 +302,12 @@ function Gyrokinetic:surfTermGenGeo(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idx
    return res
 end
 
-function Gyrokinetic:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_, idx, f, fRefl)
-   self.phi:fill(self.phiIdxr(idx), self.phiPtr)
-   self.phiWall:fill(self.phiWallIdxr(idx), self.phiWallPtr)
-   return self._calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_, 
-                                     self.phiPtr:data(), self.phiWallPtr:data(), f:data(), fRefl:data())
-end
+--function Gyrokinetic:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_, idx, f, fRefl)
+--   self.phi:fill(self.phiIdxr(idx), self.phiPtr)
+--   self.phiWall:fill(self.phiWallIdxr(idx), self.phiWallPtr)
+--   return self._calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_, 
+--                                     self.phiPtr:data(), self.phiWallPtr:data(), f:data(), fRefl:data())
+--end
 
 local GyrokineticStep2 = Proto(EqBase)
 -- ctor
