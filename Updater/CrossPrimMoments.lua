@@ -132,6 +132,12 @@ void gkyl_prim_cross_m0deltas_release(gkyl_prim_cross_m0deltas* up);
  * Calculate the cross primitive moments, u_{sr,i} and v_{tsr}^2,
  * for cross-species collisions with the BGK operator.
  *
+ *   u_sr = u_si-0.5*delta_s*(beta+1)*(u_si - u_ri)
+ *
+ *   v_tsr^2 = v_ts^2-(u_sri-u_ri).(u_sri-u_si)/vdim_phys
+ *     -(delta_s*(beta+1)/(m_s+m_r))*
+ *      (m_s*v_ts^2-m_r*v_tr^2+((m_s-m_r)/(2*vdim_phys))*(u_si-u_ri)^2)
+ *
  * @param basis Basis object (configuration space).
  * @param vdim_phys Physical number of velocity dimensions represented.
  * @param m0sdeltas Prefactor m_0s*delta_s*(beta+1) (and m_0s should be 1 here).
@@ -143,6 +149,12 @@ void gkyl_prim_cross_m0deltas_release(gkyl_prim_cross_m0deltas* up);
  * @return crossprims Cross primitive moments, u_sri and v_tsr^2.
  */
 void gkyl_prim_bgk_cross_calc_advance(struct gkyl_basis basis,
+  int vdim_phys, const struct gkyl_array* m0sdeltas,
+  double massself, const struct gkyl_array* primsself,
+  double massother, const struct gkyl_array* primsother,
+  const struct gkyl_range *range, struct gkyl_array* crossprims);
+
+void gkyl_prim_bgk_cross_calc_advance_cu(struct gkyl_basis basis,
   int vdim_phys, const struct gkyl_array* m0sdeltas,
   double massself, const struct gkyl_array* primsself,
   double massother, const struct gkyl_array* primsother,
@@ -200,7 +212,7 @@ function CrossPrimMoments:init(tbl)
    -- Determine configuration and velocity space dims.
    local cDim = self.confBasis:ndim()
    local vDim = phaseBasis:ndim() - cDim
-   self._vDimPhys = (operator=="GkLBO" or operator=="GkBGK") and 2*vDim-1 or vDim
+   self._vDimPhys = isGK and 2*vDim-1 or vDim
 
    if self._useGPU then
       if operator=="GkLBO" then
@@ -209,8 +221,6 @@ function CrossPrimMoments:init(tbl)
       elseif operator=="VmLBO" then
          self._zero = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_cross_calc_cu_dev_new(onGrid._zero, self.confBasis._zero, phaseBasis._zero),
                              ffiC.gkyl_prim_lbo_cross_calc_release)
-      else -- MF 2022/11/19: BGK not implemented on GPU.
-         self._advanceFunc = self._advanceNoDeviceImpl
       end
    else
       if operator=="GkLBO" then
@@ -228,12 +238,14 @@ function CrossPrimMoments:init(tbl)
 
    if isLBO then
       self.advanceFunc = function(tCurr, inFld, outFld)
-         CrossPrimMoments["_advanceLBO"](self, tCurr, inFld, outFld)
-      end
+         CrossPrimMoments["_advanceLBO"](self, tCurr, inFld, outFld) end
+      self.advanceOnDeviceFunc = function(tCurr, inFld, outFld)
+         CrossPrimMoments["_advanceOnDeviceLBO"](self, tCurr, inFld, outFld) end
    else
       self.advanceFunc = function(tCurr, inFld, outFld)
-         CrossPrimMoments["_advanceBGK"](self, tCurr, inFld, outFld)
-      end
+         CrossPrimMoments["_advanceBGK"](self, tCurr, inFld, outFld) end
+      self.advanceOnDeviceFunc = function(tCurr, inFld, outFld)
+         CrossPrimMoments["_advanceOnDeviceBGK"](self, tCurr, inFld, outFld) end
    end
 end
 
@@ -296,7 +308,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
    self.advanceFunc(tCurr, inFld, outFld)
 end
 
-function CrossPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
+function CrossPrimMoments:_advanceOnDeviceLBO(tCurr, inFld, outFld)
    local mSelf, nuSelf = inFld[1], inFld[2]
    local momsSelf      = inFld[3]
    local primMomsSelf  = inFld[4]
@@ -306,6 +318,8 @@ function CrossPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
    local momsOther       = inFld[8]
    local primMomsOther   = inFld[9]
 
+   local m0sPreFac = inFld[10]
+
    local primMomsCrossSelf = outFld[1]
 
    -- Compose the pre-factor:
@@ -313,13 +327,43 @@ function CrossPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
    --     = m0_s*(2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs))*(1+beta)
    ffiC.gkyl_prim_cross_m0deltas_advance(self._zero_m0deltas, self.confBasis._zero,
       mSelf, momsSelf._zeroDevice, nuSelf._zeroDevice, mOther, momsOther._zeroDevice, nuOther._zeroDevice,
-      momsSelf:localRange(), self.m0deltas._zeroDevice)
+      m0sPreFac._zeroDevice, momsSelf:localRange(), self.m0deltas._zeroDevice)
 
    -- Compute u and vtsq.
    ffiC.gkyl_prim_lbo_cross_calc_advance_cu(self._zero, self.confBasis._zero, primMomsSelf:localRange(), self.m0deltas._zeroDevice,
       mSelf, momsSelf._zeroDevice, primMomsSelf._zeroDevice,
       mOther, momsOther._zeroDevice, primMomsOther._zeroDevice, 
       bCorrsSelf._zeroDevice, primMomsCrossSelf._zeroDevice)
+end
+
+function CrossPrimMoments:_advanceOnDeviceBGK(tCurr, inFld, outFld)
+   local mSelf, nuSelf = inFld[1], inFld[2]
+   local momsSelf      = inFld[3]
+   local primMomsSelf  = inFld[4]
+
+   local mOther, nuOther = inFld[5], inFld[6]
+   local momsOther       = inFld[7]
+   local primMomsOther   = inFld[8]
+
+   local m0sPreFac = inFld[9]
+
+   local primMomsCrossSelf = outFld[1]
+
+   -- Compose the pre-factor:
+   --   m0_s*delta_s*(1+beta)
+   --     = m0_s*(2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs))*(1+beta)
+   ffiC.gkyl_prim_cross_m0deltas_advance(self._zero_m0deltas, self.confBasis._zero,
+      mSelf, momsSelf._zeroDevice, nuSelf._zeroDevice, mOther, momsOther._zeroDevice, nuOther._zeroDevice,
+      m0sPreFac._zeroDevice, momsSelf:localRange(), self.m0deltas._zeroDevice)
+
+   -- Compute u and vtsq.
+   ffiC.gkyl_prim_bgk_cross_calc_advance_cu(self.confBasis._zero, self._vDimPhys,
+      self.m0deltas._zeroDevice, mSelf, primMomsSelf._zeroDevice, mOther, primMomsOther._zeroDevice,
+      primMomsSelf:localRange(), primMomsCrossSelf._zeroDevice)
+end
+
+function CrossPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
+   self.advanceOnDeviceFunc(tCurr, inFld, outFld)
 end
 
 return CrossPrimMoments
