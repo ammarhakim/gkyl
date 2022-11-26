@@ -103,12 +103,12 @@ function GkLBOCollisions:fullInit(speciesTbl)
       self.normNuIn = tbl.normNu
       -- normNuSelf, epsilon0 and elemCharge may not used, but are
       -- initialized to avoid if-statements in advance method.
+      self.normNuCross = self.crossCollisions and {} or nil  -- Need a name-value pairs table.
       if self.normNuIn then
          self.normNuSelf = self.normNuIn[selfSpecInd]
          if self.crossCollisions then
             local normNuCrossIn = lume.clone(self.normNuIn)
             table.remove(normNuCrossIn, selfSpecInd)
-            self.normNuCross = {}  -- Need a name-value pairs table.
             for i, nm in ipairs(self.crossSpecies) do self.normNuCross[nm] = normNuCrossIn[i] end
          end
       end
@@ -172,10 +172,9 @@ function GkLBOCollisions:createSolver(mySpecies, externalField)
       self.vtSqOther = self.crossCollisions and mySpecies:allocMoment() or nil
       -- Updater to compute spatially varying (Spitzer) nu.
       self.spitzerNu = Updater.SpitzerCollisionality {
-         onGrid           = self.confGrid,     elemCharge = self.elemCharge,
-         confBasis        = self.confBasis,    epsilon0   = self.epsilon0,
-         useCellAverageNu = self.cellConstNu,  hBar       = self.hBar,
-         willInputNormNu  = self.normNuIn,     nuFrac     = self.nuFrac,
+         confBasis       = self.confBasis,  epsilon0 = self.epsilon0,
+         hBar            = self.hBar,       nuFrac   = self.nuFrac,
+         willInputNormNu = self.normNuIn,
       }
    else
       projectUserNu = Updater.ProjectOnBasis {
@@ -349,12 +348,12 @@ function GkLBOCollisions:calcCrossNuTimeDep(otherNm, chargeOther,
 
    local crossNormNuSelf = self.normNuCross[otherNm]
    self.spitzerNu:advance(tCurr, {self.charge, self.mass, self.m0Self, self.vtSqSelf,
-                                  chargeOther, mOther, self.m0Other, self.vtSqOther, crossNormNuSelf},
+                                  chargeOther, mOther, self.m0Other, self.vtSqOther, crossNormNuSelf, self.bmag},
                                  {nuCrossSelf})
 
    local crossNormNuOther = self.collAppOther[otherNm]:crossNormNu(self.speciesName)
    self.spitzerNu:advance(tCurr, {chargeOther, mOther, self.m0Other, self.vtSqOther,
-                                  self.charge, self.mass, self.m0Self, self.vtSqSelf, crossNormNuOther},
+                                  self.charge, self.mass, self.m0Self, self.vtSqSelf, crossNormNuOther, self.bmag},
                                  {nuCrossOther})
 end
 

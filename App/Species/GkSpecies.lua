@@ -160,7 +160,6 @@ function GkSpecies:createSolver(field, externalField)
       local xMid = {}
       for d = 1,self.cdim do xMid[d]=self.confGrid:mid(d) end
       self.bmagMid = self.bmagFunc(0.0, xMid)
-
    end
 
    self.hasSheathBCs = false
@@ -170,52 +169,31 @@ function GkSpecies:createSolver(field, externalField)
 
    -- Create updater to advance solution by one time-step.
    if self.evolveCollisionless then
-      self.equation = GyrokineticEq.GkEq {
-         onGrid     = self.grid,               mass         = self.mass,
-         confGrid   = self.confGrid,           hasPhi       = hasPhi,
-         phaseBasis = self.basis,              hasApar      = hasApar,
-         confBasis  = self.confBasis,          hasSheathBCs = self.hasSheathBCs,
-         confRange  = self.bmag:localRange(),  positivity   = self.positivity,
-         charge     = self.charge,
-      }
-
-      -- No update in mu direction (last velocity direction if present)
-      local upd = {}
-      if hasApar then    -- If electromagnetic only update conf dir surface terms on first step.
-         for d = 1, self.cdim do upd[d] = d end
-      else
-         for d = 1, self.cdim + 1 do upd[d] = d end
-      end
-      -- Zero flux in vpar and mu.
-      table.insert(self.zeroFluxDirections, self.cdim+1)
-      if self.vdim > 1 then table.insert(self.zeroFluxDirections, self.cdim+2) end
-
-      self.solver = Updater.HyperDisCont {
-         onGrid   = self.grid,      zeroFluxDirections = self.zeroFluxDirections,
-         basis    = self.basis,     updateDirections   = upd,
-         cfl      = self.cfl,       clearOut           = false,   -- Continue accumulating into output field.
-         equation = self.equation,  globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
+      self.solver = Updater.GyrokineticDG {
+         onGrid     = self.grid,       confRange = self.bmag:localRange(), 
+         confBasis  = self.confBasis,  charge    = self.charge,
+         phaseBasis = self.basis,      mass      = self.mass,
       }
       self.collisionlessAdvance = function(tCurr, inFlds, outFlds)
          self.solver:advance(tCurr, inFlds, outFlds)
       end
       
-      if hasApar then
-         -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
-         self.equationStep2 = GyrokineticEq.GkEqStep2 {
-            onGrid     = self.grid,       charge     = self.charge,
-            phaseBasis = self.basis,      mass       = self.mass,
-            confBasis  = self.confBasis,  positivity = self.positivity,
-         }
-
-         -- Note that the surface update for this term only involves the vpar direction.
-         self.solverStep2 = Updater.HyperDisCont {
-            onGrid   = self.grid,           zeroFluxDirections = self.zeroFluxDirections,
-            basis    = self.basis,          updateDirections   = {self.cdim+1},
-            cfl      = self.cfl,            clearOut           = false,   -- Continue accumulating into output field.
-            equation = self.equationStep2,  globalUpwind       = false,   -- Don't reduce max speed.
-         }
-      end
+--      if hasApar then
+--         -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
+--         self.equationStep2 = GyrokineticEq.GkEqStep2 {
+--            onGrid     = self.grid,       charge     = self.charge,
+--            phaseBasis = self.basis,      mass       = self.mass,
+--            confBasis  = self.confBasis,  positivity = self.positivity,
+--         }
+--
+--         -- Note that the surface update for this term only involves the vpar direction.
+--         self.solverStep2 = Updater.HyperDisCont {
+--            onGrid   = self.grid,           zeroFluxDirections = self.zeroFluxDirections,
+--            basis    = self.basis,          updateDirections   = {self.cdim+1},
+--            cfl      = self.cfl,            clearOut           = false,   -- Continue accumulating into output field.
+--            equation = self.equationStep2,  globalUpwind       = false,   -- Don't reduce max speed.
+--         }
+--      end
    else
       self.solver = {totalTime = 0.}
       self.collisionlessAdvance = function(tCurr, inFlds, outFlds) end
@@ -491,23 +469,6 @@ function GkSpecies:advanceStep2(tCurr, population, emIn, inIdx, outIdx)
    end
 end
 
-function GkSpecies:advanceStep3(tCurr, population, emIn, inIdx, outIdx)
-   local fIn = self:rkStepperFields()[inIdx]
-   if self.positivityRescale then
-      fIn = self.fPos
-   end
-   local fRhsOut = self:rkStepperFields()[outIdx]
-
-   local em = emIn[1]:rkStepperFields()[inIdx]
-   local dApardtProv = emIn[1].dApardtProv
-   local emFunc = emIn[2]:rkStepperFields()[1]
-
-   if self.evolveCollisionless then
-      self.solverStep3:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solverStep3:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
-   end
-end
-
 function GkSpecies:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
    -- Perform some operations after the updates have been computed, but before
    -- the combine RK (in PlasmaOnCartGrid) is called.
@@ -688,7 +649,6 @@ function GkSpecies:solverSurfTime() return self.equation.totalSurfTime end
 function GkSpecies:totalSolverTime()
    local timer = self.solver and self.solver.totalTime or 0.
    if self.solverStep2 then timer = timer + self.solverStep2.totalTime end
-   if self.solverStep3 then timer = timer + self.solverStep3.totalTime end
    if self.posRescaler then timer = timer + self.posRescaler.totalTime end
    return timer
 end

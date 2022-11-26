@@ -31,6 +31,7 @@ local FiveMomentSrc = require "Updater.FiveMomentSrc"
 local GkFemPoisson = require "Updater.GkFemPoisson"
 local GkLBO = require "Updater.GkLBO"
 local GkSheathBc = require "Updater.GkSheathBc"
+local GyrokineticDG = require "Updater.GyrokineticDG"
 local HyperDisCont = require "Updater.HyperDisCont"
 local HyperDisContCellBased = require "Updater.HyperDisContCellBased"
 local Ionization = require "Updater.Ionization"
@@ -90,6 +91,7 @@ return {
    GkFemPoisson = GkFemPoisson,
    GkLBO = GkLBO,
    GkSheathBc = GkSheathBc,
+   GyrokineticDG = GyrokineticDG,
    HyperDisCont = HyperDisCont,
    HyperDisContCellBased = HyperDisContCellBased,
    Ionization = Ionization,

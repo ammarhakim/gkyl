@@ -8,14 +8,6 @@ from waflib import Utils
 
 def build(bld):
     sources = r"""
-    MomentSrcCommon.cpp
-    FiveMomentSrcImpl.cpp
-    TenMomentSrcImpl.cpp
-    TenMomentRelaxImpl.cpp
-    AxisymmetricFiveMomentSrcImpl.cpp
-    AxisymmetricPhMaxwellSrcImpl.cpp
-    FiveMomentFrictionSrcImpl.cpp
-
     aSheathPotentialData/asheath_potential_1x_p1_ser.cpp
     aSheathPotentialData/asheath_potential_1x_p2_ser.cpp
 
@@ -47,10 +39,6 @@ def build(bld):
     mgPoissonCalcData/MGpoissonFEMSer2x.cpp
     mgPoissonCalcData/MGpoissonESenergySer1x.cpp
     mgPoissonCalcData/MGpoissonESenergySer2x.cpp
-
-    spitzerNuCalcData/SpitzerNuSer1x.cpp
-    spitzerNuCalcData/SpitzerNuSer2x.cpp
-    spitzerNuCalcData/SpitzerNuSer3x.cpp
 
     momentCalcData/DistFuncMomentLBOCalcSer1x1v.cpp
     momentCalcData/DistFuncMomentLBOCalcSer1x2v.cpp
@@ -180,11 +168,19 @@ def build(bld):
 
     bld.shlib(source = sources,
 
-              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData twistShiftData projectFluxOnGhostsData aSheathPotentialData', 
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData twistShiftData projectFluxOnGhostsData aSheathPotentialData', 
 
               use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     
 ## Removed the following files from the build for now
+#    MomentSrcCommon.cpp
+#    FiveMomentSrcImpl.cpp
+#    TenMomentSrcImpl.cpp
+#    TenMomentRelaxImpl.cpp
+#    AxisymmetricFiveMomentSrcImpl.cpp
+#    AxisymmetricPhMaxwellSrcImpl.cpp
+#    FiveMomentFrictionSrcImpl.cpp
+#
 #    DiscontPoissonImpl.cpp  
 #    FemGyroaverageImpl.cpp
 #    MappedPoissonImpl.cpp

@@ -280,9 +280,9 @@ local implementation = function()
    function _Energy:getType() return "grid" end
    function _Energy:getDependencies() return {"M0","M2"} end
    function _Energy:advance(tm, inFlds, outFlds)
-      local specIn, diags = inFlds[1], inFlds[2]
-      local M0, M2        = diags["M0"].field, diags["M2"].field
-      local phi           = self.evalPhi(specIn.equation.phi)
+      local specIn, diags, field = inFlds[1], inFlds[2], inFlds[3]
+      local M0, M2 = diags["M0"].field, diags["M2"].field
+      local phi    = self.evalPhi(field:rkStepperFields()[1].phi)
       self.updater:advance(tm, {M0, phi}, {self.field})
       self.field:scale(specIn.charge)
       self.field:accumulate(0.5*specIn.mass, M2)
