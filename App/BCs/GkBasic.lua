@@ -20,7 +20,6 @@ local Grid       = require "Grid"
 local DiagsApp   = require "App.Diagnostics.SpeciesDiagnostics"
 local GkDiags    = require "App.Diagnostics.GkDiagnostics"
 local xsys       = require "xsys"
-local GyrokineticModDecl = require "Eq.gkData.GyrokineticModDecl"
 
 local GkBasicBC = Proto(BCsBase)
 
@@ -201,43 +200,6 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
       elseif self.bcKind == "function" then
          bcFunc   = function(...) return self:bcCopy(...) end
          skinType = "pointwise"
-      elseif self.bcKind == "sheath" then
-         assert(self.bcDir==self.cdim, "GkBasicBC: sheath BC can only be used along the last/parallel configuration space dimension.")
-
-         self.charge, self.mass = mySpecies.charge, mySpecies.mass
-
-         self.fhatSheath = Lin.Vec(self.basis:numBasis())
-
-         self.getPhi = function(fieldIn, inIdx) return fieldIn:rkStepperFields()[inIdx].phi end 
-         -- Pre-create pointer and indexer for phi potential.
-         local phi = field:rkStepperFields()[1].phi
-         self.phiPtr, self.phiIdxr = phi:get(1), phi:genIndexer()
-
-         -- Create field and function for calculating wall potential according to user-provided function.
-         self.phiWallFld = DataStruct.Field {
-            onGrid        = field.grid,
-            numComponents = field.basis:numBasis(),
-            ghost         = {1,1},
-            metaData      = {polyOrder = field.basis:polyOrder(),
-                             basisType = field.basis:id()},
-            syncPeriodicDirs = false,
-         }
-         self.phiWallFld:clear(0.)
-         self.phiWallFldPtr, self.phiWallFldIdxr = self.phiWallFld:get(1), self.phiWallFld:genIndexer()
-         if self.phiWallFunc then
-            self.setPhiWall = Updater.EvalOnNodes {
-               onGrid = field.grid,   evaluate = self.phiWallFunc,
-               basis  = field.basis,  onGhosts = true,
-            }
-            self.setPhiWall:advance(0.0, {}, {self.phiWallFld})
-         end
-         self.phiWallFld:sync(false)
-
-         self._calcSheathReflection = GyrokineticModDecl.selectSheathReflection(self.basis:id(), self.cdim, 
-                                                                                self.vdim, self.basis:polyOrder())
-
-         bcFunc   = function(...) return self:bcSheath(...) end
-         skinType = "flip"
       else
          assert(false, "GkBasicBC: BC kind not recognized.")
       end
