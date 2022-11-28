@@ -115,7 +115,7 @@ gkyl_mom_calc_bcorr_lbo_gyrokinetic_cu_dev_new(const struct gkyl_rect_grid *grid
 
 -- function to check if operator option is correct
 local function isOperatorGood(nm)
-   if nm == "VmLBO" or nm == "GkLBO" then
+   if nm == "VmLBO" or nm == "GkLBO" or nm == "VmBGK" or nm == "GkBGK" then
       return true
    end
    return false
@@ -148,44 +148,75 @@ function SelfPrimMoments:init(tbl)
           ((phaseBasis:id()=="hybrid" or phaseBasis:id()=="gkhybrid") and basisID=="serendipity"),
           "Type of phase and conf basis must match.")
 
-   self._isGkLBO    = false
+   local isLBO, isGK = true, false
    if isOperatorGood(operator) then
-     if operator == "GkLBO" then self._isGkLBO = true end
+     if operator == "VmBGK" or operator=="GkBGK" then isLBO = false end
+     if operator == "GkLBO" or operator=="GkBGK"  then isGK = true end
    else
       assert(false, string.format(
-                "SelfPrimMoments: Operator option must be 'VmLBO' or 'GkLBO'. Requested %s instead.", operator))
+         "SelfPrimMoments: Operator option must be 'VmLBO', 'GkLBO', 'VmBGK' or 'GkBGK'. Requested %s instead.", operator))
    end
 
    self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
 
-   local vbounds = assert(tbl.vbounds, "SelfPrimMoments: must pass vbounds")
+   local calcBoundCorrs = isLBO
+
+   local vbounds
+   if isLBO then vbounds = assert(tbl.vbounds, "SelfPrimMoments: must pass vbounds") end
+
    local mass
-   if self._isGkLBO then mass = assert(tbl.mass, "SelfPrimMoments: must pass species mass for GkLBO") end
+   if isLBO and isGK then mass = assert(tbl.mass, "SelfPrimMoments: must pass species mass for GkLBO") end
+
    if GKYL_USE_GPU then
-      if self._isGkLBO then
-         self._zero_bcorr_calc = ffi.gc(ffiC.gkyl_mom_calc_bcorr_lbo_gyrokinetic_cu_dev_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, vbounds, mass),
-                                        ffiC.gkyl_mom_calc_bcorr_release)
+      if isGK then
+         self._zero_bcorr_calc = isLBO and
+            ffi.gc(ffiC.gkyl_mom_calc_bcorr_lbo_gyrokinetic_cu_dev_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, vbounds, mass),
+                   ffiC.gkyl_mom_calc_bcorr_release)
+            or nil
          self._zero_prim_calc  = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_calc_cu_dev_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero),
                                         ffiC.gkyl_prim_lbo_calc_release)
       else
-         self._zero_bcorr_calc = ffi.gc(ffiC.gkyl_mom_calc_bcorr_lbo_vlasov_cu_dev_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, vbounds),
-                                        ffiC.gkyl_mom_calc_bcorr_release)
+         self._zero_bcorr_calc = isLBO and
+            ffi.gc(ffiC.gkyl_mom_calc_bcorr_lbo_vlasov_cu_dev_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, vbounds),
+                   ffiC.gkyl_mom_calc_bcorr_release)
+            or nil
          self._zero_prim_calc  = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_calc_cu_dev_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero),
                                         ffiC.gkyl_prim_lbo_calc_release)
       end
    else
-      if self._isGkLBO then
-         self._zero_bcorr_calc = ffi.gc(ffiC.gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, vbounds, mass),
-                                        ffiC.gkyl_mom_calc_bcorr_release)
+      if isGK then
+         self._zero_bcorr_calc = isLBO and
+            ffi.gc(ffiC.gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, vbounds, mass),
+                   ffiC.gkyl_mom_calc_bcorr_release)
+            or nil
          self._zero_prim_calc  = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_calc_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero),
                                         ffiC.gkyl_prim_lbo_calc_release)
       else
-         self._zero_bcorr_calc = ffi.gc(ffiC.gkyl_mom_calc_bcorr_lbo_vlasov_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, vbounds),
-                                        ffiC.gkyl_mom_calc_bcorr_release)
+         self._zero_bcorr_calc = isLBO and
+             ffi.gc(ffiC.gkyl_mom_calc_bcorr_lbo_vlasov_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, vbounds),
+                    ffiC.gkyl_mom_calc_bcorr_release)
+             or nil
          self._zero_prim_calc  = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_calc_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero),
                                         ffiC.gkyl_prim_lbo_calc_release)
       end
    end
+
+   -- Function that computes the corrections due to finite velocity space extents (for LBO only).
+   self.calcBoundaryCorrsFunc = isLBO and
+      function(fIn, boundaryCorrections)
+         ffiC.gkyl_mom_calc_bcorr_advance(self._zero_bcorr_calc, fIn:localRange(), boundaryCorrections:localRange(), fIn._zero, boundaryCorrections._zero)
+      end
+      or function(fIn, boundaryCorrections) end
+
+   self.calcBoundaryCorrsDeviceFunc = isLBO and
+      function(fIn, boundaryCorrections)
+         ffiC.gkyl_mom_calc_bcorr_advance_cu(self._zero_bcorr_calc, fIn:localRange(), boundaryCorrections:localRange(), fIn._zeroDevice, boundaryCorrections._zeroDevice)
+      end
+      or function(fIn, boundaryCorrections) end
+end
+
+function SelfPrimMoments:calcBoundaryCorrs(fIn, boundaryCorrections)
+   self.calcBoundaryCorrsFunc(fIn, boundaryCorrections)
 end
 
 -- Advance method.
@@ -195,11 +226,15 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
    local boundaryCorrections, primMoms = outFld[1], outFld[2]
 
    -- Compute boundary corrections.
-   ffiC.gkyl_mom_calc_bcorr_advance(self._zero_bcorr_calc, fIn:localRange(), primMoms:localRange(), fIn._zero, boundaryCorrections._zero)
+   self:calcBoundaryCorrs(fIn, boundaryCorrections)
 
    -- Compute u and vtsq.
    ffiC.gkyl_prim_lbo_calc_advance(self._zero_prim_calc, self.confBasis._zero, primMoms:localRange(), moments._zero, boundaryCorrections._zero, primMoms._zero)
 
+end
+
+function SelfPrimMoments:calcBoundaryCorrsOnDevice(fIn, boundaryCorrections)
+   self.calcBoundaryCorrsDeviceFunc(fIn, boundaryCorrections)
 end
 
 function SelfPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
@@ -208,7 +243,7 @@ function SelfPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
    local boundaryCorrections, primMoms = outFld[1], outFld[2]
 
    -- Compute boundary corrections.
-   ffiC.gkyl_mom_calc_bcorr_advance_cu(self._zero_bcorr_calc, fIn:localRange(), primMoms:localRange(), fIn._zeroDevice, boundaryCorrections._zeroDevice)
+   self:calcBoundaryCorrsOnDevice(fIn, boundaryCorrections)
 
    -- Compute u and vtsq.
    ffiC.gkyl_prim_lbo_calc_advance_cu(self._zero_prim_calc, self.confBasis._zero, primMoms:localRange(), moments._zeroDevice, boundaryCorrections._zeroDevice, primMoms._zeroDevice)

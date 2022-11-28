@@ -90,6 +90,7 @@ plasmaApp = Plasma.App {
       },
       -- Evolve species?
       evolve = true,
+--      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
@@ -127,6 +128,7 @@ plasmaApp = Plasma.App {
       },
       -- Evolve species?
       evolve = true,
+--      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
@@ -142,8 +144,8 @@ plasmaApp = Plasma.App {
 
    -- Field solver.
    field = Plasma.Field {
-      evolve = true,    -- Evolve fields?
-      -- initPhiFunc = function (t, xn) return 0.0 end,
+      evolve = false,    -- Evolve fields?
+      externalPhi = function (t, xn) return 0.0 end,
       kperpSq = 0.0 
    },
    

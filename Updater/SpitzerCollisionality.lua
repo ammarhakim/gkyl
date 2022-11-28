@@ -150,7 +150,7 @@ function SpitzerCollisionality:_advance_normNu(tCurr, inFld, outFld)
 
    local nuOut = outFld[1]
 
-   local range = self.onGhost and nuOut:localExtRange() or nuOut:localRange()
+   local range = self.onGhosts and nuOut:localExtRange() or nuOut:localRange()
 
    ffiC.gkyl_spitzer_coll_freq_advance_normnu(self._zero, range,
       vtSqSelf._zero, m0Other._zero, vtSqOther._zero, normNu*self._nuFrac, nuOut._zero)
@@ -166,7 +166,7 @@ function SpitzerCollisionality:_advanceOnDevice_normNu(tCurr, inFld, outFld)
 
    local nuOut = outFld[1]
 
-   local range = self.onGhost and nuOut:localExtRange() or nuOut:localRange()
+   local range = self.onGhosts and nuOut:localExtRange() or nuOut:localRange()
 
    ffiC.gkyl_spitzer_coll_freq_advance_normnu(self._zero, range,
       vtSqSelf._zeroDevice, m0Other._zeroDevice, vtSqOther._zeroDevice, normNu*self._nuFrac, nuOut._zeroDevice)

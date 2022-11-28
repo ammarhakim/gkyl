@@ -34,7 +34,6 @@ function GkLBOCollisions:init(tbl) self.tbl = tbl end
 function GkLBOCollisions:fullInit(speciesTbl)
    local tbl = self.tbl -- previously stored table
 
-   self.selfCollisions = true -- MF: to be deleted.
    self.collKind = "GkLBO"    -- Type of collisions model. Useful at the species app level.
 
    -- For now only cell-wise constant nu is implemented.
@@ -129,8 +128,6 @@ function GkLBOCollisions:fullInit(speciesTbl)
 
    self.nuFrac = tbl.nuFrac and tbl.nuFrac or 1.0
 
-   self.cfl = 0.0    -- Will be replaced.
-
    self.timers = {nonSlvr = 0.}
 end
 
@@ -145,7 +142,7 @@ function GkLBOCollisions:setPhaseGrid(grid) self.phaseGrid = grid end
 function GkLBOCollisions:createSolver(mySpecies, externalField)
    local vDim = self.phaseGrid:ndim() - self.confGrid:ndim()
 
-   -- Inverse of background magnetic field.
+   -- Background magnetic field.
    self.bmag    = externalField.geo.bmag
    -- Inverse of background magnetic field.
    self.bmagInv = externalField.geo.bmagInv
@@ -162,7 +159,7 @@ function GkLBOCollisions:createSolver(mySpecies, externalField)
       vbounds[i-1]      = self.phaseGrid:lower(self.confGrid:ndim()+i)
       vbounds[i-1+vDim] = self.phaseGrid:upper(self.confGrid:ndim()+i)
    end
-   self.primMomSelf = Updater.SelfPrimMoments {
+   self.primMomsSelfCalc = Updater.SelfPrimMoments {
       onGrid     = self.phaseGrid,   operator = "GkLBO",
       phaseBasis = self.phaseBasis,  vbounds  = vbounds,
       confBasis  = self.confBasis,   mass     = self.mass,
@@ -172,7 +169,7 @@ function GkLBOCollisions:createSolver(mySpecies, externalField)
    if self.timeDepNu then
       self.m0Self    = mySpecies:allocMoment()  -- M0, to be extracted from fiveMoments.
       self.vtSqSelf  = mySpecies:allocMoment()
-      self.vtSqOther = mySpecies:allocMoment()
+      self.vtSqOther = self.crossCollisions and mySpecies:allocMoment() or nil
       -- Updater to compute spatially varying (Spitzer) nu.
       self.spitzerNu = Updater.SpitzerCollisionality {
          onGrid           = self.confGrid,     elemCharge = self.elemCharge,
@@ -202,19 +199,12 @@ function GkLBOCollisions:createSolver(mySpecies, externalField)
       -- Cross-collision u and vtSq multiplied by collisionality.
       self.nuPrimMomsCross = mySpecies:allocVectorMoment(2)
       -- Prefactor m_0s*delta_s in cross primitive moment calculation.
-      self.m0s_deltas     = mySpecies:allocMoment()
-      self.m0s_deltas_den = mySpecies:allocMoment()
-      -- Weak division to compute the pre-factor in cross collision primitive moments.
-      self.confDiv = Updater.CartFieldBinOp {
-         weakBasis = self.confBasis,           operation = "Divide",
-         onRange   = self.nuSelf:localRange(),  onGhosts  = false,
-      }
+      self.m0s_deltas = mySpecies:allocMoment()
       -- Updater to compute cross-species primitive moments.
       self.primMomCross = Updater.CrossPrimMoments {
-         onGrid     = self.confGrid,    betaGreene       = self.betaGreene,
-         phaseBasis = self.phaseBasis,  varyingNu        = true,
-         confBasis  = self.confBasis,   useCellAverageNu = self.cellConstNu,
-         operator   = "GkLBO",
+         onGrid     = self.confGrid,    betaGreene = self.betaGreene,
+         phaseBasis = self.phaseBasis,  operator   = "GkLBO",
+         confBasis  = self.confBasis,   m0s_deltas = self.m0s_deltas,
       }
 
       -- Allocate (and assign if needed) cross-species collision frequencies,
@@ -324,7 +314,7 @@ function GkLBOCollisions:calcCouplingMoments(tCurr, rkIdx, species)
    local fIn      = species[self.speciesName]:rkStepperFields()[rkIdx]
    local momsSelf = species[self.speciesName]:fluidMoments()
 
-   self.primMomSelf:advance(tCurr, {momsSelf, fIn}, {self.boundCorrs, self.primMomsSelf})
+   self.primMomsSelfCalc:advance(tCurr, {momsSelf, fIn}, {self.boundCorrs, self.primMomsSelf})
 end
 
 function GkLBOCollisions:calcCrossCouplingMoments(tCurr, rkIdx, population)
@@ -371,8 +361,7 @@ end
 function GkLBOCollisions:advance(tCurr, fIn, population, out)
    local tmNonSlvrStart = Time.clock()
 
-   local fRhsOut = out[1]
-   local cflRateByCell = out[2]
+   local fRhsOut, cflRateByCell = out[1], out[2]
    local species = population:getSpecies()
 
    -- Fetch coupling moments of this species.
@@ -405,21 +394,9 @@ function GkLBOCollisions:advance(tCurr, fIn, population, out)
          self.calcCrossNu(otherNm, chargeOther, mOther, momsOther, primMomsOther,
                           nuCrossSelf, nuCrossOther)
 
-
-         -- Compose the pre-factor:
-         --   m0_s*delta_s = m0_s*(2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs))
-         local deltas_num, deltas_den = self.m0s_deltas, self.m0s_deltas_den
-         self.confMul:advance(tCurr, {momsSelf, nuCrossSelf, 1}, {deltas_den})
-         self.confMul:advance(tCurr, {momsOther, nuCrossOther, 1}, {deltas_num})
-         deltas_den:scale(self.mass)
-         deltas_den:accumulate(mOther, deltas_num)
-         deltas_num:scale(2.*mOther)
-         self.confMul:advance(tCurr, {momsSelf, deltas_num, 1}, {deltas_num})
-         self.confDiv:advance(tCurr, {deltas_den, deltas_num}, {self.m0s_deltas})
-
-         -- Cross-primitive moments for the collision of these two species has not been computed.
+         -- Calculate cross primitive moments.
          self.primMomCross:advance(tCurr, {self.mass, nuCrossSelf, momsSelf, self.primMomsSelf, bCorrectionsSelf,
-                                           mOther, nuCrossOther, momsOther, primMomsOther, self.m0s_deltas},
+                                           mOther, nuCrossOther, momsOther, primMomsOther, momsSelf},
                                           {self.primMomsCross})
 
          self.confMul:advance(tCurr, {nuCrossSelf, self.primMomsCross}, {self.nuPrimMomsCross})

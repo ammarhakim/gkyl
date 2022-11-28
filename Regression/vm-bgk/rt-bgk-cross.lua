@@ -25,7 +25,7 @@ app = Plasma.App {
    upper       = {1.0},           -- Configuration space upper right.
    cells       = {4},             -- Configuration space cells.
    basis       = "serendipity",   -- One of "serendipity" or "maximal-order".
-   polyOrder   = 1,               -- Polynomial order.
+   polyOrder   = 2,               -- Polynomial order.
    timeStepper = "rk3",           -- One of "rk2", "rk3" or "rk3s4".
 
    -- Decomposition for configuration space.
@@ -51,8 +51,8 @@ app = Plasma.App {
       diagnostics = { "M0", "M1i", "M2", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
       -- Collisions.
       coll = Plasma.BGKCollisions {
-      	 collideWith = {"neut2"},
-      	 frequencies = {vth1/K},
+      	 collideWith = {"neut1", "neut2"},
+      	 frequencies = {1.0, vth1/K},
       },
    },
    neut2 = Plasma.Species {
@@ -71,8 +71,8 @@ app = Plasma.App {
       -- diagnostic moments
       diagnostics = { "M0", "M1i", "M2", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
       coll = Plasma.BGKCollisions {
-      	 collideWith = {"neut1"},
-      	 frequencies = {vth1/K},
+      	 collideWith = {"neut2", "neut1"},
+      	 frequencies = {1.0, vth1/K},
       },
    },
 }

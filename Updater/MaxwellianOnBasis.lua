@@ -14,16 +14,111 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local GaussQuadRules    = require "Lib.GaussQuadRules"
-local Lin               = require "Lib.Linalg"
-local Proto             = require "Proto"
-local Range             = require "Lib.Range"
-local Time              = require "Lib.Time"
-local UpdaterBase       = require "Updater.Base"
-local MaxwellianModDecl = require "Updater.maxwellianOnBasisData.MaxwellianOnBasisModDecl" 
+local Proto       = require "Proto"
+local UpdaterBase = require "Updater.Base"
+local xsys        = require "xsys"
+local ffi         = require "ffi"
 
--- System libraries.
-local xsys = require "xsys"
+local ffiC = ffi.C
+ffi.cdef [[
+// Object type
+typedef struct gkyl_proj_maxwellian_on_basis gkyl_proj_maxwellian_on_basis;
+
+/**
+ * Create new updater to project Maxwellian on basis functions. Free
+ * using gkyl_proj_maxwellian_on_basis_release method.
+ *
+ * @param grid Grid object
+ * @param conf_basis Conf-space basis functions
+ * @param phase_basis Phase-space basis functions
+ * @param num_quad Number of quadrature nodes (in 1D).
+ * @param use_gpu boolean indicating whether to use the GPU.
+ * @return New updater pointer.
+ */
+gkyl_proj_maxwellian_on_basis* gkyl_proj_maxwellian_on_basis_new(
+  const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
+  int num_quad, bool use_gpu);
+
+/**
+ * Compute projection of Maxwellian on basis. This method takes
+ * lab-frame moments to compute the projection of Maxwellian on basis
+ * functions.
+ *
+ * @param mob Project on basis updater to run
+ * @param phase_rng Phase-space range
+ * @param conf_rng Config-space range
+ * @param moms velocity moments (m0, m1i, m2)
+ * @param fmax Output Maxwellian
+ */
+void gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *mob,
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
+  const struct gkyl_array *moms, struct gkyl_array *fmax);
+
+/**
+ * Compute projection of Maxwellian on basis. This method takes
+ * primitive (fluid-frame) moments to compute the projection of
+ * Maxwellian on basis functions.
+ *
+ * @param pob Project on basis updater to run
+ * @param phase_rng Phase-space range
+ * @param conf_rng Config-space range
+ * @param moms velocity moments (m0, m1i, m2)
+ * @param prim_moms (primitive moments udrift, vtsq=T/m)
+ * @param fmax Output Maxwellian
+ */
+void gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *mob,
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
+  const struct gkyl_array *moms, const struct gkyl_array *prim_moms, struct gkyl_array *fmax);
+
+/**
+ * Compute projection of a gyrokinetic Maxwellian on basis.
+ * This method takes lab-frame moments to compute the projection
+ * of Maxwellian on basis functions.
+ *
+ * @param pob Project on basis updater to run
+ * @param phase_rng Phase-space range
+ * @param conf_rng Config-space range
+ * @param moms velocity moments (m0, m1i, m2)
+ * @param bmag Magnetic field magnitude.
+ * @param jacob_tot Total jacobian (conf * guiding center jacobian).
+ * @param mass Species mass.
+ * @param fmax Output Maxwellian
+ */
+void gkyl_proj_gkmaxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *moms, const struct gkyl_array *bmag,
+  const struct gkyl_array *jacob_tot, double mass, struct gkyl_array *fmax);
+
+/**
+ * Compute projection of a gyrokinetic Maxwellian on basis. This
+ * method takes primitive (fluid-frame) moments to compute the
+ * projection of Maxwellian on basis functions.
+ *
+ * @param pob Project on basis updater to run
+ * @param phase_rng Phase-space range
+ * @param conf_rng Config-space range
+ * @param moms velocity moments (m0, m1i, m2)
+ * @param prim_moms (primitive moments upar, vtsq=T/m)
+ * @param bmag Magnetic field magnitude.
+ * @param jacob_tot Total jacobian (conf * guiding center jacobian).
+ * @param mass Species mass.
+ * @param fmax Output Maxwellian
+ */
+void gkyl_proj_gkmaxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *moms, const struct gkyl_array *prim_moms,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, double mass,
+  struct gkyl_array *fmax);
+
+/**
+ * Delete updater.
+ *
+ * @param pob Updater to delete.
+ */
+void gkyl_proj_maxwellian_on_basis_release(gkyl_proj_maxwellian_on_basis* mob);
+]]
+
 
 -- Inherit the base Updater from UpdaterBase updater object.
 local MaxwellianOnBasis = Proto(UpdaterBase)
@@ -31,301 +126,167 @@ local MaxwellianOnBasis = Proto(UpdaterBase)
 function MaxwellianOnBasis:init(tbl)
    MaxwellianOnBasis.super.init(self, tbl) -- setup base object
 
-   self.phaseGrid  = assert(tbl.onGrid,
+   local phaseGrid  = assert(tbl.onGrid,
                             "Updater.MaxwellianOnBasis: Must provide phase space grid object 'onGrid'")
-   self.confGrid   = assert(tbl.confGrid,
-                            "Updater.MaxwellianOnBasis: Must provide configuration space grid object 'confGrid'")
-   self.confBasis  = assert(tbl.confBasis,
+   local confBasis  = assert(tbl.confBasis,
                             "Updater.MaxwellianOnBasis: Must provide configuration space basis object 'confBasis'")
-   self.phaseBasis = assert(tbl.phaseBasis,
+   local phaseBasis = assert(tbl.phaseBasis,
                             "Updater.MaxwellianOnBasis: Must provide phase space basis object 'phaseBasis'")
 
-   -- Number of quadrature points in each direction
-   local numQuad1D = self.confBasis:polyOrder() + 1
-   assert(numQuad1D<=8, "Updater.MaxwellianOnBasis: Gaussian quadrature only implemented for numQuad<=8 in each dimension")
-
-   self.quadType = "Gauss"
-   self.quadImpl = tbl.implementation and tbl.implementation or "Lua"
+   local usePrimMoms = xsys.pickBool(tbl.usePrimMoms, false)
 
    self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
 
-   -- Mass and magnetic field amplitude are needed to project a gyrokinetic Maxwellian.
-   self.mass = tbl.mass
+   self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
 
-   self._pDim, self._cDim = self.phaseBasis:ndim(), self.confBasis:ndim()
-   self._vDim = self._pDim - self._cDim
+   self.mass = tbl.mass  -- Mass needed to project a gyrokinetic Maxwellian.
 
-   if self.mass then
-      self.isGK = true
+   -- Number of quadrature points in each direction.
+   local numQuad1D = confBasis:polyOrder()+1
+   self._zero = ffi.gc(ffiC.gkyl_proj_maxwellian_on_basis_new(phaseGrid._zero, confBasis._zero, 
+                                                              phaseBasis._zero, numQuad1D, self._useGPU),
+                       ffiC.gkyl_proj_maxwellian_on_basis_release)
+
+   local isGK = false
+   if self.mass then isGK = true end
+
+   if isGK then
+      self.advanceFunc = usePrimMoms and
+         function(tCurr, inFld, outFld)
+            MaxwellianOnBasis["_advance_prim_mom_gk"](self, tCurr, inFld, outFld)
+         end or
+         function(tCurr, inFld, outFld)
+            MaxwellianOnBasis["_advance_lab_mom_gk"](self, tCurr, inFld, outFld)
+         end
+      self.advanceOnDeviceFunc = usePrimMoms and
+         function(tCurr, inFld, outFld)
+            MaxwellianOnBasis["_advanceOnDevice_prim_mom_gk"](self, tCurr, inFld, outFld)
+         end or
+         function(tCurr, inFld, outFld)
+            MaxwellianOnBasis["_advanceOnDevice_lab_mom_gk"](self, tCurr, inFld, outFld)
+         end
    else
-      self.isGK = false
-      self.mass = 0.0    -- Not used.
+      self.advanceFunc = usePrimMoms and 
+         function(tCurr, inFld, outFld)
+            MaxwellianOnBasis["_advance_prim_mom"](self, tCurr, inFld, outFld)
+         end or
+         function(tCurr, inFld, outFld)
+            MaxwellianOnBasis["_advance_lab_mom"](self, tCurr, inFld, outFld)
+         end
+      self.advanceOnDeviceFunc = usePrimMoms and 
+         function(tCurr, inFld, outFld)
+            MaxwellianOnBasis["_advanceOnDevice_prim_mom"](self, tCurr, inFld, outFld)
+         end or
+         function(tCurr, inFld, outFld)
+            MaxwellianOnBasis["_advanceOnDevice_lab_mom"](self, tCurr, inFld, outFld)
+         end
    end
 
-   if self.quadImpl == "C" then
+end
 
-      self.numConfOrds = numQuad1D^self._cDim 
+function MaxwellianOnBasis:_advance_lab_mom(tCurr, inFld, outFld)
+   local momsIn = assert(inFld[1], "MaxwellianOnBasis: Must specify the velocity moments in 'inFld[1]'")
+   local fOut   = assert(outFld[1], "MaxwellianOnBasis: Must specify an output field in 'outFld[1]'")
 
-      if self.isGK then
-         self.uFlowOrd = Lin.Vec(self.numConfOrds)
-      else
-         self.uFlowOrd = Lin.Vec(self.numConfOrds*self._vDim)
-      end
-      self.vtSqOrd    = Lin.Vec(self.numConfOrds)
-      self.normFacOrd = Lin.Vec(self.numConfOrds)
-      self.bmagOrd    = Lin.Vec(self.numConfOrds)
+   local confRange  = self.onGhosts and momsIn:localExtRange() or momsIn:localRange()
+   local phaseRange = self.onGhosts and fOut:localExtRange() or fOut:localRange()
 
-      local quadFuncs = MaxwellianModDecl.selectQuad(self.confBasis:id(), self._cDim, self._vDim, self.confBasis:polyOrder(), self.quadType, self.isGK)
-      self._evAtConfOrds = quadFuncs[1]
-      self._phaseQuad    = quadFuncs[2]
+   ffiC.gkyl_proj_maxwellian_on_basis_lab_mom(self._zero, phaseRange, confRange, momsIn._zero, fOut._zero)
+end
 
-   elseif self.quadImpl == "Lua" then
+function MaxwellianOnBasis:_advance_prim_mom(tCurr, inFld, outFld)
+   local momsIn     = assert(inFld[1], "MaxwellianOnBasis: Must specify the velocity moments in 'inFld[1]'")
+   local primMomsIn = assert(inFld[2], "MaxwellianOnBasis: Must specify primitive moments in 'inFld[2]'")
+   local fOut       = assert(outFld[1], "MaxwellianOnBasis: Must specify an output field in 'outFld[1]'")
 
-      self._innerLoop = MaxwellianModDecl.selectInnerLoop(self.isGK)
-      -- 1D weights and ordinates.
-      local ordinates = GaussQuadRules.ordinates[numQuad1D]
-      local weights   = GaussQuadRules.weights[numQuad1D]
-      local ordinatesP2, weightsP2
-      if self.confBasis:polyOrder() == 1 then -- Force hybrid basis.
-         ordinatesP2 = GaussQuadRules.ordinates[numQuad1D+1]
-         weightsP2   = GaussQuadRules.weights[numQuad1D+1]
-      end
+   local confRange  = self.onGhosts and momsIn:localExtRange() or momsIn:localRange()
+   local phaseRange = self.onGhosts and fOut:localExtRange() or fOut:localRange()
 
-      -- Configuration space ordinates ----------------------------------
-      local l, u = {}, {}
-      for d = 1, self._cDim do l[d], u[d] = 1, numQuad1D end
-      self.confQuadRange = Range.Range(l, u)
-      self.confQuadIndexer = 
-         Range.makeColMajorGenIndexer(self.confQuadRange)
-      self.numConfOrds = self.confQuadRange:volume()
-      self.numConfBasis = self.confBasis:numBasis()
-      self.confOrdinates = Lin.Mat(self.numConfOrds, self._cDim)
-      self.confBasisAtOrds = Lin.Mat(self.numConfOrds, self.numConfBasis)
-      for ordIndexes in self.confQuadRange:colMajorIter() do
-         local ordIdx = self.confQuadIndexer(ordIndexes)
-         for d = 1, self._cDim do
-            self.confOrdinates[ordIdx][d] = ordinates[ordIndexes[d]]
-         end
-         self.confBasis:evalBasis(self.confOrdinates:getRow(ordIdx),
-                                  self.confBasisAtOrds:getRow(ordIdx))
-      end
+   ffiC.gkyl_proj_maxwellian_on_basis_prim_mom(self._zero, phaseRange, confRange, momsIn._zero, primMomsIn._zero, fOut._zero)
+end
 
-      -- Phase space ordinates and weights ------------------------------
-      if self.confBasis:polyOrder() == 1 then -- Force hybrid basis.
-         for d = 1, self._cDim do l[d], u[d] = 1, numQuad1D end
-         if self.isGK then
-            l[self._cDim+1], u[self._cDim+1] = 1, numQuad1D+1  -- p=2 in vpar.
-            if self._vDim==2 then 
-               l[self._pDim], u[self._pDim] = 1, numQuad1D
-            end
-         else
-            -- p=2 in velocity space.
-            for d = self._cDim+1, self._pDim do l[d], u[d] = 1, numQuad1D+1 end
-         end
-      else
-         for d = 1, self._pDim do l[d], u[d] = 1, numQuad1D end
-      end
-      self.phaseQuadRange   = Range.Range(l, u)
-      self.phaseQuadIndexer = Range.makeColMajorGenIndexer(self.phaseQuadRange)
-      self.numPhaseOrds     = self.phaseQuadRange:volume()
-      self.numPhaseBasis    = self.phaseBasis:numBasis()
-      self.phaseBasisAtOrds = Lin.Mat(self.numPhaseOrds, self.numPhaseBasis)
-      self.phaseOrdinates   = Lin.Mat(self.numPhaseOrds, self._pDim)
-      self.phaseWeights     = Lin.Vec(self.numPhaseOrds) -- Needed for integration.
-      for ordIndexes in self.phaseQuadRange:colMajorIter() do
-         local ordIdx = self.phaseQuadIndexer(ordIndexes)
-         self.phaseWeights[ordIdx] = 1.0
-         for d = 1, self._pDim do
-            if self.confBasis:polyOrder() == 1 then -- Force hybrid basis.
-               if d<=self._cDim or (self.isGK and d==self._cDim+2) then
-                  self.phaseOrdinates[ordIdx][d] = ordinates[ordIndexes[d]]
-                  self.phaseWeights[ordIdx] = self.phaseWeights[ordIdx]*weights[ordIndexes[d]]
-               else
-                  self.phaseWeights[ordIdx] = self.phaseWeights[ordIdx]*weightsP2[ordIndexes[d]]
-                  self.phaseOrdinates[ordIdx][d] = ordinatesP2[ordIndexes[d]]
-               end
-            else
-               self.phaseWeights[ordIdx] = self.phaseWeights[ordIdx]*weights[ordIndexes[d]]
-               self.phaseOrdinates[ordIdx][d] = ordinates[ordIndexes[d]]
-            end
-         end
-         self.phaseBasis:evalBasis(self.phaseOrdinates:getRow(ordIdx),
-                                   self.phaseBasisAtOrds:getRow(ordIdx))
-      end
+function MaxwellianOnBasis:_advance_lab_mom_gk(tCurr, inFld, outFld)
+   local momsIn   = assert(inFld[1], "MaxwellianOnBasis: Must specify the velocity moments in 'inFld[1]'")
+   local bmag     = assert(inFld[2], "MaxwellianOnBasis: Must specify the magnetic field magnitude in 'inFld[2]'")
+   local jacobTot = assert(inFld[3], "MaxwellianOnBasis: Must specify the total jacobian in 'inFld[2]'")
+   local fOut     = assert(outFld[1], "MaxwellianOnBasis: Must specify an output field in 'outFld[1]'")
 
-      -- Construct the phase space to conf space ordinate map.
-      self.phaseToConfOrdMap = Lin.Vec(self.numPhaseOrds)
-      for ordIndexes in self.phaseQuadRange:colMajorIter() do
-         local confOrdIdx = self.confQuadIndexer(ordIndexes)
-         local phaseOrdIdx = self.phaseQuadIndexer(ordIndexes)
-         self.phaseToConfOrdMap[phaseOrdIdx] = confOrdIdx
-      end
+   local confRange  = self.onGhosts and momsIn:localExtRange() or momsIn:localRange()
+   local phaseRange = self.onGhosts and fOut:localExtRange() or fOut:localRange()
 
-   end
+   ffiC.gkyl_proj_gkmaxwellian_on_basis_lab_mom(self._zero, phaseRange, confRange, momsIn._zero,
+                                                bmag._zero, jacobTot._zero, self.mass, fOut._zero)
+end
 
-   -- Cell index, center, and dx.
-   self.idx = Lin.IntVec(self._pDim)
-   self.xc  = Lin.Vec(self._pDim)
-   self.dx  = Lin.Vec(self._pDim)
+function MaxwellianOnBasis:_advance_prim_mom_gk(tCurr, inFld, outFld)
+   local momsIn     = assert(inFld[1], "MaxwellianOnBasis: Must specify the velocity moments in 'inFld[1]'")
+   local primMomsIn = assert(inFld[2], "MaxwellianOnBasis: Must specify the primitive moments in 'inFld[2]'")
+   local bmag       = assert(inFld[3], "MaxwellianOnBasis: Must specify the magnetic field magnitude in 'inFld[3]'")
+   local jacobTot   = assert(inFld[4], "MaxwellianOnBasis: Must specify the total jacobian in 'inFld[4]'")
+   local fOut       = assert(outFld[1], "MaxwellianOnBasis: Must specify an output field in 'outFld[1]'")
+
+   local confRange  = self.onGhosts and momsIn:localExtRange() or momsIn:localRange()
+   local phaseRange = self.onGhosts and fOut:localExtRange() or fOut:localRange()
+
+   ffiC.gkyl_proj_gkmaxwellian_on_basis_prim_mom(self._zero, phaseRange, confRange, momsIn._zero, primMomsIn._zero,
+                                                 bmag._zero, jacobTot._zero, self.mass, fOut._zero)
+end
+
+function MaxwellianOnBasis:_advanceOnDevice_lab_mom(tCurr, inFld, outFld)
+   local momsIn = assert(inFld[1], "MaxwellianOnBasis: Must specify the velocity moments in 'inFld[1]'")
+   local fOut   = assert(outFld[1], "MaxwellianOnBasis: Must specify an output field in 'outFld[1]'")
+
+   local confRange  = self.onGhosts and momsIn:localExtRange() or momsIn:localRange()
+   local phaseRange = self.onGhosts and fOut:localExtRange() or fOut:localRange()
+
+   ffiC.gkyl_proj_maxwellian_on_basis_lab_mom(self._zero, phaseRange, confRange, momsIn._zeroDevice, fOut._zeroDevice)
+end
+
+function MaxwellianOnBasis:_advanceOnDevice_prim_mom(tCurr, inFld, outFld)
+   local momsIn     = assert(inFld[1], "MaxwellianOnBasis: Must specify the velocity moments in 'inFld[1]'")
+   local primMomsIn = assert(inFld[2], "MaxwellianOnBasis: Must specify primitive moments in 'inFld[2]'")
+   local fOut       = assert(outFld[1], "MaxwellianOnBasis: Must specify an output field in 'outFld[1]'")
+
+   local confRange  = self.onGhosts and momsIn:localExtRange() or momsIn:localRange()
+   local phaseRange = self.onGhosts and fOut:localExtRange() or fOut:localRange()
+
+   ffiC.gkyl_proj_maxwellian_on_basis_prim_mom(self._zero, phaseRange, confRange, momsIn._zeroDevice,
+                                               primMomsIn._zeroDevice, fOut._zeroDevice)
+end
+
+function MaxwellianOnBasis:_advanceOnDevice_lab_mom_gk(tCurr, inFld, outFld)
+   local momsIn   = assert(inFld[1], "MaxwellianOnBasis: Must specify the velocity moments in 'inFld[1]'")
+   local bmag     = assert(inFld[2], "MaxwellianOnBasis: Must specify the magnetic field magnitude in 'inFld[2]'")
+   local jacobTot = assert(inFld[3], "MaxwellianOnBasis: Must specify the total jacobian in 'inFld[2]'")
+   local fOut     = assert(outFld[1], "MaxwellianOnBasis: Must specify an output field in 'outFld[1]'")
+
+   local confRange  = self.onGhosts and momsIn:localExtRange() or momsIn:localRange()
+   local phaseRange = self.onGhosts and fOut:localExtRange() or fOut:localRange()
+
+   ffiC.gkyl_proj_gkmaxwellian_on_basis_lab_mom(self._zero, phaseRange, confRange, momsIn._zeroDevice,
+                                                bmag._zeroDevice, jacobTot._zeroDevice, self.mass, fOut._zeroDevice)
+end
+
+function MaxwellianOnBasis:_advanceOnDevice_prim_mom_gk(tCurr, inFld, outFld)
+   local momsIn     = assert(inFld[1], "MaxwellianOnBasis: Must specify the velocity moments in 'inFld[1]'")
+   local primMomsIn = assert(inFld[2], "MaxwellianOnBasis: Must specify the primitive moments in 'inFld[2]'")
+   local bmag       = assert(inFld[3], "MaxwellianOnBasis: Must specify the magnetic field magnitude in 'inFld[3]'")
+   local jacobTot   = assert(inFld[4], "MaxwellianOnBasis: Must specify the total jacobian in 'inFld[4]'")
+   local fOut       = assert(outFld[1], "MaxwellianOnBasis: Must specify an output field in 'outFld[1]'")
+
+   local confRange  = self.onGhosts and momsIn:localExtRange() or momsIn:localRange()
+   local phaseRange = self.onGhosts and fOut:localExtRange() or fOut:localRange()
+
+   ffiC.gkyl_proj_gkmaxwellian_on_basis_prim_mom(self._zero, phaseRange, confRange, momsIn._zeroDevice, primMomsIn._zeroDevice,
+                                                 bmag._zeroDevice, jacobTot._zeroDevice, self.mass, fOut._zeroDevice)
 end
 
 function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
-   -- Get the inputs and outputs.
-   local nIn     = assert(inFld[1], "MaxwellianOnBasis: Must specify density 'inFld[1]'")
-   local uFlowIn = assert(inFld[2], "MaxwellianOnBasis: Must specify drift speed 'inFld[2]'")
-   local vtSqIn  = assert(inFld[3], "MaxwellianOnBasis: Must specify thermal velocity squared 'inFld[3]'")
-   local fOut    = assert(outFld[1], "MaxwellianOnBasis: Must specify an output field 'outFld[1]'")
+   self.advanceFunc(tCurr, inFld, outFld)
+end
 
-   local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
-   local uDim = uFlowIn:numComponents()/self.confBasis:numBasis()   -- Number of vector components of uFlowIn.
-
-   local nItr, uFlowItr, vtSqItr = nIn:get(1), uFlowIn:get(1), vtSqIn:get(1)
-   local fItr = fOut:get(1)
-
-   local uKer = 1   -- This kernel label indicates whether to take in a gyrokinetic or vlasov drift velocity.
-   local bmagIn, bmagItr
-   if self.isGK then
-      if uDim>1 then uKer=2 end
-      bmagIn  = assert(inFld[4], "MaxwellianOnBasis: Must specify magnetic field amplitude 'inFld[4]'")
-      bmagItr = bmagIn:get(1)
-   else
-      if uDim~=vDim then uKer=2 end
-      bmagItr = nIn:get(1)   -- Not used.
-   end
-
-   local confIndexer  = nIn:genIndexer()
-   local phaseIndexer = fOut:genIndexer()
-   local phaseRange
-   if self.onGhosts then
-      phaseRange = fOut:localExtRange()
-   else
-      phaseRange = fOut:localRange()
-   end
-
-   -- Construct ranges for nested loops.
-   local confRange = phaseRange:selectFirst(cDim)
-   local velRange  = phaseRange:selectLast(vDim)
-
-   if self.quadImpl == "C" then
-
-      -- The configuration space loop
-      for cIdx in confRange:rowMajorIter() do
-         nIn:fill(confIndexer(cIdx), nItr)
-         uFlowIn:fill(confIndexer(cIdx), uFlowItr)
-         vtSqIn:fill(confIndexer(cIdx), vtSqItr)
-         if self.isGK then bmagIn:fill(confIndexer(cIdx), bmagItr) end
-
-         self._evAtConfOrds[uKer](nItr:data(), uFlowItr:data(), vtSqItr:data(), bmagItr:data(),
-                                  self.uFlowOrd:data(), self.vtSqOrd:data(), self.normFacOrd:data(), self.bmagOrd:data())
-
-         -- The velocity space loop
-         for vIdx in velRange:rowMajorIter() do
-            cIdx:copyInto(self.idx)
-            for d = 1, vDim do self.idx[cDim+d] = vIdx[d] end
-
-   	    fOut:fill(phaseIndexer(self.idx), fItr)
-   
-   	    -- Get cell shape, cell center coordinates
-   	    self.phaseGrid:setIndex(self.idx)
-            self.phaseGrid:getDx(self.dx)
-            self.phaseGrid:cellCenter(self.xc)
-   
-            self._phaseQuad(self.uFlowOrd:data(), self.vtSqOrd:data(), self.normFacOrd:data(),
-                            self.bmagOrd:data(), self.mass,
-                            self.xc:data(), self.dx:data(), fItr:data())
-
-         end
-      end
-
-   elseif self.quadImpl == "Lua" then
-
-      local nOrd     = Lin.Vec(self.numConfOrds)
-      local uFlowOrd = self.isGK and Lin.Vec(self.numConfOrds) or Lin.Mat(self.numConfOrds, vDim)
-      local vtSqOrd  = Lin.Vec(self.numConfOrds)
-      local bmagOrd  = Lin.Vec(self.numConfOrds)
-   
-      -- Additional preallocated variables
-      local ordIdx = nil
-   
-      -- The configuration space loop
-      for cIdx in confRange:rowMajorIter() do
-         nIn:fill(confIndexer(cIdx), nItr)
-         uFlowIn:fill(confIndexer(cIdx), uFlowItr)
-         vtSqIn:fill(confIndexer(cIdx), vtSqItr)
-         if self.isGK then bmagIn:fill(confIndexer(cIdx), bmagItr) end
-   
-         -- Evaluate the the primitive variables (given as expansion
-         -- coefficients) on the ordinates
-         for ordIndexes in self.confQuadRange:rowMajorIter() do
-            ordIdx = self.confQuadIndexer(ordIndexes)
-            nOrd[ordIdx], vtSqOrd[ordIdx] = 0.0, 0.0
-           
-            for k = 1, self.numConfBasis do
-               nOrd[ordIdx]    = nOrd[ordIdx] + nItr[k]*self.confBasisAtOrds[ordIdx][k]
-               vtSqOrd[ordIdx] = vtSqOrd[ordIdx] + vtSqItr[k]*self.confBasisAtOrds[ordIdx][k]
-            end
-            if self.isGK then 
-               uFlowOrd[ordIdx], bmagOrd[ordIdx] = 0.0, 0.0
-               for k = 1, self.numConfBasis do
-                  bmagOrd[ordIdx] = bmagOrd[ordIdx] + bmagItr[k]*self.confBasisAtOrds[ordIdx][k]
-                  if uDim > 1 and cDim > 1 then   -- Get the z-component of fluid velocity.
-                     uFlowOrd[ordIdx] = uFlowOrd[ordIdx] + uFlowItr[self.numConfBasis*2+k]*self.confBasisAtOrds[ordIdx][k]
-                  else
-                     uFlowOrd[ordIdx] = uFlowOrd[ordIdx] + uFlowItr[k]*self.confBasisAtOrds[ordIdx][k]
-                  end
-               end
-            else
-               for d = 1, vDim do uFlowOrd[ordIdx][d] = 0.0 end
-               if uDim == vDim then
-                  for d = 1, vDim do
-                     for k = 1, self.numConfBasis do
-                        uFlowOrd[ordIdx][d] = uFlowOrd[ordIdx][d] +
-                           uFlowItr[self.numConfBasis*(d-1)+k]*self.confBasisAtOrds[ordIdx][k]
-                     end
-                  end
-               elseif uDim == 1 and cDim==1 and vDim==3 then -- if uPar passed from GkSpecies, fill d=1 component of u
-                  for k = 1, self.numConfBasis do
-                     uFlowOrd[ordIdx][1] = uFlowOrd[ordIdx][1] + uFlowItr[k]*self.confBasisAtOrds[ordIdx][k]
-                  end
-               elseif uDim == 1 and cDim>1 and vDim==3 then -- if uPar passed from GkSpecies, fill d=3 component of u
-                  for k = 1, self.numConfBasis do
-                     uFlowOrd[ordIdx][vDim] = uFlowOrd[ordIdx][vDim] + uFlowItr[k]*self.confBasisAtOrds[ordIdx][k]
-                  end
-               else
-                  print("Updater.MaxwellianOnBasis: incorrect uDim")	 
-               end
-            end
-         end
-   
-         -- The velocity space loop
-         for vIdx in velRange:rowMajorIter() do
-            -- Construct the phase space index ot of the configuration
-            -- space and velocity space indices.
-            cIdx:copyInto(self.idx)
-            for d = 1, vDim do self.idx[cDim+d] = vIdx[d] end
-   	    fOut:fill(phaseIndexer(self.idx), fItr)
-   
-   	    -- Get cell shape, cell center coordinates
-   	    self.phaseGrid:setIndex(self.idx)
-            self.phaseGrid:getDx(self.dx)
-            self.phaseGrid:cellCenter(self.xc)
-   
-            self._innerLoop(nOrd:data(), uFlowOrd:data(), vtSqOrd:data(),
-                            bmagOrd:data(), self.mass,
-                            fItr:data(),
-                            self.phaseWeights:data(), self.dx:data(), self.xc:data(),
-                            self.phaseOrdinates:data(),
-                            self.phaseBasisAtOrds:data(),
-                            self.phaseToConfOrdMap:data(),
-                            self.numPhaseBasis,
-                            self.numConfOrds, self.numPhaseOrds,
-                            cDim, pDim)
-         end
-      end
-   
-   end
-   -- Set id of output to id of projection basis.
-   fOut:setBasisId(self.phaseBasis:id())
+function MaxwellianOnBasis:_advanceOnDevice(tCurr, inFld, outFld)
+   self.advanceOnDeviceFunc(tCurr, inFld, outFld)
 end
 
 return MaxwellianOnBasis

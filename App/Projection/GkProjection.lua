@@ -51,10 +51,11 @@ end
 -- adding jacobian factors in initFunc.
 local MaxwellianProjection = Proto(MaxwellianProjectionParent)
 
-function MaxwellianProjection:allocConfField()
+function MaxwellianProjection:allocConfField(vComp)
+   local vComp = vComp or 1
    local m = DataStruct.Field {
         onGrid        = self.confGrid,
-        numComponents = self.confBasis:numBasis(),
+        numComponents = vComp*self.confBasis:numBasis(),
         ghost         = {1, 1},
         metaData      = {polyOrder = self.confBasis:polyOrder(),
                          basisType = self.confBasis:id()},
@@ -420,33 +421,34 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
    else
       local bmag = extField.geo.bmag
       -- Project the moments onto configuration-space basis.
-      local confProject = Updater.ProjectOnBasis {
-         onGrid   = self.confGrid,   evaluate = function(t, xn) return 0. end,   -- Set below.
-         basis    = self.confBasis,  onGhosts = true
+      local confScalarProject = Updater.ProjectOnBasis {
+         onGrid = self.confGrid,   evaluate = function(t, xn) return 0. end,   -- Set below.
+         basis  = self.confBasis,  onGhosts = true
       }
-      local numDens = self:allocConfField()
-      local uPar    = self:allocConfField()
-      local vtSq    = self:allocConfField()
+      local confVec2Project = Updater.ProjectOnBasis {
+         onGrid = self.confGrid,   evaluate = function(t, xn) return 0., 0. end,   -- Set below.
+         basis  = self.confBasis,  onGhosts = true
+      }
+      local numDens  = self:allocConfField()
+      local primMoms = self:allocConfField(2)
       if self.exactScaleM0 then
          -- Use a unit density because we are going to rescale the density anyways,
          -- and it is easier to weak-divide by something close to unity.
-         confProject:setFunc(function(t, xn) return 1. end)
+         confScalarProject:setFunc(function(t, xn) return 1. end)
       else
-         confProject:setFunc(self.density)
+         confScalarProject:setFunc(self.density)
       end
-      confProject:advance(time, {}, {numDens})
-      confProject:setFunc(self.driftSpeed)
-      confProject:advance(time, {}, {uPar})
-      confProject:setFunc(self.temperature)
-      confProject:advance(time, {}, {vtSq})
-      vtSq:scale(1./self.mass)
+      confScalarProject:advance(time, {}, {numDens})
+      confVec2Project:setFunc(function(t,xn) return self.driftSpeed(t,xn), self.temperature(t,xn)/self.mass end)
+      confVec2Project:advance(time, {}, {primMoms})
       -- Project the Maxwellian. It includes a factor of jacobPhase=B*_||.
       local projMaxwell = Updater.MaxwellianOnBasis {
-         onGrid     = self.phaseGrid,   confBasis  = self.confBasis,
-         phaseBasis = self.phaseBasis,  mass       = self.mass,
-         confGrid   = self.confGrid,    onGhosts   = true,
+         onGrid      = self.phaseGrid,   confBasis  = self.confBasis,
+         phaseBasis  = self.phaseBasis,  mass       = self.mass,
+         usePrimMoms = true,             onGhosts   = true,
       }
-      projMaxwell:advance(time,{numDens,uPar,vtSq,bmag},{distf})
+      -- Use bmag as the total jacobian here because we weak multiply by jacobGeo later.
+      projMaxwell:advance(time,{numDens,primMoms,bmag,bmag},{distf})
    end
 
    if self.exactScaleM0 then
