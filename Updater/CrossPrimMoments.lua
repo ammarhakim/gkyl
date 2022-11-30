@@ -16,7 +16,6 @@
 local UpdaterBase     = require "Updater.Base"
 local Lin             = require "Lib.Linalg"
 local Proto           = require "Lib.Proto"
-local PrimMomentsDecl = require "Updater.primMomentsCalcData.PrimMomentsModDecl"
 local xsys            = require "xsys"
 local ffi             = require "ffi"
 
