@@ -656,7 +656,7 @@ local function buildApplication(self, tbl)
          tmBc = tmBc + s:totalBcTime()
          --Akash
          tmtbc = tmtbc + s:totalTokamakBcTime()
-         tmtbc = tmmpi + s:totalTokamakBcMpiTime()
+         tmmpi = tmmpi + s:totalTokamakBcMpiTime()
          if s.collisions then
 	    for _, c in pairs(s.collisions) do
 	       tmColl = tmColl + c:slvrTime()
@@ -706,7 +706,7 @@ local function buildApplication(self, tbl)
       --Akash
        log(string.format(
 	      "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-	      "Tokamak BCs took", tmtmpi, tmtmpi/appStatus.step, 100*tmtmpi/tmTotal))
+	      "Tokamak MPI BCs took", tmmpi, tmmpi/appStatus.step, 100*tmmpi/tmTotal))
        --tmAccounted = tmAccounted + tmBc
 
       log(string.format(

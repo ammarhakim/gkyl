@@ -1030,12 +1030,17 @@ end
 
 function TokamakEdgeBC:zSyncCore(fIn)
    -- Sync along z assuming periodicity in the core only.
+  local t0 = Time.clock()
 
    if not Mpi.Is_comm_valid(self.graphComm) then return end
 
    Mpi.Neighbor_alltoallw(fIn:dataPointer()+self.sendLoc, self.sendCount:data(), self.sendDispl, self.sendDataType,
                           fIn:dataPointer(), self.recvCount:data(), self.recvDispl, self.recvDataType,
                           self.graphComm)
+
+   local tf = Time.clock()
+   local dtmpi = tf-t0
+   self.tmpi= dtmpi
 end
 
 -- These are needed to recycle the GkDiagnostics with TokamakEdgeBC.

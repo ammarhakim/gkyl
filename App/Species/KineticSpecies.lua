@@ -765,6 +765,9 @@ function KineticSpecies:applyBcEvolve(tCurr, field, externalField, inIdx, outIdx
      if bc.tbc~=nil then
        self.tbc = self.tbc + bc.tbc
      end
+     if bc.tmpi~=nil then
+       self.tmpi = self.tmpi + bc.tmpi
+     end
    end
 
    -- Apply periodic BCs (to only fluctuations if fluctuation BCs)
