@@ -17,7 +17,7 @@ extern "C" {
     int nFluids;
     double gasGamma;
     bool updatePressure;
-    double nuBase[5*4/2];
+    double nuBase[5][5];
   } FiveMomentFrictionSrcData_t;
 
   void gkylFiveMomentFrictionSrcForwardEuler(

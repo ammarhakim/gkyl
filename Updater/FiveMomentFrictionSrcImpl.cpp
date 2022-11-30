@@ -41,37 +41,16 @@ energy(const double *f, const double p, const double gamma)
 static void
 calcNu(const FiveMomentFrictionSrcData_t *sd,
        const double * const *fPtrs,
-       const double *nuBase,
+       const double nu_base[5][5],
        double *nu)
 {
-  const int nFluids = sd->nFluids;
+  const int nfluids = sd->nFluids;
 
-  // Read pre-specified nu_sr for r>s from the flattend 1d array nuBase.
-  // FIXME Do this only once.
-  int i = 0;
-  for (int s=0; s<nFluids; ++s)
+  for (int s=0; s<nfluids; ++s)
   {
-    double *nu_s = nu + nFluids * s;
-    for (int r=s+1; r<nFluids; ++r)
-    {
-      nu_s[r] = nuBase[i];
-      i += 1;
-    }
-  }
-
-  // Compute the remaining nu terms that satisfy nu_sr*rho_s == nu_rs*rho_r, and
-  // store store the result in the flattened 1d array nu.
-  for (int s=0; s<nFluids; ++s)
-  {
-    const double rho_s = fPtrs[s][RHO];
-    double *nu_s = nu + nFluids * s;
-
-    for (int r=0; r<s; ++r)
-    {
-      const double rho_r = fPtrs[r][RHO];
-      const double *nu_r = nu + nFluids * r;
-      nu_s[r] = nu_r[s] * rho_r / rho_s;
-    }
+    double *nu_s = nu + nfluids * s;
+    for (int r=0; r<nfluids; ++r)
+      nu_s[r] = nu_base[s][r] * fPtrs[r][RHO];
   }
 }
 
@@ -281,7 +260,7 @@ gkylFiveMomentFrictionSrcExact(
 {
   assert(sd->nFluids==2);
 
-  const double nu01 = sd->nuBase[0];
+  const double nu01 = sd->nuBase[0][0];
   if (nu01==0)
     return;
 

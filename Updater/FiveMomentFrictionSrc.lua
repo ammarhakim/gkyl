@@ -21,7 +21,7 @@ ffi.cdef [[
     int nFluids;
     double gasGamma;
     bool updatePressure;
-    double nuBase[5*4/2];
+    double nuBase[5][5];
   } FiveMomentFrictionSrcData_t;
 
   void gkylFiveMomentFrictionSrcForwardEuler(
@@ -70,8 +70,11 @@ function FiveMomentFrictionSrc:init(tbl)
    self._sd.gasGamma = assert(tbl.gasGamma, pfx.."Must specify 'gasGamma'.")
    self._sd.updatePressure = xsys.pickBool(tbl.updatePressure, true)
   
-   local nuBase = assert(tbl.nu, pfx.."Must specify 'nu' table.")
-   assert(#nuBase==nFluids*(nFluids-1)/2, pfx.."'nu' entry # is incorrect.")
+   local nuBase = assert(tbl.nuBase, pfx.."Must specify 'nuBase' table.")
+   assert(#nuBase==nFluids, pfx.."'nuBase' entry # is incorrect.")
+   for s=1,nFluids do
+      assert(#nuBase[s]==nFluids, pfx.."'nuBase' entry # is incorrect.")
+   end
    -- FIXME: Presently we are statically allocating space for _sd.nuBase (see
    -- definition of FiveMomentFrictionSrcData_t); Dynamically allocating nuBase
    -- using ffi.new within the dynamically allocated _sd seems to possibly cause
@@ -81,8 +84,10 @@ function FiveMomentFrictionSrc:init(tbl)
    else
       assert(nFluids<=5, pfx.."Presently up to 5 species are supported.")
    end
-   for i=1,#nuBase do
-      self._sd.nuBase[i-1] = nuBase[i]
+   for s=1,#nuBase do
+      for r=1,#nuBase do
+         self._sd.nuBase[s-1][r-1] = nuBase[s][r]
+      end
    end
 
    assert(#tbl.mass == nFluids,

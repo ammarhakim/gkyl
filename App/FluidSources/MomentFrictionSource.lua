@@ -62,7 +62,7 @@ function MomentFrictionSource:createSolver(species, field)
          mass = mass,
          gasGamma = tbl.gasGamma,
          updatePressure = tbl.updatePressure,
-         nu = tbl.nu,
+         nuBase = tbl.nuBase,
       }
    elseif #speciesLists[10]>0 then
       assert(false, "10-moment is not supported yet.")
