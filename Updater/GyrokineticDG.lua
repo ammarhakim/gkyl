@@ -132,7 +132,7 @@ function GyrokineticDG:_advanceOnDevice(tCurr, inFld, outFld)
 
    local localRange = qRhsOut:localRange()
    ffiC.gkyl_dg_updater_gyrokinetic_advance(self._zero, localRange, geo.bmag._zeroDevice, geo.jacobTotInv._zeroDevice,
-      geo.cmag._zeroDevice, geo.b_i._zeroDevice, self.phi._zeroDevice, self.apar._zeroDevice, self.dApardt._zeroDevice,
+      geo.cmag._zeroDevice, geo.b_i._zeroDevice, potentials.phi._zeroDevice, potentials.apar._zeroDevice, potentials.dApardt._zeroDevice,
       qIn._zeroDevice, cflRateByCell._zeroDevice, qRhsOut._zeroDevice)
 end
 

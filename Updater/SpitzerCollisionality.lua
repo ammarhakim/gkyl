@@ -101,6 +101,8 @@ function SpitzerCollisionality:init(tbl)
       "Updater.SpitzerCollisionality: Must specify Planck's constant h divided by 2pi ('hBar') to build Spitzer collisionality.")
    self._nuFrac = tbl.nuFrac and tbl.nuFrac or 1.0
 
+   self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
+
    self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
 
    local numQuad = confBasis:polyOrder()+1
@@ -131,14 +133,14 @@ function SpitzerCollisionality:_advance_normNu(tCurr, inFld, outFld)
    local m0Self, vtSqSelf       = inFld[3], inFld[4]
    local chargeOther, massOther = inFld[5], inFld[6]
    local m0Other, vtSqOther     = inFld[7], inFld[8]
-   local normNu = inFld[9]
+   local normNu = inFld[9]*self._nuFrac
 
    local nuOut = outFld[1]
 
    local range = self.onGhosts and nuOut:localExtRange() or nuOut:localRange()
 
    ffiC.gkyl_spitzer_coll_freq_advance_normnu(self._zero, range,
-      vtSqSelf._zero, m0Other._zero, vtSqOther._zero, normNu*self._nuFrac, nuOut._zero)
+      vtSqSelf._zero, m0Other._zero, vtSqOther._zero, normNu, nuOut._zero)
 end
 
 function SpitzerCollisionality:_advanceOnDevice_normNu(tCurr, inFld, outFld)
@@ -146,14 +148,14 @@ function SpitzerCollisionality:_advanceOnDevice_normNu(tCurr, inFld, outFld)
    local m0Self, vtSqSelf       = inFld[3], inFld[4]
    local chargeOther, massOther = inFld[5], inFld[6]
    local m0Other, vtSqOther     = inFld[7], inFld[8]
-   local normNu = inFld[9]
+   local normNu = inFld[9]*self._nuFrac
 
    local nuOut = outFld[1]
 
    local range = self.onGhosts and nuOut:localExtRange() or nuOut:localRange()
 
    ffiC.gkyl_spitzer_coll_freq_advance_normnu(self._zero, range,
-      vtSqSelf._zeroDevice, m0Other._zeroDevice, vtSqOther._zeroDevice, normNu*self._nuFrac, nuOut._zeroDevice)
+      vtSqSelf._zeroDevice, m0Other._zeroDevice, vtSqOther._zeroDevice, normNu, nuOut._zeroDevice)
 end
 
 function SpitzerCollisionality:_advance_build(tCurr, inFld, outFld)

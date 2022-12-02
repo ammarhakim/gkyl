@@ -112,10 +112,9 @@ function GkLBOCollisions:fullInit(speciesTbl)
             for i, nm in ipairs(self.crossSpecies) do self.normNuCross[nm] = normNuCrossIn[i] end
          end
       end
-      -- Check for constants epsilon_0, elementary charge e, and Planck's constant/2pi. If not use default value.
-      self.epsilon0   = tbl.epsilon0 and tbl.epsilon0 or Constants.EPSILON0
-      self.elemCharge = tbl.elemCharge and tbl.elemCharge or Constants.ELEMENTARY_CHARGE
-      self.hBar       = tbl.hBar and tbl.hBar or Constants.PLANCKS_CONSTANT_H/(2.0*Constants.PI)
+      -- Check for constants epsilon_0 and Planck's constant/2pi. If not use default value.
+      self.epsilon0 = tbl.epsilon0 and tbl.epsilon0 or Constants.EPSILON0
+      self.hBar     = tbl.hBar and tbl.hBar or Constants.PLANCKS_CONSTANT_H/(2.0*Constants.PI)
    end
 
    if self.crossCollisions then

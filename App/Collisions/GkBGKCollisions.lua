@@ -102,7 +102,7 @@ function GkBGKCollisions:fullInit(speciesTbl)
       -- simulation (see Gkeyll website for exact normalization). Otherwise code compute Spitzer
       -- collisionality from scratch.
       self.normNuIn = tbl.normNu
-      -- normNuSelf, epsilon0 and elemCharge may not used, but are
+      -- normNuSelf and epsilon0 may not used, but are
       -- initialized to avoid if-statements in advance method.
       self.normNuCross = self.crossCollisions and {} or nil  -- Need a name-value pairs table.
       if self.normNuIn then
@@ -114,9 +114,8 @@ function GkBGKCollisions:fullInit(speciesTbl)
          end
       end
       -- Check for constants epsilon_0, elementary charge e, and Planck's constant/2pi. If not use default value.
-      self.epsilon0   = tbl.epsilon0 and tbl.epsilon0 or Constants.EPSILON0
-      self.elemCharge = tbl.elemCharge and tbl.elemCharge or Constants.ELEMENTARY_CHARGE
-      self.hBar       = tbl.hBar and tbl.hBar or Constants.PLANCKS_CONSTANT_H/(2.0*Constants.PI)
+      self.epsilon0 = tbl.epsilon0 and tbl.epsilon0 or Constants.EPSILON0
+      self.hBar     = tbl.hBar and tbl.hBar or Constants.PLANCKS_CONSTANT_H/(2.0*Constants.PI)
    end
 
    if self.crossCollisions then
