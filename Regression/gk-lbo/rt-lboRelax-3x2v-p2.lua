@@ -43,8 +43,8 @@ local function bumpMaxwell(x,y,z,vpar,mu,n,u,vth,bA,bU,bS,bVth)
    local vSq  = ((vpar-u)^2+2*B0*math.abs(mu)/mass)/((math.sqrt(2.0)*vth)^2)
    local vbSq = ((vpar-u)^2+2*B0*math.abs(mu)/mass)/((math.sqrt(2.0)*bVth)^2)
 
-   return (n/math.sqrt(2.0*Pi*(vth^2))^(3/2))*math.exp(-vSq)
-      +(n/math.sqrt(2.0*Pi*(bVth^2))^(3/2))*math.exp(-vbSq)*(bA^2)/((vpar-bU)^2+bS^2)
+   return (n*0.5*(1.+0.5*math.cos(2.*math.pi*x))/math.sqrt(2.0*Pi*(vth^2))^(3/2))*math.exp(-vSq)
+         +(n*0.5*(1.+0.5*math.cos(2.*math.pi*x))/math.sqrt(2.0*Pi*(bVth^2))^(3/2))*math.exp(-vbSq)*(bA^2)/((vpar-bU)^2+bS^2)
 end
 
 plasmaApp = Plasma.App {
@@ -90,7 +90,7 @@ plasmaApp = Plasma.App {
       -- Evolve species?
       evolve              = true,
       evolveCollisionless = false,
-      diagnostics = { "M0", "M1", "M2" },
+      diagnostics = { "M0", "M1", "M2", "intM0", "intM1", "intM2" },
    },
 
    -- Neutral species with a bump in the tail.
@@ -116,7 +116,7 @@ plasmaApp = Plasma.App {
       -- Evolve species?
       evolve              = true,
       evolveCollisionless = false,
-      diagnostics = { "M0", "M1", "M2" },
+      diagnostics = { "M0", "M1", "M2", "intM0", "intM1", "intM2" },
    },
 
    -- Magnetic geometry.
