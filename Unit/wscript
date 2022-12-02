@@ -18,8 +18,8 @@ def build(bld):
               vnum = '1.0',
               target = 'unit', features='cxx')
 
-    bld.program(
-        source = 'ctest_ForwardDiff.cxx',
-        target = 'ctest_ForwardDiff',
-        includes = '../Lib .'
-    )
+#    bld.program(
+#        source = 'ctest_ForwardDiff.cxx',
+#        target = 'ctest_ForwardDiff',
+#        includes = '../Lib .'
+#    )

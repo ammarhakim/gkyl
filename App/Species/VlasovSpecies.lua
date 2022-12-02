@@ -17,7 +17,6 @@ local Proto          = require "Lib.Proto"
 local Source         = require "App.Sources.VmSource"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
-local VlasovEq       = require "Eq.Vlasov"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
 local BasicBC        = require ("App.BCs.VlasovBasic").VlasovBasic
