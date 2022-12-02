@@ -332,7 +332,7 @@ local function buildApplication(self, tbl)
 
    -- Function to write data to file.
    local function writeData(tCurr, force)
-      for _, s in population.iterLocal() do s:write(tCurr, force) end
+      for _, s in population.iterLocal() do s:write(tCurr, field, force) end
       field:write(tCurr, force)
       externalField:write(tCurr, force)
    end

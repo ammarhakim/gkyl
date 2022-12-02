@@ -1142,7 +1142,6 @@ function GkGeometry:initField(population)
 
    -- Apply BCs.
    self:applyBc(0, self.geo)
-
 end
 
 function GkGeometry:write(tm)
