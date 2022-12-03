@@ -25,14 +25,13 @@ local ffiC = ffi.C
 local new, sizeof, typeof, metatype = xsys.from(ffi,
      "new, sizeof, typeof, metatype")
 
-ffi.cdef [[
-// Identifiers for specific field object types
-enum gkyl_field_id {
-  struct gkyl_dg_eqn *eqn_fluid; // Equation object
-  struct gkyl_hyper_dg *up_fluid; // solvers for specific fluid equation
+ local cuda = nil
+ if GKYL_HAVE_CUDA then
+    cuda    = require "Cuda.RunTime"
+    cuAlloc = require "Cuda.Alloc"
+ end
 
-  double fluid_tm; // total time spent in computing fluid equation
-};
+ffi.cdef [[
 
 // Identifiers for various equation systems TODO: we should move this to some equation type lua file in eq folder as it will be used multiple times
 enum gkyl_eqn_type {
@@ -52,12 +51,13 @@ typedef struct gkyl_dg_updater_fluid gkyl_dg_updater_fluid;
 gkyl_dg_updater_fluid*
 gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
-  enum gkyl_eqn_type eqn_id, bool use_gpu);
+  enum gkyl_eqn_type eqn_id, double param, bool use_gpu);
 
 void
 gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
   const struct gkyl_array *u_i, struct gkyl_array *p_ij,
+  const struct gkyl_array *aux3,
   const struct gkyl_array* fIn,
   struct gkyl_array* cflrate, struct gkyl_array* rhs);
 
@@ -65,6 +65,7 @@ void
 gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
   const struct gkyl_array *u_i, struct gkyl_array *p_ij,
+  const struct gkyl_array *aux3,
   const struct gkyl_array* fIn,
   struct gkyl_array* cflrate, struct gkyl_array* rhs);
 
@@ -80,17 +81,21 @@ function FluidDG:init(tbl)
 
    -- Read data from input file.
    self._onGrid = assert(tbl.onGrid, "Updater.FluidDG: Must provide grid object using 'onGrid'")
-   self._phaseBasis = assert(tbl.phaseBasis, "Updater.FluidDG: Must specify phase-space basis functions to use using 'phaseBasis'")
    self._confBasis = assert(tbl.confBasis, "Updater.FluidDG: Must specify conf-space basis functions to use using 'confBasis'")
-
    self._confRange = assert(tbl.confRange, "Updater.FluidDG: Must specify conf-space range using 'confRange'")
    assert(self._confRange:isSubRange()==1, "Eq.Fluid: confRange must be a sub-range")
 
    self._eqnId = assert(tbl.eqnId, "Updater.FluidDG: Must specify equation ID")
 
+   -- By default, clear output field before incrementing with vol/surf updates.
+   self._clearOut = xsys.pickBool(tbl.clearOut, true)
 
+   assert(self._onGrid:ndim() == self._confBasis:ndim(), "Dimensions of basis and grid must match")
+   self._ndim = self._onGrid:ndim()
+
+   -- TODO: fix 'param' being passed for GKYL_EQN_EULER and GKYL_EQN_ISO_EULER (for now we just pass 1)
    self._zero = ffi.gc(
-                  ffiC.gkyl_dg_updater_fluid_new(self._onGrid._zero, self._confBasis._zero, self._confRange, self._eqnId, GKYL_USE_GPU or 0),
+                  ffiC.gkyl_dg_updater_fluid_new(self._onGrid._zero, self._confBasis._zero, self._confRange, self._eqnId, 1., GKYL_USE_GPU or 0),
                   ffiC.gkyl_dg_updater_fluid_release
                 )
 
@@ -101,7 +106,11 @@ end
 function FluidDG:_advance(tCurr, inFld, outFld)
 
    local qIn = assert(inFld[1], "FluidDG.advance: Must specify an input field")
-   local aux_uvar = inFld[2]._zeroDevice
+
+   assert(self._eqnId, "FluidDG.advance: Must specify eqn ID")
+   if self._eqnId == "GKYL_EQN_EULER_PKPM" or self._eqnId == "GKYL_EQN_EULER" or self._eqnId == "GKYL_EQN_ISO_EULER" then
+      local aux_uvar = inFld[2]._zeroDevice
+   end
    if self._eqnId == "GKYL_EQN_EULER_PKPM" then
      aux_p_ij = inFld[3]._zeroDevice
    end
@@ -109,8 +118,9 @@ function FluidDG:_advance(tCurr, inFld, outFld)
    local qRhsOut = assert(outFld[1], "FluidDG.advance: Must specify an output field")
    local cflRateByCell = assert(outFld[2], "FluidDG.advance: Must pass cflRate field in output table")
 
-   local localRange = qRhsOut:localRange()
-   ffiC.gkyl_dg_updater_fluid_advance(self._zero, self._eqnId, localRange, aux_uvar, aux_p_ij, qIn._zero, cflRateByCell._zero, qRhsOut._zero)
+   local localRange = qRhsOut[1]:localRange()
+   print("TODO: FIX THIS CALL (DONT PASS aux_uvar 3 times)")
+   ffiC.gkyl_dg_updater_fluid_advance(self._zero, self._eqnId, localRange, aux_uvar, aux_uvar, aux_uvar, qIn._zero, cflRateByCell._zero, qRhsOut._zero)
 
 end
 
