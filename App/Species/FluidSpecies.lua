@@ -177,7 +177,7 @@ function FluidSpecies:fullInit(appTbl)
       end
    end
    lume.setOrder(self.nonPeriodicBCs)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
-   
+
    -- Collisions: currently used for a diffusion term.
    self.collisions = {}
    for nm, val in pairs(tbl) do
@@ -286,7 +286,7 @@ function FluidSpecies:createSolver(field, externalField)
    end
 
    -- Operators needed for time-dependent calculation and diagnostics.
-   if self.ndim <= 3 then
+   if self.ndim <= 3 and self.jacob then
       self.weakMultiply = Updater.CartFieldBinOp {
          operation = "Multiply",  weakBasis = self.basis,
          onGhosts  = true,
@@ -362,13 +362,13 @@ function FluidSpecies:createSolver(field, externalField)
       and function(momIn, syncFullFperiodicDirs)
          momIn:accumulate(1.0, self.momBackground)
          momIn:sync(syncFullFperiodicDirs)
-      end or function(momIn, syncFullFperiodicDirs) end 
-   self.calcDeltaMom = self.perturbedDiagnostics 
+      end or function(momIn, syncFullFperiodicDirs) end
+   self.calcDeltaMom = self.perturbedDiagnostics
       and function(momIn) self.flucMom:combine(1.0, momIn, -1.0, self.momBackground) end
       or function(momIn) end
 
    if self.fluctuationBCs or self.perturbedDiagnostics then
-      self.writeFluctuation = self.perturbedDiagnostics 
+      self.writeFluctuation = self.perturbedDiagnostics
          and function(tm, fr, momIn)
             self.momIo:write(self.flucMom, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, fr)
          end
@@ -400,6 +400,7 @@ function FluidSpecies:createSolver(field, externalField)
 end
 
 function FluidSpecies:alloc(nRkDup)
+
    -- Allocate fields needed in RK update.
    self.moments = {}
    for i = 1, nRkDup do
@@ -442,7 +443,7 @@ function FluidSpecies:alloc(nRkDup)
    self.dtGlobal[0], self.dtGlobal[1] = 1.0, 1.0   -- Temporary value (so diagnostics at t=0 aren't inf).
 
    -- Create a table of flags to indicate whether primitive.
-   -- At first we consider 3 flags: 
+   -- At first we consider 3 flags:
    --   1) self primitive moments (e.g. uParSelf, TparSelf, TperpSelf).
    --   2) cross primitive moments (e.g. uParCross, TparCross, TperpCross).
    --   3) spatially varying cross-species collisionality (varNuXCross).
@@ -504,6 +505,7 @@ function FluidSpecies:initDist(extField, species)
 
    -- Compute the initial coupling moments.
    self:calcCouplingMomentsEvolve(0.0, 1, species)
+
 end
 
 function FluidSpecies:setActiveRKidx(rkIdx) self.activeRKidx = rkIdx end
@@ -590,7 +592,7 @@ function FluidSpecies:applyBcIdx(tCurr, field, externalField, inIdx, outIdx, isF
 end
 
 function FluidSpecies:applyBcDontEvolve(tCurr, field, externalField, inIdx, outIdx) end
-function FluidSpecies:applyBcEvolve(tCurr, field, externalField, inIdx, outIdx) 
+function FluidSpecies:applyBcEvolve(tCurr, field, externalField, inIdx, outIdx)
    local tmStart = Time.clock()
 
    local momIn = self:rkStepperFields()[outIdx]   -- momIn is the set of evolved moments.
@@ -659,7 +661,7 @@ function FluidSpecies:write(tm, force)
          end
       end
       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
-      
+
       -- Only write stuff if triggered.
       if self.diagIoTrigger(tm) or force then
          local momIn = self:rkStepperFields()[1]
@@ -674,7 +676,7 @@ function FluidSpecies:write(tm, force)
          for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcGridDiagnostics(tm, self)   -- Compute grid diagnostics (this species' and other objects').
          end
-          
+
          for _, dOb in lume.orderedIter(self.diagnostics) do   -- Write grid and integrated diagnostics.
             dOb:write(tm, self.diagIoFrame)
          end
@@ -727,7 +729,7 @@ function FluidSpecies:readRestart(field, externalField)
    for _, dOb in lume.orderedIter(self.diagnostics) do   -- Read grid and integrated diagnostics.
       _, _ = dOb:readRestart()
    end
-   
+
    -- Iterate triggers.
    self.diagIoTrigger(tm)
 
