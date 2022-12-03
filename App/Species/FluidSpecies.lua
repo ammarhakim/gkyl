@@ -637,7 +637,7 @@ end
 
 function FluidSpecies:getNoJacMoments() return self.noJacMom end
 
-function FluidSpecies:write(tm, force)
+function FluidSpecies:write(tm, field, force)
    if self.evolve or force then
 
       -- Calculate fluctuations (if perturbed diagnostics are requested) and put them in self.flucMom.

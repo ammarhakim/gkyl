@@ -710,7 +710,7 @@ end
 
 function KineticSpecies:isEvolving() return self.evolve end
 
-function KineticSpecies:write(tm, force)
+function KineticSpecies:write(tm, field, force)
    if self.evolve then
 
       -- Compute delta-F (if perturbed diagnostics are requested) and put it in self.flucF.
@@ -727,9 +727,8 @@ function KineticSpecies:write(tm, force)
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
-
          for _, dOb in lume.orderedIter(self.diagnostics) do
-            dOb:calcIntegratedDiagnostics(tm, self)   -- Compute integrated diagnostics (this species' and other objects').
+            dOb:calcIntegratedDiagnostics(tm, self, field)
          end
       end
       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
@@ -750,8 +749,9 @@ function KineticSpecies:write(tm, force)
       if self.diagIoTrigger(tm) or force then
          -- Compute moments and write them out.
 
+         -- Compute diagnostics defined on a grid.
          for _, dOb in lume.orderedIter(self.diagnostics) do
-            dOb:calcGridDiagnostics(tm, self)   -- Compute grid diagnostics (this species' and other objects').
+            dOb:calcGridDiagnostics(tm, self, field)
          end
 
          for _, dOb in lume.orderedIter(self.diagnostics) do   -- Write grid and integrated diagnostics.
@@ -776,15 +776,17 @@ function KineticSpecies:write(tm, force)
 
          local tmStart = Time.clock()
 
+         -- Compute integrated diagnostics.
          for _, dOb in lume.orderedIter(self.diagnostics) do
-            dOb:calcIntegratedDiagnostics(tm, self)   -- Compute integrated diagnostics (this species' and other objects').
+            dOb:calcIntegratedDiagnostics(tm, self, field)
          end
          self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
 
 	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, 0), tm, 0)
 
+         -- Compute diagnostics defined on a grid.
          for _, dOb in lume.orderedIter(self.diagnostics) do
-            dOb:calcGridDiagnostics(tm, self)   -- Compute grid diagnostics (this species' and other objects').
+            dOb:calcGridDiagnostics(tm, self, field)
          end
 
          for _, dOb in lume.orderedIter(self.diagnostics) do   -- Write grid and integrated diagnostics.

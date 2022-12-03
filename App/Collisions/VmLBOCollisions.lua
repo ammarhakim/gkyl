@@ -128,21 +128,20 @@ function VmLBOCollisions:fullInit(speciesTbl)
       -- simulation (see Gkeyll website for exact normalization). Otherwise code compute Spitzer
       -- collisionality from scratch.
       self.normNuIn = tbl.normNu
-      -- normNuSelf, epsilon0 and elemCharge may not used, but are
+      -- normNuSelf and epsilon0 may not used, but are
       -- initialized to avoid if-statements in advance method.
+      self.normNuCross = self.crossCollisions and {} or nil  -- Need a name-value pairs table.
       if self.normNuIn then
          self.normNuSelf = self.normNuIn[selfSpecInd]
          if self.crossCollisions then
             local normNuCrossIn = lume.clone(self.normNuIn)
             table.remove(normNuCrossIn, selfSpecInd)
-            self.normNuCross = {}  -- Need a name-value pairs table.
             for i, nm in ipairs(self.crossSpecies) do self.normNuCross[nm] = normNuCrossIn[i] end
          end
       end
       -- Check for constants epsilon_0, elementary charge e, and Planck's constant/2pi. If not use default value.
-      self.epsilon0   = tbl.epsilon0 and tbl.epsilon0 or Constants.EPSILON0
-      self.elemCharge = tbl.elemCharge and tbl.elemCharge or Constants.ELEMENTARY_CHARGE
-      self.hBar       = tbl.hBar and tbl.hBar or Constants.PLANCKS_CONSTANT_H/(2.0*Constants.PI)
+      self.epsilon0 = tbl.epsilon0 and tbl.epsilon0 or Constants.EPSILON0
+      self.hBar     = tbl.hBar and tbl.hBar or Constants.PLANCKS_CONSTANT_H/(2.0*Constants.PI)
    end
 
    if self.crossCollisions then
@@ -193,11 +192,12 @@ function VmLBOCollisions:createSolver(mySpecies, extField)
       self.vtSqOther = self.crossCollisions and mySpecies:allocMoment() or nil
       -- Updater to compute spatially varying (Spitzer) nu.
       self.spitzerNu = Updater.SpitzerCollisionality {
-         onGrid           = self.confGrid,     elemCharge = self.elemCharge,
-         confBasis        = self.confBasis,    epsilon0   = self.epsilon0,
-         useCellAverageNu = self.cellConstNu,  hBar       = self.hBar,
-         willInputNormNu  = self.normNuIn,     nuFrac     = self.nuFrac,
+         confBasis       = self.confBasis,  epsilon0 = self.epsilon0,
+         hBar            = self.hBar,       nuFrac   = self.nuFrac,
+         willInputNormNu = self.normNuIn,
       }
+      -- SpitzerCollisionality expects a magnetic field (set to 0 for Vlasov).
+      self.bmag = (not self.normNuIn) and mySpecies:allocMoment() or nil
    else
       projectUserNu = Updater.ProjectOnBasis {
          onGrid = self.confGrid,   evaluate = self.collFreqSelf,
@@ -352,7 +352,7 @@ function VmLBOCollisions:calcSelfNuTimeDep(momsSelf, nuOut)
    self.m0Self:combineOffset(1., momsSelf, 0) 
    self.vtSqSelf:combineOffset(1., self.primMomsSelf, self.vdim*self.confBasis:numBasis()) 
    self.spitzerNu:advance(tCurr, {self.charge, self.mass, self.m0Self, self.vtSqSelf,
-                                  self.charge, self.mass, self.m0Self, self.vtSqSelf, self.normNuSelf}, {nuOut})
+                                  self.charge, self.mass, self.m0Self, self.vtSqSelf, self.normNuSelf, self.bmag}, {nuOut})
 end
 
 function VmLBOCollisions:calcCrossNuTimeConst(otherNm, chargeOther,
@@ -368,12 +368,12 @@ function VmLBOCollisions:calcCrossNuTimeDep(otherNm, chargeOther,
 
    local crossNormNuSelf = self.normNuCross[otherNm]
    self.spitzerNu:advance(tCurr, {self.charge, self.mass, self.m0Self, self.vtSqSelf,
-                                  chargeOther, mOther, self.m0Other, self.vtSqOther, crossNormNuSelf},
+                                  chargeOther, mOther, self.m0Other, self.vtSqOther, crossNormNuSelf, self.bmag},
                                  {nuCrossSelf})
 
    local crossNormNuOther = self.collAppOther[otherNm]:crossNormNu(self.speciesName)
    self.spitzerNu:advance(tCurr, {chargeOther, mOther, self.m0Other, self.vtSqOther,
-                                  self.charge, self.mass, self.m0Self, self.vtSqSelf, crossNormNuOther},
+                                  self.charge, self.mass, self.m0Self, self.vtSqSelf, crossNormNuOther, self.bmag},
                                  {nuCrossOther})
 end
 

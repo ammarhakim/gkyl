@@ -8,11 +8,11 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local UpdaterBase     = require "Updater.Base"
-local Lin             = require "Lib.Linalg"
-local Proto           = require "Lib.Proto"
-local xsys            = require "xsys"
-local ffi             = require "ffi"
+local UpdaterBase = require "Updater.Base"
+local Lin         = require "Lib.Linalg"
+local Proto       = require "Lib.Proto"
+local xsys        = require "xsys"
+local ffi         = require "ffi"
 
 local ffiC = ffi.C
 require "Lib.ZeroUtil"

@@ -119,6 +119,11 @@ function AdiabaticSpecies:createSolver(field, externalField)
       end
    end
 
+   self.calcDeltaMom = self.perturbedDiagnostics
+      and function(momIn) self.flucMom:combine(1.0, momIn, -1.0, self.momBackground) end
+      or function(momIn) end
+   self.writeFluctuation = function(tm, fr, momIn) end
+
    self.suggestDtFunc = function() return FluidSpecies["suggestDtDontEvolve"](self) end
    self.applyBcFunc   = function(tCurr, momIn) return FluidSpecies["applyBcDontEvolve"](self, tCurr, momIn) end
 
