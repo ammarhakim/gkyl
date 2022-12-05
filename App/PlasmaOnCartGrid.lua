@@ -768,7 +768,6 @@ local function buildApplication(self, tbl)
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
       	     "Time spent in barrier function",
       	     Mpi.getTimeBarriers(), Mpi.getTimeBarriers()/appStatus.step, 100*Mpi.getTimeBarriers()/tmTotal))      
-      tmUnaccounted = tmTotal - tmAccounted
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Data write took",
@@ -779,6 +778,8 @@ local function buildApplication(self, tbl)
 	     "Write restart took",
 	     writeRestartTime, writeRestartTime/appStatus.step, 100*writeRestartTime/tmTotal))
       tmAccounted = tmAccounted + writeRestartTime
+
+      tmUnaccounted = tmTotal - tmAccounted
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n\n",
 	     "[Unaccounted for]",
