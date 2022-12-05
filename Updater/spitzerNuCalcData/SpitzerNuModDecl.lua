@@ -8,7 +8,7 @@
 local ffi = require "ffi"
 
 -- Map of basis function name -> function encoding.
-local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max" }
+local basisNmMap = { ["serendipity"] = "Ser" }
 
 local _M = {}
 
@@ -16,7 +16,7 @@ local _M = {}
 function _M.selectSpitzerNuScale(basisNm, CDIM, polyOrder)
    local funcType = "void"
    local funcNm = string.format("SpitzerNuScale%dx%s_P%d", CDIM, basisNmMap[basisNm], polyOrder)
-   local funcSign = "(const double elemCharge, const double eps0, const double hBar, const double nuFrac, const double qA, const double massA, const double *m0A, const double *vtSqA, const double qB, const double massB, const double *m0B, const double *vtSqB, const double normNu, const double *Bmag, double *nu)"
+   local funcSign = "(double elemCharge, double eps0, double hBar, double nuFrac, double qA, double massA, const double *m0A, const double *vtSqA, double vtSqMinA, double qB, double massB, const double *m0B, const double *vtSqB, double vtSqMinB, double normNu, const double *Bmag, double *nu)"
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]
@@ -26,7 +26,7 @@ end
 function _M.selectCellAvSpitzerNuScale(basisNm, CDIM, polyOrder)
    local funcType = "void"
    local funcNm = string.format("SpitzerNuCellAvScale%dx%s_P%d", CDIM, basisNmMap[basisNm], polyOrder)
-   local funcSign = "(const double elemCharge, const double eps0, const double hBar, const double nuFrac, const double qA, const double massA, const double *m0A, const double *vtSqA, const double qB, const double massB, const double *m0B, const double *vtSqB, const double normNu, const double *Bmag, double *nu)"
+   local funcSign = "(double elemCharge, double eps0, double hBar, double nuFrac, double qA, double massA, const double *m0A, const double *vtSqA, double vtSqMinA, double qB, double massB, const double *m0B, const double *vtSqB, double vtSqMinB, double normNu, const double *Bmag, double *nu)"
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]
@@ -36,7 +36,7 @@ end
 function _M.selectSpitzerNuBuild(basisNm, CDIM, polyOrder)
    local funcType = "void"
    local funcNm = string.format("SpitzerNuBuild%dx%s_P%d", CDIM, basisNmMap[basisNm], polyOrder)
-   local funcSign = "(const double elemCharge, const double eps0, const double hBar, const double nuFrac, const double qA, const double massA, const double *m0A, const double *vtSqA, const double qB, const double massB, const double *m0B, const double *vtSqB, const double normNu, const double *Bmag, double *nu)"
+   local funcSign = "(double elemCharge, double eps0, double hBar, double nuFrac, double qA, double massA, const double *m0A, const double *vtSqA, double vtSqMinA, double qB, double massB, const double *m0B, const double *vtSqB, double vtSqMinB, double normNu, const double *Bmag, double *nu)"
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]
@@ -46,7 +46,7 @@ end
 function _M.selectCellAvSpitzerNuBuild(basisNm, CDIM, polyOrder)
    local funcType = "void"
    local funcNm = string.format("SpitzerNuCellAvBuild%dx%s_P%d", CDIM, basisNmMap[basisNm], polyOrder)
-   local funcSign = "(const double elemCharge, const double eps0, const double hBar, const double nuFrac, const double qA, const double massA, const double *m0A, const double *vtSqA, const double qB, const double massB, const double *m0B, const double *vtSqB, const double normNu, const double *Bmag, double *nu)"
+   local funcSign = "(double elemCharge, double eps0, double hBar, double nuFrac, double qA, double massA, const double *m0A, const double *vtSqA, double vtSqMinA, double qB, double massB, const double *m0B, const double *vtSqB, double vtSqMinB, double normNu, const double *Bmag, double *nu)"
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]

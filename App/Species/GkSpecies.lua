@@ -134,6 +134,11 @@ function GkSpecies:createSolver(field, externalField)
       self.bmagInvSq   = externalField.geo.bmagInvSq
       self.jacobGeo    = externalField.geo.jacobGeo
       self.jacobGeoInv = externalField.geo.jacobGeoInv
+
+      -- Minimum vtSq supported by the grid (for p=1 only for now):
+      local TparMin  = (self.mass/6.)*self.grid:dx(self.cdim+1)
+      local TperpMin = self.vdim>1 and (self.B0/3.)*self.grid:dx(self.cdim+2) or TparMin
+      self.myVtSqMin = (TparMin + 2.*TperpMin)/(3.*self.mass)
    end
 
    if self.gyavg then
@@ -900,6 +905,8 @@ end
 function GkSpecies:crossPrimitiveMoments(otherSpeciesName)
    return { self.uParCross[otherSpeciesName], self.vtSqCross[otherSpeciesName] }
 end
+
+function GkSpecies:vtSqMin() return self.myVtSqMin end
 
 function GkSpecies:getNumDensity(rkIdx)
    -- If no rkIdx specified, assume numDensity has already been calculated.

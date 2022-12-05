@@ -84,12 +84,12 @@ end
 function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
 
-   local chargeSelf, massSelf   = inFld[1], inFld[2]
-   local m0Self, vtSqSelf       = inFld[3], inFld[4]
-   local chargeOther, massOther = inFld[5], inFld[6]
-   local m0Other, vtSqOther     = inFld[7], inFld[8]
+   local chargeSelf, massSelf             = inFld[1], inFld[2]
+   local m0Self, vtSqSelf, vtSqMinSelf    = inFld[3], inFld[4], inFld[5]
+   local chargeOther, massOther           = inFld[6], inFld[7]
+   local m0Other, vtSqOther, vtSqMinOther = inFld[8], inFld[9], inFld[10]
 
-   local normNu = inFld[9]
+   local normNu = inFld[11]
    local Bmag, BmagItr
 
    local firstInput, massFac = 0.0, 0.0
@@ -113,8 +113,8 @@ function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
    local tId = grid:subGridSharedId() -- Local thread ID.
 
    -- Fork logic here to avoid if-statement in space loop.
-   if (inFld[10] ~= nil) then
-      Bmag    = inFld[10]
+   if (inFld[12] ~= nil) then
+      Bmag    = inFld[12]
       BmagItr = Bmag:get(1)
       for cIdx in confRangeDecomp:rowMajorIter(tId) do
          grid:setIndex(cIdx)
@@ -128,7 +128,7 @@ function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
  
          nuOut:fill(confIndexer(cIdx), nuOutItr)
  
-         self._SpitzerNuCalc(self._elemCharge, self._epsilon0, self._hBar, self._nuFrac, chargeSelf, massSelf, m0SelfItr:data(), vtSqSelfItr:data(), chargeOther, massOther, m0OtherItr:data(), vtSqOtherItr:data(), normNu, BmagItr:data(), nuOutItr:data())
+         self._SpitzerNuCalc(self._elemCharge, self._epsilon0, self._hBar, self._nuFrac, chargeSelf, massSelf, m0SelfItr:data(), vtSqSelfItr:data(), vtSqMinSelf, chargeOther, massOther, m0OtherItr:data(), vtSqOtherItr:data(), vtSqMinOther, normNu, BmagItr:data(), nuOutItr:data())
       end
    else
       BmagItr = self._BmagZero
@@ -142,7 +142,7 @@ function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
  
          nuOut:fill(confIndexer(cIdx), nuOutItr)
  
-         self._SpitzerNuCalc(self._elemCharge, self._epsilon0, self._hBar, self._nuFrac, chargeSelf, massSelf, m0SelfItr:data(), vtSqSelfItr:data(), chargeOther, massOther, m0OtherItr:data(), vtSqOtherItr:data(), normNu, BmagItr:data(), nuOutItr:data())
+         self._SpitzerNuCalc(self._elemCharge, self._epsilon0, self._hBar, self._nuFrac, chargeSelf, massSelf, m0SelfItr:data(), vtSqSelfItr:data(), vtSqMinSelf, chargeOther, massOther, m0OtherItr:data(), vtSqOtherItr:data(), vtSqMinOther, normNu, BmagItr:data(), nuOutItr:data())
       end
    end
 end

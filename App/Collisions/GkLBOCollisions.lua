@@ -237,6 +237,8 @@ function GkLBOCollisions:createSolver(mySpecies, externalField)
          onGrid        = self.confGrid,
          numComponents = self.confBasis:numBasis(),
          ghost         = {1, 1},
+         metaData      = {polyOrder = self.confBasis:polyOrder(),
+                          basisType = self.confBasis:id(),}
       }
       -- Collisionality, nu, summed over all species pairs.
       self.nuSum = DataStruct.Field {
@@ -300,6 +302,8 @@ function GkLBOCollisions:createSolver(mySpecies, externalField)
             onGrid        = self.confGrid,
             numComponents = self.confBasis:numBasis(),
             ghost         = {1, 1},
+            metaData      = {polyOrder = self.confBasis:polyOrder(),
+                             basisType = self.confBasis:id(),}
          }
          self.nuCrossOther = DataStruct.Field {
             onGrid        = self.confGrid,
@@ -347,6 +351,7 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
    -- Fetch coupling moments and primitive moments of this species.
    local selfMom     = species[self.speciesName]:fluidMoments()
    local primMomSelf = species[self.speciesName]:selfPrimitiveMoments()
+   local vtSqMinSelf = species[self.speciesName]:vtSqMin()
 
    if self.varNu then
       self.nuSum:clear(0.0)
@@ -364,9 +369,10 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
       if self.varNu then
          if self.timeDepNu then
             -- Compute the Spitzer collisionality.
-            self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2],
-                                           self.charge, self.mass, selfMom[1], primMomSelf[2], 
+            self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2], vtSqMinSelf,
+                                           self.charge, self.mass, selfMom[1], primMomSelf[2], vtSqMinSelf, 
                                            self.normNuSelf, self.bmag}, {self.nuSum})
+            self.nuVarXSelf:copy(self.nuSum)
          else
             self.nuSum:copy(self.nuVarXSelf)
          end
@@ -391,21 +397,22 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
          local primMomOther      = species[otherNm]:selfPrimitiveMoments()
          local bCorrectionsOther = species[otherNm]:boundaryCorrections()
          local starMomOther      = species[otherNm]:starMoments()
+         local vtSqMinOther      = species[otherNm]:vtSqMin()
 
          if self.varNu then
             if self.timeDepNu then
                -- Compute the collisionality if another species hasn't already done so.
                local chargeOther = species[otherNm]:getCharge()
                if (not species[self.speciesName].momentFlags[6][otherNm]) then
-                  self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2],
-                                                 chargeOther, mOther, otherMom[1], primMomOther[2],
+                  self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2], vtSqMinSelf,
+                                                 chargeOther, mOther, otherMom[1], primMomOther[2], vtSqMinOther,
                                                  self.normNuCross[sInd], self.bmag},
                                                 {species[self.speciesName].nuVarXCross[otherNm]})
                   species[self.speciesName].momentFlags[6][otherNm] = true
                end
                if (not species[otherNm].momentFlags[6][self.speciesName]) then
-                  self.spitzerNu:advance(tCurr, {chargeOther, mOther, otherMom[1], primMomOther[2],
-                                                 self.charge, self.mass, selfMom[1], primMomSelf[2],
+                  self.spitzerNu:advance(tCurr, {chargeOther, mOther, otherMom[1], primMomOther[2], vtSqMinOther,
+                                                 self.charge, self.mass, selfMom[1], primMomSelf[2], vtSqMinSelf,
                                                  species[otherNm].collPairs[otherNm][self.speciesName].normNu, self.bmag},
                                                 {species[otherNm].nuVarXCross[self.speciesName]})
                   species[otherNm].momentFlags[6][self.speciesName] = true
@@ -475,6 +482,8 @@ function GkLBOCollisions:write(tm, frame)
       self.primMomLimitCrossingsG:write(string.format("%s_%s.bp", self.speciesName, "primMomLimitCrossings"), tm, frame)
       self.primMomLimitCrossingsL:clear(0.0)
       self.primMomLimitCrossingsG:clear(0.0)
+      self.nuVarXSelf:write(string.format("%s_nuSelf_%d.bp",self.speciesName, frame), tm, frame)
+      self.nuCrossSelf:write(string.format("%s_nuCross_%d.bp",self.speciesName, frame), tm, frame)
    end
 end
 
