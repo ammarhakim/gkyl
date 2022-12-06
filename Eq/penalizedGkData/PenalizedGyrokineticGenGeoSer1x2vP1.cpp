@@ -1,5 +1,5 @@
 #include <PenalizedGyrokineticModDecl.h> 
-double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvars(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyChi, const double *phi, const double *f, double *out) 
+double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvars(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyChi, const double *phi, const double *exbEnergy, const double *f, double *out) 
 { 
   // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.
   // b_x,b_y,b_z: covariant components of the field aligned unit vector.
@@ -10,6 +10,7 @@ double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvars(const double q_, const doubl
   // cmag: coefficient multiplying parallel gradient.
   // penaltyChi: penalization factor multiplying the mirror force.
   // phi: electrostatic potential .
+  // exbEnergy: 0.5*m*v_E^2 term in the Hamiltonian.
   // f: Distribution function.
   // out: output increment.
 
@@ -28,8 +29,8 @@ double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvars(const double q_, const doubl
   double rdmu2Sq = rdmu2*rdmu2;
 
   double hamilNoMuB[8]; 
-  hamilNoMuB[0] = (0.2357022603955158*(3.0*rdvpar2Sq*(2.0*m_*wvparSq+2.828427124746191*phi[0]*q_)+2.0*m_))/rdvpar2Sq; 
-  hamilNoMuB[1] = 2.0*phi[1]*q_; 
+  hamilNoMuB[0] = (0.2357022603955158*(3.0*rdvpar2Sq*(2.0*m_*wvparSq+2.828427124746191*(phi[0]*q_-1.0*exbEnergy[0]))+2.0*m_))/rdvpar2Sq; 
+  hamilNoMuB[1] = 2.0*(phi[1]*q_-1.0*exbEnergy[1]); 
   hamilNoMuB[2] = (1.632993161855453*m_*wvpar)/rdvpar2; 
 
   double hamilMuB[8]; 
@@ -110,7 +111,7 @@ double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvars(const double q_, const doubl
   out[7] += 0.6123724356957944*(alphax[0]*f[6]+alphavpar[0]*f[5]); 
   return cflFreq; 
 } 
-double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvarsx(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyChi, const double *phi, const double *f, double *out) 
+double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvarsx(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyChi, const double *phi, const double *exbEnergy, const double *f, double *out) 
 { 
   // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.
   // b_x,b_y,b_z: covariant components of the field aligned unit vector.
@@ -121,6 +122,7 @@ double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvarsx(const double q_, const doub
   // cmag: coefficient multiplying parallel gradient.
   // penaltyChi: penalization factor multiplying the mirror force.
   // phi: electrostatic potential .
+  // exbEnergy: 0.5*m*v_E^2 term in the Hamiltonian.
   // f: Distribution function.
   // out: output increment.
 
@@ -139,8 +141,8 @@ double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvarsx(const double q_, const doub
   double rdmu2Sq = rdmu2*rdmu2;
 
   double hamilNoMuB[8]; 
-  hamilNoMuB[0] = (0.2357022603955158*(3.0*rdvpar2Sq*(2.0*m_*wvparSq+2.828427124746191*phi[0]*q_)+2.0*m_))/rdvpar2Sq; 
-  hamilNoMuB[1] = 2.0*phi[1]*q_; 
+  hamilNoMuB[0] = (0.2357022603955158*(3.0*rdvpar2Sq*(2.0*m_*wvparSq+2.828427124746191*(phi[0]*q_-1.0*exbEnergy[0]))+2.0*m_))/rdvpar2Sq; 
+  hamilNoMuB[1] = 2.0*(phi[1]*q_-1.0*exbEnergy[1]); 
   hamilNoMuB[2] = (1.632993161855453*m_*wvpar)/rdvpar2; 
 
   double hamilMuB[8]; 
@@ -236,7 +238,7 @@ double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvarsx(const double q_, const doub
   out[7] += 0.6123724356957944*((alphavpar[2]+alphax[1])*f[7]+f[2]*alphavpar[7]+(alphavpar[4]+alphax[0])*f[6]+f[4]*alphavpar[6]+(alphax[4]+alphavpar[0])*f[5]+f[0]*alphavpar[5]+(alphax[2]+alphavpar[1])*f[3]+f[1]*alphavpar[3]); 
   return cflFreq; 
 } 
-double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvarsz(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyChi, const double *phi, const double *f, double *out) 
+double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvarsz(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyChi, const double *phi, const double *exbEnergy, const double *f, double *out) 
 { 
   // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.
   // b_x,b_y,b_z: covariant components of the field aligned unit vector.
@@ -247,6 +249,7 @@ double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvarsz(const double q_, const doub
   // cmag: coefficient multiplying parallel gradient.
   // penaltyChi: penalization factor multiplying the mirror force.
   // phi: electrostatic potential .
+  // exbEnergy: 0.5*m*v_E^2 term in the Hamiltonian.
   // f: Distribution function.
   // out: output increment.
 
@@ -265,8 +268,8 @@ double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvarsz(const double q_, const doub
   double rdmu2Sq = rdmu2*rdmu2;
 
   double hamilNoMuB[8]; 
-  hamilNoMuB[0] = (0.2357022603955158*(3.0*rdvpar2Sq*(2.0*m_*wvparSq+2.828427124746191*phi[0]*q_)+2.0*m_))/rdvpar2Sq; 
-  hamilNoMuB[1] = 2.0*phi[1]*q_; 
+  hamilNoMuB[0] = (0.2357022603955158*(3.0*rdvpar2Sq*(2.0*m_*wvparSq+2.828427124746191*(phi[0]*q_-1.0*exbEnergy[0]))+2.0*m_))/rdvpar2Sq; 
+  hamilNoMuB[1] = 2.0*(phi[1]*q_-1.0*exbEnergy[1]); 
   hamilNoMuB[2] = (1.632993161855453*m_*wvpar)/rdvpar2; 
 
   double hamilMuB[8]; 
@@ -347,7 +350,7 @@ double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvarsz(const double q_, const doub
   out[7] += 0.6123724356957944*(alphax[0]*f[6]+alphavpar[0]*f[5]); 
   return cflFreq; 
 } 
-double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvarsxz(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyChi, const double *phi, const double *f, double *out) 
+double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvarsxz(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *penaltyChi, const double *phi, const double *exbEnergy, const double *f, double *out) 
 { 
   // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.
   // b_x,b_y,b_z: covariant components of the field aligned unit vector.
@@ -358,6 +361,7 @@ double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvarsxz(const double q_, const dou
   // cmag: coefficient multiplying parallel gradient.
   // penaltyChi: penalization factor multiplying the mirror force.
   // phi: electrostatic potential .
+  // exbEnergy: 0.5*m*v_E^2 term in the Hamiltonian.
   // f: Distribution function.
   // out: output increment.
 
@@ -376,8 +380,8 @@ double PenalizedGyrokineticGenGeoVol1x2vSerP1_Bvarsxz(const double q_, const dou
   double rdmu2Sq = rdmu2*rdmu2;
 
   double hamilNoMuB[8]; 
-  hamilNoMuB[0] = (0.2357022603955158*(3.0*rdvpar2Sq*(2.0*m_*wvparSq+2.828427124746191*phi[0]*q_)+2.0*m_))/rdvpar2Sq; 
-  hamilNoMuB[1] = 2.0*phi[1]*q_; 
+  hamilNoMuB[0] = (0.2357022603955158*(3.0*rdvpar2Sq*(2.0*m_*wvparSq+2.828427124746191*(phi[0]*q_-1.0*exbEnergy[0]))+2.0*m_))/rdvpar2Sq; 
+  hamilNoMuB[1] = 2.0*(phi[1]*q_-1.0*exbEnergy[1]); 
   hamilNoMuB[2] = (1.632993161855453*m_*wvpar)/rdvpar2; 
 
   double hamilMuB[8]; 

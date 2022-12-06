@@ -241,12 +241,20 @@ function GkSpecies:createSolver(field, externalField)
          hasPhi     = hasPhi,
       }
    else   -- Use gyrokinetic equation with mu*B term in Hamiltonian penalized.
+      local nonlinPol
+      if field.linearizedPolarization~=nil then
+         nonlinPol = not field.linearizedPolarization
+      end
       self.equation = PenalizedGyrokineticEq.GkEq {
          onGrid     = self.grid,       hasApar = hasApar,
          confGrid   = self.confGrid,   Bvars   = externalField.bmagVars,
          phaseBasis = self.basis,      charge  = self.charge,
          confBasis  = self.confBasis,  mass    = self.mass,
          penalty    = self.penalty, 
+	 kperpSq    = field.kperpSq,
+	 B0         = self.B0,
+--	 bmagInvSq  = self.bmagInvSq,
+	 nonlinearPolarization = nonlinPol,
       }
    end
 
@@ -1042,8 +1050,9 @@ end
 
 function GkSpecies:getPolarizationWeight(linearized)
    if linearized == false then 
-      self.confWeakMultiply:advance(0.0, {self.numDensity, self.bmagInvSq}, {self.polarizationWeight})
-      self.polarizationWeight:scale(self.mass)
+--      self.confWeakMultiply:advance(0.0, {self.numDensity, self.bmagInvSq}, {self.polarizationWeight})
+--      self.polarizationWeight:scale(self.mass)
+      self.polarizationWeight:combine(self.mass/self.B0^2, self.numDensity)
       return self.polarizationWeight
    else 
       return self.n0*self.mass/self.B0^2

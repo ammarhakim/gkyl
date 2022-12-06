@@ -80,6 +80,8 @@ function AdiabaticSpecies:createSolver(field, externalField)
          self.couplingMoments:copy(fIn)
       end
    end
+   self.calcDeltaMom = function(momIn) end
+   self.writeFluctuation = function(tm, fr, momIn) end
 
    self.suggestDtFunc = function() return FluidSpecies["suggestDtDontEvolve"](self) end
    self.applyBcFunc   = function(tCurr, momIn) return FluidSpecies["applyBcDontEvolve"](self, tCurr, momIn) end
