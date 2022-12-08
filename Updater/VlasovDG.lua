@@ -26,6 +26,14 @@ local new, sizeof, typeof, metatype = xsys.from(ffi,
      "new, sizeof, typeof, metatype")
 
 ffi.cdef [[ 
+// Identifiers for specific model types
+enum gkyl_model_id {
+  GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified
+  GKYL_MODEL_PKPM,
+  GKYL_MODEL_SR,
+  GKYL_MODEL_SR_PKPM,
+};
+
 // Identifiers for specific field object types
 enum gkyl_field_id {
   GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
@@ -42,11 +50,11 @@ gkyl_dg_updater_vlasov*
 gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
-  enum gkyl_field_id field_id, bool use_gpu);
+  enum gkyl_model_id model_id, enum gkyl_field_id field_id, bool use_gpu);
 
 void
 gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
-  enum gkyl_field_id field_id, const struct gkyl_range *update_rng,
+  const struct gkyl_range *update_rng,
   const struct gkyl_array *aux1, const struct gkyl_array *aux2,
   const struct gkyl_array *aux3, const struct gkyl_array *aux4,
   const struct gkyl_array *aux5,
@@ -55,7 +63,7 @@ gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
 
 void
 gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
-  enum gkyl_field_id field_id, const struct gkyl_range *update_rng,
+  const struct gkyl_range *update_rng,
   const struct gkyl_array *aux1, const struct gkyl_array *aux2,
   const struct gkyl_array *aux3, const struct gkyl_array *aux4,
   const struct gkyl_array *aux5,
@@ -74,10 +82,13 @@ function VlasovDG:init(tbl)
 
    -- Read data from input file.
    self._onGrid = assert(tbl.onGrid, "Updater.VlasovDG: Must provide grid object using 'onGrid'")
-   self._phaseBasis = assert(tbl.phaseBasis, "Updater.VlasovDG: Must specify phase-space basis functions to use using 'phaseBasis'")
-   self._confBasis = assert(tbl.confBasis, "Updater.VlasovDG: Must specify conf-space basis functions to use using 'confBasis'")
+   self._phaseBasis = assert(tbl.phaseBasis,
+     "Updater.VlasovDG: Must specify phase-space basis functions to use using 'phaseBasis'")
+   self._confBasis = assert(tbl.confBasis,
+     "Updater.VlasovDG: Must specify conf-space basis functions to use using 'confBasis'")
 
-   self._confRange = assert(tbl.confRange, "Updater.VlasovDG: Must specify conf-space range using 'confRange'")
+   self._confRange = assert(tbl.confRange,
+     "Updater.VlasovDG: Must specify conf-space range using 'confRange'")
    assert(self._confRange:isSubRange()==1, "Eq.Vlasov: confRange must be a sub-range") 
 
    -- Check if we have an electric and magnetic field.
@@ -86,6 +97,8 @@ function VlasovDG:init(tbl)
    local hasExtForce    = xsys.pickBool(tbl.hasExtForce, false)
    self._plasmaMagField = xsys.pickBool(tbl.plasmaMagField, false)
 
+   self._modelId = "GKYL_MODEL_DEFAULT"
+   
    if hasElcField and self._plasmaMagField then 
       self._fieldId = "GKYL_FIELD_E_B"
    elseif hasElcField then
@@ -95,9 +108,11 @@ function VlasovDG:init(tbl)
    end
 
    self._zero = ffi.gc(
-                  ffiC.gkyl_dg_updater_vlasov_new(self._onGrid._zero, self._confBasis._zero, self._phaseBasis._zero, self._confRange, nil, self._fieldId, GKYL_USE_GPU or 0),
-                  ffiC.gkyl_dg_updater_vlasov_release
-                )
+      ffiC.gkyl_dg_updater_vlasov_new(self._onGrid._zero, self._confBasis._zero,
+        self._phaseBasis._zero, self._confRange, nil,
+        self._modelId, self._fieldId, GKYL_USE_GPU or 0),
+      ffiC.gkyl_dg_updater_vlasov_release
+   )
 
    return self
 end
@@ -106,38 +121,62 @@ end
 function VlasovDG:_advance(tCurr, inFld, outFld)
 
    local qIn = assert(inFld[1], "VlasovDG.advance: Must specify an input field")
-   local aux1, aux2
-   if self._fieldId == "GKYL_FIELD_PHI" then
-      aux1 = inFld[2]._zero
-      aux2 = nil
-   elseif self._fieldId == "GKYL_FIELD_E_B" then
+   local aux1, aux2, aux3, aux4, aux5 = nil, nil, nil, nil, nil
+   if self._modelId == "GKYL_MODEL_SR" then
       aux1 = inFld[2]._zero
       aux2 = inFld[3]._zero
+   elseif self._modelId == "GKYL_MODEL_PKPM" then
+      aux1 = inFld[2]._zero
+      aux2 = inFld[3]._zero
+      aux3 = inFld[4]._zero
+      aux4 = inFld[5]._zero
+      aux5 = inFld[6]._zero
+   elseif self._fieldId == "GKYL_FIELD_PHI" or self._fieldId == "GKYL_FIELD_PHI_A" then
+      aux1 = inFld[2]._zero
+      aux2 = inFld[3]._zero
+   else
+      aux1 = inFld[2]._zero
    end
+   
    local qRhsOut = assert(outFld[1], "VlasovDG.advance: Must specify an output field")
-   local cflRateByCell = assert(outFld[2], "VlasovDG.advance: Must pass cflRate field in output table")
+   local cflRateByCell = assert(outFld[2],
+     "VlasovDG.advance: Must pass cflRate field in output table")
 
    local localRange = qRhsOut:localRange()
-   ffiC.gkyl_dg_updater_vlasov_advance(self._zero, self._fieldId, localRange, aux1, aux2, qIn._zero, cflRateByCell._zero, qRhsOut._zero)
+   ffiC.gkyl_dg_updater_vlasov_advance(self._zero, localRange,
+     aux1, aux2, aux3, aux4, aux5,
+     qIn._zero, cflRateByCell._zero, qRhsOut._zero)
 
 end
 
 function VlasovDG:_advanceOnDevice(tCurr, inFld, outFld)
 
    local qIn = assert(inFld[1], "VlasovDG.advance: Must specify an input field")
-   local aux1, aux2
-   if self._fieldId == "GKYL_FIELD_PHI" then
-      aux1 = inFld[2]._zeroDevice
-      aux2 = inFld[2]._zeroDevice
-   elseif self._fieldId == "GKYL_FIELD_E_B" then
+   local aux1, aux2, aux3, aux4, aux5 = nil, nil, nil, nil, nil
+   if self._modelId == "GKYL_MODEL_SR" then
       aux1 = inFld[2]._zeroDevice
       aux2 = inFld[3]._zeroDevice
+   elseif self._modelId == "GKYL_MODEL_PKPM" then
+      aux1 = inFld[2]._zeroDevice
+      aux2 = inFld[3]._zeroDevice
+      aux3 = inFld[4]._zeroDevice
+      aux4 = inFld[5]._zeroDevice
+      aux5 = inFld[6]._zeroDevice
+   elseif self._fieldId == "GKYL_FIELD_PHI" or self._fieldId == "GKYL_FIELD_PHI_A" then
+      aux1 = inFld[2]._zeroDevice
+      aux2 = inFld[3]._zeroDevice
+   else
+      aux1 = inFld[2]._zeroDevice
    end
+   
    local qRhsOut = assert(outFld[1], "VlasovDG.advance: Must specify an output field")
-   local cflRateByCell = assert(outFld[2], "VlasovDG.advance: Must pass cflRate field in output table")
+   local cflRateByCell = assert(outFld[2],
+     "VlasovDG.advance: Must pass cflRate field in output table")
 
    local localRange = qRhsOut:localRange()
-   ffiC.gkyl_dg_updater_vlasov_advance_cu(self._zero, self._fieldId, localRange, aux1, aux2, qIn._zeroDevice, cflRateByCell._zeroDevice, qRhsOut._zeroDevice)
+   ffiC.gkyl_dg_updater_vlasov_advance_cu(self._zero, localRange,
+     aux1, aux2, aux3, aux4, aux5,
+     qIn._zeroDevice, cflRateByCell._zeroDevice, qRhsOut._zeroDevice)
 
 end
 
