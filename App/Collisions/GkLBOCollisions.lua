@@ -482,7 +482,11 @@ function GkLBOCollisions:write(tm, frame)
       self.primMomLimitCrossingsG:write(string.format("%s_%s.bp", self.speciesName, "primMomLimitCrossings"), tm, frame)
       self.primMomLimitCrossingsL:clear(0.0)
       self.primMomLimitCrossingsG:clear(0.0)
-      self.nuVarXSelf:write(string.format("%s_nuSelf_%d.bp",self.speciesName, frame), tm, frame)
+      if self.varNu then
+         self.nuVarXSelf:write(string.format("%s_nuSelf_%d.bp",self.speciesName, frame), tm, frame)
+      end
+   end
+   if self.crossCollisions and self.varNu then
       self.nuCrossSelf:write(string.format("%s_nuCross_%d.bp",self.speciesName, frame), tm, frame)
    end
 end
