@@ -55,7 +55,7 @@ end
 
 -- Function to check if runtime is less than walltime.
 local function out_of_walltime(startTime, wallTime, boolC)
-   boolC[0] = (Time.clock()-startTime) > (wallTime-30.)  -- Exit 5 min early.
+   boolC[0] = (Time.clock()-startTime) > (wallTime-300.)  -- Exit 5 min early.
    -- Need to reduce tsofar across MPI ranks, because they keep different clocks.
    Mpi.Bcast(boolC, 1, Mpi.C_BOOL, 0, Mpi.COMM_WORLD)
    return boolC[0]
