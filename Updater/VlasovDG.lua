@@ -91,6 +91,8 @@ function VlasovDG:init(tbl)
      "Updater.VlasovDG: Must specify conf-space range using 'confRange'")
    assert(self._confRange:isSubRange()==1, "Eq.Vlasov: confRange must be a sub-range") 
 
+   local useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or 0)
+   
    -- Check if we have an electric and magnetic field.
    local hasElcField    = xsys.pickBool(tbl.hasElectricField, false)
    local hasMagField    = xsys.pickBool(tbl.hasMagneticField, false)
@@ -110,7 +112,7 @@ function VlasovDG:init(tbl)
    self._zero = ffi.gc(
       ffiC.gkyl_dg_updater_vlasov_new(self._onGrid._zero, self._confBasis._zero,
         self._phaseBasis._zero, self._confRange, nil,
-        self._modelId, self._fieldId, GKYL_USE_GPU or 0),
+        self._modelId, self._fieldId, useGPU),
       ffiC.gkyl_dg_updater_vlasov_release
    )
 
