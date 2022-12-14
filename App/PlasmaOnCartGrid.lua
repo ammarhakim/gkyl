@@ -25,6 +25,7 @@ local date = require "xsys.date"
 local lfs = require "lfs"
 local lume = require "Lib.lume"
 local xsys = require "xsys"
+local ffi = require "ffi"
 math = require("sci.math").generic -- this is global so that it affects input file
 
 -- App loads (do not load specific app objects here, but only things
@@ -50,6 +51,14 @@ end
 -- Function to check if file exists.
 local function file_exists(name)
    if lfs.attributes(name) then return true else return false end
+end
+
+-- Function to check if runtime is less than walltime.
+local function out_of_walltime(startTime, wallTime, boolC)
+   boolC[0] = (Time.clock()-startTime) > (wallTime-300.)  -- Exit 5 min early.
+   -- Need to reduce tsofar across MPI ranks, because they keep different clocks.
+   Mpi.Bcast(boolC, 1, Mpi.C_BOOL, 0, Mpi.COMM_WORLD)
+   return boolC[0]
 end
 
 -- Top-level method to build application "run" method.
@@ -97,6 +106,9 @@ local function buildApplication(self, tbl)
    if ioMethod ~= "POSIX" and ioMethod ~= "MPI" then
       assert(false, "ioMethod must be one of 'MPI' or 'POSIX'. Provided '" .. ioMethod .. "' instead")
    end
+
+   -- Optional wallclock time allotted for this simulation.
+   local maxWallTime = tbl.maxWallTime and tbl.maxWallTime or GKYL_MAX_DOUBLE
 
    -- Time-stepper.
    local goodStepperNames = { "rk1", "rk2", "rk3", "rk3s4", "fvDimSplit" }
@@ -572,6 +584,7 @@ local function buildApplication(self, tbl)
       local failcount = 0
       local irestart = 0
       local stopfile = GKYL_OUT_PREFIX .. ".stop"
+      local timesUp = ffi.new("bool [?]", 1)
 
       -- Main simulation loop.
       while true do
@@ -579,9 +592,13 @@ local function buildApplication(self, tbl)
 	 local stepStatus = timeStepper:advance(tCurr, dt_next)
     
          -- If stopfile exists, break.
-         if (file_exists(stopfile)) then
-            writeData(tCurr+stepStatus.dt_actual, true)
-            writeRestart(tCurr+stepStatus.dt_actual)
+         if (file_exists(stopfile)) or out_of_walltime(tmStart, maxWallTime, timesUp) then
+            local tlatest = tCurr+stepStatus.dt_actual
+            writeData(tlatest, true)
+            writeRestart(tlatest)
+            dtPtr:data()[0] = stepStatus.dt_actual
+            dtTracker:appendData(tlatest, dtPtr)
+            dtTracker:write(string.format("dt.bp"), tlatest, irestart)
             break
          end
 

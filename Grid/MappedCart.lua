@@ -143,6 +143,19 @@ function MappedCart:_calcMetric_3d(xc, g)
    g[6] = d1[3]^2 + d2[3]^2 + d3[3]^2              -- g_33
 end
 
+-- Computes partial derivatives for vector components. Only for 3d. 
+function MappedCart:getTanVecComp(xc, dOut)
+   if self._useWorld then
+      -- Complement the computational coordinates xc w/ dimensions not simulated.
+      for d = 1, self:ndim() do self._worldCoord[self._compIdx[d]] = xc[d] end
+   else
+      self._worldCoord = xc
+   end
+   dOut[1], dOut[2], dOut[3] = diff.derivt(self._mapc2p, 1)(self._worldCoord)
+   dOut[4], dOut[5], dOut[6] = diff.derivt(self._mapc2p, 2)(self._worldCoord)
+   dOut[7], dOut[8], dOut[9] = diff.derivt(self._mapc2p, 3)(self._worldCoord)
+end
+
 -- Computes (covariant) metric tensor g_ij.
 function MappedCart:calcMetric(xc, gOut)
    if self._useWorld then
