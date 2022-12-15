@@ -79,8 +79,10 @@ function FunctionProjection:advance(time, inFlds, outFlds)
    else
       self.project:advance(time, {}, {momOut})
 
-      local jacob = extField.geo.jacobGeo
-      if jacob then self.weakMultiply:advance(0, {momOut, jacob}, {momOut}) end
+      if extField.geo then
+         local jacob = extField.geo.jacobGeo
+         self.weakMultiply:advance(0, {momOut, jacob}, {momOut})
+      end
    end
 end
 ----------------------------------------------------------------------

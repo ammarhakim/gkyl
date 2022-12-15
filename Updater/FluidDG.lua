@@ -52,11 +52,14 @@ gkyl_dg_updater_fluid*
 gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
   enum gkyl_eqn_type eqn_id, double param, bool use_gpu);
+  
+struct gkyl_dg_eqn* 
+gkyl_dg_updater_fluid_acquire_eqn(const gkyl_dg_updater_fluid* fluid);
 
 void
 gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *u_i, struct gkyl_array *p_ij,
+  const struct gkyl_array *aux1, struct gkyl_array *aux2,
   const struct gkyl_array *aux3,
   const struct gkyl_array* fIn,
   struct gkyl_array* cflrate, struct gkyl_array* rhs);
@@ -64,12 +67,15 @@ gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
 void
 gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *u_i, struct gkyl_array *p_ij,
+  const struct gkyl_array *aux1, struct gkyl_array *aux2,
   const struct gkyl_array *aux3,
   const struct gkyl_array* fIn,
   struct gkyl_array* cflrate, struct gkyl_array* rhs);
 
 void gkyl_dg_updater_fluid_release(gkyl_dg_updater_fluid *fluid);
+
+struct gkyl_dg_updater_fluid_tm gkyl_dg_updater_fluid_get_tm(const gkyl_dg_updater_fluid *fluid);
+
 
 ]]
 
@@ -109,17 +115,17 @@ function FluidDG:_advance(tCurr, inFld, outFld)
 
    assert(self._eqnId, "FluidDG.advance: Must specify eqn ID")
    if self._eqnId == "GKYL_EQN_EULER_PKPM" or self._eqnId == "GKYL_EQN_EULER" or self._eqnId == "GKYL_EQN_ISO_EULER" then
-      local aux_uvar = inFld[2]._zeroDevice
+      local aux_uvar = inFld[2]._zero
    end
    if self._eqnId == "GKYL_EQN_EULER_PKPM" then
-     aux_p_ij = inFld[3]._zeroDevice
+     aux_p_ij = inFld[3]._zero
    end
 
    local qRhsOut = assert(outFld[1], "FluidDG.advance: Must specify an output field")
    local cflRateByCell = assert(outFld[2], "FluidDG.advance: Must pass cflRate field in output table")
 
-   local localRange = qRhsOut[1]:localRange()
-   print("TODO: FIX THIS CALL (DONT PASS aux_uvar 3 times)")
+   local localRange = qRhsOut:localRange()
+   --TODO: FIX THIS CALL (DONT PASS AUX_UVAR 3 times
    ffiC.gkyl_dg_updater_fluid_advance(self._zero, self._eqnId, localRange, aux_uvar, aux_uvar, aux_uvar, qIn._zero, cflRateByCell._zero, qRhsOut._zero)
 
 end
