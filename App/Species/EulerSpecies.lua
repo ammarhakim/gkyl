@@ -6,6 +6,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Basis          = require "Basis"
 local DataStruct     = require "DataStruct"
 local Grid           = require "Grid"
@@ -27,6 +28,21 @@ local EulerSpecies = Proto(FluidSpecies)
 function EulerSpecies:alloc(nRkDup)
 
   EulerSpecies.super.alloc(self, nRkDup)
+  
+  -- Alloc aux var that contains u_i  = rho u_i / rho from weak division
+  self.uvar = self.super.allocVectorMoment(self,3)
+  
+  -- Create Adios object for uvar I/O.
+  self.uvarIo = AdiosCartFieldIo {
+     elemType = self.uvar:elemType(),
+     method   = self.ioMethod,
+     metaData = {polyOrder = self.basis:polyOrder(),
+                 basisType = self.basis:id(),
+                 charge    = self.charge,
+                 mass      = self.mass,
+                 grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp",},
+  } --TODO: use this make functions for write restart and read restart 
+  
 
 end
 
@@ -42,9 +58,6 @@ end
 function EulerSpecies:createSolver(field, externalField)
 
    EulerSpecies.super.createSolver(self)
-
-   -- Alloc aux var that contains u_i  = rho u_i / rho from weak division
-   self.uvar = self.super.allocVectorMoment(self,3)
 
    -- Need to overwrite weak Division operator from Fluid Species
    self.weakDivide = Updater.CartFieldBinOp {
@@ -101,6 +114,16 @@ function EulerSpecies:projToSource(proj)
    local tbl = proj.tbl
    local pow = tbl.power
    return Source { profile = proj, power = pow }
+end
+
+function EulerSpecies:write(tm, field, force)
+   
+   if self.evolve then 
+      self.uvarIo:write(self.uvar, string.format("%s_uvar_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
+   end
+   
+   self.super.write(self, tm, field, force)
+   
 end
 
 return EulerSpecies
