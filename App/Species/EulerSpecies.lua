@@ -24,20 +24,16 @@ local lume           = require "Lib.lume"
 
 local EulerSpecies = Proto(FluidSpecies)
 
-function EulerSpecies:createGrid(...)
-   EulerSpecies.super.createGrid(self, ...)
-
-   self.nMoments = self.ndim + 1 --TODO: this should be nMoments + 2 when euler is used
-end
-
 function EulerSpecies:alloc(nRkDup)
-   -- Allocate statevec [rho, rhoux, rhouy, rhouz] for isoeuler, [rho, rhoux, rhouy, pres] for euler
-   self.nMoments = 4 --TODO: add euler (i.e. nMoments = 5 when doing euler)
-   EulerSpecies.super.alloc(self, nRkDup)
+
+  EulerSpecies.super.alloc(self, nRkDup)
 
 end
 
 function EulerSpecies:fullInit(appTbl)
+  
+   self.nMoments = 4 -- should be +2 for euler
+  
    EulerSpecies.super.fullInit(self, appTbl)
 
    local tbl = self.tbl
@@ -45,8 +41,7 @@ end
 
 function EulerSpecies:createSolver(field, externalField)
 
-
-   EulerSpecies.super.createSolver(self)--, field)
+   EulerSpecies.super.createSolver(self)
 
    -- Alloc aux var that contains u_i  = rho u_i / rho from weak division
    self.uvar = self.super.allocVectorMoment(self,3)
@@ -76,10 +71,12 @@ end
 function EulerSpecies:setActiveRKidx(rkIdx) self.activeRKidx = rkIdx end
 
 function EulerSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
+
    self:setActiveRKidx(inIdx)
    local fIn     = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
    fRhsOut:clear(0.0)
+   self.uvar:clear(0.0)
 
    -- Do weak division --TODO: figure out how to separte these rho and {rhoux,rhouy,rhouz}
    --TODO: might need to pass through emIn (think this is used for aux fields)
@@ -90,7 +87,7 @@ function EulerSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
    -- TODO: add explicit diffusion if isoeuler
 
    -- update system
-   self.solver:advance(tCurr, {fIn, self.uvar}, {self.moments, self.cflRateByCell}) --(Something like this from Gyrofluid)
+   self.solver:advance(tCurr, {fIn, self.uvar}, {fRhsOut, self.cflRateByCell})
 
    for _, bc in pairs(self.nonPeriodicBCs) do
       bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)   -- Save boundary fluxes.
