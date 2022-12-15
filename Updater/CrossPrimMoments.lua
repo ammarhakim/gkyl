@@ -31,7 +31,6 @@ typedef struct gkyl_prim_lbo_cross_calc gkyl_prim_lbo_cross_calc;
  * on_dev-consistently constructed.
  *
  * @param calc Primitive moment calculator updater to run
- * @param cbasis_rng Config-space basis functions
  * @param conf_rng Config-space range
  * @param greene Greene's factor
  * @param self_m Mass of the species
