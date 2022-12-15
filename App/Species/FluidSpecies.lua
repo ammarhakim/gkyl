@@ -665,7 +665,7 @@ function FluidSpecies:write(tm, field, force)
       if self.diagIoTrigger(tm) or force then
          local momIn = self:rkStepperFields()[1]
 
-         self.momIo:write(momIn, string.format("%s_%d_.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
+         self.momIo:write(momIn, string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
          self.writeFluctuation(tm, self.diagIoFrame, momIn)
 
          for _, src in lume.orderedIter(self.sources) do
