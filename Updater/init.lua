@@ -8,6 +8,7 @@
 -- Gkyl modules
 local ASheathPotential = require "Updater.ASheathPotential"
 local Bc = require "Updater.Bc"
+local MaxwellGhostBc = require "Updater.MaxwellGhostBc"
 local BgkCollisions = require "Updater.BgkCollisions"
 local CartFieldBinOp = require "Updater.CartFieldBinOp"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
@@ -60,6 +61,7 @@ local AnisotropicDiffusion = require "Updater.AnisotropicDiffusion"
 return {
    ASheathPotential = ASheathPotential,
    Bc = Bc,
+   MaxwellGhostBc=MaxwellGhostBc,
    BgkCollisions = BgkCollisions,
    CartFieldBinOp = CartFieldBinOp,
    CartFieldIntegratedQuantCalc = CartFieldIntegratedQuantCalc,
