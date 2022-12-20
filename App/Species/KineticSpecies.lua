@@ -119,9 +119,7 @@ function KineticSpecies:fullInit(appTbl)
    end
 
    -- Write ghost cells on boundaries of global domain (for BCs).
-   --self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
-   --Akash
-   self.writeGhost = true
+   self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 
    -- Option to group diagnostics (i.e. it writes one file for all grid diags, and one file
    -- for all integrated diags) in all diagnostic Apps, rather than writing one file for each.
@@ -540,7 +538,7 @@ function KineticSpecies:alloc(nRkDup)
    self.distIo = AdiosCartFieldIo {
       elemType   = self.distf[1]:elemType(),
       method     = self.ioMethod,
-      writeGhost = true,--self.writeGhost,
+      writeGhost = self.writeGhost,
       metaData   = {polyOrder = self.basis:polyOrder(),
                     basisType = self.basis:id(),
                     charge    = self.charge,
@@ -890,8 +888,7 @@ end
 
 function KineticSpecies:writeRestart(tm)
    -- (The final "true/false" in calls to :write determines writing of ghost cells).
-   --local writeGhost = false
-   local writeGhost = true
+   local writeGhost = false
    if self.hasSheathBCs or self.fluctuationBCs then writeGhost = true end
 
    self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, writeGhost)

@@ -38,15 +38,13 @@ function GkBasicBC:fullInit(mySpecies)
       assert(type(tbl.bcFunction)=="function", "GkBasicBC: bcFunction must be a function.")
       self.bcKind   = "function"
       self.bcFuncIn = assert(tbl.bcFunction, "GkBasicBC: must specify the BC function in 'bcFunc' when using 'function' BC kind.")
-      self.feedback = xsys.pickBool(tbl.feedback, false) 
-   --Akash added new BC type maxwellianGhost
-   print("tbl.kind"..tbl.kind)
+      self.feedback = xsys.pickBool(tbl.feedback, false)
    elseif tbl.kind=="maxwellianGhost" then
       self.species = mySpecies
       self.bcKind   = "maxwellianGhost"
-      self.bcFunc1=tbl.func1
-      self.bcFunc2=tbl.func2
-      self.bcFunc3=tbl.func3
+      self.densityGhost=tbl.densityGhost
+      self.uParGhost=tbl.uParGhost
+      self.tempGhost=tbl.tempGhost
    else
       self.bcKind = assert(tbl.kind, "GkBasicBC: must specify the type of BC in 'kind'.")
 
@@ -78,11 +76,7 @@ function GkBasicBC:bcOpen(dir, tm, idxIn, fIn, fOut)
 end
 function GkBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "pointwise".
-   --print("Calling bcCopy")
    for i = 1, self.basis:numBasis() do fOut[i] = fIn[i] end
-   --print("dir is")
-   --print(dir)
-   --print("looped"..self.basis:numBasis().."times")
 end
 function GkBasicBC:bcReflect(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "flip".
@@ -138,20 +132,6 @@ function GkBasicBC:bcSheath(dir, tm, idxIn, fIn, fOut)
    -- reflect fhat into skin cells
    self:bcReflect(dir, tm, nil, self.fhatSheath, fOut)
 end
-
-function GkBasicBC:allocConfField()
-   local m = DataStruct.Field {
-        onGrid        = self.confBoundaryGrid,
-        --onGrid        = self.confGrid,
-        numComponents = self.confBasis:numBasis(),
-        ghost         = {1, 1},
-        metaData      = {polyOrder = self.confBasis:polyOrder(),
-                         basisType = self.confBasis:id()},
-   }
-   m:clear(0.0)
-   return m
-end
-
 
 function GkBasicBC:createSolver(mySpecies, field, externalField)
 
@@ -227,83 +207,13 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
    local vdir = nil
    if self.bcDir==self.cdim then vdir = self.cdim+1 end
 
-   --Akash: if block to set up an alternative updater if bctype is maxwellianGhost
+   -- Create bondary grids and updaters if needed. Conditionals taken care of inside function
+   -- Many tools needed if we have diagnostics or BC type is maxwellianGhost, otherwise function is simple
+   self:createBoundaryTools(mySpecies, field, externalField)
+
+   --If block to set up an alternative updater if bctype is maxwellianGhost : Updater.MaxwellGhostBc
+   -- Otherwise the updater will be the classic Updater.Bc
    if self.bcKind=="maxwellianGhost" then
-      print("Making solver")
-      --First Section is create boundary fields and stuff needed to Project on boundary only
-      -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
-      self:createBoundaryGrid(mySpecies)
-      -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
-      self:createConfBoundaryGrid(mySpecies)
-
-      local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
-
-      -- Need to define methods to allocate fields defined on boundary grid.
-      self.allocCartField = function(self, grid, nComp, ghosts, metaData)
-         local f = DataStruct.Field {
-            onGrid        = grid,   ghost    = ghosts,
-            numComponents = nComp,  metaData = metaData,
-         }
-         f:clear(0.0)
-         return f
-      end
-      local allocDistf = function()
-         return self:allocCartField(self.boundaryGrid, self.basis:numBasis(),
-                                    {distf:lowerGhost(),distf:upperGhost()}, distf:getMetaData())
-      end
-      self.allocMoment = function(self)
-         return self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
-                                    {numDensity:lowerGhost(),numDensity:upperGhost()}, numDensity:getMetaData())
-      end
-
-      -- Allocate fields needed.
-      self.boundaryFluxFields = {}  -- Fluxes through the boundary, into ghost region, from each RK stage.
-      self.boundaryPtr        = {}
-      self.distfInIdxr        = distf:genIndexer()
-      for i = 1, #mySpecies:rkStepperFields() do
-         self.boundaryFluxFields[i] = allocDistf()
-         self.boundaryPtr[i]        = self.boundaryFluxFields[i]:get(1)
-      end
-      self.boundaryFluxRate      = allocDistf()
-      self.boundaryFluxFieldPrev = allocDistf()
-      self.boundaryIdxr          = self.boundaryFluxFields[1]:genIndexer()
-
-      self.idxOut = Lin.IntVec(self.grid:ndim())
-
-      -- Create the range needed to loop over ghosts.
-      local global, globalExt, localExtRange = distf:globalRange(), distf:globalExtRange(), distf:localExtRange()
-      self.ghostRange = localExtRange:intersect(self:getGhostRange(global, globalExt))
-      -- Decompose ghost region into threads.
-      self.ghostRangeDecomp = LinearDecomp.LinearDecompRange{range=self.ghostRange, numSplit=self.grid:numSharedProcs()}
-      self.tId              = self.grid:subGridSharedId() -- Local thread ID.
-
-      -- The following are needed to evaluate a conf-space CartField on the confBoundaryGrid.
-      self.confBoundaryField    = self:allocMoment()
-      self.confBoundaryFieldPtr = self.confBoundaryField:get(1)
-      self.confBoundaryIdxr     = self.confBoundaryField:genIndexer()
-      local confGlobal        = numDensity:globalRange()
-      local confGlobalExt     = numDensity:globalExtRange()
-      local confLocalExtRange = numDensity:localExtRange()
-      self.confGhostRange = confLocalExtRange:intersect(self:getGhostRange(confGlobal, confGlobalExt)) -- Range spanning ghost cells.
-      -- Decompose ghost region into threads.
-      self.confGhostRangeDecomp = LinearDecomp.LinearDecompRange {range=self.confGhostRange, numSplit=self.grid:numSharedProcs()}
-
-      -- Evaluate the magnetic field and jacobGeo in the boundary.
-      local bmag = externalField.geo.bmag
-      self.bmag = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
-                                      {bmag:lowerGhost(),bmag:upperGhost()}, bmag:getMetaData())
-      self.bmag:copy(self:evalOnConfBoundary(bmag))
-      local jacobGeo = externalField.geo.jacobGeo
-      if jacobGeo then
-         self.jacobGeo = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
-                                             {jacobGeo:lowerGhost(),jacobGeo:upperGhost()}, jacobGeo:getMetaData())
-         self.jacobGeo:copy(self:evalOnConfBoundary(jacobGeo))
-      end
-      --End First Section
-      --print("made boundary grids and fields")
-
-
-      --Second Section is make the MaxwellianOnBasis and fields required for projection
       --Create MaxwellianOnBasis on boundary grid
          self.projMaxwell = Updater.MaxwellianOnBasis{
             onGrid = self.boundaryGrid,   confBasis = self.confBasis,
@@ -313,29 +223,23 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
       --Make the fields
       local confProject = Updater.ProjectOnBasis {
          onGrid   = self.confBoundaryGrid,
-         --onGrid= self.confGrid,
          basis    = self.confBasis,
          evaluate = function(t, xn) return 0. end,   -- Set below.
          onGhosts = true
       }
-      local numDens = self:allocConfField()
-      local uPar    = self:allocConfField()
-      local vtSq    = self:allocConfField()
+      local numDens = self:allocMoment()
+      local uPar    = self:allocMoment()
+      local vtSq    = self:allocMoment()
 
-      -- Use a unit density because we are going to rescale the density anyways. Set the func later
-      -- and it is easier to weak-divide by something close to unity.
-      --confProject:setFunc(self.bcFunc1)
       confProject:setFunc(function(t, xn) return 1. end)
       confProject:advance(time, {}, {numDens})
-      confProject:setFunc(self.bcFunc2)
+      confProject:setFunc(self.uParGhost)
       confProject:advance(time, {}, {uPar})
-      confProject:setFunc(self.bcFunc3)
+      confProject:setFunc(self.tempGhost)
       confProject:advance(time, {}, {vtSq})
       vtSq:scale(1./self.mass)
-      --End Second Section
-      --print("Made MaxwellianOnBasis and fields")
 
-      --Third section is Make the new updater. Pass lots of stuff to it.
+      --Make the Updater
       self.bcSolver = Updater.MaxwellGhostBc{
          onGrid   = self.grid,   edge               = self.bcEdge,
          cdim     = self.cdim,   boundaryConditions = {bcFunc},
@@ -345,25 +249,27 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
          basis  = self.basis,  confBasis          = self.confBasis,
          advanceArgs = {{mySpecies:rkStepperFields()[1]}, {mySpecies:rkStepperFields()[1]}},
          confGrid = self.confGrid,
-         mass = self.mass,
-         numDens = numDens,
-         uPar = uPar,
-         vtSq = vtSq,
-         projMaxwell = self.projMaxwell,
-         bmag=self.bmag,
-         jacobGeo=self.jacobGeo,
          boundaryGrid=self.boundaryGrid,
-         confBoundaryGrid=self.confBoundaryGrid,
-         species = self.species,
-         bcFunc1=self.bcFunc1,
-         bcFunc2=self.bcFunc2,
-         bcFunc3=self.bcFunc3,
+         confBoundaryGrid = self.confBoundaryGrid,
       }
-      --End Third section
+
+      -- Project Into the ghost field
+      self.projMaxwell:advance(time,{numDens,uPar,vtSq,self.bmag},{self.bcSolver.fldTools.ghostFld})
+      --scale Density
+      local M0e, M0 = self:allocMoment(), self:allocMoment()
+      local M0mod   = self:allocMoment()
+      self.numDensityCalc:advance(0.0, {self.bcSolver.fldTools.ghostFld}, {M0})
+      confProject:setFunc(self.densityGhost)
+      confProject:advance(0.0, {}, {M0e})
+      self.confWeakDivide:advance(0.0, {M0, M0e}, {M0mod})
+      self.phaseWeakMultiply:advance(0.0, {M0mod,self.bcSolver.fldTools.ghostFld}, {self.bcSolver.fldTools.ghostFld})
+      -- Multiply by conf space Jacobian
+      self.phaseWeakMultiply:advance(0, {self.bcSolver.fldTools.ghostFld, self.jacobGeo}, {self.bcSolver.fldTools.ghostFld})
+
    else
       self.bcSolver = Updater.Bc{
-         onGrid   = self.grid,   edge               = self.bcEdge,  
-         cdim     = self.cdim,   boundaryConditions = {bcFunc},   
+         onGrid   = self.grid,   edge               = self.bcEdge,
+         cdim     = self.cdim,   boundaryConditions = {bcFunc},
          dir      = self.bcDir,  evaluate           = self.bcFuncIn,
          vdir     = vdir,        evolveFn           = self.evolve,
          skinLoop = skinType,    feedback           = self.feedback,
@@ -371,16 +277,15 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
          advanceArgs = {{mySpecies:rkStepperFields()[1]}, {mySpecies:rkStepperFields()[1]}},
          maxwellianGhost = self.maxwellianGhost,
          confGrid = self.confGrid,
-         mass = self.mass,
-         bcFunc1=self.bcFunc1,
-         bcFunc2=self.bcFunc2,
-         bcFunc3=self.bcFunc3,
       }
    end
 
+end
+
+function GkBasicBC:createBoundaryTools(mySpecies, field, externalField)
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
    -- the fluxes through a boundary (e.g. neutral recycling).
-   if self.saveFlux then
+   if self.saveFlux or self.bcKind=="maxwellianGhost" then
       -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
       self:createBoundaryGrid(mySpecies)
 
@@ -497,7 +402,7 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
          moment     = "GkM0", -- GkM0 = < f >
       }
 
-      if not self.anyDiagnostics then
+      if not self.anyDiagnostics and not self.bcKind=="maxwellianGhost" then
          self.calcBoundaryFluxRateFunc = function(dtIn) end
       else
          self.calcBoundaryFluxRateFunc = function(dtIn)
@@ -511,6 +416,12 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
             onGrid    = self.confBoundaryGrid,  operation = "Multiply",
             weakBasis = self.confBasis,         onGhosts  = true,
          }
+         self.phaseWeakMultiply = Updater.CartFieldBinOp {
+            onGrid    = self.boundaryGrid,  operation = "Multiply",
+            weakBasis = self.basis,         fieldBasis=self.confBasis,
+            onGhosts  = true,
+         }
+
          self.confWeakDivide = Updater.CartFieldBinOp {
             onGrid    = self.confBoundaryGrid,  operation = "Divide",
             weakBasis = self.confBasis,         onGhosts  = true,
@@ -570,6 +481,8 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
       self.calcBoundaryFluxRateFunc     = function(dtIn) end
    end
 end
+
+
 
 function GkBasicBC:storeBoundaryFlux(tCurr, rkIdx, qOut)
    self.storeBoundaryFluxFunc(tCurr, rkIdx, qOut)
