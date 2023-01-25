@@ -105,7 +105,6 @@ function Gyrokinetic:setAuxFields(auxFields)
          self.b_z = geo.b_z
          self.jacobTotInv = geo.jacobTotInv
       end
-      self.phiWall = geo.phiWall  -- For sheath BCs.
 
       -- Allocate pointers and indexers to field objects.
 
@@ -123,10 +122,8 @@ function Gyrokinetic:setAuxFields(auxFields)
       -- Geometry.
       self.bmagPtr     = self.bmag:get(1)
       self.cmagPtr     = self.cmag:get(1)
-      self.phiWallPtr  = self.phiWall:get(1)
       self.bmagIdxr    = self.bmag:genIndexer()
       self.cmagIdxr    = self.cmag:genIndexer()
-      self.phiWallIdxr = self.phiWall:genIndexer()
       if self.geoType == "SimpleHelical" then
          self.bmagInvPtr  = self.bmagInv:get(1)
          self.bdriftXPtr  = self.bdriftX:get(1)
@@ -331,13 +328,6 @@ function Gyrokinetic:surfTermGenGeoEM(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, i
    local res = self._surfTerm[dir][side](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res
-end
-
-function Gyrokinetic:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_, idx, f, fRefl)
-   self.phi:fill(self.phiIdxr(idx), self.phiPtr)
-   self.phiWall:fill(self.phiWallIdxr(idx), self.phiWallPtr)
-   return self._calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_, 
-                                     self.phiPtr:data(), self.phiWallPtr:data(), f:data(), fRefl:data())
 end
 
 local GyrokineticStep2 = Proto(EqBase)

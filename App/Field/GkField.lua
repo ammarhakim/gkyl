@@ -934,10 +934,6 @@ function GkGeometry:fullInit(appTbl)
    -- NOTE: for must purposes one must use geo.name, defined in the :alloc method.
    self.geoType = tbl.geometryType and tbl.geometryType or "SimpleHelical"
 
-   -- Wall potential for sheath BCs.
-   self.phiWallFunc = tbl.phiWall
-   if self.phiWallFunc then assert(type(self.phiWallFunc)=="function", "GkGeometry: phiWall must be a function (t, xn)") end
-
    -- File containing geometry quantities that go into equations.
    self.fromFile = tbl.fromFile
 
@@ -1033,10 +1029,6 @@ function GkGeometry:alloc()
 
    end
 
-   -- Wall potential for sheath BCs.
-   self.geo.phiWall = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-
-      
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
       elemType   = self.geo.bmag:elemType(),
@@ -1231,14 +1223,6 @@ function GkGeometry:createSolver()
 
    end   -- End of if geo.name == "..." statement.
 
-   if self.phiWallFunc then 
-      self.setPhiWall = Updater.EvalOnNodes {
-         onGrid = self.grid,   evaluate = self.phiWallFunc,
-         basis  = self.basis,  onGhosts = true,
-      }
-   end
-
-
    self.unitWeight = createField(self.grid,self.basis,{1,1})
    local initUnit = Updater.ProjectOnBasis {
       onGrid = self.grid,   evaluate = function (t,xn) return 1.0 end,
@@ -1336,9 +1320,6 @@ function GkGeometry:initField()
    confWeakMultiply:advance(0., {self.geo.bmagInv, self.geo.bmagInv}, {self.geo.bmagInvSq})
    log("...Finished initializing the geometry\n")
 
-   if self.setPhiWall then self.setPhiWall:advance(0.0, {}, {self.geo.phiWall})
-   else self.geo.phiWall:clear(0.0) end
-
    -- Apply open BCs and sync ghost cells. These calls do not enforce periodicity because
    -- these fields were created with syncPeriodicDirs = false.
    local function applyBCsync(fld)
@@ -1368,7 +1349,6 @@ function GkGeometry:initField()
       applyBCsync(self.geo.b_y)
       applyBCsync(self.geo.b_z)
    end
-   applyBCsync(self.geo.phiWall)
 
    -- Apply BCs.
    self:applyBc(0, self.geo)
@@ -1421,23 +1401,16 @@ function GkGeometry:rkStepperFields()
    return { self.geo, self.geo, self.geo, self.geo }
 end
 
-function GkGeometry:advance(tCurr)
-   if self.evolve then 
-      self.setPhiWall:advance(tCurr, {}, self.geo.phiWall)
-   end 
-end
+function GkGeometry:advance(tCurr) end
 
 function GkGeometry:applyBcIdx(tCurr, idx)
    self:applyBc(tCurr, self:rkStepperFields()[1])
 end
 
-function GkGeometry:applyBc(tCurr, geoIn)
-   if self.evolve then geoIn.phiWall:sync(false) end
-end
+function GkGeometry:applyBc(tCurr, geoIn) end
 
 function GkGeometry:totalSolverTime()
-   if self.evolve then return self.setPhiWall.totalTime
-   else return 0 end
+   return 0
 end
 
 function GkGeometry:totalBcTime() return 0.0 end
