@@ -107,6 +107,9 @@ function GkChargeExchange:fullInit(speciesTbl)
    elseif self.plasma =='Ne' then
       self.a = 7.95e-19
       self.b = 5.65e-20
+   elseif self.plasma =='He' then
+      self.a = 6.484e-19
+      self.b = 4.350e-20
    end
 
    self.timers = {nonSlvr = 0.}

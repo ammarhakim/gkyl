@@ -12,14 +12,14 @@ printf(fh, "#include <../../Lib/gkyl_ipow.h> ~%~%")$
 printf(fh, "extern \"C\" { ~%")$
 printf(fh, "double gkyl_ipow(double base, int exp);~%~%")$
 
-bName   : ["Ser","Max"]$
+bName   : ["Ser"]$
 gkVdims : [[1,2], [2], [2]]$
 
 for bInd : 1 thru length(bName) do (
 
    for pi : 1 thru polyOrderMax do (
      for ci : 1 thru 3 do (
-       printf(fh, "void SpitzerNuCellAvScale~ax~a_P~a(const double elemCharge, const double eps0, const double hBar, const double nuFrac, const double qA, const double massA, const double *m0A, const double *vtSqA, const double qB, const double massB, const double *m0B, const double *vtSqB, const double normNu, const double *Bmag, double *nu); ~%", ci, bName[bInd], pi),
+       printf(fh, "void SpitzerNuCellAvScale~ax~a_P~a(double elemCharge, double eps0, double hBar, double nuFrac, double qA, double massA, const double *m0A, const double *vtSqA, double vtSqMinA, double qB, double massB, const double *m0B, const double *vtSqB, double vtSqMinB, double normNu, const double *Bmag, double *nu); ~%", ci, bName[bInd], pi),
        printf(fh, "~%")      
      ),
      printf(fh, "~%")
@@ -27,7 +27,7 @@ for bInd : 1 thru length(bName) do (
 
    for pi : 1 thru polyOrderMax do (
      for ci : 1 thru 3 do (
-       printf(fh, "void SpitzerNuCellAvBuild~ax~a_P~a(const double elemCharge, const double eps0, const double hBar, const double nuFrac, const double qA, const double massA, const double *m0A, const double *vtSqA, const double qB, const double massB, const double *m0B, const double *vtSqB, const double normNu, const double *Bmag, double *nu); ~%", ci, bName[bInd], pi),
+       printf(fh, "void SpitzerNuCellAvBuild~ax~a_P~a(double elemCharge, double eps0, double hBar, double nuFrac, double qA, double massA, const double *m0A, const double *vtSqA, double vtSqMinA, double qB, double massB, const double *m0B, const double *vtSqB, double vtSqMinB, double normNu, const double *Bmag, double *nu); ~%", ci, bName[bInd], pi),
        printf(fh, "~%")      
      ),
      printf(fh, "~%")

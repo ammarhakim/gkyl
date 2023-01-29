@@ -1,6 +1,6 @@
 #include <IonizationModDecl.h> 
 #include <math.h> 
-double VoronovReactRateCellAv1xSer_P1(const double elemCharge, const double m_, const double *m0, const double *vtSqNeut, const double *vtSqElc, const double E, const double A, const double K, const double P, const double X, double *coefIz) 
+double VoronovReactRateCellAv1xSer_P1(const double elemCharge, const double m_, const double *m0, const double *vtSqNeut, double vtSqNeutMin, const double *vtSqElc, double vtSqElcMin, const double E, const double A, const double K, const double P, const double X, double *coefIz) 
 { 
   // elemCharge: elementary charge (J - eV conversion factor). 
   // E:   	     Voronov ionization energy. 
@@ -17,7 +17,10 @@ double VoronovReactRateCellAv1xSer_P1(const double elemCharge, const double m_, 
   double m0NeutAv = 0.7071067811865476*m0[0]; 
   double vtSqElc0 = 0.7071067811865476*vtSqElc[0]; 
   double vtSqNeut0 = 0.7071067811865476*vtSqNeut[0]; 
-  double T0 = (0.7071067811865476*vtSqElc[0]*m_)/elemCharge; 
+  if ((vtSqNeut0 > 0.) && (vtSqNeut0 < vtSqNeutMin)) vtSqNeut0 = vtSqNeutMin;
+  if ((vtSqElc0 > 0.) && (vtSqElc0 < vtSqElcMin)) vtSqElc0 = vtSqElcMin;
+ 
+  double T0 = (m_*vtSqElc0)/elemCharge; 
   double U = E/T0; 
  
   if (U >= 3.0/2.0 || m0NeutAv <= 0. || vtSqNeut0 <= 0. || vtSqElc0 <= 0.) { 
@@ -29,7 +32,7 @@ double VoronovReactRateCellAv1xSer_P1(const double elemCharge, const double m_, 
   };
 } 
  
-double VoronovReactRateCellAv1xSer_P2(const double elemCharge, const double m_, const double *m0, const double *vtSqNeut, const double *vtSqElc, const double E, const double A, const double K, const double P, const double X, double *coefIz) 
+double VoronovReactRateCellAv1xSer_P2(const double elemCharge, const double m_, const double *m0, const double *vtSqNeut, double vtSqNeutMin, const double *vtSqElc, double vtSqElcMin, const double E, const double A, const double K, const double P, const double X, double *coefIz) 
 { 
   // elemCharge: elementary charge (J - eV conversion factor). 
   // E:   	     Voronov ionization energy. 
@@ -46,7 +49,10 @@ double VoronovReactRateCellAv1xSer_P2(const double elemCharge, const double m_, 
   double m0NeutAv = 0.7071067811865476*m0[0]; 
   double vtSqElc0 = 0.7071067811865476*vtSqElc[0]; 
   double vtSqNeut0 = 0.7071067811865476*vtSqNeut[0]; 
-  double T0 = (0.7071067811865476*vtSqElc[0]*m_)/elemCharge; 
+  if ((vtSqNeut0 > 0.) && (vtSqNeut0 < vtSqNeutMin)) vtSqNeut0 = vtSqNeutMin;
+  if ((vtSqElc0 > 0.) && (vtSqElc0 < vtSqElcMin)) vtSqElc0 = vtSqElcMin;
+ 
+  double T0 = (m_*vtSqElc0)/elemCharge; 
   double U = E/T0; 
  
   if (U >= 3.0/2.0 || m0NeutAv <= 0. || vtSqNeut0 <= 0. || vtSqElc0 <= 0.) { 
@@ -58,7 +64,7 @@ double VoronovReactRateCellAv1xSer_P2(const double elemCharge, const double m_, 
   };
 } 
  
-double VoronovReactRateCellAv1xSer_P3(const double elemCharge, const double m_, const double *m0, const double *vtSqNeut, const double *vtSqElc, const double E, const double A, const double K, const double P, const double X, double *coefIz) 
+double VoronovReactRateCellAv1xSer_P3(const double elemCharge, const double m_, const double *m0, const double *vtSqNeut, double vtSqNeutMin, const double *vtSqElc, double vtSqElcMin, const double E, const double A, const double K, const double P, const double X, double *coefIz) 
 { 
   // elemCharge: elementary charge (J - eV conversion factor). 
   // E:   	     Voronov ionization energy. 
@@ -75,7 +81,10 @@ double VoronovReactRateCellAv1xSer_P3(const double elemCharge, const double m_, 
   double m0NeutAv = 0.7071067811865476*m0[0]; 
   double vtSqElc0 = 0.7071067811865476*vtSqElc[0]; 
   double vtSqNeut0 = 0.7071067811865476*vtSqNeut[0]; 
-  double T0 = (0.7071067811865476*vtSqElc[0]*m_)/elemCharge; 
+  if ((vtSqNeut0 > 0.) && (vtSqNeut0 < vtSqNeutMin)) vtSqNeut0 = vtSqNeutMin;
+  if ((vtSqElc0 > 0.) && (vtSqElc0 < vtSqElcMin)) vtSqElc0 = vtSqElcMin;
+ 
+  double T0 = (m_*vtSqElc0)/elemCharge; 
   double U = E/T0; 
  
   if (U >= 3.0/2.0 || m0NeutAv <= 0. || vtSqNeut0 <= 0. || vtSqElc0 <= 0.) { 

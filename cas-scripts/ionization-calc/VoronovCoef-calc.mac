@@ -15,11 +15,6 @@ maxPolyOrder_Ser : 3$
 minCdim_Ser : 1$
 maxCdim_Ser : 3$
 
-/* Maximal order basis. */
-maxPolyOrder_Max : 3$
-minCdim_Max : 1$
-maxCdim_Max : 3$
-
 /* ...... END OF USER INPUTS........ */
 
 
@@ -100,7 +95,7 @@ calcVoronovReactRateCellAv(fh, funcNm, cdim, basisFun, pMax) := block([],
     NC  : length(bC),
   
     /* Function declaration with input/output variables. */
-    printf(fh, "double ~a_P~a(const double elemCharge, const double m_, const double *m0, const double *vtSqNeut, const double *vtSqElc, const double E, const double A, const double K, const double P, const double X, double *coefIz) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "double ~a_P~a(const double elemCharge, const double m_, const double *m0, const double *vtSqNeut, double vtSqNeutMin, const double *vtSqElc, double vtSqElcMin, const double E, const double A, const double K, const double P, const double X, double *coefIz) ~%{ ~%", funcNm, polyOrder),
     printf(fh, "  // elemCharge: elementary charge (J - eV conversion factor). ~%"),    
     printf(fh, "  // E:   	     Voronov ionization energy. ~%"),
     printf(fh, "  // A:   	     Voronov constant. ~%"),
@@ -115,47 +110,55 @@ calcVoronovReactRateCellAv(fh, funcNm, cdim, basisFun, pMax) := block([],
     printf(fh, " ~%"),
     
 
-    m0_e : doExpand1(m0,bC),
-    m0Av : innerProd(varsC,1.0,1.0,m0_e)/innerProd(varsC,1.0,1.0,1.0),
+    m0_e       : doExpand1(m0,bC),
     vtSqNeut_e : doExpand1(vtSqNeut,bC),
+    vtSqElc_e  : doExpand1(vtSqElc,bC),
+    m0Av       : innerProd(varsC,1.0,1.0,m0_e)/innerProd(varsC,1.0,1.0,1.0),
     vtSqNeutAv : innerProd(varsC,1.0,1.0,vtSqNeut_e)/innerProd(varsC,1.0,1.0,1.0),
-    vtSqElc_e : doExpand1(vtSqElc,bC),
-    vtSqElcAv : innerProd(varsC,1.0,1.0,vtSqElc_e)/innerProd(varsC,1.0,1.0,1.0),
-    coef_e : doExpand1(coefIz,bC),
-    coefAv : innerProd(varsC,1.0,1.0,coef_e)/innerProd(varsC,1.0,1.0,1.0),
+    vtSqElcAv  : innerProd(varsC,1.0,1.0,vtSqElc_e)/innerProd(varsC,1.0,1.0,1.0),
 
     declareWriteCExprsC(m0NeutAv, m0Av),
     declareWriteCExprsC(vtSqElc0, vtSqElcAv),
     declareWriteCExprsC(vtSqNeut0, vtSqNeutAv),
-    declareWriteCExprsC(T0, vtSqElcAv*m_/elemCharge),
+
+    /* Limit how low the temperature can get (set by the velocity grid). */
+    printf(fh, "  if ((vtSqNeut0 > 0.) && (vtSqNeut0 < vtSqNeutMin)) vtSqNeut0 = vtSqNeutMin;~%"),
+    printf(fh, "  if ((vtSqElc0 > 0.) && (vtSqElc0 < vtSqElcMin)) vtSqElc0 = vtSqElcMin;~%"),
+    printf(fh, " ~%"),
+
+    declareWriteCExprsC(T0, vtSqElc0*m_/elemCharge),
 
     Uav : E/T0,
     declareWriteCExprsC(U, Uav),
     printf(fh, " ~%"),
 
-    radexpand: false,
-    coefIz_c : calcInnerProdList(varsC,1.0,bC, (A*(1 + P*sqrt(U))/(X + U)*U^K*e^(-U)*1e-6)),
+    radexpand : false,
+    coefIz_c  : calcInnerProdList(varsC,1.0,bC, (A*(1 + P*sqrt(U))/(X + U)*U^K*e^(-U)*1e-6)),
 
-    cflRate : float(expand(fullratsimp(m0Av*coefAv/(2*polyOrder+1)))),
-    
     printf(fh, "  if (U >= 3.0/2.0 || m0NeutAv <= 0. || vtSqNeut0 <= 0. || vtSqElc0 <= 0.) { ~%"),
     printf(fh, "    coefIz[0] = 0.0;~%"),
     printf(fh, "    return 0.0; ~%"),
     printf(fh, "  } else {~%"),
+
     writeCExprsCs(coefIz, coefIz_c),
+
+    coef_e  : doExpand1(coefIz,bC),
+    coefAv  : innerProd(varsC,1.0,1.0,coef_e)/innerProd(varsC,1.0,1.0,1.0),
+    cflRate : float(expand(fullratsimp(m0Av*coefAv/(2*polyOrder+1)))),
     printf(fh, "    return ~a; ~%",cflRate),
+
     printf(fh, "  };~%"),
     printf(fh, "} ~%"),
     printf(fh, " ~%")
   )
 )$
 
-bName        : ["Ser","Max"]$
-maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
-minCdim      : [minCdim_Ser, minCdim_Max]$
-minVdim      : [minVdim_Ser, minVdim_Max]$
-maxCdim      : [maxCdim_Ser, maxCdim_Max]$
-maxVdim      : [maxVdim_Ser, maxVdim_Max]$
+bName        : ["Ser"]$
+maxPolyOrder : [maxPolyOrder_Ser]$
+minCdim      : [minCdim_Ser]$
+minVdim      : [minVdim_Ser]$
+maxCdim      : [maxCdim_Ser]$
+maxVdim      : [maxVdim_Ser]$
 
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (

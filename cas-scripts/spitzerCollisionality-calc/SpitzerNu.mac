@@ -21,11 +21,6 @@ maxPolyOrder_Ser : 3$
 minCdim_Ser : 1$
 maxCdim_Ser : 3$
 
-/* Maximal order basis. */
-maxPolyOrder_Max : 3$
-minCdim_Max : 1$
-maxCdim_Max : 3$
-
 /* ...... END OF USER INPUTS........ */
 
 
@@ -47,6 +42,10 @@ writeCExprsCollect1r(lhs, rhs, clst) := block([expr],
       outStr : ssubst("pow(vtSqA0,3)","vtSqA0^3",outStr),
       outStr : ssubst("pow(vtSqB0,2)","vtSqB0^2",outStr),
       outStr : ssubst("pow(vtSqB0,3)","vtSqB0^3",outStr),
+      outStr : ssubst("pow(vtSqMinA,2)","vtSqMinA^2",outStr),
+      outStr : ssubst("pow(vtSqMinA,3)","vtSqMinA^3",outStr),
+      outStr : ssubst("pow(vtSqMinB,2)","vtSqMinB^2",outStr),
+      outStr : ssubst("pow(vtSqMinB,3)","vtSqMinB^3",outStr),
       outStr : ssubst("std::max","Cmax",outStr),
       outStr : ssubst("std::abs","Cabs",outStr),
       outStr : ssubst("pow(vtSq[0],3)","vtSq[0]^3",outStr),
@@ -77,6 +76,10 @@ declareWriteCExprsC(lhs, rhs) := block([expr],
     outStr : ssubst("pow(vtSqA0,3)","vtSqA0^3",outStr),
     outStr : ssubst("pow(vtSqB0,2)","vtSqB0^2",outStr),
     outStr : ssubst("pow(vtSqB0,3)","vtSqB0^3",outStr),
+    outStr : ssubst("pow(vtSqMinA,2)","vtSqMinA^2",outStr),
+    outStr : ssubst("pow(vtSqMinA,3)","vtSqMinA^3",outStr),
+    outStr : ssubst("pow(vtSqMinB,2)","vtSqMinB^2",outStr),
+    outStr : ssubst("pow(vtSqMinB,3)","vtSqMinB^3",outStr),
     outStr : ssubst("std::max","Cmax",outStr),
     outStr : ssubst("std::abs","Cabs",outStr),
     outStr : ssubst("pow(vtSq[0],3)","vtSq[0]^3",outStr),
@@ -102,6 +105,10 @@ writeCExprsCs(lhs, rhs) := block([expr],
     outStr : ssubst("pow(vtSqA0,3)","vtSqA0^3",outStr),
     outStr : ssubst("pow(vtSqB0,2)","vtSqB0^2",outStr),
     outStr : ssubst("pow(vtSqB0,3)","vtSqB0^3",outStr),
+    outStr : ssubst("pow(vtSqMinA,2)","vtSqMinA^2",outStr),
+    outStr : ssubst("pow(vtSqMinA,3)","vtSqMinA^3",outStr),
+    outStr : ssubst("pow(vtSqMinB,2)","vtSqMinB^2",outStr),
+    outStr : ssubst("pow(vtSqMinB,3)","vtSqMinB^3",outStr),
     outStr : ssubst("std::max","Cmax",outStr),
     outStr : ssubst("std::abs","Cabs",outStr),
     outStr : ssubst("pow(vtSq[0],3)","vtSq[0]^3",outStr),
@@ -127,6 +134,10 @@ writeCExprsCnos(lhs, rhs) := block([expr],
     outStr : ssubst("pow(vtSqA0,3)","vtSqA0^3",outStr),
     outStr : ssubst("pow(vtSqB0,2)","vtSqB0^2",outStr),
     outStr : ssubst("pow(vtSqB0,3)","vtSqB0^3",outStr),
+    outStr : ssubst("pow(vtSqMinA,2)","vtSqMinA^2",outStr),
+    outStr : ssubst("pow(vtSqMinA,3)","vtSqMinA^3",outStr),
+    outStr : ssubst("pow(vtSqMinB,2)","vtSqMinB^2",outStr),
+    outStr : ssubst("pow(vtSqMinB,3)","vtSqMinB^3",outStr),
     outStr : ssubst("std::max","Cmax",outStr),
     outStr : ssubst("std::abs","Cabs",outStr),
     outStr : ssubst("pow(vtSq[0],3)","vtSq[0]^3",outStr),
@@ -209,7 +220,7 @@ calcCellAvSpitzerNuScale(fh, funcNm, cdim, basisFun, pMax) := block([],
     NC  : length(bC),
   
     /* Function declaration with input/output variables. */
-    printf(fh, "void ~a_P~a(const double elemCharge, const double eps0, const double hBar, const double nuFrac, const double qA, const double massA, const double *m0A, const double *vtSqA, const double qB, const double massB, const double *m0B, const double *vtSqB, const double normNu, const double *Bmag, double *nu) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "void ~a_P~a(double elemCharge, double eps0, double hBar, double nuFrac, double qA, double massA, const double *m0A, const double *vtSqA, double vtSqMinA, double qB, double massB, const double *m0B, const double *vtSqB, double vtSqMinB, double normNu, const double *Bmag, double *nu) ~%{ ~%", funcNm, polyOrder),
     printf(fh, "  // elemCharge: elementary charge (J - eV conversion factor). ~%"),
     printf(fh, "  // eps0:       vacuum permittivity. ~%"),
     printf(fh, "  // hBar:       Planck's constant h, divided by 2pi. ~%"),
@@ -218,10 +229,12 @@ calcCellAvSpitzerNuScale(fh, funcNm, cdim, basisFun, pMax) := block([],
     printf(fh, "  // massA:      mass of species A. ~%"),
     printf(fh, "  // m0A[~a]:     number density of species A. ~%", NC),
     printf(fh, "  // vtSqA[~a]:   squared thermal speed, sqrt(T/m), of species A. ~%", NC),
+    printf(fh, "  // vtSqMinA:  minium T/m species A's grid supports.~%"),
     printf(fh, "  // qB:         charge of species B. ~%"),
     printf(fh, "  // massB:      mass of species B. ~%"),
     printf(fh, "  // m0B[~a]:     number density of species B. ~%", NC),
     printf(fh, "  // vtSqB[~a]:   squared thermal speed, sqrt(T/m), of species B. ~%", NC),
+    printf(fh, "  // vtSqMinB:  minium T/m species B's grid supports.~%"),
     printf(fh, "  // Bmag[~a]:    magnetic field magnitude. ~%", NC),
     printf(fh, "  // nu[~a]:      collisionality. ~%", NC),
     printf(fh, " ~%"),
@@ -237,10 +250,20 @@ calcCellAvSpitzerNuScale(fh, funcNm, cdim, basisFun, pMax) := block([],
     radexpand: false,
     nu_c : nuFrac*normNu*calcInnerProdList(varsC,1.0,bC,m0Bav/sqrt((vtSqAav+vtSqBav)^3)),
 
-    printf(fh, "  if ((m0B[0]>0.0) && (vtSqA[0]>0.0) && (vtSqB[0]>0.0)) {~%"),
-    writeCExprsCollect1r(nu,nu_c,[normNu]),
-    printf(fh, "  } else {~%"),
+    nuMax_c : nuFrac*normNu*calcInnerProdList(varsC,1.0,bC,m0Bav/sqrt((vtSqMinA+vtSqMinB)^3)),
+    nuMaxA_c : nuFrac*normNu*calcInnerProdList(varsC,1.0,bC,m0Bav/sqrt((vtSqMinA+vtSqBav)^3)),
+    nuMaxB_c : nuFrac*normNu*calcInnerProdList(varsC,1.0,bC,m0Bav/sqrt((vtSqAav+vtSqMinB)^3)),
+
+    printf(fh, "  if (m0B[0]<=0.0) {~%"),
     printf(fh, "    nu[0] = 0.0;~%"),
+    printf(fh, "  } else if ((vtSqA[0]<vtSqMinA) && (vtSqB[0]<vtSqMinB)) {~%"),
+    writeCExprsCollect1r(nu,nuMax_c,[normNu]),
+    printf(fh, "  } else if (vtSqA[0]<vtSqMinA) {~%"),
+    writeCExprsCollect1r(nu,nuMaxA_c,[normNu]),
+    printf(fh, "  } else if (vtSqB[0]<vtSqMinB) {~%"),
+    writeCExprsCollect1r(nu,nuMaxB_c,[normNu]),
+    printf(fh, "  } else {~%"),
+    writeCExprsCollect1r(nu,nu_c,[normNu]),
     printf(fh, "  }~%"),
     printf(fh, " ~%"),
 
@@ -260,7 +283,7 @@ calcCellAvSpitzerNuBuild(fh, funcNm, cdim, basisFun, pMax) := block([],
     NC  : length(bC),
   
     /* Function declaration with input/output variables. */
-    printf(fh, "void ~a_P~a(const double elemCharge, const double eps0, const double hBar, const double nuFrac, const double qA, const double massA, const double *m0A, const double *vtSqA, const double qB, const double massB, const double *m0B, const double *vtSqB, const double normNu, const double *Bmag, double *nu) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "void ~a_P~a(double elemCharge, double eps0, double hBar, double nuFrac, double qA, double massA, const double *m0A, const double *vtSqA, double vtSqMinA, double qB, double massB, const double *m0B, const double *vtSqB, double vtSqMinB, double normNu, const double *Bmag, double *nu) ~%{ ~%", funcNm, polyOrder),
     printf(fh, "  // elemCharge: elementary charge (J - eV conversion factor). ~%"),
     printf(fh, "  // eps0:       vacuum permittivity. ~%"),
     printf(fh, "  // hBar:       Planck's constant h, divided by 2pi. ~%"),
@@ -269,10 +292,12 @@ calcCellAvSpitzerNuBuild(fh, funcNm, cdim, basisFun, pMax) := block([],
     printf(fh, "  // massA:      mass of species A. ~%"),
     printf(fh, "  // m0A[~a]:     number density of species A. ~%", NC),
     printf(fh, "  // vtSqA[~a]:   squared thermal speed, sqrt(T/m), of species A. ~%", NC),
+    printf(fh, "  // vtSqMinA:  minium T/m species A's grid supports.~%"),
     printf(fh, "  // qB:         charge of species B. ~%"),
     printf(fh, "  // massB:      mass of species B. ~%"),
     printf(fh, "  // m0B[~a]:     number density of species B. ~%", NC),
     printf(fh, "  // vtSqB[~a]:   squared thermal speed, sqrt(T/m), of species B. ~%", NC),
+    printf(fh, "  // vtSqMinB:  minium T/m species B's grid supports.~%"),
     printf(fh, "  // Bmag[~a]:    magnetic field magnitude. ~%", NC),
     printf(fh, "  // nu[~a]:      collisionality. ~%", NC),
     printf(fh, " ~%"),
@@ -290,10 +315,22 @@ calcCellAvSpitzerNuBuild(fh, funcNm, cdim, basisFun, pMax) := block([],
     Bmagav   : innerProd(varsC,1.0,1.0,Bmag_e)/innerProd(varsC,1.0,1.0,1.0),
 
     declareWriteCExprsC(nA0, m0Aav),
-    declareWriteCExprsC(vtSqA0, vtSqAav),
     declareWriteCExprsC(nB0, m0Bav),
-    declareWriteCExprsC(vtSqB0, vtSqBav),
     declareWriteCExprsC(Bmag0, Bmagav),
+
+    printf(fh, "  double vtSqA0, vtSqB0;~%"),
+    printf(fh, "  if (vtSqA[0]<vtSqMinA) {~%"),
+    writeCExprsCs(vtSqA0, vtSqMinA),
+    printf(fh, "  } else {~%"),
+    writeCExprsCs(vtSqA0, vtSqAav),
+    printf(fh, "  }~%"),
+    printf(fh, "  if (vtSqB[0]<vtSqMinB) {~%"),
+    writeCExprsCs(vtSqB0, vtSqMinB),
+    printf(fh, "  } else {~%"),
+    writeCExprsCs(vtSqB0, vtSqBav),
+    printf(fh, "  }~%"),
+    printf(fh, " ~%"),
+
 
     printf(fh, "  double logLambda;~%"),
     if (coulombLogOption = 0) then (
@@ -333,7 +370,7 @@ calcCellAvSpitzerNuBuild(fh, funcNm, cdim, basisFun, pMax) := block([],
     radexpand: false,
     nu_c : nuFrac*calcInnerProdList(varsC,1.0,bC,(nB0/massA)*(1/massA+1/massB)*(qA^2)*(qB^2)*logLambda/(3.0*sqrt((2*%pi)^3)*(eps0^2)*sqrt((vtSqA0+vtSqB0)^3))),
 
-    printf(fh, "  if ((m0B[0]>0.0) && (vtSqA[0]>0.0) && (vtSqB[0]>0.0)) {~%"),
+    printf(fh, "  if (m0B[0]>0.0) {~%"),
     writeCExprsCollect1r(nu,nu_c,[charge,eps0]),
     printf(fh, "  } else {~%"),
     printf(fh, "    nu[0] = 0.0;~%"),
@@ -345,12 +382,12 @@ calcCellAvSpitzerNuBuild(fh, funcNm, cdim, basisFun, pMax) := block([],
   )
 )$
 
-bName        : ["Ser","Max"]$
-maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
-minCdim      : [minCdim_Ser, minCdim_Max]$
-minVdim      : [minVdim_Ser, minVdim_Max]$
-maxCdim      : [maxCdim_Ser, maxCdim_Max]$
-maxVdim      : [maxVdim_Ser, maxVdim_Max]$
+bName        : ["Ser"]$
+maxPolyOrder : [maxPolyOrder_Ser]$
+minCdim      : [minCdim_Ser]$
+minVdim      : [minVdim_Ser]$
+maxCdim      : [maxCdim_Ser]$
+maxVdim      : [maxVdim_Ser]$
 
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (

@@ -140,6 +140,11 @@ function VlasovSpecies:createSolver(field, externalField)
    end
 
    self.computePlasmaB = true and plasmaB   -- Differentiate plasma B from external B.
+
+   -- Minimum vtSq supported by the grid (for p=1 only for now):
+   local TempMin = 0.
+   for d = 1, self.vdim do TempMin = TempMin + (1./3.)*(self.mass/6.)*self.grid:dx(self.cdim+d) end
+   self.myVtSqMin = TempMin/self.mass
    
    -- Create updater to advance solution by one time-step.
    self.equation = VlasovEq {
@@ -725,11 +730,12 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       end
       local neutM0   = neuts:fluidMoments()[1]
       local neutVtSq = neuts:selfPrimitiveMoments()[2]
+      local neutVtSqMin = neuts:vtSqMin()
       
       if tCurr == 0.0 then
 	 species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       end
-      species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {species[self.name].collisions[self.collNmIoniz].reactRate})
+      species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, neutVtSqMin, self.vtSqSelf, self:vtSqMin()}, {species[self.name].collisions[self.collNmIoniz].reactRate})
    end
 
    -- For charge exchange.
@@ -740,11 +746,12 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
          -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments. 
          neuts:calcCouplingMoments(tCurr, rkIdx, species)
       end
-      local m0       = neuts:fluidMoments()[1]
-      local neutU    = neuts:selfPrimitiveMoments()[1]
-      local neutVtSq = neuts:selfPrimitiveMoments()[2]
+      local m0          = neuts:fluidMoments()[1]
+      local neutU       = neuts:selfPrimitiveMoments()[1]
+      local neutVtSq    = neuts:selfPrimitiveMoments()[2]
+      local neutVtSqMin = neuts:vtSqMin()
       
-      species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uSelf, neutU, self.vtSqSelf, neutVtSq}, {species[self.name].collisions[self.collNmCX].reactRate})
+      species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uSelf, neutU, self.vtSqSelf, self:vtSqMin(), neutVtSq, neutVtSqMin}, {species[self.name].collisions[self.collNmCX].reactRate})
    end
 
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:calcCouplingMoments(tCurr, rkIdx, species) end
@@ -771,6 +778,8 @@ end
 function VlasovSpecies:crossPrimitiveMoments(otherSpeciesName)
    return { self.uCross[otherSpeciesName], self.vtSqCross[otherSpeciesName] }
 end
+
+function VlasovSpecies:vtSqMin() return self.myVtSqMin end
 
 function VlasovSpecies:getNumDensity(rkIdx)
    -- If no rkIdx specified, assume numDensity has already been calculated.

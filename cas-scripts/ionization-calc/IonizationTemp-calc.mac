@@ -12,11 +12,6 @@ maxPolyOrder_Ser : 3$
 minCdim_Ser : 1$
 maxCdim_Ser : 3$
 
-/* Maximal order basis. */
-maxPolyOrder_Max : 3$
-minCdim_Max : 1$
-maxCdim_Max : 3$
-
 /* ...... END OF USER INPUTS........ */
 
 
@@ -97,7 +92,7 @@ calcIonizationTemp(fh, funcNm, cdim, basisFun, pMax) := block([],
     NC  : length(bC),
   
     /* Function declaration with input/output variables. */
-    printf(fh, "void ~a_P~a(const double elemCharge, const double m_, const double *vtSq, const double E, double *vtSqIz) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "void ~a_P~a(const double elemCharge, const double m_, const double *vtSq, double vtSqMin, const double E, double *vtSqIz) ~%{ ~%", funcNm, polyOrder),
     printf(fh, "  // E:   	   Voronov ionization energy [eV]. ~%"),
     printf(fh, "  // m_:           mass of electron. ~%"),
     printf(fh, "  // vtSq[~a]:     electron squared thermal speed, sqrt(T/m) ~%", NC),
@@ -108,8 +103,12 @@ calcIonizationTemp(fh, funcNm, cdim, basisFun, pMax) := block([],
     vtSqAve : innerProd(varsC,1.0,1.0,vtSq_e)/innerProd(varsC,1.0,1.0,1.0),
     declareWriteCExprsC(vtSq0, vtSqAve), 
 
+    /* Limit how low the temperature can get (set by the velocity grid). */
+    printf(fh, "  if ((vtSq0 > 0.) && (vtSq0 < vtSqMin)) vtSq0 = vtSqMin;~%"),
+    printf(fh, " ~%"),
+
     /* vtSqIz_c : calcInnerProdList(varsC,1.0,bC, (0.5*vtSq_e - (1/3)*E*elemCharge/m_)), */
-    vtSqIzAve : calcInnerProdList(varsC,1.0,bC,0.5*vtSqAve - (1/3)*E*elemCharge/m_),
+    vtSqIzAve : calcInnerProdList(varsC,1.0,bC,0.5*vtSq0 - (1/3)*E*elemCharge/m_),
 
     printf(fh, "  if (vtSq0 > 2.0/3.0*E*elemCharge/m_) { ~%"),
     writeCExprsCs(vtSqIz, vtSqIzAve),
@@ -126,12 +125,12 @@ calcIonizationTemp(fh, funcNm, cdim, basisFun, pMax) := block([],
   )
 )$
 
-bName        : ["Ser","Max"]$
-maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
-minCdim      : [minCdim_Ser, minCdim_Max]$
-minVdim      : [minVdim_Ser, minVdim_Max]$
-maxCdim      : [maxCdim_Ser, maxCdim_Max]$
-maxVdim      : [maxVdim_Ser, maxVdim_Max]$
+bName        : ["Ser"]$
+maxPolyOrder : [maxPolyOrder_Ser]$
+minCdim      : [minCdim_Ser]$
+minVdim      : [minVdim_Ser]$
+maxCdim      : [maxCdim_Ser]$
+maxVdim      : [maxVdim_Ser]$
 
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (

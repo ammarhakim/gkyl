@@ -1,6 +1,6 @@
 #include <IonizationModDecl.h> 
 #include <math.h> 
-void IonizationTemp3xSer_P1(const double elemCharge, const double m_, const double *vtSq, const double E, double *vtSqIz) 
+void IonizationTemp3xSer_P1(const double elemCharge, const double m_, const double *vtSq, double vtSqMin, const double E, double *vtSqIz) 
 { 
   // E:   	   Voronov ionization energy [eV]. 
   // m_:           mass of electron. 
@@ -8,8 +8,10 @@ void IonizationTemp3xSer_P1(const double elemCharge, const double m_, const doub
   // vtSqIz[8]:   ionization squared thermal speed. 
  
   double vtSq0 = 0.3535533905932738*vtSq[0]; 
+  if ((vtSq0 > 0.) && (vtSq0 < vtSqMin)) vtSq0 = vtSqMin;
+ 
   if (vtSq0 > 2.0/3.0*E*elemCharge/m_) { 
-     vtSqIz[0] = 0.5*vtSq[0]-(0.9428090415820636*E*elemCharge)/m_; 
+     vtSqIz[0] = 1.414213562373095*vtSq0-(0.9428090415820636*E*elemCharge)/m_; 
   }
  
   else { 
@@ -18,7 +20,7 @@ void IonizationTemp3xSer_P1(const double elemCharge, const double m_, const doub
  
 } 
  
-void IonizationTemp3xSer_P2(const double elemCharge, const double m_, const double *vtSq, const double E, double *vtSqIz) 
+void IonizationTemp3xSer_P2(const double elemCharge, const double m_, const double *vtSq, double vtSqMin, const double E, double *vtSqIz) 
 { 
   // E:   	   Voronov ionization energy [eV]. 
   // m_:           mass of electron. 
@@ -26,8 +28,10 @@ void IonizationTemp3xSer_P2(const double elemCharge, const double m_, const doub
   // vtSqIz[20]:   ionization squared thermal speed. 
  
   double vtSq0 = 0.3535533905932738*vtSq[0]; 
+  if ((vtSq0 > 0.) && (vtSq0 < vtSqMin)) vtSq0 = vtSqMin;
+ 
   if (vtSq0 > 2.0/3.0*E*elemCharge/m_) { 
-     vtSqIz[0] = 0.5*vtSq[0]-(0.9428090415820636*E*elemCharge)/m_; 
+     vtSqIz[0] = 1.414213562373095*vtSq0-(0.9428090415820636*E*elemCharge)/m_; 
   }
  
   else { 
@@ -36,7 +40,7 @@ void IonizationTemp3xSer_P2(const double elemCharge, const double m_, const doub
  
 } 
  
-void IonizationTemp3xSer_P3(const double elemCharge, const double m_, const double *vtSq, const double E, double *vtSqIz) 
+void IonizationTemp3xSer_P3(const double elemCharge, const double m_, const double *vtSq, double vtSqMin, const double E, double *vtSqIz) 
 { 
   // E:   	   Voronov ionization energy [eV]. 
   // m_:           mass of electron. 
@@ -44,8 +48,10 @@ void IonizationTemp3xSer_P3(const double elemCharge, const double m_, const doub
   // vtSqIz[32]:   ionization squared thermal speed. 
  
   double vtSq0 = 0.3535533905932738*vtSq[0]; 
+  if ((vtSq0 > 0.) && (vtSq0 < vtSqMin)) vtSq0 = vtSqMin;
+ 
   if (vtSq0 > 2.0/3.0*E*elemCharge/m_) { 
-     vtSqIz[0] = 0.5*vtSq[0]-(0.9428090415820636*E*elemCharge)/m_; 
+     vtSqIz[0] = 1.414213562373095*vtSq0-(0.9428090415820636*E*elemCharge)/m_; 
   }
  
   else { 

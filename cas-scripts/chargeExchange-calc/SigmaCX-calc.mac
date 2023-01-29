@@ -8,8 +8,6 @@ fpprec : 24$
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 2$
-/* Maximal order basis. */
-maxPolyOrder_Max : 2$
 
 declareWriteCExprsC(lhs, rhs) := block([expr],
   expr : float(expand(rhs)),
@@ -53,7 +51,7 @@ calcSigmaCXcellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     bC : basisC[p],
     NC : length(bC),
   
-    printf(fh, "void ~a_P~a(const double a, const double b, const double *m0, const double *uIon, const double *uNeut, const double *vtSqIon, const double *vtSqNeut, double *vSigmaCX) ~%{ ~%", funcNm, p),
+    printf(fh, "void ~a_P~a(const double a, const double b, const double *m0, const double *uIon, const double *uNeut, const double *vtSqIon, double vtSqIonMin, const double *vtSqNeut, double vtSqNeutMin, double *vSigmaCX) ~%{ ~%", funcNm, p),
     printf(fh, "  // a               constant in fitting function. ~%"),
     printf(fh, "  // b               constant in fitting function. ~%"),
     printf(fh, "  // m0[~a]:         neutral particle density. ~%", NC),
@@ -74,37 +72,42 @@ calcSigmaCXcellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     uIonAv : makelist(0,i,1,vdim),
     uNeutAv : makelist(0,i,1,vdim),
     for vi : 1 thru vdim do (
-    	uIonAv[vi] : fullratsimp(subst(a0=(vi-1)*NC,uIonAv_c)),
-   	uNeutAv[vi] : fullratsimp(subst(a0=(vi-1)*NC,uNeutAv_c))	
-	),
+      uIonAv[vi] : fullratsimp(subst(a0=(vi-1)*NC,uIonAv_c)),
+      uNeutAv[vi] : fullratsimp(subst(a0=(vi-1)*NC,uNeutAv_c))	
+    ),
 
     vtSqIonAv_c : innerProd(varsC,1.0,1.0, doExpand1(vtSqIon,bC))/innerProd(varsC,1.0,1.0,1.0),
     vtSqNeutAv_c : innerProd(varsC,1.0,1.0, doExpand1(vtSqNeut,bC))/innerProd(varsC,1.0,1.0,1.0),
 
     declareWriteCExprsC(vtSqIonAv, vtSqIonAv_c),
     declareWriteCExprsC(vtSqNeutAv, vtSqNeutAv_c),
-    
-    /* Define v_IN variable: vINSq = |uIon - uNeut|^2 */
-    vINSq_c    : innerProd(varsC,1.0,1.0,sum((uIonAv[d] - uNeutAv[d])^2,d,1,vdim))/innerProd(varsC,1.0,1.0,1.0),
 
+    /* Limit how low the temperature can get (set by the velocity grid). */
+    printf(fh, "  if ((vtSqIonAv > 0.) && (vtSqIonAv < vtSqIonMin)) vtSqIonAv = vtSqIonMin;~%"),
+    printf(fh, "  if ((vtSqNeutAv > 0.) && (vtSqNeutAv < vtSqNeutMin)) vtSqNeutAv = vtSqNeutMin;~%"),
+    printf(fh, "  ~%"),
+    
+    /* Define and write vSigmaCX */
+    printf(fh, "  if (m0NeutAv <= 0 || vtSqNeutAv <= 0 || vtSqIonAv <= 0) { ~%"),
+    printf(fh, "    vSigmaCX[0] = 0.0;~%"),
+    printf(fh, "  } else {~%"),
+     
+    /* Define v_IN variable: vINSq = |uIon - uNeut|^2 */
+    vINSq_c : innerProd(varsC,1.0,1.0,sum((uIonAv[d] - uNeutAv[d])^2,d,1,vdim))/innerProd(varsC,1.0,1.0,1.0),
     declareWriteCExprsC(vINSqAv, vINSq_c),
     printf(fh, " ~%"),
     
-    /* Define and write vSigmaCX */
-
-    vSigmaCX_c : calcInnerProdList(varsC,1.0,bC,sqrt(4/%pi*vtSqIonAv + 4/%pi*vtSqNeutAv + vINSqAv)*(a - b*ln(sqrt(4/%pi*vtSqIonAv + 4/%pi*vtSqNeutAv + vINSqAv)))),
-
+    printf(fh, "  double Vcx = ~a;~%",float(sqrt(4/%pi*vtSqIonAv + 4/%pi*vtSqNeutAv + vINSqAv))),
+    vSigmaCX_c : calcInnerProdList(varsC,1.0,bC,Vcx*(a - b*ln(Vcx))),
     writeCExprsCs(vSigmaCX, vSigmaCX_c),
     printf(fh, " ~%"),
 
-    printf(fh, "  if (m0NeutAv <= 0 || vtSqNeutAv <= 0 || vtSqIonAv <= 0) { ~%"),
-    printf(fh, "    vSigmaCX[0] = 0.0;~%"),
     printf(fh, "  }~%"),
     printf(fh, "} ~%")
 ))$
 
-bName        : ["Ser","Max"]$
-maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
+bName        : ["Ser"]$
+maxPolyOrder : [maxPolyOrder_Ser]$
 
 for bInd : 1 thru length(bName) do (
   for c : 1 thru 3 do (

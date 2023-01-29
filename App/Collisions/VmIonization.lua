@@ -142,6 +142,14 @@ function VmIonization:fullInit(speciesTbl)
       self._X = 0.136
    end
 
+   if self.plasma == "He" then
+      self._E = 24.6
+      self._P = 0
+      self._A = 0.175e-7
+      self._K = 0.35
+      self._X = 0.180
+   end
+
    self.timers = {nonSlvr = 0.}
 end
 
@@ -289,9 +297,10 @@ function VmIonization:advance(tCurr, fIn, species, fRhsOut)
       local neutU      = species[self.neutNm]:selfPrimitiveMoments()[1]
       local elcVtSq    = species[self.elcNm]:selfPrimitiveMoments()[2]
       local elcDistF   = species[self.elcNm]:getDistF()
+      local elcVtSqMin = species[self.elcNm]:vtSqMin()
 
       -- Calculate ioniz fMax
-      self.calcIonizationTemp:advance(tCurr, {elcVtSq}, {self.vtSqIz})
+      self.calcIonizationTemp:advance(tCurr, {elcVtSq, elcVtSqMin}, {self.vtSqIz})
       species[self.speciesName].calcMaxwell:advance(tCurr, {self.m0elc, neutU, self.vtSqIz}, {self.fMaxElc})
       species[self.speciesName].numDensityCalc:advance(tCurr, {self.fMaxElc}, {self.m0fMax})
       species[self.speciesName].confWeakDivide:advance(tCurr, {self.m0fMax, self.m0elc}, {self.m0mod})

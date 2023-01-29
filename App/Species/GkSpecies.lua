@@ -859,12 +859,13 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
          end
          local neutM0   = neuts:fluidMoments()[1]
          local neutVtSq = neuts:selfPrimitiveMoments()[2]
+         local neutVtSqMin = neuts:vtSqMin()
             
          if tCurr == 0.0 then
             species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
          end
         
-         species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {species[self.name].collisions[self.collNmIoniz].reactRate})
+         species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, neutVtSqMin, self.vtSqSelf, self:vtSqMin()}, {species[self.name].collisions[self.collNmIoniz].reactRate})
       end
 
       if self.calcCXSrc then
@@ -874,11 +875,12 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
             -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments.
             neuts:calcCouplingMoments(tCurr, rkIdx, species)
          end
-         local m0       = neuts:fluidMoments()[1]
-         local neutU    = neuts:selfPrimitiveMoments()[1]
-         local neutVtSq = neuts:selfPrimitiveMoments()[2]
+         local m0          = neuts:fluidMoments()[1]
+         local neutU       = neuts:selfPrimitiveMoments()[1]
+         local neutVtSq    = neuts:selfPrimitiveMoments()[2]
+         local neutVtSqMin = neuts:vtSqMin()
 
-	 species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, neutVtSq}, {species[self.name].collisions[self.collNmCX].reactRate})
+	 species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, self:vtSqMin(), neutVtSq, neutVtSqMin}, {species[self.name].collisions[self.collNmCX].reactRate})
       end
       
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
