@@ -313,9 +313,10 @@ function KineticSpecies:createGrid(confGridIn)
    end
 
    self.grid = GridConstructor {
-      lower = lower,  periodicDirs  = confGrid:getPeriodicDirs(),
-      upper = upper,  decomposition = self.decomp,
-      cells = cells,  mappings      = coordinateMap,
+      lower     = lower,  periodicDirs  = confGrid:getPeriodicDirs(),
+      upper     = upper,  decomposition = self.decomp,
+      cells     = cells,  mappings      = coordinateMap,
+      messenger = confGrid:getMessenger(),
    }
 
    for _, c in pairs(self.collisions) do c:setPhaseGrid(self.grid) end

@@ -180,10 +180,11 @@ local function buildApplication(self, tbl)
    end
    -- Setup configuration space grid.
    local confGrid = GridConstructor {
-      lower = tbl.lower,            decomposition = commManager:getConfDecomp(),
-      upper = tbl.upper,            mappings      = tbl.coordinateMap,
-      cells = tbl.cells,            mapc2p        = tbl.mapc2p,
-      periodicDirs = periodicDirs,  world         = tbl.world,
+      lower        = tbl.lower,     decomposition = commManager:getConfDecomp(),
+      upper        = tbl.upper,     mappings      = tbl.coordinateMap,
+      cells        = tbl.cells,     mapc2p        = tbl.mapc2p,
+      periodicDirs = periodicDirs,  world         = tbl.world, 
+      messenger    = commManager,
    }
    if tbl.coordinateMap or tbl.mapc2p then 
       local metaData = {polyOrder = confBasis:polyOrder(),
