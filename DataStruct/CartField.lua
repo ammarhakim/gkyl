@@ -401,7 +401,7 @@ local function Field_meta_ctor(elct)
          self._syncSendLoc[sendId] = (indexer(idx)-1)*self._numComponents
          self._syncSendBlockSz[sendId], self._syncSendBlockOff[sendId] = Mpi.createBlockInfoFromRangeAndSubRange(
             sendRgn, localExtRange, self._numComponents, self._layout)
-         self._syncSendRng[sendId] = sendRgn
+         self._syncSendRng[sendId] = self._localExtRange:subRange(sendRgn:lowerAsVec(), sendRgn:upperAsVec())
          self._syncSendBufVol = math.max(self._syncSendBufVol, sendRgn:volume())
       end
       for _, recvId in ipairs(neigIds) do
@@ -412,7 +412,7 @@ local function Field_meta_ctor(elct)
          self._syncRecvLoc[recvId] = (indexer(idx)-1)*self._numComponents
          self._syncRecvBlockSz[recvId], self._syncRecvBlockOff[recvId] = Mpi.createBlockInfoFromRangeAndSubRange(
             recvRgn, localExtRange, self._numComponents, self._layout)
-         self._syncRecvRng[recvId] = recvRgn
+         self._syncRecvRng[recvId] = self._localExtRange:subRange(recvRgn:lowerAsVec(), recvRgn:upperAsVec())
          self._syncRecvBufVol = math.max(self._syncRecvBufVol, recvRgn:volume())
       end
 
