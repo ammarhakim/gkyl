@@ -323,8 +323,11 @@ local function Field_meta_ctor(elct)
       self._recvUpperPerMPIReq = {}
 
       -- Create buffers for periodic copy if Mpi.Comm_size(nodeComm) = 1.
-      if Mpi.Comm_size(nodeComm) == 1 then
-         self._lowerPeriodicBuff, self._upperPeriodicBuff = {}, {}
+      for dir = 1, self._ndim do
+         if self._grid:cuts(dir) == 1 then
+            self._lowerPeriodicBuff, self._upperPeriodicBuff = {}, {}
+            break
+         end
       end
 
       -- Following loop creates Datatypes for periodic directions.
@@ -343,7 +346,7 @@ local function Field_meta_ctor(elct)
                -- memory needed for periodic boundary conditions and we do not need MPI Datatypes.
                if myId == loId then
                   local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
-                  if Mpi.Comm_size(nodeComm) == 1 then
+                  if self._grid:cuts(dir) == 1 then
                      local szSend = rgnSend:volume()*self._numComponents
                      self._lowerPeriodicBuff[dir] = ZeroArray.Array(ZeroArray.double, self._numComponents, rgnSend:volume(), self.useDevice)
                   end
@@ -363,7 +366,7 @@ local function Field_meta_ctor(elct)
                end
                if myId == upId then
                   local rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
-                  if Mpi.Comm_size(nodeComm) == 1 then
+                  if self._grid:cuts(dir) == 1 then
                      local szSend = rgnSend:volume()*self._numComponents
                      self._upperPeriodicBuff[dir] = ZeroArray.Array(ZeroArray.double, self._numComponents, rgnSend:volume(), self.useDevice)
                   end
@@ -433,14 +436,14 @@ local function Field_meta_ctor(elct)
                local loId, upId = skelIds[i].lower, skelIds[i].upper
                -- Only create if we are on proper ranks.
                -- Note that if the node communicator has rank size of 1, then we can access all the
-               -- memory needed for periodic boundary conditions.
+               -- memory needed for periodic boundary conditions and no communication is needed.
                local rgnSend, rgnRecv, oppId
-               if myId == loId then
+               if myId == loId and self._grid:cuts(dir) > 1 then
                   rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
                   rgnRecv = decomposedRange:subDomain(loId):lowerGhost(dir, self._lowerGhost)
                   oppId = upId
                end
-               if myId == upId then
+               if myId == upId and self._grid:cuts(dir) > 1 then
                   rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
                   rgnRecv = decomposedRange:subDomain(upId):upperGhost(dir, self._upperGhost)
                   oppId = loId
@@ -972,6 +975,9 @@ local function Field_meta_ctor(elct)
             self._field_periodic_copy(self)
 	 end
       end,
+      periodicCopyInDir = function (self, dir)
+         self._field_periodic_copy_indir(self, dir)
+      end,
       setBasisId = function(self, basisId)
          self._basisId = basisId
       end,
@@ -1234,27 +1240,28 @@ local function Field_meta_ctor(elct)
             end
          end
       end,
+      _field_periodic_copy_indir = function (self, dir)
+         -- First get region for skin cells for upper ghost region (the lower skin cells).
+         local skinRgnLower = self._skinRgnLower[dir]
+         local skinRgnUpper = self._skinRgnUpper[dir]
+         local ghostRgnLower = self._ghostRgnLower[dir]
+         local ghostRgnUpper = self._ghostRgnUpper[dir]
+
+         local periodicBuffUpper = self._upperPeriodicBuff[dir]
+         -- Copy skin cells into temporary buffer.
+         self:_copy_from_field_region(skinRgnUpper, periodicBuffUpper)
+         -- Get region for looping over upper ghost cells and copy lower skin cells into upper ghost cells.
+         self:_copy_to_field_region(ghostRgnLower, periodicBuffUpper)
+
+	 -- Now do the same, but for the skin cells for the lower ghost region (the upper skin cells).
+         local periodicBuffLower = self._lowerPeriodicBuff[dir]
+         self:_copy_from_field_region(skinRgnLower, periodicBuffLower)
+         self:_copy_to_field_region(ghostRgnUpper, periodicBuffLower)
+      end,
       _field_periodic_copy = function (self)
          local grid = self._grid
          for dir = 1, self._ndim do
-            if grid:isDirPeriodic(dir) then
-               -- First get region for skin cells for upper ghost region (the lower skin cells).
-               local skinRgnLower = self._skinRgnLower[dir]
-               local skinRgnUpper = self._skinRgnUpper[dir]
-               local ghostRgnLower = self._ghostRgnLower[dir]
-               local ghostRgnUpper = self._ghostRgnUpper[dir]
-
-               local periodicBuffUpper = self._upperPeriodicBuff[dir]
-               -- Copy skin cells into temporary buffer.
-               self:_copy_from_field_region(skinRgnUpper, periodicBuffUpper)
-               -- Get region for looping over upper ghost cells and copy lower skin cells into upper ghost cells.
-               self:_copy_to_field_region(ghostRgnLower, periodicBuffUpper)
-
-	       -- Now do the same, but for the skin cells for the lower ghost region (the upper skin cells).
-               local periodicBuffLower = self._lowerPeriodicBuff[dir]
-               self:_copy_from_field_region(skinRgnLower, periodicBuffLower)
-               self:_copy_to_field_region(ghostRgnUpper, periodicBuffLower)
-            end
+            if grid:isDirPeriodic(dir) then self:_field_periodic_copy_indir(dir) end
          end
       end,
    }

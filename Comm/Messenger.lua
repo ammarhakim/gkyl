@@ -306,19 +306,23 @@ function Messenger:syncPeriodicCartField(fld, comm, dirs)
    local tag      = 32 -- Communicator tag for periodic messages.
    local syncDirs = dirs or fld:grid():getPeriodicDirs()
    for _, dir in ipairs(syncDirs) do
-      local rank    = fld._syncPerNeigh[dir]
-      local recvRgn = fld._syncPerRecvRng[dir]
-      local recvSz  = nc*recvRgn:volume()
-      -- Post recv for expected data into the recv buffer.
-      local _ = Mpi.Irecv(recvPtr, recvSz, dataType, rank-1, tag, comm, self.syncReqStat)
-      -- Copy data to send buffer, and send it.
-      local sendRgn = fld._syncPerSendRng[dir]
-      local sendSz  = nc*sendRgn:volume()
-      fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
-      Mpi.Send(sendPtr, sendSz, dataType, rank-1, tag, comm)
-      -- Complete the recv and copy data from buffer to field.
-      local _ = Mpi.Wait(self.syncReqStat, self.syncReqStat)
-      fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
+      if fld:grid():cuts(dir) == 1 then
+         fld:periodicCopyInDir(dir)
+      else
+         local rank    = fld._syncPerNeigh[dir]
+         local recvRgn = fld._syncPerRecvRng[dir]
+         local recvSz  = nc*recvRgn:volume()
+         -- Post recv for expected data into the recv buffer.
+         local _ = Mpi.Irecv(recvPtr, recvSz, dataType, rank-1, tag, comm, self.syncReqStat)
+         -- Copy data to send buffer, and send it.
+         local sendRgn = fld._syncPerSendRng[dir]
+         local sendSz  = nc*sendRgn:volume()
+         fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
+         Mpi.Send(sendPtr, sendSz, dataType, rank-1, tag, comm)
+         -- Complete the recv and copy data from buffer to field.
+         local _ = Mpi.Wait(self.syncReqStat, self.syncReqStat)
+         fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
+      end
    end
 end
 
