@@ -19,7 +19,7 @@ vlasovApp = Plasma.App {
    timeStepper = "rk3",              -- One of "rk2" or "rk3".
 
    -- Decomposition for configuration space.
-   decompCuts = {2},   -- Cuts in each configuration direction.
+   decompCuts = {1},   -- Cuts in each configuration direction.
 
    -- Boundary conditions for configuration space
    periodicDirs = {1}, -- Periodic directions.

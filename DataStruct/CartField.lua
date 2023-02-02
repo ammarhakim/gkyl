@@ -417,55 +417,51 @@ local function Field_meta_ctor(elct)
       end
 
       -- Get info for periodic syncs without MPI datatypes.
-      self._sendLoPerMPILoc,     self._recvLoPerMPILoc = {}, {}
-      self._sendLoPerMPIOff,     self._recvLoPerMPIOff = {}, {}
-      self._sendLoPerMPIBlockSz, self._recvLoPerMPIBlockSz = {}, {}
-      self._sendUpPerMPILoc,     self._recvUpPerMPILoc = {}, {}
-      self._sendUpPerMPIOff,     self._recvUpPerMPIOff = {}, {}
-      self._sendUpPerMPIBlockSz, self._recvUpPerMPIBlockSz = {}, {}
-      self._loPeriodicBuffVol, self._upPeriodicBuffVol = -1, -1
+      self._syncPerNeigh = {}
+      self._syncPerSendLoc,      self._syncPerRecvLoc = {}, {}
+      self._syncPerSendBlockSz,  self._syncPerRecvBlockSz = {}, {}
+      self._syncPerSendBlockOff, self._syncPerRecvBlockOff = {}, {}
+      self._syncPerRecvRng,      self._syncPerRecvRng = {}, {}
+      self._syncPerRecvBufVol,   self._syncPerRecvBufVol = 0, 0
+      self._syncPerSendRng,      self._syncPerRecvRng = {}, {}
+      self._syncPerSendBufVol,   self._syncPerRecvBufVol = 0, 0
       for dir = 1, self._ndim do
          -- set up periodic-sync Datatypes for all dirs, in case we want to change periodicDirs later
-         if self._lowerGhost > 0 and self._upperGhost > 0 then
+         if self._lowerGhost > 0 and self._upperGhost > 0 and decomposedRange:numSubDomains() > 1 then
             local skelIds = decomposedRange:boundarySubDomainIds(dir)
             for i = 1, #skelIds do
                local loId, upId = skelIds[i].lower, skelIds[i].upper
                -- Only create if we are on proper ranks.
                -- Note that if the node communicator has rank size of 1, then we can access all the
                -- memory needed for periodic boundary conditions.
+               local rgnSend, rgnRecv, oppId
                if myId == loId then
-                  local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
-                  self._loPeriodicBuffVol = math.max(self._loPeriodicBuffVol, rgnSend:volume())
-                  local idx = rgnSend:lowerAsVec()
-                  -- Set idx to starting point of region you want to send.
-                  self._sendLoPerMPILoc[dir] = (indexer(idx)-1)*self._numComponents
-                  self._sendLoPerMPIBlockSz[dir], self._sendLoPerMPIOff[dir] = Mpi.createBlockInfoFromRangeAndSubRange(
-                     rgnSend, localExtRange, self._numComponents, self._layout)
-
-                  local rgnRecv = decomposedRange:subDomain(loId):lowerGhost(dir, self._lowerGhost)
-                  local idx     = rgnRecv:lowerAsVec()
-                  -- Set idx to starting point of region you want to recv.
-                  self._recvLoPerMPILoc[dir] = (indexer(idx)-1)*self._numComponents
-                  self._recvLoPerMPIBlockSz[dir], self._recvLoPerMPIOff[dir] = Mpi.createBlockInfoFromRangeAndSubRange(
-                     rgnRecv, localExtRange, self._numComponents, self._layout)
-                  self._recvLoPerMPIReq = self._recvLoPerMPIReq or Mpi.Request()
+                  rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
+                  rgnRecv = decomposedRange:subDomain(loId):lowerGhost(dir, self._lowerGhost)
+                  oppId = upId
                end
                if myId == upId then
-                  local rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
-                  self._upPeriodicBuffVol = math.max(self._upPeriodicBuffVol, rgnSend:volume())
+                  rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
+                  rgnRecv = decomposedRange:subDomain(upId):upperGhost(dir, self._upperGhost)
+                  oppId = loId
+               end
+               if oppId ~= nil then
+                  self._syncPerNeigh[dir] = oppId
+                  self._syncPerSendRng[dir] = self._localExtRange:subRange(rgnSend:lowerAsVec(), rgnSend:upperAsVec())
+                  self._syncPerSendBufVol = math.max(self._syncPerSendBufVol, rgnSend:volume())
                   local idx = rgnSend:lowerAsVec()
                   -- Set idx to starting point of region you want to send.
-                  self._sendUpPerMPILoc[dir] = (indexer(idx)-1)*self._numComponents
-                  self._sendUpPerMPIBlockSz[dir], self._sendUpPerMPIOff[dir] = Mpi.createBlockInfoFromRangeAndSubRange(
+                  self._syncPerSendLoc[dir] = (indexer(idx)-1)*self._numComponents
+                  self._syncPerSendBlockSz[dir], self._syncPerSendBlockOff[dir] = Mpi.createBlockInfoFromRangeAndSubRange(
                      rgnSend, localExtRange, self._numComponents, self._layout)
 
-                  local rgnRecv = decomposedRange:subDomain(upId):upperGhost(dir, self._upperGhost)
-                  local idx     = rgnRecv:lowerAsVec()
+                  self._syncPerRecvRng[dir] = self._localExtRange:subRange(rgnRecv:lowerAsVec(), rgnRecv:upperAsVec())
+                  self._syncPerRecvBufVol = math.max(self._syncPerRecvBufVol, rgnRecv:volume())
+                  local idx = rgnRecv:lowerAsVec()
                   -- Set idx to starting point of region you want to recv.
-                  self._recvUpPerMPILoc[dir] = (indexer(idx)-1)*self._numComponents
-                  self._recvUpPerMPIBlockSz[dir], self._recvUpPerMPIOff[dir] = Mpi.createBlockInfoFromRangeAndSubRange(
+                  self._syncPerRecvLoc[dir] = (indexer(idx)-1)*self._numComponents
+                  self._syncPerRecvBlockSz[dir], self._syncPerRecvBlockOff[dir] = Mpi.createBlockInfoFromRangeAndSubRange(
                      rgnRecv, localExtRange, self._numComponents, self._layout)
-                  self._recvUpPerMPIReq = self._recvUpPerMPIReq or Mpi.Request()
                end
             end
          end
@@ -963,7 +959,8 @@ local function Field_meta_ctor(elct)
          local mess = self._grid:getMessenger()
          mess:syncCartField(self, mess:getConfComm())
 	 if self._syncPeriodicDirs and syncPeriodicDirs then
-	    self._field_periodic_sync(self, self._zeroForOps:data())
+	    --self._field_periodic_sync(self, self._zeroForOps:data())
+            mess:syncPeriodicCartField(self, mess:getConfComm())
 	 end
       end,
       -- This method is an alternative function for applying periodic boundary

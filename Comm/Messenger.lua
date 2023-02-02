@@ -234,14 +234,7 @@ end
 
 function Messenger:Wait(req, stat, comm) self.WaitFunc(req, stat, comm) end
 
-function Messenger:syncCartField(fld, comm)
-   -- No need to do anything if communicator is not valid.
-   if not Mpi.Is_comm_valid(comm) then return end
-   -- Immediately return if nothing to sync.
-   if fld._lowerGhost == 0 and fld._upperGhost == 0 then return end
-   -- Immediately return if there is no decomp.
-   if fld:grid():decomposedRange():numSubDomains() == 1 then return end
-
+function Messenger:chooseSyncBuf(fld)
    local nc = fld:numComponents()
    local bufVol = {recv=fld._syncRecvBufVol, send=fld._syncSendBufVol}
    local bufIdx = nil
@@ -260,13 +253,25 @@ function Messenger:syncCartField(fld, comm)
       self.syncBufs[bufIdx] = {recv=ZeroArray.Array(ZeroArray.double, nc, bufVol.recv, fld.useDevice),
                                send=ZeroArray.Array(ZeroArray.double, nc, bufVol.send, fld.useDevice),} 
    end
+   return bufIdx
+end
 
+function Messenger:syncCartField(fld, comm)
+   -- No need to do anything if communicator is not valid.
+   if not Mpi.Is_comm_valid(comm) then return end
+   -- Immediately return if nothing to sync.
+   if fld._lowerGhost == 0 and fld._upperGhost == 0 then return end
+   -- Immediately return if there is no decomp.
+   if fld:grid():decomposedRange():numSubDomains() == 1 then return end
+
+   local nc = fld:numComponents()
+   local bufIdx = self:chooseSyncBuf(fld)
    local recvBuf, sendBuf = self.syncBufs[bufIdx].recv, self.syncBufs[bufIdx].send
    local recvPtr, sendPtr = recvBuf:data(), sendBuf:data()
    local dataType = fld:elemCommType()
-   local myId     = fld:grid():subGridId() -- grid ID on this processor
-   local neigIds  = fld._decompNeigh:neighborData(myId) -- list of neighbors
-   local tag      = 42 -- Communicator tag for regular (non-periodic) messages
+   local myId     = fld:grid():subGridId() -- Grid ID on this processor.
+   local neigIds  = fld._decompNeigh:neighborData(myId) -- List of neighbors.
+   local tag      = 42 -- Communicator tag for ghost (non-periodic) messages.
    for _, rank in ipairs(neigIds) do
       local recvRgn = fld._syncRecvRng[rank]
       local recvSz  = nc*recvRgn:volume()
@@ -274,6 +279,40 @@ function Messenger:syncCartField(fld, comm)
       local _ = Mpi.Irecv(recvPtr, recvSz, dataType, rank-1, tag, comm, self.syncReqStat)
       -- Copy data to send buffer, and send it.
       local sendRgn = fld._syncSendRng[rank]
+      local sendSz  = nc*sendRgn:volume()
+      fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
+      Mpi.Send(sendPtr, sendSz, dataType, rank-1, tag, comm)
+      -- Complete the recv and copy data from buffer to field.
+      local _ = Mpi.Wait(self.syncReqStat, self.syncReqStat)
+      fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
+   end
+end
+
+function Messenger:syncPeriodicCartField(fld, comm, dirs)
+   -- No need to do anything if communicator is not valid.
+   if not Mpi.Is_comm_valid(comm) then return end
+   -- Immediately return if nothing to sync.
+   if fld._lowerGhost == 0 and fld._upperGhost == 0 then return end
+   -- If there is no decomp do copies, not comm.
+   if fld:grid():decomposedRange():numSubDomains() == 1 and not fld._syncCorners then
+      return fld:periodicCopy()
+   end
+
+   local nc = fld:numComponents()
+   local bufIdx = self:chooseSyncBuf(fld)
+   local recvBuf, sendBuf = self.syncBufs[bufIdx].recv, self.syncBufs[bufIdx].send
+   local recvPtr, sendPtr = recvBuf:data(), sendBuf:data()
+   local dataType = fld:elemCommType()
+   local tag      = 32 -- Communicator tag for periodic messages.
+   local syncDirs = dirs or fld:grid():getPeriodicDirs()
+   for _, dir in ipairs(syncDirs) do
+      local rank    = fld._syncPerNeigh[dir]
+      local recvRgn = fld._syncPerRecvRng[dir]
+      local recvSz  = nc*recvRgn:volume()
+      -- Post recv for expected data into the recv buffer.
+      local _ = Mpi.Irecv(recvPtr, recvSz, dataType, rank-1, tag, comm, self.syncReqStat)
+      -- Copy data to send buffer, and send it.
+      local sendRgn = fld._syncPerSendRng[dir]
       local sendSz  = nc*sendRgn:volume()
       fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
       Mpi.Send(sendPtr, sendSz, dataType, rank-1, tag, comm)
