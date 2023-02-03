@@ -962,7 +962,7 @@ local function Field_meta_ctor(elct)
          local mess = self._grid:getMessenger()
          mess:syncCartField(self, mess:getConfComm())
 	 if self._syncPeriodicDirs and syncPeriodicDirs then
-	    --self._field_periodic_sync(self, self._zeroForOps:data())
+--            self._field_periodic_sync(self, self._zeroForOps:data())
             mess:syncPeriodicCartField(self, mess:getConfComm())
 	 end
       end,
