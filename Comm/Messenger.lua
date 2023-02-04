@@ -163,8 +163,9 @@ function Messenger:initGPUcomms()
    -- If Cuda/NCCL are present create device communicators for conf/species comms.
    local numDevices, _ = cuda.GetDeviceCount()
    -- Assume number of devices must be the same as number of MPI processes.
-   assert(self.worldSize == numDevices, string.format("Messenger: number of GPUs (%d) must match number of MPI processes (%d).", numDevices, self.worldSize))
    local deviceRank = self.worldRank % numDevices
+--   -- MF 2023/02/04: This assert causes trouble. Logic may be wrong for multi-node runs.
+--   assert(self.worldSize == numDevices, string.format("Messenger: number of GPUs (%d) must match number of MPI processes (%d).", numDevices, self.worldSize))
    local _ = cuda.SetDevice(deviceRank)   -- Picking a GPU based on localRank
 
    -- Get NCCL unique ID at rank 0 and broadcast it to all others.
@@ -364,23 +365,26 @@ function Messenger:syncPeriodicCartFieldMPI(fld, comm, dirs)
    local dataType = self:getCommDataType(fld:elemType())
    local tag      = 32 -- Communicator tag for periodic messages.
    local syncDirs = dirs or fld:grid():getPeriodicDirs()
+   local onPerBoundary = fld._onPerBound
    for _, dir in ipairs(syncDirs) do
-      if fld:grid():cuts(dir) == 1 then
-         fld:periodicCopyInDir(dir)
-      else
-         local rank    = fld._syncPerNeigh[dir]
-         local recvRgn = fld._syncPerRecvRng[dir]
-         local recvSz  = nc*recvRgn:volume()
-         -- Post recv for expected data into the recv buffer.
-         local _ = Mpi.Irecv(recvPtr, recvSz, dataType, rank-1, tag, comm, self.syncReqStat)
-         -- Copy data to send buffer, and send it.
-         local sendRgn = fld._syncPerSendRng[dir]
-         local sendSz  = nc*sendRgn:volume()
-         fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
-         Mpi.Send(sendPtr, sendSz, dataType, rank-1, tag, comm)
-         -- Complete the recv and copy data from buffer to field.
-         local _ = Mpi.Wait(self.syncReqStat, self.syncReqStat)
-         fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
+      if onPerBoundary[dir] then
+         if fld:grid():cuts(dir) == 1 then
+            fld:periodicCopyInDir(dir)
+         else
+            local rank    = fld._syncPerNeigh[dir]
+            local recvRgn = fld._syncPerRecvRng[dir]
+            local recvSz  = nc*recvRgn:volume()
+            -- Post recv for expected data into the recv buffer.
+            local _ = Mpi.Irecv(recvPtr, recvSz, dataType, rank-1, tag, comm, self.syncReqStat)
+            -- Copy data to send buffer, and send it.
+            local sendRgn = fld._syncPerSendRng[dir]
+            local sendSz  = nc*sendRgn:volume()
+            fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
+            Mpi.Send(sendPtr, sendSz, dataType, rank-1, tag, comm)
+            -- Complete the recv and copy data from buffer to field.
+            local _ = Mpi.Wait(self.syncReqStat, self.syncReqStat)
+            fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
+         end
       end
    end
 end
@@ -400,32 +404,35 @@ function Messenger:syncPeriodicCartFieldNCCL(fld, comm, dirs)
    local dataType = self:getCommDataType(fld:elemType())
    local syncDirs = dirs or fld:grid():getPeriodicDirs()
    local myId     = fld:grid():subGridId() -- Grid ID on this processor.
+   local onPerBoundary = fld._onPerBound
    for _, dir in ipairs(syncDirs) do
-      if fld:grid():cuts(dir) == 1 then
-         fld:periodicCopyInDir(dir)
-      else
-         local rank = fld._syncPerNeigh[dir]
-	 local isLo = myId < rank
+      if onPerBoundary[dir] then
+         if fld:grid():cuts(dir) == 1 then
+            fld:periodicCopyInDir(dir)
+         else
+            local rank = fld._syncPerNeigh[dir]
+            local isLo = myId < rank
 
-         for sI = 0, 1 do
-            if isLo then
-               local recvRgn = fld._syncPerRecvRng[dir]
-               local recvSz  = nc*recvRgn:volume()
-               -- Post recv for expected data into the recv buffer.
-               Nccl.Recv(recvPtr, recvSz, dataType, rank-1, comm, self.ncclStream)
-               -- Complete the recv and copy data from buffer to field.
-               self:Wait(req, stat, comm)
-               fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
-            else
-               -- Copy data to send buffer, and send it.
-               local sendRgn = fld._syncPerSendRng[dir]
-               local sendSz  = nc*sendRgn:volume()
-               fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
-               Nccl.Send(sendPtr, sendSz, dataType, rank-1, comm, self.ncclStream)
-               -- Complete the send.
-               self:Wait(req, stat, comm)
+            for sI = 0, 1 do
+               if isLo then
+                  local recvRgn = fld._syncPerRecvRng[dir]
+                  local recvSz  = nc*recvRgn:volume()
+                  -- Post recv for expected data into the recv buffer.
+                  Nccl.Recv(recvPtr, recvSz, dataType, rank-1, comm, self.ncclStream)
+                  -- Complete the recv and copy data from buffer to field.
+                  self:Wait(req, stat, comm)
+                  fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
+               else
+                  -- Copy data to send buffer, and send it.
+                  local sendRgn = fld._syncPerSendRng[dir]
+                  local sendSz  = nc*sendRgn:volume()
+                  fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
+                  Nccl.Send(sendPtr, sendSz, dataType, rank-1, comm, self.ncclStream)
+                  -- Complete the send.
+                  self:Wait(req, stat, comm)
+               end
+               isLo = not isLo
             end
-	    isLo = not isLo
          end
       end
    end
