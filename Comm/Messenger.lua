@@ -12,9 +12,10 @@ local lume   = require "Lib.lume"
 local Mpi    = require "Comm.Mpi"
 local xsys   = require "xsys"
 local DecompRegionCalc = require "Lib.CartDecomp"
-local ffi    = require "ffi"
-local xsys   = require "xsys"
-local sizeof = xsys.from(ffi, "sizeof")
+local ffi       = require "ffi"
+local xsys      = require "xsys"
+local sizeof    = xsys.from(ffi, "sizeof")
+local ZeroArray = require "DataStruct.ZeroArray"
 local cuda, Nccl
 if GKYL_HAVE_CUDA then
    cuda = require "Cuda.RunTime"
@@ -69,6 +70,10 @@ function Messenger:init(tbl)
    -- Configuration space decomp object.
    self.decompConf = DecompRegionCalc.CartProd {cuts = self.decompCutsConf, comm = self.confComm}
 
+   -- Buffers for CartField sync, one for each type of
+   -- CartField communicated. They get assigned later.
+   self.syncBufs = {}
+
    -- Initiage GPU comms if needed, and select Allreduce, Send, Isend and Irecv functions.
    if GKYL_USE_GPU then
       self:initGPUcomms()
@@ -108,6 +113,14 @@ function Messenger:init(tbl)
          -- Completing NCCL operation by synchronizing on the CUDA stream.
          local _ = cuda.StreamSynchronize(self.ncclStream)
       end
+
+      self.syncCartFieldFunc = function(fld, comm)
+         Messenger["syncCartFieldNCCL"](self, fld, comm)
+      end
+
+      self.syncPeriodicCartFieldFunc = function(fld, comm, dirs)
+         Messenger["syncPeriodicCartFieldNCCL"](self, fld, comm, dirs)
+      end
    else
       self.defaultComms = {world=Mpi.COMM_WORLD, conf=self.confComm, species=self.speciesComm}
       self.reduceOps    = {max = Mpi.MAX, min = Mpi.MIN, sum = Mpi.SUM}
@@ -133,6 +146,16 @@ function Messenger:init(tbl)
       self.WaitFunc = function(req, stat, comm)
          local _ = Mpi.Wait(req, stat)
       end
+
+      self.syncReqStat = Mpi.RequestStatus()
+
+      self.syncCartFieldFunc = function(fld, comm)
+         Messenger["syncCartFieldMPI"](self, fld, comm)
+      end
+
+      self.syncPeriodicCartFieldFunc = function(fld, comm, dirs)
+         Messenger["syncPeriodicCartFieldMPI"](self, fld, comm, dirs)
+      end
    end
 end
 
@@ -140,8 +163,9 @@ function Messenger:initGPUcomms()
    -- If Cuda/NCCL are present create device communicators for conf/species comms.
    local numDevices, _ = cuda.GetDeviceCount()
    -- Assume number of devices must be the same as number of MPI processes.
-   assert(self.worldSize == numDevices, "Messenger: number of GPUs must match number of MPI processes.")
    local deviceRank = self.worldRank % numDevices
+--   -- MF 2023/02/04: This assert causes trouble. Logic may be wrong for multi-node runs.
+--   assert(self.worldSize == numDevices, string.format("Messenger: number of GPUs (%d) must match number of MPI processes (%d).", numDevices, self.worldSize))
    local _ = cuda.SetDevice(deviceRank)   -- Picking a GPU based on localRank
 
    -- Get NCCL unique ID at rank 0 and broadcast it to all others.
@@ -227,6 +251,196 @@ function Messenger:IrecvCartField(fld, src, tag, comm, req)
 end
 
 function Messenger:Wait(req, stat, comm) self.WaitFunc(req, stat, comm) end
+
+function Messenger:chooseSyncBuf(fld)
+   local nc = fld:numComponents()
+   local bufVol = {recv=fld._syncRecvBufVol, send=fld._syncSendBufVol}
+   local bufIdx = nil
+   -- Look through existing buffers and see if one
+   -- has the right shape/size. Otherwise create one.
+   for i = 1, #self.syncBufs do
+      local recvnc, sendnc = self.syncBufs[i].recv:get_ncomp(),  self.syncBufs[i].send:get_ncomp()
+      local recvsz, sendsz = self.syncBufs[i].recv:get_size(),  self.syncBufs[i].send:get_size()
+      if recvnc>=nc and sendnc>=nc and recvsz>=bufVol.recv and sendsz>=bufVol.send then
+         bufIdx = i
+         break
+      end
+   end
+   if bufIdx == nil then
+      bufIdx = #self.syncBufs+1
+      self.syncBufs[bufIdx] = {recv=ZeroArray.Array(ZeroArray.double, nc, bufVol.recv, fld.useDevice),
+                               send=ZeroArray.Array(ZeroArray.double, nc, bufVol.send, fld.useDevice),} 
+   end
+   return bufIdx
+end
+
+function Messenger:syncCartFieldMPI(fld, comm)
+   -- No need to do anything if communicator is not valid.
+   if not Mpi.Is_comm_valid(comm) then return end
+   -- Immediately return if nothing to sync.
+   if fld._lowerGhost == 0 and fld._upperGhost == 0 then return end
+   -- Immediately return if there is no decomp.
+   if fld:grid():decomposedRange():numSubDomains() == 1 then return end
+
+   local nc = fld:numComponents()
+   local bufIdx = self:chooseSyncBuf(fld)
+   local recvBuf, sendBuf = self.syncBufs[bufIdx].recv, self.syncBufs[bufIdx].send
+   local recvPtr, sendPtr = recvBuf:data(), sendBuf:data()
+   local dataType = self:getCommDataType(fld:elemType())
+   local myId     = fld:grid():subGridId() -- Grid ID on this processor.
+   local neigIds  = fld._decompNeigh:neighborData(myId) -- List of neighbors.
+   local tag      = 42 -- Communicator tag for ghost (non-periodic) messages.
+   for _, rank in ipairs(neigIds) do
+      local recvRgn = fld._syncRecvRng[rank]
+      local recvSz  = nc*recvRgn:volume()
+      -- Post recv for expected data into the recv buffer.
+      local _ = Mpi.Irecv(recvPtr, recvSz, dataType, rank-1, tag, comm, self.syncReqStat)
+      -- Copy data to send buffer, and send it.
+      local sendRgn = fld._syncSendRng[rank]
+      local sendSz  = nc*sendRgn:volume()
+      fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
+      Mpi.Send(sendPtr, sendSz, dataType, rank-1, tag, comm)
+      -- Complete the recv and copy data from buffer to field.
+      local _ = Mpi.Wait(self.syncReqStat, self.syncReqStat)
+      fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
+   end
+end
+
+function Messenger:syncCartFieldNCCL(fld, comm)
+   -- Immediately return if nothing to sync.
+   if fld._lowerGhost == 0 and fld._upperGhost == 0 then return end
+   -- Immediately return if there is no decomp.
+   if fld:grid():decomposedRange():numSubDomains() == 1 then return end
+
+   local nc = fld:numComponents()
+   local bufIdx = self:chooseSyncBuf(fld)
+   local recvBuf, sendBuf = self.syncBufs[bufIdx].recv, self.syncBufs[bufIdx].send
+   local recvPtr, sendPtr = recvBuf:data(), sendBuf:data()
+   local dataType = self:getCommDataType(fld:elemType())
+   local myId     = fld:grid():subGridId() -- Grid ID on this processor.
+   local neigIds  = fld._decompNeigh:neighborData(myId) -- List of neighbors.
+   for _, rank in ipairs(neigIds) do
+      local isLo = myId < rank
+      for sI = 0, 1 do
+         if isLo then
+            -- Post recv for expected data into the recv buffer.
+            local recvRgn = fld._syncRecvRng[rank]
+            local recvSz  = nc*recvRgn:volume()
+            Nccl.Recv(recvPtr, recvSz, dataType, rank-1, comm, self.ncclStream)
+            -- Complete the recv and copy data from buffer to field.
+            self:Wait(req, stat, comm)
+            fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
+         else
+            -- Copy data to send buffer, and send it.
+            local sendRgn = fld._syncSendRng[rank]
+            local sendSz  = nc*sendRgn:volume()
+            fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
+            Nccl.Send(sendPtr, sendSz, dataType, rank-1, comm, self.ncclStream)
+            -- Complete the send.
+            self:Wait(req, stat, comm)
+         end
+	 isLo = not isLo
+      end
+   end
+end
+
+function Messenger:syncCartField(fld, comm)
+   self.syncCartFieldFunc(fld, comm)
+end
+
+function Messenger:syncPeriodicCartFieldMPI(fld, comm, dirs)
+   -- No need to do anything if communicator is not valid.
+   if not Mpi.Is_comm_valid(comm) then return end
+   -- Immediately return if nothing to sync.
+   if fld._lowerGhost == 0 and fld._upperGhost == 0 then return end
+   -- If there is no decomp do copies, not comm.
+   if fld:grid():decomposedRange():numSubDomains() == 1 and not fld._syncCorners then
+      return fld:periodicCopy()
+   end
+
+   local nc = fld:numComponents()
+   local bufIdx = self:chooseSyncBuf(fld)
+   local recvBuf, sendBuf = self.syncBufs[bufIdx].recv, self.syncBufs[bufIdx].send
+   local recvPtr, sendPtr = recvBuf:data(), sendBuf:data()
+   local dataType = self:getCommDataType(fld:elemType())
+   local tag      = 32 -- Communicator tag for periodic messages.
+   local syncDirs = dirs or fld:grid():getPeriodicDirs()
+   local onPerBoundary = fld._onPerBound
+   for _, dir in ipairs(syncDirs) do
+      if onPerBoundary[dir] then
+         if fld:grid():cuts(dir) == 1 then
+            fld:periodicCopyInDir(dir)
+         else
+            local rank    = fld._syncPerNeigh[dir]
+            local recvRgn = fld._syncPerRecvRng[dir]
+            local recvSz  = nc*recvRgn:volume()
+            -- Post recv for expected data into the recv buffer.
+            local _ = Mpi.Irecv(recvPtr, recvSz, dataType, rank-1, tag, comm, self.syncReqStat)
+            -- Copy data to send buffer, and send it.
+            local sendRgn = fld._syncPerSendRng[dir]
+            local sendSz  = nc*sendRgn:volume()
+            fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
+            Mpi.Send(sendPtr, sendSz, dataType, rank-1, tag, comm)
+            -- Complete the recv and copy data from buffer to field.
+            local _ = Mpi.Wait(self.syncReqStat, self.syncReqStat)
+            fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
+         end
+      end
+   end
+end
+
+function Messenger:syncPeriodicCartFieldNCCL(fld, comm, dirs)
+   -- Immediately return if nothing to sync.
+   if fld._lowerGhost == 0 and fld._upperGhost == 0 then return end
+   -- If there is no decomp do copies, not comm.
+   if fld:grid():decomposedRange():numSubDomains() == 1 and not fld._syncCorners then
+      return fld:periodicCopy()
+   end
+
+   local nc = fld:numComponents()
+   local bufIdx = self:chooseSyncBuf(fld)
+   local recvBuf, sendBuf = self.syncBufs[bufIdx].recv, self.syncBufs[bufIdx].send
+   local recvPtr, sendPtr = recvBuf:data(), sendBuf:data()
+   local dataType = self:getCommDataType(fld:elemType())
+   local syncDirs = dirs or fld:grid():getPeriodicDirs()
+   local myId     = fld:grid():subGridId() -- Grid ID on this processor.
+   local onPerBoundary = fld._onPerBound
+   for _, dir in ipairs(syncDirs) do
+      if onPerBoundary[dir] then
+         if fld:grid():cuts(dir) == 1 then
+            fld:periodicCopyInDir(dir)
+         else
+            local rank = fld._syncPerNeigh[dir]
+            local isLo = myId < rank
+
+            for sI = 0, 1 do
+               if isLo then
+                  local recvRgn = fld._syncPerRecvRng[dir]
+                  local recvSz  = nc*recvRgn:volume()
+                  -- Post recv for expected data into the recv buffer.
+                  Nccl.Recv(recvPtr, recvSz, dataType, rank-1, comm, self.ncclStream)
+                  -- Complete the recv and copy data from buffer to field.
+                  self:Wait(req, stat, comm)
+                  fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
+               else
+                  -- Copy data to send buffer, and send it.
+                  local sendRgn = fld._syncPerSendRng[dir]
+                  local sendSz  = nc*sendRgn:volume()
+                  fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
+                  Nccl.Send(sendPtr, sendSz, dataType, rank-1, comm, self.ncclStream)
+                  -- Complete the send.
+                  self:Wait(req, stat, comm)
+               end
+               isLo = not isLo
+            end
+         end
+      end
+   end
+end
+
+function Messenger:syncPeriodicCartField(fld, comm, dirs)
+   self.syncPeriodicCartFieldFunc(fld, comm, dirs)
+end
 
 function Messenger:func() end
 

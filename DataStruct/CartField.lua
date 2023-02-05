@@ -323,8 +323,11 @@ local function Field_meta_ctor(elct)
       self._recvUpperPerMPIReq = {}
 
       -- Create buffers for periodic copy if Mpi.Comm_size(nodeComm) = 1.
-      if Mpi.Comm_size(nodeComm) == 1 then
-         self._lowerPeriodicBuff, self._upperPeriodicBuff = {}, {}
+      for dir = 1, self._ndim do
+         if self._grid:cuts(dir) == 1 then
+            self._lowerPeriodicBuff, self._upperPeriodicBuff = {}, {}
+            break
+         end
       end
 
       -- Following loop creates Datatypes for periodic directions.
@@ -343,7 +346,7 @@ local function Field_meta_ctor(elct)
                -- memory needed for periodic boundary conditions and we do not need MPI Datatypes.
                if myId == loId then
                   local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
-                  if Mpi.Comm_size(nodeComm) == 1 then
+                  if self._grid:cuts(dir) == 1 then
                      local szSend = rgnSend:volume()*self._numComponents
                      self._lowerPeriodicBuff[dir] = ZeroArray.Array(ZeroArray.double, self._numComponents, rgnSend:volume(), self.useDevice)
                   end
@@ -363,7 +366,7 @@ local function Field_meta_ctor(elct)
                end
                if myId == upId then
                   local rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
-                  if Mpi.Comm_size(nodeComm) == 1 then
+                  if self._grid:cuts(dir) == 1 then
                      local szSend = rgnSend:volume()*self._numComponents
                      self._upperPeriodicBuff[dir] = ZeroArray.Array(ZeroArray.double, self._numComponents, rgnSend:volume(), self.useDevice)
                   end
@@ -381,6 +384,91 @@ local function Field_meta_ctor(elct)
                      rgnRecv, localExtRange, self._numComponents, self._layout, elctCommType)
                   self._recvUpperPerMPIReq[dir]      = Mpi.Request()
                end	       
+            end
+         end
+      end
+      
+
+      -- Get info for syncs without MPI datatypes. We'll loop over blocks and post a send/recv pair ourselves.
+      self._syncSendLoc, self._syncRecvLoc = {}, {}
+      self._syncSendBlockSz, self._syncRecvBlockSz = {}, {}
+      self._syncSendBlockOff, self._syncRecvBlockOff = {}, {}
+      self._syncSendRng, self._syncRecvRng = {}, {}
+      self._syncSendBufVol, self._syncRecvBufVol = 0, 0
+      for _, sendId in ipairs(neigIds) do
+         local neighRgn = decomposedRange:subDomain(sendId)
+         local sendRgn  = self._localRange:intersect(
+            neighRgn:extend(self._lowerGhost, self._upperGhost))
+         local idx      = sendRgn:lowerAsVec()
+         -- Set idx to starting point of region you want to recv.
+         self._syncSendLoc[sendId] = (indexer(idx)-1)*self._numComponents
+         self._syncSendBlockSz[sendId], self._syncSendBlockOff[sendId] = Mpi.createBlockInfoFromRangeAndSubRange(
+            sendRgn, localExtRange, self._numComponents, self._layout)
+         self._syncSendRng[sendId] = self._localExtRange:subRange(sendRgn:lowerAsVec(), sendRgn:upperAsVec())
+         self._syncSendBufVol = math.max(self._syncSendBufVol, sendRgn:volume())
+      end
+      for _, recvId in ipairs(neigIds) do
+         local neighRgn = decomposedRange:subDomain(recvId)
+         local recvRgn  = self._localExtRange:intersect(neighRgn)
+         local idx      = recvRgn:lowerAsVec()
+         -- set idx to starting point of region you want to recv
+         self._syncRecvLoc[recvId] = (indexer(idx)-1)*self._numComponents
+         self._syncRecvBlockSz[recvId], self._syncRecvBlockOff[recvId] = Mpi.createBlockInfoFromRangeAndSubRange(
+            recvRgn, localExtRange, self._numComponents, self._layout)
+         self._syncRecvRng[recvId] = self._localExtRange:subRange(recvRgn:lowerAsVec(), recvRgn:upperAsVec())
+         self._syncRecvBufVol = math.max(self._syncRecvBufVol, recvRgn:volume())
+      end
+
+      -- Get info for periodic syncs without MPI datatypes.
+      self._syncPerNeigh = {}
+      self._syncPerSendLoc,      self._syncPerRecvLoc = {}, {}
+      self._syncPerSendBlockSz,  self._syncPerRecvBlockSz = {}, {}
+      self._syncPerSendBlockOff, self._syncPerRecvBlockOff = {}, {}
+      self._syncPerRecvRng,      self._syncPerRecvRng = {}, {}
+      self._syncPerRecvBufVol,   self._syncPerRecvBufVol = 0, 0
+      self._syncPerSendRng,      self._syncPerRecvRng = {}, {}
+      self._syncPerSendBufVol,   self._syncPerRecvBufVol = 0, 0
+      self._onPerBound = {}
+      for dir = 1, self._ndim do
+         -- set up periodic-sync Datatypes for all dirs, in case we want to change periodicDirs later
+         if self._lowerGhost > 0 and self._upperGhost > 0 and decomposedRange:numSubDomains() > 1 then
+            self._onPerBound[dir] = false
+            local skelIds = decomposedRange:boundarySubDomainIds(dir)
+            for i = 1, #skelIds do
+               local loId, upId = skelIds[i].lower, skelIds[i].upper
+	       self._onPerBound[dir] = self._onPerBound[dir] or ((myId==skelIds[i].lower) or (myId==skelIds[i].upper))
+               -- Only create if we are on proper ranks.
+               -- Note that if the node communicator has rank size of 1, then we can access all the
+               -- memory needed for periodic boundary conditions and no communication is needed.
+               local rgnSend, rgnRecv, oppId
+               if myId == loId and self._grid:cuts(dir) > 1 then
+                  rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
+                  rgnRecv = decomposedRange:subDomain(loId):lowerGhost(dir, self._lowerGhost)
+                  oppId = upId
+               end
+               if myId == upId and self._grid:cuts(dir) > 1 then
+                  rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
+                  rgnRecv = decomposedRange:subDomain(upId):upperGhost(dir, self._upperGhost)
+                  oppId = loId
+               end
+               if oppId ~= nil then
+                  self._syncPerNeigh[dir] = oppId
+                  self._syncPerSendRng[dir] = self._localExtRange:subRange(rgnSend:lowerAsVec(), rgnSend:upperAsVec())
+                  self._syncPerSendBufVol = math.max(self._syncPerSendBufVol, rgnSend:volume())
+                  local idx = rgnSend:lowerAsVec()
+                  -- Set idx to starting point of region you want to send.
+                  self._syncPerSendLoc[dir] = (indexer(idx)-1)*self._numComponents
+                  self._syncPerSendBlockSz[dir], self._syncPerSendBlockOff[dir] = Mpi.createBlockInfoFromRangeAndSubRange(
+                     rgnSend, localExtRange, self._numComponents, self._layout)
+
+                  self._syncPerRecvRng[dir] = self._localExtRange:subRange(rgnRecv:lowerAsVec(), rgnRecv:upperAsVec())
+                  self._syncPerRecvBufVol = math.max(self._syncPerRecvBufVol, rgnRecv:volume())
+                  local idx = rgnRecv:lowerAsVec()
+                  -- Set idx to starting point of region you want to recv.
+                  self._syncPerRecvLoc[dir] = (indexer(idx)-1)*self._numComponents
+                  self._syncPerRecvBlockSz[dir], self._syncPerRecvBlockOff[dir] = Mpi.createBlockInfoFromRangeAndSubRange(
+                     rgnRecv, localExtRange, self._numComponents, self._layout)
+               end
             end
          end
       end
@@ -873,9 +961,12 @@ local function Field_meta_ctor(elct)
       end,
       sync = function (self, syncPeriodicDirs_)
          local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
-	 self._field_sync(self, self._zeroForOps:data())
+--         self._field_sync(self, self._zeroForOps:data())
+         local mess = self._grid:getMessenger()
+         mess:syncCartField(self, mess:getConfComm())
 	 if self._syncPeriodicDirs and syncPeriodicDirs then
-	    self._field_periodic_sync(self, self._zeroForOps:data())
+--            self._field_periodic_sync(self, self._zeroForOps:data())
+            mess:syncPeriodicCartField(self, mess:getConfComm())
 	 end
       end,
       -- This method is an alternative function for applying periodic boundary
@@ -886,6 +977,9 @@ local function Field_meta_ctor(elct)
 	 if self._syncPeriodicDirs and syncPeriodicDirs then
             self._field_periodic_copy(self)
 	 end
+      end,
+      periodicCopyInDir = function (self, dir)
+         self._field_periodic_copy_indir(self, dir)
       end,
       setBasisId = function(self, basisId)
          self._basisId = basisId
@@ -1149,27 +1243,28 @@ local function Field_meta_ctor(elct)
             end
          end
       end,
+      _field_periodic_copy_indir = function (self, dir)
+         -- First get region for skin cells for upper ghost region (the lower skin cells).
+         local skinRgnLower = self._skinRgnLower[dir]
+         local skinRgnUpper = self._skinRgnUpper[dir]
+         local ghostRgnLower = self._ghostRgnLower[dir]
+         local ghostRgnUpper = self._ghostRgnUpper[dir]
+
+         local periodicBuffUpper = self._upperPeriodicBuff[dir]
+         -- Copy skin cells into temporary buffer.
+         self:_copy_from_field_region(skinRgnUpper, periodicBuffUpper)
+         -- Get region for looping over upper ghost cells and copy lower skin cells into upper ghost cells.
+         self:_copy_to_field_region(ghostRgnLower, periodicBuffUpper)
+
+	 -- Now do the same, but for the skin cells for the lower ghost region (the upper skin cells).
+         local periodicBuffLower = self._lowerPeriodicBuff[dir]
+         self:_copy_from_field_region(skinRgnLower, periodicBuffLower)
+         self:_copy_to_field_region(ghostRgnUpper, periodicBuffLower)
+      end,
       _field_periodic_copy = function (self)
          local grid = self._grid
          for dir = 1, self._ndim do
-            if grid:isDirPeriodic(dir) then
-               -- First get region for skin cells for upper ghost region (the lower skin cells).
-               local skinRgnLower = self._skinRgnLower[dir]
-               local skinRgnUpper = self._skinRgnUpper[dir]
-               local ghostRgnLower = self._ghostRgnLower[dir]
-               local ghostRgnUpper = self._ghostRgnUpper[dir]
-
-               local periodicBuffUpper = self._upperPeriodicBuff[dir]
-               -- Copy skin cells into temporary buffer.
-               self:_copy_from_field_region(skinRgnUpper, periodicBuffUpper)
-               -- Get region for looping over upper ghost cells and copy lower skin cells into upper ghost cells.
-               self:_copy_to_field_region(ghostRgnLower, periodicBuffUpper)
-
-	       -- Now do the same, but for the skin cells for the lower ghost region (the upper skin cells).
-               local periodicBuffLower = self._lowerPeriodicBuff[dir]
-               self:_copy_from_field_region(skinRgnLower, periodicBuffLower)
-               self:_copy_to_field_region(ghostRgnUpper, periodicBuffLower)
-            end
+            if grid:isDirPeriodic(dir) then self:_field_periodic_copy_indir(dir) end
          end
       end,
    }

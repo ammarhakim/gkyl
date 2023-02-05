@@ -5,7 +5,7 @@ module load PrgEnv-gnu/8.3.3
 module load cray-mpich/8.1.22
 module load python/3.9-anaconda-2021.11
 module load cudatoolkit/11.7
-module load nccl/2.14.3
+module load nccl/2.15.5-ofi
 module unload darshan
 
 # Build directory
@@ -57,8 +57,8 @@ CUTOOLS_LINK_LIBS="cudart"
 
 # NCCL
 ENABLE_NCCL="--enable-nccl"
-NCCL_INC_DIR=/global/common/software/nersc/pm-2022q3/sw/nccl/2.14.3-1_cuda11.7/include
-NCCL_LIB_DIR=/global/common/software/nersc/pm-2022q3/sw/nccl/2.14.3-1_cuda11.7/lib
+NCCL_INC_DIR=$NCCL_DIR/include
+NCCL_LIB_DIR=$NCCL_DIR/lib
 NCCL_LINK_LIBS="nccl"
 
 # You probably do not need to modify the command itself

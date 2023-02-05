@@ -124,6 +124,7 @@ function RectCart:init(tbl)
    self._localRange  = Range.Range(l, u)
    self._block       = 1   -- Block number for use in parallel communications.
    
+   self.messenger = tbl.messenger or nil  -- Object managing communications.
    self.decomp = tbl.decomposition and tbl.decomposition or nil  -- Decomposition.
    if self.decomp then
       assert(self.decomp:ndim() == self._ndim,
@@ -156,6 +157,7 @@ end
 
 -- Member functions.
 function RectCart:id() return "uniform" end
+function RectCart:getMessenger() return self.messenger end
 function RectCart:commSet() return self._commSet end 
 function RectCart:subGridId() return self._block end
 function RectCart:subGridIdByDim(idx) 
