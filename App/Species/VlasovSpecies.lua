@@ -168,7 +168,8 @@ function VlasovSpecies:createSolver(field, externalField)
          onGrid     = self.grid,                       hasElectricField = hasE,
          confBasis  = self.confBasis,                  hasMagneticField = hasB,
          phaseBasis = self.basis,                      hasExtForce      = self.hasExtForce,
-         confRange  = self.totalEmField:localRange(),  plasmaMagField   = plasmaB
+         confRange  = self.totalEmField:localRange(),  phaseRange       = self.distf[1]:localRange(),  
+         plasmaMagField   = plasmaB
       }
       self.collisionlessAdvance = function(tCurr, inFlds, outFlds)
          self.solver:advance(tCurr, inFlds, outFlds)
