@@ -215,7 +215,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
    self:calcBoundaryCorrs(fIn, boundaryCorrections)
 
    -- Compute u and vtsq.
-   ffiC.gkyl_prim_lbo_calc_advance(self._zero_prim_calc, self.confBasis._zero, primMoms:localRange(), moments._zero, boundaryCorrections._zero, primMoms._zero)
+   ffiC.gkyl_prim_lbo_calc_advance(self._zero_prim_calc, self._confRange, primMoms:localRange(), moments._zero, boundaryCorrections._zero, primMoms._zero)
 
 end
 
@@ -232,7 +232,7 @@ function SelfPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
    self:calcBoundaryCorrsOnDevice(fIn, boundaryCorrections)
 
    -- Compute u and vtsq.
-   ffiC.gkyl_prim_lbo_calc_advance_cu(self._zero_prim_calc, self.confBasis._zero, primMoms:localRange(), moments._zeroDevice, boundaryCorrections._zeroDevice, primMoms._zeroDevice)
+   ffiC.gkyl_prim_lbo_calc_advance_cu(self._zero_prim_calc, self._confRange, primMoms:localRange(), moments._zeroDevice, boundaryCorrections._zeroDevice, primMoms._zeroDevice)
 
 end
    
