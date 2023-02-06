@@ -31,7 +31,6 @@ typedef struct gkyl_prim_lbo_cross_calc gkyl_prim_lbo_cross_calc;
  * on_dev-consistently constructed.
  *
  * @param calc Primitive moment calculator updater to run
- * @param cbasis_rng Config-space basis functions
  * @param conf_rng Config-space range
  * @param greene Greene's factor
  * @param self_m Mass of the species
@@ -44,7 +43,7 @@ typedef struct gkyl_prim_lbo_cross_calc gkyl_prim_lbo_cross_calc;
  * @param prim_moms_out Output drift velocity and thermal speed squared
  */
 void gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
-  struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
+  const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
   double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
@@ -52,7 +51,7 @@ void gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
   struct gkyl_array *prim_moms_out);
 
 void gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
-  struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
+  const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
   double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
@@ -68,16 +67,10 @@ void gkyl_prim_lbo_cross_calc_release(gkyl_prim_lbo_cross_calc* calc);
 
 // "derived" class constructors
 gkyl_prim_lbo_cross_calc*
-gkyl_prim_lbo_vlasov_cross_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+gkyl_prim_lbo_vlasov_cross_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng, bool use_gpu);
 
 gkyl_prim_lbo_cross_calc*
-gkyl_prim_lbo_gyrokinetic_cross_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
-
-gkyl_prim_lbo_cross_calc*
-gkyl_prim_lbo_vlasov_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
-
-gkyl_prim_lbo_cross_calc*
-gkyl_prim_lbo_gyrokinetic_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+gkyl_prim_lbo_gyrokinetic_cross_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng, bool use_gpu);
 
 
 // Object type
@@ -213,26 +206,22 @@ function CrossPrimMoments:init(tbl)
    local vDim = phaseBasis:ndim() - cDim
    self._vDimPhys = isGK and 2*vDim-1 or vDim
 
-   if self._useGPU then
-      if operator=="GkLBO" then
-         self._zero = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_cross_calc_cu_dev_new(onGrid._zero, self.confBasis._zero, phaseBasis._zero),
-                             ffiC.gkyl_prim_lbo_cross_calc_release)
-      elseif operator=="VmLBO" then
-         self._zero = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_cross_calc_cu_dev_new(onGrid._zero, self.confBasis._zero, phaseBasis._zero),
-                             ffiC.gkyl_prim_lbo_cross_calc_release)
-      end
-   else
-      if operator=="GkLBO" then
-         self._zero = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_cross_calc_new(onGrid._zero, self.confBasis._zero, phaseBasis._zero),
-                             ffiC.gkyl_prim_lbo_cross_calc_release)
-      elseif operator=="VmLBO" then
-         self._zero = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_cross_calc_new(onGrid._zero, self.confBasis._zero, phaseBasis._zero),
-                             ffiC.gkyl_prim_lbo_cross_calc_release)
-      end
+   local onRange = self.onGhosts and self.m0deltas:localExtRange() or self.m0deltas:localRange()
+
+   if operator=="GkLBO" then
+      self._zero = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_cross_calc_new(
+                             onGrid._zero, self.confBasis._zero, phaseBasis._zero,
+                             onRange, self._useGPU),
+                          ffiC.gkyl_prim_lbo_cross_calc_release)
+   elseif operator=="VmLBO" then
+      self._zero = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_cross_calc_new(
+                             onGrid._zero, self.confBasis._zero, phaseBasis._zero,
+                             onRange, self._useGPU),
+                          ffiC.gkyl_prim_lbo_cross_calc_release)
    end
    
-   local onRange = self.onGhosts and self.m0deltas:localExtRange() or self.m0deltas:localRange()
-   self._zero_m0deltas = ffi.gc(ffiC.gkyl_prim_cross_m0deltas_new(self.confBasis._zero, onRange, self._betaP1, self._useGPU),
+   self._zero_m0deltas = ffi.gc(ffiC.gkyl_prim_cross_m0deltas_new(
+                                   self.confBasis._zero, onRange, self._betaP1, self._useGPU),
                                 ffiC.gkyl_prim_cross_m0deltas_release)
 
    if isLBO then
@@ -272,7 +261,7 @@ function CrossPrimMoments:_advanceLBO(tCurr, inFld, outFld)
       m0sPreFac._zero, momsSelf:localRange(), self.m0deltas._zero)
 
    -- Compute u and vtsq.
-   ffiC.gkyl_prim_lbo_cross_calc_advance(self._zero, self.confBasis._zero, primMomsSelf:localRange(), self.m0deltas._zero,
+   ffiC.gkyl_prim_lbo_cross_calc_advance(self._zero, primMomsSelf:localRange(), self.m0deltas._zero,
       mSelf, momsSelf._zero, primMomsSelf._zero, mOther, momsOther._zero, primMomsOther._zero, 
       bCorrsSelf._zero, primMomsCrossSelf._zero)
 end
@@ -329,7 +318,7 @@ function CrossPrimMoments:_advanceOnDeviceLBO(tCurr, inFld, outFld)
       m0sPreFac._zeroDevice, momsSelf:localRange(), self.m0deltas._zeroDevice)
 
    -- Compute u and vtsq.
-   ffiC.gkyl_prim_lbo_cross_calc_advance_cu(self._zero, self.confBasis._zero, primMomsSelf:localRange(), self.m0deltas._zeroDevice,
+   ffiC.gkyl_prim_lbo_cross_calc_advance_cu(self._zero, primMomsSelf:localRange(), self.m0deltas._zeroDevice,
       mSelf, momsSelf._zeroDevice, primMomsSelf._zeroDevice,
       mOther, momsOther._zeroDevice, primMomsOther._zeroDevice, 
       bCorrsSelf._zeroDevice, primMomsCrossSelf._zeroDevice)

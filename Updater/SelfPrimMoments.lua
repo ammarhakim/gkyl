@@ -28,19 +28,18 @@ typedef struct gkyl_prim_lbo_calc gkyl_prim_lbo_calc;
  * on_dev-consistently constructed.
  *
  * @param calc Primitive moment calculator updater to run
- * @param cbasis_rng Config-space basis functions
  * @param conf_rng Config-space range
  * @param moms Moments of distribution function (Zeroth, First, and Second)
  * @param boundary_corrections Momentum and Energy boundary corrections
  * @param prim_moms_out Output drift velocity and thermal speed squared.
  */
-void gkyl_prim_lbo_calc_advance(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
-  struct gkyl_range *conf_rng,
+void gkyl_prim_lbo_calc_advance(struct gkyl_prim_lbo_calc* calc, 
+  const struct gkyl_range *conf_rng,
   const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
   struct gkyl_array *prim_moms_out);
 
-void gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
-  struct gkyl_range *conf_rng,
+void gkyl_prim_lbo_calc_advance_cu(struct gkyl_prim_lbo_calc* calc, 
+  const struct gkyl_range *conf_rng, 
   const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
   struct gkyl_array* prim_moms_out);
 
@@ -52,24 +51,20 @@ void gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, struct gkyl_basis c
 void gkyl_prim_lbo_calc_release(gkyl_prim_lbo_calc* calc);
 
 // "derived" class constructors
-gkyl_prim_lbo_calc*
-gkyl_prim_lbo_vlasov_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+struct gkyl_prim_lbo_calc* 
+gkyl_prim_lbo_vlasov_calc_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_rng, bool use_gpu);
 
-gkyl_prim_lbo_calc*
-gkyl_prim_lbo_gyrokinetic_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+struct gkyl_prim_lbo_calc* 
+gkyl_prim_lbo_vlasov_pkpm_calc_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
+  const struct gkyl_range *conf_rng, bool use_gpu);
 
-gkyl_prim_lbo_calc*
-gkyl_prim_lbo_vlasov_with_fluid_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng);
-
-gkyl_prim_lbo_calc*
-gkyl_prim_lbo_vlasov_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
-
-gkyl_prim_lbo_calc*
-gkyl_prim_lbo_gyrokinetic_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
-
-gkyl_prim_lbo_calc*
-gkyl_prim_lbo_vlasov_with_fluid_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng);
-
+struct gkyl_prim_lbo_calc* 
+gkyl_prim_lbo_gyrokinetic_calc_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_rng, bool use_gpu);
 
 // Object type
 typedef struct gkyl_mom_calc_bcorr gkyl_mom_calc_bcorr;
@@ -99,17 +94,20 @@ void gkyl_mom_calc_bcorr_advance_cu(gkyl_mom_calc_bcorr *bcorr,
 void gkyl_mom_calc_bcorr_release(gkyl_mom_calc_bcorr* up);
 
 // "derived" class constructors
-gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_lbo_vlasov_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary);
+struct gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_vlasov_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const double* vBoundary, bool use_gpu);
 
-gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary, double mass);
+struct gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_vlasov_pkpm_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const double* vBoundary, double mass, bool use_gpu);
 
-gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary);
-
-gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_lbo_gyrokinetic_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary, double mass);
+struct gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const double* vBoundary, double mass, bool use_gpu);
 ]]
 
 -- function to check if operator option is correct
@@ -136,8 +134,14 @@ function SelfPrimMoments:init(tbl)
       tbl.confBasis, "Updater.SelfPrimMoments: Must provide the configuration basis object using 'confBasis'.")
    local confBasis = self.confBasis
 
+   self._confRange = assert(tbl.confRange,
+     "Updater.SelfPrimMoments: Must specify conf-space range using 'confRange'")
+   assert(self._confRange:isSubRange()==1, "Updater.SelfPrimMoments: confRange must be a sub-range") 
+
    local operator = assert(
       tbl.operator, "Updater.SelfPrimMoments: Must specify the collision operator (VmLBO or GkLBO for now) using 'operator'.")
+
+   self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
 
    -- Ensure sanity.
    local basisID = confBasis:id()  -- Basis name.
@@ -166,38 +170,21 @@ function SelfPrimMoments:init(tbl)
    local mass
    if isLBO and isGK then mass = assert(tbl.mass, "SelfPrimMoments: must pass species mass for GkLBO") end
 
-   if GKYL_USE_GPU then
-      if isGK then
-         self._zero_bcorr_calc = isLBO and
-            ffi.gc(ffiC.gkyl_mom_calc_bcorr_lbo_gyrokinetic_cu_dev_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, vbounds, mass),
-                   ffiC.gkyl_mom_calc_bcorr_release)
-            or nil
-         self._zero_prim_calc  = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_calc_cu_dev_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero),
-                                        ffiC.gkyl_prim_lbo_calc_release)
-      else
-         self._zero_bcorr_calc = isLBO and
-            ffi.gc(ffiC.gkyl_mom_calc_bcorr_lbo_vlasov_cu_dev_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, vbounds),
-                   ffiC.gkyl_mom_calc_bcorr_release)
-            or nil
-         self._zero_prim_calc  = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_calc_cu_dev_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero),
-                                        ffiC.gkyl_prim_lbo_calc_release)
-      end
+
+   if isGK then
+      self._zero_bcorr_calc = isLBO and
+         ffi.gc(ffiC.gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, vbounds, mass, self._useGPU),
+                ffiC.gkyl_mom_calc_bcorr_release)
+         or nil
+      self._zero_prim_calc  = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_calc_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, self._confRange, self._useGPU),
+                                     ffiC.gkyl_prim_lbo_calc_release)
    else
-      if isGK then
-         self._zero_bcorr_calc = isLBO and
-            ffi.gc(ffiC.gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, vbounds, mass),
-                   ffiC.gkyl_mom_calc_bcorr_release)
-            or nil
-         self._zero_prim_calc  = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_calc_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero),
-                                        ffiC.gkyl_prim_lbo_calc_release)
-      else
-         self._zero_bcorr_calc = isLBO and
-             ffi.gc(ffiC.gkyl_mom_calc_bcorr_lbo_vlasov_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, vbounds),
-                    ffiC.gkyl_mom_calc_bcorr_release)
-             or nil
-         self._zero_prim_calc  = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_calc_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero),
-                                        ffiC.gkyl_prim_lbo_calc_release)
-      end
+      self._zero_bcorr_calc = isLBO and
+          ffi.gc(ffiC.gkyl_mom_calc_bcorr_lbo_vlasov_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, vbounds, self._useGPU),
+                 ffiC.gkyl_mom_calc_bcorr_release)
+          or nil
+      self._zero_prim_calc  = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_calc_new(self._onGrid._zero, confBasis._zero, phaseBasis._zero, self._confRange, self._useGPU),
+                                     ffiC.gkyl_prim_lbo_calc_release)
    end
 
    -- Function that computes the corrections due to finite velocity space extents (for LBO only).
@@ -228,7 +215,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
    self:calcBoundaryCorrs(fIn, boundaryCorrections)
 
    -- Compute u and vtsq.
-   ffiC.gkyl_prim_lbo_calc_advance(self._zero_prim_calc, self.confBasis._zero, primMoms:localRange(), moments._zero, boundaryCorrections._zero, primMoms._zero)
+   ffiC.gkyl_prim_lbo_calc_advance(self._zero_prim_calc, primMoms:localRange(), moments._zero, boundaryCorrections._zero, primMoms._zero)
 
 end
 
@@ -245,7 +232,7 @@ function SelfPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
    self:calcBoundaryCorrsOnDevice(fIn, boundaryCorrections)
 
    -- Compute u and vtsq.
-   ffiC.gkyl_prim_lbo_calc_advance_cu(self._zero_prim_calc, self.confBasis._zero, primMoms:localRange(), moments._zeroDevice, boundaryCorrections._zeroDevice, primMoms._zeroDevice)
+   ffiC.gkyl_prim_lbo_calc_advance_cu(self._zero_prim_calc, primMoms:localRange(), moments._zeroDevice, boundaryCorrections._zeroDevice, primMoms._zeroDevice)
 
 end
    

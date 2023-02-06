@@ -182,7 +182,7 @@ function VmLBOCollisions:createSolver(mySpecies, extField)
    self.primMomsSelfCalc = Updater.SelfPrimMoments {
       onGrid     = self.phaseGrid,   operator = "VmLBO",
       phaseBasis = self.phaseBasis,  vbounds  = vbounds,
-      confBasis  = self.confBasis,
+      confBasis  = self.confBasis,   confRange = self.nuSelf:localRange(),
    }
 
    local projectUserNu
