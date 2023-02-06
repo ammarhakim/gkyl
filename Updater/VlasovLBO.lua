@@ -60,13 +60,13 @@ gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid,
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_dg_updater_lbo_vlasov_advance(gkyl_dg_updater_lbo_vlasov *lbo,
+void gkyl_dg_updater_lbo_vlasov_advance(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
   const struct gkyl_array* fIn,
   struct gkyl_array* cflrate, struct gkyl_array* rhs);
 
-void gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo,
+void gkyl_dg_updater_lbo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
   const struct gkyl_array* fIn,
@@ -77,7 +77,7 @@ void gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo,
  *
  * @param lbo Updater to delete.
  */
-void gkyl_dg_updater_lbo_vlasov_release(gkyl_dg_updater_lbo_vlasov *lbo);
+void gkyl_dg_updater_lbo_vlasov_release(struct gkyl_dg_updater_collisions *lbo);
 ]]
 
 -- VlasovLBO DG solver updater object

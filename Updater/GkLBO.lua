@@ -61,7 +61,7 @@ gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid,
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_dg_updater_lbo_gyrokinetic_advance(gkyl_dg_updater_lbo_gyrokinetic *lbo,
+void gkyl_dg_updater_lbo_gyrokinetic_advance(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *bmag_inv,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
@@ -69,7 +69,7 @@ void gkyl_dg_updater_lbo_gyrokinetic_advance(gkyl_dg_updater_lbo_gyrokinetic *lb
   const struct gkyl_array* fIn,
   struct gkyl_array* cflrate, struct gkyl_array* rhs);
 
-void gkyl_dg_updater_lbo_gyrokinetic_advance_cu(gkyl_dg_updater_lbo_gyrokinetic *lbo,
+void gkyl_dg_updater_lbo_gyrokinetic_advance_cu(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *bmag_inv,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
@@ -82,7 +82,7 @@ void gkyl_dg_updater_lbo_gyrokinetic_advance_cu(gkyl_dg_updater_lbo_gyrokinetic 
  *
  * @param lbo Updater to delete.
  */
-void gkyl_dg_updater_lbo_gyrokinetic_release(gkyl_dg_updater_lbo_gyrokinetic *lbo);
+void gkyl_dg_updater_lbo_gyrokinetic_release(struct gkyl_dg_updater_collisions *lbo);
 ]]
 
 -- GkLBO DG solver updater object
