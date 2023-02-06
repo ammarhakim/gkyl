@@ -26,22 +26,23 @@ local new, sizeof, typeof, metatype = xsys.from(ffi,
      "new, sizeof, typeof, metatype")
 
 ffi.cdef [[ 
-// Identifiers for specific model types
-enum gkyl_model_id {
-  GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified
-  GKYL_MODEL_PKPM,
-  GKYL_MODEL_SR,
-  GKYL_MODEL_SR_PKPM,
-};
-
 // Identifiers for specific field object types
 enum gkyl_field_id {
   GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
-  GKYL_FIELD_SR_E_B, // Maxwell (E, B) with special relativity
   GKYL_FIELD_PHI, // Poisson (only phi)
   GKYL_FIELD_PHI_A, // Poisson with static B = curl(A) (phi, A)
   GKYL_FIELD_NULL, // no field is present
-  GKYL_FIELD_SR_NULL // no field is present, special relativistic Vlasov
+};
+
+// Identifiers for subsidary models
+// These are used to distinguish things like special relativistic from non-relativistic
+// or the parallel-kinetic-perpendicular-moment model
+enum gkyl_model_id {
+  GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified
+  GKYL_MODEL_SR,
+  GKYL_MODEL_GEN_GEO,
+  GKYL_MODEL_PKPM,
+  GKYL_MODEL_SR_PKPM,
 };
 
 typedef struct gkyl_dg_updater_vlasov gkyl_dg_updater_vlasov;
@@ -168,9 +169,6 @@ function VlasovDG:_advance(tCurr, inFld, outFld)
       aux3 = inFld[4]._zero
       aux4 = inFld[5]._zero
       aux5 = inFld[6]._zero
-   elseif self._fieldId == "GKYL_FIELD_PHI" or self._fieldId == "GKYL_FIELD_PHI_A" then
-      aux1 = inFld[2]._zero
-      aux2 = inFld[3]._zero
    else
       aux1 = inFld[2]._zero
    end
@@ -199,9 +197,6 @@ function VlasovDG:_advanceOnDevice(tCurr, inFld, outFld)
       aux3 = inFld[4]._zeroDevice
       aux4 = inFld[5]._zeroDevice
       aux5 = inFld[6]._zeroDevice
-   elseif self._fieldId == "GKYL_FIELD_PHI" or self._fieldId == "GKYL_FIELD_PHI_A" then
-      aux1 = inFld[2]._zeroDevice
-      aux2 = inFld[3]._zeroDevice
    else
       aux1 = inFld[2]._zeroDevice
    end
