@@ -28,7 +28,7 @@ local new, sizeof, typeof, metatype = xsys.from(ffi,
 ffi.cdef [[ 
 
 // Object type
-typedef struct gkyl_dg_updater_lbo_vlasov gkyl_dg_updater_lbo_vlasov;
+typedef struct gkyl_dg_updater_collisions gkyl_dg_updater_collisions;
 
 /**
  * Create new updater to update lbo equations using hyper dg.
