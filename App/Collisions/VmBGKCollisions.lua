@@ -168,6 +168,7 @@ function VmBGKCollisions:createSolver(mySpecies, externalField)
    self.primMomsSelfCalc = Updater.SelfPrimMoments {
       onGrid     = self.phaseGrid,   operator  = "VmBGK",
       phaseBasis = self.phaseBasis,  confBasis = self.confBasis,
+      confRange = self.nuSelf:localRange(),
    }
 
    -- Sum of Maxwellians multiplied by respective collisionalities.

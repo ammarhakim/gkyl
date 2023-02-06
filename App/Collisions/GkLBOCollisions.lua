@@ -162,6 +162,7 @@ function GkLBOCollisions:createSolver(mySpecies, externalField)
       onGrid     = self.phaseGrid,   operator = "GkLBO",
       phaseBasis = self.phaseBasis,  vbounds  = vbounds,
       confBasis  = self.confBasis,   mass     = self.mass,
+      confRange = self.nuSelf:localRange(),
    }
 
    local projectUserNu
