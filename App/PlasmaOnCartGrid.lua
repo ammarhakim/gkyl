@@ -941,4 +941,11 @@ return {
         Species    = require "App.Species.EulerSpecies",
       }
    end,
+
+   Moments = function ()
+      App.label = "Moments and Fluids Solver"
+      return {
+	 App = require("App.Moments.Moments")
+      }
+   end,
 }
