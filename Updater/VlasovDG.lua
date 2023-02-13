@@ -212,6 +212,9 @@ function VlasovDG:_advanceOnDevice(tCurr, inFld, outFld)
 
 end
 
+-- fetch equation updater
+function VlasovDG:getEquation() return self._zero end
+
 -- set up pointers to dt and cflRateByCell
 function VlasovDG:setDtAndCflRate(dt, cflRateByCell)
    VlasovDG.super.setDtAndCflRate(self, dt, cflRateByCell)

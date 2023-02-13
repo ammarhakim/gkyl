@@ -320,6 +320,7 @@ function KineticSpecies:createGrid(confGridIn)
    }
 
    for _, c in pairs(self.collisions) do c:setPhaseGrid(self.grid) end
+   for _, src in pairs(self.sources) do src:setPhaseGrid(self.grid) end
 end
 
 -- Field allocation in the species objects should be performed with one
