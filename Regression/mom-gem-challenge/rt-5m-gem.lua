@@ -1,6 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
 local Moments = require("App.PlasmaOnCartGrid").Moments()
-local Euler = require "Eq.Euler"
 
 -- physical parameters
 gasGamma = 5./3.
@@ -34,15 +33,13 @@ lambda = lambdaOverDi0 * di0
 Lx = 25.6 * di0
 Ly = 12.8 * di0
 
-momentApp = Moments.App {
-   logToFile = true,
+local momentApp = Moments.App {
 
    tEnd = 25.0/OmegaCi0,
-   nFrame = 1,
+   nFrame = 10,
    lower = {-Lx/2, -Ly/2},
    upper = {Lx/2, Ly/2},
    cells = {64, 32},
-   timeStepper = "fvDimSplit",
 
    -- boundary conditions for configuration space
    periodicDirs = {1}, -- periodic directions
@@ -51,9 +48,8 @@ momentApp = Moments.App {
    elc = Moments.Species {
       charge = elcCharge, mass = elcMass,
 
-      equation = Euler { gasGamma = gasGamma },
-      equationInv = Euler { gasGamma = gasGamma, numericalFlux = "lax" },
-      forceInv = false,
+      equation = Moments.Euler { gasGamma = gasGamma },
+      
       -- initial conditions
       init = function (t, xn)
 	 local x, y = xn[1], xn[2]
@@ -70,17 +66,15 @@ momentApp = Moments.App {
 	 
 	 return rhoe, 0.0, 0.0, ezmom, ere
       end,
-      evolve = true, -- evolve species?
-      bcy = { Euler.bcWall, Euler.bcWall },
+      bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
    },
 
    -- ions
    ion = Moments.Species {
       charge = ionCharge, mass = ionMass,
 
-      equation = Euler { gasGamma = gasGamma },
-      equationInv = Euler { gasGamma = gasGamma, numericalFlux = "lax" },
-      forceInv = false,
+      equation = Moments.Euler { gasGamma = gasGamma },
+      
       -- initial conditions
       init = function (t, xn)
 	 local x, y = xn[1], xn[2]
@@ -97,12 +91,12 @@ momentApp = Moments.App {
 	 
 	 return rhoi, 0.0, 0.0, izmom, eri
       end,
-      evolve = true, -- evolve species?
-      bcy = { Euler.bcWall, Euler.bcWall },
+      bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
    },
 
    field = Moments.Field {
       epsilon0 = 1.0, mu0 = 1.0,
+      
       init = function (t, xn)
 	 local x, y = xn[1], xn[2]
 
@@ -113,14 +107,9 @@ momentApp = Moments.App {
 
 	 return 0.0, 0.0, 0.0, Bx, By, Bz
       end,
-      evolve = true, -- evolve field?
+      
       bcy = { Moments.Field.bcReflect, Moments.Field.bcReflect },
    },
-
-   emSource = Moments.CollisionlessEmSource {
-      species = {"elc", "ion"},
-      timeStepper = "direct",
-   },   
 
 }
 -- run application
