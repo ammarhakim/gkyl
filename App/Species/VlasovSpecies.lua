@@ -267,6 +267,12 @@ function VlasovSpecies:createSolver(field, externalField)
       },
    }
 
+   -- Boundary flux updater.
+   self.fluxSlvr = Updater.BoundaryFluxCalc {
+      onGrid = self.grid,   equation = self.solver:getEquation(), 
+      cdim = self.cdim, equation_id = "vlasov",
+   }
+
    -- Create species source solvers.
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
 
@@ -372,6 +378,8 @@ function VlasovSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
    for _, c in pairs(self.collisions) do
       c:advance(tCurr, fIn, population, {fRhsOut, self.cflRateByCell})   -- 'population' needed for cross-species collisions.
    end
+
+   self.fluxSlvr:advance(tCurr, {fIn}, {fRhsOut})
 
    for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, population:getSpecies(), fRhsOut) end
    

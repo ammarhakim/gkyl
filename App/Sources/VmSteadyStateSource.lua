@@ -42,7 +42,6 @@ function VmSteadyStateSource:setName(nm) self.name = self.speciesName.."_"..nm e
 function VmSteadyStateSource:setSpeciesName(nm) self.speciesName = nm end
 function VmSteadyStateSource:setConfBasis(basis) self.confBasis = basis end
 function VmSteadyStateSource:setConfGrid(grid) self.confGrid = grid end
-function VmSteadyStateSource:setPhaseGrid(grid) self.phaseGrid = grid end
 
 function VmSteadyStateSource:createSolver(mySpecies, extField)
 
@@ -72,12 +71,6 @@ function VmSteadyStateSource:createSolver(mySpecies, extField)
       self.powerScalingFac = self.power/intKE_data[1]
       self.fSource:scale(self.powerScalingFac)
    end
-
-   -- Boundary flux updater.
-   self.fluxSlvr = Updater.BoundaryFluxCalc {
-      onGrid = self.phaseGrid,   equation = mySpecies.solver:getEquation(), 
-      cdim = mySpecies.cdim, equation_id = "vlasov",
-   }
 
    local numDensitySrc = mySpecies:allocMoment()
    local momDensitySrc = mySpecies:allocVectorMoment(mySpecies.vdim)
@@ -136,8 +129,6 @@ function VmSteadyStateSource:advance(tCurr, fIn, species, fRhsOut)
    local densFactor = self.globalEdgeFlux[0]/self.sourceLength
    fRhsOut:accumulate(densFactor, self.fSource)
    self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
-
-   self.fluxSlvr:advance(tCurr, {fIn}, {fRhsOut})
 end
 
 function VmSteadyStateSource:createDiagnostics(thisSpecies, momTable)
