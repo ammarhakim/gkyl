@@ -1,23 +1,18 @@
--- Thin wrapper around the gkyl_moment app. This tries to preserve
--- compatibility with G2 input files as much as possible. To use this,
--- install G0 (make install) and set LUA_PATH to:
+-- Gkyl ------------------------------------------------------------------------
 --
--- export LUA_PATH="$HOME/gkylsoft/gkylzero/lib/?.lua;;"
---
--- (Please note the two semi-colons at the end!)
---
--- Then make an input file and run that through luajit. You can
--- install luajit by hand from sources, or using apt get on Ubuntu.
---
+-- Moments App wrapper: this wrapper calls the G0 Moments App
+-- (moments.c) code directly. In contrast to the VM/GK Apps the
+-- Moments App lets G0 do most of the work.
+-- 
+--    _______     ___
+-- + 6 @ |||| # P ||| +
+--------------------------------------------------------------------------------
 
 local ffi = require "ffi"
 
 -- load shared library
 local install_prefix = os.getenv("HOME") .. "/gkylsoft/gkylzero"
 local C = ffi.load(install_prefix .. "/lib/libgkylzero.so")
-
--- set global package paths
-package.path = package.path .. ";" .. install_prefix .. "/lib/?.lua"
 
 -- pick default if val is nil, else pick val
 local function pickBool(val, default)
