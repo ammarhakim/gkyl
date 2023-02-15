@@ -1,6 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
 local Moments = require("App.PlasmaOnCartGrid").Moments()
-local TenMoment = require "Eq.TenMoment"
 
 -- physical parameters
 gasGamma = 5./3.
@@ -57,9 +56,7 @@ momentApp = Moments.App {
    elc = Moments.Species {
       charge = elcCharge, mass = elcMass,
 
-      equation = TenMoment {},
-      equationInv = TenMoment { numericalFlux = "lax" },
-      forceInv = false,
+      equation = Moments.TenMoment { k0 = 1/de0 },
       -- initial conditions
       init = function (t, xn)
     local x, y = xn[1], xn[2]
@@ -83,17 +80,14 @@ momentApp = Moments.App {
     
     return rhoe, 0.0, 0.0, ezmom, pxxe, pxye, pxze, pyye, pyze, pzze
       end,
-      evolve = true, -- evolve species?
-      bcy = { TenMoment.bcWall, TenMoment.bcWall },
+      bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
    },
 
    -- ions
    ion = Moments.Species {
       charge = ionCharge, mass = ionMass,
 
-      equation = TenMoment {},
-      equationInv = TenMoment { numericalFlux = "lax" },
-      forceInv = false,
+      equation = Moments.TenMoment { k0 = 1/de0 },
       -- initial conditions
       init = function (t, xn)
     local x, y = xn[1], xn[2]
@@ -117,7 +111,6 @@ momentApp = Moments.App {
     
     return rhoi, 0.0, 0.0, izmom, pxxi, pxyi, pxzi, pyyi, pyzi, pzzi
       end,
-      evolve = true, -- evolve species?
       bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
    },
 
@@ -135,23 +128,6 @@ momentApp = Moments.App {
       end,
       evolve = true, -- evolve field?
       bcy = { Moments.Field.bcReflect, Moments.Field.bcReflect },
-   },
-
-   emSource = Moments.CollisionlessEmSource {
-      species = {"elc", "ion"},
-      timeStepper = "direct",
-   },
-
-   elc10mSource = Moments.TenMomentRelaxSource {
-      species = {"elc"},
-      timeStepper = "explicit",
-      k = 1/de0,
-   },
-
-   ion10mSource = Moments.TenMomentRelaxSource {
-      species = {"ion"},
-      timeStepper = "explicit",
-      k = 1/de0,
    },
 }
 
