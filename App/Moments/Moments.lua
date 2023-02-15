@@ -686,6 +686,11 @@ _M.Advection = function(tbl)
    return ffi.gc(C.gkyl_wv_advect_new(tbl.speed), C.gkyl_wv_eqn_release)
 end
 
+-- Ten-moment equation
+_M.TenMoment = function(tbl)
+   return ffi.gc(C.gkyl_wv_ten_moment_new(tbl.k0), C.gkyl_wv_eqn_release)
+end
+
 -- name to RP-type mappings
 local mhd_rp_tags = {
    ["roe"] = C.WV_MHD_RP_ROE,
