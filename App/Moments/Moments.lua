@@ -106,12 +106,7 @@ enum gkyl_species_bc_type {
   GKYL_SPECIES_NO_SLIP, // no-slip boundary conditions
   GKYL_SPECIES_WEDGE, // specialized "wedge" BCs for RZ-theta
   GKYL_SPECIES_FUNC, // Function boundary conditions
-};
-
-// Boundary conditions on fluids
-enum gkyl_fluid_species_bc_type {
-  GKYL_FLUID_SPECIES_COPY = 0, // copy BCs
-  GKYL_FLUID_SPECIES_ABSORB, // Absorbing BCs
+  GKYL_SPECIES_FIXED_FUNC, // Fixed function, time-independent, boundary conditions
 };
 
 // Boundary conditions on fields
@@ -345,7 +340,7 @@ struct gkyl_moment_species {
   char name[128]; // species name
   double charge, mass; // charge and mass
   enum gkyl_wave_limiter limiter; // limiter to use
-  const struct gkyl_wv_eqn *equation; // equation object
+  struct gkyl_wv_eqn *equation; // equation object
 
   int evolve; // evolve species? 1-yes, 0-no
   bool force_low_order_flux; // should  we force low-order flux?
