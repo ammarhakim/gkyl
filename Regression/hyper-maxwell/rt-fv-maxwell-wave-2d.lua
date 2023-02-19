@@ -13,15 +13,12 @@ freq = 2*math.pi/L*math.sqrt(kwave^2+lwave^2)*Constants.SPEED_OF_LIGHT
 
 -- create app
 maxwellApp = Moments.App {
-   logToFile = true,
-
    tEnd = 2*math.pi/freq, -- end time
    nFrame = 1, -- number of output frame
    lower = {0.0, 0.0}, -- lower left corner
    upper = {X, Y}, -- upper right corner
    cells = {NX, NY}, -- number of cells
    cflFrac = 0.9, -- CFL fraction
-   timeStepper = "fvDimSplit",
    
    -- decomposition stuff
    decompCuts = {1, 1}, -- cuts in each direction

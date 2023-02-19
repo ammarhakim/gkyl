@@ -55,6 +55,8 @@ enum gkyl_eqn_type {
   GKYL_EQN_MAXWELL, // Maxwell equations
   GKYL_EQN_MHD,  // Ideal MHD equations
   GKYL_EQN_BURGERS, // Burgers equations
+  GKYL_EQN_ADVECTION, // Scalar advection equation
+  GKYL_EQN_EULER_PKPM, // Euler equations with parallel-kinetic-perpendicular-moment (pkpm) model
 };
 
 // Identifiers for specific field object types
@@ -106,12 +108,7 @@ enum gkyl_species_bc_type {
   GKYL_SPECIES_NO_SLIP, // no-slip boundary conditions
   GKYL_SPECIES_WEDGE, // specialized "wedge" BCs for RZ-theta
   GKYL_SPECIES_FUNC, // Function boundary conditions
-};
-
-// Boundary conditions on fluids
-enum gkyl_fluid_species_bc_type {
-  GKYL_FLUID_SPECIES_COPY = 0, // copy BCs
-  GKYL_FLUID_SPECIES_ABSORB, // Absorbing BCs
+  GKYL_SPECIES_FIXED_FUNC, // Fixed function, time-independent, boundary conditions
 };
 
 // Boundary conditions on fields
@@ -344,8 +341,9 @@ ffi.cdef [[
 struct gkyl_moment_species {
   char name[128]; // species name
   double charge, mass; // charge and mass
+  bool has_grad_closure; // has gradient-based closure (only for 10 moment)
   enum gkyl_wave_limiter limiter; // limiter to use
-  const struct gkyl_wv_eqn *equation; // equation object
+  struct gkyl_wv_eqn *equation; // equation object
 
   int evolve; // evolve species? 1-yes, 0-no
   bool force_low_order_flux; // should  we force low-order flux?

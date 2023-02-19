@@ -9,14 +9,11 @@ NY = 40
    
 -- create app
 maxwellApp = Moments.App {
-   logToFile = true,
-
    tEnd = 200e-9, -- end time
    nFrame = 5, -- number of output frame
    lower = {0.0, 0.0}, -- lower left corner
    upper = {X, Y}, -- upper right corner
    cells = {NX, NY}, -- number of cells
-   timeStepper = "fvDimSplit",
    cflFrac = 0.5,
    
    -- decomposition stuff
