@@ -45,54 +45,25 @@ function VmSteadyStateSource:setConfGrid(grid) self.confGrid = grid end
 
 function VmSteadyStateSource:createSolver(mySpecies, extField)
 
-   self.writeGhost = mySpecies.writeGhost   
+   self.dgIntegratedMoms = Updater.DgMomentCalc {
+      onGrid     = mySpecies.grid,   confBasis  = mySpecies.confBasis,
+      phaseBasis = mySpecies.basis,  moment     = "M0",
+      isIntegrated = true,
+   }
 
+   self.writeGhost = mySpecies.writeGhost
+
+   self.cdim = mySpecies.cdim
+   
    self.profile:fullInit(mySpecies)
 
    self.fSource = mySpecies:allocDistf()
 
    self.profile:advance(0.0, {extField}, {self.fSource})
 
-   if self.positivityRescale then
-      mySpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
-   end
+   local distf = mySpecies:getDistF()
 
-   if self.power then
-      local calcInt = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.confGrid,
-         basis = self.confBasis,
-         numComponents = 1,
-         quantity = "V",
-      }
-      local intKE = DataStruct.DynVector{numComponents = 1}
-      mySpecies.ptclEnergyCalc:advance(0.0, {self.fSource}, {mySpecies.ptclEnergyAux})
-      calcInt:advance(0.0, {mySpecies.ptclEnergyAux, mySpecies.mass/2}, {intKE})
-      local _, intKE_data = intKE:lastData()
-      self.powerScalingFac = self.power/intKE_data[1]
-      self.fSource:scale(self.powerScalingFac)
-   end
-
-   local numDensitySrc = mySpecies:allocMoment()
-   local momDensitySrc = mySpecies:allocVectorMoment(mySpecies.vdim)
-   local ptclEnergySrc = mySpecies:allocMoment()
-   mySpecies.fiveMomentsCalc:advance(0.0, {self.fSource}, {numDensitySrc, momDensitySrc, ptclEnergySrc})
-
-   self.fSource:write(string.format("%s_0.bp", self.name), 0., 0, self.writeGhost)
-   numDensitySrc:write(string.format("%s_M0_0.bp", self.name), 0., 0)
-   momDensitySrc:write(string.format("%s_M1_0.bp", self.name), 0., 0)
-   ptclEnergySrc:write(string.format("%s_M2_0.bp", self.name), 0., 0)
-
-   self.momDensityBuf = mySpecies:allocVectorMoment(mySpecies.vdim)
-
-   local numConfDims  = self.confBasis:ndim()
-   local numConfBasis = self.confBasis:numBasis()
-   assert(numConfDims==1, "VlasovSpecies: The steady state source is available only for 1X.")
-
-   local blowerV, bupperV = Lin.Vec(numConfDims), Lin.Vec(numConfDims)
-   blowerV[1], bupperV[1] = -1.0, 1.0
-   self.basisUpper, self.basisLower = Lin.Vec(numConfBasis),  Lin.Vec(numConfBasis)
-   self.confBasis:evalBasis(bupperV:data(), self.basisUpper:data())
-   self.confBasis:evalBasis(blowerV:data(), self.basisLower:data())
+   self.integMoms  = mySpecies:allocIntMoment(mySpecies.vdim+2)
 
    self.localEdgeFlux = ffi.new("double[1]")
    self.globalEdgeFlux = ffi.new("double[1]")
@@ -100,34 +71,35 @@ end
 
 function VmSteadyStateSource:advance(tCurr, fIn, species, fRhsOut)
    local tm = Time.clock()
-   self.localEdgeFlux[0] = 0.0
-   local numConfBasis = self.confBasis:numBasis()
-   for _, otherNm in ipairs(self.sourceSpecies) do
 
-      local moms = species[otherNm]:fluidMoments()
-      local flux = self.momDensityBuf
-      flux:combineOffset(1., moms, 1*numConfBasis)
+   self.phaseRange = fIn:localExtRange()
+   self.confRange  = self.phaseRange:selectFirst(self.cdim)
+
+   self.dgIntegratedMoms:advance(tCurr, {fRhsOut}, {self.integMoms}, self.confRange, self.phaseRange)
+   
+   self.localEdgeFlux[0] = 0.0
+   for _, otherNm in ipairs(self.sourceSpecies) do
+      
+      local flux = self.integMoms
 
       if GKYL_USE_GPU then flux:copyDeviceToHost() end
 
-      local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(1)
-      for idx in flux:localRangeIter() do
-         if idx[1] == self.confGrid:numCells(1) then
+      local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(0)
+      for idx in flux:localExtRangeIter() do
+         if idx[1] == self.confGrid:numCells(1) + 1 then
             flux:fill(fluxIndexer(idx), fluxItr)
-            for k = 1, numConfBasis do
-               self.localEdgeFlux[0] = self.localEdgeFlux[0] + fluxItr[k]*self.basisUpper[k]
-            end
-         elseif idx[1] == 1 then
+            self.localEdgeFlux[0] = self.localEdgeFlux[0] + fluxItr[1]
+         elseif idx[1] == 0 then
             flux:fill(fluxIndexer(idx), fluxItr)
-            for k = 1, numConfBasis do
-               self.localEdgeFlux[0] = self.localEdgeFlux[0] - fluxItr[k]*self.basisLower[k]
-            end
+            self.localEdgeFlux[0] = self.localEdgeFlux[0] + fluxItr[1]
          end
       end
    end
    Mpi.Allreduce(self.localEdgeFlux, self.globalEdgeFlux, 1, Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
    local densFactor = self.globalEdgeFlux[0]/self.sourceLength
+
    fRhsOut:accumulate(densFactor, self.fSource)
+   
    self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
 end
 

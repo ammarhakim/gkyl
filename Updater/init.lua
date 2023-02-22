@@ -17,6 +17,7 @@ local CartFieldInterpolate = require "Updater.CartFieldInterpolate"
 local ChargeExchange = require "Updater.ChargeExchange"
 local ConfToPhase = require "Updater.ConfToPhase"
 local CrossPrimMoments = require "Updater.CrossPrimMoments"
+local DgMomentCalc = require "Updater.DgMomentCalc"
 local DiscontGenPoisson = require "Updater.DiscontGenPoisson"
 local DiscontPoisson = require "Updater.DiscontPoisson"
 local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
@@ -78,6 +79,7 @@ return {
    ChargeExchange = ChargeExchange,
    ConfToPhase = ConfToPhase,
    CrossPrimMoments = CrossPrimMoments,
+   DgMomentCalc = DgMomentCalc,
    DiscontGenPoisson = DiscontGenPoisson,
    DiscontPoisson = DiscontPoisson,
    DistFuncMomentCalc = DistFuncMomentCalc,
