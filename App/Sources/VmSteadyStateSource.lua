@@ -55,9 +55,40 @@ function VmSteadyStateSource:createSolver(mySpecies, extField)
    
    self.profile:fullInit(mySpecies)
    self.fSource = mySpecies:allocDistf()
+   
    self.profile:advance(0.0, {extField}, {self.fSource})
 
-   local distf = mySpecies:getDistF()
+   if self.positivityRescale then
+      mySpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
+   end
+
+   if self.power then
+      local calcInt = Updater.CartFieldIntegratedQuantCalc {
+         onGrid        = self.confGrid,
+         basis         = self.confBasis,
+         numComponents = 1,
+         quantity      = "V",
+      }
+      local intKE = DataStruct.DynVector{numComponents = 1}
+      mySpecies.ptclEnergyCalc:advance(0.0, {self.fSource}, {mySpecies.ptclEnergyAux})
+      calcInt:advance(0.0, {mySpecies.ptclEnergyAux, mySpecies.mass/2}, {intKE})
+      local _, intKE_data  = intKE:lastData()
+      self.powerScalingFac = self.power/intKE_data[1]
+      self.fSource:scale(self.powerScalingFac)
+   end
+
+   local momsSrc = mySpecies:allocVectorMoment(mySpecies.vdim+2)
+   local fiveMomentsCalc = Updater.DistFuncMomentCalc {
+      onGrid     = mySpecies.grid,   confBasis  = mySpecies.confBasis,
+      phaseBasis = mySpecies.basis,  moment     = "FiveMoments",
+   }
+   fiveMomentsCalc:advance(0.0, {self.fSource}, {momsSrc})
+
+   self.fSource:write(string.format("%s_0.bp", self.name), 0., 0, self.writeGhost)
+   momsSrc:write(string.format("%s_Moms_0.bp", self.name), 0., 0)
+
+   -- Need to define methods to allocate fields (used by diagnostics).
+   self.allocMoment = function() return mySpecies:allocMoment() end
 
    self.integMoms  = mySpecies:allocIntMoment(mySpecies.vdim+2)
 
