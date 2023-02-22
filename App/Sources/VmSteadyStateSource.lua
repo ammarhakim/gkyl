@@ -52,13 +52,9 @@ function VmSteadyStateSource:createSolver(mySpecies, extField)
    }
 
    self.writeGhost = mySpecies.writeGhost
-
-   self.cdim = mySpecies.cdim
    
    self.profile:fullInit(mySpecies)
-
    self.fSource = mySpecies:allocDistf()
-
    self.profile:advance(0.0, {extField}, {self.fSource})
 
    local distf = mySpecies:getDistF()
@@ -72,10 +68,7 @@ end
 function VmSteadyStateSource:advance(tCurr, fIn, species, fRhsOut)
    local tm = Time.clock()
 
-   self.phaseRange = fIn:localExtRange()
-   self.confRange  = self.phaseRange:selectFirst(self.cdim)
-
-   self.dgIntegratedMoms:advance(tCurr, {fRhsOut}, {self.integMoms}, self.confRange, self.phaseRange)
+   self.dgIntegratedMoms:advance(tCurr, {fRhsOut}, {self.integMoms})
    
    self.localEdgeFlux[0] = 0.0
    for _, otherNm in ipairs(self.sourceSpecies) do
