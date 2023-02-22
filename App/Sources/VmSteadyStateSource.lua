@@ -45,7 +45,7 @@ function VmSteadyStateSource:setConfGrid(grid) self.confGrid = grid end
 
 function VmSteadyStateSource:createSolver(mySpecies, extField)
 
-   self.dgIntegratedMoms = Updater.DgMomentCalc {
+   self.dgIntegratedMoms = Updater.DistFuncMomentDG {
       onGrid     = mySpecies.grid,   confBasis  = mySpecies.confBasis,
       phaseBasis = mySpecies.basis,  moment     = "M0",
       isIntegrated = true,

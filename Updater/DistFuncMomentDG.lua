@@ -91,17 +91,17 @@ void gkyl_dg_updater_moment_release(struct gkyl_dg_updater_moment* moment);
 ]]
 
 -- Moment updater object
-local DgMomentCalc = Proto(UpdaterBase)
+local DistFuncMomentDG = Proto(UpdaterBase)
 
-function DgMomentCalc:init(tbl)
-   DgMomentCalc.super.init(self, tbl)    -- Setup base object.
+function DistFuncMomentDG:init(tbl)
+   DistFuncMomentDG.super.init(self, tbl)    -- Setup base object.
 
-   self._onGrid = assert(tbl.onGrid, "Updater.DgMomentCalc: Must specify grid to use with 'onGrid'.")
-   self._confBasis = assert(tbl.confBasis, "Updater.DgMomentCalc: Must specify configuration space basis with 'confBasis'.")
-   self._phaseBasis = assert(tbl.phaseBasis, "Updater.DgMomentCalc: Must specify phase space basis with 'confBasis'.")
+   self._onGrid = assert(tbl.onGrid, "Updater.DistFuncMomentDG: Must specify grid to use with 'onGrid'.")
+   self._confBasis = assert(tbl.confBasis, "Updater.DistFuncMomentDG: Must specify configuration space basis with 'confBasis'.")
+   self._phaseBasis = assert(tbl.phaseBasis, "Updater.DistFuncMomentDG: Must specify phase space basis with 'confBasis'.")
    self._modelId = "GKYL_MODEL_DEFAULT"
-   self._moment = assert(tbl.moment, "Updater.DgMomentCalc: Must specify moment type with 'moment'.")
-   self._isIntegrated = assert(tbl.isIntegrated, "Updater.DgMomentCalc: Must specify if integrated moment with 'isIntegrated'.")
+   self._moment = assert(tbl.moment, "Updater.DistFuncMomentDG: Must specify moment type with 'moment'.")
+   self._isIntegrated = assert(tbl.isIntegrated, "Updater.DistFuncMomentDG: Must specify if integrated moment with 'isIntegrated'.")
 
    local useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU)
 
@@ -110,9 +110,9 @@ function DgMomentCalc:init(tbl)
 end
 
 -- Advance method.
-function DgMomentCalc:_advance(tCurr, inFld, outFld)
-   local qIn = assert(inFld[1], "DgMomentCalc.advance: Must specify an input field")
-   local mOut = assert(outFld[1], "DgMomentCalc.advance: Must specify an output field")
+function DistFuncMomentDG:_advance(tCurr, inFld, outFld)
+   local qIn = assert(inFld[1], "DistFuncMomentDG.advance: Must specify an input field")
+   local mOut = assert(outFld[1], "DistFuncMomentDG.advance: Must specify an output field")
 
    local phaseRange = qIn:localExtRange()
    local confRange = mOut:localExtRange()
@@ -120,9 +120,9 @@ function DgMomentCalc:_advance(tCurr, inFld, outFld)
    ffiC.gkyl_dg_updater_moment_advance(self._zero, phaseRange, confRange, nil, nil, nil, nil, nil, nil, qIn._zero, mOut._zero)
 end
 
-function DgMomentCalc:_advanceOnDevice(tCurr, inFld, outFld)
-   local qIn = assert(inFld[1], "DgMomentCalc.advance: Must specify an input field")
-   local mOut = assert(outFld[1], "DgMomentCalc.advance: Must specify an output field")
+function DistFuncMomentDG:_advanceOnDevice(tCurr, inFld, outFld)
+   local qIn = assert(inFld[1], "DistFuncMomentDG.advance: Must specify an input field")
+   local mOut = assert(outFld[1], "DistFuncMomentDG.advance: Must specify an output field")
 
    local phaseRange = qIn:localExtRange()
    local confRange = mOut:localExtRange()
@@ -131,4 +131,4 @@ function DgMomentCalc:_advanceOnDevice(tCurr, inFld, outFld)
 end
 
 
-return DgMomentCalc
+return DistFuncMomentDG
