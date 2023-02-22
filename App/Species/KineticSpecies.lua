@@ -347,13 +347,6 @@ function KineticSpecies:allocMoment()
                      mass      = self.mass,}
    return self:allocCartField(self.confGrid,self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
-function KineticSpecies:allocIntMoment(dim)
-   local metaData = {polyOrder = self.confBasis:polyOrder(),
-                     basisType = self.confBasis:id(),
-                     charge    = self.charge,
-                     mass      = self.mass,}
-   return self:allocCartField(self.confGrid,dim,{self.nGhost,self.nGhost},metaData)
-end
 function KineticSpecies:allocVectorMoment(dim)
    local metaData = {polyOrder = self.confBasis:polyOrder(),
                      basisType = self.confBasis:id(),

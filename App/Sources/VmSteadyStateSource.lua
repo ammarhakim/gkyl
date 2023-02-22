@@ -90,7 +90,7 @@ function VmSteadyStateSource:createSolver(mySpecies, extField)
    -- Need to define methods to allocate fields (used by diagnostics).
    self.allocMoment = function() return mySpecies:allocMoment() end
 
-   self.integMoms  = mySpecies:allocIntMoment(mySpecies.vdim+2)
+   self.integMoms = mySpecies:allocCartField(mySpecies.confGrid, mySpecies.vdim+2, {mySpecies.nGhost,mySpecies.nGhost})
 
    self.localEdgeFlux = ffi.new("double[1]")
    self.globalEdgeFlux = ffi.new("double[1]")
