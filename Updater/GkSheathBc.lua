@@ -83,7 +83,7 @@ function GkSheathBc:init(tbl)
 
    local edge          = self._edge == 'lower' and 0 or 1 -- Match gkyl_edge_loc in gkylzero/zero/gkyl_range.h.
    local localExtRange = onField:localExtRange()
-   local numGhostVec   = self._edge == 'lower' and onField._lowerGhostVec or onField._upperGhostVec
+   local numGhostVec   = self._edge == 'lower' and onField:lowerGhostVec() or onField:upperGhostVec()
 
    local q2Dm  = 2.*charge/mass
    local basis = useGPU and self._basis._zeroDevice or self._basis._zero

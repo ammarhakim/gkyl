@@ -30,8 +30,8 @@ mu_0 = 1.0/(epsilon_0 * (10*vth_e)^2)
 sim = Plasma.App {
    logToFile = false,
 
-   tEnd        = 100/omega_pe,     -- End time.
-   nFrame      = 1,                -- Number of output frames.
+   tEnd        = 1.*100/omega_pe,     -- End time.
+   nFrame      = 2,                -- Number of output frames.
    lower       = {0.0*lambda_D},   -- Configuration space lower left.
    upper       = {128.0*lambda_D}, -- Configuration space upper right.
    cells       = {64},             -- Configuration space cells.
@@ -40,7 +40,7 @@ sim = Plasma.App {
    timeStepper = "rk3s4",          -- One of "rk2" or "rk3".
 
    -- Decomposition for configuration space.
-   decompCuts = {1},   -- Cuts in each configuration direction.
+   decompCuts = {4},   -- Cuts in each configuration direction.
 --   parallelizeSpecies = true,
 
    -- Boundary conditions for configuration space.

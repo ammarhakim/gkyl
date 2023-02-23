@@ -241,8 +241,8 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
       for d = 1, ndim do
          _adLocalSz[d]  = localRange:shape(d)
          _adGlobalSz[d] = globalRange:shape(d)
-         _adOffset[d]   = localRange:lower(d)-1
-         if _writeGhost then _adOffset[d] = _adOffset[d] + field:lowerGhost() end
+         _adOffset[d]   = _writeGhost and localRange:lower(d)
+            or localRange:lower(d)-field:globalRange():lower(d)
       end
       for fldNm, fld in pairs(fieldsTbl) do
          self._outBuff[fldNm] = self._outBuff[fldNm] or self._allocator(1)
@@ -397,8 +397,8 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
          for d = 1, ndim do
             _adLocalSz[d]  = localRange:shape(d)
             _adGlobalSz[d] = globalRange:shape(d)
-            _adOffset[d]   = localRange:lower(d)-1
-            if _readGhost then _adOffset[d] = _adOffset[d] + field:lowerGhost() end
+            _adOffset[d]   = _writeGhost and localRange:lower(d)
+               or localRange:lower(d)-field:globalRange():lower(d)
          end
          for fldNm, fld in pairs(fieldsTbl) do
             self._outBuff[fldNm] = self._outBuff[fldNm] or self._allocator(1)
@@ -430,9 +430,9 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
 
       for fldNm, fld in pairs(fieldsTbl) do
          for d = 1, ndim do
-            local st = localRange:lower(d)-1
             local ct = localRange:shape(d)
-            if _readGhost then st = st + fld:lowerGhost() end
+            local st = _writeGhost and localRange:lower(d)
+               or localRange:lower(d)-field:globalRange():lower(d)
             start[d] = st
             count[d] = ct
          end

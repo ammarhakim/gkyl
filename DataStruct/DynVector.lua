@@ -73,12 +73,14 @@ function DynVector:init(tbl)
    -- Construct various functions from template representations.
    self._copyToTempData = loadstring( copyTempl {NCOMP=self._numComponents} )()
 
-   -- Write only from rank-0 of the specified communicator. Use world comm otherwise.
+   -- Write only from one rank of the specified communicator. Use world comm
+   -- and rank 0 if user doesn't specify them.
    self._parentComm = tbl.comm or Mpi.COMM_WORLD
-   -- Write only from rank-0: create sub-communicator and use that for
-   -- writing data (perhaps one needs a user-specified write-rank).
-   local ranks  = Lin.IntVec(1); ranks[1] = 0
-   self._ioComm = Mpi.Split_comm(self._parentComm, ranks)
+   self.writeRank   = tbl.writeRank or 0
+   if self.writeRank ~= Mpi.PROC_NULL then
+      local ranks  = Lin.IntVec(1);  ranks[1] = self.writeRank
+      self._ioComm = Mpi.Split_comm(self._parentComm, ranks)
+   end
 
    -- Allocate space for IO buffer.
    self._ioBuff = Alloc.Double()
@@ -337,8 +339,8 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
    local grpId = Adios.declare_group(grpNm, "", Adios.flag_no)
    Adios.select_method(grpId, "MPI", "", "")
    
-   if rank ~= 0 then  -- Only run on rank 0 ...
-      self:clear()    -- ... but clear data on all ranks.
+   if rank ~= self.writeRank then  -- Only run on rank that writes ...
+      self:clear()                 -- ... but clear data on all ranks.
       return
    end
 
