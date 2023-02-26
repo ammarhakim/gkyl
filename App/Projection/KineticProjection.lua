@@ -65,8 +65,14 @@ function FunctionProjection:fullInit(species)
    local func = self.tbl.func
    if not func then func = self.tbl[1] end
 
+
    assert(func, "FunctionProjection: Must specify the function")
    assert(type(func) == "function", "The input must be a table containing function")
+
+   if type(self.density) == "string" then
+      self.densityFromFile = true
+      --self.exactScaleM0 = false
+   end
 
    if self.fromFile then
       self.ioMethod  = "MPI"
@@ -85,9 +91,53 @@ function FunctionProjection:fullInit(species)
          evaluate = func,
          onGhosts = true
       }
+      if self.densityFromFile then
+         self.ioMethod  = "MPI"
+         --self.writeGhost = false
+         self.writeGhost = true  -- want to use restart files
+         self.confFieldIo = AdiosCartFieldIo {
+         elemType   = species.distf[1]:elemType(),
+         method     = self.ioMethod,
+         writeGhost = self.writeGhost,
+         metaData   = {polyOrder = self.confBasis:polyOrder(),
+            basisType = self.confBasis:id(),
+            charge    = self.charge,
+            mass      = self.mass,},
+         }
+      end
    end
    self.initFunc = func
 end
+
+function FunctionProjection:scaleDensity(distf, M0, M0e)
+   --local M0e, M0 = self.species:allocMoment(), self.species:allocMoment()
+   local M0mod   = self.species:allocMoment()
+
+   --self.species.numDensityCalc:advance(0.0, {distf}, {M0})
+   --local func = function (t, zn)
+   --   return self.density(t, zn, self.species)
+   --end
+   --local project = Updater.ProjectOnBasis {
+   --   onGrid   = self.confGrid,
+   --   basis    = self.confBasis,
+   --   evaluate = func,
+   --   onGhosts = true,
+   --}
+   --project:advance(0.0, {}, {M0e})
+
+   local weakDivision = Updater.CartFieldBinOp {
+      onGrid    = self.confGrid,
+      weakBasis = self.confBasis,
+      operation = "Divide",
+      onGhosts  = true,
+   }
+
+   -- Calculate M0mod = M0e / M0.
+   weakDivision:advance(0.0, {M0, M0e}, {M0mod})
+   -- Calculate distff = M0mod * distf.
+   self.weakMultiplyConfPhase:advance(0.0, {M0mod, distf}, {distf})
+end
+
 
 function FunctionProjection:advance(t, inFlds, outFlds)
    local distf = outFlds[1]
