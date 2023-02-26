@@ -22,9 +22,9 @@ function FunctionProjection:allocConfField(metaData)
         onGrid        = self.confGrid,
         numComponents = self.confBasis:numBasis(),
         ghost         = {1, 1},
-        --metaData      = {polyOrder = self.confBasis:polyOrder(),
-        --                 basisType = self.confBasis:id()},
-        metaData      = metaData, --make it more like allocMoment for exactSclaeM0
+        metaData      = {polyOrder = self.confBasis:polyOrder(),
+                         basisType = self.confBasis:id()},
+        --metaData      = metaData, --make it more like allocMoment for exactSclaeM0
    }
    m:clear(0.0)
    return m
@@ -35,11 +35,12 @@ function FunctionProjection:advance(time, inFlds, outFlds)
    local extField = inFlds[1]
    local distf    = outFlds[1]
    local numDens = self:allocConfField()
-   local metaData = {polyOrder = self.basis:polyOrder(),
-                     basisType = self.basis:id(),
-                     charge    = self.charge,
-                     mass      = self.mass,}
-   local numDensScaleTo = self:allocConfField(metaData)
+   --local metaData = {polyOrder = self.basis:polyOrder(),
+   --                  basisType = self.basis:id(),
+   --                  charge    = self.charge,
+   --                  mass      = self.mass,}
+   --local numDensScaleTo = self:allocConfField(metaData)
+   local numDensScaleTo = self:allocConfField()
    if self.fromFile then
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
