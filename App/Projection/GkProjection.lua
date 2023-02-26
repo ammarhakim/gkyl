@@ -8,6 +8,7 @@
 
 local Proto      = require "Lib.Proto"
 local Updater    = require "Updater"
+local lume       = require "Lib.lume"
 local xsys       = require "xsys"
 local DataStruct = require "DataStruct"
 local FunctionProjectionParent   = require ("App.Projection.KineticProjection").FunctionProjection
@@ -45,40 +46,41 @@ function FunctionProjection:advance(time, inFlds, outFlds)
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
       --Think I don't need this block for now since only reading from restarts
-      ----Create Open BC Updaters for Lower and Upper Edges
-      --local nonPeriodicBCs = {}   -- List of non-periodic BCs to apply.
-      ---- Function to construct a BC updater.
-      --local function makeOpenBcUpdater(dir, edge)
-      --   local bcOpen = function(dir, tm, idxIn, fIn, fOut)
-      --      -- Requires skinLoop = "pointwise".
-      --      self.confBasis:flipSign(dir, fIn, fOut)
-      --   end
-      --   return Updater.Bc {
-      --      onGrid = self.confGrid,  edge = edge,
-      --      dir    = dir,        boundaryConditions = {bcOpen},
-      --      skinLoop = "pointwise",
-      --   }
-      --end
-      ---- For non-periodic dirs, use open BCs. It's the most sensible choice given that the
-      ---- coordinate mapping could diverge outside of the interior domain.
-      --for dir = 1, self.cdim do
-      --   if not lume.any(self.confGrid:getPeriodicDirs(), function(t) return t==dir end) then
-      --      nonPeriodicBCs["lower" .. tostring(dir)] = makeOpenBcUpdater(dir, "lower")
-      --      nonPeriodicBCs["upper" .. tostring(dir)] = makeOpenBcUpdater(dir, "upper")
-      --   end
-      --end
-      ----Function to Add and Apply Open BCs to a confField
-      --local function applyOpenBcs(fld)
-      --for _, bc in pairs(nonPeriodicBCs) do
-      --   bc:advance(tCurr, {}, {fld})
-      --   end
-      --   fld:sync(true)
-      --end
+      --Turns out that it looks like when you run _init only the ghost cells are not populated
+      --Create Open BC Updaters for Lower and Upper Edges
+      local nonPeriodicBCs = {}   -- List of non-periodic BCs to apply.
+      -- Function to construct a BC updater.
+      local function makeOpenBcUpdater(dir, edge)
+         local bcOpen = function(dir, tm, idxIn, fIn, fOut)
+            -- Requires skinLoop = "pointwise".
+            self.confBasis:flipSign(dir, fIn, fOut)
+         end
+         return Updater.Bc {
+            onGrid = self.confGrid,  edge = edge,
+            dir    = dir,        boundaryConditions = {bcOpen},
+            skinLoop = "pointwise",
+         }
+      end
+      -- For non-periodic dirs, use open BCs. It's the most sensible choice given that the
+      -- coordinate mapping could diverge outside of the interior domain.
+      for dir = 1, self.cdim do
+         if not lume.any(self.confGrid:getPeriodicDirs(), function(t) return t==dir end) then
+            nonPeriodicBCs["lower" .. tostring(dir)] = makeOpenBcUpdater(dir, "lower")
+            nonPeriodicBCs["upper" .. tostring(dir)] = makeOpenBcUpdater(dir, "upper")
+         end
+      end
+      --Function to Add and Apply Open BCs to a confField
+      local function applyOpenBcs(fld)
+      for _, bc in pairs(nonPeriodicBCs) do
+         bc:advance(tCurr, {}, {fld})
+         end
+         fld:sync(true)
+      end
 
       if self.densityFromFile then
-         self.confFieldIo:read(numDens, self.density,true)
-         self.confFieldIo:read(numDensScaleTo, self.densityScaleTo,true)
-         --applyOpenBcs(numDens) -- only necessary if not reading ghost cells
+         self.confFieldIo:read(numDens, self.density,false)
+         self.confFieldIo:read(numDensScaleTo, self.densityScaleTo,false)
+         applyOpenBcs(numDens) -- only necessary if not reading ghost cells
       end
 
       if self.species.jacobPhaseFunc and self.vdim > 1 then

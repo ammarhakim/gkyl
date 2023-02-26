@@ -65,9 +65,11 @@ function FunctionProjection:fullInit(species)
    local func = self.tbl.func
    if not func then func = self.tbl[1] end
 
-
    assert(func, "FunctionProjection: Must specify the function")
    assert(type(func) == "function", "The input must be a table containing function")
+
+   self.density     = self.tbl.density
+   self.densityScaleTo     = self.tbl.densityScaleTo
 
    if type(self.density) == "string" then
       self.densityFromFile = true
@@ -93,8 +95,7 @@ function FunctionProjection:fullInit(species)
       }
       if self.densityFromFile then
          self.ioMethod  = "MPI"
-         --self.writeGhost = false
-         self.writeGhost = true  -- want to use restart files
+         self.writeGhost = false
          self.confFieldIo = AdiosCartFieldIo {
          elemType   = species.distf[1]:elemType(),
          method     = self.ioMethod,
@@ -112,18 +113,6 @@ end
 function FunctionProjection:scaleDensity(distf, M0, M0e)
    --local M0e, M0 = self.species:allocMoment(), self.species:allocMoment()
    local M0mod   = self.species:allocMoment()
-
-   --self.species.numDensityCalc:advance(0.0, {distf}, {M0})
-   --local func = function (t, zn)
-   --   return self.density(t, zn, self.species)
-   --end
-   --local project = Updater.ProjectOnBasis {
-   --   onGrid   = self.confGrid,
-   --   basis    = self.confBasis,
-   --   evaluate = func,
-   --   onGhosts = true,
-   --}
-   --project:advance(0.0, {}, {M0e})
 
    local weakDivision = Updater.CartFieldBinOp {
       onGrid    = self.confGrid,
