@@ -60,73 +60,19 @@ function GkBasicBC:bcOpen(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "pointwise".
    self.basis:flipSign(dir, fIn:data(), fOut:data())
 end
-function GkBasicBC:bcReflect(dir, tm, idxIn, fIn, fOut)
-   -- Requires skinLoop = "flip".
-   self.basis:flipSign(dir, fIn:data(), fOut:data())
-   local vparDir = self.cdim+1
-   self.basis:flipSign(vparDir, fOut:data(), fOut:data())
-end
-function GkBasicBC:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_, idx, f, fRefl)
-   self.phi:fill(self.phiIdxr(idx), self.phiPtr)
-   self.phiWallFld:fill(self.phiWallFldIdxr(idx), self.phiWallFldPtr)
-   return self._calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_,
-                                     self.phiPtr:data(), self.phiWallFldPtr:data(), f:data(), fRefl:data())
-end
-function GkBasicBC:bcSheath(dir, tm, idxIn, fIn, fOut)
-   -- Note that GK reflection only valid in z-vpar.
-   -- This is checked when bc is created.
-
-   -- Need to figure out if we are on lower or upper domain edge
-   local edgeVal
-   local globalRange = self.grid:globalRange()
-   if idxIn[dir] == globalRange:lower(dir) then
-      -- This means we are at lower domain edge,
-      -- so we need to evaluate basis functions at z=-1.
-      edgeVal = -1
-   else
-      -- This means we are at upper domain edge
-      -- so we need to evaluate basis functions at z=1.
-      edgeVal = 1
-   end
-   -- Get vpar limits of cell.
-   local vpardir = self.cdim+1
-   local gridIn  = self.grid
-   gridIn:setIndex(idxIn)
-   local vL = gridIn:cellLowerInDir(vpardir)
-   local vR = gridIn:cellUpperInDir(vpardir)
-   local vlowerSq, vupperSq
-   -- This makes it so that we only need to deal with absolute values of vpar.
-   if math.abs(vR)>=math.abs(vL) then
-      vlowerSq = vL*vL
-      vupperSq = vR*vR
-   else
-      vlowerSq = vR*vR
-      vupperSq = vL*vL
-   end
-   local w  = gridIn:cellCenterInDir(vpardir)
-   local dv = gridIn:dx(vpardir)
-   -- calculate reflected distribution function fhat
-   -- note: reflected distribution can be
-   -- 1) fhat=0 (no reflection, i.e. absorb),
-   -- 2) fhat=f (full reflection)
-   -- 3) fhat=c*f (partial reflection)
-   self:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, self.charge, self.mass, idxIn, fIn, self.fhatSheath)
-   -- reflect fhat into skin cells
-   self:bcReflect(dir, tm, nil, self.fhatSheath, fOut)
-end
 
 function GkBasicBC:createSolver(mySpecies, field, externalField)
 
    self.basis, self.grid = mySpecies.basis, mySpecies.grid
    self.ndim, self.cdim, self.vdim = self.grid:ndim(), self.confGrid:ndim(), self.grid:ndim()-self.confGrid:ndim()
 
-   local vdir = nil
-   if self.bcDir==self.cdim then vdir = self.cdim+1 end
+   local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
 
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
-   self:createBoundaryGrid()
+   local globalGhostRange = self.bcEdge=="lower" and distf:globalGhostRangeLower()[self.bcDir]
+                                                  or distf:globalGhostRangeUpper()[self.bcDir]
+   self:createBoundaryGrid(globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
 
-   local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
    -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
    self.allocCartField = function(self, grid, nComp, ghosts, metaData)
       local f = DataStruct.Field {
@@ -137,13 +83,12 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
       return f
    end
    local allocDistf = function()
-      return self:allocCartField(self.boundaryGrid, self.basis:numBasis(),
-                                 {distf:lowerGhost(),distf:upperGhost()}, distf:getMetaData())
+      return self:allocCartField(self.boundaryGrid, self.basis:numBasis(), {0,0}, distf:getMetaData())
    end
 
    self.bcBuffer = allocDistf() -- Buffer used by BasicBc updater.
 
-   -- Sheath BCs use phi and phiWall.
+   -- Sheath BCs use phi and phiWall. Set here so non-sheath BCs call these empty functions.
    self.setPhiWall = {advance = function(tCurr,inFlds,OutFlds) end}
    self.getPhi     = function(fieldIn, inIdx) return nil end 
 
@@ -204,6 +149,9 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
          assert(false, "GkBasicBC: BC kind not recognized.")
       end
 
+      local vdir = nil
+      if self.bcDir==self.cdim then vdir = self.cdim+1 end
+
       self.bcSolver = Updater.Bc{
          onGrid   = self.grid,   edge               = self.bcEdge,  
          cdim     = self.cdim,   boundaryConditions = {bcFunc},   
@@ -222,78 +170,62 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
    -- the fluxes through a boundary (e.g. neutral recycling).
    if self.saveFlux then
       -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
-      self:createConfBoundaryGrid()
+      self:createConfBoundaryGrid(globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
 
       self.allocMoment = function(self)
-         return self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
-                                    {numDensity:lowerGhost(),numDensity:upperGhost()}, numDensity:getMetaData())
+         return self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, numDensity:getMetaData())
       end
       self.allocVectorMoment = function(self, dim)
-         return self:allocCartField(self.confBoundaryGrid, dim*self.basis:numBasis(),
-                                    {numDensity:lowerGhost(),numDensity:upperGhost()}, numDensity:getMetaData())
+         return self:allocCartField(self.confBoundaryGrid, dim*self.confBasis:numBasis(), {0,0}, numDensity:getMetaData())
+      end
+      self.allocIntMoment = function(self, comp)
+         local metaData = {charge = self.charge,  mass = self.mass,}
+         local ncomp = comp or 1
+         local f = DataStruct.DynVector{numComponents = ncomp,     writeRank = self.confBoundaryGrid:commSet().writeRank,
+                                        metaData      = metaData,  comm      = self.confBoundaryGrid:commSet().comm,}
+         return f
       end
 
       -- Allocate fields needed.
       self.boundaryFluxFields = {}  -- Fluxes through the boundary, into ghost region, from each RK stage.
-      self.boundaryPtr        = {}
       self.distfInIdxr        = distf:genIndexer()
       for i = 1, #mySpecies:rkStepperFields() do
          self.boundaryFluxFields[i] = allocDistf()
-         self.boundaryPtr[i]        = self.boundaryFluxFields[i]:get(1)
       end
       self.boundaryFluxRate      = allocDistf()
       self.boundaryFluxFieldPrev = allocDistf()
-      self.boundaryIdxr          = self.boundaryFluxFields[1]:genIndexer()
 
-      self.idxOut = Lin.IntVec(self.grid:ndim())
-
-      -- Create the range needed to loop over ghosts.
-      local global, globalExt, localExtRange = distf:globalRange(), distf:globalExtRange(), distf:localExtRange()
-      self.ghostRange = localExtRange:intersect(self:getGhostRange(global, globalExt))
+      -- Part of global ghost range this rank owns.
+      self.myGlobalGhostRange = self.bcEdge=="lower" and distf:localGlobalGhostRangeIntersectLower()[self.bcDir]
+                                                      or distf:localGlobalGhostRangeIntersectUpper()[self.bcDir]
 
       -- The following are needed to evaluate a conf-space CartField on the confBoundaryGrid.
-      self.confBoundaryField    = self:allocMoment()
-      self.confBoundaryFieldPtr = self.confBoundaryField:get(1)
-      self.confBoundaryIdxr     = self.confBoundaryField:genIndexer()
-      local confGlobal        = numDensity:globalRange()
-      local confGlobalExt     = numDensity:globalExtRange()
-      local confLocalExtRange = numDensity:localExtRange()
-      self.confGhostRange = confLocalExtRange:intersect(self:getGhostRange(confGlobal, confGlobalExt)) -- Range spanning ghost cells.
+      self.confBoundaryField  = self:allocMoment()
+      -- Range spanning ghost cells.
+      self.myGlobalConfGhostRange = self.bcEdge=="lower" and numDensity:localGlobalGhostRangeIntersectLower()[self.bcDir]
+                                                          or numDensity:localGlobalGhostRangeIntersectUpper()[self.bcDir]
 
       -- Evaluate the magnetic field and jacobGeo in the boundary (needed by diagnostics).
       local bmag = externalField.geo.bmag 
-      self.bmag = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
-                                      {bmag:lowerGhost(),bmag:upperGhost()}, bmag:getMetaData())
+      self.bmag = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, bmag:getMetaData())
       self.bmag:copy(self:evalOnConfBoundary(bmag))
       local bmagInvSq = externalField.geo.bmagInvSq
-      self.bmagInvSq = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
-                                          {bmagInvSq:lowerGhost(),bmagInvSq:upperGhost()}, bmagInvSq:getMetaData())
+      self.bmagInvSq = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, bmagInvSq:getMetaData())
       self.bmagInvSq:copy(self:evalOnConfBoundary(bmagInvSq))
       local jacobGeo = externalField.geo.jacobGeo
       if jacobGeo then
-         self.jacobGeo = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
-                                             {jacobGeo:lowerGhost(),jacobGeo:upperGhost()}, jacobGeo:getMetaData())
+         self.jacobGeo = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, jacobGeo:getMetaData())
          self.jacobGeo:copy(self:evalOnConfBoundary(jacobGeo))
       end
       local jacobGeoInv = externalField.geo.jacobGeoInv
       if jacobGeoInv then
-         self.jacobGeoInv = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
-                                                {jacobGeoInv:lowerGhost(),jacobGeoInv:upperGhost()}, jacobGeoInv:getMetaData())
+         self.jacobGeoInv = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, jacobGeoInv:getMetaData())
          self.jacobGeoInv:copy(self:evalOnConfBoundary(jacobGeoInv))
       end
 
       -- Declare methods/functions needed for handling saved fluxes and needed by diagnostics.
       self.storeBoundaryFluxFunc = function(tCurr, rkIdx, qOut)
-         local ptrOut = qOut:get(1)
-         for idx in self.ghostRange:rowMajorIter() do
-            idx:copyInto(self.idxOut)
-            qOut:fill(self.distfInIdxr(idx), ptrOut)
-
-            -- Before operating on ghosts, store ghost values for later flux diagnostics
-            self.idxOut[self.bcDir] = 1
-            self.boundaryFluxFields[rkIdx]:fill(self.boundaryIdxr(self.idxOut), self.boundaryPtr[rkIdx])
-            for c = 1, qOut:numComponents() do self.boundaryPtr[rkIdx][c] = ptrOut[c] end
-         end
+         self.boundaryFluxFields[rkIdx]:copyRangeToRange(qOut, self.boundaryFluxFields[rkIdx]:localRange(), self.myGlobalGhostRange)
       end
       self.copyBoundaryFluxFieldFunc = function(inIdx, outIdx)
          self.boundaryFluxFields[outIdx]:copy(self.boundaryFluxFields[inIdx])

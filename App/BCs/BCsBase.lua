@@ -152,36 +152,12 @@ function BCsBase:getGhostRange(global, globalExt)
 end
 function BCsBase:evalOnBoundary(inFld)
    -- Evaluate inFld on the boundary grid and copy it to the boundary field buffer.
-   local inFldPtr  = inFld:get(1)
-   local inFldIdxr = inFld:genIndexer()
-
-   for idxIn in self.ghostRange:rowMajorIter() do
-      idxIn:copyInto(self.idxOut)
-      self.idxOut[self.bcDir] = 1
-
-      inFld:fill(inFldIdxr(idxIn), inFldPtr)
-      self.boundaryField:fill(self.boundaryIdxr(self.idxOut), self.boundaryFieldPtr)
-
-      for c = 1, inFld:numComponents() do self.boundaryFieldPtr[c] = inFldPtr[c] end
-   end
-
+   self.boundaryField:copyRangeToRange(inFld, self.boundaryField:localRange(), self.myGlobalGhostRange)
    return self.boundaryField
 end
 function BCsBase:evalOnConfBoundary(inFld)
    -- For kinetic species this method evaluates inFld on the confBoundary grid.
-   local inFldPtr  = inFld:get(1)
-   local inFldIdxr = inFld:genIndexer()
-
-   for idxIn in self.confGhostRange:rowMajorIter() do
-      idxIn:copyInto(self.idxOut)
-      self.idxOut[self.bcDir] = 1
-
-      inFld:fill(inFldIdxr(idxIn), inFldPtr)
-      self.confBoundaryField:fill(self.confBoundaryIdxr(self.idxOut), self.confBoundaryFieldPtr)
-
-      for c = 1, inFld:numComponents() do self.confBoundaryFieldPtr[c] = inFldPtr[c] end
-   end
-
+   self.confBoundaryField:copyRangeToRange(inFld, self.confBoundaryField:localRange(), self.myGlobalConfGhostRange)
    return self.confBoundaryField
 end
 

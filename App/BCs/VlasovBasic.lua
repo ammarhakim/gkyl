@@ -62,7 +62,6 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
 
    self.basis, self.grid = mySpecies.basis, mySpecies.grid
    self.ndim, self.cdim, self.vdim = self.grid:ndim(), self.confGrid:ndim(), self.grid:ndim()-self.confGrid:ndim()
-   local vdir = self.bcDir+self.cdim
 
    local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
 
@@ -107,6 +106,8 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
          assert(false, "VlasovBasicBC: BC kind not recognized.")
       end
 
+      local vdir = self.bcDir+self.cdim
+
       self.bcSolver = Updater.Bc{
          onGrid   = self.grid,   edge               = self.bcEdge,  
          cdim     = self.cdim,   boundaryConditions = {bcFunc},   
@@ -132,8 +133,7 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
          return self:allocCartField(self.confBoundaryGrid, dim*self.confBasis:numBasis(), {0,0}, numDensity:getMetaData())
       end
       self.allocIntMoment = function(self, comp)
-         local metaData = {charge = self.charge,
-                           mass   = self.mass,}
+         local metaData = {charge = self.charge,  mass = self.mass,}
          local ncomp = comp or 1
          local f = DataStruct.DynVector{numComponents = ncomp,     writeRank = self.confBoundaryGrid:commSet().writeRank,
                                         metaData      = metaData,  comm      = self.confBoundaryGrid:commSet().comm,}
@@ -142,30 +142,22 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
 
       -- Allocate fields needed.
       self.boundaryFluxFields = {}  -- Fluxes through the boundary, into ghost region, from each RK stage.
-      self.boundaryPtr        = {}
       self.distfInIdxr        = distf:genIndexer()
       for i = 1, #mySpecies:rkStepperFields() do
          self.boundaryFluxFields[i] = allocDistf()
-         self.boundaryPtr[i]        = self.boundaryFluxFields[i]:get(1)
       end
       self.boundaryFluxRate      = allocDistf()
       self.boundaryFluxFieldPrev = allocDistf()
-      self.boundaryIdxr          = self.boundaryFluxFields[1]:genIndexer()
-
-      self.idxOut = Lin.IntVec(self.grid:ndim())
 
       -- Part of global ghost range this rank owns.
       self.myGlobalGhostRange = self.bcEdge=="lower" and distf:localGlobalGhostRangeIntersectLower()[self.bcDir]
                                                       or distf:localGlobalGhostRangeIntersectUpper()[self.bcDir]
 
       -- The following are needed to evaluate a conf-space CartField on the confBoundaryGrid.
-      self.confBoundaryField    = self:allocMoment()
-      self.confBoundaryFieldPtr = self.confBoundaryField:get(1)
-      self.confBoundaryIdxr     = self.confBoundaryField:genIndexer()
-      local confGlobal        = numDensity:globalRange()
-      local confGlobalExt     = numDensity:globalExtRange()
-      local confLocalExtRange = numDensity:localExtRange()
-      self.confGhostRange = confLocalExtRange:intersect(self:getGhostRange(confGlobal, confGlobalExt)) -- Range spanning ghost cells.
+      self.confBoundaryField = self:allocMoment()
+      -- Range spanning ghost cells.
+      self.myGlobalConfGhostRange = self.bcEdge=="lower" and numDensity:localGlobalGhostRangeIntersectLower()[self.bcDir]
+                                                          or numDensity:localGlobalGhostRangeIntersectUpper()[self.bcDir]
 
       local jacobGeo = externalField.geo and externalField.geo.jacobGeo
       if jacobGeo then

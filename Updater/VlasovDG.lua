@@ -212,7 +212,7 @@ function VlasovDG:_advanceOnDevice(tCurr, inFld, outFld)
 
 end
 
--- fetch equation updater
+-- Fetch equation updater.
 function VlasovDG:getEquation() return self._zero end
 
 -- set up pointers to dt and cflRateByCell
