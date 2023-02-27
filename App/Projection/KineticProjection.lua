@@ -95,11 +95,10 @@ function FunctionProjection:fullInit(species)
       }
       if self.densityFromFile then
          self.ioMethod  = "MPI"
-         self.writeGhost = false
          self.confFieldIo = AdiosCartFieldIo {
          elemType   = species.distf[1]:elemType(),
          method     = self.ioMethod,
-         writeGhost = self.writeGhost,
+         writeGhost = false,
          metaData   = {polyOrder = self.confBasis:polyOrder(),
             basisType = self.confBasis:id(),
             charge    = self.charge,
