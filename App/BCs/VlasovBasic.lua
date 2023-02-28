@@ -66,8 +66,8 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
    local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
 
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
-   local globalGhostRange = self.bcEdge=="lower" and distf:globalGhostRangeLower()[self.bcDir]
-                                                  or distf:globalGhostRangeUpper()[self.bcDir]
+   local globalGhostRange = self.bcEdge=="lower" and distf:localGhostRangeLower()[self.bcDir]
+                                                  or distf:localGhostRangeUpper()[self.bcDir]
    self:createBoundaryGrid(globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
 
 

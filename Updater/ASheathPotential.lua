@@ -29,6 +29,80 @@ local Proto       = require "Lib.Proto"
 local xsys        = require "xsys"
 local ModDecl     = require "Updater.aSheathPotentialData.asheath_potential_mod_decl"
 local Mpi         = require "Comm.Mpi"
+local ffi            = require "ffi"
+
+local ffiC = ffi.C
+require "Lib.ZeroUtil"
+
+-- Declaration of gkylzero objects and functions.
+ffi.cdef [[
+// Object type
+typedef struct gkyl_ambi_bolt_potential gkyl_ambi_bolt_potential;
+
+/**
+ * Create new updater to compute the electrostatic potential assuming ambipolar
+ * sheath particle fluxes and Boltzmann isothermal electrons.
+ *
+ * @param grid Cartesian grid dynamic field is defined on.
+ * @param basis Basis object (configuration space).
+ * @param mass_e Electron mass.
+ * @param charge_e Electron charge.
+ * @param temp_e Electron temperature.
+ * @param use_gpu Boolean indicating whether to use the GPU.
+ * @return New updater pointer.
+ */
+gkyl_ambi_bolt_potential* gkyl_ambi_bolt_potential_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *basis, double mass_e, double charge_e, double temp_e,
+  bool use_gpu);
+
+/**
+ * Compute the ion density and electrostatic potential at the sheath entrance.
+ * Below we use jac to refer to the fact that some of these quantities are
+ * multiplied by the configuration space Jacobian (e.g. for field aligned
+ * coordinates). In reality they are also multiplied by the phase space
+ * Jacobian (approx B), but we focus on jac because need to divide by it to
+ * get the potential (or multiply by 1/jac).
+ *
+ * @param Ambipolar, Boltzmann electron sheath potential updater.
+ * @param edge Lower (-1) or upper (1) boundary along the field line.
+ * @param skin_r Global skin range along the field line.
+ * @param ghost_r Corresponding global ghost range along the field line.
+ * @param jacob_geo_inv Reciprocal of the configuration space Jacobian.
+ * @param gammai Ion particle flux at the sheath entrance times the
+ *               conf-space Jacobian.
+ * @param m0i Ion number density times the conf-space Jacobian.
+ * @param sheath_vals Ion number density and potential at the sheath entrance.
+ */
+void
+gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_array *jacob_geo_inv,
+  const struct gkyl_array *gammai, const struct gkyl_array *m0i, struct gkyl_array *sheath_vals);
+
+/**
+ * Compute the electrostatic potential in the domain as
+ *  phi = phi_s + (T_e/e)*ln(n_i/n_is).
+ *
+ * @param up Ambipolar, Boltzmann electron sheath potential updater.
+ * @param local_r Local range.
+ * @param extlocal_r Extended local range.
+ * @param jacob_geo_inv Reciprocal of the configuration space Jacobian.
+ * @param m0i Ion number density times the conf-space Jacobian.
+ * @param sheath_vals Ion number density and potential at the sheath entrance.
+ * @param phi electrostatic potential.
+ */
+void
+gkyl_ambi_bolt_potential_phi_calc(struct gkyl_ambi_bolt_potential *up,
+  const struct gkyl_range *local_r, const struct gkyl_range *extlocal_r,
+  const struct gkyl_array *jacob_geo_inv, const struct gkyl_array *m0i,
+  const struct gkyl_array *sheath_vals, struct gkyl_array *phi);
+
+/**
+ * Delete updater.
+ *
+ * @param pob Updater to delete.
+ */
+void gkyl_ambi_bolt_potential_release(gkyl_ambi_bolt_potential *up);
+]]
 
 -- Inherit the base Updater from UpdaterBase updater object.
 local ASheathPotential = Proto(UpdaterBase)
@@ -36,109 +110,42 @@ local ASheathPotential = Proto(UpdaterBase)
 function ASheathPotential:init(tbl)
    ASheathPotential.super.init(self, tbl) -- setup base object
 
-   self.grid  = assert(tbl.onGrid, "Updater.ASheathPotential: Must provide configuration space grid object 'onGrid'.")
-   self.basis = assert(tbl.basis, "Updater.ASheathPotential: Must provide configuration space basis object 'basis'.")
-   self.boundaryGrids = assert(tbl.boundaryGrids, "Updater.ASheathPotential: Must provide configuration space boundary grids 'boundaryGrids'.")
+   local grid  = assert(tbl.onGrid, "Updater.ASheathPotential: Must provide configuration space grid object 'onGrid'.")
+   local basis = assert(tbl.basis, "Updater.ASheathPotential: Must provide configuration space basis object 'basis'.")
+   local boundaryGrids = assert(tbl.boundaryGrids, "Updater.ASheathPotential: Must provide configuration space boundary grids 'boundaryGrids'.")
 
-   self.mElc    = assert(tbl.electronMass, "Updater.ASheathPotential: Must provide electron mass in 'electronMass'.")
-   self.qElc    = assert(tbl.electronCharge, "Updater.ASheathPotential: Must provide electron charge in 'electronCharge'.")
-   self.tempElc = assert(tbl.electronTemp, "Updater.ASheathPotential: Must provide electron temperature in 'electronTemp'.")
+   local mElc    = assert(tbl.electronMass, "Updater.ASheathPotential: Must provide electron mass in 'electronMass'.")
+   local qElc    = assert(tbl.electronCharge, "Updater.ASheathPotential: Must provide electron charge in 'electronCharge'.")
+   local tempElc = assert(tbl.electronTemp, "Updater.ASheathPotential: Must provide electron temperature in 'electronTemp'.")
 
-   -- Number of quadrature points in each direction
-   local numQuad1D = self.basis:polyOrder() + 1
+   local useGPU  = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or 0)
 
-   self.quadType = "Gauss"
+   local dim = basis:ndim()
+   self.sheathDir = dim   -- Assume the sheath direction is the last dimension.
 
-   self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
-
-   self.dim = self.basis:ndim()
-   self.sheathDir = self.dim   -- Assume the sheath direction is the last dimension.
-
-   self._phiSheathKer = ModDecl.selectPhiSheathQuad(self.basis:id(), self.dim, self.basis:polyOrder(), self.quadType)
-   self._phiKer       = ModDecl.selectPhiQuad(self.basis:id(), self.dim, self.basis:polyOrder(), self.quadType)
-
-   self.dx   = Lin.Vec(self.dim)
-   self.idxB = Lin.IntVec(self.dim)
-   for d=1,self.dim do self.idxB[d] = 1 end
-   local xcB = Lin.Vec(self.dim)
-
-   -- We compute the potential in two halfs [z_min,0] and [0,z_max] first.
-   -- For this we need two pairs of grids.
-   --   - A lower/upper pair of skin-cell grids to compute phi_s (boundaryGrids).
-   --   - The [z_min,0] and [0,z_max] grids to compute phi (halfGrid).
    self.boundary = {"lower","upper"}
-   self.halfSign = {lower=-1., upper=1.}
-   self.halfDomRange = {}
-   local sheathDirCells = self.grid:numCells(self.sheathDir)
-   local globalRange = self.grid:globalRange()
-   for _, b in ipairs(self.boundary) do
-      -- Compute the offsets used to shorten the domain in the sheath direction.
-      -- ASSUME zero in the sheath direction is at a cell boundary and not inside of a cell.
-      local sheathDirExts = {0,0}
-      for idx = 1, sheathDirCells do
-         self.idxB[self.sheathDir] = idx
-         self.grid:setIndex(self.idxB)
-         self.grid:cellCenter(xcB)
-         if (b == "upper") and (xcB[self.sheathDir] > 0.0) then
-            sheathDirExts[1] = -(idx-1)
-            break
-         elseif (b == "lower") and (xcB[self.sheathDir] > 0.0) then
-            sheathDirExts[2] = -(sheathDirCells-(idx-1))
-            break
-         end
-      end
-      -- Create the decomposed range that a rank has to
-      -- loop over when looping over the half domain.
-      local halfDomRange = self.grid:globalRange():extendDir(self.sheathDir,sheathDirExts[1],sheathDirExts[2])
-      self.halfDomRange[b] = self.grid:localRange():intersect(halfDomRange)
-   end
 
-   self.phiSheath = {lower=DataStruct.Field{onGrid = self.boundaryGrids["lower"],
-                                            numComponents = self.basis:numBasis(),
-                                            ghost = {1,1},},
-                     upper=DataStruct.Field{onGrid = self.boundaryGrids["upper"], 
-                                            numComponents = self.basis:numBasis(),
-                                            ghost = {1,1},}}
-   self.m0IonSheath = {lower=DataStruct.Field{onGrid = self.boundaryGrids["lower"],
-                                              numComponents = self.basis:numBasis(),
-                                              ghost = {1,1},},
-                       upper=DataStruct.Field{onGrid = self.boundaryGrids["upper"], 
-                                              numComponents = self.basis:numBasis(),
-                                              ghost = {1,1},}}
-   -- Pre-define some pointers and indexers.
-   self.m0IonSheathPtr = {lower=0, upper=0}
-   self.phiSheathPtr   = {lower=0, upper=0}
-   self.GammaIonPtr    = {lower=0, upper=0}   -- Set in :advance.
-   self.boundaryIdxr   = {lower=0, upper=0}
-   for _, b in ipairs(self.boundary) do
-      self.phiSheath[b]:clear(0.0)
-      self.m0IonSheath[b]:clear(0.0)
+   self._zero = ffi.gc(ffiC.gkyl_ambi_bolt_potential_new(grid._zero, basis._zero, mElc, qElc, tempElc, useGPU),
+                       ffiC.gkyl_ambi_bolt_potential_release)
 
-      self.phiSheathPtr[b]   = self.phiSheath[b]:get(1)
-      self.m0IonSheathPtr[b] = self.m0IonSheath[b]:get(1)
-
-      self.boundaryIdxr[b] = self.phiSheath[b]:genIndexer()
-   end
-
+   self.sheathValues = {lower=DataStruct.Field{onGrid = boundaryGrids["lower"],
+                                               numComponents = 2*basis:numBasis(), ghost = {0,0},},
+                        upper=DataStruct.Field{onGrid = boundaryGrids["upper"], 
+                                               numComponents = 2*basis:numBasis(), ghost = {0,0},}}
    if GKYL_HAVE_MPI then
       -- Need a communicator to broadcast the sheath potential and density along z.
-      local commSet   = self.grid:commSet()
+      local commSet   = grid:commSet()
       local worldComm = commSet.comm
-      local nodeComm  = commSet.nodeComm
-      local nodeRank  = Mpi.Comm_rank(nodeComm)
+      local worldRank = Mpi.Comm_rank(worldComm)
       local zCommRank = 0
-      if self.dim==3 then zCommRank = nodeRank % (self.grid:cuts(1)*self.grid:cuts(2)) end
-      self.zComm = Mpi.Comm_split(worldComm, zCommRank, nodeRank)
+      if dim==3 then zCommRank = worldRank % (grid:cuts(1)*grid:cuts(2)) end
+      self.zComm = Mpi.Comm_split(worldComm, zCommRank, worldRank)
       local zCommSize = Mpi.Comm_size(self.zComm)
       self.sheathRank = {lower=0, upper=zCommSize-1}
-      self.numBoundaryDOFs = {lower=self.phiSheath["lower"]:localRange():volume()*self.phiSheath["lower"]:numComponents(),
-                              upper=self.phiSheath["upper"]:localRange():volume()*self.phiSheath["upper"]:numComponents()}
+      self.numBoundaryDOFs = {lower=self.sheathValues["lower"]:localRange():volume()*self.sheathValues["lower"]:numComponents(),
+                              upper=self.sheathValues["upper"]:localRange():volume()*self.sheathValues["upper"]:numComponents()}
       self.bcastSheathQuants = function(bInd)
-         for d=1,self.dim do self.idxB[d] = 1 end
-         self.phiSheath[bInd]:fill(self.boundaryIdxr[bInd](self.idxB), self.phiSheathPtr[bInd])
-         self.m0IonSheath[bInd]:fill(self.boundaryIdxr[bInd](self.idxB), self.m0IonSheathPtr[bInd])
-         Mpi.Bcast(self.phiSheathPtr[bInd]:data(), self.numBoundaryDOFs[bInd], Mpi.DOUBLE, self.sheathRank[bInd], self.zComm) 
-         Mpi.Bcast(self.m0IonSheathPtr[bInd]:data(), self.numBoundaryDOFs[bInd], Mpi.DOUBLE, self.sheathRank[bInd], self.zComm) 
+         Mpi.Bcast(self.sheathValues[bInd]:dataPointer(), self.numBoundaryDOFs[bInd], Mpi.DOUBLE, self.sheathRank[bInd], self.zComm)
       end
    else
       self.bcastSheathQuants = function(bInd) end
@@ -149,51 +156,24 @@ function ASheathPotential:_advance(tCurr, inFlds, outFlds)
    local GammaIon, m0Ion, jacobGeoInv = inFlds[1], inFlds[2], inFlds[3]
    local phi = outFlds[1]
 
-   self.GammaIonPtr["lower"] = GammaIon["lower"]:get(1)
-   self.GammaIonPtr["upper"] = GammaIon["upper"]:get(1)
-   local m0IonPtr = m0Ion:get(1)
-   local phiPtr   = phi:get(1)
-   local jacobGeoInvPtr = jacobGeoInv:get(1)
-
-   local innerIdxr = phi:genIndexer()
-
-   local grid = self.grid
-   local globalRange = phi:globalRange()
-
    for _, b in ipairs(self.boundary) do
       -- Loop over boundary grid and compute phi_s in each cell using quadrature.
-      local skinRange = b=="lower" and globalRange:lowerSkin(self.sheathDir,1) or globalRange:upperSkin(self.sheathDir,1)
-      for idx in skinRange:rowMajorIter() do
-         idx:copyInto(self.idxB)
-         self.idxB[self.sheathDir] = 1  -- Boundary grid has 1 cell in this direction.
-         grid:getDx(self.dx)
-
-         GammaIon[b]:fill(self.boundaryIdxr[b](self.idxB), self.GammaIonPtr[b])
-         self.phiSheath[b]:fill(self.boundaryIdxr[b](self.idxB), self.phiSheathPtr[b])
-         self.m0IonSheath[b]:fill(self.boundaryIdxr[b](self.idxB), self.m0IonSheathPtr[b])
-         m0Ion:fill(innerIdxr(idx), m0IonPtr)
-         jacobGeoInv:fill(innerIdxr(idx), jacobGeoInvPtr)
-         
-         self._phiSheathKer[b](self.dx[self.sheathDir], self.qElc, self.mElc, self.tempElc, self.halfSign[b], jacobGeoInvPtr:data(), self.GammaIonPtr[b]:data(), m0IonPtr:data(), self.m0IonSheathPtr[b]:data(), self.phiSheathPtr[b]:data())
-      end
+      local edge = b=="lower" and 0 or 1 -- Match gkyl_edge_loc in gkylzero/zero/gkyl_range.h.
+      local skinRange = b=="lower" and phi:localGlobalSkinRangeIntersectLower()[self.sheathDir]
+                                    or phi:localGlobalSkinRangeIntersectUpper()[self.sheathDir]
+      local ghostRange = b=="lower" and phi:localGlobalGhostRangeIntersectLower()[self.sheathDir]
+                                     or phi:localGlobalGhostRangeIntersectUpper()[self.sheathDir]
+      ffiC.gkyl_ambi_bolt_potential_sheath_calc(self._zero, edge, skinRange, ghostRange, jacobGeoInv._zero, GammaIon[b]._zero, m0Ion._zero, self.sheathValues[b]._zero)
 
       -- Broadcast the sheath potential and density to other ranks along z.
       self.bcastSheathQuants(b)
-
-      -- Loop over the half grid and compute phi.
-      for idx in self.halfDomRange[b]:rowMajorIter() do
-         idx:copyInto(self.idxB)
-         self.idxB[self.sheathDir] = 1  -- Boundary grid has 1 cell in this direction.
-
-         self.phiSheath[b]:fill(self.boundaryIdxr[b](self.idxB), self.phiSheathPtr[b])
-         self.m0IonSheath[b]:fill(self.boundaryIdxr[b](self.idxB), self.m0IonSheathPtr[b])
-         m0Ion:fill(innerIdxr(idx), m0IonPtr)
-         phi:fill(innerIdxr(idx), phiPtr)
-         jacobGeoInv:fill(innerIdxr(idx), jacobGeoInvPtr)
-
-         self._phiKer(self.qElc, self.tempElc, jacobGeoInvPtr:data(), m0IonPtr:data(), self.m0IonSheathPtr[b]:data(), self.phiSheathPtr[b]:data(), phiPtr:data())
-      end
    end
+
+   -- Average left and right sheath density and potential.
+   self.sheathValues["lower"]:accumulate(1., self.sheathValues["upper"])
+   self.sheathValues["lower"]:scale(0.5)
+      
+   ffiC.gkyl_ambi_bolt_potential_phi_calc(self._zero, phi:localRange(), phi:localExtRange(), jacobGeoInv._zero, m0Ion._zero, self.sheathValues["lower"]._zero, phi._zero)
 end
 
 return ASheathPotential

@@ -69,8 +69,8 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
    local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
 
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
-   local globalGhostRange = self.bcEdge=="lower" and distf:globalGhostRangeLower()[self.bcDir]
-                                                  or distf:globalGhostRangeUpper()[self.bcDir]
+   local globalGhostRange = self.bcEdge=="lower" and distf:localGhostRangeLower()[self.bcDir]
+                                                  or distf:localGhostRangeUpper()[self.bcDir]
    self:createBoundaryGrid(globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
 
    -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
@@ -200,7 +200,7 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
                                                       or distf:localGlobalGhostRangeIntersectUpper()[self.bcDir]
 
       -- The following are needed to evaluate a conf-space CartField on the confBoundaryGrid.
-      self.confBoundaryField  = self:allocMoment()
+      self.confBoundaryField = self:allocMoment()
       -- Range spanning ghost cells.
       self.myGlobalConfGhostRange = self.bcEdge=="lower" and numDensity:localGlobalGhostRangeIntersectLower()[self.bcDir]
                                                           or numDensity:localGlobalGhostRangeIntersectUpper()[self.bcDir]
