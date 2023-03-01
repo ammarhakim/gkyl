@@ -132,23 +132,24 @@ function ASheathPotential:init(tbl)
                                                numComponents = 2*basis:numBasis(), ghost = {0,0},},
                         upper=DataStruct.Field{onGrid = boundaryGrids["upper"], 
                                                numComponents = 2*basis:numBasis(), ghost = {0,0},}}
+   self.bcastSheathQuants = function(bInd) end
    if GKYL_HAVE_MPI then
       -- Need a communicator to broadcast the sheath potential and density along z.
       local commSet   = grid:commSet()
       local worldComm = commSet.comm
-      local worldRank = Mpi.Comm_rank(worldComm)
-      local zCommRank = 0
-      if dim==3 then zCommRank = worldRank % (grid:cuts(1)*grid:cuts(2)) end
-      self.zComm = Mpi.Comm_split(worldComm, zCommRank, worldRank)
-      local zCommSize = Mpi.Comm_size(self.zComm)
-      self.sheathRank = {lower=0, upper=zCommSize-1}
-      self.numBoundaryDOFs = {lower=self.sheathValues["lower"]:localRange():volume()*self.sheathValues["lower"]:numComponents(),
-                              upper=self.sheathValues["upper"]:localRange():volume()*self.sheathValues["upper"]:numComponents()}
-      self.bcastSheathQuants = function(bInd)
-         Mpi.Bcast(self.sheathValues[bInd]:dataPointer(), self.numBoundaryDOFs[bInd], Mpi.DOUBLE, self.sheathRank[bInd], self.zComm)
+      if Mpi.Comm_size(worldComm) > 1 then
+         local worldRank = Mpi.Comm_rank(worldComm)
+         local zCommRank = 0
+         if dim==3 then zCommRank = worldRank % (grid:cuts(1)*grid:cuts(2)) end
+         self.zComm = Mpi.Comm_split(worldComm, zCommRank, worldRank)
+         local zCommSize = Mpi.Comm_size(self.zComm)
+         self.sheathRank = {lower=0, upper=zCommSize-1}
+         self.numBoundaryDOFs = {lower=self.sheathValues["lower"]:localRange():volume()*self.sheathValues["lower"]:numComponents(),
+                                 upper=self.sheathValues["upper"]:localRange():volume()*self.sheathValues["upper"]:numComponents()}
+         self.bcastSheathQuants = function(bInd)
+            Mpi.Bcast(self.sheathValues[bInd]:dataPointer(), self.numBoundaryDOFs[bInd], Mpi.DOUBLE, self.sheathRank[bInd], self.zComm)
+         end
       end
-   else
-      self.bcastSheathQuants = function(bInd) end
    end
 end
 
@@ -174,6 +175,30 @@ function ASheathPotential:_advance(tCurr, inFlds, outFlds)
    self.sheathValues["lower"]:scale(0.5)
       
    ffiC.gkyl_ambi_bolt_potential_phi_calc(self._zero, phi:localRange(), phi:localExtRange(), jacobGeoInv._zero, m0Ion._zero, self.sheathValues["lower"]._zero, phi._zero)
+end
+
+function ASheathPotential:_advanceOnDevice(tCurr, inFlds, outFlds)
+   local GammaIon, m0Ion, jacobGeoInv = inFlds[1], inFlds[2], inFlds[3]
+   local phi = outFlds[1]
+
+   for _, b in ipairs(self.boundary) do
+      -- Loop over boundary grid and compute phi_s in each cell using quadrature.
+      local edge = b=="lower" and 0 or 1 -- Match gkyl_edge_loc in gkylzero/zero/gkyl_range.h.
+      local skinRange = b=="lower" and phi:localGlobalSkinRangeIntersectLower()[self.sheathDir]
+                                    or phi:localGlobalSkinRangeIntersectUpper()[self.sheathDir]
+      local ghostRange = b=="lower" and phi:localGlobalGhostRangeIntersectLower()[self.sheathDir]
+                                     or phi:localGlobalGhostRangeIntersectUpper()[self.sheathDir]
+      ffiC.gkyl_ambi_bolt_potential_sheath_calc(self._zero, edge, skinRange, ghostRange, jacobGeoInv._zeroDevice, GammaIon[b]._zeroDevice, m0Ion._zeroDevice, self.sheathValues[b]._zeroDevice)
+
+      -- Broadcast the sheath potential and density to other ranks along z.
+      self.bcastSheathQuants(b)
+   end
+
+   -- Average left and right sheath density and potential.
+   self.sheathValues["lower"]:accumulate(1., self.sheathValues["upper"])
+   self.sheathValues["lower"]:scale(0.5)
+      
+   ffiC.gkyl_ambi_bolt_potential_phi_calc(self._zero, phi:localRange(), phi:localExtRange(), jacobGeoInv._zeroDevice, m0Ion._zeroDevice, self.sheathValues["lower"]._zeroDevice, phi._zeroDevice)
 end
 
 return ASheathPotential
