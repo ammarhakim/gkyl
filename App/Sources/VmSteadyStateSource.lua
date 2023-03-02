@@ -17,6 +17,7 @@ local Time           = require "Lib.Time"
 local Updater        = require "Updater"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
+local lume             = require "Lib.lume"
 
 local VmSteadyStateSource = Proto(SourceBase)
 
@@ -43,15 +44,7 @@ function VmSteadyStateSource:setConfBasis(basis) self.confBasis = basis end
 function VmSteadyStateSource:setConfGrid(grid) self.confGrid = grid end
 
 function VmSteadyStateSource:createSolver(mySpecies, extField)
-
-   self.dgIntegratedMoms = Updater.DistFuncMomentDG {
-      onGrid     = mySpecies.grid,   confBasis  = mySpecies.confBasis,
-      phaseBasis = mySpecies.basis,  moment     = "M0",
-      isIntegrated = true,
-   }
-
-   self.cdim = mySpecies.cdim
-
+   
    self.writeGhost = mySpecies.writeGhost
    
    self.profile:fullInit(mySpecies)
@@ -90,43 +83,61 @@ function VmSteadyStateSource:createSolver(mySpecies, extField)
 
    -- Need to define methods to allocate fields (used by diagnostics).
    self.allocMoment = function() return mySpecies:allocMoment() end
-
-   self.integMoms = mySpecies:allocCartField(mySpecies.confGrid, mySpecies.vdim+2, {mySpecies.nGhost,mySpecies.nGhost})
-
-   self.lowerPhaseGhostRange = self.fSource:localGhostRangeLower()[1]
-   self.upperPhaseGhostRange = self.fSource:localGhostRangeUpper()[1]
-   self.lowerConfGhostRange = self.integMoms:localGhostRangeLower()[1]
-   self.upperConfGhostRange = self.integMoms:localGhostRangeUpper()[1]
-
-   self.localEdgeFlux = ffi.new("double[1]")
-   self.globalEdgeFlux = ffi.new("double[1]")
 end
 
-function VmSteadyStateSource:advance(tCurr, fIn, species, fRhsOut)
+function VmSteadyStateSource:initCrossSpeciesCoupling(population)
+   local species = population:getSpecies()
+
+   self.srcBC = {}
+   for _, otherNm in ipairs(self.sourceSpecies) do
+      for _, bc in lume.orderedIter(species[otherNm].nonPeriodicBCs) do
+         self.srcBC[bc:getEdge()] = bc
+         self.srcBC[bc:getEdge()]:setSaveFlux(true)
+         hasNonPeriodic = true
+      end
+   end
+   lume.setOrder(self.srcBC)
+end
+
+function VmSteadyStateSource:createCouplingSolver(population, field, extField)
+   self.localEdgeFlux = ffi.new("double[1]")
+   self.globalEdgeFlux = ffi.new("double[1]")
+   
+   self.bcSrcFlux = {}
+   for _, bc in lume.orderedIter(self.srcBC) do
+      self.bcSrcFlux[bc:getEdge()] = bc:allocIntMomentDG()
+   end
+end
+
+function VmSteadyStateSource:advance(tCurr, fIn, population, fRhsOut)
+   local tm = Time.clock()
+   
+   self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
+end
+
+function VmSteadyStateSource:advanceCrossSpeciesCoupling(tCurr, species, outIdx)
    local tm = Time.clock()
 
-   self.dgIntegratedMoms:advance(tCurr, {fRhsOut, self.lowerConfGhostRange, self.lowerPhaseGhostRange}, {self.integMoms})
-   self.dgIntegratedMoms:advance(tCurr, {fRhsOut, self.upperConfGhostRange, self.upperPhaseGhostRange}, {self.integMoms})
-   
-   self.localEdgeFlux[0] = 0.0
-   for _, otherNm in ipairs(self.sourceSpecies) do
-      
-      local flux = self.integMoms
+   local mySpecies = species[self.speciesName]
+
+   local fRhsOut = mySpecies:rkStepperFields()[outIdx]
+
+   for _, bc in lume.orderedIter(self.srcBC) do
+      bc.integNumDensityCalc:advance(tCurr, {bc:getBoundaryFluxFields()[outIdx]}, {self.bcSrcFlux[bc:getEdge()]})
+
+      local flux = self.bcSrcFlux[bc:getEdge()]
+      self.localEdgeFlux[0] = 0.0
 
       if GKYL_USE_GPU then flux:copyDeviceToHost() end
 
       local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(0)
       for idx in flux:localExtRangeIter() do
-         if idx[1] == self.confGrid:numCells(1) + 1 then
-            flux:fill(fluxIndexer(idx), fluxItr)
-            self.localEdgeFlux[0] = self.localEdgeFlux[0] + fluxItr[1]
-         elseif idx[1] == 0 then
-            flux:fill(fluxIndexer(idx), fluxItr)
-            self.localEdgeFlux[0] = self.localEdgeFlux[0] + fluxItr[1]
-         end
+         flux:fill(fluxIndexer(idx), fluxItr)
+         self.localEdgeFlux[0] = self.localEdgeFlux[0] + fluxItr[1]
       end
+      Mpi.Allreduce(self.localEdgeFlux, self.globalEdgeFlux, 1, Mpi.DOUBLE, Mpi.SUM, bc.confBoundaryGrid:commSet().comm)
    end
-   Mpi.Allreduce(self.localEdgeFlux, self.globalEdgeFlux, 1, Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
+   
    local densFactor = self.globalEdgeFlux[0]/self.sourceLength
 
    fRhsOut:accumulate(densFactor, self.fSource)

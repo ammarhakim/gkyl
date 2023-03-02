@@ -129,6 +129,9 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
       self.allocMoment = function(self)
          return self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, numDensity:getMetaData())
       end
+      self.allocIntMomentDG = function(self)
+         return self:allocCartField(self.confBoundaryGrid, self.vdim+2, {0,0}, numDensity:getMetaData())
+      end
       self.allocVectorMoment = function(self, dim)
          return self:allocCartField(self.confBoundaryGrid, dim*self.confBasis:numBasis(), {0,0}, numDensity:getMetaData())
       end
@@ -189,6 +192,13 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
       self.numDensityCalc = Updater.DistFuncMomentCalc {
          onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
          phaseBasis = self.basis,         moment     = "M0",
+      }
+
+      -- Integrated number density calculator. Needed regardless of diagnostics (for steady state sources).
+      self.integNumDensityCalc = Updater.DistFuncMomentDG {
+         onGrid     = self.boundaryGrid,   confBasis  = self.confBasis,
+         phaseBasis = self.basis,  moment     = "M0",
+         isIntegrated = true,
       }
 
       if not self.anyDiagnostics then

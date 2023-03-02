@@ -349,6 +349,9 @@ function VlasovSpecies:initCrossSpeciesCoupling(population)
 
    -- Initialize the BC cross-coupling interactions.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:initCrossSpeciesCoupling(species) end
+
+   -- Initialize the source cross-coupling interactions.
+   for _, src in lume.orderedIter(self.sources) do src:initCrossSpeciesCoupling(population) end
 end
 
 function VlasovSpecies:setActiveRKidx(rkIdx) self.activeRKidx = rkIdx end
@@ -403,6 +406,8 @@ function VlasovSpecies:advanceCrossSpeciesCoupling(tCurr, population, emIn, inId
    end
 
    for _, bc in pairs(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
+
+   for _, src in lume.orderedIter(self.sources) do src:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
 end
 
 function VlasovSpecies:createDiagnostics(field)
