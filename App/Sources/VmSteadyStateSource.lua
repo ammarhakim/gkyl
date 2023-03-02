@@ -1,4 +1,3 @@
-
 -- Gkyl ------------------------------------------------------------------------
 --
 -- PlasmaOnCartGrid support code: Vlasov steady state source operator
@@ -51,6 +50,8 @@ function VmSteadyStateSource:createSolver(mySpecies, extField)
       isIntegrated = true,
    }
 
+   self.cdim = mySpecies.cdim
+
    self.writeGhost = mySpecies.writeGhost
    
    self.profile:fullInit(mySpecies)
@@ -92,6 +93,11 @@ function VmSteadyStateSource:createSolver(mySpecies, extField)
 
    self.integMoms = mySpecies:allocCartField(mySpecies.confGrid, mySpecies.vdim+2, {mySpecies.nGhost,mySpecies.nGhost})
 
+   self.lowerPhaseGhostRange = self.fSource:localGhostRangeLower()[1]
+   self.upperPhaseGhostRange = self.fSource:localGhostRangeUpper()[1]
+   self.lowerConfGhostRange = self.integMoms:localGhostRangeLower()[1]
+   self.upperConfGhostRange = self.integMoms:localGhostRangeUpper()[1]
+
    self.localEdgeFlux = ffi.new("double[1]")
    self.globalEdgeFlux = ffi.new("double[1]")
 end
@@ -99,7 +105,8 @@ end
 function VmSteadyStateSource:advance(tCurr, fIn, species, fRhsOut)
    local tm = Time.clock()
 
-   self.dgIntegratedMoms:advance(tCurr, {fRhsOut}, {self.integMoms})
+   self.dgIntegratedMoms:advance(tCurr, {fRhsOut, self.lowerConfGhostRange, self.lowerPhaseGhostRange}, {self.integMoms})
+   self.dgIntegratedMoms:advance(tCurr, {fRhsOut, self.upperConfGhostRange, self.upperPhaseGhostRange}, {self.integMoms})
    
    self.localEdgeFlux[0] = 0.0
    for _, otherNm in ipairs(self.sourceSpecies) do
