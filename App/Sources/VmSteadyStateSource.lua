@@ -89,6 +89,7 @@ function VmSteadyStateSource:initCrossSpeciesCoupling(population)
    local species = population:getSpecies()
 
    self.srcBC = {}
+   local hasNonPeriodic = false 
    for _, otherNm in ipairs(self.sourceSpecies) do
       for _, bc in lume.orderedIter(species[otherNm].nonPeriodicBCs) do
          self.srcBC[bc:getEdge()] = bc
@@ -96,6 +97,7 @@ function VmSteadyStateSource:initCrossSpeciesCoupling(population)
          hasNonPeriodic = true
       end
    end
+   assert(hasNonPeriodic, "App.Sources.VmSteadyStateSource: has to have a non-periodic BC.")
    lume.setOrder(self.srcBC)
 end
 
@@ -107,12 +109,6 @@ function VmSteadyStateSource:createCouplingSolver(population, field, extField)
    for _, bc in lume.orderedIter(self.srcBC) do
       self.bcSrcFlux[bc:getEdge()] = bc:allocIntMomentDG()
    end
-end
-
-function VmSteadyStateSource:advance(tCurr, fIn, population, fRhsOut)
-   local tm = Time.clock()
-   
-   self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
 end
 
 function VmSteadyStateSource:advanceCrossSpeciesCoupling(tCurr, species, outIdx)
