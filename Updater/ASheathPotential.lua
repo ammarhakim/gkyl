@@ -162,8 +162,7 @@ function ASheathPotential:_advance(tCurr, inFlds, outFlds)
       local edge = b=="lower" and 0 or 1 -- Match gkyl_edge_loc in gkylzero/zero/gkyl_range.h.
       local skinRange = b=="lower" and phi:localGlobalSkinRangeIntersectLower()[self.sheathDir]
                                     or phi:localGlobalSkinRangeIntersectUpper()[self.sheathDir]
-      local ghostRange = b=="lower" and phi:localGlobalGhostRangeIntersectLower()[self.sheathDir]
-                                     or phi:localGlobalGhostRangeIntersectUpper()[self.sheathDir]
+      local ghostRange = GammaIon[b]:localRange()
       ffiC.gkyl_ambi_bolt_potential_sheath_calc(self._zero, edge, skinRange, ghostRange, jacobGeoInv._zero, GammaIon[b]._zero, m0Ion._zero, self.sheathValues[b]._zero)
 
       -- Broadcast the sheath potential and density to other ranks along z.
@@ -186,8 +185,7 @@ function ASheathPotential:_advanceOnDevice(tCurr, inFlds, outFlds)
       local edge = b=="lower" and 0 or 1 -- Match gkyl_edge_loc in gkylzero/zero/gkyl_range.h.
       local skinRange = b=="lower" and phi:localGlobalSkinRangeIntersectLower()[self.sheathDir]
                                     or phi:localGlobalSkinRangeIntersectUpper()[self.sheathDir]
-      local ghostRange = b=="lower" and phi:localGlobalGhostRangeIntersectLower()[self.sheathDir]
-                                     or phi:localGlobalGhostRangeIntersectUpper()[self.sheathDir]
+      local ghostRange = GammaIon[b]:localRange()
       ffiC.gkyl_ambi_bolt_potential_sheath_calc(self._zero, edge, skinRange, ghostRange, jacobGeoInv._zeroDevice, GammaIon[b]._zeroDevice, m0Ion._zeroDevice, self.sheathValues[b]._zeroDevice)
 
       -- Broadcast the sheath potential and density to other ranks along z.
