@@ -2,6 +2,14 @@
 local Moments = require("App.PlasmaOnCartGrid").Moments()
 
 gasGamma = 3.0 -- gas adiabatic constant
+
+function bc_lower_func(t, nc, skin, ctx)
+   return 1.0, 0.0, 0.0, 0.0, 1.0/(gasGamma-1)
+end
+
+function bc_upper_func(t, nc, skin, ctx)
+   return 0.125, 0.0, 0.0, 0.0, 0.1/(gasGamma-1)
+end
    
 -- create app
 eulerApp = Moments.App {
@@ -27,10 +35,10 @@ eulerApp = Moments.App {
       
       evolve = true, -- evolve species?
 
-      bcx = { Moments.Species.bcConst(1.0, 0.0, 0.0, 0.0, 1.0/(gasGamma-1)),
-	      Moments.Species.bcConst(0.125, 0.0, 0.0, 0.0, 0.1/(gasGamma-1)) },
-	      
-   },   
+      bcx = { Moments.Species.bcFunc, Moments.Species.bcFunc },
+      bcx_lower_func = bc_lower_func,
+      bcx_upper_func = bc_upper_func,
+   },
 }
 -- run application
 eulerApp:run()
