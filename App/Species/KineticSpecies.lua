@@ -486,6 +486,9 @@ function KineticSpecies:createCouplingSolver(population, field, externalField)
    -- Create cross collision solvers.
    for _, c in lume.orderedIter(self.collisions) do c:createCouplingSolver(population, field, externalField) end
 
+   -- Create source solvers.
+   for _, src in lume.orderedIter(self.sources) do src:createCouplingSolver(population, field, externalField) end
+
    -- Create BC solvers.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createCouplingSolver(species, field, externalField) end
 end

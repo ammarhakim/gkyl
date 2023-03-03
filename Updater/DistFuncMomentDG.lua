@@ -114,8 +114,8 @@ function DistFuncMomentDG:_advance(tCurr, inFld, outFld)
    local qIn = assert(inFld[1], "DistFuncMomentDG.advance: Must specify an input field")
    local mOut = assert(outFld[1], "DistFuncMomentDG.advance: Must specify an output field")
 
-   local phaseRange = qIn:localExtRange()
    local confRange = mOut:localExtRange()
+   local phaseRange = qIn:localExtRange()
 
    ffiC.gkyl_dg_updater_moment_advance(self._zero, phaseRange, confRange, nil, nil, nil, nil, nil, nil, qIn._zero, mOut._zero)
 end
@@ -124,8 +124,8 @@ function DistFuncMomentDG:_advanceOnDevice(tCurr, inFld, outFld)
    local qIn = assert(inFld[1], "DistFuncMomentDG.advance: Must specify an input field")
    local mOut = assert(outFld[1], "DistFuncMomentDG.advance: Must specify an output field")
 
-   local phaseRange = qIn:localExtRange()
    local confRange = mOut:localExtRange()
+   local phaseRange = qIn:localExtRange()
 
    ffiC.gkyl_dg_updater_moment_advance_cu(self._zero, phaseRange, confRange, nil, nil, nil, nil, nil, nil, qIn._zeroDevice, mOut._zeroDevice)
 end
