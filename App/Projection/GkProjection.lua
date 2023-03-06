@@ -81,6 +81,7 @@ function FunctionProjection:advance(time, inFlds, outFlds)
          self.confFieldIo:read(numDens, self.density,false)
          self.confFieldIo:read(numDensScaleTo, self.densityScaleTo,false)
          applyOpenBcs(numDens) -- only necessary if not reading ghost cells
+         applyOpenBcs(numDensScaleTo) -- only necessary if not reading ghost cells
       end
 
       if self.species.jacobPhaseFunc and self.vdim > 1 then
