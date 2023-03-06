@@ -129,7 +129,7 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
       self.allocMoment = function(self)
          return self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, numDensity:getMetaData())
       end
-      self.allocIntMomentDG = function(self)
+      self.allocIntThreeMoments = function(self)
          return self:allocCartField(self.confBoundaryGrid, self.vdim+2, {0,0}, numDensity:getMetaData())
       end
       self.allocVectorMoment = function(self, dim)
@@ -197,7 +197,7 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
       -- Integrated number density calculator. Needed regardless of diagnostics (for steady state sources).
       self.integNumDensityCalc = Updater.DistFuncMomentDG {
          onGrid     = self.boundaryGrid,   confBasis  = self.confBasis,
-         phaseBasis = self.basis,  moment     = "M0",
+         phaseBasis = self.basis,          moment     = "M0",
          isIntegrated = true,
       }
 

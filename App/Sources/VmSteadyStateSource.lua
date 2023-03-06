@@ -102,12 +102,12 @@ function VmSteadyStateSource:initCrossSpeciesCoupling(population)
 end
 
 function VmSteadyStateSource:createCouplingSolver(population, field, extField)
-   self.localEdgeFlux = ffi.new("double[1]")
-   self.globalEdgeFlux = ffi.new("double[1]")
+   self.localEdgeFlux = Lin.Vec(1)
+   self.globalEdgeFlux = Lin.Vec(1)
    
    self.bcSrcFlux = {}
    for _, bc in lume.orderedIter(self.srcBC) do
-      self.bcSrcFlux[bc:getEdge()] = bc:allocIntMomentDG()
+      self.bcSrcFlux[bc:getEdge()] = bc:allocIntThreeMoments()
    end
 end
 
@@ -122,19 +122,19 @@ function VmSteadyStateSource:advanceCrossSpeciesCoupling(tCurr, species, outIdx)
       bc.integNumDensityCalc:advance(tCurr, {bc:getBoundaryFluxFields()[outIdx]}, {self.bcSrcFlux[bc:getEdge()]})
 
       local flux = self.bcSrcFlux[bc:getEdge()]
-      self.localEdgeFlux[0] = 0.0
+      self.localEdgeFlux:data()[0] = 0.0
 
       if GKYL_USE_GPU then flux:copyDeviceToHost() end
 
       local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(0)
       for idx in flux:localExtRangeIter() do
          flux:fill(fluxIndexer(idx), fluxItr)
-         self.localEdgeFlux[0] = self.localEdgeFlux[0] + fluxItr[1]
+         self.localEdgeFlux:data()[0] = self.localEdgeFlux:data()[0] + fluxItr[1]
       end
-      Mpi.Allreduce(self.localEdgeFlux, self.globalEdgeFlux, 1, Mpi.DOUBLE, Mpi.SUM, bc.confBoundaryGrid:commSet().comm)
+      Mpi.Allreduce(self.localEdgeFlux:data(), self.globalEdgeFlux:data(), 1, Mpi.DOUBLE, Mpi.SUM, bc.confBoundaryGrid:commSet().comm)
    end
    
-   local densFactor = self.globalEdgeFlux[0]/self.sourceLength
+   local densFactor = self.globalEdgeFlux:data()[0]/self.sourceLength
 
    fRhsOut:accumulate(densFactor, self.fSource)
    
