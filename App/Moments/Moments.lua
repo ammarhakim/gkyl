@@ -789,6 +789,17 @@ local function gkyl_eval_mapc2p(func)
    end
 end
 
+local function gkyl_get_c_func(func, eval)
+   local entry_type = type(func)
+   if (entry_type == "function") then
+      return eval(func)
+   elseif (entry_type == "cdata") then -- TODO check c func pointer rigorously
+      return func
+   else
+      assert(false, "entry must be a lua or C function; got "..entry_type)
+   end
+end
+
 -- Species object: table structure is as follows:
 --
 -- local elc = {
@@ -863,23 +874,23 @@ local species_mt = {
       end
 
       if tbl.bcx_lower_func then
-         s.bcx_lower_func = gkyl_eval_bc(tbl.bcx_lower_func)
+         s.bcx_lower_func = gkyl_get_c_func(tbl.bcx_lower_func, gkyl_eval_bc)
       end
       if tbl.bcy_lower_func then
-         s.bcy_lower_func = gkyl_eval_bc(tbl.bcy_lower_func)
+         s.bcy_lower_func = gkyl_get_c_func(tbl.bcy_lower_func, gkyl_eval_bc)
       end
       if tbl.bcz_lower_func then
-         s.bcz_lower_func = gkyl_eval_bc(tbl.bcz_lower_func)
+         s.bcz_lower_func = gkyl_get_c_func(tbl.bcz_lower_func, gkyl_eval_bc)
       end
 
       if tbl.bcx_upper_func then
-         s.bcx_upper_func = gkyl_eval_bc(tbl.bcx_upper_func)
+         s.bcx_upper_func = gkyl_get_c_func(tbl.bcx_upper_func, gkyl_eval_bc)
       end
       if tbl.bcy_upper_func then
-         s.bcy_upper_func = gkyl_eval_bc(tbl.bcy_upper_func)
+         s.bcy_upper_func = gkyl_get_c_func(tbl.bcy_upper_func, gkyl_eval_bc)
       end
       if tbl.bcz_upper_func then
-         s.bcz_upper_func = gkyl_eval_bc(tbl.bcz_upper_func)
+         s.bcz_upper_func = gkyl_get_c_func(tbl.bcz_upper_func, gkyl_eval_bc)
       end
 
       return s
@@ -984,23 +995,23 @@ local field_mt = {
       end
 
       if tbl.bcx_lower_func then
-         f.bcx_lower_func = gkyl_eval_bc(tbl.bcx_lower_func)
+         f.bcx_lower_func = gkyl_get_c_func(tbl.bcx_lower_func, gkyl_eval_bc)
       end
       if tbl.bcy_lower_func then
-         f.bcy_lower_func = gkyl_eval_bc(tbl.bcy_lower_func)
+         f.bcy_lower_func = gkyl_get_c_func(tbl.bcy_lower_func, gkyl_eval_bc)
       end
       if tbl.bcz_lower_func then
-         f.bcz_lower_func = gkyl_eval_bc(tbl.bcz_lower_func)
+         f.bcz_lower_func = gkyl_get_c_func(tbl.bcz_lower_func, gkyl_eval_bc)
       end
 
       if tbl.bcx_upper_func then
-         f.bcx_upper_func = gkyl_eval_bc(tbl.bcx_upper_func)
+         f.bcx_upper_func = gkyl_get_c_func(tbl.bcx_upper_func, gkyl_eval_bc)
       end
       if tbl.bcy_upper_func then
-         f.bcy_upper_func = gkyl_eval_bc(tbl.bcy_upper_func)
+         f.bcy_upper_func = gkyl_get_c_func(tbl.bcy_upper_func, gkyl_eval_bc)
       end
       if tbl.bcz_upper_func then
-         f.bcz_upper_func = gkyl_eval_bc(tbl.bcz_upper_func)
+         f.bcz_upper_func = gkyl_get_c_func(tbl.bcz_upper_func, gkyl_eval_bc)
       end
 
       return f
