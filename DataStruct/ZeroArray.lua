@@ -282,7 +282,7 @@ struct gkyl_array* gkyl_array_copy_range(struct gkyl_array *out,
  * @return out array
  */
 struct gkyl_array* gkyl_array_copy_range_to_range(struct gkyl_array *out,
-  const struct gkyl_array *inp, struct gkyl_range out_range, struct gkyl_range inp_range);
+  const struct gkyl_array *inp, struct gkyl_range *out_range, struct gkyl_range *inp_range);
 
 /**
  * Perform an "reduce" operation of data in the array.
@@ -420,6 +420,9 @@ local array_fn = {
    end,
    setOffsetRange = function (self, val, fld, off, rng)
       ffiC.gkyl_array_set_offset_range(self, val, fld, off, rng)
+   end,
+   copyRangeToRange = function (self, infld, outrng, inrng)
+      ffiC.gkyl_array_copy_range_to_range(self, infld, outrng, inrng)
    end,
    accumulateRange = function (self, val, fld, rng)
       ffiC.gkyl_array_accumulate_range(self, val, fld, rng)

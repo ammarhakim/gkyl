@@ -225,20 +225,42 @@ local function Field_meta_ctor(elct)
       self._localRange  = self._localExtRange:subRange(localRange:lowerAsVec(), localRange:upperAsVec())
       self._globalRange = self._globalExtRange:subRange(globalRange:lowerAsVec(), globalRange:upperAsVec())
 
-      self._skinRgnUpper = RangeVec(self._ndim)
-      self._skinRgnLower = RangeVec(self._ndim)
-      self._ghostRgnUpper = RangeVec(self._ndim)
-      self._ghostRgnLower = RangeVec(self._ndim)
-      self._lowerGhostVec = Lin.IntVec(self._ndim)
-      self._upperGhostVec = Lin.IntVec(self._ndim)
-      local lowerEdge, upperEdge = 0, 1 -- Match gkyl_edge_loc in gkylzero/zero/gkyl_range.h.
+      self._lowerGhostVec, self._upperGhostVec = Lin.IntVec(self._ndim), Lin.IntVec(self._ndim)
       for d=1, self._ndim do
-         self._lowerGhostVec[d] = self._lowerGhost
-         self._upperGhostVec[d] = self._upperGhost
+         self._lowerGhostVec[d], self._upperGhostVec[d] = self._lowerGhost, self._upperGhost
       end
+      local lowerEdge, upperEdge = 0, 1 -- Match gkyl_edge_loc in gkylzero/zero/gkyl_range.h.
+      -- Create local skin/ghost ranges in each direction.
+      self._localGhostRngLo, self._localSkinRngLo = RangeVec(self._ndim), RangeVec(self._ndim)
+      self._localGhostRngUp, self._localSkinRngUp = RangeVec(self._ndim), RangeVec(self._ndim)
       for d=1, self._ndim do
-         ffiC.gkyl_skin_ghost_ranges(self._skinRgnLower[d], self._ghostRgnLower[d], d-1, lowerEdge, self._localExtRange, self._lowerGhostVec:data())
-         ffiC.gkyl_skin_ghost_ranges(self._skinRgnUpper[d], self._ghostRgnUpper[d], d-1, upperEdge, self._localExtRange, self._upperGhostVec:data())
+         ffiC.gkyl_skin_ghost_ranges(self._localSkinRngLo[d], self._localGhostRngLo[d], d-1, lowerEdge, self._localExtRange, self._lowerGhostVec:data())
+         ffiC.gkyl_skin_ghost_ranges(self._localSkinRngUp[d], self._localGhostRngUp[d], d-1, upperEdge, self._localExtRange, self._upperGhostVec:data())
+      end
+
+      -- Create global skin/ghost ranges in each direction.
+      self._globalGhostRngLo, self._globalSkinRngLo = RangeVec(self._ndim), RangeVec(self._ndim)
+      self._globalGhostRngUp, self._globalSkinRngUp = RangeVec(self._ndim), RangeVec(self._ndim)
+      for d=1, self._ndim do
+         ffiC.gkyl_skin_ghost_ranges(self._globalSkinRngLo[d], self._globalGhostRngLo[d], d-1, lowerEdge, self._globalExtRange, self._lowerGhostVec:data())
+         ffiC.gkyl_skin_ghost_ranges(self._globalSkinRngUp[d], self._globalGhostRngUp[d], d-1, upperEdge, self._globalExtRange, self._upperGhostVec:data())
+      end
+
+      -- Create ranges covering the global ghost range owned by this MPI rank.
+      -- Ranks without part of the global ghost range return a range with 0 volume.
+      -- Use: when we want every rank to pass a range to an operation,
+      -- but only want the boundary ranks to actually perform the operation.
+      self._locGloGhostRngInterLo, self._locGloSkinRngInterLo = RangeVec(self._ndim), RangeVec(self._ndim)
+      self._locGloGhostRngInterUp, self._locGloSkinRngInterUp = RangeVec(self._ndim), RangeVec(self._ndim)
+      for d=1, self._ndim do
+         local ghostLo = self._globalGhostRngLo[d]:intersect(self._localGhostRngLo[d])
+         local ghostUp = self._globalGhostRngUp[d]:intersect(self._localGhostRngUp[d])
+         local skinLo  = self._globalSkinRngLo[d]:intersect(self._localSkinRngLo[d])
+         local skinUp  = self._globalSkinRngUp[d]:intersect(self._localSkinRngUp[d])
+         self._locGloGhostRngInterLo[d] = self._localExtRange:subRange(ghostLo:lowerAsVec(),ghostLo:upperAsVec())
+         self._locGloGhostRngInterUp[d] = self._localExtRange:subRange(ghostUp:lowerAsVec(),ghostUp:upperAsVec())
+         self._locGloSkinRngInterLo[d]  = self._localExtRange:subRange(skinLo:lowerAsVec(),skinLo:upperAsVec())
+         self._locGloSkinRngInterUp[d]  = self._localExtRange:subRange(skinUp:lowerAsVec(),skinUp:upperAsVec())
       end
 
       -- All real-cell edges.
@@ -673,6 +695,9 @@ local function Field_meta_ctor(elct)
       copyHostToDeviceAsync = function (self)
 	 self._zero:copyAsync(self._zeroDevice)
       end,
+      copyRangeToRange = function (self, fIn, outRange, inRange)
+         self._zeroForOps:copyRangeToRange(fIn._zeroForOps, outRange, inRange)
+      end,
       deviceDataPointer = function (self)
 	 return self._devAllocData
       end,
@@ -905,6 +930,12 @@ local function Field_meta_ctor(elct)
       upperGhost = function (self)
 	 return self._upperGhost
       end,
+      lowerGhostVec = function (self)
+	 return self._lowerGhostVec
+      end,
+      upperGhostVec = function (self)
+	 return self._upperGhostVec
+      end,
       localRange = function (self)
 	 return self._localRange
       end,
@@ -922,6 +953,42 @@ local function Field_meta_ctor(elct)
       end,
       globalExtRange = function (self) -- includes ghost cells
 	 return self._globalExtRange
+      end,
+      localGhostRangeLower = function (self)
+         return self._localGhostRngLo
+      end,
+      localGhostRangeUpper = function (self)
+         return self._localGhostRngUp
+      end,
+      globalGhostRangeLower = function (self)
+         return self._globalGhostRngLo
+      end,
+      globalGhostRangeUpper = function (self)
+         return self._globalGhostRngUp
+      end,
+      localGlobalGhostRangeIntersectLower = function (self)
+         return self._locGloGhostRngInterLo
+      end,
+      localGlobalGhostRangeIntersectUpper = function (self)
+         return self._locGloGhostRngInterUp
+      end,
+      localSkinRangeLower = function (self)
+         return self._localSkinRngLo
+      end,
+      localSkinRangeUpper = function (self)
+         return self._localSkinRngUp
+      end,
+      globalSkinRangeLower = function (self)
+         return self._globalSkinRngLo
+      end,
+      globalSkinRangeUpper = function (self)
+         return self._globalSkinRngUp
+      end,
+      localGlobalSkinRangeIntersectLower = function (self)
+         return self._locGloSkinRngInterLo
+      end,
+      localGlobalSkinRangeIntersectUpper = function (self)
+         return self._locGloSkinRngInterUp
       end,
       localRangeIter = function (self)
 	 if self._layout == rowMajLayout then
@@ -1245,10 +1312,10 @@ local function Field_meta_ctor(elct)
       end,
       _field_periodic_copy_indir = function (self, dir)
          -- First get region for skin cells for upper ghost region (the lower skin cells).
-         local skinRgnLower = self._skinRgnLower[dir]
-         local skinRgnUpper = self._skinRgnUpper[dir]
-         local ghostRgnLower = self._ghostRgnLower[dir]
-         local ghostRgnUpper = self._ghostRgnUpper[dir]
+         local skinRgnLower = self._localSkinRngLo[dir]
+         local skinRgnUpper = self._localSkinRngUp[dir]
+         local ghostRgnLower = self._localGhostRngLo[dir]
+         local ghostRgnUpper = self._localGhostRngUp[dir]
 
          local periodicBuffUpper = self._upperPeriodicBuff[dir]
          -- Copy skin cells into temporary buffer.

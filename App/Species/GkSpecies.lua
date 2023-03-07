@@ -269,6 +269,12 @@ function GkSpecies:createSolver(field, externalField)
       }
    }
 
+   -- Boundary flux updater.
+   self.fluxSlvr = Updater.BoundaryFluxCalc {
+      onGrid = self.grid,  equation    = self.solver:getEquation(),
+      cdim   = self.cdim,  equation_id = "gyrokinetic",
+   }
+
    -- Select the function that returns the mass density factor for the polarization (Poisson equation).
    -- Allow user to specify polarization density factor (n in polarization density).
    -- If the polarization is linearized, it should be specified in the input file (as a number, file, or function).
@@ -443,7 +449,9 @@ function GkSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
 
    self.collisionlessAdvance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut, self.cflRateByCell})
 
-   for _, bc in pairs(self.nonPeriodicBCs) do
+   self.fluxSlvr:advance(tCurr, {fIn}, {fRhsOut})
+
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
       bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)   -- Save boundary fluxes.
    end
    emIn[1]:useBoundaryFlux(tCurr, outIdx)  -- Some field objects need to use the boundary fluxes right away.

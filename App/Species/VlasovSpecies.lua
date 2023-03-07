@@ -267,6 +267,12 @@ function VlasovSpecies:createSolver(field, externalField)
       },
    }
 
+   -- Boundary flux updater.
+   self.fluxSlvr = Updater.BoundaryFluxCalc {
+      onGrid = self.grid,  equation    = self.solver:getEquation(), 
+      cdim   = self.cdim,  equation_id = "vlasov",
+   }
+
    -- Create species source solvers.
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
 
@@ -343,6 +349,9 @@ function VlasovSpecies:initCrossSpeciesCoupling(population)
 
    -- Initialize the BC cross-coupling interactions.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:initCrossSpeciesCoupling(species) end
+
+   -- Initialize the source cross-coupling interactions.
+   for _, src in lume.orderedIter(self.sources) do src:initCrossSpeciesCoupling(population) end
 end
 
 function VlasovSpecies:setActiveRKidx(rkIdx) self.activeRKidx = rkIdx end
@@ -373,9 +382,11 @@ function VlasovSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
       c:advance(tCurr, fIn, population, {fRhsOut, self.cflRateByCell})   -- 'population' needed for cross-species collisions.
    end
 
+   self.fluxSlvr:advance(tCurr, {fIn}, {fRhsOut})
+
    for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, population:getSpecies(), fRhsOut) end
    
-   for _, bc in pairs(self.nonPeriodicBCs) do
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
       bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)   -- Save boundary fluxes.
    end
 
@@ -395,6 +406,8 @@ function VlasovSpecies:advanceCrossSpeciesCoupling(tCurr, population, emIn, inId
    end
 
    for _, bc in pairs(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
+
+   for _, src in lume.orderedIter(self.sources) do src:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
 end
 
 function VlasovSpecies:createDiagnostics(field)

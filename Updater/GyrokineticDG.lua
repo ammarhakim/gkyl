@@ -145,4 +145,7 @@ function GyrokineticDG:setDtAndCflRate(dt, cflRateByCell)
    end
 end
 
+-- Fetch equation updater.
+function GyrokineticDG:getEquation() return self._zero end
+
 return GyrokineticDG

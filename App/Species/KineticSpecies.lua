@@ -354,6 +354,14 @@ function KineticSpecies:allocVectorMoment(dim)
                      mass      = self.mass,}
    return self:allocCartField(self.confGrid,dim*self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
+function KineticSpecies:allocIntMoment(comp)
+   local metaData = {charge = self.charge,
+                     mass   = self.mass,}
+   local ncomp = comp or 1
+   local f = DataStruct.DynVector {numComponents = ncomp,     writeRank = 0,
+                                   metaData      = metaData,  comm      = self.confGrid:commSet().comm,}
+   return f
+end
 
 function KineticSpecies:createSolver(field, externalField)
    -- Set up weak multiplication and division operators.
@@ -478,6 +486,9 @@ function KineticSpecies:createCouplingSolver(population, field, externalField)
    -- Create cross collision solvers.
    for _, c in lume.orderedIter(self.collisions) do c:createCouplingSolver(population, field, externalField) end
 
+   -- Create source solvers.
+   for _, src in lume.orderedIter(self.sources) do src:createCouplingSolver(population, field, externalField) end
+
    -- Create BC solvers.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createCouplingSolver(species, field, externalField) end
 end
@@ -553,12 +564,6 @@ function KineticSpecies:initDist(extField)
 	 self.fBackground:sync(syncPeriodicDirs)
 	 backgroundCnt = backgroundCnt + 1
       end
-      -- if pr.isReservoir then
-      --    if not self.fReservoir then 
-      --       self.fReservoir = self:allocDistf()
-      --    end
-      --    self.fReservoir:accumulate(1.0, self.distf[2])
-      -- end
    end
 
    if scaleInitWithSourcePower then 
@@ -833,7 +838,7 @@ function KineticSpecies:readRestart(field, externalField)
       local _, dfr = dOb:readRestart()
       diagIoFrame_new = diagIoFrame_new or dfr
       if dfr then
-         assert(diagIoFrame_new==dfr, "KineticSpecies:readRestart expected diagnostics from previous run to have the same last frame.") 
+         assert(diagIoFrame_new==dfr, string.format("KineticSpecies:readRestart expected diagnostics from previous run to have the same last frame. Instead got %d and %d", diagIoFrame_new, dfr))
       end
    end
    -- The 'or self.distIoFrame' below is for sims without diagnostics, or when the first
@@ -841,14 +846,6 @@ function KineticSpecies:readRestart(field, externalField)
    -- while the first one didn't) requires commenting out the loop above (a hack, beware).
    self.diagIoFrame = diagIoFrame_new or self.distIoFrame
    
-   -- The following two should be moved elsehwere (MF).
-   -- if self.calcReactRate then
-   --    self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
-   -- end
-   -- if self.calcIntSrcIz then
-   --    self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
-   -- end
-
    -- Iterate triggers.
    self.distIoTrigger(tm)
    self.diagIoTrigger(tm)

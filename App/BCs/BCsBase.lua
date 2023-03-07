@@ -11,6 +11,7 @@ local Mpi        = require "Comm.Mpi"
 local CartDecomp = require "Lib.CartDecomp"
 local Grid       = require "Grid"
 local Range      = require "Lib.Range"
+local Lin        = require "Lib.Linalg"
 
 -- Empty shell source base class.
 local BCsBase = Proto()
@@ -38,14 +39,17 @@ end
 function BCsBase:initCrossSpeciesCoupling(species) end
 function BCsBase:createSolver(thisSpecies, extField) end
 function BCsBase:createCouplingSolver(species, field, externalField) end
-function BCsBase:createBoundaryGrid()
+function BCsBase:createBoundaryGrid(ghostRange, ghostVec)
    -- Create a ghost boundary grid with only one cell in the direction of the BC.
    local reducedLower, reducedUpper, reducedNumCells, reducedCuts = {}, {}, {}, {}
+   local reducedLowerRng, reducedUpperRng = {}, {}
    for d = 1, self.grid:ndim() do
       if d==self.bcDir then
-         table.insert(reducedLower, -self.grid:dx(d)/2.)
-         table.insert(reducedUpper,  self.grid:dx(d)/2.)
-         table.insert(reducedNumCells, 1)
+         table.insert(reducedLower, self.bcEdge=="lower" and self.grid:lower(d)-ghostVec[d]*self.grid:dx(d)
+                                                          or self.grid:upper(d))
+         table.insert(reducedUpper, self.bcEdge=="lower" and self.grid:lower(d)
+                                                          or self.grid:upper(d)+ghostVec[d]*self.grid:dx(d))
+         table.insert(reducedNumCells, ghostVec[d])
          table.insert(reducedCuts, 1)
       else
          table.insert(reducedLower,    self.grid:lower(d))
@@ -53,49 +57,55 @@ function BCsBase:createBoundaryGrid()
          table.insert(reducedNumCells, self.grid:numCells(d))
          table.insert(reducedCuts,     self.grid:cuts(d))
       end
+      table.insert(reducedLowerRng, ghostRange:lower(d))
+      table.insert(reducedUpperRng, ghostRange:upper(d))
    end
-   local commSet  = self.grid:commSet()
-   local worldComm, nodeComm = commSet.comm, commSet.nodeComm
-   local nodeRank = Mpi.Comm_rank(nodeComm)
-   local dirRank  = nodeRank
-   local cuts     = {}
+   local worldComm = self.grid:commSet().comm
+   local worldRank = Mpi.Comm_rank(worldComm)
+   local dirRank   = worldRank
+   local cuts      = {}
    for d=1,3 do cuts[d] = self.grid:cuts(d) or 1 end
-   local writeRank = -1
+   local writeRank = Mpi.PROC_NULL
    if self.bcDir == 1 then
-      dirRank = nodeRank % (cuts[1]*cuts[2]) % cuts[1]
+      dirRank = worldRank % (cuts[1]*cuts[2]) % cuts[1]
    elseif self.bcDir == 2 then
-      dirRank = math.floor(nodeRank/cuts[1]) % cuts[2]
+      dirRank = math.floor(worldRank/cuts[1]) % cuts[2]
    elseif self.bcDir == 3 then
-      dirRank = math.floor(nodeRank/cuts[1]/cuts[2])
+      dirRank = math.floor(worldRank/cuts[1]/cuts[2])
    end
-   self._splitComm = Mpi.Comm_split(worldComm, dirRank, nodeRank)
+   self._splitComm = Mpi.Comm_split(worldComm, dirRank, worldRank)
    -- Set up which ranks to write from.
-   if self.bcEdge == "lower" and dirRank == 0 then
-      writeRank = nodeRank
-   elseif self.bcEdge == "upper" and dirRank == self.grid:cuts(self.bcDir)-1 then
-      writeRank = nodeRank
+   if (self.bcEdge == "lower" and dirRank == 0) or
+      (self.bcEdge == "upper" and dirRank == self.grid:cuts(self.bcDir)-1) then
+      local worldGrp, splitGrp = Mpi.Comm_group(worldComm), Mpi.Comm_group(self._splitComm)
+      local worldRanks = Lin.IntVec(1);  worldRanks[1] = worldRank
+      writeRank = Mpi.Group_translate_ranks(worldGrp, worldRanks, splitGrp)[1]
    end
    self.writeRank = writeRank
    local reducedDecomp = CartDecomp.CartProd {
-      comm      = self._splitComm,  cuts      = reducedCuts,
+      comm      = self._splitComm,  cuts = reducedCuts,
       writeRank = writeRank,
    }
    self.boundaryGrid = Grid.RectCart {
-      lower = reducedLower,  cells         = reducedNumCells,
-      upper = reducedUpper,  decomposition = reducedDecomp,
+      lower      = reducedLower,     cells         = reducedNumCells,
+      upper      = reducedUpper,     decomposition = reducedDecomp,
+      rangeLower = reducedLowerRng,  rangeUpper    = reducedUpperRng, 
    }
 end
-function BCsBase:createConfBoundaryGrid()
--- Create reduced boundary config-space grid with 1 cell in dimension of self._dir.
+function BCsBase:createConfBoundaryGrid(ghostRange, ghostVec)
+   -- Create reduced boundary config-space grid with 1 cell in dimension of self._dir.
    if self.cdim == self.grid:ndim() then
       self.confBoundaryGrid = self.boundaryGrid
    else
       local reducedLower, reducedUpper, reducedNumCells, reducedCuts = {}, {}, {}, {}
+      local reducedLowerRng, reducedUpperRng = {}, {}
       for d = 1, self.cdim do
          if d==self.bcDir then
-            table.insert(reducedLower, -self.grid:dx(d)/2)
-            table.insert(reducedUpper,  self.grid:dx(d)/2)
-            table.insert(reducedNumCells, 1)
+            table.insert(reducedLower, self.bcEdge=="lower" and self.grid:lower(d)-ghostVec[d]*self.grid:dx(d)
+                                                             or self.grid:upper(d))
+            table.insert(reducedUpper, self.bcEdge=="lower" and self.grid:lower(d)
+                                                             or self.grid:upper(d)+ghostVec[d]*self.grid:dx(d))
+            table.insert(reducedNumCells, ghostVec[d])
             table.insert(reducedCuts, 1)
          else
             table.insert(reducedLower,    self.grid:lower(d))
@@ -103,14 +113,17 @@ function BCsBase:createConfBoundaryGrid()
             table.insert(reducedNumCells, self.grid:numCells(d))
             table.insert(reducedCuts,     self.grid:cuts(d))
          end
+         table.insert(reducedLowerRng, ghostRange:lower(d))
+         table.insert(reducedUpperRng, ghostRange:upper(d))
       end
       local reducedDecomp = CartDecomp.CartProd {
-         comm      = self._splitComm,  cuts      = reducedCuts,
+         comm      = self._splitComm,  cuts = reducedCuts,
          writeRank = self.writeRank,
       }
       self.confBoundaryGrid = Grid.RectCart {
-         lower = reducedLower,  cells         = reducedNumCells,
-         upper = reducedUpper,  decomposition = reducedDecomp,
+         lower      = reducedLower,     cells         = reducedNumCells,
+         upper      = reducedUpper,     decomposition = reducedDecomp,
+         rangeLower = reducedLowerRng,  rangeUpper    = reducedUpperRng, 
       }
    end
 end
@@ -139,36 +152,12 @@ function BCsBase:getGhostRange(global, globalExt)
 end
 function BCsBase:evalOnBoundary(inFld)
    -- Evaluate inFld on the boundary grid and copy it to the boundary field buffer.
-   local inFldPtr  = inFld:get(1)
-   local inFldIdxr = inFld:genIndexer()
-
-   for idxIn in self.ghostRange:rowMajorIter() do
-      idxIn:copyInto(self.idxOut)
-      self.idxOut[self.bcDir] = 1
-
-      inFld:fill(inFldIdxr(idxIn), inFldPtr)
-      self.boundaryField:fill(self.boundaryIdxr(self.idxOut), self.boundaryFieldPtr)
-
-      for c = 1, inFld:numComponents() do self.boundaryFieldPtr[c] = inFldPtr[c] end
-   end
-
+   self.boundaryField:copyRangeToRange(inFld, self.boundaryField:localRange(), self.myGlobalGhostRange)
    return self.boundaryField
 end
 function BCsBase:evalOnConfBoundary(inFld)
    -- For kinetic species this method evaluates inFld on the confBoundary grid.
-   local inFldPtr  = inFld:get(1)
-   local inFldIdxr = inFld:genIndexer()
-
-   for idxIn in self.confGhostRange:rowMajorIter() do
-      idxIn:copyInto(self.idxOut)
-      self.idxOut[self.bcDir] = 1
-
-      inFld:fill(inFldIdxr(idxIn), inFldPtr)
-      self.confBoundaryField:fill(self.confBoundaryIdxr(self.idxOut), self.confBoundaryFieldPtr)
-
-      for c = 1, inFld:numComponents() do self.confBoundaryFieldPtr[c] = inFldPtr[c] end
-   end
-
+   self.confBoundaryField:copyRangeToRange(inFld, self.confBoundaryField:localRange(), self.myGlobalConfGhostRange)
    return self.confBoundaryField
 end
 

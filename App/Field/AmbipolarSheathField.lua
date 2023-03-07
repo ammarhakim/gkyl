@@ -51,18 +51,12 @@ function AmbipolarSheathField:fullInit(appTbl)
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 
    -- For storing integrated energies.
-   self.phiSq = DataStruct.DynVector { numComponents = 1 }
-
-   -- Get boundary conditions.
-   local ndim = #appTbl.lower
-   if appTbl.periodicDirs then self.periodicDirs = appTbl.periodicDirs else self.periodicDirs = {} end
+   self.intPhiSq = DataStruct.DynVector { numComponents = 1 }
 
    self.adiabatic = false  -- Electrons must be adiabatic. We check this later.
    self.discontinuousPhi = xsys.pickBool(tbl.discontinuousPhi, false)
 
    self.bcTime = 0.0 -- Timer for BCs.
-
-   self._first = true
 
    self.timers = {advTime={0.,0.,0.}}
 end
@@ -70,7 +64,7 @@ end
 function AmbipolarSheathField:hasEB() return true, false end
 function AmbipolarSheathField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
 
-local function createField(grid, basis, ghostCells, vComp, periodicSync)
+local function createField(grid, basis, ghostCells, vComp, periodicSync, useDevice)
    vComp = vComp or 1
    local fld = DataStruct.Field {
       onGrid           = grid,
@@ -79,6 +73,7 @@ local function createField(grid, basis, ghostCells, vComp, periodicSync)
       metaData         = {polyOrder = basis:polyOrder(),
                           basisType = basis:id()},
       syncPeriodicDirs = periodicSync,
+      useDevice        = useDevice,
    }
    fld:clear(0.0)
    return fld
@@ -88,6 +83,8 @@ function AmbipolarSheathField:alloc(nRkDup)
    self.phi    = createField(self.grid,self.basis,{1,1})
    self.phiAux = createField(self.grid,self.basis,{1,1})
 
+   self.zeroField = createField(self.grid,self.basis,{1,1})
+
    -- Allocate fields needed in RK update.
    -- nField is related to number of RK stages.
    self.potentials = {}
@@ -95,14 +92,16 @@ function AmbipolarSheathField:alloc(nRkDup)
       self.potentials[i] = {}
       self.potentials[i].phi    = self.phi
       self.potentials[i].phiAux = self.phiAux
+      self.potentials[i].apar    = self.zeroField
+      self.potentials[i].dApardt = self.zeroField
    end
 end
 
 -- Solve for initial fields self-consistently
 -- from initial distribution function.
-function AmbipolarSheathField:initField(species)
+function AmbipolarSheathField:initField(population)
    -- Solve for initial phi.
-   self:advance(0.0, species, 1, 1)
+   self:advance(0.0, population, 1, 1)
 
    -- Apply BCs and update ghosts.
    self:applyBc(0, self.potentials[1])
@@ -114,8 +113,10 @@ function AmbipolarSheathField:rkStepperFields() return self.potentials end
 function AmbipolarSheathField:copyRk(outIdx, aIdx) end
 function AmbipolarSheathField:combineRk(outIdx, a, aIdx, ...) end
 
-function AmbipolarSheathField:createSolver(species, externalField)
+function AmbipolarSheathField:createSolver(population, externalField)
    self.isElliptic = true   -- Needed so field is calculated self-consistently at end of full RK timestep.
+   
+   local species = population:getSpecies()
 
    -- Get adiabatic species info.
    for nm, s in lume.orderedIter(species) do
@@ -125,22 +126,6 @@ function AmbipolarSheathField:createSolver(species, externalField)
       if s.charge > 0. then self.ionName = nm else self.elcName = nm end
    end
    assert(self.adiabatic and (self.adiabSpec.charge<0.), "AmbipolarSheathField: currently only available for the adiabatic electron case.")
-
-   local function bcOpen(dir, tm, idxIn, fIn, fOut) self.basis:flipSign(dir, fIn:data(), fOut:data()) end
-   local function makeBcUpdater(dir, edge, bcList)
-      return Updater.Bc{onGrid             = self.grid,  dir  = dir,
-                        boundaryConditions = bcList,     edge = edge,}
-   end
-
-   self.boundaryConditions = {}   -- List of BCs to apply.
-   -- For non-periodic dirs, use bcOpen to make sure values on edge of ghost cells match
-   -- values on edge of skin cells, so that field is continuous across skin-ghost boundary.
-   for dir = 1, self.ndim do
-      if not lume.any(self.periodicDirs, function(t) return t==dir end) then 
-         table.insert(self.boundaryConditions, makeBcUpdater(dir, "lower", { bcOpen }))
-         table.insert(self.boundaryConditions, makeBcUpdater(dir, "upper", { bcOpen }))
-      end
-   end
 
    local ndim = self.grid:ndim()
    local ionSpec = species[self.ionName]
@@ -164,42 +149,21 @@ function AmbipolarSheathField:createSolver(species, externalField)
    end
 
    self.phiSlvr = Updater.ASheathPotential {
-      onGrid         = self.grid,
-      basis          = self.basis,
+      onGrid         = self.grid,  basis = self.basis,
       electronMass   = species[self.elcName]:getMass(),
       electronCharge = species[self.elcName]:getCharge(),
       electronTemp   = species[self.elcName]:temp(),
       boundaryGrids  = {lower=self.ionBC["lower"].confBoundaryGrid,
                         upper=self.ionBC["upper"].confBoundaryGrid},
    }
-   self.phiZSmoother = Updater.FemParPoisson {
-      onGrid = self.grid,   bcLower = {{T="N",V=0.0}},
-      basis  = self.basis,  bcUpper = {{T="N",V=0.0}},
-      smooth = true,
+   self.phiZSmoother = Updater.FemParproj {
+      onGrid = self.grid,  basis = self.basis, 
+      periodicParallelDir = false,
    }
-
-   -- Set up constant dummy field.
-   self.unitFld = createField(self.grid,self.basis,{1,1})
-   local initUnit = Updater.ProjectOnBasis {
-      onGrid = self.grid,   evaluate = function (t,xn) return 1.0 end,
-      basis  = self.basis,  onGhosts = true,
-   }
-   initUnit:advance(0.,{},{self.unitFld})
 
    -- We will need the reciprocal of the conf-space Jacobian (1/J) later.
-   if externalField.geo then
-      if externalField.geo.name=="SimpleHelical" then
-         self.jacobGeoInv = self.unitFld
-      elseif externalField.geo.name=="GenGeo" then
-         self.jacobGeoInv = externalField.geo.jacobGeoInv
-      end
-   else
-      self.jacobGeoInv = self.unitFld
-   end
+   self.jacobGeoInv = externalField.geo.jacobGeoInv
 
-end
-
-function AmbipolarSheathField:createDiagnostics()
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
       elemType   = self.potentials[1].phi:elemType(),
@@ -207,24 +171,27 @@ function AmbipolarSheathField:createDiagnostics()
       writeGhost = self.writeGhost,
       metaData   = {polyOrder = self.basis:polyOrder(),
                     basisType = self.basis:id(),},
+      writeRankInComm = {0, population:getComm_host(),}
    }
+end
+
+function AmbipolarSheathField:createDiagnostics()
    -- Updaters for computing integrated quantities.
    self.intSqCalc = Updater.CartFieldIntegratedQuantCalc {
-      onGrid   = self.grid,
-      basis    = self.basis,
-      quantity = "V2"
+      onGrid = self.grid,   quantity = "V2",
+      basis  = self.basis,
    }
 end
 
 function AmbipolarSheathField:write(tm, force)
    if self.calcIntFieldEnergyTrigger(tm) then
       -- Compute quantities integrated over domain.
-      self.intSqCalc:advance(tm, { self.potentials[1].phi }, { self.phiSq })
+      self.intSqCalc:advance(tm, { self.potentials[1].phi }, { self.intPhiSq })
    end
 
    if self.ioTrigger(tm) or force then
       self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
-      self.phiSq:write(string.format("phiSq.bp"), tm, self.ioFrame)
+      self.intPhiSq:write(string.format("intPhiSq.bp"), tm, self.ioFrame)
  
       self.ioFrame = self.ioFrame+1
    end
@@ -240,7 +207,6 @@ function AmbipolarSheathField:writeRestart(tm)
    end
 
    -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
-   self.phiSq:write("phiSq_restart.bp", tm, self.dynVecRestartFrame, false, false)
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
@@ -248,7 +214,6 @@ function AmbipolarSheathField:readRestart()
    -- This read of restart file of phi is only to get frame numbering correct.
    -- The forward Euler recomputes the potential before updating the hyperbolic part.
    local tm, fr = self.fieldIo:read(self.potentials[1].phi, "phi_restart.bp")
-   self.phiSq:read("phiSq_restart.bp", tm)
 
    self:applyBc(0, self.potentials[1])
 
@@ -263,19 +228,12 @@ function AmbipolarSheathField:readRestart()
 end
 
 -- Solve for electrostatic potential phi.
-function AmbipolarSheathField:advance(tCurr, species, inIdx, outIdx)
+function AmbipolarSheathField:advance(tCurr, population, inIdx, outIdx)
    local tmStart = Time.clock()
 
-   --local potCurr = self:rkStepperFields()[inIdx]
-   --local potRhs  = self:rkStepperFields()[outIdx]
-
-   ---- Compute the flux of outgoing ions (need to do this in :useBoundaryFlux).
-   --for _, bc in lume.orderedIter(self.ionBC) do
-   --   bc.numDensityCalc:advance(tCurr, {bc:getBoundaryFluxFields()[inIdx]}, {self.bcIonM0flux[bc:getEdge()]})
-   --end
-
    local potCurr = self:rkStepperFields()[inIdx]
-   self.phiSlvr:advance(tCurr, {self.bcIonM0flux, species[self.ionName]:getNumDensity(), self.jacobGeoInv}, {potCurr.phiAux})
+   self.phiSlvr:advance(tCurr, {self.bcIonM0flux, population:getSpecies()[self.ionName]:getNumDensity(), self.jacobGeoInv},
+                        {potCurr.phiAux})
    -- Smooth phi in z to ensure continuity in all directions.
    if self.ndim ~= 2 and not self.discontinuousPhi then
       self.phiZSmoother:advance(tCurr, {potCurr.phiAux}, {potCurr.phi})
@@ -285,7 +243,6 @@ function AmbipolarSheathField:advance(tCurr, species, inIdx, outIdx)
 
    -- Apply BCs. Make sure phi is continuous across skin-ghost boundary.
    local tmStart = Time.clock()
-   for _, bc in ipairs(self.boundaryConditions) do bc:advance(tCurr, {}, {potCurr.phi}) end
    potCurr.phi:sync(true)
    self.bcTime = self.bcTime + (Time.clock()-tmStart)
 
@@ -304,7 +261,6 @@ end
 -- Also NOTE: this method does not usually get called (because it is not called in applyBcIdx).
 function AmbipolarSheathField:applyBc(tCurr, potIn)
    local tmStart = Time.clock()
-   for _, bc in ipairs(self.boundaryConditions) do bc:advance(tCurr, {}, {potIn.phi}) end
    potIn.phi:sync(true)
    self.bcTime = self.bcTime + (Time.clock()-tmStart)
 end

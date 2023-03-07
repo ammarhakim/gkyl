@@ -119,7 +119,9 @@ function RectCart:init(tbl)
 
    -- Compute global range.
    local l, u = {}, {}
-   for d = 1, #cells do l[d], u[d] = 1, cells[d] end
+   for d = 1, #cells do
+      l[d], u[d] = tbl.rangeLower and tbl.rangeLower[d] or 1, tbl.rangeUpper and tbl.rangeUpper[d] or cells[d]
+   end
    self._globalRange = Range.Range(l, u)   
    self._localRange  = Range.Range(l, u)
    self._block       = 1   -- Block number for use in parallel communications.

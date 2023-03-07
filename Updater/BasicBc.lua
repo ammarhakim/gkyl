@@ -94,7 +94,7 @@ function BasicBc:init(tbl)
 
    local edge          = self._edge == 'lower' and 0 or 1 -- Match gkyl_edge_loc in gkylzero/zero/gkyl_range.h.
    local localExtRange = onField:localExtRange()
-   local numGhostVec   = self._edge == 'lower' and onField._lowerGhostVec or onField._upperGhostVec
+   local numGhostVec   = self._edge == 'lower' and onField:lowerGhostVec() or onField:upperGhostVec()
 
    local bctype -- Match gkyl_bc_basic_type in gkylzero/zero/gkyl_bc_basic.h
        if self._bcType == "copy"        then bctype = 0

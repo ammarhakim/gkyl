@@ -113,6 +113,7 @@ function GkSource:createSolver(mySpecies, extField)
 
    -- Need to define methods to allocate fields (used by diagnostics).
    self.allocMoment = function() return mySpecies:allocMoment() end
+   self.allocIntMoment = function(self, comp) return mySpecies:allocIntMoment() end
 end
 
 function GkSource:createDiagnostics(mySpecies, field)
