@@ -110,7 +110,9 @@ end
 
 function GkSpecies:createSolver(field, externalField)
    -- Run the KineticSpecies 'createSolver()' to initialize the collisions solver.
-   GkSpecies.super.createSolver(self, field, externalField)
+   --Akash Move line below to after jacobPhaseFunc is defined. This is because bc:createSolver which occurs within GkSpecies.super.createSolver()
+   -- may need jacobPhaseFunc to be defined already. (For canonical Maxwellians in the ghost cells this is true)
+   --GkSpecies.super.createSolver(self, field, externalField)
 
    local hasE, hasB       = field:hasEB()
    local extHasE, extHasB = externalField:hasEB()
@@ -135,6 +137,8 @@ function GkSpecies:createSolver(field, externalField)
       self.jacobGeo    = externalField.geo.jacobGeo
       self.jacobGeoInv = externalField.geo.jacobGeoInv
    end
+   --Akash Moved it down here
+   GkSpecies.super.createSolver(self, field, externalField)
 
    if self.gyavg then
       -- Set up geo fields needed for gyroaveraging.
