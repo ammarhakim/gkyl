@@ -79,7 +79,6 @@ function GkField:fullInit(appTbl)
    self.ioTrigger = LinearTrigger(0, appTbl.tEnd, nFrame)
 
    self.ioFrame = 0 -- Frame number for IO.
-   self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
    
    -- Write ghost cells on boundaries of global domain (for BCs).
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
@@ -646,16 +645,14 @@ end
 function GkField:writeRestart(tm)
    -- (the final "false" prevents writing of ghost cells).
    self.fieldIo:write(self.potentials[1].phi, "phi_restart.bp", tm, self.ioFrame, false)
-   self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeight_restart.bp", tm, self.ioFrame, false)
-   self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_restart.bp", tm, self.ioFrame, false)
+   if not self.linearizedPolarization then
+      self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeight_restart.bp", tm, self.ioFrame, false)
+      self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_restart.bp", tm, self.ioFrame, false)
+   end
+
    if self.isElectromagnetic then
       self.fieldIo:write(self.potentials[1].apar, "apar_restart.bp", tm, self.ioFrame, false)
    end
-
-   -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
-   self.phiSq:write("phiSq_restart.bp", tm, self.dynVecRestartFrame, false, false)
-   self.dynVecRestartFrame = self.dynVecRestartFrame + 1
-
 end
 
 function GkField:readRestart()
@@ -663,12 +660,13 @@ function GkField:readRestart()
    -- numbering correct. The forward Euler recomputes the potential
    -- before updating the hyperbolic part.
    local tm, fr = self.fieldIo:read(self.potentials[1].phi, "phi_restart.bp")
-   self.phiSq:read("phiSq_restart.bp", tm)
 
-   self.fieldIo:read(self.laplacianWeight, "laplacianWeight_restart.bp")
-   self.fieldIo:read(self.modifierWeight, "modifierWeight_restart.bp")
-   self.phiSlvr:setLaplacianWeight(self.laplacianWeight)
-   if self.adiabatic or self.ndim == 1 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
+   if not self.linearizedPolarization then
+      self.fieldIo:read(self.laplacianWeight, "laplacianWeight_restart.bp")
+      self.fieldIo:read(self.modifierWeight, "modifierWeight_restart.bp")
+      self.phiSlvr:setLaplacianWeight(self.laplacianWeight)
+      if self.adiabatic or self.ndim == 1 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
+   end
 
    if self.isElectromagnetic then
       self.fieldIo:read(self.potentials[1].apar, "apar_restart.bp")

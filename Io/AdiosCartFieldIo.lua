@@ -130,7 +130,8 @@ end
 --   tmStamp:  time-stamp
 --   frNum:    frame number
 --   writeGhost: Flag to indicate if we should write ghost-cells on boundaries of global domain
-function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
+--   diagIoFrameCurr: current diagnostics IO frame (optional); could be different from frNum.
+function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost, diagIoFrameCurr)
    local _writeGhost = writeGhost ~= nil and writeGhost or self._writeGhost
 
    -- Identify if fieldsIn is a CartField using the self._ndim variable (MF: there ought to be a better way).
@@ -232,6 +233,10 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
          self.grpIds[grpNm], "frame", "", Adios.integer, "", "", "")
       Adios.define_var(
          self.grpIds[grpNm], "time", "", Adios.double, "", "", "")
+      if diagIoFrameCurr then
+         Adios.define_var(
+            self.grpIds[grpNm], "diagIoFrame", "", Adios.integer, "", "", "")
+      end
       local _adLocalSz, _adGlobalSz, _adOffset = {}, {}, {}
       -- Get local (to this MPI rank) and global shape of dataset. Offset is 0 for now.
       for d = 1, ndim do
@@ -276,6 +281,11 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
    local frNumBuff = new("int[1]"); frNumBuff[0] = frNum
    Adios.write(fd, "frame", frNumBuff)
 
+   if diagIoFrameCurr then
+      local diagIoFrameBuff = new("int[1]"); diagIoFrameBuff[0] = diagIoFrameCurr
+      Adios.write(fd, "diagIoFrame", diagIoFrameBuff)
+   end
+
    for fldNm, fld in pairs(fieldsTbl) do
       -- Copy field into output buffer (this copy is needed as
       -- field also contains ghost-cell data, and, in addition,
@@ -293,7 +303,9 @@ end
 --              be read in. Fields must live on the same grid.
 --   fName:     file name.
 --   readGhost:  Flag to indicate if we should read skin-cells on boundaries of global domain.
-function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, frame-number
+--   metaDataNew: new meta data to read.
+--   readDiagIoFrame: current diagnostics IO frame (optional); could be different from frNum.
+function AdiosCartFieldIo:read(fieldsOut, fName, readGhost, readDiagIoFrame) --> time-stamp, frame-number
    local _readGhost = readGhost ~= nil and readGhost or self._writeGhost
 
    -- Identify if fieldsIn is a CartField using the self._ndim variable (MF: there ought to be a better way).
@@ -316,8 +328,9 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
    -- pointer or an object)
 
    -- Create time stamp and frame number arrays outside of if statement.
-   local tmStampBuff = new("double[1]")
-   local frNumBuff   = new("int[1]")
+   local tmStampBuff     = new("double[1]")
+   local frNumBuff       = new("int[1]")
+   local diagIoFrameBuff = new("int[1]")
 
    -- Only read in data if communicator is valid.
    if Mpi.Is_comm_valid(comm) then
@@ -390,6 +403,10 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
             self.grpIds[grpNm], "frame", "", Adios.integer, "", "", "")
          Adios.define_var(
             self.grpIds[grpNm], "time", "", Adios.double, "", "", "")
+         if readDiagIoFrame then
+            Adios.define_var(
+               self.grpIds[grpNm], "diagIoFrame", "", Adios.integer, "", "", "")
+         end
          local _adLocalSz, _adGlobalSz, _adOffset = {}, {}, {}
          -- Get local (to this MPI rank) and global shape of dataset. Offset is 0 for now.
          for d = 1, ndim do
@@ -422,6 +439,9 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
 
       Adios.schedule_read(fd, Adios.selBoundingBox, "time", 0, 1, tmStampBuff)
       Adios.schedule_read(fd, Adios.selBoundingBox, "frame", 0, 1, frNumBuff)
+      if readDiagIoFrame then
+         Adios.schedule_read(fd, Adios.selBoundingBox, "diagIoFrame", 0, 1, diagIoFrameBuff)
+      end
 
       -- ADIOS expects input to be const uint64_t* objects, hence vector types below)
       local start, count = Lin.UInt64Vec(ndim+1), Lin.UInt64Vec(ndim+1)
@@ -449,10 +469,7 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
          fld:_copy_to_field_region(localRange, self._outBuff[fldNm])
       end
    end
-   -- If running with shared memory, need to broadcast time stamp and frame number.
-   Mpi.Bcast(tmStampBuff, 1, Mpi.DOUBLE, 0, shmComm)
-   Mpi.Bcast(frNumBuff, 1, Mpi.INT, 0, shmComm)
-   return tmStampBuff[0], frNumBuff[0]
+   return tmStampBuff[0], frNumBuff[0], diagIoFrameBuff[0]
 end
 
 return AdiosCartFieldIo
