@@ -27,6 +27,7 @@ local Time             = require "Lib.Time"
 local Updater          = require "Updater"
 local ffi              = require "ffi"
 local lume             = require "Lib.lume"
+local lfs              = require "lfs"
 
 -- Function to create basis functions.
 local function createBasis(nm, ndim, polyOrder)
@@ -71,7 +72,7 @@ function KineticSpecies:fullInit(appTbl)
    -- WE DO NOT ALLOW DECOMPOSITION IN VELOCITY SPACE
    for d = 1, self.vdim do self.decompCuts[d] = 1 end
 
-   local nFrame = tbl.nDiagnosticFrame and tbl.nDiagnosticFrame or appTbl.nFrame
+   local nFrame = tbl.nDiagnosticFrame or appTbl.nFrame
    -- Create triggers to write distribution functions and moments.
    if tbl.nDistFuncFrame then
       self.distIoTrigger = LinearTrigger(0, appTbl.tEnd, tbl.nDistFuncFrame)
@@ -233,6 +234,7 @@ function KineticSpecies:fullInit(appTbl)
    self.ioMethod           = "MPI"
    self.distIoFrame        = -1 -- Frame number for distribution function.
    self.diagIoFrame        = -1 -- Frame number for diagnostics.
+   self.restartFileTag     = 0  -- Tag appended at the end of restart files. Toggles between 0 and 1.
    self.cfl    =  0.1
    self.nGhost = 1   -- Default is 1 ghost-cell in each direction.
 
@@ -877,16 +879,50 @@ function KineticSpecies:writeRestart(tm)
    local writeGhost = false
    if self.hasSheathBCs or self.fluctuationBCs then writeGhost = true end
 
-   self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, writeGhost, self.diagIoFrame)
+   self.distIo:write(self.distf[1], string.format("%s_restart_%d.bp", self.name, self.restartFileTag), tm, self.distIoFrame, writeGhost, self.diagIoFrame)
+   
+   self.restartFileTag = self.restartFileTag==0 and 1 or 0
 end
 
-function KineticSpecies:readRestart(field, externalField)
+function KineticSpecies:readRestart(field, externalField, readTagged)
    local readGhost = false
    if self.hasSheathBCs or self.fluctuationBCs then readGhost = true end
 
-   local tm, fr, diagIoFr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name), readGhost, true)
+    -- Function to check if file exists.
+    local function file_exists(name)
+       if lfs.attributes(GKYL_OUT_PREFIX .. "_" .. name) then return true else return false end
+    end
+
+   local tm, fr, diagIoFr, tags
+   if readTagged then
+      tags = {lo=readTagged, up=readTagged}
+      tm, fr, diagIoFr = self.distIo:read(self.distf[1], string.format("%s_restart_%d.bp", self.name, readTagged), readGhost, true)
+   else
+      -- Loop over restart files and pick the one with the latest time.
+      -- There are possible 2 extra reads here, but hopefully that is not costly.
+      local existingTags = {}
+      for _, t in ipairs({0,1}) do
+         if file_exists(string.format("%s_restart_%d.bp", self.name, t)) then
+            table.insert(existingTags, t)
+         end
+      end
+      local largerTime = -1.e9
+      tags = {lo=existingTags[1], up=existingTags[1]}
+      for _, t in ipairs(existingTags) do
+         tm, fr, diagIoFr = self.distIo:read(self.distf[1], string.format("%s_restart_%d.bp", self.name, t), readGhost, true)
+         if tm > largerTime then
+            largerTime = tm
+            tags.up = t
+         else
+            tags.lo = t
+         end
+      end
+      -- Read the restart file with the largest time.
+      tm, fr, diagIoFr = self.distIo:read(self.distf[1], string.format("%s_restart_%d.bp", self.name, tags.up), readGhost, true)
+   end
    self.distIoFrame = fr -- Reset internal frame counter.
    self.diagIoFrame = diagIoFr
+   self.restartFileTag = self.restartFileTag==0 and 1 or 0
 
    -- Set ghost cells.
    self.distf[1]:sync()
@@ -896,11 +932,13 @@ function KineticSpecies:readRestart(field, externalField)
       self:applyBc(tm, field, externalField, 1, 1) 
    end 
 
+   return tags, tm
+end
+
+function KineticSpecies:restartIoTriggers(tm)
    -- Iterate triggers.
    self.distIoTrigger(tm)
    self.diagIoTrigger(tm)
-   
-   return tm
 end
 
 -- Timers.

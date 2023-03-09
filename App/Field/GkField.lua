@@ -24,6 +24,7 @@ local math             = require("sci.math").generic
 local diff             = require("sci.diff")
 local Logger           = require "Lib.Logger"
 local lume             = require "Lib.lume"
+local lfs              = require "lfs"
 
 local GkField = Proto(FieldBase.FieldBase)
 
@@ -78,7 +79,8 @@ function GkField:fullInit(appTbl)
    local nFrame = tbl.nFrame or appTbl.nFrame
    self.ioTrigger = LinearTrigger(0, appTbl.tEnd, nFrame)
 
-   self.ioFrame = 0 -- Frame number for IO.
+   self.ioFrame        = -1 -- Frame number for IO.
+   self.restartFileTag = 0  -- Tag appended at the end of restart files. Toggles between 0 and 1.
    
    -- Write ghost cells on boundaries of global domain (for BCs).
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
@@ -298,7 +300,7 @@ function GkField:initField(species)
    -- Apply BCs and update ghosts.
    self:applyBc(0, self.potentials[1])
 
-   if self.ioFrame == 0 then 
+   if self.ioFrame < 1 then 
       self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeight_0.bp", tm, self.ioFrame, false)
       self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_0.bp", tm, self.ioFrame, false)
    end
@@ -616,6 +618,8 @@ function GkField:write(tm, force)
       end
 
       if self.ioTrigger(tm) or force then
+	 self.ioFrame = self.ioFrame+1
+
 	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 self.phiSq:write(string.format("phiSq.bp"), tm, self.ioFrame)
 	 self.gradPerpPhiSq:write(string.format("gradPerpPhiSq.bp"), tm, self.ioFrame)
@@ -626,10 +630,9 @@ function GkField:write(tm, force)
 	    self.aparSq:write(string.format("aparSq.bp"), tm, self.ioFrame)
 	    self.emEnergy:write(string.format("emEnergy.bp"), tm, self.ioFrame)
 	 end
-	 
-	 self.ioFrame = self.ioFrame+1
       end
    else
+      self.ioFrame = self.ioFrame+1
       -- If not evolving species, don't write anything except initial conditions.
       if self.ioFrame == 0 then
 	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
@@ -638,43 +641,80 @@ function GkField:write(tm, force)
 	    self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
          end
       end
-      self.ioFrame = self.ioFrame+1
    end
 end
 
 function GkField:writeRestart(tm)
    -- (the final "false" prevents writing of ghost cells).
-   self.fieldIo:write(self.potentials[1].phi, "phi_restart.bp", tm, self.ioFrame, false)
+   self.fieldIo:write(self.potentials[1].phi, string.format("phi_restart_%d.bp",self.restartFileTag), tm, self.ioFrame, false)
    if not self.linearizedPolarization then
-      self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeight_restart.bp", tm, self.ioFrame, false)
-      self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_restart.bp", tm, self.ioFrame, false)
+      self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), string.format("laplacianWeight_restart_%d.bp",self.restartFileTag), tm, self.ioFrame, false)
+      self.fieldIo:write(self.phiSlvr:getModifierWeight(), string.format("modifierWeight_restart_%d.bp",self.restartFileTag), tm, self.ioFrame, false)
    end
 
    if self.isElectromagnetic then
-      self.fieldIo:write(self.potentials[1].apar, "apar_restart.bp", tm, self.ioFrame, false)
+      self.fieldIo:write(self.potentials[1].apar, string.format("apar_restart_%d.bp",self.restartFileTag), tm, self.ioFrame, false)
    end
+   self.restartFileTag = self.restartFileTag==0 and 1 or 0
 end
 
-function GkField:readRestart()
+function GkField:readRestart(readTagged)
    -- This read of restart file of phi is only to get frame
    -- numbering correct. The forward Euler recomputes the potential
    -- before updating the hyperbolic part.
-   local tm, fr = self.fieldIo:read(self.potentials[1].phi, "phi_restart.bp")
+   -- Function to check if file exists.
+   local function file_exists(name)
+      if lfs.attributes(GKYL_OUT_PREFIX .. "_" .. name) then return true else return false end
+   end
+
+   local tm, fr, tags
+   if readTagged then
+      tags = {lo=readTagged, up=readTagged}
+      tm, fr = self.fieldIo:read(self.potentials[1].phi, string.format("phi_restart_%d.bp", readTagged))
+   else
+      -- Loop over restart files and pick the one with the latest time.
+      -- There are possible 2 extra reads here, but hopefully that is not costly.
+      local existingTags = {}
+      for _, t in ipairs({0,1}) do
+         if file_exists(string.format("phi_restart_%d.bp", t)) then
+            table.insert(existingTags, t)
+         end
+      end
+      local largerTime = -1.e9
+      tags = {lo=existingTags[1], up=existingTags[1]}
+      for _, t in ipairs(existingTags) do
+         tm, fr = self.fieldIo:read(self.potentials[1].phi, string.format("phi_restart_%d.bp", t))
+         if tm > largerTime then
+            largerTime = tm
+            tags.up = t
+         else
+            tags.lo = t
+         end
+      end
+      -- Read the restart file with the largest time.
+      tm, fr = self.fieldIo:read(self.potentials[1].phi, string.format("phi_restart_%d.bp", tags.up))
+   end
 
    if not self.linearizedPolarization then
-      self.fieldIo:read(self.laplacianWeight, "laplacianWeight_restart.bp")
-      self.fieldIo:read(self.modifierWeight, "modifierWeight_restart.bp")
+      self.fieldIo:read(self.laplacianWeight, string.format("laplacianWeight_restart_%d.bp",tags.up))
+      self.fieldIo:read(self.modifierWeight, string.format("modifierWeight_restart_%d.bp",tags.up))
       self.phiSlvr:setLaplacianWeight(self.laplacianWeight)
       if self.adiabatic or self.ndim == 1 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
    end
 
    if self.isElectromagnetic then
-      self.fieldIo:read(self.potentials[1].apar, "apar_restart.bp")
+      self.fieldIo:read(self.potentials[1].apar, string.format("apar_restart_%d.bp",tags.up))
    end
 
    self:applyBc(0, self.potentials[1])
 
    self.ioFrame = fr 
+   self.restartFileTag = self.restartFileTag==0 and 1 or 0
+
+   return tags
+end
+
+function GkField:restartIoTriggers(tm)
    -- Iterate triggers.
    self.ioTrigger(tm)
 end
