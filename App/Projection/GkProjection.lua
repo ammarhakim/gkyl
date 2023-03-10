@@ -103,10 +103,9 @@ function FunctionProjection:advance(time, inFlds, outFlds)
          onGhosts = true
       }
       project:advance(time, {}, {distf})
-   end
-
-   if self.densityFromFile then
-      self:scaleDensity(distf, numDens, numDensScaleTo)
+      if self.densityFromFile then
+         self:scaleDensity(distf, numDens, numDensScaleTo)
+      end
    end
 
    local jacobGeo = extField.geo.jacobGeo

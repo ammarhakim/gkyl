@@ -220,6 +220,21 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
    --If block to set up an alternative updater if bctype is maxwellianGhost : Updater.MaxwellGhostBc
    -- Otherwise the updater will be the classic Updater.Bc
    if self.bcKind=="maxwellianGhost" then
+      --Create the dummy ghost field to pass to the Updater
+      local function createFieldFromField(grid, fld, ghostCells)
+         vComp = vComp or 1
+         local fld = DataStruct.Field {
+            onGrid        = grid,
+            numComponents = fld:numComponents(),
+            ghost         = ghostCells,
+            metaData      = fld:getMetaData(),
+         }
+         fld:clear(0.0)
+         return fld
+      end
+      local qOut = {mySpecies:rkStepperFields()[1]}[1]
+      self.ghostFld = createFieldFromField(self.boundaryGrid, qOut, {1,1})
+
       --Make the Updater : same regardles of local or canonical Maxwellian
       self.bcSolver = Updater.MaxwellGhostBc{
          onGrid   = self.grid,   edge               = self.bcEdge,
@@ -232,7 +247,9 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
          confGrid = self.confGrid,
          boundaryGrid=self.boundaryGrid,
          confBoundaryGrid = self.confBoundaryGrid,
+         ghostFld = self.ghostFld,
       }
+
       if self.maxwellianKind=='local' then
          ----Create MaxwellianOnBasis on boundary grid
          self.projMaxwell = Updater.MaxwellianOnBasis{
@@ -261,17 +278,17 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
 
 
          -- Project Into the ghost field
-         self.projMaxwell:advance(time,{numDens,uPar,vtSq,self.bmag},{self.bcSolver.fldTools.ghostFld})
+         self.projMaxwell:advance(time,{numDens,uPar,vtSq,self.bmag},{self.ghostFld})
          --scale Density
          local M0e, M0 = self:allocMoment(), self:allocMoment()
          local M0mod   = self:allocMoment()
-         self.numDensityCalc:advance(0.0, {self.bcSolver.fldTools.ghostFld}, {M0})
+         self.numDensityCalc:advance(0.0, {self.ghostFld}, {M0})
          confProject:setFunc(self.densityGhost)
          confProject:advance(0.0, {}, {M0e})
          self.confWeakDivide:advance(0.0, {M0, M0e}, {M0mod})
-         self.phaseWeakMultiply:advance(0.0, {M0mod,self.bcSolver.fldTools.ghostFld}, {self.bcSolver.fldTools.ghostFld})
+         self.phaseWeakMultiply:advance(0.0, {M0mod,self.ghostFld}, {self.ghostFld})
          -- Multiply by conf space Jacobian
-         self.phaseWeakMultiply:advance(0, {self.bcSolver.fldTools.ghostFld, self.jacobGeo}, {self.bcSolver.fldTools.ghostFld})
+         self.phaseWeakMultiply:advance(0, {self.ghostFld, self.jacobGeo}, {self.ghostFld})
 
       elseif self.maxwellianKind=='canonical' then
          --redefine initFunc to include phase space Jacobian. The original iniFunc is canonical_maxwellian(tcurr,xn) defined in input file
@@ -293,7 +310,7 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
             evaluate = self.initFunc,
             onGhosts=false
          }
-         project:advance(time, {},{self.bcSolver.fldTools.ghostFld})
+         project:advance(time, {},{self.ghostFld})
 
          --create the IO object for writing and reading
          self.ioMethod  = "MPI"
@@ -308,28 +325,26 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
          }
          -- apply the rescaling if its the second run
          if self.rescale then
-            --read ion density from Boundary Files, then multiply ghostFld by rescaling factor
             local numDens, numDensScaleTo = self:allocMoment(), self:allocMoment()
-            --GhostDensity and ghostDensityScaleTo will be defined as file names in input file
-            self.numDensityCalc:advance(0.0, {self.bcSolver.fldTools.ghostFld}, {numDens})
+            self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
             self.confFieldIo:read(numDensScaleTo, self.ghostDensityScaleToFile,false)
 
             local M0mod   = self:allocMoment()
             self.confWeakDivide:advance(0.0,{numDens, numDensScaleTo} , {M0mod})
             -- Calculate distff = M0mod * distf.
-            self.phaseWeakMultiply:advance(0.0, {M0mod,self.bcSolver.fldTools.ghostFld}, {self.bcSolver.fldTools.ghostFld})
+            self.phaseWeakMultiply:advance(0.0, {M0mod,self.ghostFld}, {self.ghostFld})
             --Temporary write to test. Keep the write just so we can check the density is being rescaled properly in the ghost cells
-            self.numDensityCalc:advance(0.0, {self.bcSolver.fldTools.ghostFld}, {numDens})
+            self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
             self.confFieldIo:write(numDens, string.format("%s_M0_%d.bp", self.name, 0), 0.0, 0, false)
          --write the densities out if it's the first run
          else
             local numDens = self:allocMoment()
-            self.numDensityCalc:advance(0.0, {self.bcSolver.fldTools.ghostFld}, {numDens})
+            self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
             self.confFieldIo:write(numDens, string.format("%s_M0_%d.bp", self.name, 0), 0.0, 0, false)
          end
 
          -- Multiply by conf space Jacobian Now
-         self.phaseWeakMultiply:advance(0, {self.bcSolver.fldTools.ghostFld, self.jacobGeo}, {self.bcSolver.fldTools.ghostFld})
+         self.phaseWeakMultiply:advance(0, {self.ghostFld, self.jacobGeo}, {self.ghostFld})
       end
 
    else
