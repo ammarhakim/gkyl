@@ -21,19 +21,6 @@ local DistFuncMomentCalc  = require "Updater.DistFuncMomentCalc"
 local MaxwellGhostBc = Proto(UpdaterBase)
 local dirlabel = {"X", "Y", "Z"}
 
---local function createFieldFromField(grid, fld, ghostCells)
---   vComp = vComp or 1
---   local fld = DataStruct.Field {
---      onGrid        = grid,
---      numComponents = fld:numComponents(),
---      ghost         = ghostCells,
---      metaData      = fld:getMetaData(),
---   }
---   fld:clear(0.0)
---   return fld
---end
-
-
 function MaxwellGhostBc:init(tbl)
    MaxwellGhostBc.super.init(self, tbl) -- Setup base object.
 
@@ -114,8 +101,6 @@ function MaxwellGhostBc:initFldTools(inFld, outFld)
       and function(idxIn) idxIn[self._vdir] = global:upper(self._vdir) + 1 - idxIn[self._vdir] end
       or function(idxIn) end
 
-   --Use projMaxwell instead of evaluate functon
-   --tools.ghostFld        = createFieldFromField(self._boundaryGrid, qOut, {1,1})
    tools.ghostFld=self.ghostFld
    tools.ghostFldIndexer = tools.ghostFld:genIndexer()
    return tools

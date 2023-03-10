@@ -232,7 +232,7 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
          fld:clear(0.0)
          return fld
       end
-      local qOut = {mySpecies:rkStepperFields()[1]}[1]
+      local qOut = mySpecies:rkStepperFields()[1]
       self.ghostFld = createFieldFromField(self.boundaryGrid, qOut, {1,1})
 
       --Make the Updater : same regardles of local or canonical Maxwellian
@@ -302,8 +302,7 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
                return J*f
             end
          end
-         --project canonical Maxwellian onto the boundary grid
-         -- Note: don't use self.project as this does not have jacobian factors in initFunc.
+
          local project = Updater.ProjectOnBasis {
             onGrid   = self.boundaryGrid,
             basis    = self.basis,
@@ -312,7 +311,6 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
          }
          project:advance(time, {},{self.ghostFld})
 
-         --create the IO object for writing and reading
          self.ioMethod  = "MPI"
          self.confFieldIo = AdiosCartFieldIo {
          elemType   = mySpecies:getDistF():elemType(),
@@ -323,7 +321,6 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
             charge    = self.charge,
             mass      = self.mass,},
          }
-         -- apply the rescaling if its the second run
          if self.rescale then
             local numDens, numDensScaleTo = self:allocMoment(), self:allocMoment()
             self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
@@ -331,12 +328,9 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
 
             local M0mod   = self:allocMoment()
             self.confWeakDivide:advance(0.0,{numDens, numDensScaleTo} , {M0mod})
-            -- Calculate distff = M0mod * distf.
             self.phaseWeakMultiply:advance(0.0, {M0mod,self.ghostFld}, {self.ghostFld})
-            --Temporary write to test. Keep the write just so we can check the density is being rescaled properly in the ghost cells
             self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
             self.confFieldIo:write(numDens, string.format("%s_M0_%d.bp", self.name, 0), 0.0, 0, false)
-         --write the densities out if it's the first run
          else
             local numDens = self:allocMoment()
             self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
