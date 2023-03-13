@@ -1,6 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
 local Moments = require("App.PlasmaOnCartGrid").Moments()
-local TenMoment = require "Eq.TenMoment"
 
 -- physical parameters
 gasGamma = 5./3.
@@ -37,15 +36,13 @@ Ly = 12.8 * di0
 print("Valf/c", Valf/lightSpeed)
 
 momentApp = Moments.App {
-   logToFile = true,
 
-   cfl = 0.9,
+   cflFrac = 0.9,
    tEnd = 25.0/OmegaCi0,
    nFrame = 1,
    lower = {-Lx/2, -Ly/2},
    upper = {Lx/2, Ly/2},
    cells = {64, 32},
-   timeStepper = "fvDimSplit",
 
    -- decomposition for configuration space
    decompCuts = {1, 1}, -- cuts in each configuration direction
@@ -57,9 +54,7 @@ momentApp = Moments.App {
    elc = Moments.Species {
       charge = elcCharge, mass = elcMass,
 
-      equation = TenMoment {},
-      equationInv = TenMoment { numericalFlux = "lax" },
-      forceInv = false,
+      equation = Moments.TenMoment { k0 = 1/de0 },
       -- initial conditions
       init = function (t, xn)
     local x, y = xn[1], xn[2]
@@ -83,17 +78,14 @@ momentApp = Moments.App {
     
     return rhoe, 0.0, 0.0, ezmom, pxxe, pxye, pxze, pyye, pyze, pzze
       end,
-      evolve = true, -- evolve species?
-      bcy = { TenMoment.bcWall, TenMoment.bcWall },
+      bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
    },
 
    -- ions
    ion = Moments.Species {
       charge = ionCharge, mass = ionMass,
 
-      equation = TenMoment {},
-      equationInv = TenMoment { numericalFlux = "lax" },
-      forceInv = false,
+      equation = Moments.TenMoment { k0 = 1/de0 },
       -- initial conditions
       init = function (t, xn)
     local x, y = xn[1], xn[2]
@@ -117,7 +109,6 @@ momentApp = Moments.App {
     
     return rhoi, 0.0, 0.0, izmom, pxxi, pxyi, pxzi, pyyi, pyzi, pzzi
       end,
-      evolve = true, -- evolve species?
       bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
    },
 
@@ -135,23 +126,6 @@ momentApp = Moments.App {
       end,
       evolve = true, -- evolve field?
       bcy = { Moments.Field.bcReflect, Moments.Field.bcReflect },
-   },
-
-   emSource = Moments.CollisionlessEmSource {
-      species = {"elc", "ion"},
-      timeStepper = "direct",
-   },
-
-   elc10mSource = Moments.TenMomentRelaxSource {
-      species = {"elc"},
-      timeStepper = "explicit",
-      k = 1/de0,
-   },
-
-   ion10mSource = Moments.TenMomentRelaxSource {
-      species = {"ion"},
-      timeStepper = "explicit",
-      k = 1/de0,
    },
 }
 

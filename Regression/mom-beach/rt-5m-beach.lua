@@ -1,6 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
 local Moments   = require("App.PlasmaOnCartGrid").Moments()
-local Euler     = require "Eq.Euler"
 local Constants = require "Lib.Constants"
 
 -- Global parameters.
@@ -37,15 +36,12 @@ local function init(x)
 end
 
 momentApp = Moments.App {
-   logToFile = true,
-
    tEnd   = tEnd,
    nFrame = nFrames,
    lower  = {xlower},
    upper  = {xupper},
    cells  = {nx},
    cfl    = cfl,
-   timeStepper = "fvDimSplit",
    maximumDt   = 3e-12,
 
    -- Decomposition for configuration space.
@@ -58,9 +54,7 @@ momentApp = Moments.App {
    elc = Moments.Species {
       charge = -Constants.ELEMENTARY_CHARGE, mass = Constants.ELECTRON_MASS,
 
-      equation    = Euler { gasGamma = gasGamma },
-      equationInv = Euler { gasGamma = gasGamma, numericalFlux = "lax" },
-      forceInv    = false,
+      equation    = Moments.Euler { gasGamma = gasGamma },
       -- Initial conditions.
       init = function (t, xn)
          local x = xn[1]
@@ -69,7 +63,6 @@ momentApp = Moments.App {
                Ex, Ey, Ez, Bx, By, Bz = init(x)
          return rho_e, rhovx_e, rhovy_e, rhovz_e, u_e
       end,
-      evolve = true,   -- Evolve species?
       bcx = { Moments.Species.bcCopy, Moments.Species.bcCopy },
    },
 
@@ -83,42 +76,41 @@ momentApp = Moments.App {
                Ex, Ey, Ez, Bx, By, Bz = init(x)
          return Ex, Ey, Ez, Bx, By, Bz
       end,
-      evolve = true,    -- Evolve field?
       bcx    = { Moments.Field.bcCopy, Moments.Field.bcCopy },
    },
 
-   emSource = Moments.CollisionlessEmSource {
-      species = {"elc"},
-      timeStepper = "time-centered",
-
-      -- Additional source terms.
-      -- Not enabled here; for demo purpose.
-      -- Note: Dp are c arrays and use 0-based indices; xc and qbym are lua
-      --       arrays and use 1-based indices
-      hasAuxSourceFunction = true,
-      auxSourceFunction    = function (
-         self, xc, t, epsilon0, qbym, fDp, emDp, auxSrcDp)
-         local x = xc[1]
-         local nFluids = #qbym
-
-         local J0 = 1.0e-12   -- Amps/m^3.
-         -- Auxiliary source for currents.
-         for s=0, 0 do
-            auxSrcDp[s*3+0] = 0
-            auxSrcDp[s*3+1] = 0
-            auxSrcDp[s*3+2] = 0
-         end
-
-         -- Auxiliary source for E field.
-         auxSrcDp[nFluids*3+0] = 0
-         auxSrcDp[nFluids*3+1] = 0
-         auxSrcDp[nFluids*3+2] = 0
-
-         if (x>xLastEdge) then
-            auxSrcDp[nFluids*3+1] = -J0*math.sin(driveOmega*t)/Constants.EPSILON0
-         end
-      end,
-   },   
+   -- emSource = Moments.CollisionlessEmSource {
+   --    species = {"elc"},
+   --    timeStepper = "time-centered",
+   --
+   --    -- Additional source terms.
+   --    -- Not enabled here; for demo purpose.
+   --    -- Note: Dp are c arrays and use 0-based indices; xc and qbym are lua
+   --    --       arrays and use 1-based indices
+   --    hasAuxSourceFunction = true,
+   --    auxSourceFunction    = function (
+   --       self, xc, t, epsilon0, qbym, fDp, emDp, auxSrcDp)
+   --       local x = xc[1]
+   --       local nFluids = #qbym
+   --
+   --       local J0 = 1.0e-12   -- Amps/m^3.
+   --       -- Auxiliary source for currents.
+   --       for s=0, 0 do
+   --          auxSrcDp[s*3+0] = 0
+   --          auxSrcDp[s*3+1] = 0
+   --          auxSrcDp[s*3+2] = 0
+   --       end
+   --
+   --       -- Auxiliary source for E field.
+   --       auxSrcDp[nFluids*3+0] = 0
+   --       auxSrcDp[nFluids*3+1] = 0
+   --       auxSrcDp[nFluids*3+2] = 0
+   --
+   --       if (x>xLastEdge) then
+   --          auxSrcDp[nFluids*3+1] = -J0*math.sin(driveOmega*t)/Constants.EPSILON0
+   --       end
+   --    end,
+   -- },   
 
 }
 -- Run application.

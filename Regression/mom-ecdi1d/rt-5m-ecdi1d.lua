@@ -1,6 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
 local Moments = require("App.PlasmaOnCartGrid").Moments()
-local Euler = require "Eq.Euler"
 local Constants = require "Lib.Constants"
 local Logger = require "Lib.Logger"
 
@@ -175,14 +174,11 @@ end
 -- GKEYLL App --
 ----------------
 momentApp = Moments.App {
-   logToFile = true,
-
    tEnd = tEnd,
    nFrame = nFrame,
    lower = lower,
    upper = upper,
    cells = cells,
-   timeStepper = "fvDimSplit",
 
    decompCuts = {4}, -- cuts in each configuration direction
 
@@ -191,7 +187,7 @@ momentApp = Moments.App {
    elc = Moments.Species {
       charge = qe, mass = me,
 
-      equation = Euler { gasGamma = gasGamma },
+      equation = Moments.Euler { gasGamma = gasGamma },
       init = function (t, xn)
          local x = xn[1]
 
@@ -202,13 +198,12 @@ momentApp = Moments.App {
       
           return rho_e, rhovx_e, rhovy_e, rhovz_e, e_e
       end,
-      evolve = true, -- evolve species?
    },
 
    ion = Moments.Species {
       charge = qi, mass = mi,
 
-      equation = Euler { gasGamma = gasGamma },
+      equation = Moments.Euler { gasGamma = gasGamma },
       init = function (t, xn)
          local x = xn[1]
 
@@ -219,14 +214,13 @@ momentApp = Moments.App {
       
           return rho_i, rhovx_i, rhovy_i, rhovz_i, e_i
       end,
-      evolve = true, -- evolve species?
    },
 
    -- ghost electrons
    gho = Moments.Species {
       charge = qe, mass = me,
 
-      equation = Euler { gasGamma = gasGamma },
+      equation = Moments.Euler { gasGamma = gasGamma },
       init = function (t, xn)
          local x = xn[1]
 
@@ -252,14 +246,7 @@ momentApp = Moments.App {
       
           return Ex, Ey, Ez, Bx, By, Bz, phiE, phiB
       end,
-      evolve = true, -- evolve field?
    },
-
-   emSource = Moments.CollisionlessEmSource {
-      species = {"elc", "ion", "gho"},
-      timeStepper = "analytic2",
-   },   
-
 }
 -- run application
 momentApp:run()
