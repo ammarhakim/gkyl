@@ -105,7 +105,11 @@ function DistFuncMomentDG:init(tbl)
 
    local useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU)
 
-   self._zero = ffi.gc(ffiC.gkyl_dg_updater_moment_new(self._onGrid._zero, self._confBasis._zero, self._phaseBasis._zero, nil, nil, self._modelId, self._moment, self._isIntegrated, 0.0, useGPU or 0),
+   self._zero = ffi.gc(ffiC.gkyl_dg_updater_moment_new(self._onGrid._zero, 
+                          self._confBasis._zero, self._phaseBasis._zero, 
+                          nil, nil, 
+                          self._modelId, self._moment, 
+                          self._isIntegrated, 0.0, useGPU or 0),
                        ffiC.gkyl_dg_updater_moment_release)
 end
 

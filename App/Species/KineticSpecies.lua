@@ -320,6 +320,19 @@ function KineticSpecies:createGrid(confGridIn)
    }
 
    for _, c in pairs(self.collisions) do c:setPhaseGrid(self.grid) end
+
+   -- Construct velocity space grid from phase space grid
+   local dimsV = {}
+   for d = 1, self.vdim do
+      table.insert(dimsV, cdim+d)
+   end
+   -- Get the ingredients of the velocity space grid from the phase space grid
+   local velGridIngr = self.grid:childGrid(dimsV)
+   self.velGrid = GridConstructor {
+      lower = velGridIngr.lower,  periodicDirs  = velGridIngr.periodicDirs,
+      upper = velGridIngr.upper,  decomposition = velGridIngr.decomposition,
+      cells = velGridIngr.cells,      
+   }
 end
 
 -- Field allocation in the species objects should be performed with one
@@ -340,6 +353,7 @@ function KineticSpecies:allocDistf()
                      grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"}
    return self:allocCartField(self.grid,self.basis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
+-- Configuration space arrays
 function KineticSpecies:allocMoment()
    local metaData = {polyOrder = self.confBasis:polyOrder(),
                      basisType = self.confBasis:id(),
@@ -353,6 +367,21 @@ function KineticSpecies:allocVectorMoment(dim)
                      charge    = self.charge,
                      mass      = self.mass,}
    return self:allocCartField(self.confGrid,dim*self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
+end
+-- Velocity space arrays (no ghost cells in velocity space arrays)
+function KineticSpecies:allocVelMoment()
+   local metaData = {polyOrder = self.velBasis:polyOrder(),
+                     basisType = self.velBasis:id(),
+                     charge    = self.charge,
+                     mass      = self.mass,}
+   return self:allocCartField(self.velGrid,self.velBasis:numBasis(),{0,0},metaData)
+end
+function KineticSpecies:allocVectorVelMoment(dim)
+   local metaData = {polyOrder = self.velBasis:polyOrder(),
+                     basisType = self.velBasis:id(),
+                     charge    = self.charge,
+                     mass      = self.mass,}
+   return self:allocCartField(self.velGrid,dim*self.velBasis:numBasis(),{0,0},metaData)
 end
 function KineticSpecies:allocIntMoment(comp)
    local metaData = {charge = self.charge,
