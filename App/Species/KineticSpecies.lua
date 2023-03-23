@@ -513,6 +513,13 @@ function KineticSpecies:createCouplingSolver(species, field, externalField)
    -- After all species have called their createSolver methods, we here create the objects
    -- needed for cross-species solves (e.g. cross-species collisions).
 
+   -- Create projection coupling solvers 
+   for nm, pr in lume.orderedIter(self.projections) do
+      if string.find(nm,"init") then
+         pr:createCouplingSolver(species,field,externalField)
+      end
+   end
+
    -- Create BC solvers.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createCouplingSolver(species, field, externalField) end
 end

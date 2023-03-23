@@ -30,6 +30,7 @@ function KineticProjection:fullInit(species)
    self.confGrid   = species.confGrid
    self.mass       = species:getMass()
    self.charge     = species:getCharge()
+   self.speciesName = species.name
 
    self.cdim = self.confGrid:ndim()
    self.vdim = self.phaseGrid:ndim() - self.confGrid:ndim()
