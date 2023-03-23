@@ -108,8 +108,7 @@ function FunctionProjection:advance(time, inFlds, outFlds)
 end
 
 function FunctionProjection:createCouplingSolver(species,field, externalField)
-   if self.name=='elc' then
-      print("creating coupling solver fr electrons")
+   if self.speciesName=='elc' then
    --for nm, pr in lume.orderedIter(self.projections) do
    --   pr:advance(0.0, {extField}, {self.distf[2]})
    --   -- This barrier is needed as when using MPI-SHM some
@@ -121,9 +120,9 @@ function FunctionProjection:createCouplingSolver(species,field, externalField)
    --end
       local numDens = self:allocConfField()
       local numDensScaleTo = self:allocConfField()
-      self.species['elc'].numDensityCalc:advance(0.0, {species['elc'].distf[1]}, {numDens})
-      self.species['ion'].numDensityCalc:advance(0.0, {species['ion'].distf[1]}, {numDensScaleTo})
-      self:scaleDensity(self.distf[1], numDens, numDensScaleTo)
+      species['elc'].numDensityCalc:advance(0.0, {species['elc'].distf[1]}, {numDens})
+      species['ion'].numDensityCalc:advance(0.0, {species['ion'].distf[1]}, {numDensScaleTo})
+      self:scaleDensity(species['elc'].distf[1], numDens, numDensScaleTo)
    end
 end
 
