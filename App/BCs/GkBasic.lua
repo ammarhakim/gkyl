@@ -321,21 +321,21 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
             charge    = self.charge,
             mass      = self.mass,},
          }
-         if self.rescale then
-            local numDens, numDensScaleTo = self:allocMoment(), self:allocMoment()
-            self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
-            self.confFieldIo:read(numDensScaleTo, self.ghostDensityScaleToFile,false)
+         --if self.rescale then
+         --   local numDens, numDensScaleTo = self:allocMoment(), self:allocMoment()
+         --   self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
+         --   self.confFieldIo:read(numDensScaleTo, self.ghostDensityScaleToFile,false)
 
-            local M0mod   = self:allocMoment()
-            self.confWeakDivide:advance(0.0,{numDens, numDensScaleTo} , {M0mod})
-            self.phaseWeakMultiply:advance(0.0, {M0mod,self.ghostFld}, {self.ghostFld})
-            self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
-            self.confFieldIo:write(numDens, string.format("%s_M0_%d.bp", self.name, 0), 0.0, 0, false)
-         else
+         --   local M0mod   = self:allocMoment()
+         --   self.confWeakDivide:advance(0.0,{numDens, numDensScaleTo} , {M0mod})
+         --   self.phaseWeakMultiply:advance(0.0, {M0mod,self.ghostFld}, {self.ghostFld})
+         --   self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
+         --   self.confFieldIo:write(numDens, string.format("%s_M0_%d.bp", self.name, 0), 0.0, 0, false)
+         --else
             local numDens = self:allocMoment()
             self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
             self.confFieldIo:write(numDens, string.format("%s_M0_%d.bp", self.name, 0), 0.0, 0, false)
-         end
+         --end
 
          -- Multiply by conf space Jacobian Now
          self.phaseWeakMultiply:advance(0, {self.ghostFld, self.jacobGeo}, {self.ghostFld})
@@ -355,6 +355,38 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
       }
    end
 
+end
+
+function GkBasicBC:createCouplingSolver(species,field,externalField)
+   print("Bc coupling solver")
+   if self.speciesName=="elc" and self.bcKind=='maxwellianGhost' and self.maxwellianKind=='canonical' then
+      print("rescaling BCs cause we have electrons")
+      local bcName = self.name:gsub("elc_","")
+      print("bcName is", bcName)
+      print("check the species keys in GKbasic")
+      for k,v in pairs(species) do 
+         print(k) 
+      end
+      print("check the ion keys in GKbasic")
+      for k,v in pairs(species['ion']) do 
+         print(k) 
+      end
+      print("check the ion nonperiodic bc keys in GKbasic")
+      for k,v in pairs(species['ion']['nonPeriodicBCs']) do 
+         print(k) 
+      end
+      local numDens = self:allocMoment()
+      local numDensScaleTo = species['ion']['nonPeriodicBCs'][bcName]:allocMoment()
+      self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
+      --self.confFieldIo:read(numDensScaleTo, self.ghostDensityScaleToFile,false)
+      species['ion']['nonPeriodicBCs'][bcName].numDensityCalc:advance(0.0, {species['ion']['nonPeriodicBCs'][bcName].ghostFld}, {numDensScaleTo})
+
+      local M0mod   = self:allocMoment()
+      self.confWeakDivide:advance(0.0,{numDens, numDensScaleTo} , {M0mod})
+      self.phaseWeakMultiply:advance(0.0, {M0mod,self.ghostFld}, {self.ghostFld})
+      self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
+      self.confFieldIo:write(numDens, string.format("%s_M0_%d.bp", self.name, 0), 0.0, 0, false)
+   end
 end
 
 function GkBasicBC:createBoundaryTools(mySpecies, field, externalField)

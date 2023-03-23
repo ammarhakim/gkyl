@@ -121,6 +121,9 @@ function KineticSpecies:fullInit(appTbl)
    -- Write ghost cells on boundaries of global domain (for BCs).
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 
+   --Akash Temporary fix for checking 
+   self.writeGhost=true
+
    -- Option to group diagnostics (i.e. it writes one file for all grid diags, and one file
    -- for all integrated diags) in all diagnostic Apps, rather than writing one file for each.
    self.groupDiags = appTbl.groupDiagnostics or false
@@ -520,6 +523,15 @@ function KineticSpecies:createCouplingSolver(species, field, externalField)
    end
 
    -- Create BC solvers.
+   --print("check the bc keys")
+   --for k,v in pairs(self.nonPeriodicBCs) do
+   --  print(k)
+   --end
+
+   --print("check the elc keys")
+   --for k,v in pairs(species['elc']) do
+   --  print(k)
+   --end
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createCouplingSolver(species, field, externalField) end
 end
 
@@ -544,7 +556,9 @@ function KineticSpecies:alloc(nRkDup)
    self.distIo = AdiosCartFieldIo {
       elemType   = self.distf[1]:elemType(),
       method     = self.ioMethod,
-      writeGhost = self.writeGhost,
+      --writeGhost = self.writeGhost,
+      --Akash Temporary fix for checking
+      writeGhost=true,
       metaData   = {polyOrder = self.basis:polyOrder(),
                     basisType = self.basis:id(),
                     charge    = self.charge,
