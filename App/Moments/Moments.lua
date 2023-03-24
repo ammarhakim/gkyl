@@ -9,6 +9,7 @@
 --------------------------------------------------------------------------------
 
 local ffi = require "ffi"
+local Proto = require "Lib.Proto"
 
 -- load shared library
 local install_prefix = os.getenv("HOME") .. "/gkylsoft/gkylzero"
@@ -1028,9 +1029,10 @@ local field_mt = {
 _M.Field = ffi.metatype(field_type, field_mt)
 
 -- App
-local app_type = ffi.typeof("struct gkyl_moment_app_cont")
-local app_mt = {
-   __new = function(self, tbl)
+local App = Proto()
+
+
+App.init = function(self, tbl)
       local vm = ffi.new("struct gkyl_moment")
 
       local species = { }
@@ -1133,52 +1135,50 @@ local app_mt = {
          vm.field = field
       end      
 
-      -- create new Moments app object
-      local a = ffi.new(self)
-
       -- we need to store some stuff in container struct
-      a.nspecies = num_species
+      self.nspecies = num_species
       if tbl.tStart then
-         a.t0 = tbl.tStart
+         self.t0 = tbl.tStart
+      else
+         self.t0 = 0
       end
-      a.tend = tbl.tEnd
-      a.nframe = tbl.nFrame
+      self.tend = tbl.tEnd
+      self.nframe = tbl.nFrame
 
       -- initialize app from input struct
-      a.app = C.gkyl_moment_app_new(vm)
-      return a
-   end,
-   __gc = function(self)
+      self.app = C.gkyl_moment_app_new(vm)
+   end
+
+   function App:__gc()
       C.gkyl_moment_app_release(self.app)
-   end,
-   __index = {
-      init = function(self)
+   end
+      App.apply_ic = function(self)
          C.gkyl_moment_app_apply_ic(self.app, self.t0)
-      end,
-      writeField = function(self, tm, frame)
+      end
+      App.writeField = function(self, tm, frame)
          C.gkyl_moment_app_write_field(self.app, tm, frame)
-      end,
-      writeSpecies = function(self, tm, frame)
+      end
+      App.writeSpecies = function(self, tm, frame)
          for i=1, self.nspecies do
           C.gkyl_moment_app_write_species(self.app, i-1, tm, frame)
          end
-      end,
-      write = function(self, tm, frame)
+      end
+      App.write = function(self, tm, frame)
          C.gkyl_moment_app_write(self.app, tm, frame)
-      end,
-      writeStat = function(self)
+      end
+      App.writeStat = function(self)
          C.gkyl_moment_app_stat_write(self.app)
-      end,
-      update = function(self, dt)
+      end
+      App.update = function(self, dt)
          return C.gkyl_moment_update(self.app, dt)
-      end,
-      calcIntegratedMom = function(self, tcurr)
+      end
+      App.calcIntegratedMom = function(self, tcurr)
 	 return C.gkyl_moment_app_calc_integrated_mom(self.app, tcurr)
-      end,
-      calcFieldEnergy = function(self, tcurr)
+      end
+      App.calcFieldEnergy = function(self, tcurr)
 	 return C.gkyl_moment_app_calc_field_energy(self.app, tcurr)
-      end,      
-      run = function(self)
+      end      
+      App.run = function(self)
 	 
 	 local frame_trig = _M.TimeTrigger(self.tend/self.nframe)
 
@@ -1201,7 +1201,7 @@ local app_mt = {
 	 io.write(string.format("  tstart: %.6e. tend: %.6e\n", 0.0, self.tend))
 
 	 local tinit0 = _M.time_now()
-	 self:init()
+	 self:apply_ic()
 	 io.write(string.format("  Initialization completed in %g sec\n", _M.time_now() - tinit0))
 	 
 	 self:calcIntegratedMom(0.0)
@@ -1240,9 +1240,8 @@ local app_mt = {
 	 io.write(string.format("Main loop took %g secs to complete\n", tloop1-tloop0))
 	 self:writeStat()
 	 
-      end,
-   }
-}
-_M.App = ffi.metatype(app_type, app_mt)
+      end
+
+_M.App = App
 
 return _M
