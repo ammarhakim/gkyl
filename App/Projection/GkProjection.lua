@@ -13,6 +13,7 @@ local xsys       = require "xsys"
 local DataStruct = require "DataStruct"
 local FunctionProjectionParent   = require ("App.Projection.KineticProjection").FunctionProjection
 local MaxwellianProjectionParent = require ("App.Projection.KineticProjection").MaxwellianProjection
+local Mpi              = require "Comm.Mpi"
 
 --------------------------------------------------------------------------------
 -- Gk-specific GkProjection.FunctionProjection includes Jacobian factors in initFunc.
@@ -108,7 +109,7 @@ function FunctionProjection:advance(time, inFlds, outFlds)
 end
 
 function FunctionProjection:createCouplingSolver(species,field, externalField)
-   if self.speciesName=='elc' then
+   if self.speciesName=='test' then
    --for nm, pr in lume.orderedIter(self.projections) do
    --   pr:advance(0.0, {extField}, {self.distf[2]})
    --   -- This barrier is needed as when using MPI-SHM some
@@ -120,9 +121,11 @@ function FunctionProjection:createCouplingSolver(species,field, externalField)
    --end
       local numDens = self:allocConfField()
       local numDensScaleTo = self:allocConfField()
-      species['elc'].numDensityCalc:advance(0.0, {species['elc'].distf[1]}, {numDens})
-      species['ion'].numDensityCalc:advance(0.0, {species['ion'].distf[1]}, {numDensScaleTo})
-      self:scaleDensity(species['elc'].distf[1], numDens, numDensScaleTo)
+      species['elc'].numDensityCalc:advance(0.0, {species['elc'].distf[2]}, {numDens})
+      species['ion'].numDensityCalc:advance(0.0, {species['ion'].distf[2]}, {numDensScaleTo})
+      self:scaleDensity(species['elc'].distf[2], numDens, numDensScaleTo)
+      Mpi.Barrier(species['elc'].grid:commSet().sharedComm)
+      species['elc'].distf[1]:accumulate(1.0, species['elc'].distf[2])
    end
 end
 
