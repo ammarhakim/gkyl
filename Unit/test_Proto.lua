@@ -148,11 +148,28 @@ function test_5()
    
 end
 
+function test_6()
+   local P = Proto()
+
+   function P:init(a)
+      self.x = a
+   end
+
+   function P:__gc()
+      return self.x
+   end
+
+   local a = 21432
+   local p = P(a)
+   assert_equal(a, p:__gc(), "Checking __gc")
+end
+
 test_1()
 test_2()
 test_3()
 test_4()
 test_5()
+test_6()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
