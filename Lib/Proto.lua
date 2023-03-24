@@ -12,7 +12,7 @@ local function newmember(proto, ...)
 
    if obj.__gc then
       local prox = newproxy(true)
-      getmetatable(prox).__gc = function() obj.__gc(self, obj) end
+      getmetatable(prox).__gc = function() obj:__gc() end
       obj[prox] = true
    end
 
