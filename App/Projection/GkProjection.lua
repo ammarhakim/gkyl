@@ -41,45 +41,6 @@ function FunctionProjection:advance(time, inFlds, outFlds)
    if self.fromFile then
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
---      --Think I don't need this block for now since only reading from restarts
---      --Turns out that it looks like when you run _init only the ghost cells are not populated
---      --Create Open BC Updaters for Lower and Upper Edges
---      local nonPeriodicBCs = {}   -- List of non-periodic BCs to apply.
---      -- Function to construct a BC updater.
---      local function makeOpenBcUpdater(dir, edge)
---         local bcOpen = function(dir, tm, idxIn, fIn, fOut)
---            -- Requires skinLoop = "pointwise".
---            self.confBasis:flipSign(dir, fIn, fOut)
---         end
---         return Updater.Bc {
---            onGrid = self.confGrid,  edge = edge,
---            dir    = dir,        boundaryConditions = {bcOpen},
---            skinLoop = "pointwise",
---         }
---      end
---      -- For non-periodic dirs, use open BCs. It's the most sensible choice given that the
---      -- coordinate mapping could diverge outside of the interior domain.
---      for dir = 1, self.cdim do
---         if not lume.any(self.confGrid:getPeriodicDirs(), function(t) return t==dir end) then
---            nonPeriodicBCs["lower" .. tostring(dir)] = makeOpenBcUpdater(dir, "lower")
---            nonPeriodicBCs["upper" .. tostring(dir)] = makeOpenBcUpdater(dir, "upper")
---         end
---      end
---      --Function to Add and Apply Open BCs to a confField
---      local function applyOpenBcs(fld)
---      for _, bc in pairs(nonPeriodicBCs) do
---         bc:advance(tCurr, {}, {fld})
---         end
---         fld:sync(true)
---      end
-
-      --if self.densityFromFile then
-      --   self.confFieldIo:read(numDens, self.density,false)
-      --   self.confFieldIo:read(numDensScaleTo, self.densityScaleTo,false)
-      --   applyOpenBcs(numDens) -- only necessary if not reading ghost cells
-      --   applyOpenBcs(numDensScaleTo) -- only necessary if not reading ghost cells
-      --end
-
       if self.species.jacobPhaseFunc and self.vdim > 1 then
          local initFuncWithoutJacobian = self.initFunc
          self.initFunc = function (t, xn)
@@ -99,9 +60,6 @@ function FunctionProjection:advance(time, inFlds, outFlds)
          onGhosts = true
       }
       project:advance(time, {}, {distf})
-      --if self.densityFromFile then
-      --   self:scaleDensity(distf, numDens, numDensScaleTo)
-      --end
    end
 
    local jacobGeo = extField.geo.jacobGeo
@@ -109,16 +67,7 @@ function FunctionProjection:advance(time, inFlds, outFlds)
 end
 
 function FunctionProjection:createCouplingSolver(species,field, externalField)
-   if self.speciesName=='test' then
-   --for nm, pr in lume.orderedIter(self.projections) do
-   --   pr:advance(0.0, {extField}, {self.distf[2]})
-   --   -- This barrier is needed as when using MPI-SHM some
-   --   -- processes will get to accumulate before projection is finished.
-   --   Mpi.Barrier(self.grid:commSet().sharedComm)
-   --      self.distf[1]:accumulate(1.0, self.distf[2])
-   --      initCnt = initCnt + 1
-   --      --if pr.scaleWithSourcePower then scaleInitWithSourcePower = true end
-   --end
+   if self.speciesName=='elc' then
       local numDens = self:allocConfField()
       local numDensScaleTo = self:allocConfField()
       species['elc'].numDensityCalc:advance(0.0, {species['elc'].distf[2]}, {numDens})

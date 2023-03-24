@@ -69,14 +69,6 @@ function FunctionProjection:fullInit(species)
    assert(func, "FunctionProjection: Must specify the function")
    assert(type(func) == "function", "The input must be a table containing function")
 
-   self.density     = self.tbl.density
-   self.densityScaleTo     = self.tbl.densityScaleTo
-
-   if type(self.density) == "string" then
-      self.densityFromFile = true
-      --self.exactScaleM0 = false
-   end
-
    if self.fromFile then
       self.ioMethod  = "MPI"
       self.writeGhost = true
@@ -94,18 +86,6 @@ function FunctionProjection:fullInit(species)
          evaluate = func,
          onGhosts = true
       }
-      if self.densityFromFile then
-         self.ioMethod  = "MPI"
-         self.confFieldIo = AdiosCartFieldIo {
-         elemType   = species.distf[1]:elemType(),
-         method     = self.ioMethod,
-         writeGhost = false,
-         metaData   = {polyOrder = self.confBasis:polyOrder(),
-            basisType = self.confBasis:id(),
-            charge    = self.charge,
-            mass      = self.mass,},
-         }
-      end
    end
    self.initFunc = func
 end
