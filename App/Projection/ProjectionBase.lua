@@ -15,7 +15,7 @@ local ProjectionBase = Proto()
 function ProjectionBase:init(tbl) end
 function ProjectionBase:fullInit(appTbl) end
 function ProjectionBase:set() end
-function ProjectionBase:createCouplngSolver() end
+function ProjectionBase:createCouplingSolver() end
 
 return ProjectionBase
 
