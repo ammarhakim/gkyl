@@ -1028,13 +1028,22 @@ local function Field_meta_ctor(elct)
       end,
       sync = function (self, syncPeriodicDirs_)
          local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
---         self._field_sync(self, self._zeroForOps:data())
          local mess = self._grid:getMessenger()
-         mess:syncCartField(self, mess:getConfComm())
-	 if self._syncPeriodicDirs and syncPeriodicDirs then
---            self._field_periodic_sync(self, self._zeroForOps:data())
-            mess:syncPeriodicCartField(self, mess:getConfComm())
-	 end
+
+         -- MF 2023/03/29: quick fix for runs without decomposition/messenger.
+         -- Would be better to create indirection pointing to functions defined
+         -- at creation so this if-statement is not used every time.
+         if mess then
+            mess:syncCartField(self, mess:getConfComm())
+            if self._syncPeriodicDirs and syncPeriodicDirs then
+               mess:syncPeriodicCartField(self, mess:getConfComm())
+            end
+         else
+            self._field_sync(self, self._zeroForOps:data())
+            if self._syncPeriodicDirs and syncPeriodicDirs then
+               self._field_periodic_sync(self, self._zeroForOps:data())
+            end
+         end
       end,
       -- This method is an alternative function for applying periodic boundary
       -- conditions when Mpi.Comm_size(nodeComm) = 1 and we do not need to call
