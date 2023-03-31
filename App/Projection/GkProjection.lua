@@ -14,6 +14,7 @@ local DataStruct = require "DataStruct"
 local FunctionProjectionParent   = require ("App.Projection.KineticProjection").FunctionProjection
 local MaxwellianProjectionParent = require ("App.Projection.KineticProjection").MaxwellianProjection
 local Mpi              = require "Comm.Mpi"
+local diff = require("sci.diff-recursive")
 
 --------------------------------------------------------------------------------
 -- Gk-specific GkProjection.FunctionProjection includes Jacobian factors in initFunc.
@@ -34,6 +35,8 @@ end
 
 
 function FunctionProjection:advance(time, inFlds, outFlds)
+   --Akash
+   self.extFieldUse = inFlds[1]
    local extField = inFlds[1]
    local distf    = outFlds[1]
    local numDens = self:allocConfField()
@@ -61,21 +64,43 @@ function FunctionProjection:advance(time, inFlds, outFlds)
       }
       project:advance(time, {}, {distf})
    end
-
-   local jacobGeo = extField.geo.jacobGeo
-   if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
+   --move to couplingSolver
+   --local jacobGeo = extField.geo.jacobGeo
+   --if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
 end
 
 function FunctionProjection:createCouplingSolver(species,field, externalField)
-   if self.speciesName=='elc' then
+   if diff.lt(self.species.charge,0.0) then
+      print("elc name", self.species.name)
       local numDens = self:allocConfField()
       local numDensScaleTo = self:allocConfField()
-      species['elc'].numDensityCalc:advance(0.0, {species['elc'].distf[2]}, {numDens})
-      species['ion'].numDensityCalc:advance(0.0, {species['ion'].distf[2]}, {numDensScaleTo})
-      self:scaleDensity(species['elc'].distf[2], numDens, numDensScaleTo)
-      Mpi.Barrier(species['elc'].grid:commSet().sharedComm)
-      species['elc'].distf[1]:accumulate(1.0, species['elc'].distf[2])
+      local ionName = nil
+      for nm, s in lume.orderedIter(species) do
+        --may need to find a better way to identify ions
+        if diff.lt(0.0,s.charge) then
+          ionName=nm
+        end
+      end
+        print("ionName",ionName)
+      --local numDensScaleTo=0
+      ----Try using ions allocconfField
+      --for nm, pr in lume.orderedIter(species['ion'].projections) do
+      --   if string.find(nm,"init") then
+      --      numDensScaleTo=pr:allocConfField()
+      --   end
+      --end
+
+      --species['elc'].numDensityCalc:advance(0.0, {species['elc'].distf[1]}, {numDens})
+      self.species.numDensityCalc:advance(0.0, {self.species:getDistF()}, {numDens})
+      --self.species.numDensityCalc:advance(0.0, {self.species.distf[1]}, {numDens})
+      --species['ion'].numDensityCalc:advance(0.0, {species['ion'].distf[1]}, {numDensScaleTo})
+      species[ionName].numDensityCalc:advance(0.0, {species[ionName]:getDistF()}, {numDensScaleTo})
+      --species[ionName].numDensityCalc:advance(0.0, {species[ionName].distf[1]}, {numDensScaleTo})
+      self:scaleDensity(self.species:getDistF(), numDens, numDensScaleTo)
+      --self:scaleDensity(self.species.distf[1], numDens, numDensScaleTo)
    end
+   local jacobGeo = self.extFieldUse.geo.jacobGeo
+   if jacobGeo then self.weakMultiplyConfPhase:advance(0, {self.species:getDistF(), jacobGeo}, {self.species:getDistF()}) end
 end
 
 --------------------------------------------------------------------------------
