@@ -71,7 +71,6 @@ end
 
 function FunctionProjection:createCouplingSolver(species,field, externalField)
    if diff.lt(self.species.charge,0.0) then
-      print("elc name", self.species.name)
       local numDens = self:allocConfField()
       local numDensScaleTo = self:allocConfField()
       local ionName = nil
@@ -81,7 +80,6 @@ function FunctionProjection:createCouplingSolver(species,field, externalField)
           ionName=nm
         end
       end
-        print("ionName",ionName)
       --local numDensScaleTo=0
       ----Try using ions allocconfField
       --for nm, pr in lume.orderedIter(species['ion'].projections) do

@@ -24,6 +24,7 @@ local GkDiags      = require "App.Diagnostics.GkDiagnostics"
 local xsys         = require "xsys"
 local GyrokineticModDecl = require "Eq.gkData.GyrokineticModDecl"
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
+local diff = require("sci.diff-recursive")
 
 local GkBasicBC = Proto(BCsBase)
 
@@ -319,8 +320,9 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
             charge    = self.charge,
             mass      = self.mass,},
          }
+         --Move the multiplication to couplingSolver
          -- Multiply by conf space Jacobian Now
-         self.phaseWeakMultiply:advance(0, {self.ghostFld, self.jacobGeo}, {self.ghostFld})
+         --self.phaseWeakMultiply:advance(0, {self.ghostFld, self.jacobGeo}, {self.ghostFld})
       end
 
    else
@@ -340,22 +342,26 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
 end
 
 function GkBasicBC:createCouplingSolver(species,field,externalField)
-   if self.speciesName=="elc" and self.bcKind=='maxwellianGhost' and self.maxwellianKind=='canonical' then
-      local bcName = self.name:gsub("elc_","")
-      local numDens = self:allocMoment()
-      local numDensScaleTo = species['ion']['nonPeriodicBCs'][bcName]:allocMoment()
-      self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
-      species['ion']['nonPeriodicBCs'][bcName].numDensityCalc:advance(0.0, {species['ion']['nonPeriodicBCs'][bcName].ghostFld}, {numDensScaleTo})
+   if self.bcKind=='maxwellianGhost' and self.maxwellianKind=='canonical' then
+      if diff.lt(self.species.charge, 0.0) then
+         local bcName = self.name:gsub("elc_","")
+         local numDens = self:allocMoment()
+         local numDensScaleTo = species['ion']['nonPeriodicBCs'][bcName]:allocMoment()
+         self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
+         species['ion']['nonPeriodicBCs'][bcName].numDensityCalc:advance(0.0, {species['ion']['nonPeriodicBCs'][bcName].ghostFld}, {numDensScaleTo})
 
-      local M0mod   = self:allocMoment()
-      self.confWeakDivide:advance(0.0,{numDens, numDensScaleTo} , {M0mod})
-      self.phaseWeakMultiply:advance(0.0, {M0mod,self.ghostFld}, {self.ghostFld})
-      self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
-      self.confFieldIo:write(numDens, string.format("%s_M0_%d.bp", self.name, 0), 0.0, 0, false)
-   elseif self.speciesName=="ion" and self.bcKind=='maxwellianGhost' and self.maxwellianKind=='canonical' then
-      local numDens = self:allocMoment()
-      self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
-      self.confFieldIo:write(numDens, string.format("%s_M0_%d.bp", self.name, 0), 0.0, 0, false)
+         local M0mod   = self:allocMoment()
+         self.confWeakDivide:advance(0.0,{numDens, numDensScaleTo} , {M0mod})
+         self.phaseWeakMultiply:advance(0.0, {M0mod,self.ghostFld}, {self.ghostFld})
+         self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
+         self.confFieldIo:write(numDens, string.format("%s_M0_%d.bp", self.name, 0), 0.0, 0, false)
+      elseif diff.lt(0.0,self.species.charge) then
+         local numDens = self:allocMoment()
+         self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
+         self.confFieldIo:write(numDens, string.format("%s_M0_%d.bp", self.name, 0), 0.0, 0, false)
+      end
+      -- Multiply by conf space Jacobian Now
+      self.phaseWeakMultiply:advance(0, {self.ghostFld, self.jacobGeo}, {self.ghostFld})
    end
 end
 
