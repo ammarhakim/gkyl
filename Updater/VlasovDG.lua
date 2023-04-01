@@ -26,25 +26,6 @@ local new, sizeof, typeof, metatype = xsys.from(ffi,
      "new, sizeof, typeof, metatype")
 
 ffi.cdef [[ 
-// Identifiers for specific field object types
-enum gkyl_field_id {
-  GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
-  GKYL_FIELD_PHI = 1, // Poisson (only phi)
-  GKYL_FIELD_PHI_A = 2, // Poisson with static B = curl(A) (phi, A)
-  GKYL_FIELD_NULL = 3, // no field is present
-};
-
-// Identifiers for subsidary models
-// These are used to distinguish things like special relativistic from non-relativistic
-// or the parallel-kinetic-perpendicular-moment model
-enum gkyl_model_id {
-  GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified
-  GKYL_MODEL_SR = 1,
-  GKYL_MODEL_GEN_GEO = 2,
-  GKYL_MODEL_PKPM = 3,
-  GKYL_MODEL_SR_PKPM = 4,
-};
-
 typedef struct gkyl_dg_updater_vlasov gkyl_dg_updater_vlasov;
 
 /**
@@ -133,8 +114,8 @@ function VlasovDG:init(tbl)
 
    self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
 
-   self._modelId = assert(tbl.modelId, "Updater.VlasovDG: Must provide model ID using 'modelId'")
-   self._fieldId = assert(tbl.fieldId, "Updater.VlasovDG: Must provide field ID using 'fieldId'")
+   self._modelId = assert(tbl.model_id, "Updater.VlasovDG: Must provide model ID using 'modelId'")
+   self._fieldId = assert(tbl.field_id, "Updater.VlasovDG: Must provide field ID using 'fieldId'")
 
    local model_id
    if self._modelId == "GKYL_MODEL_DEFAULT" then model_id = 0
@@ -150,7 +131,7 @@ function VlasovDG:init(tbl)
    elseif self._fieldId == "GKYL_FIELD_PHI_A"  then field_id = 2
    elseif self._fieldId == "GKYL_FIELD_NULL"  then field_id = 3
    end   
-
+  
    self._zero = ffi.gc(
       ffiC.gkyl_dg_updater_vlasov_new(self._onGrid._zero, 
         self._confBasis._zero, self._phaseBasis._zero, 
@@ -196,7 +177,7 @@ function VlasovDG:_advance(tCurr, inFld, outFld)
 
    local localRange = qRhsOut:localRange()
    ffiC.gkyl_dg_updater_vlasov_advance(self._zero, localRange,
-     aux1, aux2, aux3, aux4, aux5,
+     inFld[2]._zero, aux2, aux3, aux4, aux5,
      qIn._zero, cflRateByCell._zero, qRhsOut._zero)
 
 end
@@ -238,6 +219,9 @@ function VlasovDG:_advanceOnDevice(tCurr, inFld, outFld)
      qIn._zeroDevice, cflRateByCell._zeroDevice, qRhsOut._zeroDevice)
 
 end
+
+-- Fetch equation updater.
+function VlasovDG:getEquation() return self._zero end
 
 -- set up pointers to dt and cflRateByCell
 function VlasovDG:setDtAndCflRate(dt, cflRateByCell)

@@ -11,6 +11,31 @@ local Proto = require "Lib.Proto"
 local Time  = require "Lib.Time"
 local ffi   = require "ffi"
 local xsys  = require "xsys"
+local ffiC = ffi.C
+local new, sizeof, typeof, metatype = xsys.from(ffi,
+     "new, sizeof, typeof, metatype")
+
+ffi.cdef [[ 
+// Identifiers for specific field object types
+enum gkyl_field_id {
+  GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
+  GKYL_FIELD_PHI = 1, // Poisson (only phi)
+  GKYL_FIELD_PHI_A = 2, // Poisson with static B = curl(A) (phi, A)
+  GKYL_FIELD_NULL = 3, // no field is present
+};
+
+// Identifiers for subsidary models
+// These are used to distinguish things like special relativistic from non-relativistic
+// or the parallel-kinetic-perpendicular-moment model
+enum gkyl_model_id {
+  GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified
+  GKYL_MODEL_SR = 1,
+  GKYL_MODEL_GEN_GEO = 2,
+  GKYL_MODEL_PKPM = 3,
+  GKYL_MODEL_SR_PKPM = 4,
+};
+
+]]
 
 local _M = Proto()
 

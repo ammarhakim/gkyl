@@ -18,17 +18,6 @@ local ffiC = ffi.C
 require "Lib.ZeroUtil"
 
 ffi.cdef [[
-// Identifiers for subsidary models
-// These are used to distinguish things like special relativistic from non-relativistic
-// or the parallel-kinetic-perpendicular-moment model
-enum gkyl_model_id {
-  GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified
-  GKYL_MODEL_SR = 1,
-  GKYL_MODEL_GEN_GEO = 2,
-  GKYL_MODEL_PKPM = 3,
-  GKYL_MODEL_SR_PKPM = 4,
-};
-
 // Object type
 typedef struct gkyl_dg_updater_moment gkyl_dg_updater_moment;  
 
@@ -129,7 +118,7 @@ function DistFuncMomentDG:init(tbl)
    local useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU)
 
    self._modelId = assert(
-     tbl.modelId, "Updater.VlasovDG: Must provide model ID using 'modelId'")
+     tbl.model_id, "Updater.VlasovDG: Must provide model ID using 'modelId'")
    local model_id
    if self._modelId == "GKYL_MODEL_DEFAULT" then model_id = 0
    elseif self._modelId == "GKYL_MODEL_SR"  then model_id = 1

@@ -324,7 +324,7 @@ function KineticSpecies:createGrid(confGridIn)
    -- Construct velocity space grid from phase space grid
    local dimsV = {}
    for d = 1, self.vdim do
-      table.insert(dimsV, cdim+d)
+      table.insert(dimsV, self.cdim+d)
    end
    -- Get the ingredients of the velocity space grid from the phase space grid
    local velGridIngr = self.grid:childGrid(dimsV)

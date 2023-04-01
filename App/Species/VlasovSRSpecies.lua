@@ -40,22 +40,22 @@ local function createBasis(nm, cdim, vdim, polyOrder)
    end
 end
 
--- Function to create phase space basis functions.
+-- Function to create velocity space basis functions.
 local function createVelBasis(nm, vdim, polyOrder)
    if nm == "serendipity" then
       if polyOrder == 1 then
          return Basis.CartModalSerendipity { ndim = vdim, polyOrder = 2 }
       else
-         return Basis.CartModalSerendipity { ndim = ndim, polyOrder = polyOrder }
+         return Basis.CartModalSerendipity { ndim = vdim, polyOrder = polyOrder }
       end
    elseif nm == "tensor" then
-      return Basis.CartModalTensor { ndim = ndim, polyOrder = polyOrder }
+      return Basis.CartModalTensor { ndim = vdim, polyOrder = polyOrder }
    end
 end
 
 function VlasovSRSpecies:createBasis(nm, polyOrder)
    self.basis = createBasis(nm, self.cdim, self.vdim, polyOrder)
-   self.velBasis = createBasis(nm, self.vdim, polyOrder)
+   self.velBasis = createVelBasis(nm, self.vdim, polyOrder)
    for _, c in pairs(self.collisions) do c:setPhaseBasis(self.basis) end
 
    -- Output of grid file is placed here because as the file name is associated
@@ -293,16 +293,16 @@ end
 -- Special Relativistic Vlasov-Maxwell (Cartesian geometry)
 local VlasovSRMaxwellSpecies = Proto(VlasovSRSpecies)
 function VlasovSRMaxwellSpecies:fullInit(mySpecies)
-   self.model_id  = "GKYL_MODEL_SR"
-   self.field_id  = "GKYL_FIELD_E_B"
+   self.model_id = "GKYL_MODEL_SR"
+   self.field_id = "GKYL_FIELD_E_B"
    VlasovSRMaxwellSpecies.super.fullInit(self, mySpecies)
 end
 
 -- Neutral Special Relativistic Vlasov (Cartesian geometry)
 local VlasovSRNeutralSpecies = Proto(VlasovSRSpecies)
 function VlasovSRNeutralSpecies:fullInit(mySpecies)
-   self.model_id  = "GKYL_MODEL_SR"
-   self.field_id  = "GKYL_FIELD_NULL"
+   self.model_id = "GKYL_MODEL_SR"
+   self.field_id = "GKYL_FIELD_NULL"
    VlasovSRNeutralSpecies.super.fullInit(self, mySpecies)
 end
 

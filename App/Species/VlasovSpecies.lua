@@ -71,7 +71,7 @@ end
 
 -- ............. End of backwards compatibility for BCs .....................--
 
--- Function to create basis functions.
+-- Function to create phase space basis functions.
 local function createBasis(nm, cdim, vdim, polyOrder)
    local ndim = cdim+vdim
    if nm == "serendipity" then
@@ -85,8 +85,22 @@ local function createBasis(nm, cdim, vdim, polyOrder)
    end
 end
 
+-- Function to create velocity space basis functions.
+local function createVelBasis(nm, vdim, polyOrder)
+   if nm == "serendipity" then
+      if polyOrder == 1 then
+         return Basis.CartModalSerendipity { ndim = vdim, polyOrder = 2 }
+      else
+         return Basis.CartModalSerendipity { ndim = vdim, polyOrder = polyOrder }
+      end
+   elseif nm == "tensor" then
+      return Basis.CartModalTensor { ndim = vdim, polyOrder = polyOrder }
+   end
+end
+
 function VlasovSpecies:createBasis(nm, polyOrder)
    self.basis = createBasis(nm, self.cdim, self.vdim, polyOrder)
+   self.velBasis = createVelBasis(nm, self.vdim, polyOrder)
    for _, c in pairs(self.collisions) do c:setPhaseBasis(self.basis) end
 
    -- Output of grid file is placed here because as the file name is associated
@@ -166,7 +180,6 @@ function VlasovSpecies:createSolver(field, externalField)
    if self.hasExtForce then
       self.totEmFptr, self.totEmFidxr = self.totalEmField:get(1), self.totalEmField:genIndexer()
    end
-
    -- Create updater to advance solution by one time-step.
    if self.evolveCollisionless then
       self.solver = Updater.VlasovDG {
@@ -378,7 +391,7 @@ function VlasovSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
    self.accumulateExtForce(tCurr, totalEmField)
 
-   self.collisionlessAdvance(tCurr, {fIn, totalEmField, emField}, {fRhsOut, self.cflRateByCell})
+   self.collisionlessAdvance(tCurr, {fIn, totalEmField}, {fRhsOut, self.cflRateByCell})
 
    -- Perform the collision update.
    for _, c in pairs(self.collisions) do
@@ -550,46 +563,45 @@ end
 -- Default: Non-Relativistic Vlasov-Maxwell (Cartesian geometry)
 local VlasovMaxwellSpecies = Proto(VlasovSpecies)
 function VlasovMaxwellSpecies:fullInit(mySpecies)
-   self.model_id  = "GKYL_MODEL_DEFAULT"
-   self.field_id  = "GKYL_FIELD_E_B"
+   self.model_id = "GKYL_MODEL_DEFAULT"
+   self.field_id = "GKYL_FIELD_E_B"
    VlasovMaxwellSpecies.super.fullInit(self, mySpecies)
 end
 
 -- Vlasov-Poisson, only phi (Cartesian geometry)
 local VlasovPoissonSpecies = Proto(VlasovSpecies)
 function VlasovPoissonSpecies:fullInit(mySpecies)
-   self.model_id  = "GKYL_MODEL_DEFAULT"
-   self.field_id  = "GKYL_FIELD_PHI"
+   self.model_id = "GKYL_MODEL_DEFAULT"
+   self.field_id = "GKYL_FIELD_PHI"
    VlasovPoissonSpecies.super.fullInit(self, mySpecies)
 end
 
 -- Vlasov-Poisson, phi + constant A (constant background magnetic field, Cartesian geometry)
 local VlasovPoissonASpecies = Proto(VlasovSpecies)
 function VlasovPoissonASpecies:fullInit(mySpecies)
-   self.model_id  = "GKYL_MODEL_DEFAULT"
-   self.field_id  = "GKYL_FIELD_PHI_A"
+   self.model_id = "GKYL_MODEL_DEFAULT"
+   self.field_id = "GKYL_FIELD_PHI_A"
    VlasovPoissonASpecies.super.fullInit(self, mySpecies)
 end
 
 -- Neutral Non-Relativistic Vlasov (Cartesian geometry)
 local VlasovNeutralSpecies = Proto(VlasovSpecies)
 function VlasovNeutralSpecies:fullInit(mySpecies)
-   self.model_id  = "GKYL_MODEL_DEFAULT"
-   self.field_id  = "GKYL_FIELD_NULL"
+   self.model_id = "GKYL_MODEL_DEFAULT"
+   self.field_id = "GKYL_FIELD_NULL"
    VlasovNeutralSpecies.super.fullInit(self, mySpecies)
 end
 
 -- Neutral Vlasov (General geometry)
 local VlasovGenGeoNeutralSpecies = Proto(VlasovSpecies)
 function VlasovGenGeoNeutralSpecies:fullInit(mySpecies)
-   self.model_id  = "GKYL_MODEL_GEN_GEO"
-   self.field_id  = "GKYL_FIELD_NULL"
+   self.model_id = "GKYL_MODEL_GEN_GEO"
+   self.field_id = "GKYL_FIELD_NULL"
    VlasovGenGeoNeutralSpecies.super.fullInit(self, mySpecies)
 end
 -- ................... End of VlasovSpecies alias classes .................... --
 
-return {Vlasov              = VlasovSpecies,
-        VlasovMaxwell       = VlasovMaxwellSpecies,
+return {VlasovMaxwell       = VlasovMaxwellSpecies,
         VlasovPoisson       = VlasovPoissonSpecies,
         VlasovPoissonA      = VlasovPoissonASpecies,
         VlasovNeutral       = VlasovNeutralSpecies,
