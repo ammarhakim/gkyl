@@ -114,6 +114,13 @@ function VlasovSpecies:alloc(nRkDup)
 
    self.ptclEnergyAux = self:allocMoment()
 
+   -- Allocate fields to store a velocity space array
+   -- NOTE: This is a hack because right now we *only* create the proper sub-ranges 
+   -- inside CartField allocation. This array is *not* used by VlasovSpecies because
+   -- VlasovSpecies is non-relativistic and does not use the Lorentz boost factor
+   -- but the Vlasov DG object always needs to know the velocity space sub-range (JJ: 03/31/23)
+   self.p_over_gamma  = self:allocVectorVelMoment(self.vdim)
+
    -- Allocate field for external forces if any.
    if self.hasExtForce then 
       self.vExtForce = self:allocVectorMoment(self.vdim)
@@ -160,16 +167,12 @@ function VlasovSpecies:createSolver(field, externalField)
       self.totEmFptr, self.totEmFidxr = self.totalEmField:get(1), self.totalEmField:genIndexer()
    end
 
-   self.computePlasmaB = true and plasmaB or extHasB   -- Differentiate plasma B from external B.
-
    -- Create updater to advance solution by one time-step.
    if self.evolveCollisionless then
       self.solver = Updater.VlasovDG {
-         onGrid     = self.grid,                       hasElectricField = hasE,
-         confBasis  = self.confBasis,                  hasMagneticField = hasB,
-         phaseBasis = self.basis,                      hasExtForce      = self.hasExtForce,
-         confRange  = self.totalEmField:localRange(),  phaseRange       = self.distf[1]:localRange(),  
-         plasmaMagField = self.computePlasmaB
+         onGrid    = self.grid,                      confBasis = self.confBasis,                phaseBasis = self.basis, 
+         confRange = self.totalEmField:localRange(), velRange = self.p_over_gamma:localRange(), phaseRange = self.distf[1]:localRange(), 
+         model_id  = self.model_id,                  field_id = self.field_id, 
       }
       self.collisionlessAdvance = function(tCurr, inFlds, outFlds)
          self.solver:advance(tCurr, inFlds, outFlds)
@@ -543,4 +546,51 @@ function VlasovSpecies:projToSource(proj)
    return Source { profile = proj, power = pow }
 end
 
-return VlasovSpecies
+-- ................... Classes meant as aliases to simplify input files ...................... --
+-- Default: Non-Relativistic Vlasov-Maxwell (Cartesian geometry)
+local VlasovMaxwellSpecies = Proto(VlasovSpecies)
+function VlasovMaxwellSpecies:fullInit(mySpecies)
+   self.model_id  = "GKYL_MODEL_DEFAULT"
+   self.field_id  = "GKYL_FIELD_E_B"
+   VlasovMaxwellSpecies.super.fullInit(self, mySpecies)
+end
+
+-- Vlasov-Poisson, only phi (Cartesian geometry)
+local VlasovPoissonSpecies = Proto(VlasovSpecies)
+function VlasovPoissonSpecies:fullInit(mySpecies)
+   self.model_id  = "GKYL_MODEL_DEFAULT"
+   self.field_id  = "GKYL_FIELD_PHI"
+   VlasovPoissonSpecies.super.fullInit(self, mySpecies)
+end
+
+-- Vlasov-Poisson, phi + constant A (constant background magnetic field, Cartesian geometry)
+local VlasovPoissonASpecies = Proto(VlasovSpecies)
+function VlasovPoissonASpecies:fullInit(mySpecies)
+   self.model_id  = "GKYL_MODEL_DEFAULT"
+   self.field_id  = "GKYL_FIELD_PHI_A"
+   VlasovPoissonASpecies.super.fullInit(self, mySpecies)
+end
+
+-- Neutral Non-Relativistic Vlasov (Cartesian geometry)
+local VlasovNeutralSpecies = Proto(VlasovSpecies)
+function VlasovNeutralSpecies:fullInit(mySpecies)
+   self.model_id  = "GKYL_MODEL_DEFAULT"
+   self.field_id  = "GKYL_FIELD_NULL"
+   VlasovNeutralSpecies.super.fullInit(self, mySpecies)
+end
+
+-- Neutral Vlasov (General geometry)
+local VlasovGenGeoNeutralSpecies = Proto(VlasovSpecies)
+function VlasovGenGeoNeutralSpecies:fullInit(mySpecies)
+   self.model_id  = "GKYL_MODEL_GEN_GEO"
+   self.field_id  = "GKYL_FIELD_NULL"
+   VlasovGenGeoNeutralSpecies.super.fullInit(self, mySpecies)
+end
+-- ................... End of VlasovSpecies alias classes .................... --
+
+return {Vlasov              = VlasovSpecies,
+        VlasovMaxwell       = VlasovMaxwellSpecies,
+        VlasovPoisson       = VlasovPoissonSpecies,
+        VlasovPoissonA      = VlasovPoissonASpecies,
+        VlasovNeutral       = VlasovNeutralSpecies,
+        VlasovGenGeoNeutral = VlasovGenGeoNeutralSpecies}

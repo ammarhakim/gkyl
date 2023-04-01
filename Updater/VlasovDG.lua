@@ -169,18 +169,26 @@ function VlasovDG:_advance(tCurr, inFld, outFld)
 
    -- Auxiliary fields for Vlasov update. 
    -- Not all auxiliary fields are used by a given Vlasov equation object
-   -- but this choice is handled at the App level
+   -- *but this choice will be handled at the App level soon*
    -- Typical auxiliary field ordering:
    -- aux1 = EM field (either Maxwell's, q/m*EM, or Poisson, q/m*phi)
    -- aux2 = p/gamma (relativistic velocity) or velocity coordinate on mapped velocity grid
    -- aux3 = external EM field (external vector potential A in Vlasov-Poisson)
    -- aux4 = cotangent vector (for general geometry in configuration space)
    -- aux5 = alpha_geo (phase space flux modified for general geometry in configuration space)
-   local aux1 = inFld[2]._zero
-   local aux2 = inFld[3]._zero
-   local aux3 = inFld[4]._zero
-   local aux4 = inFld[5]._zero
-   local aux5 = inFld[6]._zero
+   local aux1, aux2, aux3, aux4, aux5 = nil, nil, nil, nil, nil
+   if self._modelId == "GKYL_MODEL_SR" then
+      aux1 = inFld[2]._zero
+      aux2 = inFld[3]._zero
+   elseif self._modelId == "GKYL_MODEL_PKPM" then
+      aux1 = inFld[2]._zero
+      aux2 = inFld[3]._zero
+      aux3 = inFld[4]._zero
+      aux4 = inFld[5]._zero
+      aux5 = inFld[6]._zero
+   else
+      aux1 = inFld[2]._zero
+   end
    
    local qRhsOut = assert(outFld[1], "VlasovDG.advance: Must specify an output field")
    local cflRateByCell = assert(outFld[2],
@@ -199,18 +207,26 @@ function VlasovDG:_advanceOnDevice(tCurr, inFld, outFld)
 
    -- Auxiliary fields for Vlasov update. 
    -- Not all auxiliary fields are used by a given Vlasov equation object
-   -- but this choice is handled at the App level
+   -- *but this choice will be handled at the App level soon*
    -- Typical auxiliary field ordering:
    -- aux1 = EM field (either Maxwell's, q/m*EM, or Poisson, q/m*phi)
    -- aux2 = p/gamma (relativistic velocity) or velocity coordinate on mapped velocity grid
    -- aux3 = external EM field (external vector potential A in Vlasov-Poisson)
    -- aux4 = cotangent vector (for general geometry in configuration space)
    -- aux5 = alpha_geo (phase space flux modified for general geometry in configuration space)
-   local aux1 = inFld[2]._zeroDevice
-   local aux2 = inFld[3]._zeroDevice
-   local aux3 = inFld[4]._zeroDevice
-   local aux4 = inFld[5]._zeroDevice
-   local aux5 = inFld[6]._zeroDevice
+   local aux1, aux2, aux3, aux4, aux5 = nil, nil, nil, nil, nil
+   if self._modelId == "GKYL_MODEL_SR" then
+      aux1 = inFld[2]._zeroDevice
+      aux2 = inFld[3]._zeroDevice
+   elseif self._modelId == "GKYL_MODEL_PKPM" then
+      aux1 = inFld[2]._zeroDevice
+      aux2 = inFld[3]._zeroDevice
+      aux3 = inFld[4]._zeroDevice
+      aux4 = inFld[5]._zeroDevice
+      aux5 = inFld[6]._zeroDevice
+   else
+      aux1 = inFld[2]._zeroDevice
+   end
    
    local qRhsOut = assert(outFld[1], "VlasovDG.advance: Must specify an output field")
    local cflRateByCell = assert(outFld[2],

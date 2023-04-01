@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Vlasov species
+-- Special Relativistic Vlasov species
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -24,7 +24,7 @@ local BCsBase        = require "App.BCs.BCsBase"
 local xsys           = require "xsys"
 local lume           = require "Lib.lume"
 
-local VlasovSpecies = Proto(KineticSpecies)
+local VlasovSRSpecies = Proto(KineticSpecies)
 
 -- Function to create phase space basis functions.
 local function createBasis(nm, cdim, vdim, polyOrder)
@@ -53,7 +53,7 @@ local function createVelBasis(nm, vdim, polyOrder)
    end
 end
 
-function VlasovSpecies:createBasis(nm, polyOrder)
+function VlasovSRSpecies:createBasis(nm, polyOrder)
    self.basis = createBasis(nm, self.cdim, self.vdim, polyOrder)
    self.velBasis = createBasis(nm, self.vdim, polyOrder)
    for _, c in pairs(self.collisions) do c:setPhaseBasis(self.basis) end
@@ -71,9 +71,9 @@ function VlasovSpecies:createBasis(nm, polyOrder)
    end
 end
 
-function VlasovSpecies:alloc(nRkDup)
+function VlasovSRSpecies:alloc(nRkDup)
    -- Allocate distribution function.
-   VlasovSpecies.super.alloc(self, nRkDup)
+   VlasovSRSpecies.super.alloc(self, nRkDup)
 
    -- Allocate fields to store coupling moments (for use in coupling
    -- to field and collisions).
@@ -107,8 +107,8 @@ function VlasovSpecies:alloc(nRkDup)
    end
 end
 
-function VlasovSpecies:fullInit(appTbl)
-   VlasovSpecies.super.fullInit(self, appTbl)
+function VlasovSRSpecies:fullInit(appTbl)
+   VlasovSRSpecies.super.fullInit(self, appTbl)
 
    local tbl = self.tbl
 
@@ -120,9 +120,9 @@ function VlasovSpecies:fullInit(appTbl)
    end
 end
 
-function VlasovSpecies:createSolver(field, externalField)
+function VlasovSRSpecies:createSolver(field, externalField)
    -- Run the KineticSpecies 'createSolver()' to initialize the collisions solver.
-   VlasovSpecies.super.createSolver(self, field, externalField)
+   VlasovSRSpecies.super.createSolver(self, field, externalField)
 
    -- Initialize velocity-space arrays for relativistic Vlasov
    -- Only need to do this once, so we don't need to store the updater
@@ -214,24 +214,12 @@ function VlasovSpecies:createSolver(field, externalField)
       self.accumulateExtForce = function(tCurr, totalEmField) end
    end
 
-   -- Create an updater for volume integrals. Used by diagnostics.
-   self.volIntegral = {
-      scalar = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.confGrid,   numComponents = 1,
-         basis  = self.confBasis,  quantity      = "V",
-      },
-      vector = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.confGrid,   numComponents = self.vdim,
-         basis  = self.confBasis,  quantity      = "V",
-      },
-   }
-
    self.tmCouplingMom = 0.0    -- For timer.
 end
 
-function VlasovSpecies:setActiveRKidx(rkIdx) self.activeRKidx = rkIdx end
+function VlasovSRSpecies:setActiveRKidx(rkIdx) self.activeRKidx = rkIdx end
 
-function VlasovSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
+function VlasovSRSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
    self:setActiveRKidx(inIdx)
    local fIn     = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
@@ -250,11 +238,11 @@ function VlasovSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
    self.accumulateExtForce(tCurr, totalEmField)
 
-   self.collisionlessAdvance(tCurr, {fIn, totalEmField, self.p_over_gamma, nil, nil, nil}, {fRhsOut, self.cflRateByCell})
+   self.collisionlessAdvance(tCurr, {fIn, totalEmField, self.p_over_gamma}, {fRhsOut, self.cflRateByCell})
 
 end
 
-function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
+function VlasovSRSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    -- Compute moments needed in coupling to fields and collisions.
    local tmStart = Time.clock()
 
@@ -266,9 +254,9 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
 end
 
-function VlasovSpecies:fluidMoments() return self.fiveMoments end
+function VlasovSRSpecies:fluidMoments() return self.fiveMoments end
 
-function VlasovSpecies:getNumDensity(rkIdx)
+function VlasovSRSpecies:getNumDensity(rkIdx)
    -- If no rkIdx specified, assume numDensity has already been calculated.
    if rkIdx == nil then return self.numDensity end 
 
@@ -282,7 +270,7 @@ function VlasovSpecies:getNumDensity(rkIdx)
    return self.numDensity
 end
 
-function VlasovSpecies:getMomDensity(rkIdx)
+function VlasovSRSpecies:getMomDensity(rkIdx)
    -- If no rkIdx specified, assume momDensity has already been calculated.
    if rkIdx == nil then return self.momDensity end 
 
@@ -296,9 +284,29 @@ function VlasovSpecies:getMomDensity(rkIdx)
    return self.momDensity
 end
 
-function VlasovSpecies:momCalcTime()
+function VlasovSRSpecies:momCalcTime()
    local tm = self.tmCouplingMom
    return tm
 end
 
-return VlasovSpecies
+-- ................... Classes meant as aliases to simplify input files ...................... --
+-- Special Relativistic Vlasov-Maxwell (Cartesian geometry)
+local VlasovSRMaxwellSpecies = Proto(VlasovSRSpecies)
+function VlasovSRMaxwellSpecies:fullInit(mySpecies)
+   self.model_id  = "GKYL_MODEL_SR"
+   self.field_id  = "GKYL_FIELD_E_B"
+   VlasovSRMaxwellSpecies.super.fullInit(self, mySpecies)
+end
+
+-- Neutral Special Relativistic Vlasov (Cartesian geometry)
+local VlasovSRNeutralSpecies = Proto(VlasovSRSpecies)
+function VlasovSRNeutralSpecies:fullInit(mySpecies)
+   self.model_id  = "GKYL_MODEL_SR"
+   self.field_id  = "GKYL_FIELD_NULL"
+   VlasovSRNeutralSpecies.super.fullInit(self, mySpecies)
+end
+
+-- ................... End of VlasovSRSpecies alias classes .................... --
+
+return {VlasovSRMaxwell = VlasovSRMaxwellSpecies,
+        VlasovSRNeutral = VlasovSRNeutralSpecies}

@@ -886,8 +886,22 @@ return {
 
    VlasovMaxwell = function ()
       App.label = "Vlasov-Maxwell"
+      GenSpecies = {
+         -- Non-relativistic Vlasov flavors
+         Vlasov = require ("App.Species.VlasovSpecies").VlasovMaxwell,
+         VlasovPoisson = require ("App.Species.VlasovSpecies").VlasovPoisson,
+         VlasovPoissonA = require ("App.Species.VlasovSpecies").VlasovPoissonA,
+         VlasovNeutral = require ("App.Species.VlasovSpecies").VlasovNeutral,
+         VlasovGenGeoNeutral = require ("App.Species.VlasovSpecies").VlasovGenGeoNeutral,
+         -- Relativistic Vlasov flavors
+         VlasovSR = require ("App.Species.VlasovSRSpecies").VlasovSRMaxwell,
+         VlasovSRNeutral = require ("App.Species.VlasovSRSpecies").VlasovSRNeutral,
+      }
+      GenField = {
+         Maxwell = require ("App.Field.MaxwellField").MaxwellField,
+      }
       return {
-	 App = App,
+         App = App,
          BasicBC = require ("App.BCs.VlasovBasic").VlasovBasic,
          AbsorbBC = require ("App.BCs.VlasovBasic").VlasovAbsorb,
          CopyBC = require ("App.BCs.VlasovBasic").VlasovCopy,
@@ -896,22 +910,25 @@ return {
          ReflectBC = require ("App.BCs.VlasovBasic").VlasovReflect,
          ZeroFluxBC = require ("App.BCs.VlasovBasic").VlasovZeroFlux,
          BronoldFehskeBC = require "App.BCs.BronoldFehskeReflection",
-	 Species = require "App.Species.VlasovSpecies",
-	 FuncSpecies = require "App.Species.FuncVlasovSpecies",
-	 Field = require ("App.Field.MaxwellField").MaxwellField,
-	 ExternalField = require ("App.Field.MaxwellField").ExternalMaxwellField,
-	 FuncField = require ("App.Field.MaxwellField").ExternalMaxwellField, -- for backwards compat
-	 FunctionProjection = require ("App.Projection.VlasovProjection").FunctionProjection,
-	 MaxwellianProjection = require ("App.Projection.VlasovProjection").MaxwellianProjection,
-	 BGKCollisions = require "App.Collisions.VmBGKCollisions",
-	 LBOCollisions = require "App.Collisions.VmLBOCollisions",
-	 BgkCollisions = require "App.Collisions.VmBGKCollisions",
-	 LboCollisions = require "App.Collisions.VmLBOCollisions",
-	 ChargeExchange = require "App.Collisions.VmChargeExchange",
-	 Ionization = require "App.Collisions.VmIonization",
-	 Diffusion = require "App.Collisions.Diffusion",
-	 SteadySource = require "App.Sources.VmSteadyStateSource",
-	 Source = require "App.Sources.VmSource",
+         -- Backwards compatible species and field objects
+         Species = require ("App.Species.VlasovSpecies").VlasovMaxwell,
+         FuncSpecies = require "App.Species.FuncVlasovSpecies",
+         Field = require ("App.Field.MaxwellField").MaxwellField,
+         ExternalField = require ("App.Field.MaxwellField").ExternalMaxwellField,
+         -- Flexible species and field objects
+         GenSpecies = GenSpecies,
+         GenField = GenField,
+         FunctionProjection = require ("App.Projection.VlasovProjection").FunctionProjection,
+         MaxwellianProjection = require ("App.Projection.VlasovProjection").MaxwellianProjection,
+         BGKCollisions = require "App.Collisions.VmBGKCollisions",
+         LBOCollisions = require "App.Collisions.VmLBOCollisions",
+         BgkCollisions = require "App.Collisions.VmBGKCollisions",
+         LboCollisions = require "App.Collisions.VmLBOCollisions",
+         ChargeExchange = require "App.Collisions.VmChargeExchange",
+         Ionization = require "App.Collisions.VmIonization",
+         Diffusion = require "App.Collisions.Diffusion",
+         SteadySource = require "App.Sources.VmSteadyStateSource",
+         Source = require "App.Sources.VmSource",
       }
    end,
    

@@ -154,7 +154,17 @@ function DistFuncMomentDG:_advance(tCurr, inFld, outFld)
    local confRange = mOut:localExtRange()
    local phaseRange = qIn:localExtRange()
 
-   ffiC.gkyl_dg_updater_moment_advance(self._zero, phaseRange, confRange, nil, nil, nil, nil, nil, nil, qIn._zero, mOut._zero)
+   local aux1, aux2, aux3, aux4, aux5, aux6 = nil, nil, nil, nil, nil, nil
+   if self._modelId == "GKYL_MODEL_SR" then
+      aux1 = inFld[2]._zero
+      aux2 = inFld[3]._zero
+      aux3 = inFld[4]._zero
+      aux4 = inFld[5]._zero
+      aux5 = inFld[6]._zero
+      aux6 = inFld[7]._zero
+   end
+
+   ffiC.gkyl_dg_updater_moment_advance(self._zero, phaseRange, confRange, aux1, aux2, aux3, aux4, aux5, aux6, qIn._zero, mOut._zero)
 end
 
 function DistFuncMomentDG:_advanceOnDevice(tCurr, inFld, outFld)
@@ -164,7 +174,17 @@ function DistFuncMomentDG:_advanceOnDevice(tCurr, inFld, outFld)
    local confRange = mOut:localExtRange()
    local phaseRange = qIn:localExtRange()
 
-   ffiC.gkyl_dg_updater_moment_advance_cu(self._zero, phaseRange, confRange, nil, nil, nil, nil, nil, nil, qIn._zeroDevice, mOut._zeroDevice)
+   local aux1, aux2, aux3, aux4, aux5, aux6 = nil, nil, nil, nil, nil, nil
+   if self._modelId == "GKYL_MODEL_SR" then
+      aux1 = inFld[2]._zeroDevice
+      aux2 = inFld[3]._zeroDevice
+      aux3 = inFld[4]._zeroDevice
+      aux4 = inFld[5]._zeroDevice
+      aux5 = inFld[6]._zeroDevice
+      aux6 = inFld[7]._zeroDevice
+   end
+
+   ffiC.gkyl_dg_updater_moment_advance_cu(self._zero, phaseRange, confRange, aux1, aux2, aux3, aux4, aux5, aux6, qIn._zeroDevice, mOut._zeroDevice)
 end
 
 
