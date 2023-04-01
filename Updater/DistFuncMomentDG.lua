@@ -18,6 +18,17 @@ local ffiC = ffi.C
 require "Lib.ZeroUtil"
 
 ffi.cdef [[
+// Identifiers for subsidary models
+// These are used to distinguish things like special relativistic from non-relativistic
+// or the parallel-kinetic-perpendicular-moment model
+enum gkyl_model_id {
+  GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified
+  GKYL_MODEL_SR = 1,
+  GKYL_MODEL_GEN_GEO = 2,
+  GKYL_MODEL_PKPM = 3,
+  GKYL_MODEL_SR_PKPM = 4,
+};
+
 // Object type
 typedef struct gkyl_dg_updater_moment gkyl_dg_updater_moment;  
 
@@ -97,18 +108,40 @@ function DistFuncMomentDG:init(tbl)
    DistFuncMomentDG.super.init(self, tbl)    -- Setup base object.
 
    self._onGrid = assert(tbl.onGrid, "Updater.DistFuncMomentDG: Must specify grid to use with 'onGrid'.")
-   self._confBasis = assert(tbl.confBasis, "Updater.DistFuncMomentDG: Must specify configuration space basis with 'confBasis'.")
-   self._phaseBasis = assert(tbl.phaseBasis, "Updater.DistFuncMomentDG: Must specify phase space basis with 'confBasis'.")
-   self._modelId = "GKYL_MODEL_DEFAULT"
-   self._moment = assert(tbl.moment, "Updater.DistFuncMomentDG: Must specify moment type with 'moment'.")
-   self._isIntegrated = assert(tbl.isIntegrated, "Updater.DistFuncMomentDG: Must specify if integrated moment with 'isIntegrated'.")
+   self._phaseBasis = assert(
+     tbl.phaseBasis, "Updater.DistFuncMomentDG: Must specify phase-space basis functions to use using 'phaseBasis'")
+   self._confBasis = assert(
+     tbl.confBasis, "Updater.DistFuncMomentDG: Must specify conf-space basis functions to use using 'confBasis'")
+
+   self._confRange = assert(
+     tbl.confRange, "Updater.DistFuncMomentDG: Must specify conf-space range using 'confRange'")
+   assert(self._confRange:isSubRange()==1, "Updater.DistFuncMomentDG: confRange must be a sub-range") 
+
+   self._velRange = assert(
+     tbl.velRange, "Updater.DistFuncMomentDG: Must specify velocity-space range using 'velRange'")
+   assert(self._velRange:isSubRange()==1, "Updater.DistFuncMomentDG: velRange must be a sub-range") 
+
+   self._moment = assert(
+     tbl.moment, "Updater.DistFuncMomentDG: Must specify moment type with 'moment'.")
+   self._isIntegrated = assert(
+     tbl.isIntegrated, "Updater.DistFuncMomentDG: Must specify if integrated moment with 'isIntegrated'.")
 
    local useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU)
 
+   self._modelId = assert(
+     tbl.modelId, "Updater.VlasovDG: Must provide model ID using 'modelId'")
+   local model_id
+   if self._modelId == "GKYL_MODEL_DEFAULT" then model_id = 0
+   elseif self._modelId == "GKYL_MODEL_SR"  then model_id = 1
+   elseif self._modelId == "GKYL_MODEL_GEN_GEO"  then model_id = 2 
+   elseif self._modelId == "GKYL_MODEL_PKPM"  then model_id = 3
+   elseif self._modelId == "GKYL_MODEL_SR_PKPM"  then model_id = 4
+   end 
+
    self._zero = ffi.gc(ffiC.gkyl_dg_updater_moment_new(self._onGrid._zero, 
                           self._confBasis._zero, self._phaseBasis._zero, 
-                          nil, nil, 
-                          self._modelId, self._moment, 
+                          self._confRange, self._velRange, 
+                          model_id, self._moment, 
                           self._isIntegrated, 0.0, useGPU or 0),
                        ffiC.gkyl_dg_updater_moment_release)
 end

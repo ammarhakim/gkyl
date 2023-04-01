@@ -53,90 +53,6 @@ local function createVelBasis(nm, vdim, polyOrder)
    end
 end
 
--- Function to create different p/gamma
-local function p_over_gamma_func(vdim)
-   if vdim == 1 then
-      return function(t, xn)
-         local px = xn[1]
-         local gamma = sqrt(1 + px*px)
-         return px/gamma
-      end
-   else if vdim == 2 then
-      return function(t, xn)
-         local px = xn[1]
-         local py = xn[2]
-         local gamma = sqrt(1 + px*px + py*py)
-         return px/gamma, py/gamma
-      end
-   else if vdim == 3 then
-      return function(t, xn)
-         local px = xn[1]
-         local py = xn[2]
-         local pz = xn[3]
-         local gamma = sqrt(1 + px*px + py*py + pz*pz)
-         return px/gamma, py/gamma, pz/gamma
-      end
-   else
-      assert(false)
-   end
-end
-
--- Function to create different gamma
-local function gamma_func(vdim)
-   if vdim == 1 then
-      return function(t, xn)
-         local px = xn[1]
-         local gamma = sqrt(1 + px*px)
-         return gamma
-      end
-   else if vdim == 2 then
-      return function(t, xn)
-         local px = xn[1]
-         local py = xn[2]
-         local gamma = sqrt(1 + px*px + py*py)
-         return gamma
-      end
-   else if vdim == 3 then
-      return function(t, xn)
-         local px = xn[1]
-         local py = xn[2]
-         local pz = xn[3]
-         local gamma = sqrt(1 + px*px + py*py + pz*pz)
-         return gamma
-      end
-   else
-      assert(false)
-   end
-end
-
--- Function to create different gamma_inv = 1/gamma
-local function gamma_func(vdim)
-   if vdim == 1 then
-      return function(t, xn)
-         local px = xn[1]
-         local gamma = sqrt(1 + px*px)
-         return 1.0/gamma
-      end
-   else if vdim == 2 then
-      return function(t, xn)
-         local px = xn[1]
-         local py = xn[2]
-         local gamma = sqrt(1 + px*px + py*py)
-         return 1.0/gamma
-      end
-   else if vdim == 3 then
-      return function(t, xn)
-         local px = xn[1]
-         local py = xn[2]
-         local pz = xn[3]
-         local gamma = sqrt(1 + px*px + py*py + pz*pz)
-         return 1.0/gamma
-      end
-   else
-      assert(false)
-   end
-end
-
 function VlasovSpecies:createBasis(nm, polyOrder)
    self.basis = createBasis(nm, self.cdim, self.vdim, polyOrder)
    self.velBasis = createBasis(nm, self.vdim, polyOrder)
@@ -209,11 +125,15 @@ function VlasovSpecies:createSolver(field, externalField)
    VlasovSpecies.super.createSolver(self, field, externalField)
 
    -- Initialize velocity-space arrays for relativistic Vlasov
-   self.p_over_gamma_proj = Updater.EvalOnNodes {
-      onGrid = self.velGrid,   evaluate = p_over_gamma_func(vdim),
-      basis  = self.velBasis,  onGhosts = false
+   -- Only need to do this once, so we don't need to store the updater
+   local initSRVarsCalc = Updater.CalcSRVars {
+      velGrid = self.velGrid, 
+      confBasis = self.confBasis, 
+      velBasis = self.velBasis, 
+      phaseBasis = self.basis, 
+      op = "init", 
    }
-   self.p_over_gamma_proj:advance(0.0, {}, {self.p_over_gamma})
+   initSRVarsCalc:advance(0.0, {}, {self.p_over_gamma, self.gamma, self.gamma_inv})
 
    local plasmaE, plasmaB = field:hasEB()
    local extHasE, extHasB = externalField:hasEB()
@@ -330,7 +250,7 @@ function VlasovSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
    self.accumulateExtForce(tCurr, totalEmField)
 
-   self.collisionlessAdvance(tCurr, {fIn, totalEmField, self.p_over_gamma}, {fRhsOut, self.cflRateByCell})
+   self.collisionlessAdvance(tCurr, {fIn, totalEmField, self.p_over_gamma, nil, nil, nil}, {fRhsOut, self.cflRateByCell})
 
 end
 

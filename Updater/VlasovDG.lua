@@ -29,9 +29,9 @@ ffi.cdef [[
 // Identifiers for specific field object types
 enum gkyl_field_id {
   GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
-  GKYL_FIELD_PHI, // Poisson (only phi)
-  GKYL_FIELD_PHI_A, // Poisson with static B = curl(A) (phi, A)
-  GKYL_FIELD_NULL, // no field is present
+  GKYL_FIELD_PHI = 1, // Poisson (only phi)
+  GKYL_FIELD_PHI_A = 2, // Poisson with static B = curl(A) (phi, A)
+  GKYL_FIELD_NULL = 3, // no field is present
 };
 
 // Identifiers for subsidary models
@@ -39,10 +39,10 @@ enum gkyl_field_id {
 // or the parallel-kinetic-perpendicular-moment model
 enum gkyl_model_id {
   GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified
-  GKYL_MODEL_SR,
-  GKYL_MODEL_GEN_GEO,
-  GKYL_MODEL_PKPM,
-  GKYL_MODEL_SR_PKPM,
+  GKYL_MODEL_SR = 1,
+  GKYL_MODEL_GEN_GEO = 2,
+  GKYL_MODEL_PKPM = 3,
+  GKYL_MODEL_SR_PKPM = 4,
 };
 
 typedef struct gkyl_dg_updater_vlasov gkyl_dg_updater_vlasov;
@@ -77,10 +77,11 @@ gkyl_dg_updater_vlasov* gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *
  *
  * @param vlasov vlasov updater object
  * @param update_rng Range on which to compute.
- * @param aux1 Auxiliary field 1 (usually qmem or fac_phi)
- * @param aux2 Auxiliary field 2
- * @param aux1 Auxiliary field 3
- * @param aux2 Auxiliary field 4
+ * @param aux1 Auxiliary field 1 EM field, (either Maxwell's, q/m*EM, or Poisson, q/m*phi)
+ * @param aux2 Auxiliary field 2 p/gamma (relativistic velocity) or velocity coordinate on mapped velocity grid
+ * @param aux3 Auxiliary field 3 external EM field (external vector potential A in Vlasov-Poisson)
+ * @param aux4 Auxiliary field 4 cotangent vector (for general geometry in configuration space)
+ * @param aux5 Auxiliary field 5 alpha_geo (phase space flux modified for general geometry in configuration space)
  * @param fIn Input to updater
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
@@ -113,42 +114,48 @@ function VlasovDG:init(tbl)
 
    -- Read data from input file.
    self._onGrid = assert(tbl.onGrid, "Updater.VlasovDG: Must provide grid object using 'onGrid'")
-   self._phaseBasis = assert(tbl.phaseBasis,
-     "Updater.VlasovDG: Must specify phase-space basis functions to use using 'phaseBasis'")
-   self._confBasis = assert(tbl.confBasis,
-     "Updater.VlasovDG: Must specify conf-space basis functions to use using 'confBasis'")
+   self._phaseBasis = assert(
+     tbl.phaseBasis, "Updater.VlasovDG: Must specify phase-space basis functions to use using 'phaseBasis'")
+   self._confBasis = assert(
+     tbl.confBasis, "Updater.VlasovDG: Must specify conf-space basis functions to use using 'confBasis'")
 
-   self._confRange = assert(tbl.confRange,
-     "Updater.VlasovDG: Must specify conf-space range using 'confRange'")
-   assert(self._confRange:isSubRange()==1, "Eq.Vlasov: confRange must be a sub-range") 
+   self._confRange = assert(
+     tbl.confRange, "Updater.VlasovDG: Must specify conf-space range using 'confRange'")
+   assert(self._confRange:isSubRange()==1, "Updater.VlasovDG: confRange must be a sub-range") 
 
-   self._phaseRange = assert(tbl.phaseRange,
-     "Updater.VlasovDG: Must specify phase-space range using 'phaseRange'")
-   assert(self._phaseRange:isSubRange()==1, "Eq.Vlasov: phaseRange must be a sub-range") 
+   self._velRange = assert(
+     tbl.velRange, "Updater.VlasovDG: Must specify velocity-space range using 'velRange'")
+   assert(self._velRange:isSubRange()==1, "Updater.VlasovDG: velRange must be a sub-range") 
+
+   self._phaseRange = assert(
+     tbl.phaseRange, "Updater.VlasovDG: Must specify phase-space range using 'phaseRange'")
+   assert(self._phaseRange:isSubRange()==1, "Updater.VlasovDG: phaseRange must be a sub-range") 
 
    self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
-   
-   -- Check if we have an electric and magnetic field.
-   local hasElcField    = xsys.pickBool(tbl.hasElectricField, false)
-   local hasMagField    = xsys.pickBool(tbl.hasMagneticField, false)
-   local hasExtForce    = xsys.pickBool(tbl.hasExtForce, false)
-   self._plasmaMagField = xsys.pickBool(tbl.plasmaMagField, false)
 
-   self._modelId = "GKYL_MODEL_DEFAULT"
-   
-   if hasElcField and self._plasmaMagField then 
-      self._fieldId = "GKYL_FIELD_E_B"
-   elseif hasElcField then
-      self._fieldId = "GKYL_FIELD_PHI"
-   else
-      self._fieldId = "GKYL_FIELD_NULL"
-   end
+   self._modelId = assert(tbl.modelId, "Updater.VlasovDG: Must provide model ID using 'modelId'")
+   self._fieldId = assert(tbl.fieldId, "Updater.VlasovDG: Must provide field ID using 'fieldId'")
+
+   local model_id
+   if self._modelId == "GKYL_MODEL_DEFAULT" then model_id = 0
+   elseif self._modelId == "GKYL_MODEL_SR"  then model_id = 1
+   elseif self._modelId == "GKYL_MODEL_GEN_GEO"  then model_id = 2 
+   elseif self._modelId == "GKYL_MODEL_PKPM"  then model_id = 3
+   elseif self._modelId == "GKYL_MODEL_SR_PKPM"  then model_id = 4
+   end   
+
+   local field_id
+   if self._fieldId == "GKYL_FIELD_E_B" then field_id = 0
+   elseif self._fieldId == "GKYL_FIELD_PHI"  then field_id = 1
+   elseif self._fieldId == "GKYL_FIELD_PHI_A"  then field_id = 2
+   elseif self._fieldId == "GKYL_FIELD_NULL"  then field_id = 3
+   end   
 
    self._zero = ffi.gc(
       ffiC.gkyl_dg_updater_vlasov_new(self._onGrid._zero, 
         self._confBasis._zero, self._phaseBasis._zero, 
-        self._confRange, nil, self._phaseRange,
-        self._modelId, self._fieldId, self._useGPU),
+        self._confRange, self._velRange, self._phaseRange,
+        model_id, field_id, self._useGPU),
       ffiC.gkyl_dg_updater_vlasov_release
    )
 
@@ -159,19 +166,21 @@ end
 function VlasovDG:_advance(tCurr, inFld, outFld)
 
    local qIn = assert(inFld[1], "VlasovDG.advance: Must specify an input field")
-   local aux1, aux2, aux3, aux4, aux5 = nil, nil, nil, nil, nil
-   if self._modelId == "GKYL_MODEL_SR" then
-      aux1 = inFld[2]._zero
-      aux2 = inFld[3]._zero
-   elseif self._modelId == "GKYL_MODEL_PKPM" then
-      aux1 = inFld[2]._zero
-      aux2 = inFld[3]._zero
-      aux3 = inFld[4]._zero
-      aux4 = inFld[5]._zero
-      aux5 = inFld[6]._zero
-   else
-      aux1 = inFld[2]._zero
-   end
+
+   -- Auxiliary fields for Vlasov update. 
+   -- Not all auxiliary fields are used by a given Vlasov equation object
+   -- but this choice is handled at the App level
+   -- Typical auxiliary field ordering:
+   -- aux1 = EM field (either Maxwell's, q/m*EM, or Poisson, q/m*phi)
+   -- aux2 = p/gamma (relativistic velocity) or velocity coordinate on mapped velocity grid
+   -- aux3 = external EM field (external vector potential A in Vlasov-Poisson)
+   -- aux4 = cotangent vector (for general geometry in configuration space)
+   -- aux5 = alpha_geo (phase space flux modified for general geometry in configuration space)
+   local aux1 = inFld[2]._zero
+   local aux2 = inFld[3]._zero
+   local aux3 = inFld[4]._zero
+   local aux4 = inFld[5]._zero
+   local aux5 = inFld[6]._zero
    
    local qRhsOut = assert(outFld[1], "VlasovDG.advance: Must specify an output field")
    local cflRateByCell = assert(outFld[2],
@@ -187,19 +196,21 @@ end
 function VlasovDG:_advanceOnDevice(tCurr, inFld, outFld)
 
    local qIn = assert(inFld[1], "VlasovDG.advance: Must specify an input field")
-   local aux1, aux2, aux3, aux4, aux5 = nil, nil, nil, nil, nil
-   if self._modelId == "GKYL_MODEL_SR" then
-      aux1 = inFld[2]._zeroDevice
-      aux2 = inFld[3]._zeroDevice
-   elseif self._modelId == "GKYL_MODEL_PKPM" then
-      aux1 = inFld[2]._zeroDevice
-      aux2 = inFld[3]._zeroDevice
-      aux3 = inFld[4]._zeroDevice
-      aux4 = inFld[5]._zeroDevice
-      aux5 = inFld[6]._zeroDevice
-   else
-      aux1 = inFld[2]._zeroDevice
-   end
+
+   -- Auxiliary fields for Vlasov update. 
+   -- Not all auxiliary fields are used by a given Vlasov equation object
+   -- but this choice is handled at the App level
+   -- Typical auxiliary field ordering:
+   -- aux1 = EM field (either Maxwell's, q/m*EM, or Poisson, q/m*phi)
+   -- aux2 = p/gamma (relativistic velocity) or velocity coordinate on mapped velocity grid
+   -- aux3 = external EM field (external vector potential A in Vlasov-Poisson)
+   -- aux4 = cotangent vector (for general geometry in configuration space)
+   -- aux5 = alpha_geo (phase space flux modified for general geometry in configuration space)
+   local aux1 = inFld[2]._zeroDevice
+   local aux2 = inFld[3]._zeroDevice
+   local aux3 = inFld[4]._zeroDevice
+   local aux4 = inFld[5]._zeroDevice
+   local aux5 = inFld[6]._zeroDevice
    
    local qRhsOut = assert(outFld[1], "VlasovDG.advance: Must specify an output field")
    local cflRateByCell = assert(outFld[2],
@@ -211,9 +222,6 @@ function VlasovDG:_advanceOnDevice(tCurr, inFld, outFld)
      qIn._zeroDevice, cflRateByCell._zeroDevice, qRhsOut._zeroDevice)
 
 end
-
--- Fetch equation updater.
-function VlasovDG:getEquation() return self._zero end
 
 -- set up pointers to dt and cflRateByCell
 function VlasovDG:setDtAndCflRate(dt, cflRateByCell)
