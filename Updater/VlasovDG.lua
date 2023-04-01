@@ -177,7 +177,7 @@ function VlasovDG:_advance(tCurr, inFld, outFld)
 
    local localRange = qRhsOut:localRange()
    ffiC.gkyl_dg_updater_vlasov_advance(self._zero, localRange,
-     inFld[2]._zero, aux2, aux3, aux4, aux5,
+     aux1, aux2, aux3, aux4, aux5,
      qIn._zero, cflRateByCell._zero, qRhsOut._zero)
 
 end

@@ -180,6 +180,9 @@ function VlasovSpecies:createSolver(field, externalField)
    if self.hasExtForce then
       self.totEmFptr, self.totEmFidxr = self.totalEmField:get(1), self.totalEmField:genIndexer()
    end
+
+   self.computePlasmaB = true and plasmaB or extHasB
+
    -- Create updater to advance solution by one time-step.
    if self.evolveCollisionless then
       self.solver = Updater.VlasovDG {
