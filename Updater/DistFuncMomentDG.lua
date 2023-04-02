@@ -112,8 +112,7 @@ function DistFuncMomentDG:init(tbl)
 
    self._moment = assert(
      tbl.moment, "Updater.DistFuncMomentDG: Must specify moment type with 'moment'.")
-   self._isIntegrated = assert(
-     tbl.isIntegrated, "Updater.DistFuncMomentDG: Must specify if integrated moment with 'isIntegrated'.")
+   self._isIntegrated = tbl.isIntegrated or false
 
    local useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU)
 

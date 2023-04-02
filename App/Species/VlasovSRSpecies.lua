@@ -18,7 +18,7 @@ local Source         = require "App.Sources.VmSource"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
-local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
+local VlasovSRDiags  = require "App.Diagnostics.VlasovSRDiagnostics"
 local BasicBC        = require ("App.BCs.VlasovBasic").VlasovBasic
 local BCsBase        = require "App.BCs.BCsBase"
 local xsys           = require "xsys"
@@ -131,7 +131,7 @@ function VlasovSRSpecies:createSolver(field, externalField)
       confBasis = self.confBasis, 
       velBasis = self.velBasis, 
       phaseBasis = self.basis, 
-      op = "init", 
+      operation = "init", 
    }
    initSRVarsCalc:advance(0.0, {}, {self.p_over_gamma, self.gamma, self.gamma_inv})
 
@@ -242,6 +242,19 @@ function VlasovSRSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
 
 end
 
+function VlasovSRSpecies:createDiagnostics(field)
+   -- Run the KineticSpecies 'createDiagnostics()' (e.g. to create divideByJacobGeo()).
+   VlasovSRSpecies.super.createDiagnostics(self, field)
+
+   -- Create this species' diagnostics.
+   if self.tbl.diagnostics then
+      self.diagnostics[self.name] = DiagsApp{implementation = VlasovSRDiags()}
+      self.diagnostics[self.name]:fullInit(self, field, self)
+   end
+
+   lume.setOrder(self.diagnostics)
+end
+
 function VlasovSRSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    -- Compute moments needed in coupling to fields and collisions.
    local tmStart = Time.clock()
@@ -254,8 +267,6 @@ function VlasovSRSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
 end
 
-function VlasovSRSpecies:fluidMoments() return self.fiveMoments end
-
 function VlasovSRSpecies:getNumDensity(rkIdx)
    -- If no rkIdx specified, assume numDensity has already been calculated.
    if rkIdx == nil then return self.numDensity end 
@@ -263,7 +274,7 @@ function VlasovSRSpecies:getNumDensity(rkIdx)
    local tmStart = Time.clock()
 
    local fIn = self:rkStepperFields()[rkIdx]
-   self.numDensityCalc:advance(nil, {fIn}, { self.numDensity })
+   self.numDensityCalc:advance(nil, {fIn, self.p_over_gamma, self.gamma, self.gamma_inv, self.V_drift, self.GammaV2, self.GammaV_inv}, { self.numDensity })
 
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
 
@@ -277,7 +288,7 @@ function VlasovSRSpecies:getMomDensity(rkIdx)
    local tmStart = Time.clock()
 
    local fIn = self:rkStepperFields()[rkIdx]
-   self.momDensityCalc:advance(nil, {fIn}, { self.momDensity })
+   self.momDensityCalc:advance(nil, {fIn, self.p_over_gamma, self.gamma, self.gamma_inv, self.V_drift, self.GammaV2, self.GammaV_inv}, { self.momDensity })
 
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
 
