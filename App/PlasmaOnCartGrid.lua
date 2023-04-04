@@ -891,6 +891,7 @@ return {
          BasicBC    = require ("App.BCs.VlasovBasic").VlasovBasic,
          AbsorbBC   = require ("App.BCs.VlasovBasic").VlasovAbsorb,
          CopyBC     = require ("App.BCs.VlasovBasic").VlasovCopy,
+         ChungEverhartBC     = require ("App.BCs.VlasovEmission").VlasovChungEverhart,
          ConstantGainBC     = require ("App.BCs.VlasovEmission").VlasovConstantGain,
          NeutralRecyclingBC = require "App.BCs.NeutralRecycling",
          OpenBC = require ("App.BCs.VlasovBasic").VlasovOpen,

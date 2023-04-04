@@ -34,8 +34,21 @@ function VlasovEmissionBC:fullInit(mySpecies)
    if self.bcKind == "gain" then
       self.bcParam = Lin.Vec(1)
       self.bcParam:data()[0] = assert(tbl.gamma, "VlasovEmissionBC: must specify the emission flux ratio in 'gamma'.")
+   elseif self.bcKind == "chung" then -- Currently importing gains, not self-calculating using fitting parameters. Want to change that. Or better, give both options.
+      self.bcParam = Lin.Vec(9)
+      self.bcParam:data()[0] = assert(tbl.work, "VlasovEmissionBC: must specify the material work function in 'work'.")
+      self.bcParam:data()[1] = assert(tbl.gamma_hat, "VlasovEmissionBC: must specify fitting parameter 'gamma_hat'.")
+      self.bcParam:data()[2] = assert(tbl.E_hat, "VlasovEmissionBC: must specify fitting parameter 'E_hat'.")
+      self.bcParam:data()[3] = assert(tbl.t1, "VlasovEmissionBC: must specify fitting parameter 't1'.")
+      self.bcParam:data()[4] = assert(tbl.t2, "VlasovEmissionBC: must specify fitting parameter 't2'.")
+      self.bcParam:data()[5] = assert(tbl.t3, "VlasovEmissionBC: must specify fitting parameter 't3'.")
+      self.bcParam:data()[6] = assert(tbl.t4, "VlasovEmissionBC: must specify fitting parameter 't4'.")
+      self.bcParam:data()[7] = assert(tbl.mass, "VlasovEmissionBC: must specify species mass in 'mass'.")
+      self.bcParam:data()[8] = assert(tbl.charge, "VlasovEmissionBC: must specify species charge in 'charge'.")
+      self.gain = assert(tbl.gain, "VlasovEmissionBC: must give gain array in 'gain'")
+      self.elastic = assert(tbl.elastic, "VlasovEmissionBC: must give elastic reflection array in 'elastic'")
    end
-   
+
    self.saveFlux = tbl.saveFlux or false
    self.anyDiagnostics = false
    if tbl.diagnostics then
@@ -59,8 +72,7 @@ function VlasovEmissionBC:createSolver(mySpecies, field, externalField)
    local globalGhostRange = self.bcEdge=="lower" and distf:localGhostRangeLower()[self.bcDir]
                                                   or distf:localGhostRangeUpper()[self.bcDir]
    self:createBoundaryGrid(globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
-
-
+   
    -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
    self.allocCartField = function(self, grid, nComp, ghosts, metaData)
       local f = DataStruct.Field {
@@ -84,6 +96,16 @@ function VlasovEmissionBC:createSolver(mySpecies, field, externalField)
          dir     = self.bcDir,  bcType = self.bcKind,
 	 bcField = nil,         bcParam = self.bcParam,
          onField = mySpecies:rkStepperFields()[1],
+      }
+   elseif self.bcKind == "chung" then
+      self.bcSolver = Updater.SEEBc{
+         onGrid  = self.grid,   edge   = self.bcEdge,  
+         cdim    = self.cdim,   vdim   = self.vdim,
+	 basis  = self.basis,   confBasis  = self.confBasis, 
+         dir     = self.bcDir,  bcType = self.bcKind,
+	 gain = self.gain,      bcParam = self.bcParam,
+	 elastic = self.elastic,
+	 onField = mySpecies:rkStepperFields()[1],
       }
    else
       assert(false, "VlasovEmissionBC: BC kind not recognized.")
@@ -282,6 +304,13 @@ function VlasovConstantGainBC:fullInit(mySpecies)
    self.tbl.kind  = "gain"
    VlasovConstantGainBC.super.fullInit(self, mySpecies)
 end
+
+local VlasovChungEverhartBC = Proto(VlasovEmissionBC)
+function VlasovChungEverhartBC:fullInit(mySpecies)
+   self.tbl.kind  = "chung"
+   VlasovChungEverhartBC.super.fullInit(self, mySpecies)
+end
 -- ................... End of VlasovEmissionBC alias classes .................... --
 
-return {VlasovConstantGain = VlasovConstantGainBC}
+return {VlasovConstantGain  = VlasovConstantGainBC,
+        VlasovChungEverhart = VlasovChungEverhartBC}

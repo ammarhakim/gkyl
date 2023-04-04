@@ -55,6 +55,7 @@ local SolidSurface = require "Updater.SolidSurface"
 local SpitzerCollisionality = require "Updater.SpitzerCollisionality"
 local SqrtOnBasis = require "Updater.SqrtOnBasis"
 local StairSteppedBc = require "Updater.StairSteppedBc"
+local SEEBc = require "Updater.SEEBc"
 local TenMomentRelax = require "Updater.TenMomentRelax"
 local TenMomentSrc = require "Updater.TenMomentSrc"
 local TwistShiftBC = require "Updater.TwistShiftBC"
@@ -118,6 +119,7 @@ return {
    SqrtOnBasis = SqrtOnBasis,
    SpitzerCollisionality = SpitzerCollisionality,
    StairSteppedBc = StairSteppedBc,
+   SEEBc = SEEBc,
    TenMomentRelax = TenMomentRelax,
    TenMomentSrc = TenMomentSrc,
    TwistShiftBC = TwistShiftBC,
