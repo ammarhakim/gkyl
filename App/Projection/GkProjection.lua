@@ -27,7 +27,6 @@ function FunctionProjection:allocConfField(metaData)
         ghost         = {1, 1},
         metaData      = {polyOrder = self.confBasis:polyOrder(),
                          basisType = self.confBasis:id()},
-        --metaData      = metaData, --make it more like allocMoment for exactSclaeM0
    }
    m:clear(0.0)
    return m
@@ -64,38 +63,21 @@ function FunctionProjection:advance(time, inFlds, outFlds)
       }
       project:advance(time, {}, {distf})
    end
-   --move to couplingSolver
-   --local jacobGeo = extField.geo.jacobGeo
-   --if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
 end
 
 function FunctionProjection:createCouplingSolver(species,field, externalField)
-   if diff.lt(self.species.charge,0.0) then
+   if self.species.charge < 0.0 then
       local numDens = self:allocConfField()
       local numDensScaleTo = self:allocConfField()
       local ionName = nil
       for nm, s in lume.orderedIter(species) do
-        --may need to find a better way to identify ions
         if diff.lt(0.0,s.charge) then
           ionName=nm
         end
       end
-      --local numDensScaleTo=0
-      ----Try using ions allocconfField
-      --for nm, pr in lume.orderedIter(species['ion'].projections) do
-      --   if string.find(nm,"init") then
-      --      numDensScaleTo=pr:allocConfField()
-      --   end
-      --end
-
-      --species['elc'].numDensityCalc:advance(0.0, {species['elc'].distf[1]}, {numDens})
       self.species.numDensityCalc:advance(0.0, {self.species:getDistF()}, {numDens})
-      --self.species.numDensityCalc:advance(0.0, {self.species.distf[1]}, {numDens})
-      --species['ion'].numDensityCalc:advance(0.0, {species['ion'].distf[1]}, {numDensScaleTo})
       species[ionName].numDensityCalc:advance(0.0, {species[ionName]:getDistF()}, {numDensScaleTo})
-      --species[ionName].numDensityCalc:advance(0.0, {species[ionName].distf[1]}, {numDensScaleTo})
       self:scaleDensity(self.species:getDistF(), numDens, numDensScaleTo)
-      --self:scaleDensity(self.species.distf[1], numDens, numDensScaleTo)
    end
    local jacobGeo = self.extFieldUse.geo.jacobGeo
    if jacobGeo then self.weakMultiplyConfPhase:advance(0, {self.species:getDistF(), jacobGeo}, {self.species:getDistF()}) end

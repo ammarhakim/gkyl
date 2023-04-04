@@ -242,7 +242,6 @@ function KineticSpecies:fullInit(appTbl)
 
    self.integratedMomentsTime = 0.0 -- Timer for integrated moments.
    self.bcTime = 0.0   -- Timer for BCs.
-   --Akash
    self.tbc=0.0
    self.tmpi=0.0
 
@@ -766,7 +765,6 @@ function KineticSpecies:applyBcEvolve(tCurr, field, externalField, inIdx, outIdx
 
    -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advance(tCurr, self, field, externalField, inIdx, outIdx) 
-     --Akash
      if bc.tbc~=nil then
        self.tbc = self.tbc + bc.tbc
      end
@@ -951,7 +949,6 @@ end
 -- Timers.
 function KineticSpecies:totalSolverTime() return self.solver.totalTime end
 function KineticSpecies:totalBcTime() return self.bcTime end
---Akash
 function KineticSpecies:totalTokamakBcTime() return self.tbc end
 function KineticSpecies:totalTokamakBcMpiTime() return self.tmpi end
 function KineticSpecies:intMomCalcTime() return self.integratedMomentsTime end

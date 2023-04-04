@@ -213,26 +213,14 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
    if self.bcDir==self.cdim then vdir = self.cdim+1 end
 
    -- Create bondary grids and updaters if needed. Conditionals taken care of inside function
-   -- Many tools needed if we have diagnostics or BC type is maxwellianGhost, otherwise function is simple
    self:createBoundaryTools(mySpecies, field, externalField)
 
    --If block to set up an alternative updater if bctype is maxwellianGhost : Updater.MaxwellGhostBc
    -- Otherwise the updater will be the classic Updater.Bc
    if self.bcKind=="maxwellianGhost" then
       --Create the dummy ghost field to pass to the Updater
-      local function createFieldFromField(grid, fld, ghostCells)
-         vComp = vComp or 1
-         local fld = DataStruct.Field {
-            onGrid        = grid,
-            numComponents = fld:numComponents(),
-            ghost         = ghostCells,
-            metaData      = fld:getMetaData(),
-         }
-         fld:clear(0.0)
-         return fld
-      end
       local qOut = mySpecies:rkStepperFields()[1]
-      self.ghostFld = createFieldFromField(self.boundaryGrid, qOut, {1,1})
+      self.ghostFld = self:allocCartField(self.boundaryGrid, qOut:numComponents(), {1,1}, qOut:getMetaData())
 
       --Make the Updater : same regardles of local or canonical Maxwellian
       self.bcSolver = Updater.MaxwellGhostBc{
@@ -242,7 +230,7 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
          vdir     = vdir,        evolveFn           = self.evolve,
          skinLoop = skinType,    feedback           = self.feedback,
          basis  = self.basis,  confBasis          = self.confBasis,
-         advanceArgs = {{mySpecies:rkStepperFields()[1]}, {mySpecies:rkStepperFields()[1]}},
+         advanceArgs = {{mySpecies:rkStepperFields()[1], self.ghostRange}, {mySpecies:rkStepperFields()[1]}},
          confGrid = self.confGrid,
          boundaryGrid=self.boundaryGrid,
          confBoundaryGrid = self.confBoundaryGrid,
@@ -290,7 +278,6 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
          self.phaseWeakMultiply:advance(0, {self.ghostFld, self.jacobGeo}, {self.ghostFld})
 
       elseif self.maxwellianKind=='canonical' then
-         --redefine initFunc to include phase space Jacobian. The original iniFunc is canonical_maxwellian(tcurr,xn) defined in input file
          if mySpecies.jacobPhaseFunc and self.vdim > 1 then
             local initFuncWithoutJacobian = self.initFunc
             self.initFunc = function (t, xn)
@@ -320,9 +307,6 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
             charge    = self.charge,
             mass      = self.mass,},
          }
-         --Move the multiplication to couplingSolver
-         -- Multiply by conf space Jacobian Now
-         --self.phaseWeakMultiply:advance(0, {self.ghostFld, self.jacobGeo}, {self.ghostFld})
       end
 
    else
@@ -333,7 +317,7 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
          vdir     = vdir,        evolveFn           = self.evolve,
          skinLoop = skinType,    feedback           = self.feedback,
          basis    = self.basis,  confBasis          = self.confBasis,
-         advanceArgs = {{mySpecies:rkStepperFields()[1]}, {mySpecies:rkStepperFields()[1]}},
+         advanceArgs = {{mySpecies:rkStepperFields()[1], self.ghostRange}, {mySpecies:rkStepperFields()[1]}},
          maxwellianGhost = self.maxwellianGhost,
          confGrid = self.confGrid,
       }
@@ -343,7 +327,7 @@ end
 
 function GkBasicBC:createCouplingSolver(species,field,externalField)
    if self.bcKind=='maxwellianGhost' and self.maxwellianKind=='canonical' then
-      if diff.lt(self.species.charge, 0.0) then
+      if self.species.charge < 0.0 then
          local bcName = self.name:gsub("elc_","")
          local numDens = self:allocMoment()
          local numDensScaleTo = species['ion']['nonPeriodicBCs'][bcName]:allocMoment()
@@ -355,7 +339,7 @@ function GkBasicBC:createCouplingSolver(species,field,externalField)
          self.phaseWeakMultiply:advance(0.0, {M0mod,self.ghostFld}, {self.ghostFld})
          self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
          self.confFieldIo:write(numDens, string.format("%s_M0_%d.bp", self.name, 0), 0.0, 0, false)
-      elseif diff.lt(0.0,self.species.charge) then
+      elseif self.species.charge > 0.0 then
          local numDens = self:allocMoment()
          self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
          self.confFieldIo:write(numDens, string.format("%s_M0_%d.bp", self.name, 0), 0.0, 0, false)
@@ -414,7 +398,18 @@ function GkBasicBC:createBoundaryTools(mySpecies, field, externalField)
 
       -- Create the range needed to loop over ghosts.
       local global, globalExt, localExtRange = distf:globalRange(), distf:globalExtRange(), distf:localExtRange()
-      self.ghostRange = localExtRange:intersect(self:getGhostRange(global, globalExt))
+      local globalGhostRange = self:getGhostRange(global, globalExt)
+      -- Remove corner ghosts (sheath BCs are not meant for those):
+      local lv, uv = globalGhostRange:lowerAsVec(), globalGhostRange:upperAsVec()
+      for d = 1,self.grid:ndim() do
+         if d ~= self.bcDdir then
+            uv[d] = distf:upperGhost()-1
+            lv[d] = distf:lowerGhost()+1
+         end
+      end
+      local ghostRangeWOcorners = Range.Range(lv, uv)
+      self.ghostRange = localExtRange:intersect(ghostRangeWOcorners)
+
       -- Decompose ghost region into threads.
       self.ghostRangeDecomp = LinearDecomp.LinearDecompRange{range=self.ghostRange, numSplit=self.grid:numSharedProcs()}
       self.tId              = self.grid:subGridSharedId() -- Local thread ID.
@@ -606,7 +601,7 @@ function GkBasicBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx
 
    local fIn = mySpecies:rkStepperFields()[outIdx] 
 
-   self.bcSolver:advance(tCurr, {fIn}, {fIn})
+   self.bcSolver:advance(tCurr, {fIn, self.ghostRange}, {fIn})
 end
 
 function GkBasicBC:getBoundaryFluxFields() return self.boundaryFluxFields end
