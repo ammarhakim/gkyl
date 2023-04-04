@@ -24,7 +24,6 @@ local GkDiags      = require "App.Diagnostics.GkDiagnostics"
 local xsys         = require "xsys"
 local GyrokineticModDecl = require "Eq.gkData.GyrokineticModDecl"
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
-local diff = require("sci.diff-recursive")
 
 local GkBasicBC = Proto(BCsBase)
 

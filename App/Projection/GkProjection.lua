@@ -14,7 +14,6 @@ local DataStruct = require "DataStruct"
 local FunctionProjectionParent   = require ("App.Projection.KineticProjection").FunctionProjection
 local MaxwellianProjectionParent = require ("App.Projection.KineticProjection").MaxwellianProjection
 local Mpi              = require "Comm.Mpi"
-local diff = require("sci.diff-recursive")
 
 --------------------------------------------------------------------------------
 -- Gk-specific GkProjection.FunctionProjection includes Jacobian factors in initFunc.
@@ -71,7 +70,7 @@ function FunctionProjection:createCouplingSolver(species,field, externalField)
       local numDensScaleTo = self:allocConfField()
       local ionName = nil
       for nm, s in lume.orderedIter(species) do
-        if diff.lt(0.0,s.charge) then
+        if 0.0 < s.charge then
           ionName=nm
         end
       end
