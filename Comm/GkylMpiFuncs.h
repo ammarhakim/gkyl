@@ -26,6 +26,7 @@ extern "C" {
     DECL_INT_OBJECT(MPI_PROC_NULL);
 
     // Datatypes
+    DECL_GET_MPI_OBJECT(Datatype, MPI_C_BOOL);
     DECL_GET_MPI_OBJECT(Datatype, MPI_CHAR);
     DECL_GET_MPI_OBJECT(Datatype, MPI_BYTE);
     DECL_GET_MPI_OBJECT(Datatype, MPI_SHORT);
