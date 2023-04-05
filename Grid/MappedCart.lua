@@ -33,6 +33,15 @@ function MappedCart:init(tbl)
    -- cartesian coordinates of the form 
    -- X, Y, Z = f({xcomp1, xcomp2, xcomp3})
    self._mapc2p = tbl.mapc2p
+   if type(self._mapc2p) == "table" then
+      -- The user may specify a table with any of:
+      --   mapc2p function,
+      --   mapc2p file containing the DG representation of the function (MF 2023/03/09 NOT READY YET),
+      --   grid   file.
+      assert(self._mapc2p.mapc2p and type(self._mapc2p.mapc2p)=="function", "Grid.MappedCart: need to specify mapc2p function")
+      self._mapc2p     = tbl.mapc2p.mapc2p
+      self._gridFileNm = tbl.mapc2p.grid
+   end
 
    -- Domain of the higher dimensional world this simulation lives in.
    -- These optional parameters are used to call mapc2p with more computational
@@ -264,14 +273,15 @@ end
 
 function MappedCart:write(fName)
    -- Write a file containing the grid node coordinates.
-
-   -- Create a grid over nodes and a field to store nodal coordinates.
-   local cells, lower, upper = {}, {}, {}
-   for d = 1, self:ndim() do
-      cells[d] = self:numCells(d)+1   -- One more layer of nodes than cells.
-      -- This ensures cell-center of nodal grid lie at nodes of original grid
-      lower[d] = self:lower(d) - 0.5*self:dx(d)
-      upper[d] = self:upper(d) + 0.5*self:dx(d)
+   if not self._gridFileNm then
+      -- Create a grid over nodes and a field to store nodal coordinates.
+      local cells, lower, upper = {}, {}, {}
+      for d = 1, self:ndim() do
+         cells[d] = self:numCells(d)+1   -- One more layer of nodes than cells.
+         -- This ensures cell-center of nodal grid lie at nodes of original grid
+         lower[d] = self:lower(d) - 0.5*self:dx(d)
+         upper[d] = self:upper(d) + 0.5*self:dx(d)
+      end
    end
    -- Create a grid of nodes.
    local grid = RectCart {
@@ -307,6 +317,7 @@ function MappedCart:write(fName)
       for d = 1, self._rdim do nPtr[d] = xnp[d] end
    end
    nodalCoords:write(fName)
+   end
 end
 
 return MappedCart
