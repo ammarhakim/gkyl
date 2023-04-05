@@ -13,7 +13,6 @@ local xsys       = require "xsys"
 local DataStruct = require "DataStruct"
 local FunctionProjectionParent   = require ("App.Projection.KineticProjection").FunctionProjection
 local MaxwellianProjectionParent = require ("App.Projection.KineticProjection").MaxwellianProjection
-local Mpi              = require "Comm.Mpi"
 
 --------------------------------------------------------------------------------
 -- Gk-specific GkProjection.FunctionProjection includes Jacobian factors in initFunc.
