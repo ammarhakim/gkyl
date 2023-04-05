@@ -282,41 +282,40 @@ function MappedCart:write(fName)
          lower[d] = self:lower(d) - 0.5*self:dx(d)
          upper[d] = self:upper(d) + 0.5*self:dx(d)
       end
-   end
-   -- Create a grid of nodes.
-   local grid = RectCart {
-      lower = lower,
-      upper = upper,
-      cells = cells,
-      decomposition = self.decomp,
-   }
-   local nodalCoords = DataStruct.Field {
-      onGrid        = grid,
-      numComponents = self._rdim,
-   }
+      -- Create a grid of nodes.
+      local grid = RectCart {
+         lower = lower,
+         upper = upper,
+         cells = cells,
+         decomposition = self.decomp,
+      }
+      local nodalCoords = DataStruct.Field {
+         onGrid        = grid,
+         numComponents = self._rdim,
+      }
 
-   local xnc, xnp = Lin.Vec(self._inDim), Lin.Vec(self._rdim)
+      local xnc, xnp = Lin.Vec(self._inDim), Lin.Vec(self._rdim)
 
-   local localRange = nodalCoords:localRange()
-   local indexer    = nodalCoords:genIndexer()
-   for idx in localRange:rowMajorIter() do
-      grid:setIndex(idx)
+      local localRange = nodalCoords:localRange()
+      local indexer    = nodalCoords:genIndexer()
+      for idx in localRange:rowMajorIter() do
+         grid:setIndex(idx)
 
-      grid:cellCenter(xnc)         -- Nodal coordinate in computational space.
+         grid:cellCenter(xnc)         -- Nodal coordinate in computational space.
 
-      if self._useWorld then
-         -- Complement the computational coordinates xc w/ dimensions not simulated.
-         for d = 1, self:ndim() do self._worldCoord[self._compIdx[d]] = xnc[d] end
-      else
-         self._worldCoord = xnc
+         if self._useWorld then
+            -- Complement the computational coordinates xc w/ dimensions not simulated.
+            for d = 1, self:ndim() do self._worldCoord[self._compIdx[d]] = xnc[d] end
+         else
+            self._worldCoord = xnc
+         end
+
+         self:_mapc2p_vec(self._worldCoord, xnp)   -- Nodal coordinate in physical space.
+
+         local nPtr = nodalCoords:get(indexer(idx))
+         for d = 1, self._rdim do nPtr[d] = xnp[d] end
       end
-
-      self:_mapc2p_vec(self._worldCoord, xnp)   -- Nodal coordinate in physical space.
-
-      local nPtr = nodalCoords:get(indexer(idx))
-      for d = 1, self._rdim do nPtr[d] = xnp[d] end
-   end
-   nodalCoords:write(fName)
+      nodalCoords:write(fName)
    end
 end
 
