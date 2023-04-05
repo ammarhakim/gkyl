@@ -11,11 +11,18 @@
 // std includes
 #include <string>
 #include <vector>
+#include <stdio.h>
 
 using namespace Eigen;
 
-DiscontPoisson::DiscontPoisson(const char* _outPrefix, int _ncell[3], int _ndim, int _nbasis,
-  int _nnonzero, int _polyOrder, bool _writeMatrix)
+DiscontPoisson::DiscontPoisson(
+  const char* _outPrefix,
+  int _ncell[3],
+  int _ndim,
+  int _nbasis,
+  int _nnonzero,
+  int _polyOrder,
+  bool _writeMatrix)
   : outPrefix(_outPrefix), ndim(_ndim), nbasis(_nbasis),
     nnonzero(_nnonzero), polyOrder(_polyOrder),
     writeMatrix(_writeMatrix)
@@ -28,10 +35,11 @@ DiscontPoisson::DiscontPoisson(const char* _outPrefix, int _ncell[3], int _ndim,
   N = vol*nbasis;
 
   // append shape into matrix output name
-  outPrefix += "-";
+  outPrefix += "_";
   for (int d = 0; d < ndim-1; ++d)
     outPrefix += std::to_string(ncell[d]) + "x";
   outPrefix += std::to_string(ncell[ndim-1]);
+  outPrefix += "_p" + std::to_string(polyOrder);
 
   stiffMatRowMajor = SparseMatrix<double,RowMajor>(N, N);
   stiffTripletList.reserve(vol*nnonzero); // estimate number of nonzero elements
@@ -50,18 +58,21 @@ void DiscontPoisson::pushTriplet(int i, int j, double val) {
 }
 
 void DiscontPoisson::constructStiffMatrix() {
-  stiffMatRowMajor.setFromTriplets(stiffTripletList.begin(), stiffTripletList.end());
+  stiffMatRowMajor.setFromTriplets(
+    stiffTripletList.begin(), stiffTripletList.end());
   stiffTripletList.resize(0);
 
   // create column major copy of stiffMat so that we can zero columns
   stiffMat = SparseMatrix<double,ColMajor>(stiffMatRowMajor);
   if (writeMatrix) {
-    saveMarket(stiffMat, outPrefix+"-stiffMat.mm");
+    /* char buffer [100]; */
+    /* sprintf(buffer, "%s_p%d_stiffMat.mm", outPrefix, polyOrder); */
+    /* saveMarket(stiffMat, buffer); */
+    saveMarket(stiffMat, outPrefix+"_stiffMat.mm");
   }
   // de-allocate row major copy
   stiffMatRowMajor.resize(0,0);
   solver.analyzePattern(stiffMat);
-  //saveMarket(stiffMat, "matrix");
   solver.factorize(stiffMat);
 }
 
@@ -81,18 +92,25 @@ void DiscontPoisson::solve() {
   //saveMarket(globalSrc, "source");
   x = VectorXd::Zero(N);
   x = solver.solve(globalSrc);
-  if (writeMatrix) {
-    saveMarket(globalSrc, outPrefix+"-src.mm");
-    saveMarket(x, outPrefix+"-sol.mm");
-  }
+  /* if (writeMatrix) { */
+  /*   saveMarket(globalSrc, outPrefix+"-src.mm"); */
+  /*   saveMarket(x, outPrefix+"-sol.mm"); */
+  /* } */
 }
 
 
 // C wrappers for interfacing with DiscontPoisson class
-extern "C" void* new_DiscontPoisson(const char *outPrefix, int ncell[3], int ndim, int nbasis,
-  int nnonzero, int polyOrder, bool writeMatrix)
+extern "C" void* new_DiscontPoisson(
+  const char *outPrefix,
+  int ncell[3],
+  int ndim,
+  int nbasis,
+  int nnonzero,
+  int polyOrder,
+  bool writeMatrix)
 {
-  DiscontPoisson *f = new DiscontPoisson(outPrefix, ncell, ndim, nbasis,
+  DiscontPoisson *f = new DiscontPoisson(
+    outPrefix, ncell, ndim, nbasis,
     nnonzero, polyOrder, writeMatrix);
   return reinterpret_cast<void*>(f);
 }

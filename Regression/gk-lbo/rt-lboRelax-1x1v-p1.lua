@@ -120,7 +120,7 @@ plasmaApp = Plasma.App {
       -- Background magnetic field.
       bmag = function (t, xn)
          local x = xn[1]
-         return B0
+         return B0*(1.+0.5*math.cos(2.*math.pi*x))
       end,
       -- Geometry is not time-dependent.
       evolve = false,
