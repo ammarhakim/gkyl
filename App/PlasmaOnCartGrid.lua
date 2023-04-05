@@ -367,24 +367,53 @@ local function buildApplication(self, tbl)
       dtTracker:read(string.format("dt.bp"))
       local _, dtLast = dtTracker:lastData()
       -- Read fields first, in case needed for species init or BCs.
-      field:readRestart()
-      externalField:readRestart()
-      for _, s in lume.orderedIter(species) do
-         -- This is a dummy forwardEuler call because some BCs require 
-         -- auxFields to be set, which is controlled by species solver.
-	 if s.charge == 0 then
-	    s:advance(0, species, {NoField {}, NoField {}}, 1, 2)
-	 else
-	    s:advance(0, species, {field, externalField}, 1, 2)
-	 end
-         s:setDtGlobal(dtLast[1])
-	 rTime = s:readRestart(field, externalField)
+      local readTag = nil
+      while true do
+         local activeTags = {}
+         table.insert(activeTags, field:readRestart(readTag))
+         table.insert(activeTags, externalField:readRestart(readTag))
+         table.insert(activeTags, field:readRestart(readTag))
+         for _, s in lume.orderedIter(species) do
+            -- This is a dummy forwardEuler call because some BCs require 
+            -- auxFields to be set, which is controlled by species solver.
+            if s.charge == 0 then
+               s:advance(0, species, {NoField {}, NoField {}}, 1, 2)
+            else
+               s:advance(0, species, {field, externalField}, 1, 2)
+            end
+            s:setDtGlobal(dtLast[1])
+            local stags
+            stags, rTime = s:readRestart(field, externalField, readTag)
+            table.insert(activeTags, stags)
+         end
+         -- Check if all upper tags are the same, if not force restart files
+         -- to read the earlier one, which they should have in common.
+         local sameTagUp, tagCurr = true, nil
+         for i, t in ipairs(activeTags) do
+            tagCurr = tagCurr or t
+            if tagCurr.up ~= t.up then sameTagUp = false; break end
+         end
+         if sameTagUp then
+            break
+         else
+            -- Check lower tag is the same for all
+            local sameTagLo = true
+            for i, t in ipairs(activeTags) do
+               if tagCurr.lo ~= t.lo then sameTagLo = false; break end
+            end
+            assert(sameTagLo, "Did not find earliest common restart file.")
+            readTag = tagCurr.lo
+         end
       end
+
+      field:restartIoTriggers(rTime)
+      for _, s in lume.orderedIter(species) do s:restartIoTriggers(rTime) end
       return rTime
    end
 
    local tStart = 0.0 -- By default start at t=0.
    if GKYL_COMMANDS[1] == "restart" then
+      log(string.format("restart requested. reading restart files to continue simulation from previous one.\n"))
       -- Give everyone a chance to adjust ICs based on restart frame
       -- and adjust tStart accordingly.
       tStart = readRestart()
@@ -890,6 +919,7 @@ return {
 	 LboCollisions          = require "App.Collisions.GkLBOCollisions",
 	 Diffusion              = require "App.Collisions.Diffusion",
 	 MaxwellianProjection   = require ("App.Projection.GkProjection").MaxwellianProjection,
+	 BiMaxwellianProjection = require ("App.Projection.GkProjection").BiMaxwellianProjection,
 	 Species                = require "App.Species.GkSpecies",
 	 Source                 = require "App.Sources.GkSource",
 	 Vlasov                 = require ("App.Species.VlasovSpecies"),

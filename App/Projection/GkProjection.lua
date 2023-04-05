@@ -13,6 +13,7 @@ local xsys       = require "xsys"
 local DataStruct = require "DataStruct"
 local FunctionProjectionParent   = require ("App.Projection.KineticProjection").FunctionProjection
 local MaxwellianProjectionParent = require ("App.Projection.KineticProjection").MaxwellianProjection
+local BiMaxwellianProjectionParent = require ("App.Projection.KineticProjection").BiMaxwellianProjection
 
 --------------------------------------------------------------------------------
 -- Gk-specific GkProjection.FunctionProjection includes Jacobian factors in initFunc.
@@ -88,11 +89,11 @@ local MaxwellianProjection = Proto(MaxwellianProjectionParent)
 
 function MaxwellianProjection:allocConfField()
    local m = DataStruct.Field {
-        onGrid        = self.confGrid,
-        numComponents = self.confBasis:numBasis(),
-        ghost         = {1, 1},
-        metaData      = {polyOrder = self.confBasis:polyOrder(),
-                         basisType = self.confBasis:id()},
+      onGrid        = self.confGrid,
+      numComponents = self.confBasis:numBasis(),
+      ghost         = {1, 1},
+      metaData      = {polyOrder = self.confBasis:polyOrder(),
+                       basisType = self.confBasis:id()},
    }
    m:clear(0.0)
    return m
@@ -486,10 +487,8 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
       local bmag = extField.geo.bmag
       -- Project the moments onto configuration-space basis.
       local confProject = Updater.ProjectOnBasis {
-         onGrid   = self.confGrid,
-         basis    = self.confBasis,
-         evaluate = function(t, xn) return 0. end,   -- Set below.
-         onGhosts = true
+         onGrid = self.confGrid,   evaluate = function(t, xn) return 0. end,   -- Set below.
+         basis  = self.confBasis,  onGhosts = true
       }
       local numDens = self:allocConfField()
       local uPar    = self:allocConfField()
@@ -509,12 +508,9 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
       vtSq:scale(1./self.mass)
       -- Project the Maxwellian. It includes a factor of jacobPhase=B*_||.
       local projMaxwell = Updater.MaxwellianOnBasis {
-         onGrid     = self.phaseGrid,
-         phaseBasis = self.phaseBasis,
-         confGrid   = self.confGrid,
-         confBasis  = self.confBasis,
-         mass       = self.mass,
-         onGhosts   = true,
+         onGrid     = self.phaseGrid,   confBasis = self.confBasis,
+         phaseBasis = self.phaseBasis,  mass      = self.mass,
+         confGrid   = self.confGrid,    onGhosts  = true,
       }
       projMaxwell:advance(time,{numDens,uPar,vtSq,bmag},{distf})
    end
@@ -530,9 +526,76 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
    if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
 end
 
+--------------------------------------------------------------------------------
+-- Gk-specific GkProjection.BiMaxwellianProjection extends BiMaxwellianProjection base class, including 
+-- adding jacobian factors in initFunc.
+local BiMaxwellianProjection = Proto(BiMaxwellianProjectionParent)
+
+function BiMaxwellianProjection:allocConfField()
+   local m = DataStruct.Field {
+      onGrid        = self.confGrid,
+      numComponents = self.confBasis:numBasis(),
+      ghost         = {1, 1},
+      metaData      = {polyOrder = self.confBasis:polyOrder(),
+                       basisType = self.confBasis:id()},
+   }
+   m:clear(0.0)
+   return m
+end
+
+function BiMaxwellianProjection:advance(time, inFlds, outFlds)
+   local extField = inFlds[1]
+   local distf    = outFlds[1]
+   if self.fromFile then
+      local tm, fr = self.fieldIo:read(distf, self.fromFile)
+   else
+      local bmag = extField.geo.bmag
+      -- Project the moments onto configuration-space basis.
+      local confProject = Updater.ProjectOnBasis {
+         onGrid = self.confGrid,   evaluate = function(t, xn) return 0. end,   -- Set below.
+         basis  = self.confBasis,  onGhosts = true
+      }
+      local numDens  = self:allocConfField()
+      local uPar     = self:allocConfField()
+      local vtparSq  = self:allocConfField()
+      local vtperpSq = self:allocConfField()
+      if self.exactScaleM0 then
+         -- Use a unit density because we are going to rescale the density anyways,
+         -- and it is easier to weak-divide by something close to unity.
+         confProject:setFunc(function(t, xn) return 1. end)
+      else
+         confProject:setFunc(self.density)
+      end
+      confProject:advance(time, {}, {numDens})
+      confProject:setFunc(self.driftSpeed)
+      confProject:advance(time, {}, {uPar})
+      confProject:setFunc(self.parallelTemperature)
+      confProject:advance(time, {}, {vtparSq})
+      confProject:setFunc(self.perpendicularTemperature)
+      confProject:advance(time, {}, {vtperpSq})
+      vtparSq:scale(1./self.mass)
+      vtperpSq:scale(1./self.mass)
+      -- Project the BiMaxwellian. It includes a factor of jacobPhase=B*_||.
+      local projMaxwell = Updater.BiMaxwellianOnBasis {
+         onGrid     = self.phaseGrid,   confBasis = self.confBasis,
+         phaseBasis = self.phaseBasis,  mass      = self.mass,
+         confGrid   = self.confGrid,    onGhosts  = true,
+      }
+      projMaxwell:advance(time,{numDens,uPar,vtparSq,vtperpSq,bmag},{distf})
+   end
+
+   if self.exactScaleM0 then
+      self:scaleDensity(distf)
+   end
+
+   local jacobGeo = extField.geo.jacobGeo
+   if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
+end
+
 
 ----------------------------------------------------------------------
 return {
    FunctionProjection   = FunctionProjection,
    MaxwellianProjection = MaxwellianProjection,
+   BiMaxwellianProjection = BiMaxwellianProjection,
 }

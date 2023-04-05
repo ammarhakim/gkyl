@@ -11,7 +11,8 @@ local Proto = require "Lib.Proto"
 -- Empty shell field base classes.
 local FieldBase = Proto()
 function FieldBase:init(tbl) self.isElliptic = false end
-function FieldBase:readRestart() end
+function FieldBase:readRestart() return nil end
+function FieldBase:restartIoTriggers(tm) end
 function FieldBase:hasEB() return nil, nil end
 function FieldBase:setCfl() end
 function FieldBase:setIoMethod(ioMethod) self.ioMethod = ioMethod end
@@ -30,7 +31,8 @@ function ExternalFieldBase:hasEB() return nil, nil end
 function ExternalFieldBase:setCfl() end
 function ExternalFieldBase:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 function ExternalFieldBase:setBasis(basis) self.basis = basis end
-function ExternalFieldBase:readRestart() end
+function ExternalFieldBase:readRestart() return nil end
+function ExternalFieldBase:restartIoTriggers(tm) end
 function ExternalFieldBase:printDevDiagnostics() end
 
 -- NoField ---------------------------------------------------------------------
@@ -54,7 +56,8 @@ function NoField:createDiagnostics() end
 function NoField:initField() end
 function NoField:write(tm) end
 function NoField:writeRestart(tm) end
-function NoField:readRestart() return 0.0 end
+function NoField:readRestart() return nil end
+function NoField:restartIoTriggers(tm) end
 function NoField:rkStepperFields() return {} end
 function NoField:suggestDt() end
 function NoField:clearCFL() end

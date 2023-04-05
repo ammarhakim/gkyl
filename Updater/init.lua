@@ -10,6 +10,7 @@ local ASheathPotential = require "Updater.ASheathPotential"
 local Bc = require "Updater.Bc"
 local MaxwellGhostBc = require "Updater.MaxwellGhostBc"
 local BgkCollisions = require "Updater.BgkCollisions"
+local BiMaxwellianOnBasis = require "Updater.BiMaxwellianOnBasis"
 local CartFieldBinOp = require "Updater.CartFieldBinOp"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local CartFieldInterpolate = require "Updater.CartFieldInterpolate"
@@ -63,6 +64,7 @@ return {
    Bc = Bc,
    MaxwellGhostBc=MaxwellGhostBc,
    BgkCollisions = BgkCollisions,
+   BiMaxwellianOnBasis = BiMaxwellianOnBasis,
    CartFieldBinOp = CartFieldBinOp,
    CartFieldIntegratedQuantCalc = CartFieldIntegratedQuantCalc,
    CartFieldInterpolate = CartFieldInterpolate,

@@ -17,9 +17,7 @@ local KineticProjection = Proto(ProjectionBase)
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
-function KineticProjection:init(tbl)
-   self.tbl = tbl
-end
+function KineticProjection:init(tbl) self.tbl = tbl end
 
 function KineticProjection:fullInit(species)
    self.species = species
@@ -48,11 +46,9 @@ function KineticProjection:fullInit(species)
    self.scaleWithSourcePower = xsys.pickBool(self.tbl.scaleWithSourcePower, false)
 
    self.weakMultiplyConfPhase = Updater.CartFieldBinOp {
-      onGrid     = self.phaseGrid,
-      weakBasis  = self.phaseBasis,
+      onGrid     = self.phaseGrid,   operation = "Multiply",
+      weakBasis  = self.phaseBasis,  onGhosts  = true,
       fieldBasis = self.confBasis,
-      operation  = "Multiply",
-      onGhosts   = true,
    }
 end
 
@@ -166,10 +162,8 @@ function MaxwellianProjection:fullInit(species)
       }
    else
       self.project = Updater.ProjectOnBasis {
-         onGrid   = self.phaseGrid,
-         basis    = self.phaseBasis,
-         evaluate = self.initFunc,
-         onGhosts = true
+         onGrid = self.phaseGrid,   evaluate = self.initFunc,
+         basis  = self.phaseBasis,  onGhosts = true
       }
    end
 end
@@ -183,18 +177,14 @@ function MaxwellianProjection:scaleDensity(distf)
       return self.density(t, zn, self.species)
    end
    local project = Updater.ProjectOnBasis {
-      onGrid   = self.confGrid,
-      basis    = self.confBasis,
-      evaluate = func,
-      onGhosts = true,
+      onGrid = self.confGrid,   evaluate = func,
+      basis  = self.confBasis,  onGhosts = true,
    }
    project:advance(0.0, {}, {M0e})
 
    local weakDivision = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "Divide",
-      onGhosts  = true,
+      onGrid    = self.confGrid,   operation = "Divide",
+      weakBasis = self.confBasis,  onGhosts  = true,
    }
 
    -- Calculate M0mod = M0e / M0.
@@ -217,9 +207,112 @@ function MaxwellianProjection:advance(t, inFlds, outFlds)
    assert(self.exactLagFixM012 == false, "MaxwellianProjection: Specialized version of 'MaxwellianProjection' is required. Use 'VlasovProjection.MaxwellianProjection' or 'GkProjection.MaxwellianProjection'")
 end
 
+----------------------------------------------------------------------
+-- Base class for projection of BiMaxwellian function. Option for only density re-scaling.
+local BiMaxwellianProjection = Proto(KineticProjection)
+
+function BiMaxwellianProjection:fullInit(species)
+   BiMaxwellianProjection.super.fullInit(self, species)
+
+   local tbl = self.tbl
+   self.density     = assert(tbl.density, "BiMaxwellian: must specify 'density'")
+   self.driftSpeed  = tbl.driftSpeed or function(t, zn)
+      if self.vDegFreedom then return 0.   -- Gyrokinetics. Vlasov doesn't define vDegFreedom. 
+      elseif self.vdim==1 then return {0.}
+      elseif self.vdim==2 then return {0., 0.}
+      elseif self.vdim==3 then return {0., 0., 0.} end
+   end
+   self.parallelTemperature = assert(tbl.parallelTemperature,
+		                     "BiMaxwellian: must specify 'parallelTemperature'")
+   self.perpendicularTemperature = assert(tbl.perpendicularTemperature,
+		                     "BiMaxwellian: must specify 'perpendicularTemperature'")
+
+   -- Check for constants instead of functions.
+   if type(self.density) ~= "function" then
+      self.density = function (t, zn) return tbl.density end
+   end
+   if type(self.driftSpeed) ~= "function" then
+      self.driftSpeed = function (t, zn) return tbl.driftSpeed end
+   end
+   if type(self.parallelTemperature) ~= "function" then
+      self.parallelTemperature = function (t, zn) return tbl.parallelTemperature end
+   end
+   if type(self.perpendicularTemperature) ~= "function" then
+      self.perpendicularTemperature = function (t, zn) return tbl.perpendicularTemperature end
+   end
+
+   self.initFunc = function (t, zn)
+      return species:BiMaxwellian(zn, self.density(t, zn, species),
+			          self.parallelTemperature(t, zn, species),
+			          self.perpendicularTemperature(t, zn, species),
+			          self.driftSpeed(t, zn, species))
+   end
+
+   if self.fromFile then
+      self.ioMethod  = "MPI"
+      self.writeGhost = true
+      self.fieldIo = AdiosCartFieldIo {
+         elemType  = species.distf[1]:elemType(),
+         method    = self.ioMethod,
+         writeGhost = self.writeGhost,
+         metaData  = {polyOrder = self.phaseBasis:polyOrder(),
+                      basisType = self.phaseBasis:id(),
+                      charge    = self.charge,
+                      mass      = self.mass,},
+      }
+   else
+      self.project = Updater.ProjectOnBasis {
+         onGrid = self.phaseGrid,   evaluate = self.initFunc,
+         basis  = self.phaseBasis,  onGhosts = true
+      }
+   end
+end
+
+function BiMaxwellianProjection:scaleDensity(distf)
+   local M0e, M0 = self.species:allocMoment(), self.species:allocMoment()
+   local M0mod   = self.species:allocMoment()
+
+   self.species.numDensityCalc:advance(0.0, {distf}, {M0})
+   local func = function (t, zn)
+      return self.density(t, zn, self.species)
+   end
+   local project = Updater.ProjectOnBasis {
+      onGrid = self.confGrid,   evaluate = func,
+      basis  = self.confBasis,  onGhosts = true,
+   }
+   project:advance(0.0, {}, {M0e})
+
+   local weakDivision = Updater.CartFieldBinOp {
+      onGrid    = self.confGrid,   operation = "Divide",
+      weakBasis = self.confBasis,  onGhosts  = true,
+   }
+
+   -- Calculate M0mod = M0e / M0.
+   weakDivision:advance(0.0, {M0, M0e}, {M0mod})
+   -- Calculate distff = M0mod * distf.
+   self.weakMultiplyConfPhase:advance(0.0, {M0mod, distf}, {distf})
+end
+
+
+function BiMaxwellianProjection:advance(t, inFlds, outFlds)
+   local distf = outFlds[1]
+   if self.fromFile then
+      local tm, fr = self.fieldIo:read(distf, self.fromFile)
+   else
+      self.project:advance(t, {}, {distf})
+   end
+   if self.exactScaleM0 then
+      self:scaleDensity(distf)
+   end
+   assert(self.exactLagFixM012 == false, "BiMaxwellianProjection: Specialized version of 'BiMaxwellianProjection' is required. Use 'VlasovProjection.BiMaxwellianProjection' or 'GkProjection.BiMaxwellianProjection'")
+end
+
+
 
 ----------------------------------------------------------------------
+
 return {
    FunctionProjection   = FunctionProjection,
    MaxwellianProjection = MaxwellianProjection,
+   BiMaxwellianProjection = BiMaxwellianProjection,
 }

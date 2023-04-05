@@ -40,14 +40,14 @@ App = Vlasov.App {
          isInit = true,
       },   
    
-   evolve = true,
-   diagnostics = {"M0", "M1i", "M2"},   
-
-   vlasovExtForceFunc = function(t, xn)
-      return -5.0, 0.0, 0.0
-   end,
+      evolve = true,
+      diagnostics = {"M0", "M1i", "M2"},   
+      
+      vlasovExtForceFunc = function(t, xn)
+         return -5.0, 0.0, 0.0
+      end,
    },   
 
-   }
+}
 
 App:run()

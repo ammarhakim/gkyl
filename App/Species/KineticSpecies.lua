@@ -27,6 +27,7 @@ local Time             = require "Lib.Time"
 local Updater          = require "Updater"
 local ffi              = require "ffi"
 local lume             = require "Lib.lume"
+local lfs              = require "lfs"
 
 -- Function to create basis functions.
 local function createBasis(nm, ndim, polyOrder)
@@ -71,7 +72,7 @@ function KineticSpecies:fullInit(appTbl)
    -- WE DO NOT ALLOW DECOMPOSITION IN VELOCITY SPACE
    for d = 1, self.vdim do self.decompCuts[d] = 1 end
 
-   local nFrame = tbl.nDiagnosticFrame and tbl.nDiagnosticFrame or appTbl.nFrame
+   local nFrame = tbl.nDiagnosticFrame or appTbl.nFrame
    -- Create triggers to write distribution functions and moments.
    if tbl.nDistFuncFrame then
       self.distIoTrigger = LinearTrigger(0, appTbl.tEnd, tbl.nDistFuncFrame)
@@ -232,9 +233,9 @@ function KineticSpecies:fullInit(appTbl)
    self.gyavg = xsys.pickBool(tbl.gyroaverage, false)
 
    self.ioMethod           = "MPI"
-   self.distIoFrame        = 0 -- Frame number for distribution function.
-   self.diagIoFrame        = 0 -- Frame number for diagnostics.
-   self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
+   self.distIoFrame        = -1 -- Frame number for distribution function.
+   self.diagIoFrame        = -1 -- Frame number for diagnostics.
+   self.restartFileTag     = 0  -- Tag appended at the end of restart files. Toggles between 0 and 1.
    self.cfl    =  0.1
    self.nGhost = 1   -- Default is 1 ghost-cell in each direction.
 
@@ -435,11 +436,11 @@ function KineticSpecies:createSolver(field, externalField)
    if self.fluctuationBCs or self.perturbedDiagnostics then
       self.writeFluctuation = self.perturbedDiagnostics
          and function(tm, fr, fIn)
-            self.distIo:write(self.flucF, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, fr)
+            self.distIo:write(self.flucF, string.format("%s_fluctuation_%d.bp", self.name, fr), tm, fr)
          end
          or function(tm, fr, fIn)
             self.calcDeltaF(fIn)
-            self.distIo:write(self.flucF, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, fr)
+            self.distIo:write(self.flucF, string.format("%s_fluctuation_%d.bp", self.name, fr), tm, fr)
          end
    else
       self.writeFluctuation = function(tm, fr, fIn) end
@@ -624,7 +625,8 @@ function KineticSpecies:initDist(extField)
    assert(initCnt>0, string.format("KineticSpecies: Species '%s' not initialized!", self.name))
    if self.fBackground then
       if backgroundCnt == 0 then self.fBackground:copy(self.distf[1]) end
-      self.fBackground:write(string.format("%s_background_%d.bp", self.name, self.diagIoFrame), 0., self.diagIoFrame, true)
+      local initFrame = self.diagIoFrame>0 and self.diagIoFrame or 0
+      self.fBackground:write(string.format("%s_background_%d.bp", self.name, initFrame), 0., initFrame, true)
    end
 
    if self.fluctuationBCs then 
@@ -820,7 +822,6 @@ function KineticSpecies:write(tm, force)
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
-
          for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcIntegratedDiagnostics(tm, self)   -- Compute integrated diagnostics (this species' and other objects').
          end
@@ -830,18 +831,18 @@ function KineticSpecies:write(tm, force)
       -- Only write stuff if triggered.
       if self.distIoTrigger(tm) or force then
          local fIn = self:rkStepperFields()[1]
+         self.distIoFrame = self.distIoFrame+1
 
          self.distIo:write(fIn, string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
-         self.writeFluctuation(tm, self.diagIoFrame, fIn)
+         self.writeFluctuation(tm, self.distIoFrame, fIn)
 
          for _, src in lume.orderedIter(self.sources) do src:write(tm, self.distIoFrame) end
-
-         self.distIoFrame = self.distIoFrame+1
       end
 
 
       if self.diagIoTrigger(tm) or force then
          -- Compute moments and write them out.
+         self.diagIoFrame = self.diagIoFrame+1
 
          for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcGridDiagnostics(tm, self)   -- Compute grid diagnostics (this species' and other objects').
@@ -860,10 +861,9 @@ function KineticSpecies:write(tm, force)
          end
 
          self.nonconPosWrite(tCurr, self.diagIoFrame)
-
-         self.diagIoFrame = self.diagIoFrame+1
       end
    else
+      self.distIoFrame = self.distIoFrame+1
       -- If not evolving species, don't write anything except initial conditions.
       if self.distIoFrame == 0 then
 
@@ -884,7 +884,6 @@ function KineticSpecies:write(tm, force)
             dOb:write(tm, self.diagIoFrame)
          end
       end
-      self.distIoFrame = self.distIoFrame+1
    end
 
 end
@@ -894,21 +893,50 @@ function KineticSpecies:writeRestart(tm)
    local writeGhost = false
    if self.hasSheathBCs or self.fluctuationBCs then writeGhost = true end
 
-   self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, writeGhost)
-
-   for _, dOb in lume.orderedIter(self.diagnostics) do   -- Write restart diagnostics.
-      dOb:writeRestart(tm, self.diagIoFrame, self.dynVecRestartFrame)
-   end
-
-   self.dynVecRestartFrame = self.dynVecRestartFrame + 1
+   self.distIo:write(self.distf[1], string.format("%s_restart_%d.bp", self.name, self.restartFileTag), tm, self.distIoFrame, writeGhost, self.diagIoFrame)
+   
+   self.restartFileTag = self.restartFileTag==0 and 1 or 0
 end
 
-function KineticSpecies:readRestart(field, externalField)
+function KineticSpecies:readRestart(field, externalField, readTagged)
    local readGhost = false
    if self.hasSheathBCs or self.fluctuationBCs then readGhost = true end
 
-   local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name), readGhost)
+    -- Function to check if file exists.
+    local function file_exists(name)
+       if lfs.attributes(GKYL_OUT_PREFIX .. "_" .. name) then return true else return false end
+    end
+
+   local tm, fr, diagIoFr, tags
+   if readTagged then
+      tags = {lo=readTagged, up=readTagged}
+      tm, fr, diagIoFr = self.distIo:read(self.distf[1], string.format("%s_restart_%d.bp", self.name, readTagged), readGhost, true)
+   else
+      -- Loop over restart files and pick the one with the latest time.
+      -- There are possible 2 extra reads here, but hopefully that is not costly.
+      local existingTags = {}
+      for _, t in ipairs({0,1}) do
+         if file_exists(string.format("%s_restart_%d.bp", self.name, t)) then
+            table.insert(existingTags, t)
+         end
+      end
+      local largerTime = -1.e9
+      tags = {lo=existingTags[1], up=existingTags[1]}
+      for _, t in ipairs(existingTags) do
+         tm, fr, diagIoFr = self.distIo:read(self.distf[1], string.format("%s_restart_%d.bp", self.name, t), readGhost, true)
+         if tm > largerTime then
+            largerTime = tm
+            tags.up = t
+         else
+            tags.lo = t
+         end
+      end
+      -- Read the restart file with the largest time.
+      tm, fr, diagIoFr = self.distIo:read(self.distf[1], string.format("%s_restart_%d.bp", self.name, tags.up), readGhost, true)
+   end
    self.distIoFrame = fr -- Reset internal frame counter.
+   self.diagIoFrame = diagIoFr
+   self.restartFileTag = self.restartFileTag==0 and 1 or 0
 
    -- Set ghost cells.
    self.distf[1]:sync()
@@ -918,32 +946,13 @@ function KineticSpecies:readRestart(field, externalField)
       self:applyBc(tm, field, externalField, 1, 1) 
    end 
 
-   local diagIoFrame_new
-   for _, dOb in lume.orderedIter(self.diagnostics) do   -- Read grid and integrated diagnostics.
-      local _, dfr = dOb:readRestart()
-      diagIoFrame_new = diagIoFrame_new or dfr
-      if dfr then
-         assert(diagIoFrame_new==dfr, "KineticSpecies:readRestart expected diagnostics from previous run to have the same last frame.") 
-      end
-   end
-   -- The 'or self.distIoFrame' below is for sims without diagnostics, or when the first
-   -- run didn't request diagnostics, but the latter (when the restart requests diagnostics
-   -- while the first one didn't) requires commenting out the loop above (a hack, beware).
-   self.diagIoFrame = diagIoFrame_new or self.distIoFrame
-   
-   -- The following two should be moved elsehwere (MF).
-   -- if self.calcReactRate then
-   --    self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
-   -- end
-   -- if self.calcIntSrcIz then
-   --    self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
-   -- end
+   return tags, tm
+end
 
+function KineticSpecies:restartIoTriggers(tm)
    -- Iterate triggers.
    self.distIoTrigger(tm)
    self.diagIoTrigger(tm)
-   
-   return tm
 end
 
 -- Timers.

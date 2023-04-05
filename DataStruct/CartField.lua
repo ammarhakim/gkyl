@@ -967,11 +967,11 @@ local function Field_meta_ctor(elct)
 	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index
 	 return self._data+loc
       end,
-      write = function (self, fName, tmStamp, frNum, writeGhost)
-	 self._adiosIo:write(self, fName, tmStamp, frNum, writeGhost)
+      write = function (self, fName, tmStamp, frNum, writeGhost, readDiagIoFrame)
+	 self._adiosIo:write(self, fName, tmStamp, frNum, writeGhost, readDiagIoFrame)
       end,
-      read = function (self, fName) --> time-stamp, frame-number
-	 return self._adiosIo:read(self, fName)
+      read = function (self, fName, readGhost, readDiagIoFrame) --> time-stamp, frame-number
+	 return self._adiosIo:read(self, fName, readGhost, readDiagIoFrame)
       end,
       sync = function (self, syncPeriodicDirs_)
          local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)

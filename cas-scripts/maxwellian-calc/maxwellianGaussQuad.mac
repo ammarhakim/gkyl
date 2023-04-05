@@ -1,3 +1,7 @@
+/*
+   Functions used to generate kernels that project a Maxwellian onto the basis.
+*/
+
 load("out-scripts")$
 load("modal-basis")$
 load("nodalOperations/quadratureFuncs.mac")$

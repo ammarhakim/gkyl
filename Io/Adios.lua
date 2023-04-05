@@ -188,6 +188,14 @@ function _M.perform_reads(fp, blocking)
    return ffiC.adios_perform_reads(fp, blocking)
 end
 
+-- adios_get_attr
+function _M.get_attr(fp, attrnm) --> type, size, void* to data
+   local typePtr, sizePtr = ffi.new("int[1]"), ffi.new("int[1]")
+   local voidPtr          = ffi.new(typeof("void *[1]"))
+   ffiC.adios_get_attr(fp, attrnm, typePtr, sizePtr, voidPtr)
+   return typePtr[0], sizePtr[0], voidPtr[0]
+end
+
 -- adios_get_attr_byid
 function _M.get_attr_byid(fp, attrid) --> type, size, void* to data
    local typePtr, sizePtr = ffi.new("int[1]"), ffi.new("int[1]")

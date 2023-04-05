@@ -218,10 +218,12 @@ function Vlasov:setAuxFields(auxFields)
       self._emField = auxFields[1]   -- Single aux field that has the full EM field
 
       -- Electrostatic potential.
-      if not self._plasmaMagField and self._hasMagField then 
-         self._phiField = auxFields[1] 
-      elseif not self._plasmaMagField then
-         self._phiField = auxFields[2]
+      if not self._plasmaMagField then 
+         if self._hasMagField then 
+            self._phiField = auxFields[2]==nil and auxFields[1] or auxFields[2]
+         else
+            self._phiField = auxFields[2]
+         end
       end
 
       if self._isFirst then
