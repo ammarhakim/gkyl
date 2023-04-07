@@ -33,8 +33,6 @@ end
 
 
 function FunctionProjection:advance(time, inFlds, outFlds)
-   --Akash
-   self.extFieldUse = inFlds[1]
    local extField = inFlds[1]
    local distf    = outFlds[1]
    if self.fromFile then
@@ -75,7 +73,7 @@ function FunctionProjection:createCouplingSolver(species,field, externalField)
          species[ionName].numDensityCalc:advance(0.0, {species[ionName]:getDistF()}, {numDensScaleTo})
          self:scaleDensity(self.species:getDistF(), numDens, numDensScaleTo)
       end
-      local jacobGeo = self.extFieldUse.geo.jacobGeo
+      local jacobGeo = externalField.geo.jacobGeo
       if jacobGeo then self.weakMultiplyConfPhase:advance(0, {self.species:getDistF(), jacobGeo}, {self.species:getDistF()}) end
    end
 end

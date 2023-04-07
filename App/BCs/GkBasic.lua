@@ -330,20 +330,18 @@ function GkBasicBC:createCouplingSolver(species,field,externalField)
          local tm, fr = self.phaseFieldIo:read(self.ghostFld, self.fromFile)
       else
          if self.maxwellianKind == 'canonical' then
-   
-            local ionName, elcName = nil
+            local ionName = nil
             for nm, s in lume.orderedIter(species) do
-               if 0.0 < s.charge then ionName = nm
-               elseif s.charge < 0. then elcName = nm end
+               if 0.0 < s.charge then ionName = nm end
             end
    
             local numDens = self:allocMoment()
             if self.species.charge < 0.0 then
-               local bcName = self.name:gsub(elcName .. "_","")
+               local bcName = self.name:gsub(self.speciesName .. "_","")
                local numDensScaleTo = species[ionName]['nonPeriodicBCs'][bcName]:allocMoment()
                self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
                species[ionName]['nonPeriodicBCs'][bcName].numDensityCalc:advance(0.0,
-   	       {species[ionName]['nonPeriodicBCs'][bcName].ghostFld}, {numDensScaleTo})
+                  {species[ionName]['nonPeriodicBCs'][bcName].ghostFld}, {numDensScaleTo})
    
                local M0mod = self:allocMoment()
                self.confWeakDivide:advance(0.0,{numDens, numDensScaleTo} , {M0mod})
