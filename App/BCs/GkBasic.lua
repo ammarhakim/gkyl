@@ -42,12 +42,13 @@ function GkBasicBC:fullInit(mySpecies)
       self.feedback = xsys.pickBool(tbl.feedback, false)
    elseif tbl.kind=="maxwellianGhost" then
       self.species = mySpecies
-      self.bcKind   = "maxwellianGhost"
+      self.bcKind  = "maxwellianGhost"
       self.maxwellianKind = tbl.maxwellianKind
-      self.densityGhost=tbl.densityGhost
-      self.uParGhost=tbl.uParGhost
-      self.tempGhost=tbl.tempGhost
-      self.initFunc=tbl.initFunc
+      self.densityGhost   = tbl.densityGhost
+      self.uParGhost      = tbl.uParGhost
+      self.tempGhost      = tbl.tempGhost
+      self.initFunc       = tbl.initFunc
+      self.fromFile       = tbl.fromFile
    else
       self.bcKind = assert(tbl.kind, "GkBasicBC: must specify the type of BC in 'kind'.")
 
@@ -216,91 +217,93 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
 
    --If block to set up an alternative updater if bctype is maxwellianGhost : Updater.MaxwellGhostBc
    -- Otherwise the updater will be the classic Updater.Bc
-   if self.bcKind=="maxwellianGhost" then
-      --Create the dummy ghost field to pass to the Updater
+   if self.bcKind == "maxwellianGhost" then
+      -- Create the dummy ghost field to pass to the Updater
       local qOut = mySpecies:rkStepperFields()[1]
       self.ghostFld = self:allocCartField(self.boundaryGrid, qOut:numComponents(), {1,1}, qOut:getMetaData())
 
-      --Make the Updater : same regardles of local or canonical Maxwellian
+      -- Make the Updater: same regardles of local or canonical Maxwellian
       self.bcSolver = Updater.MaxwellGhostBc{
          onGrid   = self.grid,   edge               = self.bcEdge,
          cdim     = self.cdim,   boundaryConditions = {bcFunc},
          dir      = self.bcDir,  evaluate           = self.bcFuncIn,
          vdir     = vdir,        evolveFn           = self.evolve,
          skinLoop = skinType,    feedback           = self.feedback,
-         basis  = self.basis,  confBasis          = self.confBasis,
-         advanceArgs = {{mySpecies:rkStepperFields()[1], self.ghostRange}, {mySpecies:rkStepperFields()[1]}},
-         confGrid = self.confGrid,
-         boundaryGrid=self.boundaryGrid,
+         basis    = self.basis,  confBasis          = self.confBasis,
+         advanceArgs  = {{mySpecies:rkStepperFields()[1], self.ghostRange}, {mySpecies:rkStepperFields()[1]}},
+         confGrid     = self.confGrid,
+         boundaryGrid = self.boundaryGrid,
          confBoundaryGrid = self.confBoundaryGrid,
-         ghostFld = self.ghostFld,
+         ghostFld         = self.ghostFld,
       }
 
-      if self.maxwellianKind == 'local' then
-         ----Create MaxwellianOnBasis on boundary grid
-         self.projMaxwell = Updater.MaxwellianOnBasis{
-            onGrid = self.boundaryGrid,   confBasis = self.confBasis,
-            phaseBasis = self.basis ,  mass      = self.mass,
-            confGrid   = self.confBoundaryGrid,    onGhosts  = true,
-         }
-         --Make the fields
-         local confProject = Updater.ProjectOnBasis {
-            onGrid   = self.confBoundaryGrid,
-            basis    = self.confBasis,
-            evaluate = function(t, xn) return 0. end,   -- Set below.
-            onGhosts=false
-         }
-         local numDens = self:allocMoment()
-         local uPar    = self:allocMoment()
-         local vtSq    = self:allocMoment()
-
-         confProject:setFunc(function(t, xn) return 1. end)
-         confProject:advance(time, {}, {numDens})
-         confProject:setFunc(self.uParGhost)
-         confProject:advance(time, {}, {uPar})
-         confProject:setFunc(self.tempGhost)
-         confProject:advance(time, {}, {vtSq})
-         vtSq:scale(1./self.mass)
-
-
-         -- Project Into the ghost field
-         self.projMaxwell:advance(time,{numDens,uPar,vtSq,self.bmag},{self.ghostFld})
-         -- Scale Density.
-         local M0e, M0 = self:allocMoment(), self:allocMoment()
-         local M0mod   = self:allocMoment()
-         self.numDensityCalc:advance(0.0, {self.ghostFld}, {M0})
-         confProject:setFunc(self.densityGhost)
-         confProject:advance(0.0, {}, {M0e})
-         self.confWeakDivide:advance(0.0, {M0, M0e}, {M0mod})
-         self.phaseWeakMultiply:advance(0.0, {M0mod,self.ghostFld}, {self.ghostFld})
-
-      elseif self.maxwellianKind=='canonical' then
-         if mySpecies.jacobPhaseFunc and self.vdim > 1 then
-            local initFuncWithoutJacobian = self.initFunc
-            self.initFunc = function (t, xn)
-               local xconf = {}
-               for d = 1, self.cdim do xconf[d] = xn[d] end
-               local J = mySpecies.jacobPhaseFunc(t,xconf)
-               local f = initFuncWithoutJacobian(t,xn)
-               return J*f
+      if not self.fromFile then
+         if self.maxwellianKind == 'local' then
+            ----Create MaxwellianOnBasis on boundary grid
+            self.projMaxwell = Updater.MaxwellianOnBasis{
+               onGrid     = self.boundaryGrid,     confBasis = self.confBasis,
+               phaseBasis = self.basis ,           mass      = self.mass,
+               confGrid   = self.confBoundaryGrid, onGhosts  = true,
+            }
+            --Make the fields
+            local confProject = Updater.ProjectOnBasis {
+               onGrid   = self.confBoundaryGrid,
+               basis    = self.confBasis,
+               evaluate = function(t, xn) return 0. end,   -- Set below.
+               onGhosts = false
+            }
+            local numDens = self:allocMoment()
+            local uPar    = self:allocMoment()
+            local vtSq    = self:allocMoment()
+   
+            confProject:setFunc(function(t, xn) return 1. end)
+            confProject:advance(time, {}, {numDens})
+            confProject:setFunc(self.uParGhost)
+            confProject:advance(time, {}, {uPar})
+            confProject:setFunc(self.tempGhost)
+            confProject:advance(time, {}, {vtSq})
+            vtSq:scale(1./self.mass)
+   
+   
+            -- Project Into the ghost field
+            self.projMaxwell:advance(time,{numDens,uPar,vtSq,self.bmag},{self.ghostFld})
+            -- Scale Density.
+            local M0e, M0 = self:allocMoment(), self:allocMoment()
+            local M0mod   = self:allocMoment()
+            self.numDensityCalc:advance(0.0, {self.ghostFld}, {M0})
+            confProject:setFunc(self.densityGhost)
+            confProject:advance(0.0, {}, {M0e})
+            self.confWeakDivide:advance(0.0, {M0, M0e}, {M0mod})
+            self.phaseWeakMultiply:advance(0.0, {M0mod,self.ghostFld}, {self.ghostFld})
+   
+         elseif self.maxwellianKind == 'canonical' then
+            if mySpecies.jacobPhaseFunc and self.vdim > 1 then
+               local initFuncWithoutJacobian = self.initFunc
+               self.initFunc = function (t, xn)
+                  local xconf = {}
+                  for d = 1, self.cdim do xconf[d] = xn[d] end
+                  local J = mySpecies.jacobPhaseFunc(t,xconf)
+                  local f = initFuncWithoutJacobian(t,xn)
+                  return J*f
+               end
             end
+   
+            local project = Updater.ProjectOnBasis {
+               onGrid   = self.boundaryGrid,
+               basis    = self.basis,
+               evaluate = self.initFunc,
+               onGhosts = false
+            }
+            project:advance(time, {},{self.ghostFld})
          end
-
-         local project = Updater.ProjectOnBasis {
-            onGrid   = self.boundaryGrid,
-            basis    = self.basis,
-            evaluate = self.initFunc,
-            onGhosts = false
-         }
-         project:advance(time, {},{self.ghostFld})
       end
 
-      self.confFieldIo = AdiosCartFieldIo {
+      self.phaseFieldIo = AdiosCartFieldIo {
          elemType   = mySpecies:getDistF():elemType(),
          method     = "MPI",
          writeGhost = false,
-         metaData   = {polyOrder = self.confBasis:polyOrder(),
-                       basisType = self.confBasis:id(),
+         metaData   = {polyOrder = self.phaseBasis:polyOrder(),
+                       basisType = self.phaseBasis:id(),
                        charge    = self.charge,
                        mass      = self.mass,},
       }
@@ -322,28 +325,37 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
 end
 
 function GkBasicBC:createCouplingSolver(species,field,externalField)
-   if self.bcKind=='maxwellianGhost' then
-      if self.maxwellianKind=='canonical' then
-         if self.species.charge < 0.0 then
-            local bcName = self.name:gsub("elc_","")
+   if self.bcKind == 'maxwellianGhost' then
+      if self.fromFile then
+         local tm, fr = self.phaseFieldIo:read(self.ghostFld, self.fromFile)
+      else
+         if self.maxwellianKind == 'canonical' then
+   
+            local ionName, elcName = nil
+            for nm, s in lume.orderedIter(species) do
+               if 0.0 < s.charge then ionName = nm
+               elseif s.charge < 0. then elcName = nm end
+            end
+   
             local numDens = self:allocMoment()
-            local numDensScaleTo = species['ion']['nonPeriodicBCs'][bcName]:allocMoment()
+            if self.species.charge < 0.0 then
+               local bcName = self.name:gsub(elcName .. "_","")
+               local numDensScaleTo = species[ionName]['nonPeriodicBCs'][bcName]:allocMoment()
+               self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
+               species[ionName]['nonPeriodicBCs'][bcName].numDensityCalc:advance(0.0,
+   	       {species[ionName]['nonPeriodicBCs'][bcName].ghostFld}, {numDensScaleTo})
+   
+               local M0mod = self:allocMoment()
+               self.confWeakDivide:advance(0.0,{numDens, numDensScaleTo} , {M0mod})
+               self.phaseWeakMultiply:advance(0.0, {M0mod,self.ghostFld}, {self.ghostFld})
+            end
             self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
-            species['ion']['nonPeriodicBCs'][bcName].numDensityCalc:advance(0.0, {species['ion']['nonPeriodicBCs'][bcName].ghostFld}, {numDensScaleTo})
-
-            local M0mod   = self:allocMoment()
-            self.confWeakDivide:advance(0.0,{numDens, numDensScaleTo} , {M0mod})
-            self.phaseWeakMultiply:advance(0.0, {M0mod,self.ghostFld}, {self.ghostFld})
-            self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
-            self.confFieldIo:write(numDens, string.format("%s_M0_%d.bp", self.name, 0), 0.0, 0, false)
-         elseif self.species.charge > 0.0 then
-            local numDens = self:allocMoment()
-            self.numDensityCalc:advance(0.0, {self.ghostFld}, {numDens})
-            self.confFieldIo:write(numDens, string.format("%s_M0_%d.bp", self.name, 0), 0.0, 0, false)
+            numDens:write(string.format("%s_M0_%d.bp", self.name, 0), 0.0, 0, false)
          end
+         -- Multiply by conf space Jacobian Now
+         self.phaseWeakMultiply:advance(0, {self.ghostFld, self.jacobGeo}, {self.ghostFld})
+         self.phaseFieldIo:write(self.ghostFld, string.format("%s_Maxwellian_%d.bp", self.name, 0), 0., 0, false)
       end
-      -- Multiply by conf space Jacobian Now
-      self.phaseWeakMultiply:advance(0, {self.ghostFld, self.jacobGeo}, {self.ghostFld})
    end
 end
 
