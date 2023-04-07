@@ -37,8 +37,6 @@ function FunctionProjection:advance(time, inFlds, outFlds)
    self.extFieldUse = inFlds[1]
    local extField = inFlds[1]
    local distf    = outFlds[1]
-   local numDens = self:allocConfField()
-   local numDensScaleTo = self:allocConfField()
    if self.fromFile then
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
@@ -65,21 +63,21 @@ function FunctionProjection:advance(time, inFlds, outFlds)
 end
 
 function FunctionProjection:createCouplingSolver(species,field, externalField)
-   if self.species.charge < 0.0 then
-      local numDens = self:allocConfField()
-      local numDensScaleTo = self:allocConfField()
-      local ionName = nil
-      for nm, s in lume.orderedIter(species) do
-        if 0.0 < s.charge then
-          ionName=nm
-        end
+   if not self.fromFile then
+      if self.species.charge < 0.0 then
+         local numDens = self:allocConfField()
+         local numDensScaleTo = self:allocConfField()
+         local ionName = nil
+         for nm, s in lume.orderedIter(species) do
+            if 0.0 < s.charge then ionName = nm end
+         end
+         self.species.numDensityCalc:advance(0.0, {self.species:getDistF()}, {numDens})
+         species[ionName].numDensityCalc:advance(0.0, {species[ionName]:getDistF()}, {numDensScaleTo})
+         self:scaleDensity(self.species:getDistF(), numDens, numDensScaleTo)
       end
-      self.species.numDensityCalc:advance(0.0, {self.species:getDistF()}, {numDens})
-      species[ionName].numDensityCalc:advance(0.0, {species[ionName]:getDistF()}, {numDensScaleTo})
-      self:scaleDensity(self.species:getDistF(), numDens, numDensScaleTo)
+      local jacobGeo = self.extFieldUse.geo.jacobGeo
+      if jacobGeo then self.weakMultiplyConfPhase:advance(0, {self.species:getDistF(), jacobGeo}, {self.species:getDistF()}) end
    end
-   local jacobGeo = self.extFieldUse.geo.jacobGeo
-   if jacobGeo then self.weakMultiplyConfPhase:advance(0, {self.species:getDistF(), jacobGeo}, {self.species:getDistF()}) end
 end
 
 --------------------------------------------------------------------------------
