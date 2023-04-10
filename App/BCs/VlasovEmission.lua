@@ -46,7 +46,7 @@ function VlasovEmissionBC:fullInit(mySpecies)
       self.bcParam:data()[7] = assert(tbl.mass, "VlasovEmissionBC: must specify species mass in 'mass'.")
       self.bcParam:data()[8] = assert(tbl.charge, "VlasovEmissionBC: must specify species charge in 'charge'.")
       self.gain = assert(tbl.gain, "VlasovEmissionBC: must give gain array in 'gain'")
-      self.elastic = assert(tbl.elastic, "VlasovEmissionBC: must give elastic reflection array in 'elastic'")
+      self.elastic = tbl.elastic or nil
    end
 
    self.saveFlux = tbl.saveFlux or false

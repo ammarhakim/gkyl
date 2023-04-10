@@ -79,14 +79,13 @@ function SEEBc:init(tbl)
    local cDim = assert(tbl.cdim, "Updater.SEEBc: Must specify configuration space dimensions with 'cdim'.")
    local vDim = assert(tbl.vdim, "Updater.SEEBc: Must specify configuration space dimensions with 'cdim'.")
    local gain = assert(tbl.gain, "Updater.SEEBc: Must specify configuration space dimensions with 'cdim'.")
-   local elastic = assert(tbl.elastic, "Updater.SEEBc: Must specify configuration space dimensions with 'cdim'.")
+   local elastic = tbl.elastic or nil
    assert(self._edge == "lower" or self._edge == "upper", "Updater.SEEBc: 'edge' must be 'lower' or 'upper'.")
 
    self._bcType  = assert(tbl.bcType, "Updater.SEEBc: Must specify BC type in 'bcType'.")
    self._basis   = assert(tbl.basis, "Updater.SEEBc: Must specify the basis in 'basis'.")
    self._confBasis   = assert(tbl.confBasis, "Updater.SEEBc: Must specify the conf basis in 'confBasis'.")
    local onField = assert(tbl.onField, "Updater.SEEBc: Must specify the field we'll apply BCs to in 'onField'.")
-   self._bcField = assert(tbl.onField, "Updater.SEEBc: Must specify the BC emission parameters in 'bcField'.")
 
    local edge          = self._edge == 'lower' and 0 or 1 -- Match gkyl_edge_loc in gkylzero/zero/gkyl_range.h.
    local localExtRange = onField:localExtRange()
