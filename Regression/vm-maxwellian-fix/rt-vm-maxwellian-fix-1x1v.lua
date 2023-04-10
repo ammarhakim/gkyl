@@ -219,6 +219,9 @@ local iterFix = Updater.IterMaxwellianFix {
    confGrid = confGrid,
    confBasis = confBasis,
 
+   maxIter = 50,
+   relEps = 1e-14,
+
 }
 
 iterFix:advance(0.0, { fM, m0, m1i, m2 }, { fOut } )

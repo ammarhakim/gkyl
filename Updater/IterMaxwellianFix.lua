@@ -37,6 +37,9 @@ function IterMaxwellianFix:init(tbl)
    self.phaseBasis =
       assert(tbl.phaseBasis, "Updater.IterMaxwellianFix: Must provide phase space basis object 'phaseBasis'")
 
+   self.maxIter = tbl.maxIter
+   self.relEps = tbl.relEps
+   
    local phaseGrid, confGrid, confBasis, phaseBasis =
       self.phaseGrid, self.confGrid, self.confBasis, self.phaseBasis
 
