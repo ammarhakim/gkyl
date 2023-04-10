@@ -108,8 +108,127 @@ local confBasis = createConfBasis(confGrid:ndim(), polyOrder)
 -- Create various fields needed.
 local distf = createField(phaseGrid, phaseBasis)
 local fM = createField(phaseGrid, phaseBasis)
+local fOut = createField(phaseGrid, phaseBasis)
+
 local m0 = createField(confGrid, confBasis) 
 local m1i = createField(confGrid, confBasis, vDim)
 local m2 = createField(confGrid, confBasis)
+local m2flow = createField(confGrid, confBasis)
 local uDrift = createField(confGrid, confBasis, vDim)
 local vtSq = createField(confGrid, confBasis)
+
+local m0_ic = createField(confGrid, confBasis) 
+local m1i_ic = createField(confGrid, confBasis, vDim)
+local m2_ic = createField(confGrid, confBasis)
+
+-- Create projection updaters.
+local projPhaseScalar = Updater.ProjectOnBasis {
+   onGrid = phaseGrid,
+   basis = phaseBasis,
+   evaluate = function (t, xn) return 1.0 end   -- Set later.
+}
+local projConfScalar = Updater.ProjectOnBasis {
+   onGrid = confGrid,
+   basis = confBasis,
+   evaluate = function (t, xn) return 1.0 end   -- Set later.
+}
+local maxwellian = Updater.MaxwellianOnBasis {
+   onGrid = phaseGrid,
+   confGrid = confGrid,
+   phaseBasis = phaseBasis,
+   confBasis = confBasis,
+}
+
+-- Moment updaters.
+local calcNumDensity = Updater.DistFuncMomentCalc {
+   onGrid = phaseGrid,
+   confBasis = confBasis,
+   phaseBasis = phaseBasis,
+   moment = "M0",
+}
+local calcMomDensity = Updater.DistFuncMomentCalc {
+   onGrid = phaseGrid,
+   confBasis = confBasis,
+   phaseBasis = phaseBasis,
+   moment = "M1i",
+}
+local calcKinEnergyDensity = Updater.DistFuncMomentCalc {
+   onGrid = phaseGrid,
+   confBasis = confBasis,
+   phaseBasis = phaseBasis,
+   moment = "M2",
+}
+
+-- Binary operation updaters.
+local weakDivide = Updater.CartFieldBinOp {
+   onGrid = confGrid,
+   weakBasis = confBasis,
+   operation = "Divide",
+}
+local weakMultiply = Updater.CartFieldBinOp {
+   onGrid = confGrid,
+   weakBasis = confBasis,
+   operation = "Multiply",
+}
+local weakMultiplyConfPhase = Updater.CartFieldBinOp {
+   onGrid = phaseGrid,
+   weakBasis = phaseBasis,
+   operation = "Multiply",
+   fieldBasis = confBasis,
+}
+
+-- Project the initial distribution function.
+projPhaseScalar:setFunc(initialF)
+projPhaseScalar:advance(0.0, {}, {distf})
+
+-- Compute the initial M0, M1i and M2
+calcNumDensity:advance(0.0, {distf}, {m0})
+calcMomDensity:advance(0.0, {distf}, {m1i})
+calcKinEnergyDensity:advance(0.0, {distf}, {m2})
+
+-- Compute u and vt^2.
+weakDivide:advance(0., {m0, m1i}, {uDrift})
+weakMultiply:advance(0., {uDrift, m1i}, {m2flow})
+vtSq:combine(1., m2, -1., m2flow)
+weakDivide:advance(0., {m0, vtSq}, {vtSq})
+
+-- Project the Maxwellian onto the basis.
+maxwellian:advance(0.0, {m0, uDrift, vtSq}, {fM})
+
+-- write out initial data
+distf:write("distf.bp")
+m0:write("m0.bp")
+m1i:write("m1i.bp")
+m2:write("m2.bp")
+fM:write("fM-uncorrected.bp")
+
+-- Compute the M0, M1i and M2 from projected Maxwellian
+calcNumDensity:advance(0.0, {fM}, {m0_ic})
+calcMomDensity:advance(0.0, {fM}, {m1i_ic})
+calcKinEnergyDensity:advance(0.0, {fM}, {m2_ic})
+
+m0_ic:write("m0-uncorrected.bp")
+m1i_ic:write("m1i-uncorrected.bp")
+m2_ic:write("m2-uncorrected.bp")
+
+-- Create updater to fix Maxwellian
+local iterFix = Updater.IterMaxwellianFix {
+   onGrid = phaseGrid,
+   phaseBasis = phaseBasis,
+   
+   confGrid = confGrid,
+   confBasis = confBasis,
+
+}
+
+iterFix:advance(0.0, { fM, m0, m1i, m2 }, { fOut } )
+
+-- Compute the final M0, M1i and M2
+calcNumDensity:advance(0.0, {fOut}, {m0})
+calcMomDensity:advance(0.0, {fOut}, {m1i})
+calcKinEnergyDensity:advance(0.0, {fOut}, {m2})
+
+fOut:write("fM-corrected.bp")
+m0:write("m0-corrected.bp")
+m1i:write("m1i-corrected.bp")
+m2:write("m2-corrected.bp")
