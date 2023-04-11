@@ -35,16 +35,30 @@ function VlasovEmissionBC:fullInit(mySpecies)
       self.bcParam = Lin.Vec(1)
       self.bcParam:data()[0] = assert(tbl.gamma, "VlasovEmissionBC: must specify the emission flux ratio in 'gamma'.")
    elseif self.bcKind == "chung" then -- Currently importing gains, not self-calculating using fitting parameters. Want to change that. Or better, give both options.
-      self.bcParam = Lin.Vec(9)
+      self.bcParam = Lin.Vec(3)
       self.bcParam:data()[0] = assert(tbl.work, "VlasovEmissionBC: must specify the material work function in 'work'.")
-      self.bcParam:data()[1] = assert(tbl.gamma_hat, "VlasovEmissionBC: must specify fitting parameter 'gamma_hat'.")
-      self.bcParam:data()[2] = assert(tbl.E_hat, "VlasovEmissionBC: must specify fitting parameter 'E_hat'.")
-      self.bcParam:data()[3] = assert(tbl.t1, "VlasovEmissionBC: must specify fitting parameter 't1'.")
-      self.bcParam:data()[4] = assert(tbl.t2, "VlasovEmissionBC: must specify fitting parameter 't2'.")
-      self.bcParam:data()[5] = assert(tbl.t3, "VlasovEmissionBC: must specify fitting parameter 't3'.")
-      self.bcParam:data()[6] = assert(tbl.t4, "VlasovEmissionBC: must specify fitting parameter 't4'.")
-      self.bcParam:data()[7] = assert(tbl.mass, "VlasovEmissionBC: must specify species mass in 'mass'.")
-      self.bcParam:data()[8] = assert(tbl.charge, "VlasovEmissionBC: must specify species charge in 'charge'.")
+      self.bcParam:data()[1] = assert(tbl.mass, "VlasovEmissionBC: must specify species mass in 'mass'.")
+      self.bcParam:data()[2] = assert(tbl.charge, "VlasovEmissionBC: must specify species charge in 'charge'.")
+      -- self.bcParam:data()[3] = assert(tbl.gamma_hat, "VlasovEmissionBC: must specify fitting parameter 'gamma_hat'.")
+      -- self.bcParam:data()[4] = assert(tbl.E_hat, "VlasovEmissionBC: must specify fitting parameter 'E_hat'.")
+      -- self.bcParam:data()[5] = assert(tbl.t1, "VlasovEmissionBC: must specify fitting parameter 't1'.")
+      -- self.bcParam:data()[6] = assert(tbl.t2, "VlasovEmissionBC: must specify fitting parameter 't2'.")
+      -- self.bcParam:data()[7] = assert(tbl.t3, "VlasovEmissionBC: must specify fitting parameter 't3'.")
+      -- self.bcParam:data()[8] = assert(tbl.t4, "VlasovEmissionBC: must specify fitting parameter 't4'.")
+      self.gain = assert(tbl.gain, "VlasovEmissionBC: must give gain array in 'gain'")
+      self.elastic = tbl.elastic or nil
+   elseif self.bcKind == "gauss" then -- Currently importing gains, not self-calculating using fitting parameters. Want to change that. Or better, give both options.
+      self.bcParam = Lin.Vec(4)
+      self.bcParam:data()[0] = assert(tbl.E0, "VlasovEmissionBC: must specify fitting parameter 'E0'.")
+      self.bcParam:data()[1] = assert(tbl.tau, "VlasovEmissionBC: must specify fitting parameter 'tau'.")
+      self.bcParam:data()[2] = assert(tbl.mass, "VlasovEmissionBC: must specify species mass in 'mass'.")
+      self.bcParam:data()[3] = assert(tbl.charge, "VlasovEmissionBC: must specify species charge in 'charge'.")
+      -- self.bcParam:data()[4] = assert(tbl.gamma_hat, "VlasovEmissionBC: must specify fitting parameter 'gamma_hat'.")
+      -- self.bcParam:data()[5] = assert(tbl.E_hat, "VlasovEmissionBC: must specify fitting parameter 'E_hat'.")
+      -- self.bcParam:data()[6] = assert(tbl.t1, "VlasovEmissionBC: must specify fitting parameter 't1'.")
+      -- self.bcParam:data()[7] = assert(tbl.t2, "VlasovEmissionBC: must specify fitting parameter 't2'.")
+      -- self.bcParam:data()[8] = assert(tbl.t3, "VlasovEmissionBC: must specify fitting parameter 't3'.")
+      -- self.bcParam:data()[9] = assert(tbl.t4, "VlasovEmissionBC: must specify fitting parameter 't4'.")
       self.gain = assert(tbl.gain, "VlasovEmissionBC: must give gain array in 'gain'")
       self.elastic = tbl.elastic or nil
    end
@@ -97,7 +111,7 @@ function VlasovEmissionBC:createSolver(mySpecies, field, externalField)
 	 bcField = nil,         bcParam = self.bcParam,
          onField = mySpecies:rkStepperFields()[1],
       }
-   elseif self.bcKind == "chung" then
+   elseif self.bcKind == "chung" or self.bcKind == "gauss" then
       self.bcSolver = Updater.EmissionSpectrumBc{
          onGrid  = self.grid,   edge   = self.bcEdge,  
          cdim    = self.cdim,   vdim   = self.vdim,
@@ -310,7 +324,14 @@ function VlasovChungEverhartBC:fullInit(mySpecies)
    self.tbl.kind  = "chung"
    VlasovChungEverhartBC.super.fullInit(self, mySpecies)
 end
+
+local VlasovGaussianEmissionBC = Proto(VlasovEmissionBC)
+function VlasovGaussianEmissionBC:fullInit(mySpecies)
+   self.tbl.kind  = "gauss"
+   VlasovGaussianEmissionBC.super.fullInit(self, mySpecies)
+end
 -- ................... End of VlasovEmissionBC alias classes .................... --
 
-return {VlasovConstantGain  = VlasovConstantGainBC,
-        VlasovChungEverhart = VlasovChungEverhartBC}
+return {VlasovConstantGain     = VlasovConstantGainBC,
+        VlasovChungEverhart    = VlasovChungEverhartBC,
+        VlasovGaussianEmission = VlasovGaussianEmissionBC}
