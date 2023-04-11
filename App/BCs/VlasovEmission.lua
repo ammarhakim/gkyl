@@ -98,7 +98,7 @@ function VlasovEmissionBC:createSolver(mySpecies, field, externalField)
          onField = mySpecies:rkStepperFields()[1],
       }
    elseif self.bcKind == "chung" then
-      self.bcSolver = Updater.SEEBc{
+      self.bcSolver = Updater.EmissionSpectrumBc{
          onGrid  = self.grid,   edge   = self.bcEdge,  
          cdim    = self.cdim,   vdim   = self.vdim,
 	 basis  = self.basis,   confBasis  = self.confBasis, 
