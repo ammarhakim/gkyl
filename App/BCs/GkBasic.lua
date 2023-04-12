@@ -302,8 +302,8 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
          elemType   = mySpecies:getDistF():elemType(),
          method     = "MPI",
          writeGhost = false,
-         metaData   = {polyOrder = self.phaseBasis:polyOrder(),
-                       basisType = self.phaseBasis:id(),
+         metaData   = {polyOrder = self.basis:polyOrder(),
+                       basisType = self.basis:id(),
                        charge    = self.charge,
                        mass      = self.mass,},
       }
@@ -407,12 +407,12 @@ function GkBasicBC:createBoundaryTools(mySpecies, field, externalField)
       -- Create the range needed to loop over ghosts.
       local global, globalExt, localExtRange = distf:globalRange(), distf:globalExtRange(), distf:localExtRange()
       local globalGhostRange = self:getGhostRange(global, globalExt)
-      -- Remove corner ghosts (sheath BCs are not meant for those):
+      ---- Remove corner ghosts (sheath BCs are not meant for those):
       local lv, uv = globalGhostRange:lowerAsVec(), globalGhostRange:upperAsVec()
       for d = 1,self.grid:ndim() do
-         if d ~= self.bcDdir then
-            uv[d] = distf:upperGhost()-1
-            lv[d] = distf:lowerGhost()+1
+         if d ~= self.bcDir then
+            uv[d] = uv[d]-distf:upperGhost()
+            lv[d] = lv[d]+distf:lowerGhost()
          end
       end
       local ghostRangeWOcorners = Range.Range(lv, uv)
