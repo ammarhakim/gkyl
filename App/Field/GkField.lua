@@ -63,6 +63,7 @@ end
 function GkField:init(tbl)
    GkField.super.init(self, tbl)
    self.tbl = tbl
+   self.xLCFS = tbl.xLCFS
 end
 
 -- Actual function for initialization. This indirection is needed as
@@ -368,6 +369,7 @@ function GkField:createSolver(species, externalField)
       jacobGeo = self.unitWeight
    end
    self.phiSlvr = Updater.FemPoisson {
+      xLCFS=self.xLCFS,
       onGrid      = self.grid,
       basis       = self.basis,
       bcLower     = self.bcLowerPhi,
@@ -378,13 +380,14 @@ function GkField:createSolver(species, externalField)
       gxy = gxyPoisson,
       gyy = gyyPoisson,
    }
-   if self.ndim == 3 and not self.discontinuousPhi then
-      self.phiZSmoother = Updater.FemParPoisson {
-         onGrid = self.grid,   bcLower = {{T="N",V=0.0}},
-         basis  = self.basis,  bcUpper = {{T="N",V=0.0}},
-         smooth = true,
-      }
-   end
+   --Third smoothing is unnesessary
+   --if self.ndim == 3 and not self.discontinuousPhi then
+   --   self.phiZSmoother = Updater.FemParPoisson {
+   --      onGrid = self.grid,   bcLower = {{T="N",V=0.0}},
+   --      basis  = self.basis,  bcUpper = {{T="N",V=0.0}},
+   --      smooth = true,
+   --   }
+   --end
    -- When using a linearizedPolarization term in Poisson equation,
    -- the weights on the terms are constant scalars.
    if self.linearizedPolarization then
@@ -790,12 +793,15 @@ function GkField:phiSolve(tCurr, species, inIdx, outIdx)
    if self.evolve and (not self.externalPhi and not self.externalPhiTimeDependence) and (not self.calcedPhi) then
       local potCurr = self:rkStepperFields()[inIdx]
       self.phiSlvr:solve(tCurr, {self.chargeDens}, {potCurr.phiAux})
+
+      -- Third overall smoothing of phi. Remove as it is unnecessary!
       -- Smooth phi in z to ensure continuity in all directions.
-      if self.ndim == 3 and not self.discontinuousPhi then
-         self.phiZSmoother:advance(tCurr, {potCurr.phiAux}, {potCurr.phi})
-      else
-         potCurr.phi = potCurr.phiAux
-      end
+      --if self.ndim == 3 and not self.discontinuousPhi then
+      --   self.phiZSmoother:advance(tCurr, {potCurr.phiAux}, {potCurr.phi})
+      --else
+      --   potCurr.phi = potCurr.phiAux
+      --end
+      phi:copy(potCurr.phiAux)
 
       -- Apply BCs.
       local tmStart = Time.clock()

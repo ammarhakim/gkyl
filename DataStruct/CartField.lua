@@ -1127,6 +1127,19 @@ local function Field_meta_ctor(elct)
             c = c + self._numComponents
 	 end
       end,
+   copyRange = function (self, rng, fldIn)
+      --Copies range rng from fldIn into same range of self
+	   local indexerOut = self:genIndexer()
+	   local indexerIn = fldIn:genIndexer()
+      local fitrOut = self:get(1)
+      local fitrIn = fldIn:get(1)
+	   for idx in rng:rowMajorIter() do
+	      self:fill(indexerOut(idx), fitrOut)
+	      fldIn:fill(indexerIn(idx), fitrIn)
+         ffiC.gkylCopyFromField(fitrOut:data(), fitrIn:data(), self._numComponents, 0)
+         --c = c + self._numComponents
+	   end
+   end,
       _field_sync = function (self, dataPtr)
          local comm = self._grid:commSet().nodeComm -- communicator to use
          if not Mpi.Is_comm_valid(comm) then

@@ -32,6 +32,7 @@ function FemPoisson:init(tbl)
       return false
    end
 
+   self.xLCFS=tbl.xLCFS
    self.grid  = tbl.onGrid
    self.ndim  = self.grid:ndim()
    self.basis = tbl.basis
@@ -79,6 +80,7 @@ function FemPoisson:init(tbl)
       }
    elseif ndim == 3 then
       self.slvr = FemPerpPoisson {
+        xLCFS=self.LCFS,
         onGrid       = self.grid,
         basis        = self.basis,
         bcLower      = self.bcLower,
