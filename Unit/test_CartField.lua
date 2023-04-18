@@ -206,6 +206,50 @@ function test_5()
    
 end
 
+function test_19()
+   local grid = Grid.RectCart {
+      lower = {0.0},
+      upper = {1.0},
+      cells = {10},
+   }
+   local field1 = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+   }
+   local field2 = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+   }
+
+   local localRange, indexer = field1:localRange(), field1:indexer()
+   local shortenedLocalRange = localRange:shorten(1,8)
+   for i = localRange:lower(1), localRange:upper(1) do
+      local fitr = field1:get(indexer(i))
+      fitr[1] = i+1
+      fitr[2] = i+2
+      fitr[3] = i+3
+   end
+   -- copy and test
+   field2:copyRange(shortenedLocalRange,field1)
+   for i = localRange:lower(1), localRange:upper(1)-2 do
+      local fitr1 = field1:get(indexer(i))
+      local fitr2 = field2:get(indexer(i))
+      assert_equal(fitr1[1], fitr2[1], "Checking if copy worked")
+      assert_equal(fitr1[2], fitr2[2], "Checking if copy worked")
+      assert_equal(fitr1[3], fitr2[3], "Checking if copy worked")
+   end
+
+   for i = localRange:upper(1)-1, localRange:upper(1) do
+      local fitr1 = field1:get(indexer(i))
+      local fitr2 = field2:get(indexer(i))
+      assert_equal(0.0, fitr2[1], "Checking if copy worked")
+      assert_equal(0.0, fitr2[2], "Checking if copy worked")
+      assert_equal(0.0, fitr2[3], "Checking if copy worked")
+   end
+end
+
+
+
 function test_6()
    local grid = Grid.RectCart {
       lower = {0.0},
@@ -959,6 +1003,7 @@ test_15()
 test_16()
 test_17()
 test_18()
+test_19()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
