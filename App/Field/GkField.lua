@@ -64,6 +64,7 @@ function GkField:init(tbl)
    GkField.super.init(self, tbl)
    self.tbl = tbl
    self.xLCFS = tbl.xLCFS
+   --print("in GkField, xLCFS = ", self.xLCFS)
 end
 
 -- Actual function for initialization. This indirection is needed as
@@ -801,7 +802,7 @@ function GkField:phiSolve(tCurr, species, inIdx, outIdx)
       --else
       --   potCurr.phi = potCurr.phiAux
       --end
-      phi:copy(potCurr.phiAux)
+      potCurr.phi:copy(potCurr.phiAux)
 
       -- Apply BCs.
       local tmStart = Time.clock()

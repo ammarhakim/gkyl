@@ -33,6 +33,7 @@ function FemPoisson:init(tbl)
    end
 
    self.xLCFS=tbl.xLCFS
+   --print("in FemPoisson, xLCFS = ", self.xLCFS)
    self.grid  = tbl.onGrid
    self.ndim  = self.grid:ndim()
    self.basis = tbl.basis
@@ -50,8 +51,10 @@ function FemPoisson:init(tbl)
 
    self.smooth = xsys.pickBool(tbl.smooth, false)
 
+   --print("In Fempoisson, ndim = ", ndim)
+
    self.slvr = nil
-   if ndim == 1 then 
+   if ndim == 1 then
       self.slvr = FemParPoisson {
          onGrid  = self.grid,
          basis   = self.basis,
@@ -80,7 +83,7 @@ function FemPoisson:init(tbl)
       }
    elseif ndim == 3 then
       self.slvr = FemPerpPoisson {
-        xLCFS=self.LCFS,
+        xLCFS        = self.xLCFS,
         onGrid       = self.grid,
         basis        = self.basis,
         bcLower      = self.bcLower,

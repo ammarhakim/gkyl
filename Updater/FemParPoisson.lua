@@ -138,6 +138,7 @@ function FemParPoisson:init(tbl)
    self._bc = ffi.new("bcdataPar_t[2]")
    self._periodic = false
    if tbl.bcLower and tbl.bcUpper then
+     --print("How long is bcLower table?", #tbl.bcLower)
       assert(#tbl.bcLower==1 and #tbl.bcUpper==1, "Updater.FemPerpPoisson: number of entries in bcLower/bcUpper must equal 1.")
       if tbl.bcLower[1].T=="P" and tbl.bcUpper[1].T=="P" then  
          self._periodic = true

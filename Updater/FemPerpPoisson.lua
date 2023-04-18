@@ -79,6 +79,7 @@ function FemPerpPoisson:init(tbl)
    FemPerpPoisson.super.init(self, tbl)
 
    self.xLCFS = tbl.xLCFS
+   --print("In FemPerpPoisson xLCFS =", self.xLCFS)
    self._grid  = assert(tbl.onGrid, "Updater.FemPerpPoisson: Must provide grid object using 'onGrid'")
    self._basis = assert(tbl.basis, "Updater.FemPerpPoisson: Must specify basis functions to use using 'basis'")
 
@@ -173,7 +174,10 @@ function FemPerpPoisson:init(tbl)
    self._nx = self._grid:numCells(1)
    self._ny = self._grid:numCells(2)
    self.axisymmetric=nil
-   if self._ny==1 then self.axisymmetric=true end
+   if self._ny==1 and self.xLCFS then
+     self.axisymmetric=true
+     --print("yes we are axisymmetric")
+   end
    self._p  = self._basis:polyOrder()
    self._dx = self._grid:dx(1)
    self._dy = self._grid:dx(2)
@@ -229,31 +233,57 @@ function FemPerpPoisson:init(tbl)
 
    self.zDiscontToCont = nil
    if self._ndim == 3 and self.zContinuous then
+      --move this up for now
+      self.zDiscontToCont = FemParPoisson {
+         onGrid  = self._grid,
+         basis   = self._basis,
+         bcLower = {tbl.bcLower[3]},
+         bcUpper = {tbl.bcUpper[3]},
+         smooth  = true,
+      }
       if self.axisymmetric then
-      self.smoother = function(...) return axisymmetricSmoother(...) end
+        --print("In FemPerpPoisson, Looking at bl.bcLower[3]: ", tbl.bcLower[3])
+         self:setSplitRanges()
+         self.smoother = function(tCurr,src) return self:axisymmetricSmoother(tCurr,src) end
          self.zDiscontToContSOL = FemParPoisson {
             onGrid  = self._grid,
             basis   = self._basis,
-            bcLower = {T= "N", V=0.0},
-            bcUpper = {T= "N", V=0.0},
+            bcLower = {{T= "N",V=0.0}},
+            bcUpper = {{T= "N",V=0.0}},
             smooth  = true,
          }
          self.zDiscontToContCore = FemParPoisson {
             onGrid  = self._grid,
             basis   = self._basis,
-            bcLower = {T = "P", V=0.0},
-            bcUpper = {T = "P", V=0.0},
+            bcLower = {{T = "P",V=0.0}},
+            bcUpper = {{T = "P",V=0.0}},
             smooth  = true,
          }
+         local function createField(grid, basis, ghostCells, vComp, periodicSync)
+            vComp = vComp or 1
+            local fld = DataStruct.Field {
+               onGrid           = grid,
+               numComponents    = basis:numBasis()*vComp,
+               ghost            = ghostCells,
+               metaData         = {polyOrder = basis:polyOrder(),
+                                   basisType = basis:id()},
+               syncPeriodicDirs = periodicSync,
+            }
+            fld:clear(0.0)
+            return fld
+         end
+         self.srcSOL = createField(self._grid,self._basis,{1,1})
+         --self.srcCore = createField(self._grid,self._basis,{1,1})
+         --self.srcTemp = createField(self._grid,self._basis,{1,1})
       else
-         self.smoother = function(...) return regularSmoother(...) end
-         self.zDiscontToCont = FemParPoisson {
-            onGrid  = self._grid,
-            basis   = self._basis,
-            bcLower = {tbl.bcLower[3]},
-            bcUpper = {tbl.bcUpper[3]},
-            smooth  = true,
-         }
+         self.smoother = function(tCurr,src) return self:regularSmoother(tCurr,src) end
+         --self.zDiscontToCont = FemParPoisson {
+         --   onGrid  = self._grid,
+         --   basis   = self._basis,
+         --   bcLower = {tbl.bcLower[3]},
+         --   bcUpper = {tbl.bcUpper[3]},
+         --   smooth  = true,
+         --}
       end
    end
 
@@ -304,47 +334,62 @@ function FemPerpPoisson:regularSmoother(tCurr,src)
    self.zDiscontToCont:advance(tCurr, {src}, {src})
 end
 
-function FemPerpPoisson:getSplitRanges()
+function FemPerpPoisson:setSplitRanges()
    local gridRange = self._grid:globalRange()
    local xLCFS=self.xLCFS
    local coordLCFS = {xLCFS-1.e-7}
    idxLCFS    = {-9}
-   local xGridIngr = grid:childGrid({1})
+   local xGridIngr = self._grid:childGrid({1})
    local xGrid = Grid.RectCart {
       lower = xGridIngr.lower,  periodicDirs  = xGridIngr.periodicDirs,
       upper = xGridIngr.upper,  decomposition = xGridIngr.decomposition,
       cells = xGridIngr.cells,
    }
    xGrid:findCell(coordLCFS, idxLCFS)
-   --Define the two ranges
    self.globalCore = gridRange:shorten(1, idxLCFS[1])
-   self.globalSOL = gridRange:shortenFromBelow(1, grid:numCells(1)-idxLCFS[1]+1)
+   --local lv,uv = self.globalCore:lowerAsVec(), self.globalCore:upperAsVec()
+   --print("Core range lv,uv", lv[1],lv[2], lv[3], uv[1],uv[2], uv[3])
+   self.globalSOL = gridRange:shortenFromBelow(1, self._grid:numCells(1)-idxLCFS[1]+1)
+   --local lv,uv = self.globalSOL:lowerAsVec(), self.globalSOL:upperAsVec()
+   --print("SOL range lv,uv", lv[1],lv[2], lv[3], uv[1],uv[2], uv[3])
 end
 
 function FemPerpPoisson:axisymmetricSmoother(tCurr,src)
-   local function createField(grid, basis, ghostCells, vComp, periodicSync)
-      vComp = vComp or 1
-      local fld = DataStruct.Field {
-         onGrid           = grid,
-         numComponents    = basis:numBasis()*vComp,
-         ghost            = ghostCells,
-         metaData         = {polyOrder = basis:polyOrder(),
-                             basisType = basis:id()},
-         syncPeriodicDirs = periodicSync,
-      }
-      fld:clear(0.0)
-      return fld
-   end
-   srcSOL = createField(self.grid,self.basis,{1,1})
+   --print("Chose the axisymmetric Smoother")
+   --local function createField(grid, basis, ghostCells, vComp, periodicSync)
+   --   vComp = vComp or 1
+   --   local fld = DataStruct.Field {
+   --      onGrid           = grid,
+   --      numComponents    = basis:numBasis()*vComp,
+   --      ghost            = ghostCells,
+   --      metaData         = {polyOrder = basis:polyOrder(),
+   --                          basisType = basis:id()},
+   --      syncPeriodicDirs = periodicSync,
+   --   }
+   --   fld:clear(0.0)
+   --   return fld
+   --end
+   local localRange = src:localRange()
+   local localSOLRange = src:localRange():intersect(self.globalSOL)
+   local localCoreRange = src:localRange():intersect(self.globalCore)
+   --self:getSplitRanges() -- now called in init
+   --srcSOL = createField(self._grid,self._basis,{1,1})
+   --srcSOL=self.srcSOL
+   --srcCore = createField(self._grid,self._basis,{1,1})
+   --Have to be careful!! turns out zDiscontToCont=FemParPoisson actually modifies src so create a temporary copy
+   --srcTemp = createField(self._grid,self._basis,{1,1})
+   --srcTemp=self.srcTemp
+   --self.srcTemp:copy(localRange, src)
+   --Mpi.Barrier(self._grid:commSet().sharedComm)
    self.zDiscontToContCore:advance(tCurr, {src}, {src})
-   self.zDiscontToContSOL:advance(tCurr, {src}, {srcSOL})
-   src:copyRange(globalSOL, srcSOL)
-   src:copyRange(globalCore, src)
+   self.zDiscontToContSOL:advance(tCurr, {src}, {self.srcSOL})
+   src:copyRange(localSOLRange, self.srcSOL)
+   --src:copyRange(localCoreRange, self.srcCore)
 end
 
-function FemPerpPoisson:smootherImpl(...)
-   return self.smoother(...)
-end
+--function FemPerpPoisson:smootherImpl(tCurr,src)
+--   return self.smoother(tCurr,src)
+--end
 
 function FemPerpPoisson:beginAssembly(tCurr, src)
    -- Assemble the right-side source vector and, if necessary, the stiffness matrix.
@@ -354,11 +399,12 @@ function FemPerpPoisson:beginAssembly(tCurr, src)
 
    --First smoothing: of density with z BCs
    if self.zDiscontToCont then   -- Make continuous in z.
-      print("doing the first overall smooth")
+      --print("doing the first overall smooth")
       local tmStart = Time.clock()
       --self.zDiscontToCont:advance(tCurr, {src}, {src})
       --call some function, function is determined at t=0
-      self.smootherImpl(tCurr,src)
+      --self.smootherImpl(tCurr,src)
+      self.smoother(tCurr,src)
       self.timers.zDiscontToCont = self.timers.zDiscontToCont + Time.clock() - tmStart
    end
 
