@@ -173,10 +173,9 @@ function FemPerpPoisson:init(tbl)
 
    self._nx = self._grid:numCells(1)
    self._ny = self._grid:numCells(2)
-   self.axisymmetric=nil
+   self.axisymmetric = nil
    if self._ny==1 and self.xLCFS then
      self.axisymmetric=true
-     --print("yes we are axisymmetric")
    end
    self._p  = self._basis:polyOrder()
    self._dx = self._grid:dx(1)
@@ -264,8 +263,6 @@ function FemPerpPoisson:init(tbl)
             return fld
          end
          self.srcSOL = createField(self._grid,self._basis,{1,1})
-         --self.srcCore = createField(self._grid,self._basis,{1,1})
-         --self.srcTemp = createField(self._grid,self._basis,{1,1})
       else
          self.zSmoother = function(tCurr,src) return self:regularSmoother(tCurr,src) end
          self.zDiscontToCont = FemParPoisson {
@@ -518,12 +515,11 @@ function FemPerpPoisson:completeAssemblyAndSolve(tCurr, sol)
    end 
 
    --Second Smoothing: smoothing of phi with Z BCs
-   --if self.zDiscontToCont then 
-   --   print("doing the second overall smooth")
-   --   local tmStart = Time.clock()
-   --   self.zDiscontToCont:advance(tCurr, {sol}, {sol}) 
-   --   self.timers.zDiscontToCont = self.timers.zDiscontToCont + Time.clock() - tmStart
-   --end
+   if self.zDiscontToCont then 
+      local tmStart = Time.clock()
+      self.zSmoother(tCurr,sol)
+      self.timers.zDiscontToCont = self.timers.zDiscontToCont + Time.clock() - tmStart
+   end
 
    self._first = false
    -- Reset makeStiff flag to false, until stiffness matrix changes again.
