@@ -93,6 +93,7 @@ return {
    Ionization = Ionization,
    Ionization = Ionization,
    IterMaxwellianFix = IterMaxwellianFix,
+   IterMaxFix = IterMaxFix,
    IterPoisson = IterPoisson,
    LagrangeFix = LagrangeFix,
    MGpoisson = MGpoisson,
