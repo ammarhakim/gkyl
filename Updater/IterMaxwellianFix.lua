@@ -118,6 +118,44 @@ function IterMaxwellianFix:init(tbl)
       fieldBasis = confBasis,
    }
 end
+
+-- compute the L2 norm
+function IterMaxwellianFix:l2norm(fld)
+   local localRange = fld:localRange()
+   local indexer = fld:genIndexer()
+   local vol = self.confGrid:cellVolume()
+   local dfact = 1/2^self.confGrid:ndim()
+
+   local l2 = 0.0
+   for idxs in localRange:colMajorIter() do
+      local fldItr = fld:get(indexer(idxs))
+      for k = 1, fld:numComponents() do
+         l2 = l2 + fldItr[k]^2
+      end
+   end
+
+   return math.sqrt(l2*vol*dfact)
+end
+
+function IterMaxwellianFix:l2diff(f1, f2)
+   local localRange = f1:localRange()
+   local indexer = f1:genIndexer()
+   local vol = self.confGrid:cellVolume()
+   local dfact = 1/2^self.confGrid:ndim()
+
+   local l2 = 0.0
+   for idxs in localRange:colMajorIter() do
+      local f1Itr = f1:get(indexer(idxs))
+      local f2Itr = f2:get(indexer(idxs))
+
+      for k = 1, f1:numComponents() do
+         l2 = l2 + (f1Itr[k]-f2Itr[k])^2
+      end
+    end
+
+    return math.sqrt(l2*vol*dfact)
+end
+
 -- advance method
 function IterMaxwellianFix:_advance(tCurr, inFld, outFld)
 
@@ -163,7 +201,9 @@ function IterMaxwellianFix:_advance(tCurr, inFld, outFld)
    calcKinEnergyDensity:advance(0.0, {fOut}, {m2_new})
    
    -- Fix the moments with rescaling and iteration
-   for n = 0, 10 do
+   local isDone = false
+   local step = 0
+   while not isDone do
       -- Fix m1i.
       ddm1i:combine(1., m1i, -1., m1i_new)
       dm1i:combine(1., dm1i, 1., ddm1i)
@@ -189,6 +229,16 @@ function IterMaxwellianFix:_advance(tCurr, inFld, outFld)
       calcNumDensity:advance(0.0, {fOut}, {m0_new})
       calcMomDensity:advance(0.0, {fOut}, {m1i_new})
       calcKinEnergyDensity:advance(0.0, {fOut}, {m2_new})
+      
+      -- Compute the l2 norm of the truncation error.
+      local err = self:l2diff(m2,m2_new) / self:l2norm(m2)
+      -- Stop at required accuracy.
+      if err < self.relEps or step >= self.maxIter then
+         isDone = true
+         break
+      end
+      step = step + 1
+      print("Step number:", step)
    end
    
 end
