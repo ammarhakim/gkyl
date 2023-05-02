@@ -384,10 +384,10 @@ function FemPerpPoisson:twistShiftSmoother(tCurr,src)
       if lv[self._ndim]==1 then -- lower boundary skin cell
          src.fill(indexer(idx), lowerSkinPtr)
       end
-      if lv[self._ndim]==(self._nz + 1) then -- upper boundary ghost cell
+      if uv[self._ndim]==(self._nz + 1) then -- upper boundary ghost cell
          src.fill(indexer(idx), upperGhostPtr)
       end
-      if lv[self._ndim]==(self._nz) then -- upper boundary skin cell
+      if uv[self._ndim]==(self._nz) then -- upper boundary skin cell
          src.fill(indexer(idx), upperSkinPtr)
       end
    end
