@@ -31,12 +31,13 @@ local Grid = require("Grid")
 local Time           = require "Lib.Time"
 local Logger         = require "Lib.Logger"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
+local twistShiftSmootherBcDecl = require "Updater.twistShiftSmootherBcData.twistShiftSmootherBcDecl"
 local Mpi
 if GKYL_HAVE_MPI then Mpi = require "Comm.Mpi" end
 
 ffi.cdef[[
 /** Structure to store BC data. */
-      typedef struct 
+      typedef struct
       {
 /** Flag to indicate if Bc was set */
           bool isSet;
@@ -91,7 +92,7 @@ function FemPerpPoisson:init(tbl)
    assert(self._ndim==2 or self._ndim==3, "Updater.FemPerpPoisson: only implemented for 2D or 3D (with no solve in 3rd dimension)")
 
    self._writeMatrix = xsys.pickBool(tbl.writeStiffnessMatrix, false)
-  
+
    -- Set up constant dummy field.
    self.unitWeight = DataStruct.Field {
       onGrid        = self._grid,
@@ -173,9 +174,15 @@ function FemPerpPoisson:init(tbl)
 
    self._nx = self._grid:numCells(1)
    self._ny = self._grid:numCells(2)
+   self._nz = self._grid:numCells(3)
    self.axisymmetric = nil
-   if self._ny==1 and self.xLCFS then
-     self.axisymmetric=true
+   self.twistShift=nil
+   if self.xLCFS then
+      if self._ny==1 then
+         self.axisymmetric=true
+      else
+         self.twistShift=true
+      end
    end
    self._p  = self._basis:polyOrder()
    self._dx = self._grid:dx(1)
@@ -203,17 +210,17 @@ function FemPerpPoisson:init(tbl)
       numComponents = self._basis:numBasis(),
       ghost         = {1, 1},
    }
-   if tbl.gxx then 
+   if tbl.gxx then
       self.gxx:copy(tbl.gxx)
    else
       self.gxx:copy(self.unitWeight)
    end
-   if tbl.gxy then 
+   if tbl.gxy then
       self.gxy:copy(tbl.gxy)
    else
       self.gxy:clear(0.0)
    end
-   if tbl.gyy then 
+   if tbl.gyy then
       self.gyy:copy(tbl.gyy)
    else
       self.gyy:copy(self.unitWeight)
@@ -232,9 +239,8 @@ function FemPerpPoisson:init(tbl)
 
    self.zDiscontToCont = nil
    if self._ndim == 3 and self.zContinuous then
-      if self.axisymmetric then
+      if self.xLCFS then
          self:setSplitRanges()
-         self.zSmoother = function(tCurr,src) return self:axisymmetricSmoother(tCurr,src) end
          self.zDiscontToCont = FemParPoisson {
             onGrid  = self._grid,
             basis   = self._basis,
@@ -263,6 +269,14 @@ function FemPerpPoisson:init(tbl)
             return fld
          end
          self.srcSOL = createField(self._grid,self._basis,{1,1})
+         if self.axisymmetric then
+            self.zSmoother = function(tCurr,src) return self:axisymmetricSmoother(tCurr,src) end
+         end
+         if self.twistShift then
+            self.zSmoother = function(tCurr,src) return self:twistShiftSmoother(tCurr,src) end
+            self.twistShiftSmootherBcLower = twistShiftSmootherBcDecl.selectBcModifier('lower', self._basis:id(),self._ndim, self._basis:polyOrder())
+            self.twistShiftSmootherBcUpper = twistShiftSmootherBcDecl.selectBcModifier('upper', self._basis:id(),self._ndim, self._basis:polyOrder())
+         end
       else
          self.zSmoother = function(tCurr,src) return self:regularSmoother(tCurr,src) end
          self.zDiscontToCont = FemParPoisson {
@@ -291,12 +305,12 @@ function FemPerpPoisson:init(tbl)
                   objCreate      = 0., stiffFinish    = 0.,
                   srcCreate      = 0., solve          = 0.,
                   stiffCreate    = 0., getSol         = 0.,
-                  srcReduce      = 0., srcReduceWait = 0.,  assemble       = 0., 
+                  srcReduce      = 0., srcReduceWait = 0.,  assemble       = 0.,
                   completeNsolve = 0., zDiscontToCont = 0.}
    self.timerLabelsAssembly = {
-                       srcInt         = "FemPerpPoisson... Assembly: Integrate source (for all-periodic BCs only)", 
+                       srcInt         = "FemPerpPoisson... Assembly: Integrate source (for all-periodic BCs only)",
                        objCreate      = "FemPerpPoisson... Assembly: Create FemPoisson object (first time only)",
-                       srcCreate      = "FemPerpPoisson... Assembly: Initialize global source vector", 
+                       srcCreate      = "FemPerpPoisson... Assembly: Initialize global source vector",
                        srcReduce      = "FemPerpPoisson... Assembly: All-reduce global source vector",
                        stiffCreate    = "FemPerpPoisson... Assembly: Initialize stiffness matrix triplet list",
                        stiffReduce    = "FemPerpPoisson... Assembly: All-gather of stiffness matrix entries",
@@ -348,6 +362,46 @@ function FemPerpPoisson:axisymmetricSmoother(tCurr,src)
    src:copyRange(localSOLRange, self.srcSOL)
 end
 
+function FemPerpPoisson:twistShiftSmoother(tCurr,src)
+   local localRange = src:localRange()
+   local localSOLRange = src:localRange():intersect(self.globalSOL)
+   local localCoreRange = src:localRange():intersect(self.globalCore)
+   --Do the SOL First
+   self.srcSOL:copy(src)
+   self.zDiscontToCont:advance(tCurr, {self.srcSOL}, {self.srcSOL})
+
+   -- Find the ghost and skin cell pointers for each boundary
+   local indexer = src:genIndexer()
+   local upperGhostPtr = nil
+   local upperSkinPtr  nil
+   local lowerGhostPtr = nil
+   local lowerSkinPtr  nil
+   local lv,uv = localRange:lowerasVec(), localRange:upperAsVec()
+   for idx in localRange:rowMajorIter() do
+      if lv[self._ndim]==0 then -- lower boundary ghost cell
+         src.fill(indexer(idx), lowerGhostPtr)
+      end
+      if lv[self._ndim]==1 then -- lower boundary skin cell
+         src.fill(indexer(idx), lowerSkinPtr)
+      end
+      if lv[self._ndim]==(self._nz + 1) then -- upper boundary ghost cell
+         src.fill(indexer(idx), upperGhostPtr)
+      end
+      if lv[self._ndim]==(self._nz) then -- upper boundary skin cell
+         src.fill(indexer(idx), upperSkinPtr)
+      end
+   end
+
+   -- Pass the pointers to modify the upper and lower skin cell values
+   self.twistShiftSmootherBcLower(lowerSkinPtr,lowerGhostPtr)
+   self.twistShiftSmootherBcUower(UpperSkinPtr,UpperGhostPtr)
+
+   -- Now smooth the core
+   self.zDiscontToContCore:advance(tCurr, {src}, {src})
+   --Copy the SOL part in
+   src:copyRange(localSOLRange, self.srcSOL)
+end
+
 function FemPerpPoisson:beginAssembly(tCurr, src)
    -- Assemble the right-side source vector and, if necessary, the stiffness matrix.
    local tm = Time.clock()
@@ -363,19 +417,19 @@ function FemPerpPoisson:beginAssembly(tCurr, src)
    local localRange = src:localRange()
 
    -- Create indexers and pointers for src and sol.
-   if self._first then 
-      self.indexer = src:indexer() 
+   if self._first then
+      self.indexer = src:indexer()
       self.srcPtr  = src:get(1)
       self.laplacianWeightPtr = self.laplacianWeight:get(1)
       self.modifierWeightPtr  = self.modifierWeight:get(1)
       self.gxxPtr = self.gxx:get(1)
       self.gxyPtr = self.gxy:get(1)
       self.gyyPtr = self.gyy:get(1)
-      if self._hasModifier == false and self._hasLaplacian == false then 
-         if self._smooth then 
-            self.modifierWeight:copy(self.unitWeight) 
+      if self._hasModifier == false and self._hasLaplacian == false then
+         if self._smooth then
+            self.modifierWeight:copy(self.unitWeight)
             self._hasModifier = true
-         else 
+         else
             self.laplacianWeight:copy(self.unitWeight)
             self._hasLaplacian = true
          end
@@ -403,11 +457,11 @@ function FemPerpPoisson:beginAssembly(tCurr, src)
 
    -- Loop over local z cells.
    for idz=self.local_z_lower, self.local_z_upper do
-      if self._first then 
+      if self._first then
          local tmStart = Time.clock()
          -- If first time, create poisson C object for each z cell.
-         self._poisson[idz] = ffiC.new_FemPerpPoisson(self._nx, self._ny, self._ndim, self._p, 
-                                                      self._dx, self._dy, self._isDirPeriodic, 
+         self._poisson[idz] = ffiC.new_FemPerpPoisson(self._nx, self._ny, self._ndim, self._p,
+                                                      self._dx, self._dy, self._isDirPeriodic,
                                                       self._bc, self._writeMatrix, self._adjustSource)
          self.timers.objCreate = self.timers.objCreate + Time.clock() - tmStart
       end
@@ -419,36 +473,36 @@ function FemPerpPoisson:beginAssembly(tCurr, src)
       -- globalSrc is an Eigen vector managed in C.
       -- Each proc allocates a full globalSrc vector.
       -- Loop over x and y cells locally to get local contributions to globalSrc.
-      for idx=localRange:lower(1),localRange:upper(1) do     
+      for idx=localRange:lower(1),localRange:upper(1) do
          for idy=localRange:lower(2),localRange:upper(2) do
             local tmStart = Time.clock()
-            if ndim==2 then 
-               src:fill(self.indexer(idx,idy), self.srcPtr) 
-            else 
-               src:fill(self.indexer(idx, idy, idz), self.srcPtr) 
+            if ndim==2 then
+               src:fill(self.indexer(idx,idy), self.srcPtr)
+            else
+               src:fill(self.indexer(idx, idy, idz), self.srcPtr)
             end
             ffiC.createGlobalSrc(self._poisson[idz], self.srcPtr:data(), idx-1, idy-1, intSrcVol[1]/grid:gridVolume()*math.sqrt(2)^self._ndim)
             self.timers.srcCreate = self.timers.srcCreate + Time.clock() - tmStart
 
             if self._makeStiff then
                local tmStiffStart = Time.clock()
-               if ndim==2 then 
-                  self.laplacianWeight:fill(self.indexer(idx,idy), self.laplacianWeightPtr) 
-                  self.modifierWeight:fill(self.indexer(idx,idy), self.modifierWeightPtr) 
-                  self.gxx:fill(self.indexer(idx,idy), self.gxxPtr) 
-                  self.gxy:fill(self.indexer(idx,idy), self.gxyPtr) 
-                  self.gyy:fill(self.indexer(idx,idy), self.gyyPtr) 
-               else 
-                  self.laplacianWeight:fill(self.indexer(idx, idy, idz), self.laplacianWeightPtr) 
-                  self.modifierWeight:fill(self.indexer(idx, idy, idz), self.modifierWeightPtr) 
-                  self.gxx:fill(self.indexer(idx,idy,idz), self.gxxPtr) 
-                  self.gxy:fill(self.indexer(idx,idy,idz), self.gxyPtr) 
-                  self.gyy:fill(self.indexer(idx,idy,idz), self.gyyPtr) 
+               if ndim==2 then
+                  self.laplacianWeight:fill(self.indexer(idx,idy), self.laplacianWeightPtr)
+                  self.modifierWeight:fill(self.indexer(idx,idy), self.modifierWeightPtr)
+                  self.gxx:fill(self.indexer(idx,idy), self.gxxPtr)
+                  self.gxy:fill(self.indexer(idx,idy), self.gxyPtr)
+                  self.gyy:fill(self.indexer(idx,idy), self.gyyPtr)
+               else
+                  self.laplacianWeight:fill(self.indexer(idx, idy, idz), self.laplacianWeightPtr)
+                  self.modifierWeight:fill(self.indexer(idx, idy, idz), self.modifierWeightPtr)
+                  self.gxx:fill(self.indexer(idx,idy,idz), self.gxxPtr)
+                  self.gxy:fill(self.indexer(idx,idy,idz), self.gxyPtr)
+                  self.gyy:fill(self.indexer(idx,idy,idz), self.gyyPtr)
                end
                ffiC.makeGlobalStiff(self._poisson[idz], self.laplacianWeightPtr:data(), self.modifierWeightPtr:data(),
                                     self.gxxPtr:data(), self.gxyPtr:data(), self.gyyPtr:data(), idx-1, idy-1)
                self.timers.stiffCreate = self.timers.stiffCreate + Time.clock() - tmStiffStart
-            end 
+            end
          end
       end
 
@@ -493,7 +547,7 @@ function FemPerpPoisson:completeAssemblyAndSolve(tCurr, sol)
          self.timers.srcReduceWait = self.timers.srcReduceWait + Time.clock() - tmStart
       end
 
-      -- Solve. 
+      -- Solve.
       local tmSolStart = Time.clock()
       ffiC.solve(self._poisson[idz])
       self.timers.solve = self.timers.solve + Time.clock() - tmSolStart
@@ -501,21 +555,21 @@ function FemPerpPoisson:completeAssemblyAndSolve(tCurr, sol)
       -- Remap global nodal solution to local modal solution.
       -- Only need to loop over local proc region.
       local tmGetStart = Time.clock()
-      for idx=localRange:lower(1),localRange:upper(1) do     
+      for idx=localRange:lower(1),localRange:upper(1) do
          for idy=localRange:lower(2),localRange:upper(2) do
-            if ndim==2 then 
-               sol:fill(self.indexer(idx,idy), self.solPtr) 
-            else 
-               sol:fill(self.indexer(idx, idy, idz), self.solPtr) 
+            if ndim==2 then
+               sol:fill(self.indexer(idx,idy), self.solPtr)
+            else
+               sol:fill(self.indexer(idx, idy, idz), self.solPtr)
             end
             ffiC.getSolution(self._poisson[idz], self.solPtr:data(), idx-1, idy-1)
          end
       end
       self.timers.getSol = self.timers.getSol + Time.clock() - tmGetStart
-   end 
+   end
 
    --Second Smoothing: smoothing of phi with Z BCs
-   if self.zDiscontToCont then 
+   if self.zDiscontToCont then
       local tmStart = Time.clock()
       self.zSmoother(tCurr,sol)
       self.timers.zDiscontToCont = self.timers.zDiscontToCont + Time.clock() - tmStart
@@ -544,7 +598,7 @@ function FemPerpPoisson:solve(tCurr, inFld, outFld)
    self:completeAssemblyAndSolve(tCurr, sol)
 end
 
-function FemPerpPoisson:_advance(tCurr, inFld, outFld) 
+function FemPerpPoisson:_advance(tCurr, inFld, outFld)
    -- Advance method. Assembles the linear problem and solves it.
    local ndim  = self._ndim
 

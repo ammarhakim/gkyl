@@ -10,8 +10,8 @@ fpprec : 24$
 
 
 genModSmootherKer(fh, cdim, basisNm, polyOrder) := block(
-  [vars,basis,numB,nodes,numNodes,dimIn,basisNodal,skinField_mc,skinField_me,skinField_n,
-   ghostField_mc,ghostField_me,edge,boundaryVal,zVar, bNodeIdx,skinFieldOut_c],
+  [vars,basis,numB,nodes,numNodes,dimIn,basisNodal,skinField_c,skinField_e,skinField_n,
+   ghostField_c,ghostField_e,ghostField_n,edge,boundaryVal,zVar, bNodeIdx,skinFieldOut_c],
 
   /* Define bases, vars, lengths. */
   kill(varsC, varsP, basisC, basisP),
@@ -30,7 +30,7 @@ genModSmootherKer(fh, cdim, basisNm, polyOrder) := block(
   skinField_n : makelist(skinField[i-1], i, 1, numB),
 
   ghostField_c : makelist(ghostField[i-1], i, 1, numB),
-  ghostField_e : doExpand(ghostField_mc, basis),
+  ghostField_e : doExpand(ghostField_c, basis),
   ghostField_n : makelist(ghostField[i-1], i, 1, numB),
 
   /* Generate separate kernels for lower/upper boundaries. */
