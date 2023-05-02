@@ -1,0 +1,37 @@
+/* Create kernels to adjust the boundary conditions on the smoothing operation applied to
+the density and phi during the poisson solve. */
+load("twistShiftSmoother/twistShiftSmootherBcFunctions.mac")$
+load(stringproc)$
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 1$
+minDim_Ser : 3$
+maxDim_Ser : 3$
+
+/* ...... END OF USER INPUTS........ */
+
+/* To generate other bases, just add corresponding column to arrays below. */
+bName        : ["Ser"]$
+maxPolyOrder : [maxPolyOrder_Ser]$
+minDim       : [minDim_Ser]$
+maxDim       : [maxDim_Ser]$
+
+for bInd : 1 thru length(bName) do (
+  for cD : minDim[bInd] thru maxDim[bInd] do (
+    maxPolyOrderB : maxPolyOrder[bInd],
+    if (cD>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+    if (cD=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
+    for polyOrder : 1 thru maxPolyOrderB do (
+
+      disp(printf(false,sconcat("Creating twistShiftSmootherBc_ ~ax p~a ",bName[bInd]),cD,polyOrder)),
+      fname : sconcat("~/max-out/twistShiftSmootherBc_", cD, "x_p", polyOrder, "_", bName[bInd], ".cpp"),
+      fh : openw(fname),
+      printf(fh, "#include \"twistShiftSmootherBc_mod_decl.h\"~%~%"),
+      genModSmootherKer(fh, cD, bName[bInd], polyOrder),
+      close(fh)
+    )
+  )
+);
