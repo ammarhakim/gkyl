@@ -16,7 +16,7 @@ for bInd : 1 thru length(bName) do (
    for pi : 1 thru polyOrderMax do (
      for ci : 3 thru 3 do (
        for bS : 1 thru 2 do ( /* One kernel for each of lower and upper boundaries. */
-    printf(fh, "void twist_shift_smoother_bc_mod_~a_~ax_~a_p~a(double *confField, double *confFieldGhost); ~%", boundaryStr[bS], ci, bName[bInd], pi)
+    printf(fh, "void twist_shift_smoother_bc_mod_~a_~ax_~a_p~a(double *skinField, const double *ghostField); ~%", boundaryStr[bS], ci, bName[bInd], pi)
        ),
        printf(fh, "~%")      
 

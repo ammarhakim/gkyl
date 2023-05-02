@@ -1,27 +1,21 @@
 /*
-   Modify the electrostatic potential at the boundary
-   to account for the potential drop due to a rarefaction
-   wave when u_parallel < c_s.
+   Modify a configuration-space field at the boundary
+   by averaging the skin and ghost values on the boundary.
 */
 
 load("out-scripts")$
 load("modal-basis")$
-load("basis-precalc/basisSer3x2v")$
 load("nodalOperations/nodalFunctions")$
 fpprec : 24$
 
 
-printer(fname,str):= block(
-   fh: openw(fname),
-   printf(fh,str)
-)$
-
-
 genModSmootherKer(fh, cdim, basisNm, polyOrder) := block(
-  [vars,basis,numB,nodes,numNodes,dimIn,basisNodal,confField_mc,confField_me,confField_n, confFieldGhost_mc,confFieldGhost_me,
-   edge,boundaryVal,zVar, bNodeIdx,confFieldOut_c],
+  [vars,basis,numB,nodes,numNodes,dimIn,basisNodal,skinField_mc,skinField_me,skinField_n,
+   ghostField_mc,ghostField_me,edge,boundaryVal,zVar, bNodeIdx,skinFieldOut_c],
 
-  /* First just define bases, vars, lengths*/
+  /* Define bases, vars, lengths. */
+  kill(varsC, varsP, basisC, basisP),
+  load(sconcat("basis-precalc/basis", basisNm, cdim, "x")),
   [vars,basis] : [varsC, basisC[polyOrder]],
   numB : length(basis),
 
@@ -30,15 +24,14 @@ genModSmootherKer(fh, cdim, basisNm, polyOrder) := block(
 
   basisNodal : getVarsNodalBasisWithNodes(basisNm, cdim, polyOrder, vars, nodes),
 
-  /*Now instantiate coefficient and expanded arrays for confField and confField ghost; modal _m and nodal _n*/
-  confField_mc : makelist(confField[i-1], i, 1, numB),
-  confField_me : doExpand(confField_mc, basis),
-  confField_nc : makelist(confField[i-1], i, 1, numB),
+  /* Instantiate array of coefficients and expansions for skinField and ghostField. */
+  skinField_c : makelist(skinField[i-1], i, 1, numB),
+  skinField_e : doExpand(skinField_c, basis),
+  skinField_n : makelist(skinField[i-1], i, 1, numB),
 
-
-  confFieldGhost_mc : makelist(confFieldGhost[i-1], i, 1, numB),
-  confFieldGhost_me : doExpand(confFieldGhost_mc, basis),
-  confFieldGhost_nc : makelist(confFieldGhost[i-1], i, 1, numB),
+  ghostField_c : makelist(ghostField[i-1], i, 1, numB),
+  ghostField_e : doExpand(ghostField_mc, basis),
+  ghostField_n : makelist(ghostField[i-1], i, 1, numB),
 
   /* Generate separate kernels for lower/upper boundaries. */
   edge : ["lower", "upper"],
@@ -47,31 +40,32 @@ genModSmootherKer(fh, cdim, basisNm, polyOrder) := block(
 
   for sI : 1 thru length(edge) do (
     printf(fh, "~%"),
-    printf(fh, "void twist_shift_smoother_bc_mod_~a_~ax_~a_p~a(double *confField, double *confFieldGhost) ~%{ ~%", edge[sI], cdim, basisNm, polyOrder),
-    printf(fh, "  // confField: electrostatic potential in boundary cell.~%"),
-    printf(fh, "  // confFieldGhost: electrostatic potential in  ghost cell.~%"),
+    printf(fh, "void twist_shift_smoother_bc_mod_~a_~ax_~a_p~a(double *skinField, const double *ghostField) ~%{ ~%", edge[sI], cdim, basisNm, polyOrder),
+    printf(fh, "  // skinField: configuration space field in skin cell.~%"),
+    printf(fh, "  // ghostField: configuration space field in ghost cell.~%"),
     printf(fh, "~%"),
 
-    /*Based on upper or lower boundary select nodal coeffs to modify and which edge of ghost cell to draw from*/
-    bNodeIdx : sublist_indices(nodes, lambda([x], x[cdim]=boundaryVal[sI])),
+    /* Based on upper or lower boundary select nodal coeffs to modify and which
+       edge of ghost cell to draw from. */
+    bNodeIdx      : sublist_indices(nodes, lambda([x], x[cdim]=boundaryVal[sI])),
     bNodeIdxGhost : sublist_indices(nodes, lambda([x], x[cdim]=-boundaryVal[sI])),
-    confField_nc : evAtNodes(confField_me, nodes, vars),
-    confFieldGhost_nc : evAtNodes(confFieldGhost_me, nodes, vars),
+    skinField_n   : evAtNodes(skinField_e, nodes, vars),
+    ghostField_n  : evAtNodes(ghostField_e, nodes, vars),
 
-    /* Adjust the nodal coeffs*/
+    /* Adjust the nodal coeffs on the boundary. */
     for bI : 1 thru length(bNodeIdx) do (
-      confField_nc[bNodeIdx[bI]] : (confField_nc[bNodeIdx[bI]] + confFieldGhost_nc[bNodeIdxGhost[bI]])/2.0
+      skinField_n[bNodeIdx[bI]] : (skinField_n[bNodeIdx[bI]] + ghostField_n[bNodeIdxGhost[bI]])/2.0
     ),
 
     /* Write out nodal values. */
-    printf(fh, "  double confFieldNod[~a] = {0.};~%", numNodes),
-    writeCExprs1(confFieldNod, confField_nc),
+    printf(fh, "  double skinFieldNod[~a] = {0.};~%", numNodes),
+    writeCExprs1(skinFieldNod, skinField_n),
     printf(fh, "~%"),
 
-    /*Now convert back to modal coeffs*/
-    confFieldOut_mc : calcInnerProdList(vars, 1, basis, doExpand1(confFieldNod, basisNodal)), /*Maybe need doExpand 1 here not sure*/
-    /* Write modal coeffs*/
-    writeCExprs1(confField, confFieldOut_mc),
+    /*Now convert back to modal coeffs. */
+    skinFieldOut_c : calcInnerProdList(vars, 1, basis, doExpand1(skinFieldNod, basisNodal)),
+    /* Write modal coeffs. */
+    writeCExprs1(skinField, skinFieldOut_c),
 
     printf(fh, " ~%"),
     printf(fh, "}~%")
