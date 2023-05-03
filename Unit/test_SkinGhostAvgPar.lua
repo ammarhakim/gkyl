@@ -44,7 +44,7 @@ function test_1()
 
    local globalSkinInRange = grid:globalRange():upperSkin(3, 1)
    local localSkinInRange = inFld:localRange():intersect(globalSkinInRange)
-   local zerorange = inFld:localRange():difference(localSkinInRange)
+   local localRangeWOSkinInRange = inFld:localRange():difference(localSkinInRange)
    local indexer = inFld:genIndexer()
 
    --Fill the in field
@@ -82,10 +82,12 @@ function test_1()
    skinGhostAvgUpper:advance(inFld)
 
 
-   for idx in zerorange:rowMajorIter() do
-      local fitr = inFld:get(indexer(idx))
-      for i = 1,8 do
-         assert_close(0.0, fitr[i],1e-6, "Checking if copy worked in unmodified range")
+   if localRangeWOSkinInRange then
+      for idx in localRangeWOSkinInRange:rowMajorIter() do
+         local fitr = inFld:get(indexer(idx))
+         for i = 1,8 do
+            assert_close(0.0, fitr[i],1e-6, "Checking if copy worked in unmodified range")
+         end
       end
    end
 
@@ -127,7 +129,7 @@ function test_2()
 
    local globalSkinInRange = grid:globalRange():lowerSkin(3, 1)
    local localSkinInRange = inFld:localRange():intersect(globalSkinInRange)
-   local zerorange = inFld:localRange():difference(localSkinInRange)
+   local localRangeWOSkinInRange = inFld:localRange():difference(localSkinInRange)
    local indexer = inFld:genIndexer()
 
    --Fill the in field
@@ -164,10 +166,12 @@ function test_2()
    skinGhostAvgLower:advance(inFld)
 
 
-   for idx in zerorange:rowMajorIter() do
-      local fitr = inFld:get(indexer(idx))
-      for i = 1,8 do
-         assert_close(0.0, fitr[i],1e-6, "Checking if copy worked in unmodified range")
+   if localRangeWOSkinInRange then
+      for idx in localRangeWOSkinInRange:rowMajorIter() do
+         local fitr = inFld:get(indexer(idx))
+         for i = 1,8 do
+            assert_close(0.0, fitr[i],1e-6, "Checking if copy worked in unmodified range")
+         end
       end
    end
 
@@ -209,13 +213,7 @@ function test_3()
 
    local globalSkinInRange = grid:globalRange():upperSkin(3, 1)
    local localSkinInRange = inFld:localRange():intersect(globalSkinInRange)
-   local zerorange = inFld:localRange():difference(localSkinInRange)
-   --local lv,uv = localSkinInRange:lowerAsVec(), localSkinInRange:upperAsVec()
-   --print("localSkinRange lv", lv[1], lv[2], lv[3])
-   --print("localSkinRange uv", uv[1], uv[2], uv[3])
-   --local lv,uv = zerorange:lowerAsVec(), zerorange:upperAsVec()
-   --print("zerorange lv", lv[1], lv[2], lv[3])
-   --print("zerorange uv", uv[1], uv[2], uv[3])
+   local localRangeWOSkinInRange = inFld:localRange():difference(localSkinInRange)
    local indexer = inFld:genIndexer()
 
    --Fill the in field
@@ -252,11 +250,12 @@ function test_3()
 
    skinGhostAvgUpper:advance(inFld)
 
-
-   for idx in zerorange:rowMajorIter() do
-      local fitr = inFld:get(indexer(idx))
-      for i = 1,8 do
-         assert_close(0.0, fitr[i],1e-6, "Checking if copy worked in unmodified range")
+   if localRangeWOSkinInRange then
+      for idx in localRangeWOSkinInRange:rowMajorIter() do
+         local fitr = inFld:get(indexer(idx))
+         for i = 1,8 do
+            assert_close(0.0, fitr[i],1e-6, "Checking if copy worked in unmodified range")
+         end
       end
    end
 
@@ -298,13 +297,7 @@ function test_4()
 
    local globalSkinInRange = grid:globalRange():lowerSkin(3, 1)
    local localSkinInRange = inFld:localRange():intersect(globalSkinInRange)
-   local zerorange = inFld:localRange():difference(localSkinInRange)
-   --local lv,uv = localSkinInRange:lowerAsVec(), localSkinInRange:upperAsVec()
-   --print("localSkinRange lv", lv[1], lv[2], lv[3])
-   --print("localSkinRange uv", uv[1], uv[2], uv[3])
-   --local lv,uv = zerorange:lowerAsVec(), zerorange:upperAsVec()
-   --print("zerorange lv", lv[1], lv[2], lv[3])
-   --print("zerorange uv", uv[1], uv[2], uv[3])
+   local localRangeWOSkinInRange = inFld:localRange():difference(localSkinInRange)
    local indexer = inFld:genIndexer()
 
    --Fill the in field
@@ -340,11 +333,12 @@ function test_4()
 
    skinGhostAvgLower:advance(inFld)
 
-
-   for idx in zerorange:rowMajorIter() do
-      local fitr = inFld:get(indexer(idx))
-      for i = 1,8 do
-         assert_close(0.0, fitr[i],1e-6, "Checking if copy worked in unmodified range")
+   if localRangeWOSkinInRange then
+      for idx in localRangeWOSkinInRange:rowMajorIter() do
+         local fitr = inFld:get(indexer(idx))
+         for i = 1,8 do
+            assert_close(0.0, fitr[i],1e-6, "Checking if copy worked in unmodified range")
+         end
       end
    end
 
@@ -360,11 +354,8 @@ end
 
 test_1()
 test_2()
-
---test_3()
---test_4()
---Test 3 and 4 which have decompCuts[bcDir] = cellcs[bcDir] Fail with "344: attempt to index local 'zerorange' (a nil value)".
--- So the Updater does not yet work if #decompcuts = #cells in the bcDir
+test_3()
+test_4()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

@@ -31,7 +31,7 @@ function test_1()
    local grid = Grid.RectCart{
       lower = {0,-3,-5},
       upper = {1,3,5},
-      cells = {2,2,3},
+      cells = {2,2,4},
    }
 
    local basis = Basis.CartModalSerendipity { ndim = grid:ndim(), polyOrder = 1 }
@@ -76,8 +76,8 @@ function test_1()
    skinGhostAvgUpper:advance(inFld)
 
 
-   local zerorange = inFld:localRange():difference(localSkinInRange)
-   for idx in zerorange:rowMajorIter() do
+   local localRangeWOSkinInRange = inFld:localRange():difference(localSkinInRange)
+   for idx in localRangeWOSkinInRange:rowMajorIter() do
       local fitr = inFld:get(indexer(idx))
       for i = 1,8 do
          assert_close(0.0, fitr[i],1e-6, "Checking if copy worked in unmodified range")
@@ -112,7 +112,7 @@ function test_2()
    local grid = Grid.RectCart{
       lower = {0,-3,-5},
       upper = {1,3,5},
-      cells = {2,2,3},
+      cells = {2,2,4},
    }
 
    local basis = Basis.CartModalSerendipity { ndim = grid:ndim(), polyOrder = 1 }
@@ -156,8 +156,8 @@ function test_2()
    skinGhostAvgLower:advance(inFld)
 
 
-   local zerorange = inFld:localRange():difference(localSkinInRange)
-   for idx in zerorange:rowMajorIter() do
+   local localRangeWOSkinInRange = inFld:localRange():difference(localSkinInRange)
+   for idx in localRangeWOSkinInRange:rowMajorIter() do
       local fitr = inFld:get(indexer(idx))
       for i = 1,8 do
          assert_close(0.0, fitr[i],1e-6, "Checking if copy worked in unmodified range")

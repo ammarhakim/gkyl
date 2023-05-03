@@ -40,19 +40,16 @@ function SkinGhostAvg:init(tbl)
    --Define Necessary Ranges
    self.globalRange = self.grid:globalRange()
    if self.edge=='lower' then
-      self.globalGhostInRange = self.grid:globalRange():lowerGhost(self.bcDir,self.lowerGhost)
       self.globalSkinInRange = self.grid:globalRange():lowerSkin(self.bcDir, self.lowerGhost)
       self.skinGhostAvgFunc = skinGhostAvgDecl.selectAvg('lower', self.basis:id(),self.grid:ndim(), self.basis:polyOrder())
       self.ghostModifier = -self.lowerGhost
    end
 
    if self.edge=='upper' then
-      self.globalGhostInRange = self.grid:globalRange():upperGhost(self.bcDir,self.upperGhost)
       self.globalSkinInRange = self.grid:globalRange():upperSkin(self.bcDir, self.upperGhost)
       self.skinGhostAvgFunc = skinGhostAvgDecl.selectAvg('upper', self.basis:id(),self.grid:ndim(), self.basis:polyOrder())
       self.ghostModifier = self.upperGhost
    end
-   self.localGhostInRange = self.sampleFld:localRange():intersect(self.globalGhostInRange)
    self.localSkinInRange = self.sampleFld:localRange():intersect(self.globalSkinInRange)
 end
 
