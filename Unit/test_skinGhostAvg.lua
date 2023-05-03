@@ -7,7 +7,7 @@ local Grid       = require "Grid"
 local DataStruct = require "DataStruct"
 local Basis      = require "Basis"
 local skinGhostAvgDecl = require "Updater.skinGhostAvgData.skinGhostAvgDecl"
-local skinGhostAvg = require "Updater.skinGhostAvg"
+local SkinGhostAvg = require "Updater.SkinGhostAvg"
 
 local assert_equal = Unit.assert_equal
 local assert_close = Unit.assert_close
@@ -63,13 +63,14 @@ function test_1()
 
 
 
-   local skinGhostAvgUpper = skinGhostAvg{
+   local skinGhostAvgUpper = SkinGhostAvg{
       grid = grid,
       basis = basis,
       edge='upper',
       bcDir = 3,
       lowerGhost = 1,
       upperGhost = 1,
+      advanceArgs = {inFld},
    }
 
    skinGhostAvgUpper:advance(inFld)
@@ -142,13 +143,14 @@ function test_2()
    end
 
 
-   local skinGhostAvgLower = skinGhostAvg{
+   local skinGhostAvgLower = SkinGhostAvg{
       grid = grid,
       basis = basis,
       edge='lower',
       bcDir = 3,
       lowerGhost = 1,
       upperGhost = 1,
+      advanceArgs = {inFld},
    }
 
    skinGhostAvgLower:advance(inFld)

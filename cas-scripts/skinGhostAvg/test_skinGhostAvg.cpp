@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "twistShiftSmootherBc_mod_decl.h"
+#include "skinGhostAvg_mod_decl.h"
 
 
 
@@ -39,7 +39,7 @@ int main(void){
     printf("phi ghost , original modal coeffs: ");
     print_arr(phiGhost,l_phi);
 
-    twist_shift_smoother_bc_mod_lower_3x_Ser_p1(phi, phiGhost);
+    skin_ghost_avg_lower_3x_Ser_p1(phi, phiGhost);
     //printf("test function\n");
     //test_func(phi, length);
     printf("Final modal coeffs (lower): ");
@@ -54,7 +54,7 @@ int main(void){
     printf("phi ghost , original modal coeffs: ");
     print_arr(phiGhost,l_phi);
 
-    twist_shift_smoother_bc_mod_upper_3x_Ser_p1(phi, phiGhost);
+    skin_ghost_avg_upper_3x_Ser_p1(phi, phiGhost);
     //printf("test function\n");
     //test_func(phi, length);
     printf("Final modal coeffs (upper): ");

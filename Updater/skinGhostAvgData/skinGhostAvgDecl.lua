@@ -13,7 +13,7 @@ local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max" }
 local _M = {}
 
 --select Kernel to use for modifying the BC
-function _M.selectBcModifier(edge, basisNm, CDIM, polyOrder)
+function _M.selectAvg(edge, basisNm, CDIM, polyOrder)
    local funcType = "void"
    local funcNm = string.format("skin_ghost_avg_%s_%dx_%s_p%d",edge, CDIM,basisNmMap[basisNm],polyOrder)
    local funcSign = "(double *skinField, double *ghostField)"
