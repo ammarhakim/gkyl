@@ -31,7 +31,6 @@ local Grid = require("Grid")
 local Time           = require "Lib.Time"
 local Logger         = require "Lib.Logger"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
-local twistShiftSmootherBcDecl = require "Updater.twistShiftSmootherBcData.twistShiftSmootherBcDecl"
 local Mpi
 if GKYL_HAVE_MPI then Mpi = require "Comm.Mpi" end
 
@@ -274,8 +273,7 @@ function FemPerpPoisson:init(tbl)
          end
          if self.twistShift then
             self.zSmoother = function(tCurr,src) return self:twistShiftSmoother(tCurr,src) end
-            self.twistShiftSmootherBcLower = twistShiftSmootherBcDecl.selectBcModifier('lower', self._basis:id(),self._ndim, self._basis:polyOrder())
-            self.twistShiftSmootherBcUpper = twistShiftSmootherBcDecl.selectBcModifier('upper', self._basis:id(),self._ndim, self._basis:polyOrder())
+            -- Will create the skin-ghost averaging updaters here once they are confirmed to work by unit tests.
          end
       else
          self.zSmoother = function(tCurr,src) return self:regularSmoother(tCurr,src) end
@@ -370,31 +368,8 @@ function FemPerpPoisson:twistShiftSmoother(tCurr,src)
    self.srcSOL:copy(src)
    self.zDiscontToCont:advance(tCurr, {self.srcSOL}, {self.srcSOL})
 
-   -- Find the ghost and skin cell pointers for each boundary
-   local indexer = src:genIndexer()
-   local upperGhostPtr = nil
-   local upperSkinPtr  nil
-   local lowerGhostPtr = nil
-   local lowerSkinPtr  nil
-   local lv,uv = localRange:lowerasVec(), localRange:upperAsVec()
-   for idx in localRange:rowMajorIter() do
-      if lv[self._ndim]==0 then -- lower boundary ghost cell
-         src.fill(indexer(idx), lowerGhostPtr)
-      end
-      if lv[self._ndim]==1 then -- lower boundary skin cell
-         src.fill(indexer(idx), lowerSkinPtr)
-      end
-      if uv[self._ndim]==(self._nz + 1) then -- upper boundary ghost cell
-         src.fill(indexer(idx), upperGhostPtr)
-      end
-      if uv[self._ndim]==(self._nz) then -- upper boundary skin cell
-         src.fill(indexer(idx), upperSkinPtr)
-      end
-   end
-
-   -- Pass the pointers to modify the upper and lower skin cell values
-   self.twistShiftSmootherBcLower(lowerSkinPtr,lowerGhostPtr)
-   self.twistShiftSmootherBcUower(UpperSkinPtr,UpperGhostPtr)
+   --Will do skin-ghost averaging here, i.e. will call the updater:advance for both lower and upper
+   --Leave this method here as a placeholder for now
 
    -- Now smooth the core
    self.zDiscontToContCore:advance(tCurr, {src}, {src})

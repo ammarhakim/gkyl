@@ -1,0 +1,34 @@
+/* Create Header file for updater adjusting the boundary conditions on the smoothing operation applied to
+the density and phi during the poisson solve. */
+
+polyOrderMax : 1$
+bName        : ["Ser"]$
+boundaryStr  : ["lower","upper"]$
+
+fh : openw("~/max-out/skinGhostAvg_mod_decl.h")$
+
+printf(fh, "#ifndef SKINGHOSTAVG_MOD_DECL_H~%")$
+printf(fh, "#define SKINGHOSTAVG_MOD_DECL_H~%~%")$
+printf(fh, "#include <cmath>~%~%")$
+printf(fh, "extern \"C\" { ~%~%")$
+
+for bInd : 1 thru length(bName) do (
+   for pi : 1 thru polyOrderMax do (
+     for ci : 3 thru 3 do (
+       for bS : 1 thru 2 do ( /* One kernel for each of lower and upper boundaries. */
+    printf(fh, "void skin_ghost_avg_~a_~ax_~a_p~a(double *skinField, const double *ghostField); ~%", boundaryStr[bS], ci, bName[bInd], pi)
+       ),
+       printf(fh, "~%")      
+
+     ),
+     printf(fh, "~%")
+   )
+)$
+
+printf(fh, "~% ~%")$
+
+printf(fh, "}~%~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$
