@@ -74,8 +74,6 @@ function test_1()
       basis = basis,
       edge='upper',
       bcDir = 3,
-      lowerGhost = 1,
-      upperGhost = 1,
       advanceArgs = {inFld},
    }
 
@@ -158,8 +156,6 @@ function test_2()
       basis = basis,
       edge='lower',
       bcDir = 3,
-      lowerGhost = 1,
-      upperGhost = 1,
       advanceArgs = {inFld},
    }
 
@@ -243,8 +239,6 @@ function test_3()
       basis = basis,
       edge='upper',
       bcDir = 3,
-      lowerGhost = 1,
-      upperGhost = 1,
       advanceArgs = {inFld},
    }
 
@@ -326,8 +320,6 @@ function test_4()
       basis = basis,
       edge='lower',
       bcDir = 3,
-      lowerGhost = 1,
-      upperGhost = 1,
       advanceArgs = {inFld},
    }
 

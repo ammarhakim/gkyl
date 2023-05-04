@@ -32,6 +32,7 @@ local Time           = require "Lib.Time"
 local Logger         = require "Lib.Logger"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local Mpi
+local SkinGhostAvg = require "Updater.SkinGhostAvg"
 if GKYL_HAVE_MPI then Mpi = require "Comm.Mpi" end
 
 ffi.cdef[[
@@ -79,7 +80,6 @@ function FemPerpPoisson:init(tbl)
    FemPerpPoisson.super.init(self, tbl)
 
    self.xLCFS = tbl.xLCFS
-   --print("In FemPerpPoisson xLCFS =", self.xLCFS)
    self._grid  = assert(tbl.onGrid, "Updater.FemPerpPoisson: Must provide grid object using 'onGrid'")
    self._basis = assert(tbl.basis, "Updater.FemPerpPoisson: Must specify basis functions to use using 'basis'")
 
@@ -273,7 +273,20 @@ function FemPerpPoisson:init(tbl)
          end
          if self.twistShift then
             self.zSmoother = function(tCurr,src) return self:twistShiftSmoother(tCurr,src) end
-            -- Will create the skin-ghost averaging updaters here once they are confirmed to work by unit tests.
+            self.skinGhostAvgLower = SkinGhostAvg{
+               grid = self._grid,
+               basis = self._basis,
+               edge='lower',
+               bcDir = 3,
+               advanceArgs = {self.srcSOL},
+            }
+            self.skinGhostAvgUpper= SkinGhostAvg{
+               grid = self._grid,
+               basis = self._basis,
+               edge='upper',
+               bcDir = 3,
+               advanceArgs = {self.srcSOL},
+            }
          end
       else
          self.zSmoother = function(tCurr,src) return self:regularSmoother(tCurr,src) end
@@ -367,10 +380,9 @@ function FemPerpPoisson:twistShiftSmoother(tCurr,src)
    --Do the SOL First
    self.srcSOL:copy(src)
    self.zDiscontToCont:advance(tCurr, {self.srcSOL}, {self.srcSOL})
-
-   --Will do skin-ghost averaging here, i.e. will call the updater:advance for both lower and upper
-   --Leave this method here as a placeholder for now
-
+   -- Do the skin-ghost averaging at both boundaries
+   self.skinGhostAvgLower:advance(src)
+   self.skinGhostAvgUpper:advance(src)
    -- Now smooth the core
    self.zDiscontToContCore:advance(tCurr, {src}, {src})
    --Copy the SOL part in

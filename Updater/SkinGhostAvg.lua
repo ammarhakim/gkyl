@@ -26,10 +26,10 @@ function SkinGhostAvg:init(tbl)
    self.basis = assert(tbl.basis, "Updater.SkinGhostAvg: Must provide basis using 'basis'")
    self.edge = tbl.edge
    self.bcDir = assert(tbl.bcDir, "Updater.skinGhostAvg: Must provide direction using 'bcDir'")
-   self.lowerGhost = assert(tbl.lowerGhost, "Updater.SkinGhostAvg: Must provide number of lower ghost cells using 'lowerGhost'")
-   self.upperGhost = assert(tbl.upperGhost, "Updater.SkinGhostAvg: Must provide number of upper ghost cells using 'upperGhost'")
    local advArgs = assert(tbl.advanceArgs, "Updater.SkinGhostAvg: Must provide a sample field in 'advanceArgs'")
    self.sampleFld = advArgs[1]
+   self.lowerGhost = self.sampleFld:lowerGhost()
+   self.upperGhost = self.sampleFld:upperGhost()
 
    assert(self.edge=='upper' or self.edge=='lower', "Updader.SkinGhostAvg: 'edge' must be 'upper' or 'lower'")
    assert(self.basis:id()=="serendipity", "Updater.SkinGhostAvg: only implemented for modal serendipity basis")
