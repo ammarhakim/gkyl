@@ -28,7 +28,7 @@ local bmagFunc = function (t, xn) return B0 end
 
 -- Initial distribution function
 local initialF = function(t, xn)
-   local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
+   local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
    local fOut = (m0Func(t,xn)/(math.sqrt(2.*math.pi*vtSqFunc(t,xn))^3))*math.exp(-((vpar-uDriftFunc(t,xn))^2+2*mu*bmagFunc(t,xn)/mass)/(2.*(vtSqFunc(t,xn))))
    return fOut
 end
