@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
---
+-- Test for updater to fix maxwellian with iteration method, 1x1v.
 --------------------------------------------------------------------------------
 
 local Basis = require "Basis"
@@ -14,10 +14,30 @@ local n0 = 1.0
 local u0 = 1.0
 local vt0 = 1.0   
 
+-- Phase space mesh.
+local lower = {-0.50, -6.0*vt0}
+local upper = { 0.50,  6.0*vt0}
+local numCells = {8, 8}
+
+local polyOrder = 1 -- Polynomial order of the basis.
+local pDim = #numCells
+local vDim = 1
+local cDim = pDim - vDim
+
+local lowerC, upperC, numCellsC = {}, {}, {}
+for d=1, cDim do
+   lowerC[d] = lower[d]
+   upperC[d] = upper[d]
+   numCellsC[d] = numCells[d]
+end
+
 -- Functions defining the density, drift velocity and thermal speed squared.
-local m0Func     = function (t, xn) return n0 end
-local uDriftFunc = function (t, xn) return u0 end
-local vtSqFunc   = function (t, xn) return vt0^2 end
+local eps_n = 0.1
+local eps_u = 0.1
+local eps_vt = 0.1
+local m0Func = function (t, xn) return n0*(1.0+eps_n*math.cos(2.*math.pi*xn[1])) end
+local uDriftFunc = function (t, xn) return u0*(1.0+eps_u*math.cos(2.*math.pi*xn[1])) end
+local vtSqFunc = function (t, xn) return (vt0*(1.0+eps_vt*math.cos(2.*math.pi*xn[1])))^2 end
 
 -- Initial distribution function
 local initialF = function(t, xn)
@@ -27,24 +47,7 @@ local initialF = function(t, xn)
    local ux = uDriftFunc(t,xn)
    local vtsq = vtSqFunc(t,xn)
 
-   return (den/math.sqrt(2.*math.pi*vtsq))*math.exp(-((vx-ux)^2)/(2.*vtsq))
-end
-
--- Phase space mesh.
-local lower = {-0.50, -6.0*vt0}
-local upper = { 0.50,  6.0*vt0}
-local numCells = {8, 8}
-
-local polyOrder = 1 -- Polynomial order of the basis.
-local cDim = 1
-local vDim = 1
-local pDim = cDim + vDim
-
-local lowerC, upperC, numCellsC = {}, {}, {}
-for d=1, cDim do
-   lowerC[d] = lower[d]
-   upperC[d] = upper[d]
-   numCellsC[d] = numCells[d]
+   return (den/math.sqrt((2.*math.pi*vtsq)^vDim))*math.exp(-((vx-ux)^2)/(2.*vtsq))
 end
 
 local function createGrid(lo, up, nCells, pDirs)
