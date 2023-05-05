@@ -55,21 +55,21 @@ function IterMaxwellianFix:init(tbl)
       return f
    end
 
-   local vDim = phaseGrid:ndim() - confGrid:ndim()
+   self.vDim = phaseGrid:ndim() - confGrid:ndim()
 
    -- Allocate memory
    self.m0scl = getField(confGrid, confBasis, 1) 
    self.dm0 = getField(confGrid, confBasis, 1) 
    self.ddm0 = getField(confGrid, confBasis, 1) 
    self.m0_new = getField(confGrid, confBasis, 1)
-   self.dm1i = getField(confGrid, confBasis, vDim) 
-   self.ddm1i = getField(confGrid, confBasis, vDim) 
-   self.m1i_new = getField(confGrid, confBasis, vDim)
+   self.dm1i = getField(confGrid, confBasis, self.vDim) 
+   self.ddm1i = getField(confGrid, confBasis, self.vDim) 
+   self.m1i_new = getField(confGrid, confBasis, self.vDim)
    self.dm2 = getField(confGrid, confBasis, 1)
    self.ddm2 = getField(confGrid, confBasis, 1)
    self.m2_new = getField(confGrid, confBasis, 1)
    self.m2flow = getField(confGrid, confBasis, 1)
-   self.uDrift = getField(confGrid, confBasis, vDim)
+   self.uDrift = getField(confGrid, confBasis, self.vDim)
    self.vtSq = getField(confGrid, confBasis, 1)
 
    -- create updaters
@@ -189,6 +189,8 @@ function IterMaxwellianFix:_advance(tCurr, inFld, outFld)
    local weakMultiply = self.weakMultiply
    local weakMultiplyConfPhase = self.weakMultiplyConfPhase
 
+   local vDim = self.vDim
+
    fOut:copy(fM)
 
    -- Rescale the Maxwellian.
@@ -218,6 +220,7 @@ function IterMaxwellianFix:_advance(tCurr, inFld, outFld)
       weakMultiply:advance(0., {uDrift, m1i_new}, {m2flow})
       vtSq:combine(1., m2_new, -1., m2flow)
       weakDivide:advance(0., {m0_new, vtSq}, {vtSq})
+      vtSq:scale(1./vDim)
       
       -- Project the Maxwellian onto the basis.
       maxwellian:advance(0.0, {m0_new,uDrift,vtSq}, {fOut})
