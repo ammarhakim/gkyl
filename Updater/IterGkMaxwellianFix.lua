@@ -45,6 +45,7 @@ function IterGkMaxwellianFix:init(tbl)
    
    local phaseGrid, confGrid, confBasis, phaseBasis =
       self.phaseGrid, self.confGrid, self.confBasis, self.phaseBasis
+   print(confGrid:ndim()) 
 
    local mass, bmag = self.mass, self.bmag
 
@@ -59,22 +60,25 @@ function IterGkMaxwellianFix:init(tbl)
       }
       return f
    end
-
-   local vDim = phaseGrid:ndim() - confGrid:ndim()
+   
+   self.vDim = phaseGrid:ndim() - confGrid:ndim() 
+   if self.vDim > 1 then
+      self.vDim = 3
+   end
 
    -- Allocate memory
    self.m0scl = getField(confGrid, confBasis, 1) 
    self.dm0 = getField(confGrid, confBasis, 1) 
    self.ddm0 = getField(confGrid, confBasis, 1) 
    self.m0_new = getField(confGrid, confBasis, 1)
-   self.dm1 = getField(confGrid, confBasis, vDim) 
-   self.ddm1 = getField(confGrid, confBasis, vDim) 
-   self.m1_new = getField(confGrid, confBasis, vDim)
+   self.dm1 = getField(confGrid, confBasis, 1) 
+   self.ddm1 = getField(confGrid, confBasis, 1) 
+   self.m1_new = getField(confGrid, confBasis, 1)
    self.dm2 = getField(confGrid, confBasis, 1)
    self.ddm2 = getField(confGrid, confBasis, 1)
    self.m2_new = getField(confGrid, confBasis, 1)
    self.m2flow = getField(confGrid, confBasis, 1)
-   self.uDrift = getField(confGrid, confBasis, vDim)
+   self.uDrift = getField(confGrid, confBasis, 1)
    self.vtSq = getField(confGrid, confBasis, 1)
    self.vtSqTar = getField(confGrid, confBasis, 1)
 
@@ -201,6 +205,8 @@ function IterGkMaxwellianFix:_advance(tCurr, inFld, outFld)
    local weakMultiply = self.weakMultiply
    local weakMultiplyConfPhase = self.weakMultiplyConfPhase
 
+   local vDim = self.vDim
+
    fOut:copy(fM)
 
    -- Compute u and vt^2 with the initial M0, M1, M2.
@@ -208,6 +214,7 @@ function IterGkMaxwellianFix:_advance(tCurr, inFld, outFld)
    weakMultiply:advance(0., {uDrift, m1}, {m2flow})
    vtSqTar:combine(1., m2, -1., m2flow)
    weakDivide:advance(0., {m0, vtSqTar}, {vtSqTar})
+   vtSqTar:scale(1./vDim)
    
    -- Rescale the Maxwellian.
    calcNumDensity:advance(0.0, {fOut}, {m0_new})
@@ -236,7 +243,8 @@ function IterGkMaxwellianFix:_advance(tCurr, inFld, outFld)
       weakMultiply:advance(0., {uDrift, m1_new}, {m2flow})
       vtSq:combine(1., m2_new, -1., m2flow)
       weakDivide:advance(0., {m0_new, vtSq}, {vtSq})
-      
+      vtSq:scale(1./vDim)
+
       -- Project the Maxwellian onto the basis.
       maxwellian:advance(0.0, {m0_new,uDrift,vtSq,bmag}, {fOut})
       -- Rescale the Maxwellian.
@@ -248,21 +256,16 @@ function IterGkMaxwellianFix:_advance(tCurr, inFld, outFld)
       calcMomDensity:advance(0.0, {fOut}, {m1_new})
       calcKinEnergyDensity:advance(0.0, {fOut}, {m2_new})
 
-      -- Compute u and vt^2 with the moments of the rescaled Maxwellian.
-      weakDivide:advance(0., {m0_new, m1_new}, {uDrift})
-      weakMultiply:advance(0., {uDrift, m1_new}, {m2flow})
-      vtSq:combine(1., m2_new, -1., m2flow)
-      weakDivide:advance(0., {m0_new, vtSq}, {vtSq})
-      
-      
       -- Compute the l2 norm of the error.
       weakDivide:advance(0., {m0_new, m1_new}, {uDrift})
       weakMultiply:advance(0., {uDrift, m1_new}, {m2flow})
       vtSq:combine(1., m2_new, -1., m2flow)
       weakDivide:advance(0., {m0_new, vtSq}, {vtSq})
+      vtSq:scale(1./vDim)
       local err2 = self:l2diff(m2,m2_new) / self:l2norm(m2)
       local err1 = self:l2diff(m1,m1_new) / math.sqrt(self:l2norm(vtSqTar))
-      print(err1, err2)
+      print(self:l2diff(m2,m2_new), self:l2norm(m2), err2)
+      print(self:l2diff(m1,m1_new), math.sqrt(self:l2norm(vtSqTar)), err1)
       local err = math.max(err1, err2)
       -- Stop at required accuracy.
       if err < self.relEps or step >= self.maxIter then
