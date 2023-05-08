@@ -111,7 +111,6 @@ function FemPoisson:init(tbl)
       }
       if self.zContinuous then
          if self.xLCFS then
-            self:setSplitRanges()
             self.zDiscontToCont = FemParPoisson {
                onGrid  = self.grid,
                basis   = self.basis,
@@ -133,6 +132,7 @@ function FemPoisson:init(tbl)
                return fld
             end
             self.srcSOL = createField(self.grid,self.basis,{1,1})
+            self:setSplitRanges(self.srcSOL)
             if self.axisymmetric then
                self.zDiscontToContCore = FemParPoisson {
                   onGrid  = self.grid,
@@ -193,7 +193,7 @@ function FemPoisson:regularSmoother(tCurr,src)
    self.zDiscontToCont:advance(tCurr, {src}, {src})
 end
 
-function FemPoisson:setSplitRanges()
+function FemPoisson:setSplitRanges(sampleFld)
    local gridRange = self.grid:globalRange()
    local xLCFS=self.xLCFS
    local coordLCFS = {xLCFS-1.e-7}
@@ -207,22 +207,20 @@ function FemPoisson:setSplitRanges()
    xGrid:findCell(coordLCFS, idxLCFS)
    self.globalCore = gridRange:shorten(1, idxLCFS[1])
    self.globalSOL = gridRange:shortenFromBelow(1, self.grid:numCells(1)-idxLCFS[1]+1)
+
+   local localRange = sampleFld:localRange()
+   self.localSOLRange = sampleFld:localRange():intersect(self.globalSOL)
+   self.localCoreRange = sampleFld:localRange():intersect(self.globalCore)
 end
 
 function FemPoisson:axisymmetricSmoother(tCurr,src)
-   local localRange = src:localRange()
-   local localSOLRange = src:localRange():intersect(self.globalSOL)
-   local localCoreRange = src:localRange():intersect(self.globalCore)
    self.srcSOL:copy(src)
    self.zDiscontToCont:advance(tCurr, {self.srcSOL}, {self.srcSOL})
    self.zDiscontToContCore:advance(tCurr, {src}, {src})
-   src:copyRange(localSOLRange, self.srcSOL)
+   src:copyRange(self.localSOLRange, self.srcSOL)
 end
 
 function FemPoisson:twistShiftSmoother(tCurr,src)
-   local localRange = src:localRange()
-   local localSOLRange = src:localRange():intersect(self.globalSOL)
-   local localCoreRange = src:localRange():intersect(self.globalCore)
    --Do the SOL First
    self.srcSOL:copy(src)
    self.zDiscontToCont:advance(tCurr, {self.srcSOL}, {self.srcSOL})
@@ -232,7 +230,7 @@ function FemPoisson:twistShiftSmoother(tCurr,src)
    -- Now smooth the core
    self.zDiscontToContCore:advance(tCurr, {src}, {src})
    --Copy the SOL part in
-   src:copyRange(localSOLRange, self.srcSOL)
+   src:copyRange(self.localSOLRange, self.srcSOL)
 end
 
 
