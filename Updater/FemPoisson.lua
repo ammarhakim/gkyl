@@ -221,15 +221,11 @@ function FemPoisson:axisymmetricSmoother(tCurr,src)
 end
 
 function FemPoisson:twistShiftSmoother(tCurr,src)
-   --Do the SOL First
    self.srcSOL:copy(src)
    self.zDiscontToCont:advance(tCurr, {self.srcSOL}, {self.srcSOL})
-   -- Do the skin-ghost averaging at both boundaries
    self.skinGhostAvgLower:advance(src)
    self.skinGhostAvgUpper:advance(src)
-   -- Now smooth the core
    self.zDiscontToContCore:advance(tCurr, {src}, {src})
-   --Copy the SOL part in
    src:copyRange(self.localSOLRange, self.srcSOL)
 end
 
