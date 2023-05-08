@@ -174,15 +174,6 @@ function FemPerpPoisson:init(tbl)
    self._nx = self._grid:numCells(1)
    self._ny = self._grid:numCells(2)
    self._nz = self._grid:numCells(3)
-   self.axisymmetric = nil
-   self.twistShift=nil
-   if self.xLCFS then
-      if self._ny==1 then
-         self.axisymmetric=true
-      else
-         self.twistShift=true
-      end
-   end
    self._p  = self._basis:polyOrder()
    self._dx = self._grid:dx(1)
    self._dy = self._grid:dx(2)
@@ -236,77 +227,6 @@ function FemPerpPoisson:init(tbl)
       self._zcomm = Mpi.Comm_split(worldComm, zrank, nodeRank)
    end
 
-   self.zDiscontToCont = nil
-   if self._ndim == 3 and self.zContinuous then
-      if self.xLCFS then
-         self:setSplitRanges()
-         self.zDiscontToCont = FemParPoisson {
-            onGrid  = self._grid,
-            basis   = self._basis,
-            bcLower = {{T= "N",V=0.0}},
-            bcUpper = {{T= "N",V=0.0}},
-            smooth  = true,
-         }
-         local function createField(grid, basis, ghostCells, vComp, periodicSync)
-            vComp = vComp or 1
-            local fld = DataStruct.Field {
-               onGrid           = grid,
-               numComponents    = basis:numBasis()*vComp,
-               ghost            = ghostCells,
-               metaData         = {polyOrder = basis:polyOrder(),
-                                   basisType = basis:id()},
-               syncPeriodicDirs = periodicSync,
-            }
-            fld:clear(0.0)
-            return fld
-         end
-         self.srcSOL = createField(self._grid,self._basis,{1,1})
-         if self.axisymmetric then
-            self.zDiscontToContCore = FemParPoisson {
-               onGrid  = self._grid,
-               basis   = self._basis,
-               bcLower = {{T = "P",V=0.0}},
-               bcUpper = {{T = "P",V=0.0}},
-               smooth  = true,
-            }
-            self.zSmoother = function(tCurr,src) return self:axisymmetricSmoother(tCurr,src) end
-         end
-         if self.twistShift then
-            self.zDiscontToContCore = FemParPoisson {
-               onGrid  = self._grid,
-               basis   = self._basis,
-               bcLower = {{T = "N",V=0.0}},
-               bcUpper = {{T = "N",V=0.0}},
-               smooth  = true,
-            }
-            self.zSmoother = function(tCurr,src) return self:twistShiftSmoother(tCurr,src) end
-            self.skinGhostAvgLower = SkinGhostAvg{
-               grid = self._grid,
-               basis = self._basis,
-               edge='lower',
-               bcDir = 3,
-               advanceArgs = {self.srcSOL},
-            }
-            self.skinGhostAvgUpper= SkinGhostAvg{
-               grid = self._grid,
-               basis = self._basis,
-               edge='upper',
-               bcDir = 3,
-               advanceArgs = {self.srcSOL},
-            }
-         end
-      else
-         self.zSmoother = function(tCurr,src) return self:regularSmoother(tCurr,src) end
-         self.zDiscontToCont = FemParPoisson {
-            onGrid  = self._grid,
-            basis   = self._basis,
-            bcLower = {tbl.bcLower[3]},
-            bcUpper = {tbl.bcUpper[3]},
-            smooth  = true,
-         }
-      end
-   end
-
    local localRange = self._grid:localRange()
    -- Create region that is effectively 2d and global in x-y directions.
    self.local_z_lower = 1
@@ -324,7 +244,7 @@ function FemPerpPoisson:init(tbl)
                   srcCreate      = 0., solve          = 0.,
                   stiffCreate    = 0., getSol         = 0.,
                   srcReduce      = 0., srcReduceWait = 0.,  assemble       = 0.,
-                  completeNsolve = 0., zDiscontToCont = 0.}
+                  completeNsolve = 0.}
    self.timerLabelsAssembly = {
                        srcInt         = "FemPerpPoisson... Assembly: Integrate source (for all-periodic BCs only)",
                        objCreate      = "FemPerpPoisson... Assembly: Create FemPoisson object (first time only)",
@@ -339,7 +259,6 @@ function FemPerpPoisson:init(tbl)
                        srcReduceWait  = "FemPerpPoisson... Solve: wait for global source reduce to finish",
                        solve          = "FemPerpPoisson... Solve: solve linear system",
                        getSol         = "FemPerpPoisson... Solve: get solution",
-                       zDiscontToCont = "FemPerpPoisson... Solve: do z smoothing solve",
                        --completeNsolve = "FemPerpPoisson... Total solve",
                        }
 
@@ -350,63 +269,12 @@ end
 function FemPerpPoisson:bcType(dir,side) return self._bc[dir][side].type end
 function FemPerpPoisson:bcValue(dir,side) return self._bc[dir][side].value end
 
-function FemPerpPoisson:regularSmoother(tCurr,src)
-   self.zDiscontToCont:advance(tCurr, {src}, {src})
-end
-
-function FemPerpPoisson:setSplitRanges()
-   local gridRange = self._grid:globalRange()
-   local xLCFS=self.xLCFS
-   local coordLCFS = {xLCFS-1.e-7}
-   idxLCFS    = {-9}
-   local xGridIngr = self._grid:childGrid({1})
-   local xGrid = Grid.RectCart {
-      lower = xGridIngr.lower,  periodicDirs  = xGridIngr.periodicDirs,
-      upper = xGridIngr.upper,  decomposition = xGridIngr.decomposition,
-      cells = xGridIngr.cells,
-   }
-   xGrid:findCell(coordLCFS, idxLCFS)
-   self.globalCore = gridRange:shorten(1, idxLCFS[1])
-   self.globalSOL = gridRange:shortenFromBelow(1, self._grid:numCells(1)-idxLCFS[1]+1)
-end
-
-function FemPerpPoisson:axisymmetricSmoother(tCurr,src)
-   local localRange = src:localRange()
-   local localSOLRange = src:localRange():intersect(self.globalSOL)
-   local localCoreRange = src:localRange():intersect(self.globalCore)
-   self.srcSOL:copy(src)
-   self.zDiscontToCont:advance(tCurr, {self.srcSOL}, {self.srcSOL})
-   self.zDiscontToContCore:advance(tCurr, {src}, {src})
-   src:copyRange(localSOLRange, self.srcSOL)
-end
-
-function FemPerpPoisson:twistShiftSmoother(tCurr,src)
-   local localRange = src:localRange()
-   local localSOLRange = src:localRange():intersect(self.globalSOL)
-   local localCoreRange = src:localRange():intersect(self.globalCore)
-   --Do the SOL First
-   self.srcSOL:copy(src)
-   self.zDiscontToCont:advance(tCurr, {self.srcSOL}, {self.srcSOL})
-   -- Do the skin-ghost averaging at both boundaries
-   self.skinGhostAvgLower:advance(src)
-   self.skinGhostAvgUpper:advance(src)
-   -- Now smooth the core
-   self.zDiscontToContCore:advance(tCurr, {src}, {src})
-   --Copy the SOL part in
-   src:copyRange(localSOLRange, self.srcSOL)
-end
 
 function FemPerpPoisson:beginAssembly(tCurr, src)
    -- Assemble the right-side source vector and, if necessary, the stiffness matrix.
    local tm = Time.clock()
 
    local ndim, grid = self._ndim, self._grid
-
-   if self.zDiscontToCont then   -- Make continuous in z.
-      local tmStart = Time.clock()
-      self.zSmoother(tCurr,src)
-      self.timers.zDiscontToCont = self.timers.zDiscontToCont + Time.clock() - tmStart
-   end
 
    local localRange = src:localRange()
 
@@ -560,13 +428,6 @@ function FemPerpPoisson:completeAssemblyAndSolve(tCurr, sol)
          end
       end
       self.timers.getSol = self.timers.getSol + Time.clock() - tmGetStart
-   end
-
-   --Second Smoothing: smoothing of phi with Z BCs
-   if self.zDiscontToCont then
-      local tmStart = Time.clock()
-      self.zSmoother(tCurr,sol)
-      self.timers.zDiscontToCont = self.timers.zDiscontToCont + Time.clock() - tmStart
    end
 
    self._first = false

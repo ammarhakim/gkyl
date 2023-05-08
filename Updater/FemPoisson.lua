@@ -16,6 +16,8 @@ local DataStruct     = require "DataStruct"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local CartFieldBinOp = require "Updater.CartFieldBinOp"
 local xsys           = require "xsys"
+local SkinGhostAvg   = require "Updater.SkinGhostAvg"
+local Grid = require("Grid")
 
 -- FEM Poisson solver updater object
 local FemPoisson = Proto(UpdaterBase)
@@ -33,7 +35,6 @@ function FemPoisson:init(tbl)
    end
 
    self.xLCFS=tbl.xLCFS
-   --print("in FemPoisson, xLCFS = ", self.xLCFS)
    self.grid  = tbl.onGrid
    self.ndim  = self.grid:ndim()
    self.basis = tbl.basis
@@ -51,10 +52,22 @@ function FemPoisson:init(tbl)
 
    self.smooth = xsys.pickBool(tbl.smooth, false)
 
-   --print("In Fempoisson, ndim = ", ndim)
-
    self.slvr = nil
+   self._nx = self.grid:numCells(1)
+   self._ny = self.grid:numCells(2)
+   self._nz = self.grid:numCells(3)
+   self.axisymmetric = nil
+   self.twistShift=nil
+   if self.xLCFS then
+      if self._ny==1 then
+         self.axisymmetric=true
+      else
+         self.twistShift=true
+      end
+   end
+
    if ndim == 1 then
+      self.zSmoother = function(tCurr, src) end
       self.slvr = FemParPoisson {
          onGrid  = self.grid,
          basis   = self.basis,
@@ -70,6 +83,7 @@ function FemPoisson:init(tbl)
          onGhosts  = true,
       }
    elseif ndim == 2 then
+      self.zSmoother = function(tCurr, src) end
       self.slvr = FemPerpPoisson {
         onGrid       = self.grid,
         basis        = self.basis,
@@ -95,9 +109,78 @@ function FemPoisson:init(tbl)
         gyy          = self.gyy,
         smooth       = self.smooth
       }
-   else 
+      if self.zContinuous then
+         if self.xLCFS then
+            self:setSplitRanges()
+            self.zDiscontToCont = FemParPoisson {
+               onGrid  = self.grid,
+               basis   = self.basis,
+               bcLower = {{T= "N",V=0.0}},
+               bcUpper = {{T= "N",V=0.0}},
+               smooth  = true,
+            }
+            local function createField(grid, basis, ghostCells, vComp, periodicSync)
+               vComp = vComp or 1
+               local fld = DataStruct.Field {
+                  onGrid           = grid,
+                  numComponents    = basis:numBasis()*vComp,
+                  ghost            = ghostCells,
+                  metaData         = {polyOrder = basis:polyOrder(),
+                                      basisType = basis:id()},
+                  syncPeriodicDirs = periodicSync,
+               }
+               fld:clear(0.0)
+               return fld
+            end
+            self.srcSOL = createField(self.grid,self.basis,{1,1})
+            if self.axisymmetric then
+               self.zDiscontToContCore = FemParPoisson {
+                  onGrid  = self.grid,
+                  basis   = self.basis,
+                  bcLower = {{T = "P",V=0.0}},
+                  bcUpper = {{T = "P",V=0.0}},
+                  smooth  = true,
+               }
+               self.zSmoother = function(tCurr,src) return self:axisymmetricSmoother(tCurr,src) end
+            end
+            if self.twistShift then
+               self.zDiscontToContCore = FemParPoisson {
+                  onGrid  = self.grid,
+                  basis   = self.basis,
+                  bcLower = {{T = "N",V=0.0}},
+                  bcUpper = {{T = "N",V=0.0}},
+                  smooth  = true,
+               }
+               self.zSmoother = function(tCurr,src) return self:twistShiftSmoother(tCurr,src) end
+               self.skinGhostAvgLower = SkinGhostAvg{
+                  grid = self.grid,
+                  basis = self.basis,
+                  edge='lower',
+                  bcDir = 3,
+                  advanceArgs = {self.srcSOL},
+               }
+               self.skinGhostAvgUpper= SkinGhostAvg{
+                  grid = self.grid,
+                  basis = self.basis,
+                  edge='upper',
+                  bcDir = 3,
+                  advanceArgs = {self.srcSOL},
+               }
+            end
+         else
+            self.zSmoother = function(tCurr,src) return self:regularSmoother(tCurr,src) end
+            self.zDiscontToCont = FemParPoisson {
+               onGrid  = self.grid,
+               basis   = self.basis,
+               bcLower = {tbl.bcLower[3]},
+               bcUpper = {tbl.bcUpper[3]},
+               smooth  = true,
+            }
+         end
+      end
+   else
       assert(false, "Updater.FemPoisson: Requires ndim<=3")
-   end   
+   end
 
    -- Option to write development-related diagnostics.
    self.verbose = xsys.pickBool(tbl.verbose, false)
@@ -105,21 +188,77 @@ function FemPoisson:init(tbl)
    return self
 end
 
+
+function FemPoisson:regularSmoother(tCurr,src)
+   self.zDiscontToCont:advance(tCurr, {src}, {src})
+end
+
+function FemPoisson:setSplitRanges()
+   local gridRange = self.grid:globalRange()
+   local xLCFS=self.xLCFS
+   local coordLCFS = {xLCFS-1.e-7}
+   idxLCFS    = {-9}
+   local xGridIngr = self.grid:childGrid({1})
+   local xGrid = Grid.RectCart {
+      lower = xGridIngr.lower,  periodicDirs  = xGridIngr.periodicDirs,
+      upper = xGridIngr.upper,  decomposition = xGridIngr.decomposition,
+      cells = xGridIngr.cells,
+   }
+   xGrid:findCell(coordLCFS, idxLCFS)
+   self.globalCore = gridRange:shorten(1, idxLCFS[1])
+   self.globalSOL = gridRange:shortenFromBelow(1, self.grid:numCells(1)-idxLCFS[1]+1)
+end
+
+function FemPoisson:axisymmetricSmoother(tCurr,src)
+   local localRange = src:localRange()
+   local localSOLRange = src:localRange():intersect(self.globalSOL)
+   local localCoreRange = src:localRange():intersect(self.globalCore)
+   self.srcSOL:copy(src)
+   self.zDiscontToCont:advance(tCurr, {self.srcSOL}, {self.srcSOL})
+   self.zDiscontToContCore:advance(tCurr, {src}, {src})
+   src:copyRange(localSOLRange, self.srcSOL)
+end
+
+function FemPoisson:twistShiftSmoother(tCurr,src)
+   local localRange = src:localRange()
+   local localSOLRange = src:localRange():intersect(self.globalSOL)
+   local localCoreRange = src:localRange():intersect(self.globalCore)
+   --Do the SOL First
+   self.srcSOL:copy(src)
+   self.zDiscontToCont:advance(tCurr, {self.srcSOL}, {self.srcSOL})
+   -- Do the skin-ghost averaging at both boundaries
+   self.skinGhostAvgLower:advance(src)
+   self.skinGhostAvgUpper:advance(src)
+   -- Now smooth the core
+   self.zDiscontToContCore:advance(tCurr, {src}, {src})
+   --Copy the SOL part in
+   src:copyRange(localSOLRange, self.srcSOL)
+end
+
+
+function FemPoisson:assemble(tCurr, inFld, outFld)
+   -- Begin assembling the source vector and, if needed, the stiffness matrix.
+   self.zSmoother(tCurr, inFld[1])
+   self.slvr:assemble(tCurr, inFld, outFld)
+end
+
 function FemPoisson:assemble(tCurr, inFld, outFld)
    -- Begin assembling the source vector and, if needed, the stiffness matrix.
    self.slvr:assemble(tCurr, inFld, outFld)
 end
 
-function FemPoisson:solve(tCurr, inFld, outFld) 
+function FemPoisson:solve(tCurr, inFld, outFld)
    -- Assuming the right-side vector (and if needed the stiffness matrix)
    -- has been assembled, this solves the linear problem.
    -- If the assembly initiated an MPI non-blocking reduce, this waits for it.
    self.slvr:solve(tCurr, inFld, outFld)
+   self.zSmoother(tCurr, outFld[1])
 end
 
-function FemPoisson:_advance(tCurr, inFld, outFld) 
+function FemPoisson:_advance(tCurr, inFld, outFld)
    -- Advance method. This assembles the right-side source vector and, if needed,
    -- the stiffness matrix. Then it solves the linear problem.
+   self.zSmoother(tCurr, inFld[1])
    if self.ndim == 1 and not self.zContinuous and self.slvr._hasLaplacian == false then
       -- Special case where solve is just algebraic.
       local src = inFld[1]
@@ -129,6 +268,7 @@ function FemPoisson:_advance(tCurr, inFld, outFld)
    else
       self.slvr:advance(tCurr, inFld, outFld)
    end
+   self.zSmoother(tCurr, outFld[1])
 end
 
 function FemPoisson:setLaplacianWeight(weight)
