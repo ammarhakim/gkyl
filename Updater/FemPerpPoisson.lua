@@ -247,13 +247,6 @@ function FemPerpPoisson:init(tbl)
             bcUpper = {{T= "N",V=0.0}},
             smooth  = true,
          }
-         self.zDiscontToContCore = FemParPoisson {
-            onGrid  = self._grid,
-            basis   = self._basis,
-            bcLower = {{T = "P",V=0.0}},
-            bcUpper = {{T = "P",V=0.0}},
-            smooth  = true,
-         }
          local function createField(grid, basis, ghostCells, vComp, periodicSync)
             vComp = vComp or 1
             local fld = DataStruct.Field {
@@ -269,9 +262,23 @@ function FemPerpPoisson:init(tbl)
          end
          self.srcSOL = createField(self._grid,self._basis,{1,1})
          if self.axisymmetric then
+            self.zDiscontToContCore = FemParPoisson {
+               onGrid  = self._grid,
+               basis   = self._basis,
+               bcLower = {{T = "P",V=0.0}},
+               bcUpper = {{T = "P",V=0.0}},
+               smooth  = true,
+            }
             self.zSmoother = function(tCurr,src) return self:axisymmetricSmoother(tCurr,src) end
          end
          if self.twistShift then
+            self.zDiscontToContCore = FemParPoisson {
+               onGrid  = self._grid,
+               basis   = self._basis,
+               bcLower = {{T = "N",V=0.0}},
+               bcUpper = {{T = "N",V=0.0}},
+               smooth  = true,
+            }
             self.zSmoother = function(tCurr,src) return self:twistShiftSmoother(tCurr,src) end
             self.skinGhostAvgLower = SkinGhostAvg{
                grid = self._grid,
