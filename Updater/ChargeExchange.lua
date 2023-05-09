@@ -43,7 +43,8 @@ function ChargeExchange:init(tbl)
    -- Basis name and polynomial order.
    self._basisID = self._phaseBasis:id()
    self._polyOrder = self._phaseBasis:polyOrder()
-
+   self.idxP = Lin.IntVec(self._pDim)
+   
    -- Number of basis functions.
    self._numBasis = self._confBasis:numBasis()
 
@@ -89,11 +90,19 @@ function ChargeExchange:_advance(tCurr, inFld, outFld)
    
    local confRange = vtSqIon:localRange()
 
+   -- Get the interface for setting global CFL frequencies
+   local cflRateByCell     = self._cflRateByCell
+   local cflRateByCellIdxr = cflRateByCell:genIndexer()
+   local cflRateByCellPtr  = cflRateByCell:get(1)
+   local cflRange = cflRateByCell:localRange()
+   local velRange = cflRange:selectLast(vDim)
+
    local confRangeDecomp = LinearDecomp.LinearDecompRange {
       range = confRange:selectFirst(cDim), numSplit = grid:numSharedProcs() }
    local tId = grid:subGridSharedId()    -- Local thread ID.
-   
-   -- Phase space loop
+
+   local cflRate
+   -- Conf space loop
    for cIdx in confRangeDecomp:rowMajorIter(tId) do
       grid:setIndex(cIdx)
 
@@ -128,7 +137,16 @@ function ChargeExchange:_advance(tCurr, inFld, outFld)
       vtSqNeut:fill(confIndexer(cIdx), vtSqNeutItr)
       vSigmaCX:fill(confIndexer(cIdx), vSigmaCXItr)
 
-      self._calcSigmaCX(self._a, self._b, m0Itr:data(), uIonItr:data(), uNeutItr:data(), vtSqIonItr:data(), vtSqIonMin, vtSqNeutItr:data(), vtSqNeutMin, vSigmaCXItr:data())
+      cflRate = self._calcSigmaCX(self._a, self._b, m0Itr:data(), uIonItr:data(), uNeutItr:data(), vtSqIonItr:data(), vtSqIonMin, vtSqNeutItr:data(), vtSqNeutMin, vSigmaCXItr:data())
+
+      for vIdx in velRange:rowMajorIter() do
+      	 -- Construct the phase space index ot of the configuration
+      	 -- space and velocity space indices
+         cIdx:copyInto(self.idxP)
+         for d = 1, vDim do self.idxP[self._cDim+d] = vIdx[d] end
+      	 cflRateByCell:fill(cflRateByCellIdxr(self.idxP), cflRateByCellPtr)
+      	 cflRateByCellPtr:data()[0] = cflRateByCellPtr:data()[0] + cflRate
+      end
      
    end
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart

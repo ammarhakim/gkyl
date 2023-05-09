@@ -76,7 +76,8 @@ end
 -- we need the app top-level table for proper initialization.
 function GkChargeExchange:fullInit(speciesTbl)
    local tbl = self.tbl -- Previously store table.
-
+   
+   self.cfl = 0.1
    self.collKind = "CX"
 
    self.collidingSpecies = assert(tbl.collideWith, "App.GkChargeExchange: Must specify names of species to collide with in 'collideWith'.")
@@ -260,6 +261,10 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
 end
 
 function GkChargeExchange:write(tm, frame) end
+
+function GkChargeExchange:setCfl(cfl)
+   self.cfl = cfl
+end
 
 function GkChargeExchange:slvrTime()
    return 0

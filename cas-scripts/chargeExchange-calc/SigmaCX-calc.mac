@@ -51,7 +51,7 @@ calcSigmaCXcellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     bC : basisC[p],
     NC : length(bC),
   
-    printf(fh, "void ~a_P~a(const double a, const double b, const double *m0, const double *uIon, const double *uNeut, const double *vtSqIon, double vtSqIonMin, const double *vtSqNeut, double vtSqNeutMin, double *vSigmaCX) ~%{ ~%", funcNm, p),
+    printf(fh, "double ~a_P~a(const double a, const double b, const double *m0, const double *uIon, const double *uNeut, const double *vtSqIon, double vtSqIonMin, const double *vtSqNeut, double vtSqNeutMin, double *vSigmaCX) ~%{ ~%", funcNm, p),
     printf(fh, "  // a               constant in fitting function. ~%"),
     printf(fh, "  // b               constant in fitting function. ~%"),
     printf(fh, "  // m0[~a]:         neutral particle density. ~%", NC),
@@ -90,6 +90,7 @@ calcSigmaCXcellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* Define and write vSigmaCX */
     printf(fh, "  if (m0NeutAv <= 0 || vtSqNeutAv <= 0 || vtSqIonAv <= 0) { ~%"),
     printf(fh, "    vSigmaCX[0] = 0.0;~%"),
+    printf(fh, "    return 0.0; ~%"),	
     printf(fh, "  } else {~%"),
      
     /* Define v_IN variable: vINSq = |uIon - uNeut|^2 */
@@ -101,6 +102,11 @@ calcSigmaCXcellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     vSigmaCX_c : calcInnerProdList(varsC,1.0,bC,Vcx*(a - b*ln(Vcx))),
     writeCExprsCs(vSigmaCX, vSigmaCX_c),
     printf(fh, " ~%"),
+
+    vSigmaCX_e  : doExpand1(vSigmaCX,bC),
+    vSigmaCxAv  : innerProd(varsC,1.0,1.0,vSigmaCX_e)/innerProd(varsC,1.0,1.0,1.0),
+    cflRate : float(expand(fullratsimp(m0Av*vSigmaCxAv/(2*p+1)))),
+    printf(fh, "  return ~a; ~%",cflRate),
 
     printf(fh, "  }~%"),
     printf(fh, "} ~%")

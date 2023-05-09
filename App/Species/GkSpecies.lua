@@ -880,6 +880,10 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
          local neutVtSq    = neuts:selfPrimitiveMoments()[2]
          local neutVtSqMin = neuts:vtSqMin()
 
+	 if tCurr == 0.0 then
+            species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+         end
+
 	 species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, self:vtSqMin(), neutVtSq, neutVtSqMin}, {species[self.name].collisions[self.collNmCX].reactRate})
       end
       

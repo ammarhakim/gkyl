@@ -1,6 +1,6 @@
 #include <ChargeExchangeModDecl.h> 
 #include <math.h> 
-void SigmaCXcellAvSer2x2v_P1(const double a, const double b, const double *m0, const double *uIon, const double *uNeut, const double *vtSqIon, double vtSqIonMin, const double *vtSqNeut, double vtSqNeutMin, double *vSigmaCX) 
+double SigmaCXcellAvSer2x2v_P1(const double a, const double b, const double *m0, const double *uIon, const double *uNeut, const double *vtSqIon, double vtSqIonMin, const double *vtSqNeut, double vtSqNeutMin, double *vSigmaCX) 
 { 
   // a               constant in fitting function. 
   // b               constant in fitting function. 
@@ -19,15 +19,17 @@ void SigmaCXcellAvSer2x2v_P1(const double a, const double b, const double *m0, c
   
   if (m0NeutAv <= 0 || vtSqNeutAv <= 0 || vtSqIonAv <= 0) { 
     vSigmaCX[0] = 0.0;
+    return 0.0; 
   } else {
   double vINSqAv = 0.25*pow(uNeut[4],2)-0.5*uIon[4]*uNeut[4]+0.25*pow(uIon[4],2)+0.25*pow(uNeut[0],2)-0.5*uIon[0]*uNeut[0]+0.25*pow(uIon[0],2); 
  
   double Vcx = sqrt(1.273239544735163*vtSqNeutAv+1.273239544735163*vtSqIonAv+vINSqAv);
   vSigmaCX[0] = 2.0*Vcx*a-2.0*Vcx*log(Vcx)*b; 
  
+    return 0.08333333333333333*m0[0]*vSigmaCX[0]; 
   }
 } 
-void SigmaCXcellAvSer2x2v_P2(const double a, const double b, const double *m0, const double *uIon, const double *uNeut, const double *vtSqIon, double vtSqIonMin, const double *vtSqNeut, double vtSqNeutMin, double *vSigmaCX) 
+double SigmaCXcellAvSer2x2v_P2(const double a, const double b, const double *m0, const double *uIon, const double *uNeut, const double *vtSqIon, double vtSqIonMin, const double *vtSqNeut, double vtSqNeutMin, double *vSigmaCX) 
 { 
   // a               constant in fitting function. 
   // b               constant in fitting function. 
@@ -46,11 +48,13 @@ void SigmaCXcellAvSer2x2v_P2(const double a, const double b, const double *m0, c
   
   if (m0NeutAv <= 0 || vtSqNeutAv <= 0 || vtSqIonAv <= 0) { 
     vSigmaCX[0] = 0.0;
+    return 0.0; 
   } else {
   double vINSqAv = 0.25*pow(uNeut[8],2)-0.5*uIon[8]*uNeut[8]+0.25*pow(uIon[8],2)+0.25*pow(uNeut[0],2)-0.5*uIon[0]*uNeut[0]+0.25*pow(uIon[0],2); 
  
   double Vcx = sqrt(1.273239544735163*vtSqNeutAv+1.273239544735163*vtSqIonAv+vINSqAv);
   vSigmaCX[0] = 2.0*Vcx*a-2.0*Vcx*log(Vcx)*b; 
  
+    return 0.05*m0[0]*vSigmaCX[0]; 
   }
 } 
