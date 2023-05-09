@@ -96,9 +96,10 @@ local FemPoisson = Proto(UpdaterBase)
 function FemPoisson:init(tbl)
    FemPoisson.super.init(self, tbl) -- Setup base object.
 
-   self._grid  = assert(tbl.onGrid, "Updater.FemPoisson: Must specify grid to use with 'onGrid'.")
-   self._basis = assert(tbl.basis, "Updater.FemPoisson: Must specify the basis in 'basis'.")
-   local eps0  = assert(tbl.epsilon_0, "Updater.FemPoisson: Must specify the permittivity of space 'epsilon_0'.")
+   self._grid   = assert(tbl.onGrid, "Updater.FemPoisson: Must specify grid to use with 'onGrid'.")
+   self._basis  = assert(tbl.basis, "Updater.FemPoisson: Must specify the basis in 'basis'.")
+   local eps0   = assert(tbl.epsilon_0, "Updater.FemPoisson: Must specify the permittivity of space 'epsilon_0'.")
+   self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
 
    local ndim = self._grid:ndim()
 
@@ -138,7 +139,16 @@ function FemPoisson:init(tbl)
       assert(false, "Updater.FemPoisson: must specify 'bcLower' and 'bcUpper'.")
    end
 
-   self._zero = ffi.gc(ffiC.gkyl_fem_poisson_new(self._grid._zero, self._basis._zero, bc_zero, eps0, nil, GKYL_USE_GPU or 0),
+   local eps0_const, eps0_var = nil, nil
+   if type(eps0) == 'number' then
+      eps0_const = eps0
+   elseif type(eps0) == 'table' then
+      -- eps0 must be an array with the tensor permittivity.
+      eps0_var = self._useGPU and eps0._zeroDevice or eps0._zero
+   end
+
+   self._zero = ffi.gc(ffiC.gkyl_fem_poisson_new(self._grid._zero, self._basis._zero, bc_zero,
+                                                 eps0_const, eps0_var, self._useGPU),
                        ffiC.gkyl_fem_poisson_release)
 end
 

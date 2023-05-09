@@ -70,9 +70,10 @@ function MaxwellField:fullInit(appTbl)
    local tbl = self.tbl -- Previously store table.
    
    self.epsilon0 = tbl.epsilon0
-   self.mu0 = tbl.mu0
+   self.mu0      = tbl.mu0
    self.ioMethod = "MPI"
-   self.evolve = xsys.pickBool(tbl.evolve, true) -- By default evolve field.
+   self.evolve   = xsys.pickBool(tbl.evolve, true) -- By default evolve field.
+
    -- By default, do not write data if evolve is false.
    self.forceWrite = xsys.pickBool(tbl.forceWrite, false)
 
