@@ -709,7 +709,7 @@ function GkField:readRestart(readTagged)
    self:applyBc(0, self.potentials[1])
 
    self.ioFrame = fr 
-   self.restartFileTag = self.restartFileTag==0 and 1 or 0
+   self.restartFileTag = tags.up==0 and 1 or 0
 
    return tags
 end

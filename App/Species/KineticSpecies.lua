@@ -922,7 +922,7 @@ function KineticSpecies:readRestart(field, externalField, readTagged)
    end
    self.distIoFrame = fr -- Reset internal frame counter.
    self.diagIoFrame = diagIoFr
-   self.restartFileTag = self.restartFileTag==0 and 1 or 0
+   self.restartFileTag = tags.up==0 and 1 or 0
 
    -- Set ghost cells.
    self.distf[1]:sync()
