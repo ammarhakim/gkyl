@@ -32,7 +32,6 @@ local Time           = require "Lib.Time"
 local Logger         = require "Lib.Logger"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local Mpi
-local SkinGhostAvg = require "Updater.SkinGhostAvg"
 if GKYL_HAVE_MPI then Mpi = require "Comm.Mpi" end
 
 ffi.cdef[[
@@ -89,6 +88,8 @@ function FemPerpPoisson:init(tbl)
    assert(self._ndim == self._basis:ndim(), "Updater.FemPerpPoisson: dimensions of basis and grid must match")
    assert(self._basis:polyOrder()==1 or self._basis:polyOrder()==2, "Updater.FemPerpPoisson: only implemented for polyOrder = 1 or 2")
    assert(self._ndim==2 or self._ndim==3, "Updater.FemPerpPoisson: only implemented for 2D or 3D (with no solve in 3rd dimension)")
+
+   self.onZGhosts = xsys.pickBool(tbl.onZGhosts, false)
 
    self._writeMatrix = xsys.pickBool(tbl.writeStiffnessMatrix, false)
 
@@ -227,7 +228,12 @@ function FemPerpPoisson:init(tbl)
       self._zcomm = Mpi.Comm_split(worldComm, zrank, nodeRank)
    end
 
-   local localRange = self._grid:localRange()
+   local localRange=nil
+   if self.onZGhosts then
+      localRange = self._grid:localRange():extendDir(3, 1, 1)
+   else
+      localRange = self._grid:localRange()
+   end
    -- Create region that is effectively 2d and global in x-y directions.
    self.local_z_lower = 1
    self.local_z_upper = 1

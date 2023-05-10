@@ -63,6 +63,7 @@ function FemPoisson:init(tbl)
          self.axisymmetric=true
       else
          self.twistShift=true
+         self.onZGhosts=true
       end
    end
 
@@ -107,7 +108,8 @@ function FemPoisson:init(tbl)
         gxx          = self.gxx,
         gxy          = self.gxy,
         gyy          = self.gyy,
-        smooth       = self.smooth
+        smooth       = self.smooth,
+        onZGhosts    = self.onZGhosts
       }
       if self.zContinuous then
          if self.xLCFS then
