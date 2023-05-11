@@ -229,15 +229,15 @@ function FemPerpPoisson:init(tbl)
    end
 
    local localRange=nil
-   if self.onZGhosts then
-      localRange = self._grid:localRange():extendDir(3, 1, 1)
-   else
-      localRange = self._grid:localRange()
-   end
    -- Create region that is effectively 2d and global in x-y directions.
    self.local_z_lower = 1
    self.local_z_upper = 1
    if (self._ndim == 3) then
+      if self.onZGhosts then
+         localRange = self._grid:localRange():extendDir(3, 1, 1)
+      else
+         localRange = self._grid:localRange()
+      end
       self.local_z_lower = localRange:lower(3)
       self.local_z_upper = localRange:upper(3)
    end
