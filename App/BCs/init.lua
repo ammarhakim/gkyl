@@ -15,6 +15,7 @@ local FluidBasic        = require "App.BCs.FluidBasic"
 local NeutralRecycling        = require "App.BCs.NeutralRecycling"
 local TwistShift              = require "App.BCs.TwistShift"
 local VlasovBasic             = require "App.BCs.VlasovBasic"
+local MaxwellianBc            = require "App.BCs.MaxwellianBC"
 
 return {
    AdiabaticBasic          = AdiabaticBasic,
@@ -26,4 +27,5 @@ return {
    NeutralRecyclingBasic   = NeutralRecyclingBasic,
    TwistShift              = TwistShift,
    VlasovBasic             = VlasovBasic,
+   MaxwellianBC            = MaxwellianBC,
 }

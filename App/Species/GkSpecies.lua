@@ -131,7 +131,6 @@ end
 
 function GkSpecies:createSolver(field, externalField)
    -- Run the KineticSpecies 'createSolver()' to initialize the collisions solver.
-   GkSpecies.super.createSolver(self, field, externalField)
 
    local hasE, hasB       = field:hasEB()
    local extHasE, extHasB = externalField:hasEB()
@@ -160,6 +159,7 @@ function GkSpecies:createSolver(field, externalField)
       for d = 1,self.cdim do xMid[d]=self.confGrid:mid(d) end
       self.bmagMid = self.bmagFunc(0.0, xMid)
    end
+   GkSpecies.super.createSolver(self, field, externalField)
 
    self.hasSheathBCs = false
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do

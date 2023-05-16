@@ -483,6 +483,12 @@ function KineticSpecies:createCouplingSolver(population, field, externalField)
 
    local species = population:getSpecies()
 
+   for nm, pr in lume.orderedIter(self.projections) do
+      if string.find(nm,"init") then
+         pr:createCouplingSolver(species,field,externalField)
+      end
+   end
+
    -- Create cross collision solvers.
    for _, c in lume.orderedIter(self.collisions) do c:createCouplingSolver(population, field, externalField) end
 
