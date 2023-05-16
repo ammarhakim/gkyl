@@ -28,12 +28,12 @@ function MaxwellianBC:init(tbl) self.tbl = tbl end
 -- Function initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
 function MaxwellianBC:fullInit(mySpecies)
-   self.maxwellianKind = tbl.maxwellianKind
-   self.densityGhost   = tbl.densityGhost
-   self.uParGhost      = tbl.uParGhost
-   self.tempGhost      = tbl.tempGhost
-   self.initFunc       = tbl.initFunc
-   self.fromFile       = tbl.fromFile
+   self.maxwellianKind = self.tbl.maxwellianKind
+   self.densityGhost   = self.tbl.densityGhost
+   self.uParGhost      = self.tbl.uParGhost
+   self.tempGhost      = self.tbl.tempGhost
+   self.initFunc       = self.tbl.initFunc
+   self.fromFile       = self.tbl.fromFile
 end
 
 function MaxwellianBC:setName(nm) self.name = self.speciesName.."_"..nm end
@@ -156,7 +156,7 @@ function MaxwellianBC:createCouplingSolver(species,field,externalField)
    end
 end
 
-function MaxwellianBc:createBoundaryTools(mySpecies,field,externalField)
+function MaxwellianBC:createBoundaryTools(mySpecies,field,externalField)
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
    local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
    --Make the ghost range without corners

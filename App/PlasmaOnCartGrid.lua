@@ -830,6 +830,7 @@ return {
          AdiabaticBasicBC = require "App.BCs.AdiabaticBasic",
 	 App = App,
          BasicBC = require ("App.BCs.GkBasic").GkBasic,
+         MaxwellianBC = require("App.BCs.MaxwellianBC"),
          AbsorbBC = require ("App.BCs.GkBasic").GkAbsorb,
          CopyBC = require ("App.BCs.GkBasic").GkCopy,
          NeutralRecyclingBC = require "App.BCs.NeutralRecycling",
