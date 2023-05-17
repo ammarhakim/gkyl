@@ -46,7 +46,7 @@ function MaxwellianBC:createSolver(mySpecies, field, externalField)
    self.ndim, self.cdim, self.vdim = self.grid:ndim(), self.confGrid:ndim(), self.grid:ndim()-self.confGrid:ndim()
 
    self:createBoundaryTools(mySpecies,field,externalField)
-   self.ghostFld=self.allocDistf()
+   self.ghostFld = self.allocDistf()
    self.phaseFieldIo = AdiosCartFieldIo {
       elemType   = mySpecies:getDistF():elemType(),
       method     = "MPI",
@@ -142,7 +142,6 @@ end
 function MaxwellianBC:createBoundaryTools(mySpecies,field,externalField)
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
    local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
-   self.distf=distf
    local globalGhostRange = self.bcEdge=="lower" and distf:localGhostRangeLower()[self.bcDir]
                                                   or distf:localGhostRangeUpper()[self.bcDir]
    self:createBoundaryGrid(globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
