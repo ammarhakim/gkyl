@@ -9,7 +9,6 @@
 local ASheathPotential = require "Updater.ASheathPotential"
 local BasicBc = require "Updater.BasicBc"
 local Bc = require "Updater.Bc"
-local MaxwellGhostBc = require "Updater.MaxwellGhostBc"
 local BGKcollisions = require "Updater.BGKcollisions"
 local BoundaryFluxCalc = require "Updater.BoundaryFluxCalc"
 local CartFieldBinOp = require "Updater.CartFieldBinOp"
@@ -72,7 +71,6 @@ return {
    ASheathPotential = ASheathPotential,
    BasicBc = BasicBc,
    Bc = Bc,
-   MaxwellGhostBc=MaxwellGhostBc,
    BGKcollisions = BGKcollisions,
    BoundaryFluxCalc = BoundaryFluxCalc,
    CartFieldBinOp = CartFieldBinOp,
