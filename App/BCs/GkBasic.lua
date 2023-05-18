@@ -8,7 +8,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local BCsBase    = require "App.BCs.BCsBase"
+local BCsBaseGK    = require "App.BCs.BCsBaseGK"
 local DataStruct = require "DataStruct"
 local Updater    = require "Updater"
 local Mpi        = require "Comm.Mpi"
@@ -21,7 +21,7 @@ local DiagsApp   = require "App.Diagnostics.SpeciesDiagnostics"
 local GkDiags    = require "App.Diagnostics.GkDiagnostics"
 local xsys       = require "xsys"
 
-local GkBasicBC = Proto(BCsBase)
+local GkBasicBC = Proto(BCsBaseGK)
 
 -- Store table passed to it and defer construction to :fullInit().
 function GkBasicBC:init(tbl) self.tbl = tbl end
@@ -52,7 +52,6 @@ function GkBasicBC:fullInit(mySpecies)
          self.saveFlux       = true
       end
    end
-   self.createBoundaryTools = function(mySpecies, field, externalField) return self:createBoundaryToolsGK(mySpecies, field, externalField)
 end
 
 function GkBasicBC:setName(nm) self.name = self.speciesName.."_"..nm end

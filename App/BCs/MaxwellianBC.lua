@@ -7,7 +7,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local BCsBase    = require "App.BCs.BCsBase"
+local BCsBaseGK    = require "App.BCs.BCsBaseGK"
 local DataStruct = require "DataStruct"
 local Updater    = require "Updater"
 local Mpi        = require "Comm.Mpi"
@@ -21,7 +21,7 @@ local GkDiags    = require "App.Diagnostics.GkDiagnostics"
 local xsys       = require "xsys"
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 
-local MaxwellianBC = Proto(BCsBase)
+local MaxwellianBC = Proto(BCsBaseGK)
 
 -- Store table passed to it and defer construction to :fullInit().
 function MaxwellianBC:init(tbl) self.tbl = tbl end

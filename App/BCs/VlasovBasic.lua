@@ -8,7 +8,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local BCsBase     = require "App.BCs.BCsBase"
+local BCsBaseVlasov     = require "App.BCs.BCsBaseVlasov"
 local DataStruct  = require "DataStruct"
 local Updater     = require "Updater"
 local Mpi         = require "Comm.Mpi"
@@ -21,7 +21,7 @@ local DiagsApp    = require "App.Diagnostics.SpeciesDiagnostics"
 local VlasovDiags = require "App.Diagnostics.VlasovDiagnostics"
 local xsys        = require "xsys"
 
-local VlasovBasicBC = Proto(BCsBase)
+local VlasovBasicBC = Proto(BCsBaseVlasov)
 
 -- Store table passed to it and defer construction to :fullInit().
 function VlasovBasicBC:init(tbl) self.tbl = tbl end
@@ -49,7 +49,6 @@ function VlasovBasicBC:fullInit(mySpecies)
          self.saveFlux       = true
       end
    end
-   self.createBoundaryTools = function(mySpecies, field, externalField) return self:createBoundaryToolsVlasov(mySpecies, field, externalField)
 end
 
 function VlasovBasicBC:setName(nm) self.name = self.speciesName.."_"..nm end
