@@ -3,9 +3,9 @@ local BCsBase    = require "App.BCs.BCsBase"
 local Updater    = require "Updater"
 local DataStruct = require "DataStruct"
 
-local BcsBaseGK = Proto(BCsBase)
+local BCsBaseGK = Proto(BCsBase)
 
-function BCsBase:createBoundaryTools(mySpecies,field,externalField)
+function BCsBaseGK:createBoundaryTools(mySpecies,field,externalField)
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
    local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
    local globalGhostRange = self.bcEdge=="lower" and distf:localGhostRangeLower()[self.bcDir]
@@ -187,4 +187,4 @@ function BCsBase:createBoundaryTools(mySpecies,field,externalField)
    end
 end
 
-return BcsBaseGK
+return BCsBaseGK
