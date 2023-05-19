@@ -35,6 +35,7 @@ function MaxwellianBC:fullInit(mySpecies)
    self.tempGhost      = self.tbl.tempGhost
    self.initFunc       = self.tbl.initFunc
    self.fromFile       = self.tbl.fromFile
+   self.needsBoundaryTools = true
 end
 
 function MaxwellianBC:setName(nm) self.name = self.speciesName.."_"..nm end
