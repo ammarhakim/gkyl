@@ -46,15 +46,6 @@ function BCsBaseVlasov:createBoundaryToolsVlasov(mySpecies,field,externalField)
          return f
       end
 
-      -- Allocate fields needed.
-      self.boundaryFluxFields = {}  -- Fluxes through the boundary, into ghost region, from each RK stage.
-      self.distfInIdxr        = distf:genIndexer()
-      for i = 1, #mySpecies:rkStepperFields() do
-         self.boundaryFluxFields[i] = allocDistf()
-      end
-      self.boundaryFluxRate      = allocDistf()
-      self.boundaryFluxFieldPrev = allocDistf()
-
       -- Part of global ghost range this rank owns.
       self.myGlobalGhostRange = self.bcEdge=="lower" and distf:localGlobalGhostRangeIntersectLower()[self.bcDir]
                                                       or distf:localGlobalGhostRangeIntersectUpper()[self.bcDir]
@@ -75,6 +66,67 @@ function BCsBaseVlasov:createBoundaryToolsVlasov(mySpecies,field,externalField)
          self.jacobGeoInv = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, jacobGeoInv:getMetaData())
          self.jacobGeoInv:copy(self:evalOnConfBoundary(jacobGeoInv))
       end
+      -- Number density calculator. Needed regardless of diagnostics (for recycling BCs).
+      self.numDensityCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
+         phaseBasis = self.basis,         moment     = "M0",
+      }
+
+      -- Integrated number density calculator. Needed regardless of diagnostics (for steady state sources).
+      self.integNumDensityCalc = Updater.DistFuncMomentDG {
+         onGrid     = self.boundaryGrid,   confBasis  = self.confBasis,
+         phaseBasis = self.basis,          moment     = "M0",
+         isIntegrated = true,
+      }
+      -- Set up weak multiplication and division operators (for diagnostics).
+      self.confWeakMultiply = Updater.CartFieldBinOp {
+         weakBasis = self.confBasis,  operation = "Multiply",
+         onGhosts  = true,
+      }
+      self.confWeakDivide = Updater.CartFieldBinOp {
+         weakBasis = self.confBasis,  operation = "Divide",
+         onRange   = self.confBoundaryField:localRange(),  onGhosts = false,
+      }
+      self.confWeakDotProduct = Updater.CartFieldBinOp {
+         weakBasis = self.confBasis,  operation = "DotProduct",
+         onGhosts  = true,
+      }
+      -- Moment calculators (for diagnostics).
+      self.momDensityCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
+         phaseBasis = self.basis,         moment     = "M1i",
+      }
+      self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
+         phaseBasis = self.basis,         moment     = "M2",
+      }
+      self.M2ijCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
+         phaseBasis = self.basis,         moment    = "M2ij",
+      }
+      self.M3iCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
+         phaseBasis = self.basis,         moment    = "M3i",
+      }
+      self.divideByJacobGeo = self.jacobGeoInv
+         and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeoInv}, {fldOut}) end
+         or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
+      self.multiplyByJacobGeo = self.jacobGeo
+         and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeo}, {fldOut}) end
+         or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
+
+   end
+
+   if self.saveFlux then
+      -- Allocate fields needed.
+      self.boundaryFluxFields = {}  -- Fluxes through the boundary, into ghost region, from each RK stage.
+      self.distfInIdxr        = distf:genIndexer()
+      for i = 1, #mySpecies:rkStepperFields() do
+         self.boundaryFluxFields[i] = allocDistf()
+      end
+      self.boundaryFluxRate      = allocDistf()
+      self.boundaryFluxFieldPrev = allocDistf()
+
 
       self.storeBoundaryFluxFunc = function(tCurr, rkIdx, qOut)
          self.boundaryFluxFields[rkIdx]:copyRangeToRange(qOut, self.boundaryFluxFields[rkIdx]:localRange(), self.myGlobalGhostRange)
@@ -91,18 +143,6 @@ function BCsBaseVlasov:createBoundaryToolsVlasov(mySpecies,field,externalField)
          end
       end
 
-      -- Number density calculator. Needed regardless of diagnostics (for recycling BCs).
-      self.numDensityCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
-         phaseBasis = self.basis,         moment     = "M0",
-      }
-
-      -- Integrated number density calculator. Needed regardless of diagnostics (for steady state sources).
-      self.integNumDensityCalc = Updater.DistFuncMomentDG {
-         onGrid     = self.boundaryGrid,   confBasis  = self.confBasis,
-         phaseBasis = self.basis,          moment     = "M0",
-         isIntegrated = true,
-      }
 
       if not self.anyDiagnostics then
          self.calcBoundaryFluxRateFunc = function(dtIn) end
@@ -113,19 +153,6 @@ function BCsBaseVlasov:createBoundaryToolsVlasov(mySpecies,field,externalField)
                                           -1.0/dtIn, self.boundaryFluxFieldPrev)
             self.boundaryFluxFieldPrev:copy(self.boundaryFluxFields[1])
          end
-         -- Set up weak multiplication and division operators (for diagnostics).
-         self.confWeakMultiply = Updater.CartFieldBinOp {
-            weakBasis = self.confBasis,  operation = "Multiply",
-            onGhosts  = true,
-         }
-         self.confWeakDivide = Updater.CartFieldBinOp {
-            weakBasis = self.confBasis,  operation = "Divide",
-            onRange   = self.confBoundaryField:localRange(),  onGhosts = false,
-         }
-         self.confWeakDotProduct = Updater.CartFieldBinOp {
-            weakBasis = self.confBasis,  operation = "DotProduct",
-            onGhosts  = true,
-         }
          -- Volume integral operator (for diagnostics).
          self.volIntegral = {
             scalar = Updater.CartFieldIntegratedQuantCalc {
@@ -137,29 +164,6 @@ function BCsBaseVlasov:createBoundaryToolsVlasov(mySpecies,field,externalField)
                basis  = self.confBasis,         quantity      = "V",
             },
          }
-         -- Moment calculators (for diagnostics).
-         self.momDensityCalc = Updater.DistFuncMomentCalc {
-            onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
-            phaseBasis = self.basis,         moment     = "M1i",
-         }
-         self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
-            onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
-            phaseBasis = self.basis,         moment     = "M2",
-         }
-         self.M2ijCalc = Updater.DistFuncMomentCalc {
-            onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
-            phaseBasis = self.basis,         moment    = "M2ij",
-         }
-         self.M3iCalc = Updater.DistFuncMomentCalc {
-            onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
-            phaseBasis = self.basis,         moment    = "M3i",
-         }
-         self.divideByJacobGeo = self.jacobGeoInv
-            and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeoInv}, {fldOut}) end
-            or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
-         self.multiplyByJacobGeo = self.jacobGeo
-            and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeo}, {fldOut}) end
-            or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
       end
    else
       self.storeBoundaryFluxFunc        = function(tCurr, rkIdx, qOut) end

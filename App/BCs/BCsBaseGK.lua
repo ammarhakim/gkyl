@@ -28,7 +28,7 @@ function BCsBase:createBoundaryTools(mySpecies,field,externalField)
 
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
    -- the fluxes through a boundary (e.g. neutral recycling).
-   if self.saveflux or self.needsBoundaryTools then
+   if self.saveFlux or self.needsBoundaryTools then
       -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
       self:createConfBoundaryGrid(globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
       self.allocMoment = function(self)
@@ -46,14 +46,6 @@ function BCsBase:createBoundaryTools(mySpecies,field,externalField)
          return f
       end
 
-      -- Allocate fields needed.
-      self.boundaryFluxFields = {}  -- Fluxes through the boundary, into ghost region, from each RK stage.
-      self.distfInIdxr        = distf:genIndexer()
-      for i = 1, #mySpecies:rkStepperFields() do
-         self.boundaryFluxFields[i] = self.allocDistf()
-      end
-      self.boundaryFluxRate      = self.allocDistf()
-      self.boundaryFluxFieldPrev = self.allocDistf()
 
       -- Part of global ghost range this rank owns.
       self.myGlobalGhostRange = self.bcEdge=="lower" and distf:localGlobalGhostRangeIntersectLower()[self.bcDir]
@@ -83,22 +75,6 @@ function BCsBase:createBoundaryTools(mySpecies,field,externalField)
          self.jacobGeoInv:copy(self:evalOnConfBoundary(jacobGeoInv))
       end
 
-      -- Declare methods/functions needed for handling saved fluxes and needed by diagnostics.
-      self.storeBoundaryFluxFunc = function(tCurr, rkIdx, qOut)
-         self.boundaryFluxFields[rkIdx]:copyRangeToRange(qOut, self.boundaryFluxFields[rkIdx]:localRange(), self.myGlobalGhostRange)
-      end
-      self.copyBoundaryFluxFieldFunc = function(inIdx, outIdx)
-         self.boundaryFluxFields[outIdx]:copy(self.boundaryFluxFields[inIdx])
-      end
-      self.combineBoundaryFluxFieldFunc = function(outIdx, a, aIdx, ...)
-         local args  = {...} -- Package up rest of args as table.
-         local nFlds = #args/2
-         self.boundaryFluxFields[outIdx]:combine(a, self.boundaryFluxFields[aIdx])
-         for i = 1, nFlds do -- Accumulate rest of the fields.
-            self.boundaryFluxFields[outIdx]:accumulate(args[2*i-1], self.boundaryFluxFields[args[2*i]])
-         end
-      end
-
       -- Number density calculator. Needed regardless of diagnostics (for recycling BCs).
       local mass = mySpecies.mass
       self.numDensityCalc = Updater.DistFuncMomentCalc {
@@ -107,12 +83,6 @@ function BCsBase:createBoundaryTools(mySpecies,field,externalField)
          moment     = "GkM0", -- GkM0 = < f >
       }
 
-      self.calcBoundaryFluxRateFunc = function(dtIn)
-         -- Compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt.
-         self.boundaryFluxRate:combine( 1.0/dtIn, self.boundaryFluxFields[1],
-                                       -1.0/dtIn, self.boundaryFluxFieldPrev)
-         self.boundaryFluxFieldPrev:copy(self.boundaryFluxFields[1])
-      end
       -- Set up weak multiplication and division operators (for diagnostics).
       self.confWeakMultiply = Updater.CartFieldBinOp {
          weakBasis = self.confBasis,  operation = "Multiply",
@@ -127,13 +97,7 @@ function BCsBase:createBoundaryTools(mySpecies,field,externalField)
          weakBasis = self.confBasis,  operation = "Divide",
          onRange   = self.confBoundaryField:localRange(),  onGhosts = false,
       }
-      -- Volume integral operator (for diagnostics).
-      self.volIntegral = {
-         scalar = Updater.CartFieldIntegratedQuantCalc {
-            onGrid = self.confBoundaryGrid,  numComponents = 1,
-            basis  = self.confBasis,         quantity      = "V",
-         }
-      }
+
       -- Moment calculators (for diagnostics).
       local mass = mySpecies.mass
       self.momDensityCalc = Updater.DistFuncMomentCalc {
@@ -174,6 +138,47 @@ function BCsBase:createBoundaryTools(mySpecies,field,externalField)
       self.multiplyByJacobGeo = self.jacobGeo
          and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeo}, {fldOut}) end
          or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
+   end
+   if self.saveFlux then
+      -- Allocate fields needed.
+      self.boundaryFluxFields = {}  -- Fluxes through the boundary, into ghost region, from each RK stage.
+      self.distfInIdxr        = distf:genIndexer()
+      for i = 1, #mySpecies:rkStepperFields() do
+         self.boundaryFluxFields[i] = self.allocDistf()
+      end
+      self.boundaryFluxRate      = self.allocDistf()
+      self.boundaryFluxFieldPrev = self.allocDistf()
+
+      -- Declare methods/functions needed for handling saved fluxes and needed by diagnostics.
+      self.storeBoundaryFluxFunc = function(tCurr, rkIdx, qOut)
+         self.boundaryFluxFields[rkIdx]:copyRangeToRange(qOut, self.boundaryFluxFields[rkIdx]:localRange(), self.myGlobalGhostRange)
+      end
+      self.copyBoundaryFluxFieldFunc = function(inIdx, outIdx)
+         self.boundaryFluxFields[outIdx]:copy(self.boundaryFluxFields[inIdx])
+      end
+      self.combineBoundaryFluxFieldFunc = function(outIdx, a, aIdx, ...)
+         local args  = {...} -- Package up rest of args as table.
+         local nFlds = #args/2
+         self.boundaryFluxFields[outIdx]:combine(a, self.boundaryFluxFields[aIdx])
+         for i = 1, nFlds do -- Accumulate rest of the fields.
+            self.boundaryFluxFields[outIdx]:accumulate(args[2*i-1], self.boundaryFluxFields[args[2*i]])
+         end
+      end
+
+
+      self.calcBoundaryFluxRateFunc = function(dtIn)
+         -- Compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt.
+         self.boundaryFluxRate:combine( 1.0/dtIn, self.boundaryFluxFields[1],
+                                       -1.0/dtIn, self.boundaryFluxFieldPrev)
+         self.boundaryFluxFieldPrev:copy(self.boundaryFluxFields[1])
+      end
+      -- Volume integral operator (for diagnostics).
+      self.volIntegral = {
+         scalar = Updater.CartFieldIntegratedQuantCalc {
+            onGrid = self.confBoundaryGrid,  numComponents = 1,
+            basis  = self.confBasis,         quantity      = "V",
+         }
+      }
    else
       self.storeBoundaryFluxFunc        = function(tCurr, rkIdx, qOut) end
       self.copyBoundaryFluxFieldFunc    = function(inIdx, outIdx) end
