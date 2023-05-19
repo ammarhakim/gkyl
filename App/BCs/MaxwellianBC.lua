@@ -80,23 +80,6 @@ function MaxwellianBC:createSolver(mySpecies, field, externalField)
    confProject:advance(0.0, {}, {M0e})
    self.confWeakDivide:advance(0.0, {M0, M0e}, {M0mod})
    self.phaseWeakMultiply:advance(0.0, {M0mod,self.ghostFld}, {self.ghostFld})
-   if mySpecies.jacobPhaseFunc and self.vdim > 1 then
-      local initFuncWithoutJacobian = self.initFunc
-      self.initFunc = function (t, xn)
-         local xconf = {}
-         for d = 1, self.cdim do xconf[d] = xn[d] end
-         local J = mySpecies.jacobPhaseFunc(t,xconf)
-         local f = initFuncWithoutJacobian(t,xn)
-         return J*f
-      end
-   end
-   local project = Updater.ProjectOnBasis {
-      onGrid   = self.boundaryGrid,
-      basis    = self.basis,
-      evaluate = self.initFunc,
-      onGhosts = false
-   }
-   project:advance(time, {},{self.ghostFld})
 end
 
 function MaxwellianBC:createCouplingSolver(species,field,externalField)
