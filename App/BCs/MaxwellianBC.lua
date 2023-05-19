@@ -29,12 +29,9 @@ function MaxwellianBC:init(tbl) self.tbl = tbl end
 -- Function initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
 function MaxwellianBC:fullInit(mySpecies)
-   self.maxwellianKind = self.tbl.maxwellianKind
    self.densityGhost   = self.tbl.densityGhost
    self.uParGhost      = self.tbl.uParGhost
    self.tempGhost      = self.tbl.tempGhost
-   self.initFunc       = self.tbl.initFunc
-   self.fromFile       = self.tbl.fromFile
    self.needsBoundaryTools = true
 end
 
@@ -55,56 +52,51 @@ function MaxwellianBC:createSolver(mySpecies, field, externalField)
       metaData   = {polyOrder = self.basis:polyOrder(),  basisType = self.basis:id(),
                     charge    = self.charge,             mass      = self.mass,},
    }
-   if not self.fromFile then
-      if self.maxwellianKind == 'local' then
-         self.projMaxwell = Updater.MaxwellianOnBasis{
-            onGrid     = self.boundaryGrid,     confBasis = self.confBasis,
-            phaseBasis = self.basis ,           mass      = self.mass,
-            confGrid   = self.confBoundaryGrid, onGhosts  = false,
-            usePrimMoms=true
-         }
-         local confProject = Updater.ProjectOnBasis {
-            onGrid   = self.confBoundaryGrid,         basis    = self.confBasis,
-            evaluate = function(t, xn) return 0. end, onGhosts = false
-         }
-         local confVec2Project = Updater.ProjectOnBasis {
-            onGrid = self.confBoundaryGrid,   evaluate = function(t, xn) return 0., 0. end,
-            basis  = self.confBasis,          onGhosts = false
-         }
-         local numDens = self:allocMoment()
-         local primMoms = self:allocVectorMoment(2)
-         confProject:setFunc(function(t, xn) return 1. end)
-         confProject:advance(time, {}, {numDens})
-         confVec2Project:setFunc(function(t,xn) return self.uParGhost(t,xn), self.tempGhost(t,xn)/self.mass end)
-         confVec2Project:advance(time, {}, {primMoms})
-         self.projMaxwell:advance(time,{numDens,primMoms,self.bmag,self.bmag},{self.ghostFld})
-         local M0e, M0 = self:allocMoment(), self:allocMoment()
-         local M0mod   = self:allocMoment()
-         self.numDensityCalc:advance(0.0, {self.ghostFld}, {M0})
-         confProject:setFunc(self.densityGhost)
-         confProject:advance(0.0, {}, {M0e})
-         self.confWeakDivide:advance(0.0, {M0, M0e}, {M0mod})
-         self.phaseWeakMultiply:advance(0.0, {M0mod,self.ghostFld}, {self.ghostFld})
-      elseif self.maxwellianKind == 'canonical' then
-         if mySpecies.jacobPhaseFunc and self.vdim > 1 then
-            local initFuncWithoutJacobian = self.initFunc
-            self.initFunc = function (t, xn)
-               local xconf = {}
-               for d = 1, self.cdim do xconf[d] = xn[d] end
-               local J = mySpecies.jacobPhaseFunc(t,xconf)
-               local f = initFuncWithoutJacobian(t,xn)
-               return J*f
-            end
-         end
-         local project = Updater.ProjectOnBasis {
-            onGrid   = self.boundaryGrid,
-            basis    = self.basis,
-            evaluate = self.initFunc,
-            onGhosts = false
-         }
-         project:advance(time, {},{self.ghostFld})
+   self.projMaxwell = Updater.MaxwellianOnBasis{
+      onGrid     = self.boundaryGrid,     confBasis = self.confBasis,
+      phaseBasis = self.basis ,           mass      = self.mass,
+      confGrid   = self.confBoundaryGrid, onGhosts  = false,
+      usePrimMoms=true
+   }
+   local confProject = Updater.ProjectOnBasis {
+      onGrid   = self.confBoundaryGrid,         basis    = self.confBasis,
+      evaluate = function(t, xn) return 0. end, onGhosts = false
+   }
+   local confVec2Project = Updater.ProjectOnBasis {
+      onGrid = self.confBoundaryGrid,   evaluate = function(t, xn) return 0., 0. end,
+      basis  = self.confBasis,          onGhosts = false
+   }
+   local numDens = self:allocMoment()
+   local primMoms = self:allocVectorMoment(2)
+   confProject:setFunc(function(t, xn) return 1. end)
+   confProject:advance(time, {}, {numDens})
+   confVec2Project:setFunc(function(t,xn) return self.uParGhost(t,xn), self.tempGhost(t,xn)/self.mass end)
+   confVec2Project:advance(time, {}, {primMoms})
+   self.projMaxwell:advance(time,{numDens,primMoms,self.bmag,self.bmag},{self.ghostFld})
+   local M0e, M0 = self:allocMoment(), self:allocMoment()
+   local M0mod   = self:allocMoment()
+   self.numDensityCalc:advance(0.0, {self.ghostFld}, {M0})
+   confProject:setFunc(self.densityGhost)
+   confProject:advance(0.0, {}, {M0e})
+   self.confWeakDivide:advance(0.0, {M0, M0e}, {M0mod})
+   self.phaseWeakMultiply:advance(0.0, {M0mod,self.ghostFld}, {self.ghostFld})
+   if mySpecies.jacobPhaseFunc and self.vdim > 1 then
+      local initFuncWithoutJacobian = self.initFunc
+      self.initFunc = function (t, xn)
+         local xconf = {}
+         for d = 1, self.cdim do xconf[d] = xn[d] end
+         local J = mySpecies.jacobPhaseFunc(t,xconf)
+         local f = initFuncWithoutJacobian(t,xn)
+         return J*f
       end
    end
+   local project = Updater.ProjectOnBasis {
+      onGrid   = self.boundaryGrid,
+      basis    = self.basis,
+      evaluate = self.initFunc,
+      onGhosts = false
+   }
+   project:advance(time, {},{self.ghostFld})
 end
 
 function MaxwellianBC:createCouplingSolver(species,field,externalField)
