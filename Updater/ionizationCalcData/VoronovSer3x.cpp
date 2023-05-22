@@ -24,7 +24,7 @@ double VoronovReactRateCellAv3xSer_P1(const double elemCharge, const double m_, 
     coefIz[0] = 0.0;
     return 0.0; 
   } else {
-    coefIz[0] = (1.414213562373095*A*P*pow(U,K+1/2))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(1.414213562373095*A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
+    coefIz[0] = (1.414213562373095*A*P*pow(U,K+1./2.))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(1.414213562373095*A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
     return 0.04166666666666666*coefIz[0]*m0[0]; 
   };
 } 
@@ -53,7 +53,7 @@ double VoronovReactRateCellAv3xSer_P2(const double elemCharge, const double m_, 
     coefIz[0] = 0.0;
     return 0.0; 
   } else {
-    coefIz[0] = (1.414213562373095*A*P*pow(U,K+1/2))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(1.414213562373095*A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
+    coefIz[0] = (1.414213562373095*A*P*pow(U,K+1./2.))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(1.414213562373095*A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
     return 0.025*coefIz[0]*m0[0]; 
   };
 } 
@@ -82,7 +82,7 @@ double VoronovReactRateCellAv3xSer_P3(const double elemCharge, const double m_, 
     coefIz[0] = 0.0;
     return 0.0; 
   } else {
-    coefIz[0] = (1.414213562373095*A*P*pow(U,K+1/2))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(1.414213562373095*A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
+    coefIz[0] = (1.414213562373095*A*P*pow(U,K+1./2.))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(1.414213562373095*A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
     return 0.01785714285714286*coefIz[0]*m0[0]; 
   };
 } 

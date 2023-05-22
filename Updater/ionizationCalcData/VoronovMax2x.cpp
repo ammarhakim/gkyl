@@ -24,7 +24,7 @@ double VoronovReactRateCellAv2xMax_P1(const double elemCharge, const double m_, 
     coefIz[0] = 0.0;
     return 0.0; 
   } else {
-    coefIz[0] = (A*P*pow(U,K+1/2))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
+    coefIz[0] = (A*P*pow(U,K+1./2.))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
     return 0.08333333333333333*coefIz[0]*m0[0]; 
   };
 } 
@@ -53,7 +53,7 @@ double VoronovReactRateCellAv2xMax_P2(const double elemCharge, const double m_, 
     coefIz[0] = 0.0;
     return 0.0; 
   } else {
-    coefIz[0] = (A*P*pow(U,K+1/2))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
+    coefIz[0] = (A*P*pow(U,K+1./2.))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
     return 0.05*coefIz[0]*m0[0]; 
   };
 } 
@@ -82,7 +82,7 @@ double VoronovReactRateCellAv2xMax_P3(const double elemCharge, const double m_, 
     coefIz[0] = 0.0;
     return 0.0; 
   } else {
-    coefIz[0] = (A*P*pow(U,K+1/2))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
+    coefIz[0] = (A*P*pow(U,K+1./2.))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
     return 0.03571428571428571*coefIz[0]*m0[0]; 
   };
 } 

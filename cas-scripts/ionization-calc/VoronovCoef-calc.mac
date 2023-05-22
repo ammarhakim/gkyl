@@ -32,7 +32,7 @@ writeCExprsCollect1r(lhs, rhs, clst) := block([expr],
       ep : string(e),
       outStr : ssubst("pow(U,K)","U^K",ep),
       outStr : ssubst("pow(2,3/2)","2^(3/2)",outStr),
-      outStr : ssubst("pow(U,K+1/2)","U^(K+1/2)",outStr),
+      outStr : ssubst("pow(U,K+1./2.)","U^(K+1/2)",outStr),
       outStr : ssubst("exp(U)","e^U",outStr),      
       printf(fh, "    ~a = ~a; ~%", lhs[i-1], outStr)
     )
@@ -45,7 +45,7 @@ declareWriteCExprsC(lhs, rhs) := block([expr],
     ep : string(expr),
     outStr : ssubst("pow(U,K)","U^K",ep),
     outStr : ssubst("pow(2,3/2)","2^(3/2)",outStr),
-    outStr : ssubst("pow(U,K+1/2)","U^(K+1/2)",outStr),
+    outStr : ssubst("pow(U,K+1./2.)","U^(K+1/2)",outStr),
     outStr : ssubst("exp(U)","e^U",outStr), 
     printf(fh, "  double ~a = ~a; ~%", lhs, outStr)
   )
@@ -57,7 +57,7 @@ writeCExprsC(lhs, rhs) := block([expr],
     ep : string(expr),
     outStr : ssubst("pow(U,K)","U^K",ep),
     outStr : ssubst("pow(2,3/2)","2^(3/2)",outStr),
-    outStr : ssubst("pow(U,K+1/2)","U^(K+1/2)",outStr),
+    outStr : ssubst("pow(U,K+1./2.)","U^(K+1/2)",outStr),
     outStr : ssubst("exp(U)","e^U",outStr), 
     printf(fh, "  ~a = ~a; ~%", lhs, outStr)
   )
@@ -70,7 +70,7 @@ writeCExprsCs(lhs, rhs) := block([expr],
       ep : string(expr[i]),
       outStr : ssubst("pow(U,K)","U^K",ep),
       outStr : ssubst("pow(2,3/2)","2^(3/2)",outStr),
-      outStr : ssubst("pow(U,K+1/2)","U^(K+1/2)",outStr),
+      outStr : ssubst("pow(U,K+1./2.)","U^(K+1/2)",outStr),
       outStr : ssubst("exp(U)","e^U",outStr), 
       printf(fh, "    ~a = ~a; ~%", lhs[i-1], outStr)	
     )
@@ -83,7 +83,7 @@ writeCExprsCnos(lhs, rhs) := block([expr],
     ep : string(expr),
     outStr : ssubst("pow(U,K)","U^K",ep),
     outStr : ssubst("pow(2,3/2)","2^(3/2)",outStr),
-    outStr : ssubst("pow(U,K+1/2)","U^(K+1/2)",outStr),
+    outStr : ssubst("pow(U,K+1./2.)","U^(K+1/2)",outStr),
     outStr : ssubst("exp(U)","e^U",outStr), 
     printf(fh, "  ~a = ~a; ~%", lhs, outStr)
   )
