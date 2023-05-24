@@ -9,7 +9,7 @@ local Plasma = require("App.PlasmaOnCartGrid").Gyrokinetic()
 n0        = 1.0                             -- Density.
 u0        = 0.0                             -- Flow speed.
 vt        = 1.0/3.0                         -- Thermal speed..
-nu        = 0.01                            -- Collision frequency.
+nu        = 0.1                             -- Collision frequency.
 B0        = 1.0                             -- Background magnetic field
 -- Large bump on tail of Maxwellian:
 ab   = math.sqrt(0.1)                       -- Amplitude of bump.
@@ -57,7 +57,7 @@ plasmaApp = Plasma.App {
 
    -- Boundary conditions for configuration space.
    periodicDirs = {1},          -- Periodic directions.
-
+--[[
    -- Neutral species with a rectangular/square IC.
    square = Plasma.Species {
       charge = 1.0, mass = 1.0,
@@ -72,30 +72,33 @@ plasmaApp = Plasma.App {
          return topHat(x, v, n0, u0, vt)
       end,
       evolve = true,
+      evolveCollisionless = false,
       diagnostics = { "M0", "M1", "M2" },
       coll = Plasma.BGKCollisions {
          collideWith = {'square'},
          frequencies = {nu, },
       },
    },
-
+--]]
    -- Neutral species with a bump in the tail.
    bump = Plasma.Species {
       charge = 1.0, mass = 1.0,
       -- Velocity space grid.
-      lower      = {-8.0*vt},
-      upper      = { 8.0*vt},
-      cells      = {32},
+      lower      = {-8.0*vt},   -- change to -14
+      upper      = { 8.0*vt},   -- change to 22
+      cells      = {32},   -- change to 72
       -- Initial conditions.
       init = function (t, xn)
 	 local x, v = xn[1], xn[2]
          return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
       evolve            = true,
-      diagnostics = { "M0", "M1", "M2" },
+      evolveCollisionless = false,
+      diagnostics = { "M0", "M1", "M2", "intM0", "intM1", "intM2" },
       coll = Plasma.BGKCollisions {
          collideWith = {'bump'},
          frequencies = {nu, },
+         --exactIterFixM012 = false,
       },
    },
 
