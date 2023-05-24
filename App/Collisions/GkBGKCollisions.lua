@@ -175,7 +175,9 @@ function GkBGKCollisions:fullInit(speciesTbl)
       self.nuFrac = 1.0
    end
 
-   self.exactLagFixM012 = xsys.pickBool(tbl.exactLagFixM012, true)  -- MF/NRM (2021/04/01): Needs more work. Changed below. 
+   self.exactIterFixM012 = xsys.pickBool(tbl.exactIterFixM012, true)  -- DL (2023/05/17)
+   print("exactFix table",tbl.exactIterFixM012)
+   print("exactFix",self.exactIterFixM012)
 
    self.timers = {nonSlvr = 0.}
 end
@@ -222,65 +224,16 @@ function GkBGKCollisions:createPhaseField()
    return fld
 end
 
--- It appears that BGK collisions are not conservative if we don't fix
--- the moments of the distribution function, because the moments of what
--- MaxwellianOnBasis outputs are not exactly the input moments. We could
--- do this with LagrangeFix. Another alternative is to use a series of
--- rescalings, as done below.
---function GkBGKCollisions:scaleM012(jacobPhaseFuncIn,fMIn)
---
---   local m0, m2Par, m2Perp                         = self:createConfField(), self:createConfField(), self:createConfField()
---   local m0_e, m2_e                                = self:createConfField(), self:createConfField()
---   local m0_mod, m2Par_mod, m2Perp_mod             = self:createConfField(), self:createConfField(), self:createConfField()
---   local m0Par_mod, m0Perp_mod                     = self:createConfField(), self:createConfField()
---   local m0Par_mod2, m0Perp_mod2                   = self:createConfField(), self:createConfField()
---   local m02Par_mod, m02Perp_mod                   = self:createConfField(), self:createConfField()
---   local distf0_mod, distf2Par_mod, distf2Perp_mod = self:createConfField(), self:createConfField(), self:createConfField()
---
---
---   local cdim = self.confGrid:ndim()
---   local vdim = self.phaseGrid:ndim() - cdim
---
---   -- Initialize Maxwellian distribution distf0 = FM, along with
---   -- distf2Par = 0.5*(vpar^2)*FM and distf2Perp = (mu*B/mass)*FM.
---   local distf0, distf2Par, distf2Perp = self:createPhaseField(), self:createPhaseField(), self:createPhaseField()
---   distf0:copy(fMIn)
---   local phaseProject = Updater.ProjectOnBasis {
---      onGrid   = self.phaseGrid,
---      basis    = self.phaseBasis,
---      evaluate = function(t,xn) return 0. end,   -- Set below.
---   }
---   local distf2ParFunc = function (t, zn)
---      local vpar = zn[cdim+1]
---      return 0.5*(vpar^2)*jacobPhaseFuncIn(t,zn)*self.initFunc(t,zn)
---   end
---   phaseProject:setFunc(distf2parFunc)
---   phaseProject:advance(0.0, {}, {distf2par})
---   if vdim > 1 then
---      local distf2perpFunc = function (t, zn)
---         local xconf = {}
---         for d = 1, cdim do xconf[d] = zn[d] end
---         local mu = zn[cdim+2]
---         return mu*sp.bmagFunc(t,zn)/sp.mass*sp.jacobPhaseFunc(t,xconf)*self.initFunc(t,zn)
---      end
---      phaseProject:setFunc(distf2perpFunc)
---      phaseProject:advance(0.0, {}, {distf2perp})
---   end
---
---end
-
 function GkBGKCollisions:createSolver(mySpecies, externalField)
    -- Background magnetic field. Needed for spatially varying nu
    -- or to project Maxwellians with vdim>1.
    self.bmag = externalField.geo.bmag
 
-   if self.phaseBasis:polyOrder()>1 or self.confGrid:ndim()>2 then self.exactLagFixM012 = false end
-
-   if self.exactLagFixM012 then
-      -- Intermediate moments used in Lagrange fixing.
-      self.dM0 = self:createConfField()
-      self.dM1 = self:createConfField()
-      self.dM2 = self:createConfField()
+   if self.exactIterFixM012 then
+      -- Intermediate moments used in Iteration fixing.
+      self.m0 = self:createConfField()
+      self.m1 = self:createConfField()
+      self.m2 = self:createConfField()
       -- Create updater to compute M0, M1i, M2 moments sequentially.
       self.threeMomentsCalc = Updater.DistFuncMomentCalc {
          onGrid     = self.phaseGrid,
@@ -289,14 +242,15 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
          moment     = "GkThreeMoments",
          gkfacs     = {self.mass, self.bmag},
       }
-      self.lagFix = Updater.LagrangeFix {
+      self.iterFix = Updater.IterGkMaxwellianFix {
          onGrid     = self.phaseGrid,
-         phaseGrid  = self.phaseGrid,
          phaseBasis = self.phaseBasis,
          confGrid   = self.confGrid,
          confBasis  = self.confBasis,
-         mode       = 'gk',
          mass       = self.mass,
+         bmag       = self.bmag,
+         maxIter    = 50,
+         relEps     = 1e-14,
       }
    end
 
@@ -361,7 +315,7 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
          varyingNu        = self.varNu,
          useCellAverageNu = self.cellConstNu,
       }
-      if self.exactLagFixM012 then
+      if self.exactIterFixM012 then
          -- Will need the 1st and 2nd moment of the cross-species Maxwellian.
          self.crossMaxwellianM1 = self:createConfField()
          self.crossMaxwellianM2 = self:createConfField()
@@ -403,6 +357,9 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
    -- Fetch coupling moments and primitive moments of this species
    local selfMom     = species[self.speciesName]:fluidMoments()
    local primMomSelf = species[self.speciesName]:selfPrimitiveMoments()
+   selfMom[1]:write('M0_in.bp')
+   selfMom[2]:write('M1_in.bp')
+   selfMom[3]:write('M2_in.bp')
 
    local tmNonSlvrStart = Time.clock()
    if self.varNu then
@@ -413,19 +370,17 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
    self.nufMaxwellSum:clear(0.0)
 
    if self.selfCollisions then
-      self.maxwellian:advance(tCurr, {selfMom[1], primMomSelf[1], primMomSelf[2], self.bmag},
-                              {self.nufMaxwellSum})
-      if self.exactLagFixM012 then
-         self.threeMomentsCalc:advance(tCurr, {self.nufMaxwellSum}, { self.dM0, self.dM1, self.dM2 })
-         -- Barrier before manipulations to moments before passing them to Lagrange Fix updater
+      self.maxwellian:advance(tCurr, {selfMom[1], primMomSelf[1], primMomSelf[2], self.bmag}, {self.nufMaxwellSum})
+      if self.exactIterFixM012 then
+         self.threeMomentsCalc:advance(tCurr, {self.nufMaxwellSum}, { self.m0, self.m1, self.m2 })
+         -- Write out the moments before 
+         -- Barrier before manipulations to moments before passing them to Iteration Fix updater
          Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
-	 self.dM0:scale(-1)
-	 self.dM0:accumulate(1, selfMom[1])
-	 self.dM1:scale(-1)
-	 self.dM1:accumulate(1, selfMom[2])
-	 self.dM2:scale(-1)
-	 self.dM2:accumulate(1, selfMom[3])
-	 self.lagFix:advance(tCurr, {self.dM0, self.dM1, self.dM2, self.bmag}, {self.nufMaxwellSum})
+	 self.iterFix:advance(tCurr, {self.nufMaxwellSum, self.m0, self.m1, self.m2, self.bmag}, {self.nufMaxwellSum})
+         self.threeMomentsCalc:advance(tCurr, {self.nufMaxwellSum}, { self.m0, self.m1, self.m2 })
+         self.m0:write('M0_out.bp')
+         self.m1:write('M1_out.bp')
+         self.m2:write('M2_out.bp')
       end
 
       if self.varNu then
@@ -497,24 +452,18 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
 
 	 self.maxwellian:advance(tCurr, {selfMom[1], species[self.speciesName].uParCross[otherNm],
                                          species[self.speciesName].vtSqCross[otherNm], self.bmag}, {self.nufMaxwellCross})
-         if self.exactLagFixM012 then
-            -- Need to compute the first and second moment of the cross-species Maxwellian (needed by Lagrange fix).
+         if self.exactIterFixM012 then
+            -- Need to compute the first and second moment of the cross-species Maxwellian (needed by iteration fix).
             self.confMultiply:advance(tCurr, {species[self.speciesName].uParCross[otherNm], selfMom[1]}, {self.crossMaxwellianM1})
             self.confDotProduct:advance(tCurr, {species[self.speciesName].uParCross[otherNm],
                                                 species[self.speciesName].uParCross[otherNm]}, {self.crossMaxwellianM2})
             self.crossMaxwellianM2:accumulate(1.0, species[self.speciesName].vtSqCross[otherNm])
             self.confMultiply:advance(tCurr, {selfMom[1],self.crossMaxwellianM2}, {self.crossMaxwellianM2})
             -- Now compute current moments of Maxwellians and perform Lagrange fix. 
-            self.threeMomentsCalc:advance(tCurr, {self.nufMaxwellCross}, { self.dM0, self.dM1, self.dM2 })
+            self.threeMomentsCalc:advance(tCurr, {self.nufMaxwellCross}, { self.m0, self.m1, self.m2 })
             -- Barrier before manipulations to moments before passing them to Lagrange Fix updater.
             Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
-            self.dM0:scale(-1)
-            self.dM0:accumulate(1, selfMom[1])
-            self.dM1:scale(-1)
-            self.dM1:accumulate(1, self.crossMaxwellianM1)
-            self.dM2:scale(-1)
-            self.dM2:accumulate(1, self.crossMaxwellianM2)
-            self.lagFix:advance(tCurr, {self.dM0, self.dM1, self.dM2, self.bmag}, {self.nufMaxwellSum})
+            self.iterFix:advance(tCurr, {self.nufMaxwell, self.m0, self.m1, self.m2, self.bmag}, {self.nufMaxwellSum})
          end
 
          if self.varNu then
