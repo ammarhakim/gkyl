@@ -45,7 +45,6 @@ function IterGkMaxwellianFix:init(tbl)
    
    local phaseGrid, confGrid, confBasis, phaseBasis =
       self.phaseGrid, self.confGrid, self.confBasis, self.phaseBasis
-   print(confGrid:ndim()) 
 
    local mass, bmag = self.mass, self.bmag
 
@@ -131,6 +130,11 @@ function IterGkMaxwellianFix:init(tbl)
       operation = "Multiply",
       fieldBasis = confBasis,
    }
+   
+   -- Add a DynVector
+   self.flag = DataStruct.DynVector {
+      numComponents = 3,
+}
 end
 
 -- compute the L2 norm
@@ -215,6 +219,15 @@ function IterGkMaxwellianFix:_advance(tCurr, inFld, outFld)
    vtSqTar:combine(1., m2, -1., m2flow)
    weakDivide:advance(0., {m0, vtSqTar}, {vtSqTar})
    vtSqTar:scale(1./vDim)
+   local vtSqTar_cur = vtSqTar:get(1)
+   vtSqTar:fill(vtSqTar:genIndexer()({2}), vtSqTar_cur)
+   local m0_cur = m0:get(1)
+   m0:fill(m0:genIndexer()({2}), m0_cur)
+   local m1_cur = m1:get(1)
+   m1:fill(m1:genIndexer()({2}), m1_cur)
+   local m2_cur = m2:get(1)
+   m2:fill(m2:genIndexer()({2}), m2_cur)
+   --print(m0_cur[1]/math.sqrt(2), m1_cur[1]/math.sqrt(2), m2_cur[1]/math.sqrt(2))
    
    -- Rescale the Maxwellian.
    calcNumDensity:advance(0.0, {fOut}, {m0_new})
@@ -237,7 +250,10 @@ function IterGkMaxwellianFix:_advance(tCurr, inFld, outFld)
       ddm2:combine(1., m2, -1., m2_new)
       dm2:combine(1., dm2, 1., ddm2) 
       m2_new:combine(1., m2, 1., dm2)
-      
+      local m2_in = m2_new:get(1)
+      m2_new:fill(m2_new:genIndexer()({2}), m2_in)
+      local m2_in1 = m2_in[1]
+ 
       -- Compute u and vt^2 with the corrected moments..
       weakDivide:advance(0., {m0_new, m1_new}, {uDrift})
       weakMultiply:advance(0., {uDrift, m1_new}, {m2flow})
@@ -256,6 +272,11 @@ function IterGkMaxwellianFix:_advance(tCurr, inFld, outFld)
       calcMomDensity:advance(0.0, {fOut}, {m1_new})
       calcKinEnergyDensity:advance(0.0, {fOut}, {m2_new})
 
+      local m0_new_cur = m0_new:get(1)
+      m0_new:fill(m0_new:genIndexer()({2}), m0_new_cur)
+      local m2_new_cur = m2_new:get(1)
+      m2_new:fill(m2_new:genIndexer()({2}), m2_new_cur)
+      
       -- Compute the l2 norm of the error.
       weakDivide:advance(0., {m0_new, m1_new}, {uDrift})
       weakMultiply:advance(0., {uDrift, m1_new}, {m2flow})
@@ -264,8 +285,8 @@ function IterGkMaxwellianFix:_advance(tCurr, inFld, outFld)
       vtSq:scale(1./vDim)
       local err2 = self:l2diff(m2,m2_new) / self:l2norm(m2)
       local err1 = self:l2diff(m1,m1_new) / math.sqrt(self:l2norm(vtSqTar))
-      print(self:l2diff(m2,m2_new), self:l2norm(m2), err2)
-      print(self:l2diff(m1,m1_new), math.sqrt(self:l2norm(vtSqTar)), err1)
+      --print(self:l2diff(m2,m2_new), self:l2norm(m2), err2)
+      --print(self:l2diff(m1,m1_new), math.sqrt(self:l2norm(vtSqTar)), err1)
       local err = math.max(err1, err2)
       -- Stop at required accuracy.
       if err < self.relEps or step >= self.maxIter then
@@ -273,9 +294,14 @@ function IterGkMaxwellianFix:_advance(tCurr, inFld, outFld)
          break
       end
       step = step + 1
-      print("Step number:", step)
+      local vtSq_cur = vtSq:get(1)
+      vtSq:fill(vtSq:genIndexer()({2}), vtSq_cur)
+      --print("Step number:", step)
+      --print(string.format("s=%d, m0_new=%10.8e, m2_in=%10.8e, m2_new=%10.8e, err2=%10.8e", step, m0_new_cur[1]/math.sqrt(2), m2_in1/math.sqrt(2), m2_new_cur[1]/math.sqrt(2), err2))
+      self.flag:appendData(0.0, {step, err1, err2})
    end
-   
+   t, diagnostic = self.flag:lastData()
+   print(string.format("step=%d, err1=%10.8e, err2=%10.8e", diagnostic[1], diagnostic[2], diagnostic[3]))
 end
 
 return IterGkMaxwellianFix
