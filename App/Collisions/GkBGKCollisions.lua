@@ -176,8 +176,6 @@ function GkBGKCollisions:fullInit(speciesTbl)
    end
 
    self.exactIterFixM012 = xsys.pickBool(tbl.exactIterFixM012, true)  -- DL (2023/05/17)
-   print("exactFix table",tbl.exactIterFixM012)
-   print("exactFix",self.exactIterFixM012)
 
    self.timers = {nonSlvr = 0.}
 end
@@ -230,10 +228,6 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
    self.bmag = externalField.geo.bmag
 
    if self.exactIterFixM012 then
-      -- Intermediate moments used in Iteration fixing.
-      self.m0 = self:createConfField()
-      self.m1 = self:createConfField()
-      self.m2 = self:createConfField()
       -- Create updater to compute M0, M1i, M2 moments sequentially.
       self.threeMomentsCalc = Updater.DistFuncMomentCalc {
          onGrid     = self.phaseGrid,
@@ -357,9 +351,6 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
    -- Fetch coupling moments and primitive moments of this species
    local selfMom     = species[self.speciesName]:fluidMoments()
    local primMomSelf = species[self.speciesName]:selfPrimitiveMoments()
-   selfMom[1]:write('M0_in.bp')
-   selfMom[2]:write('M1_in.bp')
-   selfMom[3]:write('M2_in.bp')
 
    local tmNonSlvrStart = Time.clock()
    if self.varNu then
@@ -372,15 +363,10 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
    if self.selfCollisions then
       self.maxwellian:advance(tCurr, {selfMom[1], primMomSelf[1], primMomSelf[2], self.bmag}, {self.nufMaxwellSum})
       if self.exactIterFixM012 then
-         self.threeMomentsCalc:advance(tCurr, {self.nufMaxwellSum}, { self.m0, self.m1, self.m2 })
-         -- Write out the moments before 
          -- Barrier before manipulations to moments before passing them to Iteration Fix updater
          Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
-	 self.iterFix:advance(tCurr, {self.nufMaxwellSum, self.m0, self.m1, self.m2, self.bmag}, {self.nufMaxwellSum})
-         self.threeMomentsCalc:advance(tCurr, {self.nufMaxwellSum}, { self.m0, self.m1, self.m2 })
-         self.m0:write('M0_out.bp')
-         self.m1:write('M1_out.bp')
-         self.m2:write('M2_out.bp')
+	 -- Call the IterGkMaxwellianFix updater.
+         self.iterFix:advance(tCurr, {self.nufMaxwellSum, selfMom[1], selfMom[2], selfMom[3], self.bmag}, {self.nufMaxwellSum})
       end
 
       if self.varNu then
@@ -491,6 +477,9 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
 end
 
 function GkBGKCollisions:write(tm, frame)
+   if self.exactIterFixM012 then
+      self.iterFix:write(tm, frame, self.speciesName)
+   end
 end
 
 function GkBGKCollisions:totalTime()
