@@ -174,7 +174,6 @@ function IterGkMaxwellianFix:l2diff(f1, f2)
     return math.sqrt(l2*vol*dfact)
 end
 
--- advance method
 function IterGkMaxwellianFix:_advance(tCurr, inFld, outFld)
 
    -- fM is the uncorrected Maxwellian projection
@@ -285,23 +284,23 @@ function IterGkMaxwellianFix:_advance(tCurr, inFld, outFld)
       vtSq:scale(1./vDim)
       local err2 = self:l2diff(m2,m2_new) / self:l2norm(m2)
       local err1 = self:l2diff(m1,m1_new) / math.sqrt(self:l2norm(vtSqTar))
-      --print(self:l2diff(m2,m2_new), self:l2norm(m2), err2)
-      --print(self:l2diff(m1,m1_new), math.sqrt(self:l2norm(vtSqTar)), err1)
       local err = math.max(err1, err2)
       -- Stop at required accuracy.
       if err < self.relEps or step >= self.maxIter then
          isDone = true
+         self.flag:appendData(tCurr, {step, err1, err2})
          break
       end
       step = step + 1
       local vtSq_cur = vtSq:get(1)
-      vtSq:fill(vtSq:genIndexer()({2}), vtSq_cur)
-      --print("Step number:", step)
+      --vtSq:fill(vtSq:genIndexer()({2}), vtSq_cur)
       --print(string.format("s=%d, m0_new=%10.8e, m2_in=%10.8e, m2_new=%10.8e, err2=%10.8e", step, m0_new_cur[1]/math.sqrt(2), m2_in1/math.sqrt(2), m2_new_cur[1]/math.sqrt(2), err2))
-      self.flag:appendData(0.0, {step, err1, err2})
    end
    t, diagnostic = self.flag:lastData()
-   print(string.format("step=%d, err1=%10.8e, err2=%10.8e", diagnostic[1], diagnostic[2], diagnostic[3]))
+end
+
+function IterGkMaxwellianFix:write(tm, frame, speciesName)
+   self.flag:write(string.format("%s_%s.bp", speciesName, "convergence"), tm, frame)
 end
 
 return IterGkMaxwellianFix
