@@ -16,6 +16,12 @@ function wedge(x, y, x0, y0, angle)
    ) and true or false
 end
 
+print("rhoIn", rhoIn)
+
+function bc_lower_func(t, nc, skin, ctx)
+   return rhoIn, rhoIn*uIn, 0.0, 0.0, erIn
+end
+
 -- create app
 eulerApp = Moments.App {
    tEnd = 5*2.0/uIn, -- end time
@@ -40,9 +46,9 @@ eulerApp = Moments.App {
       evolve = true, -- evolve species?
 
       -- outer boundary conditions
-      bcx = { Moments.Species.bcConst(rhoIn, rhoIn*uIn, 0.0, 0.0, erIn),
-              Moments.Species.bcCopy },
+      bcx = { Moments.Species.bcFunc, Moments.Species.bcCopy },
       bcy = { Moments.Species.bcWall, Moments.Species.bcCopy },
+      bcx_lower_func = bc_lower_func,
 
       -- has interior (embedded) boundary conditions?
       hasSsBnd = true,

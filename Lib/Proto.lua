@@ -9,7 +9,13 @@
 -- call objects's init() (ctor) method if one is provided
 local function newmember(proto, ...)
    local obj = setmetatable({}, proto)
-   
+
+   if obj.__gc then
+      local prox = newproxy(true)
+      getmetatable(prox).__gc = function() obj:__gc() end
+      obj[prox] = true
+   end
+
    if GKYL_USE_DEVICE then
       -- when we are using CUDA we may have a initDevice method to
       -- construct things on a device

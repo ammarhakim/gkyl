@@ -46,21 +46,26 @@ struct gkyl_poisson_bc {
 
 /**
  * Create new updater to solve the Poisson problem
- *   - epsilon * nabla^2 phi = rho
+ *   - nabla . (epsilon * nabla phi) = rho
  * using a FEM to ensure phi is continuous. The input is the
  * DG field rho, which is translated to FEM. The output is the
  * DG field phi, after we've translted the FEM solution to DG.
  * Free using gkyl_fem_poisson_release method.
  *
+ * For scalar, spatially constant epsilon use gkyl_fem_poisson_consteps_new,
+ * for tensor or heterogenous epsilon use gkyl_fem_poisson_vareps_new.
+ *
  * @param grid Grid object
  * @param basis Basis functions of the DG field.
- * @param isdirperiodic boolean array indicating periodic directions.
+ * @param bcs Boundary conditions.
+ * @param epsilon_const Constant scalar value of the permittivity.
+ * @param epsilon_var Spatially varying permittivity tensor.
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
 gkyl_fem_poisson* gkyl_fem_poisson_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  struct gkyl_poisson_bc *bcs, const double epsilon, bool use_gpu);
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
+  double epsilon_const, struct gkyl_array *epsilon_var, bool use_gpu);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field.
@@ -91,9 +96,10 @@ local FemPoisson = Proto(UpdaterBase)
 function FemPoisson:init(tbl)
    FemPoisson.super.init(self, tbl) -- Setup base object.
 
-   self._grid  = assert(tbl.onGrid, "Updater.FemPoisson: Must specify grid to use with 'onGrid'.")
-   self._basis = assert(tbl.basis, "Updater.FemPoisson: Must specify the basis in 'basis'.")
-   local eps0  = assert(tbl.epsilon_0, "Updater.FemPoisson: Must specify the permittivity of space 'epsilon_0'.")
+   self._grid   = assert(tbl.onGrid, "Updater.FemPoisson: Must specify grid to use with 'onGrid'.")
+   self._basis  = assert(tbl.basis, "Updater.FemPoisson: Must specify the basis in 'basis'.")
+   local eps0   = assert(tbl.epsilon_0, "Updater.FemPoisson: Must specify the permittivity of space 'epsilon_0'.")
+   self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
 
    local ndim = self._grid:ndim()
 
@@ -133,7 +139,16 @@ function FemPoisson:init(tbl)
       assert(false, "Updater.FemPoisson: must specify 'bcLower' and 'bcUpper'.")
    end
 
-   self._zero = ffi.gc(ffiC.gkyl_fem_poisson_new(self._grid._zero, self._basis._zero, bc_zero, eps0, GKYL_USE_GPU or 0),
+   local eps0_const, eps0_var = nil, nil
+   if type(eps0) == 'number' then
+      eps0_const = eps0
+   elseif type(eps0) == 'table' then
+      -- eps0 must be an array with the tensor permittivity.
+      eps0_var = self._useGPU and eps0._zeroDevice or eps0._zero
+   end
+
+   self._zero = ffi.gc(ffiC.gkyl_fem_poisson_new(self._grid._zero, self._basis._zero, bc_zero,
+                                                 eps0_const, eps0_var, self._useGPU),
                        ffiC.gkyl_fem_poisson_release)
 end
 

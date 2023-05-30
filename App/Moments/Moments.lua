@@ -9,6 +9,7 @@
 --------------------------------------------------------------------------------
 
 local ffi = require "ffi"
+local Proto = require "Lib.Proto"
 
 -- load shared library
 local install_prefix = os.getenv("HOME") .. "/gkylsoft/gkylzero"
@@ -116,6 +117,7 @@ enum gkyl_field_bc_type {
   GKYL_FIELD_COPY = 0, // copy BCs
   GKYL_FIELD_PEC_WALL, // perfect electrical conductor (PEC) BCs
   GKYL_FIELD_WEDGE, // specialized "wedge" BCs for RZ-theta
+  GKYL_FIELD_FUNC, // Function boundary conditions
 };
 
 ]]
@@ -351,13 +353,19 @@ struct gkyl_moment_species {
   void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
-  // pointer to boundary condition functions
-  void (*bc_lower_func)(double t, int nc, const double *skin, double *  ghost, void *ctx);
-  void (*bc_upper_func)(double t, int nc, const double *skin, double *  ghost, void *ctx);
   // pointer to applied acceleration/forces function
   void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
+  // pointer to boundary condition functions along x
+  void (*bcx_lower_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  void (*bcx_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  // pointer to boundary condition functions along y
+  void (*bcy_lower_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  void (*bcy_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  // pointer to boundary condition functions along z
+  void (*bcz_lower_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  void (*bcz_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
 };
 
 // Parameter for EM field
@@ -381,6 +389,15 @@ struct gkyl_moment_field {
   
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
+  // pointer to boundary condition functions along x
+  void (*bcx_lower_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  void (*bcx_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  // pointer to boundary condition functions along y
+  void (*bcy_lower_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  void (*bcy_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  // pointer to boundary condition functions along z
+  void (*bcz_lower_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  void (*bcz_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
 };
 
 // Choices of schemes to use in the fluid solver 
@@ -753,6 +770,15 @@ local function gkyl_eval_applied(func)
    end
 end
 
+local function gkyl_eval_bc(func)
+   return function(t, nc, skin, ghost, ctx)
+      local ret = { func(t, nc, skin, ctx) } -- package return into table
+      for i=1,#ret do
+         ghost[i-1] = ret[i]
+      end
+   end
+end
+
 local function gkyl_eval_mapc2p(func)
    return function(t, xn, fout, ctx)
       local xnl = ffi.new("double[10]")
@@ -761,6 +787,17 @@ local function gkyl_eval_mapc2p(func)
       for i=1,#ret do
          fout[i-1] = ret[i]
       end
+   end
+end
+
+local function gkyl_get_c_func(func, eval)
+   local entry_type = type(func)
+   if (entry_type == "function") then
+      return eval(func)
+   elseif (entry_type == "cdata") then -- TODO check c func pointer rigorously
+      return func
+   else
+      assert(false, "entry must be a lua or C function; got "..entry_type)
    end
 end
 
@@ -837,6 +874,26 @@ local species_mt = {
          s.bcz[0], s.bcz[1] = tbl.bcz[1], tbl.bcz[2]
       end
 
+      if tbl.bcx_lower_func then
+         s.bcx_lower_func = gkyl_get_c_func(tbl.bcx_lower_func, gkyl_eval_bc)
+      end
+      if tbl.bcy_lower_func then
+         s.bcy_lower_func = gkyl_get_c_func(tbl.bcy_lower_func, gkyl_eval_bc)
+      end
+      if tbl.bcz_lower_func then
+         s.bcz_lower_func = gkyl_get_c_func(tbl.bcz_lower_func, gkyl_eval_bc)
+      end
+
+      if tbl.bcx_upper_func then
+         s.bcx_upper_func = gkyl_get_c_func(tbl.bcx_upper_func, gkyl_eval_bc)
+      end
+      if tbl.bcy_upper_func then
+         s.bcy_upper_func = gkyl_get_c_func(tbl.bcy_upper_func, gkyl_eval_bc)
+      end
+      if tbl.bcz_upper_func then
+         s.bcz_upper_func = gkyl_get_c_func(tbl.bcz_upper_func, gkyl_eval_bc)
+      end
+
       return s
    end,
    __index = {
@@ -845,7 +902,8 @@ local species_mt = {
       bcWall = C.GKYL_SPECIES_REFLECT,
       bcCopy = C.GKYL_SPECIES_COPY,
       bcNoSlip = C.GKYL_SPECIES_NO_SLIP,
-      bcWedge = C.GKYL_SPECIES_WEDGE
+      bcWedge = C.GKYL_SPECIES_WEDGE,
+      bcFunc = C.GKYL_SPECIES_FUNC
    }
 }
 _M.Species = ffi.metatype(species_type, species_mt)
@@ -937,6 +995,26 @@ local field_mt = {
          f.bcz[0], f.bcz[1] = tbl.bcz[1], tbl.bcz[2]
       end
 
+      if tbl.bcx_lower_func then
+         f.bcx_lower_func = gkyl_get_c_func(tbl.bcx_lower_func, gkyl_eval_bc)
+      end
+      if tbl.bcy_lower_func then
+         f.bcy_lower_func = gkyl_get_c_func(tbl.bcy_lower_func, gkyl_eval_bc)
+      end
+      if tbl.bcz_lower_func then
+         f.bcz_lower_func = gkyl_get_c_func(tbl.bcz_lower_func, gkyl_eval_bc)
+      end
+
+      if tbl.bcx_upper_func then
+         f.bcx_upper_func = gkyl_get_c_func(tbl.bcx_upper_func, gkyl_eval_bc)
+      end
+      if tbl.bcy_upper_func then
+         f.bcy_upper_func = gkyl_get_c_func(tbl.bcy_upper_func, gkyl_eval_bc)
+      end
+      if tbl.bcz_upper_func then
+         f.bcz_upper_func = gkyl_get_c_func(tbl.bcz_upper_func, gkyl_eval_bc)
+      end
+
       return f
    end,
    __index = {
@@ -944,227 +1022,224 @@ local field_mt = {
       bcCopy = C.GKYL_FIELD_COPY,
       bcReflect = C.GKYL_FIELD_PEC_WALL,
       bcPEC = C.GKYL_FIELD_PEC_WALL,
-      bcWedge = C.GKYL_FIELD_WEDGE
+      bcWedge = C.GKYL_FIELD_WEDGE,
+      bcFunc = C.GKYL_FIELD_FUNC
    }
 }
 _M.Field = ffi.metatype(field_type, field_mt)
 
 -- App
-local app_type = ffi.typeof("struct gkyl_moment_app_cont")
-local app_mt = {
-   __new = function(self, tbl)
-      local vm = ffi.new("struct gkyl_moment")
+local App = Proto()
 
-      local species = { }
-      local field = nil
+App.init = function(self, tbl)
+   local vm = ffi.new("struct gkyl_moment")
 
-      -- first determine all species in system
-      for k,v in pairs(tbl) do
-	 if ffi.istype(species_type, v) then
-	    v.name = k -- assign species name here
-	    table.insert(species, v)
-	 end
-	 if ffi.istype(field_type, v) then
-	    field = v -- only one field can be present
-	 end
+   local species = { }
+   local field = nil
+
+   -- first determine all species in system
+   for k,v in pairs(tbl) do
+      if ffi.istype(species_type, v) then
+         v.name = k -- assign species name here
+         table.insert(species, v)
       end
-      local num_species = #species
-
-      local name = "moment"
-      if GKYL_OUT_PREFIX then
-         -- if G0 is being run from gkyl then GKYL_OUT_PREFIX is
-         -- defined
-         name = GKYL_OUT_PREFIX
-      else
-         local s, e = string.find(arg[0], ".lua")
-         name = string.sub(arg[0], 1, s-1)
+      if ffi.istype(field_type, v) then
+         field = v -- only one field can be present
       end
-	 
-      -- set values in input struct
-      vm.name = name
-      vm.ndim = #tbl.cells
+   end
+   local num_species = #species
 
-      -- set configuration space grid data
-      for d=1, vm.ndim do
-         vm.lower[d-1] = tbl.lower[d]
-         vm.upper[d-1] = tbl.upper[d]
-         vm.cells[d-1] = tbl.cells[d]
+   local name = "moment"
+   if GKYL_OUT_PREFIX then
+      -- if G0 is being run from gkyl then GKYL_OUT_PREFIX is
+      -- defined
+      name = GKYL_OUT_PREFIX
+   else
+      local s, e = string.find(arg[0], ".lua")
+      name = string.sub(arg[0], 1, s-1)
+   end
+      
+   -- set values in input struct
+   vm.name = name
+   vm.ndim = #tbl.cells
+
+   -- set configuration space grid data
+   for d=1, vm.ndim do
+      vm.lower[d-1] = tbl.lower[d]
+      vm.upper[d-1] = tbl.upper[d]
+      vm.cells[d-1] = tbl.cells[d]
+   end
+
+   vm.cfl_frac = 0.95 -- for consistency with C app
+   if tbl.cflFrac then
+      vm.cfl_frac = tbl.cflFrac
+   end
+
+   vm.scheme_type = C.GKYL_MOMENT_WAVE_PROP
+   if tbl.scheme_type then
+      vm.scheme_type = moment_scheme_tags[tbl.scheme_type]
+   end
+   if tbl.schemeType then
+      vm.scheme_type = moment_scheme_tags[tbl.schemeType]
+   end
+
+   vm.mp_recon = C.GKYL_MP_U5
+   if tbl.mp_recon then
+      vm.mp_recon = mp_recon_tags[tbl.mp_recon]
+   end
+   if tbl.mpRecon then
+      vm.mp_recon = mp_recon_tags[tbl.mpRecon]
+   end
+
+   vm.skip_mp_limiter = pickBool(tbl.skipMpLimiter, false)
+
+   vm.use_hybrid_flux_kep = false
+   if tbl.useHybridFluxKep then
+      vm.use_hybrid_flux_kep = tbl.useHybridFluxKep
+   end
+
+   -- mapc2p
+   vm.c2p_ctx = nil -- no need for context
+   vm.mapc2p = nil
+   if tbl.mapc2p then
+      vm.mapc2p = gkyl_eval_mapc2p(tbl.mapc2p)
+   end
+
+   -- determine periodic BCs
+   vm.num_periodic_dir = 0
+   if tbl.periodicDirs then
+      vm.num_periodic_dir = #tbl.periodicDirs
+      for i=1, #tbl.periodicDirs do
+       vm.periodic_dirs[i-1] = tbl.periodicDirs[i]-1 -- note indexing transforms
+      end
+   end
+
+   -- determine directions to skip, if any
+   vm.num_skip_dirs = 0
+   if tbl.skip_dirs then
+      vm.num_skip_dirs = #tbl.skip_dirs
+      for i=1, #tbl.skip_dirs do
+       vm.skip_dir[i-1] = tbl.skip_dir[i]
+      end
+   end
+
+   -- set species
+   vm.num_species = #species
+   for i=1, #species do
+      vm.species[i-1] = species[i]
+   end
+
+   -- set field
+   if field then
+      vm.field = field
+   end      
+
+   -- we need to store some stuff in container struct
+   self.nspecies = num_species
+   if tbl.tStart then
+      self.t0 = tbl.tStart
+   else
+      self.t0 = 0
+   end
+   self.tend = tbl.tEnd
+   self.nframe = tbl.nFrame
+
+   -- initialize app from input struct
+   self.app = C.gkyl_moment_app_new(vm)
+end
+
+function App:__gc()
+   C.gkyl_moment_app_release(self.app)
+end
+App.apply_ic = function(self)
+   C.gkyl_moment_app_apply_ic(self.app, self.t0)
+end
+App.writeField = function(self, tm, frame)
+   C.gkyl_moment_app_write_field(self.app, tm, frame)
+end
+App.writeSpecies = function(self, tm, frame)
+   for i=1, self.nspecies do
+      C.gkyl_moment_app_write_species(self.app, i-1, tm, frame)
+   end
+end
+App.write = function(self, tm, frame)
+   C.gkyl_moment_app_write(self.app, tm, frame)
+end
+App.writeStat = function(self)
+   C.gkyl_moment_app_stat_write(self.app)
+end
+App.update = function(self, dt)
+   return C.gkyl_moment_update(self.app, dt)
+end
+App.calcIntegratedMom = function(self, tcurr)
+   return C.gkyl_moment_app_calc_integrated_mom(self.app, tcurr)
+end
+App.calcFieldEnergy = function(self, tcurr)
+   return C.gkyl_moment_app_calc_field_energy(self.app, tcurr)
+end      
+App.run = function(self)
+   
+   local frame_trig = _M.TimeTrigger(self.tend/self.nframe)
+
+   -- function to write data to file
+   local function writeData(tcurr)
+      if frame_trig:checkAndBump(tcurr) then
+         self:write(tcurr, frame_trig.curr-1)
+      end
+   end
+
+   local p1_trig = _M.TimeTrigger(self.tend/10)
+   -- log messages
+   local function writeLogMessage(tcurr, step, dt)
+      if p1_trig:checkAndBump(tcurr) then
+         io.write(string.format(" Step %6d %.4e. Time-step  %.6e \n", step, tcurr, dt))
+      end
+   end
+
+   io.write(string.format("Starting GkeyllZero simulation\n"))
+   io.write(string.format("  tstart: %.6e. tend: %.6e\n", 0.0, self.tend))
+
+   local tinit0 = _M.time_now()
+   self:apply_ic()
+   io.write(string.format("  Initialization completed in %g sec\n", _M.time_now() - tinit0))
+   
+   self:calcIntegratedMom(0.0)
+   self:calcFieldEnergy(0.0)
+   writeData(0.0)
+
+   local tloop0 = _M.time_now()
+   local tcurr, tend = 0.0, self.tend
+   local dt = tend-tcurr
+   local step = 1
+   while tcurr < tend do
+      local status = self:update(dt)
+      tcurr = tcurr + status.dt_actual
+
+      if status.success == false then
+         io.write(string.format("***** Simulation failed at step %5d at time %.6e\n", step, tcurr))
+         break
       end
 
-      vm.cfl_frac = 0.95 -- for consistency with C app
-      if tbl.cflFrac then
-         vm.cfl_frac = tbl.cflFrac
-      end
+      self:calcIntegratedMom(tcurr)
+      self:calcFieldEnergy(tcurr)	    
 
-      vm.scheme_type = C.GKYL_MOMENT_WAVE_PROP
-      if tbl.scheme_type then
-	 vm.scheme_type = moment_scheme_tags[tbl.scheme_type]
-      end
-      if tbl.schemeType then
-	 vm.scheme_type = moment_scheme_tags[tbl.schemeType]
-      end
+      writeLogMessage(tcurr, step, status.dt_actual)
+      writeData(tcurr)
 
-      vm.mp_recon = C.GKYL_MP_U5
-      if tbl.mp_recon then
-	 vm.mp_recon = mp_recon_tags[tbl.mp_recon]
-      end
-      if tbl.mpRecon then
-	 vm.mp_recon = mp_recon_tags[tbl.mpRecon]
-      end
+      dt = math.min(status.dt_suggested, (tend-tcurr)*(1+1e-6))
+      step = step + 1
+   end
 
-      vm.skip_mp_limiter = pickBool(tbl.skipMpLimiter, false)
+   C.gkyl_moment_app_write_integrated_mom(self.app)
+   C.gkyl_moment_app_write_field_energy(self.app)
 
-      vm.use_hybrid_flux_kep = false
-      if tbl.useHybridFluxKep then
-	 vm.use_hybrid_flux_kep = tbl.useHybridFluxKep
-      end
+   local tloop1 = _M.time_now()
+   
+   io.write(string.format("Completed in %d steps (tend: %.6e). \n", step-1, tcurr))
+   io.write(string.format("Main loop took %g secs to complete\n", tloop1-tloop0))
+   self:writeStat()
+end
 
-      -- mapc2p
-      vm.c2p_ctx = nil -- no need for context
-      vm.mapc2p = nil
-      if tbl.mapc2p then
-         vm.mapc2p = gkyl_eval_mapc2p(tbl.mapc2p)
-      end
-
-      -- determine periodic BCs
-      vm.num_periodic_dir = 0
-      if tbl.periodicDirs then
-         vm.num_periodic_dir = #tbl.periodicDirs
-         for i=1, #tbl.periodicDirs do
-          vm.periodic_dirs[i-1] = tbl.periodicDirs[i]-1 -- note indexing transforms
-         end
-      end
-
-      -- determine directions to skip, if any
-      vm.num_skip_dirs = 0
-      if tbl.skip_dirs then
-         vm.num_skip_dirs = #tbl.skip_dirs
-         for i=1, #tbl.skip_dirs do
-          vm.skip_dir[i-1] = tbl.skip_dir[i]
-         end
-      end
-
-      -- set species
-      vm.num_species = #species
-      for i=1, #species do
-         vm.species[i-1] = species[i]
-      end
-
-      -- set field
-      if field then
-         vm.field = field
-      end      
-
-      -- create new Moments app object
-      local a = ffi.new(self)
-
-      -- we need to store some stuff in container struct
-      a.nspecies = num_species
-      if tbl.tStart then
-         a.t0 = tbl.tStart
-      end
-      a.tend = tbl.tEnd
-      a.nframe = tbl.nFrame
-
-      -- initialize app from input struct
-      a.app = C.gkyl_moment_app_new(vm)
-      return a
-   end,
-   __gc = function(self)
-      C.gkyl_moment_app_release(self.app)
-   end,
-   __index = {
-      init = function(self)
-         C.gkyl_moment_app_apply_ic(self.app, self.t0)
-      end,
-      writeField = function(self, tm, frame)
-         C.gkyl_moment_app_write_field(self.app, tm, frame)
-      end,
-      writeSpecies = function(self, tm, frame)
-         for i=1, self.nspecies do
-          C.gkyl_moment_app_write_species(self.app, i-1, tm, frame)
-         end
-      end,
-      write = function(self, tm, frame)
-         C.gkyl_moment_app_write(self.app, tm, frame)
-      end,
-      writeStat = function(self)
-         C.gkyl_moment_app_stat_write(self.app)
-      end,
-      update = function(self, dt)
-         return C.gkyl_moment_update(self.app, dt)
-      end,
-      calcIntegratedMom = function(self, tcurr)
-	 return C.gkyl_moment_app_calc_integrated_mom(self.app, tcurr)
-      end,
-      calcFieldEnergy = function(self, tcurr)
-	 return C.gkyl_moment_app_calc_field_energy(self.app, tcurr)
-      end,      
-      run = function(self)
-	 
-	 local frame_trig = _M.TimeTrigger(self.tend/self.nframe)
-
-	 -- function to write data to file
-	 local function writeData(tcurr)
-	    if frame_trig:checkAndBump(tcurr) then
-	       self:write(tcurr, frame_trig.curr-1)
-	    end
-	 end
-
-	 local p1_trig = _M.TimeTrigger(self.tend/10)
-	 -- log messages
-	 local function writeLogMessage(tcurr, step, dt)
-	    if p1_trig:checkAndBump(tcurr) then
-	       io.write(string.format(" Step %6d %.4e. Time-step  %.6e \n", step, tcurr, dt))
-	    end
-	 end
-
-	 io.write(string.format("Starting GkeyllZero simulation\n"))
-	 io.write(string.format("  tstart: %.6e. tend: %.6e\n", 0.0, self.tend))
-
-	 local tinit0 = _M.time_now()
-	 self:init()
-	 io.write(string.format("  Initialization completed in %g sec\n", _M.time_now() - tinit0))
-	 
-	 self:calcIntegratedMom(0.0)
-	 self:calcFieldEnergy(0.0)
-	 writeData(0.0)
-
-	 local tloop0 = _M.time_now()
-	 local tcurr, tend = 0.0, self.tend
-	 local dt = tend-tcurr
-	 local step = 1
-	 while tcurr < tend do
-	    local status = self:update(dt)
-	    tcurr = tcurr + status.dt_actual
-
-	    if status.success == false then
-	       io.write(string.format("***** Simulation failed at step %5d at time %.6e\n", step, tcurr))
-	       break
-	    end
-
-	    self:calcIntegratedMom(tcurr)
-	    self:calcFieldEnergy(tcurr)	    
-
-	    writeLogMessage(tcurr, step, status.dt_actual)
-	    writeData(tcurr)
-
-	    dt = math.min(status.dt_suggested, (tend-tcurr)*(1+1e-6))
-	    step = step + 1
-	 end
-
-	 C.gkyl_moment_app_write_integrated_mom(self.app)
-	 C.gkyl_moment_app_write_field_energy(self.app)
-
-	 local tloop1 = _M.time_now()
-	 
-	 io.write(string.format("Completed in %d steps (tend: %.6e). \n", step-1, tcurr))
-	 io.write(string.format("Main loop took %g secs to complete\n", tloop1-tloop0))
-	 self:writeStat()
-	 
-      end,
-   }
-}
-_M.App = ffi.metatype(app_type, app_mt)
+_M.App = App
 
 return _M
