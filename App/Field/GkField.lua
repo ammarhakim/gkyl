@@ -294,8 +294,8 @@ function GkField:initField(population)
    self:applyBc(0, self.potentials[1])
 
    if self.ndim > 1 and self.ioFrame == 0 and (not self.externalPhi) then 
-      self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeightPoisson_0.bp", tm, self.ioFrame, false)
-      self.fieldIo:write(self.phiSlvr:getModifierWeight(),  "modifierWeightPoisson_0.bp", tm, self.ioFrame, false)
+      self.fieldIo:write(self.lapWeightPoisson, "laplacianWeightPoisson_0.bp", tm, self.ioFrame, false)
+      self.fieldIo:write(self.modWeightPoisson,  "modifierWeightPoisson_0.bp", tm, self.ioFrame, false)
    end
 end
 
@@ -378,22 +378,6 @@ function GkField:createSolver(population, externalField)
       else
          self.jacobGeo = self.unitField
       end
-      -- MF 2022/08/23: g2 creation of phiSlvr happens before setting weights,
-      -- but g0 solver creation needs to happen after computing weights.
-      -- So we only do this creation for ndim>1 here since that is still using
-      -- the g2 updater.
-      if self.ndim > 1 then
-         self.phiSlvr = Updater.GkFemPoisson {
-            onGrid = self.grid,   bcLower = self.bcLowerPhi,
-            basis  = self.basis,  bcUpper = self.bcUpperPhi,
-            zContinuous = not self.discontinuousPhi,
-            -- Note these metric coefficients contain the Jacobian.
-            gxx = gxxPoisson,
-            gxy = gxyPoisson,
-            gyy = gyyPoisson,
-            useG0 = false,
-         }
-      end
 
       self.weakMultiply = Updater.CartFieldBinOp {
          weakBasis = self.basis,  operation = "Multiply",
@@ -427,12 +411,10 @@ function GkField:createSolver(population, externalField)
             end
          else 
             self.lapWeightPoisson:combine(-1., self.polarizationWeight)
-            self.phiSlvr:setLaplacianWeight(self.lapWeightPoisson)
 
             self.modWeightPoisson:clear(0.)
             if self.adiabatic then   -- Add contribution from the adiabatic species.
                self.modWeightPoisson:accumulate(1., self.adiabSpec:getQneutFac())
-               self.phiSlvr:setModifierWeight(self.modWeightPoisson)
             end
          end
 
@@ -449,7 +431,6 @@ function GkField:createSolver(population, externalField)
                self.polarizationWeight:clear(0.0)
                populationTbl:AllreduceByCell(self.polarizationWeightLocal, self.polarizationWeight, 'sum')
             end
-            self.phiSlvr:setWeight(self.polarizationWeight)
          else
             self.setPolarizationWeightFunc = function(populationTbl)
                self.polarizationWeightLocal:clear(0.)
@@ -459,8 +440,6 @@ function GkField:createSolver(population, externalField)
                -- Reduce polarization weight across species communicator.
                self.polarizationWeight:clear(0.0)
                populationTbl:AllreduceByCell(self.polarizationWeightLocal, self.polarizationWeight, 'sum')
-
-               self.phiSlvr:setLaplacianWeight(self.polarizationWeight)
             end
          end
       end
@@ -474,6 +453,18 @@ function GkField:createSolver(population, externalField)
             onGrid = self.grid,  basis = self.basis,
             weight = self.modWeightPoisson,
             periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
+         }
+      else
+         self.epsPoisson = createField(self.grid,self.basis,{1,1},3)
+         self.epsPoisson:combineOffset(1., gxxPoisson, 0*self.basis:numBasis(),
+                                       1., gxyPoisson, 1*self.basis:numBasis(),
+                                       1., gyyPoisson, 2*self.basis:numBasis())
+         self.weakMultiply:advance(0., {self.lapWeightPoisson, self.epsPoisson}, {self.epsPoisson})
+         self.epsPoisson:copyDeviceToHost()
+         self.phiSlvr = Updater.FemPoissonPerp {
+            onGrid  = self.grid,        bcLower = self.bcLowerPhi,
+            basis   = self.basis,       bcUpper = self.bcUpperPhi,
+            epsilon = self.epsPoisson,  kSq     = self.modWeightPoisson,
          }
       end
 
