@@ -456,9 +456,9 @@ function GkField:createSolver(population, externalField)
          }
       else
          self.epsPoisson = createField(self.grid,self.basis,{1,1},3)
-         self.epsPoisson:combineOffset(1., gxxPoisson, 0*self.basis:numBasis(),
-                                       1., gxyPoisson, 1*self.basis:numBasis(),
-                                       1., gyyPoisson, 2*self.basis:numBasis())
+         self.epsPoisson:combineOffset(-1., gxxPoisson, 0*self.basis:numBasis(),
+                                       -1., gxyPoisson, 1*self.basis:numBasis(),
+                                       -1., gyyPoisson, 2*self.basis:numBasis())
          self.weakMultiply:advance(0., {self.lapWeightPoisson, self.epsPoisson}, {self.epsPoisson})
          self.epsPoisson:copyDeviceToHost()
          self.phiSlvr = Updater.FemPoissonPerp {
