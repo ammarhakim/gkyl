@@ -76,7 +76,7 @@ function FemPoissonPerp:init(tbl)
    self._grid   = assert(tbl.onGrid, "Updater.FemPoissonPerp: Must specify grid to use with 'onGrid'.")
    self._basis  = assert(tbl.basis, "Updater.FemPoissonPerp: Must specify the basis in 'basis'.")
    local eps    = assert(tbl.epsilon, "Updater.FemPoissonPerp: Must specify the permittivity 'epsilon'.")
-   local kSq    = tbl.kSq -- Wave number squared.
+   local kSq    = tbl.kSq  -- Wave number squared.
    self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
 
    local ndim = self._grid:ndim()
@@ -112,15 +112,15 @@ function FemPoissonPerp:init(tbl)
    end
 
    assert(type(eps) == 'table', "Updater.FemPoissonPerp: permittivity epsilon must be a CartField.")
-   local eps_p = eps._zero
+   local eps_p = self._useGPU and eps._zeroDevice or eps._zero
    local kSq_p = nil
    if kSq then
       assert(type(kSq) == 'table', "Updater.FemPoissonPerp: squared wave-number kSq must be a CartField.")
-      kSq_p = kSq._zero
+      kSq_p = self._useGPU and kSq._zeroDevice or kSq._zero
    end
 
    self._zero = ffi.gc(ffiC.gkyl_fem_poisson_perp_new(self._grid._zero, self._basis._zero, bc_zero,
-                                                       eps_p, kSq_p, self._useGPU),
+                                                      eps_p, kSq_p, self._useGPU),
                        ffiC.gkyl_fem_poisson_perp_release)
 end
 
