@@ -101,8 +101,8 @@ function test_femparproj_3x(nx, ny, nz, p)
    local err = createField(grid, basis)
    err:combine(1.0, srcModal, -1.0, phiModal)
 
-   srcModal:write("phi-rough-3d.bp", 0.0)
-   phiModal:write("phi-smooth-3d.bp", 0.0)
+--   srcModal:write("phi-rough-3d.bp", 0.0)
+--   phiModal:write("phi-smooth-3d.bp", 0.0)
    --exactSolModal:write("exact-solution-1d.bp", 0.0)
    --err:write("error-1d.bp", 0.0)
 
@@ -119,13 +119,14 @@ end
 
 function test_3x_p1()
    print("--- Testing convergence of 3D FEM parallel projection with p=1 ---")
-   err1 = test_femparproj_3x(3, 3, 4, 1)
---   err2 = test_femparproj_3x(4, 4, 64, 1)
---   err3 = test_femparproj_3x(4, 4, 128, 1)
---   print("Order:", err1/err2/2.0, err2/err3/2.0)
---   assert_close(4.0, err1/err2/2.0, .05)
---   assert_close(4.0, err2/err3/2.0, .05)
---   print()
+--   err1 = test_femparproj_3x(3, 3, 4, 1)
+   err1 = test_femparproj_3x(4, 4, 32, 1)
+   err2 = test_femparproj_3x(4, 4, 64, 1)
+   err3 = test_femparproj_3x(4, 4, 128, 1)
+   print("Order:", err1/err2/2.0, err2/err3/2.0)
+   assert_close(4.0, err1/err2/2.0, .05)
+   assert_close(4.0, err2/err3/2.0, .05)
+   print()
 end
 
 local t1 = os.clock()
