@@ -112,19 +112,19 @@ function FemParproj:init(tbl)
                        ffiC.gkyl_fem_parproj_release)
       self._advance = function(tCurr, inFld, outFld) return self:_avanceDoubleBC(tCurr,inFld, outFld) end
       self._advanceOnDevice = function(tCurr, inFld, outFld) return self:_advanceOnDeviceAxisymmetric(tCurr,inFld, outFld) end
-      self.inSOL = DataStruct.Field { -- May need to add some arguments to this ield creation
+      self.inFldRegion2 = DataStruct.Field { -- May need to add some arguments to this ield creation
          onGrid = self._grid,  numComponents = self._basis:numBasis(),
          ghost  = {1,1},       useDevice = false,
          metaData      = {polyOrder = self._basis:polyOrder(),
                           basisType = self._basis:id(),},
       }
-      self.outSOL = DataStruct.Field { -- May need to add some arguments to this ield creation
+      self.outFldRegion2 = DataStruct.Field { -- May need to add some arguments to this ield creation
          onGrid = self._grid,  numComponents = self._basis:numBasis(),
          ghost  = {1,1},       useDevice = false,
          metaData      = {polyOrder = self._basis:polyOrder(),
                           basisType = self._basis:id(),},
       }
-      self:setSplitRanges(self.inSOL)
+      self:setSplitRanges(self.inFldRegion2)
    else
       self._zero = ffi.gc(ffiC.gkyl_fem_parproj_new(self._grid._zero, self._basis._zero, self._isParPeriodic,
                                                  isWeighted, weightFld._zero, GKYL_USE_GPU or 0),
@@ -167,22 +167,16 @@ function FemParproj:_avanceDoubleBC(tCurr, inFld, outFld)
    local rhoIn = assert(inFld[1], "FemParproj.advance: Must-specify an input field")
    local qOut  = assert(outFld[1], "FemParproj.advance: Must-specify an output field")
 
-   self.inSOL:copy(rhoIn)
-   self.inSOL:write('inSOL.bp', 0.0, 2, false)
+   self.inFldRegion2:copy(rhoIn)
 
-   ffiC.gkyl_fem_parproj_set_rhs(self._zero, self.inSOL._zero)
-   ffiC.gkyl_fem_parproj_solve(self._zero, self.outSOL._zero)
-   self.outSOL:write('outSOL.bp', 0.0, 2, false)
+   ffiC.gkyl_fem_parproj_set_rhs(self._zero, self.inFldRegion2._zero)
+   ffiC.gkyl_fem_parproj_solve(self._zero, self.outFldRegion2._zero)
 
    rhoIn:periodicCopyInDir(3)
-   rhoIn:write('rhoIn.bp', 0.0, 2, false)
    ffiC.gkyl_fem_parproj_set_rhs(self._zeroCore, rhoIn._zero)
    ffiC.gkyl_fem_parproj_solve(self._zeroCore, qOut._zero)
-   qOut:write('qOut.bp', 0.0, 2, false)
 
-   self.outSOL:write('outSOL2.bp', 0.0, 2, false)
-   qOut:copyRangeToRange(self.outSOL,  self.localSOLRange, self.localSOLRange)
-   qOut:write('qOut2.bp', 0.0, 2, false)
+   qOut:copyRangeToRange(self.outFldRegion2,  self.localSOLRange, self.localSOLRange)
 end
 
 
