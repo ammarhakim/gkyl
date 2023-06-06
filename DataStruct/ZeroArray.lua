@@ -429,6 +429,9 @@ local array_fn = {
    copyRangeToRange = function (self, infld, outrng, inrng)
       ffiC.gkyl_array_copy_range_to_range(self, infld, outrng, inrng)
    end,
+   copyRange = function (self, infld, inrng)
+      ffiC.gkyl_array_copy_range(self, infld, inrng)
+   end,
    accumulateRange = function (self, val, fld, rng)
       ffiC.gkyl_array_accumulate_range(self, val, fld, rng)
    end,

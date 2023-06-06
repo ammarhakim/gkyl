@@ -91,14 +91,23 @@ function FemParproj:init(tbl)
       self.doubleBC = true
    end
 
+   local function createField(grid, basis, ghostCells, useDevice)
+      local fld = DataStruct.Field {
+         onGrid           = grid,
+         numComponents    = basis:numBasis(),
+         ghost            = ghostCells,
+         metaData         = {polyOrder = basis:polyOrder(),
+                             basisType = basis:id()},
+         useDevice = useDevice,
+      }
+      fld:clear(0.0)
+      return fld
+   end
+
    local weightFld  = tbl.weight
    local isWeighted = weightFld ~= nil
    if not isWeighted then  -- Create a dummy weight (not used).
-      weightFld = DataStruct.Field {
-         onGrid = self._grid,  numComponents = self._basis:numBasis(),
-         ghost  = {1,1},       useDevice = false,
-      }
-      weightFld:clear(0.0)
+      weightFld = createField(self._grid, self._basis, {1,1}, false)
    end
 
 
@@ -112,18 +121,8 @@ function FemParproj:init(tbl)
                        ffiC.gkyl_fem_parproj_release)
       self._advance = function(tCurr, inFld, outFld) return self:_avanceDoubleBC(tCurr,inFld, outFld) end
       self._advanceOnDevice = function(tCurr, inFld, outFld) return self:_advanceOnDeviceAxisymmetric(tCurr,inFld, outFld) end
-      self.inFldRegion2 = DataStruct.Field { -- May need to add some arguments to this ield creation
-         onGrid = self._grid,  numComponents = self._basis:numBasis(),
-         ghost  = {1,1},       useDevice = false,
-         metaData      = {polyOrder = self._basis:polyOrder(),
-                          basisType = self._basis:id(),},
-      }
-      self.outFldRegion2 = DataStruct.Field { -- May need to add some arguments to this ield creation
-         onGrid = self._grid,  numComponents = self._basis:numBasis(),
-         ghost  = {1,1},       useDevice = false,
-         metaData      = {polyOrder = self._basis:polyOrder(),
-                          basisType = self._basis:id(),},
-      }
+      self.inFldRegion2 = createField(self._grid, self._basis, {1,1}, false)
+      self.outFldRegion2 = createField(self._grid, self._basis, {1,1}, false)
       self:setSplitRanges(self.inFldRegion2)
    else
       self._zero = ffi.gc(ffiC.gkyl_fem_parproj_new(self._grid._zero, self._basis._zero, self._isParPeriodic,
@@ -152,15 +151,15 @@ function FemParproj:setSplitRanges(sampleFld)
    local globalCore = gridRange:shorten(1, idxLCFS[1])
    local globalSOLTemp = gridRange:shortenFromBelow(1, self._grid:numCells(1)-idxLCFS[1]+1)
    local lv, uv = globalSOLTemp:lowerAsVec(), globalSOLTemp:upperAsVec()
-   self.globalSOL = gridRange:subRange(lv,uv)
+   local globalSOL = gridRange:subRange(lv,uv)
 
    local localRange = sampleFld:localRange()
-   local localSOLRangeTemp = sampleFld:localRange():intersect(self.globalSOL)
+   local localSOLRangeTemp = sampleFld:localRange():intersect(globalSOL)
    local localCoreRangeTemp = sampleFld:localRange():intersect(globalCore)
    local lv, uv = localSOLRangeTemp:lowerAsVec(), localSOLRangeTemp:upperAsVec()
-   self.localSOLRange = localRange:subRange(lv,uv)
+   self.localRegion2Range = localRange:subRange(lv,uv)
    local lv, uv = localCoreRangeTemp:lowerAsVec(), localCoreRangeTemp:upperAsVec()
-   self.localCoreRange = localRange:subRange(lv,uv)
+   self.localRegion1Range = localRange:subRange(lv,uv)
 end
 
 function FemParproj:_avanceDoubleBC(tCurr, inFld, outFld)
@@ -168,15 +167,21 @@ function FemParproj:_avanceDoubleBC(tCurr, inFld, outFld)
    local qOut  = assert(outFld[1], "FemParproj.advance: Must-specify an output field")
 
    self.inFldRegion2:copy(rhoIn)
+   local fldGrid = rhoIn:grid()
+   local periodicDirs = fldGrid:getPeriodicDirs()
+   local modifiedPeriodicDirs = {3}
+   fldGrid:setPeriodicDirs(modifiedPeriodicDirs)
+   rhoIn:sync()
 
    ffiC.gkyl_fem_parproj_set_rhs(self._zero, self.inFldRegion2._zero)
    ffiC.gkyl_fem_parproj_solve(self._zero, self.outFldRegion2._zero)
+   self.outFldRegion2:write('outFldRegion2.bp', 0.0,2,false)
 
-   rhoIn:periodicCopyInDir(3)
    ffiC.gkyl_fem_parproj_set_rhs(self._zeroCore, rhoIn._zero)
    ffiC.gkyl_fem_parproj_solve(self._zeroCore, qOut._zero)
 
-   qOut:copyRangeToRange(self.outFldRegion2,  self.localSOLRange, self.localSOLRange)
+   qOut:copyRange(self.outFldRegion2, self.localRegion2Range)
+   fldGrid:setPeriodicDirs(periodicDirs)
 end
 
 
@@ -199,6 +204,29 @@ function FemParproj:_advanceOnDeviceSingleBC(tCurr, inFld, outFld)
 
    ffiC.gkyl_fem_parproj_set_rhs(self._zero, rhoIn._zeroDevice)
    ffiC.gkyl_fem_parproj_solve(self._zero, qOut._zeroDevice)
+end
+
+
+function FemParproj:_advanceOnDeviceDoubleBC(tCurr, inFld, outFld)
+   local rhoIn = assert(inFld[1], "FemParproj.advance: Must-specify an input field")
+   local qOut  = assert(outFld[1], "FemParproj.advance: Must-specify an output field")
+
+   self.inFldRegion2:copy(rhoIn)
+   local fldGrid = rhoIn:grid()
+   local periodicDirs = fldGrid:getPeriodicDirs()
+   local modifiedPeriodicDirs = {3}
+   fldGrid:setPeriodicDirs(modifiedPeriodicDirs)
+   rhoIn:sync()
+
+   ffiC.gkyl_fem_parproj_set_rhs(self._zero, self.inFldRegion2._zeroDevice)
+   ffiC.gkyl_fem_parproj_solve(self._zero, self.outFldRegion2._zeroDevice)
+   self.outFldRegion2:write('outFldRegion2.bp', 0.0,2,false)
+
+   ffiC.gkyl_fem_parproj_set_rhs(self._zeroCore, rhoIn._zero)
+   ffiC.gkyl_fem_parproj_solve(self._zeroCore, qOut._zero)
+
+   qOut:copyRange(self.outFldRegion2, self.localRegion2Range)
+   fldGrid:setPeriodicDirs(periodicDirs)
 end
 
 function FemParproj:printDevDiagnostics() end
