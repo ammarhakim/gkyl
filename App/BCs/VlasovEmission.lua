@@ -10,6 +10,7 @@ local BCsBase     = require "App.BCs.BCsBase"
 local DataStruct  = require "DataStruct"
 local Updater     = require "Updater"
 local Mpi         = require "Comm.Mpi"
+local Projection  = require "App.Projection"
 local Proto       = require "Lib.Proto"
 local Time        = require "Lib.Time"
 local Range       = require "Lib.Range"
@@ -24,43 +25,69 @@ local VlasovEmissionBC = Proto(BCsBase)
 -- Store table passed to it and defer construction to :fullInit().
 function VlasovEmissionBC:init(tbl) self.tbl = tbl end
 
+function VlasovEmissionBC:ChungEverhart(t, xn, phi)
+   local E = 0.0
+   for d = self.cdim+1, self.cdim+self.vdim do
+      E = E + 0.5*self.mass*xn[d]^2/math.abs(self.charge)
+   end
+   return E/(E + phi)^4
+end
+
+function VlasovEmissionBC:Gaussian(t, xn, E_0, tau)
+   local E = 0.0
+   for d = self.cdim+1, self.cdim+self.vdim do
+      E = E + 0.5*self.mass*xn[d]^2/math.abs(self.charge)
+   end
+   return math.exp(-math.log(E/E_0)^2/(2.0*tau^2))
+end
+
 -- Function initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
 function VlasovEmissionBC:fullInit(mySpecies)
    local tbl = self.tbl -- Previously stored table.
+
+   self.saveFlux = tbl.saveFlux or false
 
    self.bcKind = assert(tbl.kind, "VlasovEmissionBC: must specify the type of BC in 'kind'.")
 
    if self.bcKind == "gain" then
       self.bcParam = Lin.Vec(1)
       self.bcParam:data()[0] = assert(tbl.gamma, "VlasovEmissionBC: must specify the emission flux ratio in 'gamma'.")
-   elseif self.bcKind == "chung" then -- Currently importing gains, not self-calculating using fitting parameters. Want to change that. Or better, give both options.
-      self.bcParam = Lin.Vec(3)
-      self.bcParam:data()[0] = assert(tbl.work, "VlasovEmissionBC: must specify the material work function in 'work'.")
-      self.bcParam:data()[1] = assert(tbl.mass, "VlasovEmissionBC: must specify species mass in 'mass'.")
-      self.bcParam:data()[2] = assert(tbl.charge, "VlasovEmissionBC: must specify species charge in 'charge'.")
-      -- self.bcParam:data()[3] = assert(tbl.gamma_hat, "VlasovEmissionBC: must specify fitting parameter 'gamma_hat'.")
-      -- self.bcParam:data()[4] = assert(tbl.E_hat, "VlasovEmissionBC: must specify fitting parameter 'E_hat'.")
-      -- self.bcParam:data()[5] = assert(tbl.t1, "VlasovEmissionBC: must specify fitting parameter 't1'.")
-      -- self.bcParam:data()[6] = assert(tbl.t2, "VlasovEmissionBC: must specify fitting parameter 't2'.")
-      -- self.bcParam:data()[7] = assert(tbl.t3, "VlasovEmissionBC: must specify fitting parameter 't3'.")
-      -- self.bcParam:data()[8] = assert(tbl.t4, "VlasovEmissionBC: must specify fitting parameter 't4'.")
-      self.gain = assert(tbl.gain, "VlasovEmissionBC: must give gain array in 'gain'")
-      self.elastic = tbl.elastic or nil
-   elseif self.bcKind == "gauss" then -- Currently importing gains, not self-calculating using fitting parameters. Want to change that. Or better, give both options.
-      self.bcParam = Lin.Vec(4)
-      self.bcParam:data()[0] = assert(tbl.E0, "VlasovEmissionBC: must specify fitting parameter 'E0'.")
-      self.bcParam:data()[1] = assert(tbl.tau, "VlasovEmissionBC: must specify fitting parameter 'tau'.")
-      self.bcParam:data()[2] = assert(tbl.mass, "VlasovEmissionBC: must specify species mass in 'mass'.")
-      self.bcParam:data()[3] = assert(tbl.charge, "VlasovEmissionBC: must specify species charge in 'charge'.")
-      -- self.bcParam:data()[4] = assert(tbl.gamma_hat, "VlasovEmissionBC: must specify fitting parameter 'gamma_hat'.")
-      -- self.bcParam:data()[5] = assert(tbl.E_hat, "VlasovEmissionBC: must specify fitting parameter 'E_hat'.")
-      -- self.bcParam:data()[6] = assert(tbl.t1, "VlasovEmissionBC: must specify fitting parameter 't1'.")
-      -- self.bcParam:data()[7] = assert(tbl.t2, "VlasovEmissionBC: must specify fitting parameter 't2'.")
-      -- self.bcParam:data()[8] = assert(tbl.t3, "VlasovEmissionBC: must specify fitting parameter 't3'.")
-      -- self.bcParam:data()[9] = assert(tbl.t4, "VlasovEmissionBC: must specify fitting parameter 't4'.")
-      self.gain = assert(tbl.gain, "VlasovEmissionBC: must give gain array in 'gain'")
-      self.elastic = tbl.elastic or nil
+   elseif self.bcKind == "chung" then
+      self.inSpecies = assert(tbl.inSpecies, "VlasovEmissionBC: must specify names of impacting species in 'inSpecies'.")
+      self.bcParam = {}
+      self.gain = {}
+      self.elastic = {}
+      self.proj = {}
+      self.mass = mySpecies.mass
+      self.charge = mySpecies.charge
+      for ispec, otherNm in ipairs(self.inSpecies) do
+	 self.bcParam[otherNm] = Lin.Vec(1)
+         self.bcParam[otherNm]:data()[0] = assert(tbl.work[ispec], "VlasovEmissionBC: must specify the material work function in 'work'.")
+         self.gain[otherNm] = assert(tbl.gain[ispec], "VlasovEmissionBC: must give gain array in 'gain'")
+         self.elastic[otherNm] = tbl.elastic[ispec] or nil
+	 self.proj[otherNm] = Projection.KineticProjection.FunctionProjection
+	    { func = function(t, zn) return self:ChungEverhart(t, zn, self.bcParam[otherNm]:data()[0]) end, }
+      end
+   elseif self.bcKind == "gauss" then
+      self.inSpecies = assert(tbl.inSpecies, "VlasovEmissionBC: must specify names of impacting species in 'inSpecies'.")
+      self.bcParam = {}
+      self.gain = {}
+      self.elastic = {}
+      self.proj = {}
+      self.mass = mySpecies.mass
+      self.charge = mySpecies.charge
+      for ispec, otherNm in ipairs(self.inSpecies) do
+	 self.bcParam[otherNm] = Lin.Vec(4)
+         self.bcParam[otherNm]:data()[0] = assert(tbl.E0[ispec], "VlasovEmissionBC: must specify fitting parameter 'E0'.")
+         self.bcParam[otherNm]:data()[1] = assert(tbl.tau[ispec], "VlasovEmissionBC: must specify fitting parameter 'tau'.")
+	 self.bcParam[otherNm]:data()[2] = self.mass
+	 self.bcParam[otherNm]:data()[3] = self.charge
+         self.gain[otherNm] = assert(tbl.gain[ispec], "VlasovEmissionBC: must give gain array in 'gain'")
+         self.elastic[otherNm] = tbl.elastic[ispec] or nil
+	 self.proj[otherNm] = Projection.KineticProjection.FunctionProjection
+	    { func = function(t, zn) return self:Gaussian(t, zn, self.bcParam[otherNm]:data()[0], self.bcParam[otherNm]:data()[1]) end, }
+      end
    end
 
    self.saveFlux = tbl.saveFlux or false
@@ -74,6 +101,16 @@ function VlasovEmissionBC:fullInit(mySpecies)
 end
 
 function VlasovEmissionBC:setName(nm) self.name = self.speciesName.."_"..nm end
+
+function VlasovEmissionBC:initCrossSpeciesCoupling(species)
+   self.fluxBC = {}
+   for _, otherNm in ipairs(self.inSpecies) do
+      self.proj[otherNm]:fullInit(species[self.speciesName])
+      local otherSpecies = species[otherNm]
+      self.fluxBC[otherNm] = otherSpecies.nonPeriodicBCs[string.gsub(self.name,self.speciesName.."_","")]
+      self.fluxBC[otherNm]:setSaveFlux(true)
+   end
+end
 
 function VlasovEmissionBC:createSolver(mySpecies, field, externalField)
 
@@ -304,10 +341,54 @@ function VlasovEmissionBC:rkStepperFields() return {self.boundaryFluxRate, self.
                                                  self.boundaryFluxRate, self.boundaryFluxRate} end
 function VlasovEmissionBC:getFlucF() return self.boundaryFluxRate end
 
+function VlasovEmissionBC:createCouplingSolver(species, field, extField)
+   local mySpecies = species[self.speciesName]
+   local allocDistf = function()
+      return self:allocCartField(self.boundaryGrid, self.basis:numBasis(), {0,0}, self.bcBuffer:getMetaData())
+   end
+   
+   self.fProj = {}
+   self.bcFlux = {}
+   for _, otherNm in ipairs(self.inSpecies) do
+      self.fProj[otherNm] = mySpecies:allocDistf()
+      self.proj[otherNm]:advance(0.0, {}, {self.fProj[otherNm]})
+      self.bcFlux[otherNm] = self.fluxBC[otherNm]:allocIntThreeMoments()
+   end
+   
+   self.localEdgeFlux = 0.0
+end
+
+function VlasovEmissionBC:advanceCrossSpeciesCoupling(tCurr, species, inIdx, outIdx)
+   local mySpecies = species[self.speciesName]
+   local fIn = mySpecies:rkStepperFields()[inIdx]
+   self.k = {}
+
+   for ispec, otherNm in ipairs(self.inSpecies) do
+      local otherSpecies = species[otherNm]
+      local bc = self.fluxBC[otherNm]
+      
+      bc.integNumDensityCalc:advance(tCurr, {bc:getBoundaryFluxFields()[outIdx]}, {self.bcFlux[otherNm]})
+
+      local flux = self.bcFlux[otherNm]
+      self.localEdgeFlux = 0.0
+
+      local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(0)
+      for idx in flux:localExtRangeIter() do
+         flux:fill(fluxIndexer(idx), fluxItr)
+         self.localEdgeFlux = self.localEdgeFlux + fluxItr[1]
+      end
+
+      local fOther = otherSpecies:rkStepperFields()[inIdx]
+      self.k[otherNm] = self.bcSolver:advance(tCurr, {fOther, self.fProj[otherNm], self.bcParam[bc.speciesName], self.localEdgeFlux, bc.boundaryGrid, self.gain[otherNm]}, {fIn})
+   end
+end
+
 function VlasovEmissionBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
    local fIn = mySpecies:rkStepperFields()[outIdx]
-
-   self.bcSolver:advance(tCurr, {self.bcBuffer}, {fIn})
+   fIn:clearRange(0.0, fIn:localGhostRangeUpper()[self.bcDir])
+   for ispec, otherNm in ipairs(self.inSpecies) do
+      fIn:accumulateRange(self.k[otherNm], self.fProj[otherNm], fIn:localGhostRangeUpper()[self.bcDir])
+   end
 end
 
 function VlasovEmissionBC:getBoundaryFluxFields() return self.boundaryFluxFields end
