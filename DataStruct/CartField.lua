@@ -45,7 +45,7 @@ ffi.cdef [[
  * corners.
  *
  * @param skin On output, skin range
- * @param ghost On outout, ghost range
+ * @param ghost On output, ghost range
  * @param dir Direction in which skin/ghost are computed
  * @param edge Edge on which skin/ghost are computed
  * @param parent Range for which skin/ghost are computed
@@ -53,6 +53,18 @@ ffi.cdef [[
  */
 void gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
   int dir, int edge, const struct gkyl_range *parent, const int *nghost);
+
+/**
+ * Create positive and negative space sub-ranges given parent range.
+ *
+ * @param pos On output, positive space range
+ * @param neg On output, negative space range
+ * @param dir Direction in which pos/neg are computed
+ * @param parent Range for which pos/neg are computed
+ * @param nghost Number of ghost cells in 'dir' are nghost[dir]
+ */
+void gkyl_pos_neg_ranges(struct gkyl_range *pos, struct gkyl_range *neg,
+  int dir, const struct gkyl_range *parent, const int *nghost);
 ]]
 
 -- Local definitions.
@@ -244,6 +256,11 @@ local function Field_meta_ctor(elct)
       for d=1, self._ndim do
          ffiC.gkyl_skin_ghost_ranges(self._globalSkinRngLo[d], self._globalGhostRngLo[d], d-1, lowerEdge, self._globalExtRange, self._lowerGhostVec:data())
          ffiC.gkyl_skin_ghost_ranges(self._globalSkinRngUp[d], self._globalGhostRngUp[d], d-1, upperEdge, self._globalExtRange, self._upperGhostVec:data())
+      end
+
+      self._localNegRng, self._localPosRng = RangeVec(self._ndim), RangeVec(self._ndim)
+      for d=1, self._ndim do
+         ffiC.gkyl_pos_neg_ranges(self._localPosRng[d], self._localNegRng[d], d-1, self._localExtRange, self._lowerGhostVec:data())
       end
 
       -- Create ranges covering the global ghost range owned by this MPI rank.
@@ -707,6 +724,9 @@ local function Field_meta_ctor(elct)
       clear = function (self, val)
          self._zeroForOps:clear(val)
       end,
+      clearRange = function (self, val, rng)
+         self._zeroForOps:clearRange(val, rng)
+      end,
       fill = function (self, k, fc)
 	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index	 
 	 fc._cdata = self._data+loc
@@ -966,6 +986,7 @@ local function Field_meta_ctor(elct)
       globalGhostRangeUpper = function (self)
          return self._globalGhostRngUp
       end,
+      
       localGlobalGhostRangeIntersectLower = function (self)
          return self._locGloGhostRngInterLo
       end,
@@ -989,6 +1010,12 @@ local function Field_meta_ctor(elct)
       end,
       localGlobalSkinRangeIntersectUpper = function (self)
          return self._locGloSkinRngInterUp
+      end,
+      localNegRange = function (self)
+         return self._localNegRng
+      end,
+      localPosRange = function (self)
+         return self._localPosRng
       end,
       localRangeIter = function (self)
 	 if self._layout == rowMajLayout then
