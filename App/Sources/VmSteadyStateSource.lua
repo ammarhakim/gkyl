@@ -131,7 +131,7 @@ function VmSteadyStateSource:advanceCrossSpeciesCoupling(tCurr, species, outIdx)
          flux:fill(fluxIndexer(idx), fluxItr)
          self.localEdgeFlux:data()[0] = self.localEdgeFlux:data()[0] + fluxItr[1]
       end
-      Mpi.Allreduce(self.localEdgeFlux:data(), self.globalEdgeFlux:data(), 1, Mpi.DOUBLE, Mpi.SUM, bc.confBoundaryGrid:commSet().comm)
+      Mpi.Allreduce(self.localEdgeFlux:data(), self.globalEdgeFlux:data(), 1, Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
    end
    
    local densFactor = self.globalEdgeFlux:data()[0]/self.sourceLength
