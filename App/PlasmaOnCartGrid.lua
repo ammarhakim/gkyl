@@ -325,10 +325,12 @@ local function buildApplication(self, tbl)
       else
 	 s:advance(0, population, {field, externalField}, 1, 2)
       end
-      s:applyBcInitial(0, field, externalField, 1, 1)
    end
    for _, s in population.iterGlobal() do
       s:advanceCrossSpeciesCoupling(0, population, {field, externalField}, 1, 2)
+   end
+   for _, s in population.iterLocal() do
+      s:applyBcInitial(0, field, externalField, 1, 1)
    end
 
    -- Function to write data to file.
@@ -581,7 +583,7 @@ local function buildApplication(self, tbl)
       while true do
 	 -- Call time-stepper.
 	 local stepStatus = timeStepper:advance(tCurr, dt_next)
-    
+	
          -- If stopfile exists, break.
          if file_exists(stopfile) or out_of_walltime(tmStart, maxWallTime, timesUp) then
             local tlatest = tCurr+stepStatus.dt_actual
