@@ -264,20 +264,18 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
             confProject:setFunc(self.tempGhost)
             confProject:advance(time, {}, {vtSq})
             vtSq:scale(1./self.mass)
-   
-   
+	      
             -- Project Into the ghost field
             self.projMaxwell:advance(time,{numDens,uPar,vtSq,self.bmag},{self.ghostFld})
             -- Scale Density.
-            local M0e, M0 = self:allocMoment(), self:allocMoment()
+	               local M0e, M0 = self:allocMoment(), self:allocMoment()
             local M0mod   = self:allocMoment()
             self.numDensityCalc:advance(0.0, {self.ghostFld}, {M0})
             confProject:setFunc(self.densityGhost)
             confProject:advance(0.0, {}, {M0e})
             self.confWeakDivide:advance(0.0, {M0, M0e}, {M0mod})
             self.phaseWeakMultiply:advance(0.0, {M0mod,self.ghostFld}, {self.ghostFld})
-   
-         elseif self.maxwellianKind == 'canonical' then
+	 elseif self.maxwellianKind == 'canonical' then
             if mySpecies.jacobPhaseFunc and self.vdim > 1 then
                local initFuncWithoutJacobian = self.initFunc
                self.initFunc = function (t, xn)
@@ -352,8 +350,10 @@ function GkBasicBC:createCouplingSolver(species,field,externalField)
             numDens:write(string.format("%s_M0_%d.bp", self.name, 0), 0.0, 0, false)
          end
          -- Multiply by conf space Jacobian Now
-         self.phaseWeakMultiply:advance(0, {self.ghostFld, self.jacobGeo}, {self.ghostFld})
-         self.phaseFieldIo:write(self.ghostFld, string.format("%s_Maxwellian_%d.bp", self.name, 0), 0., 0, false)
+	 if self.jacobGeo then
+	    self.phaseWeakMultiply:advance(0, {self.ghostFld, self.jacobGeo}, {self.ghostFld})
+	 end
+	 self.phaseFieldIo:write(self.ghostFld, string.format("%s_Maxwellian_%d.bp", self.name, 0), 0., 0, false)
       end
    end
 end
@@ -443,13 +443,13 @@ function GkBasicBC:createBoundaryTools(mySpecies, field, externalField)
       self.bmagInvSq = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
                                           {bmagInvSq:lowerGhost(),bmagInvSq:upperGhost()}, bmagInvSq:getMetaData())
       self.bmagInvSq:copy(self:evalOnConfBoundary(bmagInvSq))
-      local jacobGeo = externalField.geo.jacobGeo
+      local jacobGeo = externalField.geo and externalField.geo.jacobGeo
       if jacobGeo then
          self.jacobGeo = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
                                              {jacobGeo:lowerGhost(),jacobGeo:upperGhost()}, jacobGeo:getMetaData())
          self.jacobGeo:copy(self:evalOnConfBoundary(jacobGeo))
       end
-      local jacobGeoInv = externalField.geo.jacobGeoInv
+      local jacobGeoInv = externalField.geo and externalField.geo.jacobGeoInv
       if jacobGeoInv then
          self.jacobGeoInv = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
                                                 {jacobGeoInv:lowerGhost(),jacobGeoInv:upperGhost()}, jacobGeoInv:getMetaData())
