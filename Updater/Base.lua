@@ -67,7 +67,7 @@ function _M:_advanceNoDeviceImpl(tCurr, inFld, outFld)
    end
    -- Also copy input fields in case they were modified.
    for _, fld in ipairs(inFld) do 
-      if type(fld)=="table" and fld._zero then fld:copyDeviceToHost() end
+      if type(fld)=="table" and fld._zero then fld:copyHostToDevice() end
    end
 end
 
