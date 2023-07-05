@@ -439,17 +439,22 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
 	 self.maxwellian:advance(tCurr, {selfMom[1], species[self.speciesName].uParCross[otherNm],
                                          species[self.speciesName].vtSqCross[otherNm], self.bmag}, {self.nufMaxwellCross})
          if self.exactIterFixM012 then
+            self.vDim = self.phaseGrid:ndim() - self.confGrid:ndim()
+            if self.vDim > 1 then
+               self.vDim = 3
+            end
+            --print(string.format("vDim=%d", self.vDim))   -- Check vDim, commented out after confirmation.
             -- Need to compute the first and second moment of the cross-species Maxwellian (needed by iteration fix).
+            self.crossMaxwellianM1:clear(0.0)
+            self.crossMaxwellianM2:clear(0.0)
             self.confMultiply:advance(tCurr, {species[self.speciesName].uParCross[otherNm], selfMom[1]}, {self.crossMaxwellianM1})
             self.confDotProduct:advance(tCurr, {species[self.speciesName].uParCross[otherNm],
                                                 species[self.speciesName].uParCross[otherNm]}, {self.crossMaxwellianM2})
-            self.crossMaxwellianM2:accumulate(1.0, species[self.speciesName].vtSqCross[otherNm])
+            self.crossMaxwellianM2:accumulate(self.vDim, species[self.speciesName].vtSqCross[otherNm])
             self.confMultiply:advance(tCurr, {selfMom[1],self.crossMaxwellianM2}, {self.crossMaxwellianM2})
-            -- Now compute current moments of Maxwellians and perform Lagrange fix. 
-            self.threeMomentsCalc:advance(tCurr, {self.nufMaxwellCross}, { self.m0, self.m1, self.m2 })
             -- Barrier before manipulations to moments before passing them to Lagrange Fix updater.
             Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
-            self.iterFix:advance(tCurr, {self.nufMaxwell, self.m0, self.m1, self.m2, self.bmag}, {self.nufMaxwellSum})
+            self.iterFix:advance(tCurr, {self.nufMaxwellCross, selfMom[1], self.crossMaxwellianM1, self.crossMaxwellianM2, self.bmag}, {self.nufMaxwellCross})
          end
 
          if self.varNu then
