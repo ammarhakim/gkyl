@@ -196,7 +196,7 @@ function GkField:fullInit(appTbl)
 
    self.bcTime = 0.0 -- Timer for BCs.
 
-   self.timers = {advTime={0.,0.,0.}}
+   self.timers = {advTime={0.,0.}}
 end
 
 -- Methods for EM field object.
@@ -242,8 +242,7 @@ function GkField:alloc(nRkDup)
    self.chargeDensLocal = createField(self.grid,self.basis,{1,1})
    self.polarizationWeight = createField(self.grid,self.basis,{1,1})
    self.polarizationWeightLocal = createField(self.grid,self.basis,{1,1})
-   self.lapWeightPoisson   = self.ndim > 1 and createField(self.grid,self.basis,{1,1}) or nil
-   self.modWeightPoisson   = createField(self.grid,self.basis,{1,1})
+   self.modWeightPoisson = createField(self.grid,self.basis,{1,1})
 
    if self.isElectromagnetic then
       -- Create fields for total current density and other things needed for Ampere solve.
@@ -294,8 +293,7 @@ function GkField:initField(population)
    self:applyBc(0, self.potentials[1])
 
    if self.ndim > 1 and self.ioFrame == 0 and (not self.externalPhi) then 
-      self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeightPoisson_0.bp", tm, self.ioFrame, false)
-      self.fieldIo:write(self.phiSlvr:getModifierWeight(),  "modifierWeightPoisson_0.bp", tm, self.ioFrame, false)
+      self.fieldIo:write(self.modWeightPoisson,  "modifierWeightPoisson_0.bp", tm, self.ioFrame, false)
    end
 end
 
@@ -378,22 +376,6 @@ function GkField:createSolver(population, externalField)
       else
          self.jacobGeo = self.unitField
       end
-      -- MF 2022/08/23: g2 creation of phiSlvr happens before setting weights,
-      -- but g0 solver creation needs to happen after computing weights.
-      -- So we only do this creation for ndim>1 here since that is still using
-      -- the g2 updater.
-      if self.ndim > 1 then
-         self.phiSlvr = Updater.GkFemPoisson {
-            onGrid = self.grid,   bcLower = self.bcLowerPhi,
-            basis  = self.basis,  bcUpper = self.bcUpperPhi,
-            zContinuous = not self.discontinuousPhi,
-            -- Note these metric coefficients contain the Jacobian.
-            gxx = gxxPoisson,
-            gxy = gxyPoisson,
-            gyy = gyyPoisson,
-            useG0 = false,
-         }
-      end
 
       self.weakMultiply = Updater.CartFieldBinOp {
          weakBasis = self.basis,  operation = "Multiply",
@@ -426,13 +408,9 @@ function GkField:createSolver(population, externalField)
                self.esEnergyFac:accumulate(0.5, self.adiabSpec:getQneutFac())   -- For diagnostics.
             end
          else 
-            self.lapWeightPoisson:combine(-1., self.polarizationWeight)
-            self.phiSlvr:setLaplacianWeight(self.lapWeightPoisson)
-
             self.modWeightPoisson:clear(0.)
             if self.adiabatic then   -- Add contribution from the adiabatic species.
                self.modWeightPoisson:accumulate(1., self.adiabSpec:getQneutFac())
-               self.phiSlvr:setModifierWeight(self.modWeightPoisson)
             end
          end
 
@@ -449,7 +427,6 @@ function GkField:createSolver(population, externalField)
                self.polarizationWeight:clear(0.0)
                populationTbl:AllreduceByCell(self.polarizationWeightLocal, self.polarizationWeight, 'sum')
             end
-            self.phiSlvr:setWeight(self.polarizationWeight)
          else
             self.setPolarizationWeightFunc = function(populationTbl)
                self.polarizationWeightLocal:clear(0.)
@@ -459,35 +436,66 @@ function GkField:createSolver(population, externalField)
                -- Reduce polarization weight across species communicator.
                self.polarizationWeight:clear(0.0)
                populationTbl:AllreduceByCell(self.polarizationWeightLocal, self.polarizationWeight, 'sum')
-
-               self.phiSlvr:setLaplacianWeight(self.polarizationWeight)
             end
          end
       end
 
+      -- MF 2022/08/23: Construction of modWeightPoisson and epsPoisson took place
+      -- on the device because they were assigned with :accumulate and :combine, which use the
+      -- device pointer if the CartField was created with useDevice=nil. Copy them to host.
       if self.ndim == 1 then
-         -- MF 2022/08/23: Construction of modWeightPoisson took place on the device because
-         -- it was assigned with :accumulate and :combine, which use the device
-         -- pointer if the CartField was created with useDevice=nil. Copy to host.
          self.modWeightPoisson:copyDeviceToHost()
-         self.phiSlvr = Updater.FemParproj {
+         self.phiParSlvr = Updater.FemParproj {
             onGrid = self.grid,  basis = self.basis,
             weight = self.modWeightPoisson,
             periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
          }
-      end
-
-      if self.ndim == 3 and not self.discontinuousPhi then
-         self.phiZSmoother = Updater.FemParproj {
-            onGrid = self.grid,  basis = self.basis,
-            periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
+         self.phiSlvr = {
+            advance = function(tcurr, inFlds, outFlds)
+               local qDens  = inFlds[1]
+               local phiOut = outFlds[1].phi  -- OutFlds[1] is a table of potentials.
+               self.phiParSlvr:advance(tCurr, {qDens}, {phiOut})
+            end,
+	    printDevDiagnostics = function() self.phiParSlvr:printDevDiagnostics() end,
          }
-         self.zSmoothPhi = function(tCurr, phiIn, phiOut)
-            self.phiZSmoother:advance(tCurr, {phiIn}, {phiOut})
-            return phiOut
-         end
       else
-         self.zSmoothPhi = function(tCurr, phiIn, phiOut) return phiIn end
+         self.epsPoisson = createField(self.grid,self.basis,{1,1},3)
+         self.epsPoisson:combineOffset(1., gxxPoisson, 0*self.basis:numBasis(),
+                                       1., gxyPoisson, 1*self.basis:numBasis(),
+                                       1., gyyPoisson, 2*self.basis:numBasis())
+         self.weakMultiply:advance(0., {self.polarizationWeight, self.epsPoisson}, {self.epsPoisson})
+         self.epsPoisson:copyDeviceToHost()
+         self.modWeightPoisson:copyDeviceToHost()
+         self.phiPerpSlvr = Updater.FemPoissonPerp {
+            onGrid  = self.grid,        bcLower = self.bcLowerPhi,
+            basis   = self.basis,       bcUpper = self.bcUpperPhi,
+            epsilon = self.epsPoisson,  kSq     = self.modWeightPoisson,
+         }
+
+         self.parSmooth = function(tCurr, fldIn, fldOut) end
+         if self.ndim == 3 and not self.discontinuousPhi then
+            self.parSmoother = Updater.FemParproj {
+               onGrid = self.grid,  basis = self.basis,
+               periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
+            }
+            self.parSmooth = function(tCurr, fldIn, fldOut)
+               self.parSmoother:advance(tCurr, {fldIn}, {fldOut})
+            end
+         end
+
+         self.phiSlvr = {
+            advance = function(tCurr, inFlds, outFlds)
+               local qDens  = inFlds[1]
+               local phiAux, phiOut = outFlds[1].phiAux, outFlds[1].phi  -- OutFlds[1] is a table of potentials.
+               self.parSmooth(tCurr, qDens, qDens) -- Reusing chargeDensLocal temporarily.
+               self.phiPerpSlvr:advance(tCurr, {qDens}, {phiAux})
+               self.parSmooth(tCurr, phiAux, phiOut)
+            end,
+            printDevDiagnostics = function()
+               self.parSmoother:printDevDiagnostics()
+               self.phiPerpSlvr:printDevDiagnostics()
+            end,
+         }
       end
 
       -- Function called in the advance method.
@@ -508,9 +516,7 @@ function GkField:createSolver(population, externalField)
          -- The first FEM solve ensures that phi is continuous in x and y.
          -- The conserved energy is defined in terms of this intermediate result,
          -- which we denote phiAux, before the final smoothing operation in z.
-         self.phiSlvr:advance(tCurr, {self.chargeDens}, {potentialsIn.phiAux})
-
-         potentialsIn.phi = self.zSmoothPhi(tCurr, potentialsIn.phiAux, potentialsIn.phi)
+         self.phiSlvr.advance(tCurr, {self.chargeDens}, {potentialsIn})
       end
       self.calcPhi = self.evolve
          and self.calcPhiInitial
@@ -817,11 +823,8 @@ function GkField:applyBc(tCurr, potIn)
 end
    
 function GkField:totalSolverTime()
-   local time = 0.
-   if self.phiSlvr then
-      if self.phiSlvr.slvr then time = time + self.timers.advTime[1]+self.phiSlvr.slvr.timers.completeNsolve end
-      if self.isElectromagnetic and self.dApardtSlvr then  time = time + self.timers.advTime[2] end
-   end
+   local time = self.timers.advTime[1]
+   if self.isElectromagnetic then time = time + self.timers.advTime[2] end
    return time
 end
 function GkField:totalBcTime() return self.bcTime end
@@ -833,7 +836,7 @@ end
 
 function GkField:printDevDiagnostics() 
    if self.phiSlvr then
-      self.phiSlvr:printDevDiagnostics()
+      self.phiSlvr.printDevDiagnostics()
    end
 end
 
@@ -1096,9 +1099,7 @@ function GkGeometry:initField(population)
           self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
    end
    local numB = self.basis:numBasis()
-   if GKYL_USE_GPU then self.geo.b_i:copyDeviceToHost() end
    self.geo.b_i:combineOffset(1, self.geo.b_x, 0*numB, 1, self.geo.b_y, 1*numB, 1, self.geo.b_z, 2*numB)
-   if GKYL_USE_GPU then self.geo.b_i:copyHostToDevice() end
 
    -- Compute 1/B and 1/(B^2). LBO collisions require that this is
    -- done via weak operations instead of projecting 1/B or 1/B^2.

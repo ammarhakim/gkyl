@@ -83,6 +83,7 @@ function FemParproj:init(tbl)
 
    self._isParPeriodic = tbl.periodicParallelDir
    assert(self._isParPeriodic ~= nil, "Updater.FemParproj: Must specify if parallel direction is periodic with 'periodicParallelDir'.")
+   self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
 
    local weightFld  = tbl.weight
    local isWeighted = weightFld ~= nil
@@ -95,7 +96,7 @@ function FemParproj:init(tbl)
    end
 
    self._zero = ffi.gc(ffiC.gkyl_fem_parproj_new(self._grid._zero, self._basis._zero, self._isParPeriodic,
-                                                 isWeighted, weightFld._zero, GKYL_USE_GPU or 0),
+                                                 isWeighted, weightFld._zero, self._useGPU),
                        ffiC.gkyl_fem_parproj_release)
 end
 

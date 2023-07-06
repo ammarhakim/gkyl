@@ -221,8 +221,8 @@ plasmaApp = Plasma.App {
       isElectromagnetic = false,
       -- Dirichlet in x, periodic in y. Potential phi has homogeneous Neumann
       -- BC for the smoothing operation that enforces continuity in z.
-      bcLowerPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T = "N", V = 0.0}},
-      bcUpperPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T = "N", V = 0.0}},
+      bcLowerPhi  = {{T = "D", V = 0.0}, {T = "P"}},
+      bcUpperPhi  = {{T = "D", V = 0.0}, {T = "P"}},
       bcLowerApar = {{T = "D", V = 0.0}, {T = "P"}},
       bcUpperApar = {{T = "D", V = 0.0}, {T = "P"}},
    },
