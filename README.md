@@ -3,69 +3,121 @@
 This is the Gkeyll code. The name is pronounced as in the book "The
 Strange Case of Dr. Jekyll and Mr. Hyde" which is required reading for
 all members of the Gkeyll Team. Gkeyll is written in a combination of
-LuaJIT and C++.  Gkeyll is developed at Princeton Plasma Physics
-Laboratory (PPPL) and is copyrighted 2016-2020 by Ammar Hakim and the
+LuaJIT and C/C++.  Gkeyll is developed at Princeton Plasma Physics
+Laboratory (PPPL) and is copyrighted 2016-2023 by Ammar Hakim and the
 Gkeyll Team.
 
 Documentation for the code is available at http://gkeyll.rtfd.io.
 
-# Getting dependencies and building the code
+# Installation
 
-Building Gkeyll requires a modern C/C++ compiler and Python 3 (for use in the `waf` build system and post-processing). The following instructions assume that these tools are present.
+Building gkyl requires
 
-For systems on which Gkeyll has been built before, the code can be built in three steps using scripts found in the `machines/` directory.
-1. Install dependencies using a `mkdeps` script from the `machines/` directory:
+- a modern C/C++ compiler.
+- Python 3 (for use in the `waf` build system and post-processing).
+- NVIDIA Cuda compiler (nvcc) if using (NVIDIA) GPUs.
+- The NCCL multi-GPU communication library.
+- gkylzero (https://github.com/ammarhakim/gkylzero) compiled and
+installed.
+
+The following instructions assume that these tools are present.
+
+Installing gkyl consists of three steps: building or indicating,
+dependencies, configuring, and building the executable. If we have built
+gkyl in the computer of interest before, we likely saved scripts
+(machine files) that simplify this process. If we haven't, you'll
+need to either build new machine files or perform each of the
+installation steps manually.                                       
+
+## On a known computer using machine files
+
+We provide a set of "machine files" to ease the build process.
+These are stored in the `machines/` directory. For example, to
+build on Perlmutter please run
 ```
-./machines/mkdeps.[SYSTEM].sh
+./machines/mkdeps.perlmutter.sh
+./machines/configure.perlmutter.sh
 ```
-where `[SYSTEM]` should be replaced by the name of the system you are building on, such as `macosx` or `eddy`. By default, installations will be made in `~/gkylsoft/`. 
+The first of these will install whichever dependencies are needed
+(e.g. LuaJIT). The default is for these installations take place
+in ```$HOME/gkylsoft```; if a different install directory is desired,
+specify it via the ```--prefix``` argument. The second of these
+steps tells our ```waf``` build system where to find the
+dependencies and where to place the gkyl executable
+(```$HOME/gkylsoft``` by default, but a non-default directory can
+be specified by changing GKYLSOFT). These two steps only need to be
+done once, unless one wishes to change the dependencies.
 
-2. Configure `waf` using a `configure` script from the `machines/` directory: 
+Next, manually load the modules listed at the top of the
+```machines/configure.<machine name>.sh``` file. For example,
+for Perlmutter do:
 ```
-./machines/configure.[SYSTEM].sh
+module load PrgEnv-gnu/8.3.3
+module load cray-mpich/8.1.22
+module load python/3.9-anaconda-2021.11
+module load cudatoolkit/11.7
+module load nccl/2.15.5-ofi
+module unload darshan
 ```
-
-**Steps 1 and 2 should only need to be done on the first build, unless one wishes to change the dependencies.**
-
-3. Build the code using
+Finally, build the gkyl executable using
 ```
 ./waf build install
 ```
+The result will be a `gkyl` executable located in the
+`$HOME/gkylsoft/gkyl/bin/` directory.
 
-The final result will be a `gkyl` executable located in the `~/gkylsoft/gkyl/bin/` directory.
+## On a new computer (no machine files available).
 
-## Building on non-native systems.
-
-For systems that do not already have corresponding files in the `machines/` directory, we encourage you to add files for your machine. Instructions can be found in `machines/README.md`.
+For systems that do not already have corresponding files in the
+`machines/` directory, we encourage you to author machine files
+for your machine following the existing ones as guides.
+Instructions can be found in `machines/README.md`.
 
 ## Testing the build.
 
-As a preliminary test, just to make sure the `gkyl` executable is ok, you can do
+As a preliminary test, just to make sure the `gkyl` executable is
+ok, you can do
 ```
-~/gkylsoft/gkyl/bin/gkyl -v
+$HOME/gkylsoft/gkyl/bin/gkyl -v
 ```
-This will print some version information and the libraries `gkyl` was built with.
+This will print some version information and the libraries `gkyl`
+ was built with. Since gkyl is a parallel code, and some clusters
+don't allow simply calling the `gkyl` executable (especially on the
+login node), you may have to use `mpirun`, `mpiexec` or `srun`
+(see your cluster's documentation) to run gkyl with, for example,
+```
+srun -n 1 $HOME/gkylsoft/gkyl/bin/gkyl -v
+```
+
+You can run a regression test as a first simulation. For example,
+to run the Vlasov-Maxwell 2x2v Weibel regression test on a CPU, do
+```
+cd Regression/vm-weibel/
+srun -n 1 $HOME/gkylsoft/gkyl/bin/gkyl rt-weibel-2x2v-p2.lua
+```
+and to run it on a GPU you may use
+```
+srun -n 1 $HOME/gkylsoft/gkyl/bin/gkyl -g rt-weibel-2x2v-p2.lua
+```
 
 You can run the full suite of unit tests using
 ```
 cd Regression/
-
-~/gkylsoft/gkyl/bin/gkyl runregression config
-
-~/gkylsoft/gkyl/bin/gkyl runregression rununit
+$HOME/gkylsoft/gkyl/bin/gkyl runregression config
+$HOME/gkylsoft/gkyl/bin/gkyl runregression rununit
 ```
 
 # Diagnostic tools
 
-The `postgkyl` python package has been developed for plotting diagnostic files from Gkeyll. 
-It can be installed via `conda` using
+The `postgkyl` python package has been developed for plotting diagnostic
+files from Gkeyll.  It can be installed via `conda` using
 
 ```
-conda install -c gkyl postgkyl
+conda install -c gkyl -c conda-forge postgkyl
 ```
 
 For more information about `postgkyl` and how to use it, please see
-https://gkeyll.readthedocs.io/en/latest/postgkyl/usage.html.
+https://gkeyll.readthedocs.io/en/latest/postgkyl/main.html.
 
 # Code contribution and formatting guidelines
 
