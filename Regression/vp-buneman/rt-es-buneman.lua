@@ -74,7 +74,7 @@ plasmaApp = Plasma.App {
    -- Field solver.
    field = Plasma.Field {
       epsilon0 = 1.0,  mu0 = 1.0,
-      useGhostCurrent = true,
+      hasMagneticField = false,
       init = function (t, xn)
 	 return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
       end,

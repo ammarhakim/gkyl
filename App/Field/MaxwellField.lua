@@ -94,10 +94,6 @@ function MaxwellField:fullInit(appTbl)
 
       self._inOutFunc = tbl.inOutFunc
 
-      -- No ghost current by default.
-      self.useGhostCurrent = xsys.pickBool(tbl.useGhostCurrent, false)
-      assert(self.useGhostCurrent==false, "ghost current not yet implemented in g0 merge")
-
       self.limiter = self.tbl.limiter and self.tbl.limiter or "monotonized-centered"
 
       -- numFlux used for selecting which type of numerical flux function to use
