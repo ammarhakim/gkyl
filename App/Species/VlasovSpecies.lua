@@ -51,12 +51,6 @@ VlasovSpecies.bcOpen      = SP_BC_OPEN       -- Zero gradient.
 VlasovSpecies.bcReflect   = SP_BC_REFLECT    -- Specular reflection.
 VlasovSpecies.bcZeroFlux  = SP_BC_ZEROFLUX
 
--- This ctor stores what is passed to it and defers most of the
--- construction to the fullInit() method below.
--- We also place here the things we want every species to know about
--- every other species (when we parallelize over species).
-function VlasovSpecies:init(tbl) self.tbl = tbl end
-
 function VlasovSpecies:makeBcApp(bcIn, dir, edge)
    local bcOut
    if type(bcIn) == "function" then
@@ -82,6 +76,12 @@ function VlasovSpecies:makeBcApp(bcIn, dir, edge)
 end
 
 -- ............. End of backwards compatibility for BCs .....................--
+
+-- This ctor stores what is passed to it and defers most of the
+-- construction to the fullInit() method below.
+-- We also place here the things we want every species to know about
+-- every other species (when we parallelize over species).
+function VlasovSpecies:init(tbl) self.tbl = tbl end
 
 -- Function to create basis functions.
 local function createBasis(nm, cdim, vdim, polyOrder)
