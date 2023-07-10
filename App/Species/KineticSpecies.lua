@@ -75,26 +75,6 @@ function KineticSpecies:fullInit(appTbl)
       self.calcIntQuantTrigger = function(t) return true end
    end
 
-   -- Determine if user wants diagnostics of the fluctuations.
-   -- ~~~~~ Backwards compatibility with old diagnostic specification. To be removed in the future. ~~~~~~ --
-   if tbl.diagnosticMoments then
-      print("App.Species.KineticSpecies: warning... 'diagnosticMoments' will be deprecated. use 'diagnostics' instead.")
-      tbl.diagnostics = tbl.diagnostics or {}
-      for nm, v in pairs(tbl.diagnosticMoments) do
-         if nm == "perturbed" and v == true then 
-            table.insert(tbl.diagnostics, "perturbed")
-         elseif type(nm) == "number" then
-	    table.insert(tbl.diagnostics, v)
-         end
-      end
-   end
-   if tbl.diagnosticIntegratedMoments then
-      print("App.Species.KineticSpecies: warning... 'diagnosticIntegratedMoments' will be deprecated. use 'diagnostics' instead.")
-      tbl.diagnostics = tbl.diagnostics or {}
-      for _, v in ipairs(tbl.diagnosticIntegratedMoments) do table.insert(tbl.diagnostics, v) end
-   end
-   -- ~~~~~~~~~~~~ End of diagnostics backwards compatibility code. ~~~~~~~~~~~~~~~~~~~~~~~ --
-
    self.diagnostics = {}  -- Table in which we'll place diagnostic objects.
 
    self.perturbedDiagnostics = false
@@ -227,12 +207,6 @@ function KineticSpecies:fullInit(appTbl)
    self.bcTime = 0.0   -- Timer for BCs.
 
 end
-
-function KineticSpecies:getCharge() return self.charge end
-function KineticSpecies:getMass() return self.mass end
-function KineticSpecies:getNdim() return self.ndim end
-function KineticSpecies:getVdim() return self.vdim end
-function KineticSpecies:setName(nm) self.name = nm end -- Needs to be called before fullInit().
 
 function KineticSpecies:setCfl(cfl)
    self.cfl = cfl
@@ -428,53 +402,6 @@ function KineticSpecies:createSolver(field, externalField)
 
    -- Create BC solvers.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self, field, externalField) end
-
-   if self.positivity then
-      self.posChecker = Updater.PositivityCheck {
-         onGrid = self.grid,
-         basis  = self.basis,
-      }
-      self.posRescaler = Updater.PositivityRescale {
-         onGrid = self.grid,
-         basis  = self.basis,
-      }
-   end
-   if self.nonconPositivity then
-      self.prePosM0     = self:allocMoment()
-      self.postPosM0    = self:allocMoment()
-      self.delPosM0     = self:allocMoment()
-      self.intDelPosM0  = DataStruct.DynVector{numComponents = 1}
-      self.intPosM0     = DataStruct.DynVector{numComponents = 1}
-      self.calcIntPosM0 = Updater.CartFieldIntegratedQuantCalc {
-         onGrid        = self.confGrid,
-         basis         = self.confBasis,
-         numComponents = 1,
-         quantity      = "V",
-      }
-      self.nonconPos = Updater.PositivityRescale {
-         onGrid = self.grid,
-         basis  = self.basis,
-         nonconservative = true,
-      }
-      self.nonconPosAdv = function(tCurr, outIdx) 
-         self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self.prePosM0})
-         self.nonconPos:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]}, false)
-
-         self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self.postPosM0})
-         self.delPosM0:combine(1.0, self.postPosM0, -1.0, self.prePosM0)
-
-         local tm, lv = self.intPosM0:lastData()
-         self.calcIntPosM0:advance(tCurr, {self.delPosM0}, {self.intDelPosM0})
-         local tmDel, lvDel = self.intDelPosM0:lastData()
-         self.intPosM0:appendData(tmDel, {lv[1]+lvDel[1]})
-      end
-      self.nonconPosWrite = function(tCurr, frame)
-         self.intPosM0:write( string.format("%s_intPosM0.bp", self.name), tCurr, frame)
-      end
-   else
-      self.nonconPosAdv = function(tCurr, outIdx) end
-      self.nonconPosWrite = function(tCurr, frame) end
-   end
 end
 
 function KineticSpecies:createCouplingSolver(population, field, externalField)

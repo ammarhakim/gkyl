@@ -14,7 +14,7 @@ local SpeciesBase = Proto()
 -- Functions that must be defined by subclasses.
 function SpeciesBase:init(tbl) end
 function SpeciesBase:fullInit(appTbl) end
-function SpeciesBase:setName(nm) end
+function SpeciesBase:setName(nm) self.name = nm end -- Needs to be called before fullInit().
 function SpeciesBase:setIoMethod(ioMethod) end
 function SpeciesBase:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs, cMap) end
 function SpeciesBase:setConfBasis(basis) end
@@ -22,13 +22,15 @@ function SpeciesBase:createBasis() end
 function SpeciesBase:setConfGrid(grid) end
 function SpeciesBase:alloc(nRkDup) end
 function SpeciesBase:setCfl(cfl) end
-function SpeciesBase:setDtGlobal(dtGlobal) end
-function SpeciesBase:getNdim() return 1 end
+function SpeciesBase:getNdim() return self.ndim end
+function SpeciesBase:getVdim() return self.vdim end
 function SpeciesBase:createSolver() end
 function SpeciesBase:createCouplingSolver() end
 function SpeciesBase:createDiagnostics() end
+function SpeciesBase:setActiveRKidx(rkIdx) self.activeRKidx = rkIdx end
 function SpeciesBase:rkStepperFields() return { nil } end
 function SpeciesBase:suggestDt() end
+function SpeciesBase:setDtGlobal(dtGlobal) end
 function SpeciesBase:clearCFL() end
 function SpeciesBase:clearMomentFlags(species) end
 function SpeciesBase:initDist() end
@@ -44,18 +46,18 @@ function SpeciesBase:updateInDirection(dir, tCurr, dt, fIn, fOut) return true, G
 function SpeciesBase:applyBcIdx(tCurr, field, externalField, inIdx, outIdx) end
 function SpeciesBase:applyBc(tCurr, field, externalField, inIdx, outIdx) end
 function SpeciesBase:applyBcInitial(tCurr, field, externalField, inIdx, outIdx)
-   -- This function is a temporary hack to make initial :applyBc call in PlasmaOnCartGrid work
-   -- with both KineticSpecies/FluidSpecies and MomentSpecies.
+   -- This function is a temporary hack to make initial :applyBc call in PlasmaOnCartGrid work.
    self:applyBc(tCurr, field, externalField, inIdx, outIdx)
 end
 function SpeciesBase:totalSolverTime() return 0.0 end
 function SpeciesBase:momCalcTime() return 0.0 end
 function SpeciesBase:intMomCalcTime() return 0.0 end
 function SpeciesBase:totalBcTime() return 0.0 end
-function SpeciesBase:getCharge() return 0.0 end
-function SpeciesBase:getMass() return 1.0 end
+function SpeciesBase:getCharge() return self.charge end
+function SpeciesBase:getMass() return self.mass end
 function SpeciesBase:copyRk(outIdx, aIdx) end
 function SpeciesBase:combineRk() end
+function SpeciesBase:isEvolving() return self.evolve end
 
 return SpeciesBase
 
