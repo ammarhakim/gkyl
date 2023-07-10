@@ -319,9 +319,9 @@ function MaxwellField:createSolver(population)
       for d=1,self.grid:ndim() do if self.grid:cuts(d)>1 then isParallel=true end end
 
       self.fieldSlvr = Updater.FemPoisson {
-         onGrid    = self.grid,   bcLower = self.bcLowerPhi,
-         basis     = self.basis,  bcUpper = self.bcUpperPhi,
-         epsilon_0 = self.epsilon0,
+         onGrid  = self.grid,   bcLower = self.bcLowerPhi,
+         basis   = self.basis,  bcUpper = self.bcUpperPhi,
+         epsilon = self.epsilon0,
       }
       self.esEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
          onGrid = self.grid,   quantity = "V2",

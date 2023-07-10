@@ -1,7 +1,8 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Solve the Poisson equation -epsilon_0*del^2(phi)=rho using the
--- continuous finite element method.
+-- Solve the Poisson equation
+--   - div epsilon grad(phi) - k^2 * phi = rho
+-- using the continuous finite element method
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -92,7 +93,7 @@ function FemPoisson:init(tbl)
 
    self._grid   = assert(tbl.onGrid, "Updater.FemPoisson: Must specify grid to use with 'onGrid'.")
    self._basis  = assert(tbl.basis, "Updater.FemPoisson: Must specify the basis in 'basis'.")
-   local eps0   = assert(tbl.epsilon_0, "Updater.FemPoisson: Must specify the permittivity of space 'epsilon_0'.")
+   local eps0   = assert(tbl.epsilon, "Updater.FemPoisson: Must specify the permittivity of space 'epsilon'.")
    local kSq    = tbl.kSq -- Wave number squared.
    self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
 
@@ -134,7 +135,7 @@ function FemPoisson:init(tbl)
       assert(false, "Updater.FemPoisson: must specify 'bcLower' and 'bcUpper'.")
    end
 
-   local eps0_const, eps0_var = nil, nil
+   local eps0_const, eps0_var = 0, nil
    if type(eps0) == 'number' then
       eps0_const = eps0
    elseif type(eps0) == 'table' then

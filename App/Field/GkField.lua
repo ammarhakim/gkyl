@@ -466,13 +466,19 @@ function GkField:createSolver(population, externalField)
          self.weakMultiply:advance(0., {self.polarizationWeight, self.epsPoisson}, {self.epsPoisson})
          self.epsPoisson:copyDeviceToHost()
          self.modWeightPoisson:copyDeviceToHost()
-         self.phiPerpSlvr = Updater.FemPoissonPerp {
-            onGrid  = self.grid,        bcLower = self.bcLowerPhi,
-            basis   = self.basis,       bcUpper = self.bcUpperPhi,
-            epsilon = self.epsPoisson,  kSq     = self.modWeightPoisson,
-         }
+         self.phiPerpSlvr = self.ndim == 2
+            and Updater.FemPoisson {
+               onGrid  = self.grid,        bcLower = self.bcLowerPhi,
+               basis   = self.basis,       bcUpper = self.bcUpperPhi,
+               epsilon = self.epsPoisson,  kSq     = self.modWeightPoisson,
+            }
+            or Updater.FemPoissonPerp {
+               onGrid  = self.grid,        bcLower = self.bcLowerPhi,
+               basis   = self.basis,       bcUpper = self.bcUpperPhi,
+               epsilon = self.epsPoisson,  kSq     = self.modWeightPoisson,
+            }
 
-         self.parSmooth = function(tCurr, fldIn, fldOut) end
+         self.parSmooth = function(tCurr, fldIn, fldOut) fldOut:copy(fldIn) end
          if self.ndim == 3 and not self.discontinuousPhi then
             self.parSmoother = Updater.FemParproj {
                onGrid = self.grid,  basis = self.basis,
@@ -492,7 +498,7 @@ function GkField:createSolver(population, externalField)
                self.parSmooth(tCurr, phiAux, phiOut)
             end,
             printDevDiagnostics = function()
-               self.parSmoother:printDevDiagnostics()
+--               self.parSmoother:printDevDiagnostics()
                self.phiPerpSlvr:printDevDiagnostics()
             end,
          }
