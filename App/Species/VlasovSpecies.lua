@@ -301,9 +301,6 @@ function VlasovSpecies:fullInit(appTbl)
    self.nGhost = 1   -- Default is 1 ghost-cell in each direction.
 
    self.tCurr = 0.0
-
-   self.integratedMomentsTime = 0.0 -- Timer for integrated moments.
-   self.bcTime = 0.0   -- Timer for BCs.
 end
 
 function VlasovSpecies:setCfl(cfl)
@@ -471,6 +468,8 @@ function VlasovSpecies:createSolver(field, externalField)
    -- Create BC solvers.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self, field, externalField) end
 
+   self.qbym = self.charge/self.mass
+
    local plasmaE, plasmaB = field:hasEB()
    local extHasE, extHasB = externalField:hasEB()
 
@@ -514,7 +513,9 @@ function VlasovSpecies:createSolver(field, externalField)
          cdim   = self.cdim,  equation_id = "vlasov",
       }
       self.collisionlessBoundaryAdvance = function(tCurr, inFlds, outFlds)
+         local tmStart = Time.clock()
          self.boundaryFluxSlvr:advance(tCurr, inFlds, outFlds)
+         self.timers.boundflux = self.timers.boundflux + Time.clock() - tmStart
       end
    else
       self.solver = {totalTime = 0.}
@@ -613,7 +614,11 @@ function VlasovSpecies:createSolver(field, externalField)
    -- Create species source solvers.
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
 
-   self.tmCouplingMom = 0.0    -- For timer.
+   self.timers = {
+      mom = 0.,   momcross = 0.,   advance = 0.,
+      advancecross = 0.,   collisions = 0.,   collisionless = 0.,
+      boundflux = 0.,  sources = 0.,   bc = 0.,
+   }
 end
 
 function VlasovSpecies:initDist(extField)
@@ -734,6 +739,8 @@ function VlasovSpecies:initCrossSpeciesCoupling(population)
 end
 
 function VlasovSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
+   local tmStart = Time.clock()
+
    self:setActiveRKidx(inIdx)
    local fIn     = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
@@ -745,33 +752,41 @@ function VlasovSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
    local totalEmField    = self.totalEmField
    totalEmField:clear(0.0)
 
-   local qbym = self.charge/self.mass
-   if emField then totalEmField:accumulate(qbym, emField) end
-   if emExternalField then totalEmField:accumulate(qbym, emExternalField) end
+   if emField then totalEmField:accumulate(self.qbym, emField) end
+   if emExternalField then totalEmField:accumulate(self.qbym, emExternalField) end
 
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
    self.accumulateExtForce(tCurr, totalEmField)
 
    self.collisionlessAdvance(tCurr, {fIn, totalEmField, emField}, {fRhsOut, self.cflRateByCell})
+   self.timers.collisionless = self.solver.totalTime
 
    -- Perform the collision update.
+   self.timers.collisions = 0.
    for _, c in pairs(self.collisions) do
       c:advance(tCurr, fIn, population, {fRhsOut, self.cflRateByCell})   -- 'population' needed for cross-species collisions.
+      self.timers.collisions = self.timers.collisions + c:getTimer('advance')
    end
 
    self.collisionlessBoundaryAdvance(tCurr, {fIn}, {fRhsOut})
 
-   for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, population:getSpecies(), fRhsOut) end
+   self.timers.sources = 0.
+   for _, src in lume.orderedIter(self.sources) do
+      src:advance(tCurr, fIn, population:getSpecies(), fRhsOut)
+      self.timers.sources = self.timers.sources + src:getTimer('advance')
+   end
    
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
       bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)   -- Save boundary fluxes.
    end
 
+   self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end
 
 function VlasovSpecies:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
    -- Perform some operations after the updates have been computed, but before
    -- the combine RK (in PlasmaOnCartGrid) is called.
+   local tmStart = Time.clock()
 
    local species = population:getSpecies()
 
@@ -785,6 +800,8 @@ function VlasovSpecies:advanceCrossSpeciesCoupling(tCurr, population, emIn, inId
    for _, bc in pairs(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
 
    for _, src in lume.orderedIter(self.sources) do src:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
+
+   self.timers.advancecross = self.timers.advancecross + Time.clock() - tmStart
 end
 
 function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
@@ -826,12 +843,13 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:calcCouplingMoments(tCurr, rkIdx, species) end
 
-   self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
+   self.timers.mom = self.timers.mom + Time.clock() - tmStart
 end
 
 function VlasovSpecies:calcCrossCouplingMoments(tCurr, rkIdx, population)
    -- Perform cross-species calculation related to coupling moments that require the
    -- self-species coupling moments.
+   local tmStart = Time.clock()
 
    -- Begin sending/receiving fiveMoments if needed.
    population:speciesXferField_begin(self.fiveMomentsXfer, self.fiveMoments, 22)
@@ -839,6 +857,8 @@ function VlasovSpecies:calcCrossCouplingMoments(tCurr, rkIdx, population)
    for _, coll in lume.orderedIter(self.collisions) do
       coll:calcCrossCouplingMoments(tCurr, rkIdx, population)
    end
+
+   self.timers.momcross = self.timers.momcross + Time.clock() - tmStart
 end
 
 function VlasovSpecies:copyRk(outIdx, aIdx)
@@ -890,7 +910,7 @@ function VlasovSpecies:applyBcEvolve(tCurr, field, externalField, inIdx, outIdx)
    -- Apply periodic BCs (to only fluctuations if fluctuation BCs)
    fIn:sync(syncPeriodicDirsTrue)
 
-   self.bcTime = self.bcTime + (Time.clock()-tmStart)
+   self.timers.bc = self.timers.bc + Time.clock() - tmStart
 end
 function VlasovSpecies:applyBc(tCurr, field, externalField, inIdx, outIdx)
    self.applyBcFunc(tCurr, field, externalField, inIdx, outIdx)
@@ -966,8 +986,7 @@ function VlasovSpecies:getNumDensity(rkIdx)
    local fIn = self:rkStepperFields()[rkIdx]
    self.numDensityCalc:advance(nil, {fIn}, { self.numDensity })
 
-   self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
-
+   self.timers.mom = self.timers.mom + Time.clock() - tmStart
    return self.numDensity
 end
 
@@ -980,14 +999,8 @@ function VlasovSpecies:getMomDensity(rkIdx)
    local fIn = self:rkStepperFields()[rkIdx]
    self.momDensityCalc:advance(nil, {fIn}, { self.momDensity })
 
-   self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
-
+   self.timers.mom = self.timers.mom + Time.clock() - tmStart
    return self.momDensity
-end
-
-function VlasovSpecies:momCalcTime()
-   local tm = self.tmCouplingMom
-   return tm
 end
 
 -- Please test this for higher than 1x1v... (MF: JJ?).
@@ -1021,14 +1034,12 @@ function VlasovSpecies:write(tm, field, force)
          bc:computeBoundaryFluxRate(self.dtGlobal[0])
       end
 
-      local tmStart = Time.clock()
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
          for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcIntegratedDiagnostics(tm, self, field)
          end
       end
-      self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
 
       -- Only write stuff if triggered.
       if self.distIoTrigger(tm) or force then
@@ -1063,13 +1074,10 @@ function VlasovSpecies:write(tm, field, force)
       -- If not evolving species, don't write anything except initial conditions.
       if self.distIoFrame == 0 then
 
-         local tmStart = Time.clock()
-
          -- Compute integrated diagnostics.
          for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcIntegratedDiagnostics(tm, self, field)
          end
-         self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
 
          self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, 0), tm, 0)
 
@@ -1132,9 +1140,11 @@ function VlasovSpecies:readRestart(field, externalField)
    return tm
 end
 
--- Timers.
-function VlasovSpecies:totalSolverTime() return self.solver.totalTime end
-function VlasovSpecies:totalBcTime() return self.bcTime end
-function VlasovSpecies:intMomCalcTime() return self.integratedMomentsTime end
+function VlasovSpecies:clearTimers()
+   for nm, _ in pairs(self.timers) do self.timers[nm] = 0. end
+   self.solver.totalTime = 0.
+   for _, c in pairs(self.collisions) do c:clearTimers() end
+   for _, src in lume.orderedIter(self.sources) do src:clearTimers() end
+end
 
 return VlasovSpecies

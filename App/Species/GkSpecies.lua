@@ -309,9 +309,6 @@ function GkSpecies:fullInit(appTbl)
    self.nGhost = 1   -- Default is 1 ghost-cell in each direction.
 
    self.tCurr = 0.0
-
-   self.integratedMomentsTime = 0.0 -- Timer for integrated moments.
-   self.bcTime = 0.0   -- Timer for BCs.
 end
 
 function GkSpecies:setCfl(cfl)
@@ -576,7 +573,9 @@ function GkSpecies:createSolver(field, externalField)
          cdim   = self.cdim,  equation_id = "gyrokinetic",
       }
       self.collisionlessBoundaryAdvance = function(tCurr, inFlds, outFlds)
+         local tmStart = Time.clock()
          self.boundaryFluxSlvr:advance(tCurr, inFlds, outFlds)
+         self.timers.boundflux = self.timers.boundflux + Time.clock() - tmStart
       end
 
    else
@@ -727,7 +726,11 @@ function GkSpecies:createSolver(field, externalField)
    -- Create species source solvers.
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
 
-   self.timers = {couplingMom = 0., sources = 0.}
+   self.timers = {
+      mom = 0.,   momcross = 0.,   advance = 0.,
+      advancecross = 0.,   collisions = 0.,   collisionless = 0.,
+      boundflux = 0.,  sources = 0.,   bc = 0.,
+   }
 end
 
 function GkSpecies:createCouplingSolver(population, field, externalField)
@@ -869,6 +872,8 @@ function GkSpecies:initCrossSpeciesCoupling(population)
 end
 
 function GkSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
+   local tmStart = Time.clock()
+
    self:setActiveRKidx(inIdx)
    self.tCurr = tCurr
    local fIn     = self:rkStepperFields()[inIdx]
@@ -883,11 +888,14 @@ function GkSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
    fRhsOut:clear(0.0)
 
    -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
+   self.timers.collisions = 0.
    for _, c in pairs(self.collisions) do
       c:advance(tCurr, fIn, population, {fRhsOut, self.cflRateByCell})
+      self.timers.collisions = self.timers.collisions + c:getTimer('advance')
    end
 
    self.collisionlessAdvance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut, self.cflRateByCell})
+   self.timers.collisionless = self.solver.totalTime
 
    self.collisionlessBoundaryAdvance(tCurr, {fIn}, {fRhsOut})
 
@@ -896,10 +904,17 @@ function GkSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
    end
    emIn[1]:useBoundaryFlux(tCurr, outIdx)  -- Some field objects need to use the boundary fluxes right away.
 
-   for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, population:getSpecies(), fRhsOut) end
+   self.timers.sources = 0.
+   for _, src in lume.orderedIter(self.sources) do
+      src:advance(tCurr, fIn, population:getSpecies(), fRhsOut)
+      self.timers.sources = self.timers.sources + src:getTimer('advance')
+   end
+
+   self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end
 
 function GkSpecies:advanceStep2(tCurr, population, emIn, inIdx, outIdx)
+   local tmStart = Time.clock()
    local fIn = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
@@ -911,11 +926,13 @@ function GkSpecies:advanceStep2(tCurr, population, emIn, inIdx, outIdx)
       self.solverStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solverStep2:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
    end
+   self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end
 
 function GkSpecies:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
    -- Perform some operations after the updates have been computed, but before
    -- the combine RK (in PlasmaOnCartGrid) is called.
+   local tmStart = Time.clock()
 
    local species = population:getSpecies()
 
@@ -927,6 +944,7 @@ function GkSpecies:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, o
    end
 
    for _, bc in pairs(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
+   self.timers.advancecross = self.timers.advancecross + Time.clock() - tmStart
 end
 
 function GkSpecies:createDiagnostics(field)
@@ -1001,12 +1019,13 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, neutVtSq}, {species[self.name].collisions[self.collNmCX].reactRate})
    end
    
-   self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
+   self.timers.mom = self.timers.mom + Time.clock() - tmStart
 end
 
 function GkSpecies:calcCrossCouplingMoments(tCurr, rkIdx, population)
    -- Perform cross-species calculation related to coupling moments that require the
    -- self-species coupling moments.
+   local tmStart = Time.clock()
 
    -- Begin sending/receiving threeMoments if needed.
    population:speciesXferField_begin(self.threeMomentsXfer, self.threeMoments, 22)
@@ -1014,6 +1033,8 @@ function GkSpecies:calcCrossCouplingMoments(tCurr, rkIdx, population)
    for _, coll in lume.orderedIter(self.collisions) do
       coll:calcCrossCouplingMoments(tCurr, rkIdx, population)
    end
+
+   self.timers.momcross = self.timers.momcross + Time.clock() - tmStart
 end
 
 function GkSpecies:setActiveRKidx(rkIdx) self.activeRKidx = rkIdx end
@@ -1100,7 +1121,7 @@ function GkSpecies:applyBcEvolve(tCurr, field, externalField, inIdx, outIdx)
       fIn:sync(not syncPeriodicDirsTrue)
    end
 
-   self.bcTime = self.bcTime + (Time.clock()-tmStart)
+   self.timers.bc = self.timers.bc + Time.clock() - tmStart
 end
 function GkSpecies:applyBc(tCurr, field, externalField, inIdx, outIdx)
    self.applyBcFunc(tCurr, field, externalField, inIdx, outIdx)
@@ -1118,7 +1139,7 @@ function GkSpecies:getNumDensity(rkIdx)
    fIn = self.getF_or_deltaF(fIn)
    self.numDensityCalc:advance(nil, {fIn}, { self.numDensityAux })
 
-   self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
+   self.timers.mom = self.timers.mom + Time.clock() - tmStart
    return self.numDensityAux
 end
 
@@ -1132,65 +1153,11 @@ function GkSpecies:getMomDensity(rkIdx)
    fIn = self.getF_or_deltaF(fIn)
    self.momDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
 
-   self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
-   return self.momDensityAux
-end
-
--- Like getMomDensity, but use GkM1proj instead of GkM1, which uses cell-average v_parallel in moment calculation.
-function GkSpecies:getMomProjDensity(rkIdx)
-   -- If no rkIdx specified, assume momDensity has already been calculated.
-   if rkIdx == nil then return self.momDensity end 
-   local fIn = self:rkStepperFields()[rkIdx]
- 
-   if self.evolve then
-      local tmStart = Time.clock()
-
-      fIn = self.getF_or_deltaF(fIn)
-      self.momProjDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
-
-      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
-   end
-   return self.momDensityAux
-end
-
-function GkSpecies:getEmModifier(rkIdx)
-   -- For p > 1, this is just numDensity.
-   if self.basis:polyOrder() > 1 then return self:getNumDensity(rkIdx) end
-
-   local fIn = self.equation.emMod
-
-   if self.evolve then
-      local tmStart = Time.clock()
-
-      fIn = self.getF_or_deltaF(fIn)
-      self.momProjDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
-
-      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
-   end
-   fIn:clear(0.0)
+   self.timers.mom = self.timers.mom + Time.clock() - tmStart
    return self.momDensityAux
 end
 
 function GkSpecies:getPolarizationWeight() return self.getPolWeight() end
-
-function GkSpecies:getSrcCX() return self.srcCX end
-
-function GkSpecies:getVSigmaCX() return self.vSigmaCX end
-
-function GkSpecies:momCalcTime()
-   local tm = self.timers.couplingMom
-   return tm
-end
-
-function GkSpecies:solverVolTime() return self.equation.totalVolTime end
-
-function GkSpecies:solverSurfTime() return self.equation.totalSurfTime end
-
-function GkSpecies:totalSolverTime()
-   local timer = self.solver and self.solver.totalTime or 0.
-   if self.solverStep2 then timer = timer + self.solverStep2.totalTime end
-   return timer
-end
 
 function GkSpecies:Maxwellian(xn, n0, vdIn, T0)
    local vd   = vdIn or 0.0
@@ -1226,14 +1193,12 @@ function GkSpecies:write(tm, field, force)
          bc:computeBoundaryFluxRate(self.dtGlobal[0])
       end
 
-      local tmStart = Time.clock()
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
          for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcIntegratedDiagnostics(tm, self, field)
          end
       end
-      self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
 
       -- Only write stuff if triggered.
       if self.distIoTrigger(tm) or force then
@@ -1270,13 +1235,10 @@ function GkSpecies:write(tm, field, force)
       -- If not evolving species, don't write anything except initial conditions.
       if self.distIoFrame == 0 then
 
-         local tmStart = Time.clock()
-
          -- Compute integrated diagnostics.
          for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcIntegratedDiagnostics(tm, self, field)
          end
-         self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
 
          self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, 0), tm, 0)
 
@@ -1343,9 +1305,11 @@ function GkSpecies:readRestart(field, externalField)
    return tm
 end
 
--- Timers.
-function GkSpecies:totalSolverTime() return self.solver.totalTime end
-function GkSpecies:totalBcTime() return self.bcTime end
-function GkSpecies:intMomCalcTime() return self.integratedMomentsTime end
+function GkSpecies:clearTimers() 
+   for nm, _ in pairs(self.timers) do self.timers[nm] = 0. end
+   self.solver.totalTime = 0.
+   for _, c in pairs(self.collisions) do c:clearTimers() end
+   for _, src in lume.orderedIter(self.sources) do src:clearTimers() end
+end
 
 return GkSpecies

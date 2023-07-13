@@ -49,15 +49,19 @@ function SpeciesBase:applyBcInitial(tCurr, field, externalField, inIdx, outIdx)
    -- This function is a temporary hack to make initial :applyBc call in PlasmaOnCartGrid work.
    self:applyBc(tCurr, field, externalField, inIdx, outIdx)
 end
-function SpeciesBase:totalSolverTime() return 0.0 end
-function SpeciesBase:momCalcTime() return 0.0 end
-function SpeciesBase:intMomCalcTime() return 0.0 end
-function SpeciesBase:totalBcTime() return 0.0 end
 function SpeciesBase:getCharge() return self.charge end
 function SpeciesBase:getMass() return self.mass end
 function SpeciesBase:copyRk(outIdx, aIdx) end
 function SpeciesBase:combineRk() end
 function SpeciesBase:isEvolving() return self.evolve end
+function SpeciesBase:clearTimers() end
+function SpeciesBase:getTimer(timerNm)
+   if self.timers then
+      if self.timers[timerNm] == nil then return 0. end
+      return self.timers[timerNm]
+   end
+   return 0.
+end
 
 return SpeciesBase
 

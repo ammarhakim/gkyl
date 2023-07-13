@@ -194,9 +194,7 @@ function GkField:fullInit(appTbl)
       self.calcIntFieldEnergyTrigger = function(t) return true end
    end
 
-   self.bcTime = 0.0 -- Timer for BCs.
-
-   self.timers = {advTime={0.,0.}}
+   self.timers = {advance = 0.,   bc = 0.}
 end
 
 -- Methods for EM field object.
@@ -772,7 +770,7 @@ function GkField:advance(tCurr, population, inIdx, outIdx)
    
    self.calcPhi(tCurr, population, potCurr, potRhs)
 
-   self.timers.advTime[1] = self.timers.advTime[1] + Time.clock() - tmStart
+   self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end
 
 -- Solve for dApardt in p>=2, or solve for a provisional dApardtProv in p=1.
@@ -807,37 +805,31 @@ function GkField:advanceStep2(tCurr, population, inIdx, outIdx)
       -- Apply BCs.
       local tmStart = Time.clock()
       dApardt:sync(true)
-      self.bcTime = self.bcTime + (Time.clock()-tmStart)
+      self.timers.bc = self.timers.bc + Time.clock() - tmStart
 
       -- Apar RHS is just dApar/dt.
       potRhs.apar:copy(dApardt)
    end
 
-   self.timers.advTime[2] = self.timers.advTime[2] + Time.clock() - tmStart
+   self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end
 
 -- NOTE: global boundary conditions handled by solver. This just updates interproc ghosts.
 -- Also NOTE: this method does not usually get called (because it is not called in applyBcIdx).
 function GkField:applyBc(tCurr, potIn)
    local tmStart = Time.clock()
+
    potIn.phi:sync(true)
    if self.isElectromagnetic then 
       potIn.apar:sync(true) 
       potIn.dApardt:sync(true) 
    end
-   self.bcTime = self.bcTime + (Time.clock()-tmStart)
+
+   self.timers.bc = self.timers.bc + Time.clock() - tmStart
 end
    
-function GkField:totalSolverTime()
-   local time = self.timers.advTime[1]
-   if self.isElectromagnetic then time = time + self.timers.advTime[2] end
-   return time
-end
-function GkField:totalBcTime() return self.bcTime end
-function GkField:energyCalcTime()
-   local t = self.int2Calc.totalTime
-   if self.energyCalc then t = t + self.energyCalc.totalTime end
-   return t
+function GkField:clearTimers() 
+   for nm, _ in pairs(self.timers) do self.timers[nm] = 0. end
 end
 
 function GkField:printDevDiagnostics() 
@@ -876,15 +868,13 @@ function GkGeometry:fullInit(appTbl)
    self.bmagFunc = tbl.bmag
    --assert(self.bmagFunc and type(self.bmagFunc)=="function", "GkGeometry: must specify background magnetic field function with 'bmag'")
 
-   -- Wall potential for sheath BCs.
-   self.phiWallFunc = tbl.phiWall
-   if self.phiWallFunc then assert(type(self.phiWallFunc)=="function", "GkGeometry: phiWall must be a function (t, xn)") end
-
    -- File containing geometry quantities that go into equations.
    self.fromFile = tbl.fromFile
 
    -- write ghost cells on boundaries of global domain (for BCs)
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
+
+   self.timers = {advance = 0.,   bc = 0.}
 end
 
 function GkGeometry:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
@@ -946,9 +936,6 @@ function GkGeometry:alloc()
    if self.fromFile == nil then
       self.geo.allGeo = createField(self.grid,self.basis,ghostNum,15,syncPeriodic)
    end
-
-   -- Wall potential for sheath BCs.
-   self.geo.phiWall = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 end
 
 function GkGeometry:createSolver(population)
@@ -1054,13 +1041,6 @@ function GkGeometry:createSolver(population)
       }
    end
 
-   if self.phiWallFunc then 
-      self.setPhiWall = Updater.EvalOnNodes {
-         onGrid = self.grid,   evaluate = self.phiWallFunc,
-         basis  = self.basis,  onGhosts = true,
-      }
-   end
-
    self.unitWeight = createField(self.grid,self.basis,{1,1})
    local initUnit = Updater.ProjectOnBasis {
       onGrid = self.grid,   evaluate = function (t,xn) return 1.0 end,
@@ -1122,9 +1102,6 @@ function GkGeometry:initField(population)
 
    log("...Finished initializing the geometry\n")
 
-   if self.setPhiWall then self.setPhiWall:advance(0.0, {}, {self.geo.phiWall})
-   else self.geo.phiWall:clear(0.0) end
-
    -- Sync ghost cells. These calls do not enforce periodicity because
    -- these fields were created with syncPeriodicDirs = false.
    self.geo.bmag:sync(false)
@@ -1145,8 +1122,6 @@ function GkGeometry:initField(population)
    self.geo.b_z:sync(false)
    self.geo.b_i:sync(false)
    
-   self.geo.phiWall:sync(false)
-
    -- Apply BCs.
    self:applyBc(0, self.geo)
 end
@@ -1176,26 +1151,16 @@ function GkGeometry:rkStepperFields()
    return { self.geo, self.geo, self.geo, self.geo }
 end
 
-function GkGeometry:advance(tCurr)
-   if self.evolve then 
-      self.setPhiWall:advance(tCurr, {}, self.geo.phiWall)
-   end 
-end
+function GkGeometry:advance(tCurr) end
 
 function GkGeometry:applyBcIdx(tCurr, idx)
    self:applyBc(tCurr, self:rkStepperFields()[1])
 end
 
-function GkGeometry:applyBc(tCurr, geoIn)
-   if self.evolve then geoIn.phiWall:sync(false) end
-end
+function GkGeometry:applyBc(tCurr, geoIn) end
 
-function GkGeometry:totalSolverTime()
-   if self.evolve then return self.setPhiWall.totalTime
-   else return 0 end
+function GkGeometry:clearTimers() 
+   for nm, _ in pairs(self.timers) do self.timers[nm] = 0. end
 end
-
-function GkGeometry:totalBcTime() return 0.0 end
-function GkGeometry:energyCalcTime() return 0.0 end
 
 return {GkField = GkField, GkGeometry = GkGeometry}
