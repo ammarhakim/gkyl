@@ -145,7 +145,7 @@ function RectCart:init(tbl)
          local localRange      = self._decomposedRange:subDomain(subDomIdx) --Local range is set using the decomposed subdomain
          self._localRange:copy(localRange)
       else
-         self._decomposedRange = self._globalRange -- I think something is wrong with this approach. 
+         self._decomposedRange = self.decomp:decompose(self._globalRange) -- I think something is wrong with this approach. 
          self._block           = 1
          self._localRange:copy(self._globalRange)
       end

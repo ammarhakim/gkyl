@@ -71,7 +71,7 @@ function test_1(comm)
    
    --print("I have not done anything globally yet")
    local noDecomp = DecompRegionCalc.CartProd { 
-     cuts = {1}, 
+     cuts = {1},
      __serTesting = true,
    }
    --print("I made noDecomp")
@@ -81,8 +81,8 @@ function test_1(comm)
       cells = {10},
       decomposition = noDecomp,
    }
-   --print("I finished establishing a global grid")
-    print(string.format("r:%d | gridLocal: globalRangeLower=(%d) | globalRangeUpper=(%d) | localRangeLower=(%d) | localRangeUpper=(%d)\n",
+   print("I finished establishing a global grid")
+   print(string.format("r:%d | gridLocal: globalRangeLower=(%d) | globalRangeUpper=(%d) | localRangeLower=(%d) | localRangeUpper=(%d)\n",
          Mpi.Comm_rank(Mpi.COMM_WORLD),
          grid:globalRange():lower(1),
          grid:globalRange():upper(1),
@@ -90,7 +90,7 @@ function test_1(comm)
          grid:localRange():upper(1))
          )
 
-  print(string.format("r:%d | gridGlobal: globalRangeLower=(%d) | globalRangeUpper=(%d) | localRangeLower=(%d) | localRangeUpper=(%d)\n",
+   print(string.format("r:%d | gridGlobal: globalRangeLower=(%d) | globalRangeUpper=(%d) | localRangeLower=(%d) | localRangeUpper=(%d)\n",
          Mpi.Comm_rank(Mpi.COMM_WORLD),
          gridGlobal:globalRange():lower(1),
          gridGlobal:globalRange():upper(1),
@@ -98,12 +98,12 @@ function test_1(comm)
          gridGlobal:localRange():upper(1))
          )
 
-   --[[local fieldGlobal = DataStruct.Field {
+   local fieldGlobal = DataStruct.Field {
       onGrid        = gridGlobal,
       numComponents = 3,
       ghost         = {1, 1},
    }
-   print("I finished establishing a global field")]]--
+   print("I finished establishing a global field")
 
 
    --Local field checks
@@ -148,7 +148,7 @@ function test_1(comm)
    end
 
    --Global field checks
-   --[[assert_equal(1, fieldGlobal:ndim(), "Checking dimensions")
+   assert_equal(1, fieldGlobal:ndim(), "Checking dimensions")
    assert_equal(1, fieldGlobal:lowerGhost(), "Checking global lower ghost")
    assert_equal(1, fieldGlobal:upperGhost(), "Checking global upper ghost") -- What should this value be?
    assert_equal(fieldGlobal:localExtRange():volume()*3, fieldGlobal:size(), "Checking global size")
@@ -163,7 +163,7 @@ function test_1(comm)
    assert_equal(0, localExtRangeGlobal:lower(1), "Checking global ext range lower")
    assert_equal(11, localExtRangeGlobal:upper(1), "Checking global ext range upper")
 
-   local indexer = field:indexer()
+   local indexer = fieldGlobal:indexer() -- there is an error here
    for i = localRangeGlobal:lower(1), localRangeGlobal:upper(1) do
       local fitr = fieldGlobal:get(indexer(i))
       fitr[1] = i+1
@@ -176,7 +176,7 @@ function test_1(comm)
       assert_equal(i+1, fitr[1], "Checking global field value")
       assert_equal(i+2, fitr[2], "Checking global field value")
       assert_equal(i+3, fitr[3], "Checking global field value")
-   end--]]
+   end
    Mpi.Barrier(comm)
 end
 --[[
