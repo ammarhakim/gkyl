@@ -41,6 +41,40 @@ function allReduceOneInt(localv)
    return recvbuf[0]
 end
 
+function test_0(comm)
+   print("starting test 0")
+   local nz = Mpi.Comm_size(comm)
+   if nz ~= 2 then
+      log("Not running test_0 as numProcs not exactly 2")
+      return
+   end
+   local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
+
+   local decomp = DecompRegionCalc.CartProd { cuts = {2} }   
+   local noDecomp = DecompRegionCalc.CartProd { 
+      cuts = {1},
+      __serTesting = true,
+    }
+   local grid = Grid.RectCart {--located in Grid/RectCart.lua
+      lower = {0.0},
+      upper = {1.0},
+      cells = {10},
+      decomposition = decomp,-- what does decomp do?
+   }
+   local gridGlobal = Grid.RectCart {
+      lower = {0.0},
+      upper = {1.0},
+      cells = {10},
+      decomposition = noDecomp,
+   }
+   assert_equal(1, gridGlobal:globalRange():lower(1), "Checking range lower")
+   assert_equal(10, gridGlobal:globalRange():upper(1), "Checking range upper")
+   assert_equal(1,  gridGlobal:localRange():lower(1), "Checking range lower")
+   assert_equal(10, gridGlobal:localRange():upper(1), "Checking range upper")
+   Mpi.Barrier(comm)
+end
+
+
 function test_1(comm)
    print("starting test 1")
    local nz = Mpi.Comm_size(comm)
@@ -50,7 +84,11 @@ function test_1(comm)
    end
    local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
 
-   local decomp = DecompRegionCalc.CartProd { cuts = {2} }
+   local decomp = DecompRegionCalc.CartProd { cuts = {2} }   
+   local noDecomp = DecompRegionCalc.CartProd { 
+      cuts = {1},
+      __serTesting = true,
+    }
    local grid = Grid.RectCart {--located in Grid/RectCart.lua
       lower = {0.0},
       upper = {1.0},
@@ -62,49 +100,17 @@ function test_1(comm)
       numComponents = 3,--what does 3 mean? 3 what? 3 DG polynomials?
       ghost         = {1, 1},
    }
-
-   -- Define the global grid and field which every MPI process sees --
-   -- It seems like we need a global grid because to create the global field,
-   -- we need to define the grid it is on. We need a grid that has only one
-   -- cut, or no decomposition. This may introduce a bug where users can input
-   -- a single cut simulation.
-   
-   --print("I have not done anything globally yet")
-   local noDecomp = DecompRegionCalc.CartProd { 
-     cuts = {1},
-     __serTesting = true,
-   }
-   --print("I made noDecomp")
    local gridGlobal = Grid.RectCart {
       lower = {0.0},
       upper = {1.0},
       cells = {10},
       decomposition = noDecomp,
    }
-   print("I finished establishing a global grid")
-   print(string.format("r:%d | gridLocal: globalRangeLower=(%d) | globalRangeUpper=(%d) | localRangeLower=(%d) | localRangeUpper=(%d)\n",
-         Mpi.Comm_rank(Mpi.COMM_WORLD),
-         grid:globalRange():lower(1),
-         grid:globalRange():upper(1),
-         grid:localRange():lower(1),
-         grid:localRange():upper(1))
-         )
-
-   print(string.format("r:%d | gridGlobal: globalRangeLower=(%d) | globalRangeUpper=(%d) | localRangeLower=(%d) | localRangeUpper=(%d)\n",
-         Mpi.Comm_rank(Mpi.COMM_WORLD),
-         gridGlobal:globalRange():lower(1),
-         gridGlobal:globalRange():upper(1),
-         gridGlobal:localRange():lower(1),
-         gridGlobal:localRange():upper(1))
-         )
-
    local fieldGlobal = DataStruct.Field {
       onGrid        = gridGlobal,
       numComponents = 3,
       ghost         = {1, 1},
    }
-   print("I finished establishing a global field")
-
 
    --Local field checks
    assert_equal(1, field:ndim(), "Checking dimensions")
@@ -905,6 +911,7 @@ end]]--
 
 
 comm = Mpi.COMM_WORLD
+test_0(comm)
 test_1(comm)
 --[[test_2(comm)
 test_3(comm)
