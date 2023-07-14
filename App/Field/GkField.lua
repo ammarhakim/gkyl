@@ -238,6 +238,7 @@ function GkField:alloc(nRkDup)
    -- Create fields for total charge density and other things needed for Poisson solve.
    self.chargeDens      = createField(self.grid,self.basis,{1,1})
    self.chargeDensLocal = createField(self.grid,self.basis,{1,1})
+   -- Insert chargeDensGlobal
    self.polarizationWeight = createField(self.grid,self.basis,{1,1})
    self.polarizationWeightLocal = createField(self.grid,self.basis,{1,1})
    self.modWeightPoisson = createField(self.grid,self.basis,{1,1})

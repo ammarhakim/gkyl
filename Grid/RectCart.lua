@@ -134,11 +134,21 @@ function RectCart:init(tbl)
 
       -- In parallel, we need to adjust local range. 
       self._commSet         = self.decomp:commSet()
-      self._decomposedRange = self.decomp:decompose(self._globalRange)
-      local subDomIdx       = getSubDomIndex(self._commSet.comm)
-      self._block           = subDomIdx
-      local localRange      = self._decomposedRange:subDomain(subDomIdx)
-      self._localRange:copy(localRange)
+      local cutsProd = 1
+      for i = 1, self._ndim do
+         cutsProd = cutsProd * self.decomp:cuts(i)
+      end
+      if cutsProd > 1 then
+         self._decomposedRange = self.decomp:decompose(self._globalRange)
+         local subDomIdx       = getSubDomIndex(self._commSet.comm)
+         self._block           = subDomIdx
+         local localRange      = self._decomposedRange:subDomain(subDomIdx) --Local range is set using the decomposed subdomain
+         self._localRange:copy(localRange)
+      else
+         self._decomposedRange = self._globalRange -- I think something is wrong with this approach. 
+         self._block           = 1
+         self._localRange:copy(self._globalRange)
+      end
       self._cuts = {}
       for i = 1, self._ndim do 
          assert(self.decomp:cuts(i) <= self._numCells[i],
