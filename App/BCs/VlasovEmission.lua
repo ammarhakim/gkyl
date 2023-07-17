@@ -48,48 +48,44 @@ function VlasovEmissionBC:fullInit(mySpecies)
 
    self.saveFlux = tbl.saveFlux or false
 
-   self.bcKind = assert(tbl.kind, "VlasovEmissionBC: must specify the type of BC in 'kind'.")
-
-   if self.bcKind == "gain" then
-      self.bcParam = Lin.Vec(1)
-      self.bcParam:data()[0] = assert(tbl.gamma, "VlasovEmissionBC: must specify the emission flux ratio in 'gamma'.")
-   elseif self.bcKind == "chung" then
-      self.inSpecies = assert(tbl.inSpecies, "VlasovEmissionBC: must specify names of impacting species in 'inSpecies'.")
-      self.bcParam = {}
-      self.gain = {}
-      self.elastic = {}
-      self.proj = {}
-      self.mass = mySpecies.mass
-      self.charge = mySpecies.charge
-      for ispec, otherNm in ipairs(self.inSpecies) do
-	 self.bcParam[otherNm] = Lin.Vec(1)
-         self.bcParam[otherNm]:data()[0] = assert(tbl.work[ispec], "VlasovEmissionBC: must specify the material work function in 'work'.")
-         self.gain[otherNm] = assert(tbl.gain[ispec], "VlasovEmissionBC: must give gain array in 'gain'")
-         self.elastic[otherNm] = tbl.elastic[ispec] or nil
+   self.bcKind = assert(tbl.spectrum, "VlasovEmissionBC: must specify the type of emission spectrum in 'bcKind'.")
+   self.gammaKind = assert(tbl.yield, "VlasovEmissionBC: must specify the type of emission spectrum in 'bcKind'.")
+   self.inSpecies = assert(tbl.inSpecies, "VlasovEmissionBC: must specify names of impacting species in 'inSpecies'.")
+   self.bcParam = {}
+   self.gammaParam = {}
+   self.proj = {}
+   self.mass = mySpecies.mass
+   self.charge = mySpecies.charge
+   for ispec, otherNm in ipairs(self.inSpecies) do
+      self.bcParam[otherNm] = Lin.Vec(10)
+      self.bcParam[otherNm]:data()[0] = self.mass
+      self.bcParam[otherNm]:data()[1] = self.charge
+      if self.bcKind == "chung-everhart" then
+	 self.bcParam[otherNm]:data()[2] = assert(tbl.spectrumFit[ispec].phi, "VlasovEmissionBC: must specify the material work function in 'phi'.")
+         self.proj[otherNm] = Projection.KineticProjection.FunctionProjection
+	    { func = function(t, zn) return self:ChungEverhart(t, zn, self.bcParam[otherNm]:data()[2]) end, }
+      elseif self.bcKind == "gaussian" then
+         self.bcParam[otherNm]:data()[2] = assert(tbl.spectrumFit[ispec].E0, "VlasovEmissionBC: must specify fitting parameter 'E0'.")
+         self.bcParam[otherNm]:data()[3] = assert(tbl.spectrumFit[ispec].tau, "VlasovEmissionBC: must specify fitting parameter 'tau'.")
 	 self.proj[otherNm] = Projection.KineticProjection.FunctionProjection
-	    { func = function(t, zn) return self:ChungEverhart(t, zn, self.bcParam[otherNm]:data()[0]) end, }
+            { func = function(t, zn) return self:Gaussian(t, zn, self.bcParam[otherNm]:data()[2], self.bcParam[otherNm]:data()[3]) end, }
+      else
+         assert(false, "VlasovEmissionBC: Fitting model not recognized.")
       end
-   elseif self.bcKind == "gauss" then
-      self.inSpecies = assert(tbl.inSpecies, "VlasovEmissionBC: must specify names of impacting species in 'inSpecies'.")
-      self.bcParam = {}
-      self.gain = {}
-      self.elastic = {}
-      self.proj = {}
-      self.mass = mySpecies.mass
-      self.charge = mySpecies.charge
-      for ispec, otherNm in ipairs(self.inSpecies) do
-	 self.bcParam[otherNm] = Lin.Vec(4)
-         self.bcParam[otherNm]:data()[0] = assert(tbl.E0[ispec], "VlasovEmissionBC: must specify fitting parameter 'E0'.")
-         self.bcParam[otherNm]:data()[1] = assert(tbl.tau[ispec], "VlasovEmissionBC: must specify fitting parameter 'tau'.")
-	 self.bcParam[otherNm]:data()[2] = self.mass
-	 self.bcParam[otherNm]:data()[3] = self.charge
-         self.gain[otherNm] = assert(tbl.gain[ispec], "VlasovEmissionBC: must give gain array in 'gain'")
-         self.elastic[otherNm] = tbl.elastic[ispec] or nil
-	 self.proj[otherNm] = Projection.KineticProjection.FunctionProjection
-	    { func = function(t, zn) return self:Gaussian(t, zn, self.bcParam[otherNm]:data()[0], self.bcParam[otherNm]:data()[1]) end, }
+      self.gammaParam[otherNm] = Lin.Vec(10)
+      if self.gammaKind == "furman-pivi" then
+         self.gammaParam[otherNm]:data()[0] = assert(tbl.yieldFit[ispec].gammahat_ts, "VlasovEmissionBC: must specify fitting parameter 'gammahat_ts'.")
+	 self.gammaParam[otherNm]:data()[1] = assert(tbl.yieldFit[ispec].Ehat_ts, "VlasovEmissionBC: must specify fitting parameter 'Ehat_ts'.")
+	 self.gammaParam[otherNm]:data()[2] = assert(tbl.yieldFit[ispec].t1, "VlasovEmissionBC: must specify fitting parameter 't1'.")
+	 self.gammaParam[otherNm]:data()[3] = assert(tbl.yieldFit[ispec].t2, "VlasovEmissionBC: must specify fitting parameter 't2'.")
+	 self.gammaParam[otherNm]:data()[4] = assert(tbl.yieldFit[ispec].t3, "VlasovEmissionBC: must specify fitting parameter 't3'.")
+	 self.gammaParam[otherNm]:data()[5] = assert(tbl.yieldFit[ispec].t4, "VlasovEmissionBC: must specify fitting parameter 't4'.")
+	 self.gammaParam[otherNm]:data()[6] = assert(tbl.yieldFit[ispec].s, "VlasovEmissionBC: must specify fitting parameter 's'.")
+      else
+         assert(false, "VlasovEmissionBC: SEY model not recognized.")   
       end
    end
-
+ 
    self.saveFlux = tbl.saveFlux or false
    self.anyDiagnostics = false
    if tbl.diagnostics then
@@ -120,9 +116,9 @@ function VlasovEmissionBC:createSolver(mySpecies, field, externalField)
    local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
 
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
-   local globalGhostRange = self.bcEdge=="lower" and distf:localGhostRangeLower()[self.bcDir]
+   self.globalGhostRange = self.bcEdge=="lower" and distf:localGhostRangeLower()[self.bcDir]
                                                   or distf:localGhostRangeUpper()[self.bcDir]
-   self:createBoundaryGrid(globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
+   self:createBoundaryGrid(self.globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
    
    -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
    self.allocCartField = function(self, grid, nComp, ghosts, metaData)
@@ -140,34 +136,27 @@ function VlasovEmissionBC:createSolver(mySpecies, field, externalField)
    self.bcBuffer = allocDistf() -- Buffer used by BasicBc updater.
 
    local bcFunc, skinType
-   if self.bcKind == "gain" then
-      self.bcSolver = Updater.EmissionBc{
-         onGrid  = self.grid,   edge   = self.bcEdge,  
-         cdim    = self.cdim,   basis  = self.basis,
-         dir     = self.bcDir,  bcType = self.bcKind,
-	 bcField = nil,         bcParam = self.bcParam,
-         onField = mySpecies:rkStepperFields()[1],
-      }
-   elseif self.bcKind == "chung" or self.bcKind == "gauss" then
-      self.bcSolver = Updater.EmissionSpectrumBc{
-         onGrid  = self.grid,   edge   = self.bcEdge,  
+   self.bcSolver = {}
+   self.gamma = {}
+   for ispec, otherNm in ipairs(self.inSpecies) do
+      local bc = self.fluxBC[otherNm]
+      self.gamma[otherNm] = self:allocCartField(bc.boundaryGrid, 1, {0,0}, distf:getMetaData())
+      self.bcSolver[otherNm] = Updater.EmissionSpectrumBc{
+         onGrid  = bc.boundaryGrid,   edge   = self.bcEdge,  
          cdim    = self.cdim,   vdim   = self.vdim,
-	 basis  = self.basis,   confBasis  = self.confBasis, 
          dir     = self.bcDir,  bcType = self.bcKind,
-	 gain = self.gain,      bcParam = self.bcParam,
-	 elastic = self.elastic,
-	 onField = mySpecies:rkStepperFields()[1],
+	 gammaType = self.gammaKind,
+	 bcParam = self.bcParam[otherNm]:data(), gammaParam = self.gammaParam[otherNm]:data(),
+	 onField = self.gamma[otherNm],
       }
-   else
-      assert(false, "VlasovEmissionBC: BC kind not recognized.")
    end
-
+   
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
    -- the fluxes through a boundary (e.g. neutral recycling).
    if self.saveFlux then
 
       -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
-      self:createConfBoundaryGrid(globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
+      self:createConfBoundaryGrid(self.globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
 
       self.allocMoment = function(self)
          return self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, numDensity:getMetaData())
@@ -342,77 +331,50 @@ function VlasovEmissionBC:rkStepperFields() return {self.boundaryFluxRate, self.
 function VlasovEmissionBC:getFlucF() return self.boundaryFluxRate end
 
 function VlasovEmissionBC:createCouplingSolver(species, field, extField)
-   local mySpecies = species[self.speciesName]
    local allocDistf = function()
       return self:allocCartField(self.boundaryGrid, self.basis:numBasis(), {0,0}, self.bcBuffer:getMetaData())
    end
    
    self.fProj = {}
    self.bcFlux = {}
+   self.weight = {}
+   self.k = {}
+   self.otherSkinRange = {}
    for _, otherNm in ipairs(self.inSpecies) do
-      self.fProj[otherNm] = mySpecies:allocDistf()
+      local otherSpecies = species[otherNm]
+      self.fProj[otherNm] = allocDistf()
       self.proj[otherNm]:advance(0.0, {}, {self.fProj[otherNm]})
       self.bcFlux[otherNm] = self.fluxBC[otherNm]:allocIntThreeMoments()
+      self.weight[otherNm] = self:allocCartField(self.confBoundaryGrid, 2, {0,0}, self.bcBuffer:getMetaData())
+      self.k[otherNm] = self:allocCartField(self.confBoundaryGrid, 1, {0,0}, self.bcBuffer:getMetaData())
+      self.otherSkinRange[otherNm] = self.bcEdge=="lower" and otherSpecies:getDistF():localSkinRangeLower()[self.bcDir]
+	                           or otherSpecies:getDistF():localSkinRangeUpper()[self.bcDir]
    end
-   
-   self.localEdgeFlux = 0.0
 end
 
 function VlasovEmissionBC:advanceCrossSpeciesCoupling(tCurr, species, inIdx, outIdx)
-   local mySpecies = species[self.speciesName]
-   local fIn = mySpecies:rkStepperFields()[inIdx]
-   self.k = {}
-
+   self.bcBuffer:clearRange(0.0, self.bcBuffer:localRange())
    for ispec, otherNm in ipairs(self.inSpecies) do
       local otherSpecies = species[otherNm]
       local bc = self.fluxBC[otherNm]
-      
-      bc.integNumDensityCalc:advance(tCurr, {bc:getBoundaryFluxFields()[outIdx]}, {self.bcFlux[otherNm]})
 
-      local flux = self.bcFlux[otherNm]
-      self.localEdgeFlux = 0.0
+      local qIn = bc:getBoundaryFluxFields()[outIdx]
+      local mout = self.bcFlux[otherNm]
 
-      local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(0)
-      for idx in flux:localExtRangeIter() do
-         flux:fill(fluxIndexer(idx), fluxItr)
-         self.localEdgeFlux = self.localEdgeFlux + fluxItr[1]
-      end
+      local confRange = mout:localExtRange()
+      local phaseRange = qIn:localPosRange()[self.bcDir+self.cdim]
+      bc.integNumDensityCalc:advance(tCurr, {qIn, confRange, phaseRange}, {mout})
 
       local fOther = otherSpecies:rkStepperFields()[inIdx]
-      self.k[otherNm] = self.bcSolver:advance(tCurr, {fOther, self.fProj[otherNm], self.bcParam[bc.speciesName], self.localEdgeFlux, bc.boundaryGrid, self.gain[otherNm]}, {fIn})
+      self.bcSolver[otherNm]:advance(tCurr, {fOther, self.bcParam[bc.speciesName], self.fProj[otherNm], self.bcFlux[otherNm], bc.boundaryGrid, self.gamma[otherNm], self.otherSkinRange[otherNm]}, {self.weight[otherNm], self.k[otherNm], self.bcBuffer})
    end
 end
 
 function VlasovEmissionBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
    local fIn = mySpecies:rkStepperFields()[outIdx]
-   fIn:clearRange(0.0, fIn:localGhostRangeUpper()[self.bcDir])
-   for ispec, otherNm in ipairs(self.inSpecies) do
-      fIn:accumulateRange(self.k[otherNm], self.fProj[otherNm], fIn:localGhostRangeUpper()[self.bcDir])
-   end
+   fIn:copyRangeToRange(self.bcBuffer, self.globalGhostRange, self.bcBuffer:localRange())
 end
 
 function VlasovEmissionBC:getBoundaryFluxFields() return self.boundaryFluxFields end
 
--- ................... Classes meant as aliases to simplify input files ...................... --
-local VlasovConstantGainBC = Proto(VlasovEmissionBC)
-function VlasovConstantGainBC:fullInit(mySpecies)
-   self.tbl.kind  = "gain"
-   VlasovConstantGainBC.super.fullInit(self, mySpecies)
-end
-
-local VlasovChungEverhartBC = Proto(VlasovEmissionBC)
-function VlasovChungEverhartBC:fullInit(mySpecies)
-   self.tbl.kind  = "chung"
-   VlasovChungEverhartBC.super.fullInit(self, mySpecies)
-end
-
-local VlasovGaussianEmissionBC = Proto(VlasovEmissionBC)
-function VlasovGaussianEmissionBC:fullInit(mySpecies)
-   self.tbl.kind  = "gauss"
-   VlasovGaussianEmissionBC.super.fullInit(self, mySpecies)
-end
--- ................... End of VlasovEmissionBC alias classes .................... --
-
-return {VlasovConstantGain     = VlasovConstantGainBC,
-        VlasovChungEverhart    = VlasovChungEverhartBC,
-        VlasovGaussianEmission = VlasovGaussianEmissionBC}
+return VlasovEmissionBC

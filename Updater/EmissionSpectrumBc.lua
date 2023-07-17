@@ -27,6 +27,9 @@ enum gkyl_bc_emission_spectrum_type {
   GKYL_BC_CHUNG_EVERHART = 0,
   GKYL_BC_GAUSSIAN = 1};
 
+enum gkyl_bc_emission_spectrum_gamma_type {
+  GKYL_BC_FURMAN_PIVI = 0};
+
 // Object type
 typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
 
@@ -51,24 +54,17 @@ typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
  * @return New updater pointer.
  */
 struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(int dir, enum gkyl_edge_loc edge,
-  const struct gkyl_range *ghost_r,
-  enum gkyl_bc_emission_spectrum_type bctype, const struct gkyl_basis *cbasis, const struct gkyl_basis *basis,
-  int cdim, int vdim, bool use_gpu);
+  enum gkyl_bc_emission_spectrum_type bctype,
+  enum gkyl_bc_emission_spectrum_gamma_type gammatype,
+  double *bc_param, double *sey_param, int cdim, int vdim, bool use_gpu);
 
-double gkyl_bc_emission_spectrum_advance_cross(const struct gkyl_bc_emission_spectrum *up,
-  struct gkyl_array *f_self, struct gkyl_array *f_other, struct gkyl_array *f_proj,
-  double *bc_param, double flux, struct gkyl_rect_grid *grid, double *gain, const struct gkyl_range *other_r);
-
-/**
- * Advance boundary conditions. Fill buffer array based on boundary conditions and copy
- * contents to ghost cells of input f_arr
- *
- * @param up BC updater.
- * @param buff_arr Buffer array, big enough for ghost cells at this boundary.
- * @param f_arr Field array to apply BC to.
- */
 void gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
-  struct gkyl_array *buff_arr, struct gkyl_array *f_arr, struct gkyl_array *f_proj, double k);
+  struct gkyl_array *f_skin, const struct gkyl_array *f_proj, struct gkyl_array *f_buff,
+  struct gkyl_array *weight, struct gkyl_array *k,
+  const struct gkyl_array *flux, struct gkyl_rect_grid *grid, struct gkyl_array *gamma,
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_range *conf_r);
+
+void gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *gamma, struct gkyl_rect_grid *grid, const struct gkyl_range *ghost_r);
 
 /**
  * Free memory associated with bc_emission_spectrum updater.
@@ -87,7 +83,7 @@ function EmissionSpectrumBc:init(tbl)
       "Updater.EmissionSpectrumBc: Must specify direction to apply BCs with 'dir'.")
    self._edge = assert(tbl.edge,
       "Updater.EmissionSpectrumBc: Must specify edge to apply BCs with 'edge' (lower', 'upper').")
-   local cDim = assert(tbl.cdim,
+   self._cDim = assert(tbl.cdim,
       "Updater.EmissionSpectrumBc: Must specify configuration space dimensions with 'cdim'.")
    local vDim = assert(tbl.vdim,
       "Updater.EmissionSpectrumBc: Must specify velocity space dimensions with 'vdim'.")
@@ -96,32 +92,39 @@ function EmissionSpectrumBc:init(tbl)
 
    self._bcType  = assert(tbl.bcType,
       "Updater.EmissionSpectrumBc: Must specify BC type in 'bcType'.")
-   self._basis   = assert(tbl.basis,
-      "Updater.EmissionSpectrumBc: Must specify the basis in 'basis'.")
-   self._confBasis   = assert(tbl.confBasis,
-      "Updater.EmissionSpectrumBc: Must specify the conf basis in 'confBasis'.")
+   self._gammaType  = assert(tbl.gammaType,
+			     "Updater.EmissionSpectrumBc: Must specify SEY model type in 'gammaType'.")
+   self._bcParam  = assert(tbl.bcParam,
+      "Updater.EmissionSpectrumBc: Must specify BC type in 'bcType'.")
+   self._gammaParam  = assert(tbl.gammaParam,
+			     "Updater.EmissionSpectrumBc: Must specify SEY model type in 'gammaType'.")
+   local onGrid = assert(tbl.onGrid,
+      "Updater.EmissionSpectrumBc: Must specify the field we'll apply BCs to in 'onGrid'.")
    local onField = assert(tbl.onField,
       "Updater.EmissionSpectrumBc: Must specify the field we'll apply BCs to in 'onField'.")
 
    local edge = self._edge == 'lower' and 0 or 1 -- Match gkyl_edge_loc in gkylzero/zero/gkyl_range.h.
-   local localGhostRange = self._edge == 'lower' and onField:localGhostRangeLower()[self._dir] or onField:localGhostRangeUpper()[self._dir]
+   local otherRange = onField:localRange()
 
-   local bctype -- Match gkyl_bc_emission_type in gkylzero/zero/gkyl_bc_emission.h
-       if self._bcType == "chung" then bctype = 0
-   elseif self._bcType == "gauss" then bctype = 1
+   local bctype -- Match gkyl_bc_emission_spectrum_type in gkylzero/zero/gkyl_bc_emission_spectrum.h
+       if self._bcType == "chung-everhart" then bctype = 0
+   elseif self._bcType == "gaussian" then bctype = 1
    end
+   local gammatype -- Match gkyl_bc_emission_spectrum_gamma_type in gkylzero/zero/gkyl_bc_emission_spectrum.h
+   if self._gammaType == "furman-pivi" then gammatype = 0 end
 
    local useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU)
-   local basis  = useGPU and self._basis._zeroDevice or self._basis._zero
-   local cbasis  = useGPU and self._confBasis._zeroDevice or self._confBasis._zero
    
    self._zero = ffi.gc(
-      ffiC.gkyl_bc_emission_spectrum_new(self._dir-1, edge,
-	localGhostRange, bctype, cbasis, basis,
-	cDim, vDim, useGPU or 0),
+      ffiC.gkyl_bc_emission_spectrum_new(self._dir-1, edge, bctype, gammatype, self._bcParam, self._gammaParam, self._cDim, vDim, useGPU or 0),
       ffiC.gkyl_bc_emission_spectrum_release
    )
-
+   if useGPU then
+      ffiC.gkyl_bc_emission_spectrum_sey_calc(self._zero, onField._zeroDevice, onGrid._zero, otherRange)
+   else
+      ffiC.gkyl_bc_emission_spectrum_sey_calc(self._zero, onField._zero, onGrid._zero, otherRange)
+   end
+   
    local dirlabel = {"X", "Y", "Z"}
    self._dirlabel = dirlabel[self._dir]
 end
@@ -129,37 +132,53 @@ end
 function EmissionSpectrumBc:_advance(tCurr, inFld, outFld)
    local fOther = assert(inFld[1],
       "EmissionSpectrumBc.advance: Must-specify a buffer as large as the ghost cells for this BC.")
-   local fProj = assert(inFld[2],
-      "EmissionSpectrumBc.advance: Must-specify a buffer as large as the ghost cells for this BC.")
-   local param = assert(inFld[3],
+   local param = assert(inFld[2],
       "EmissionSpectrumBc.advance: Must-specify BC params.")
+   local fProj = assert(inFld[3],
+      "EmissionSpectrumBc.advance: Must-specify a buffer as large as the ghost cells for this BC.")
    local flux = assert(inFld[4],
       "EmissionSpectrumBc.advance: Must-specify flux.")
    local inGrid = assert(inFld[5],
       "EmissionSpectrumBc.advance: Must-specify grid.")
-   local gain = assert(inFld[6],
+   local gamma = assert(inFld[6],
       "EmissionSpectrumBc.advance: Must-specify gamma.")
-   local qOut     = assert(outFld[1],
+   local weight     = assert(outFld[1],
+      "EmissionSpectrumBc.advance: Must-specify weight output field")
+   local k     = assert(outFld[2],
+      "EmissionSpectrumBc.advance: Must-specify k output field")
+   local fBuff     = assert(outFld[3],
       "EmissionSpectrumBc.advance: Must-specify an output field")
-   local otherRange = self._edge == 'lower' and fOther:localSkinRangeLower()[self._dir] or fOther:localSkinRangeUpper()[self._dir]
-   local k = ffiC.gkyl_bc_emission_spectrum_advance_cross(self._zero, qOut._zero, fOther._zero, fProj._zero, param:data(), flux, inGrid._zero, gain, otherRange)
-   return k
+   local otherRange = assert(inFld[7],
+      "EmissionSpectrumBc.advance: Must-specify other species range")
+   local boundRange = gamma:localRange()
+   local confRange = weight:localRange()
+   ffiC.gkyl_bc_emission_spectrum_advance(self._zero, fOther._zero, fProj._zero, fBuff._zero, weight._zero, k._zero, flux._zero, inGrid._zero, gamma._zero, otherRange, boundRange, confRange)
 end
 
--- function EmissionSpectrumBc:_advance(tCurr, inFld, outFld)
---    local bufferIn = assert(inFld[1],
---       "EmissionSpectrumBc.advance: Must-specify a buffer as large as the ghost cells for this BC.")
---    local qOut     = assert(outFld[1],
---       "EmissionSpectrumBc.advance: Must-specify an output field")
---    ffiC.gkyl_bc_emission_spectrum_advance(self._zero, bufferIn._zero, qOut._zero)
--- end
-
 function EmissionSpectrumBc:_advanceOnDevice(tCurr, inFld, outFld)
-   local bufferIn = assert(inFld[1],
+   local fOther = assert(inFld[1],
       "EmissionSpectrumBc.advance: Must-specify a buffer as large as the ghost cells for this BC.")
-   local qOut = assert(outFld[1],
+   local param = assert(inFld[2],
+      "EmissionSpectrumBc.advance: Must-specify BC params.")
+   local fProj = assert(inFld[3],
+      "EmissionSpectrumBc.advance: Must-specify a buffer as large as the ghost cells for this BC.")
+   local flux = assert(inFld[4],
+      "EmissionSpectrumBc.advance: Must-specify flux.")
+   local inGrid = assert(inFld[5],
+      "EmissionSpectrumBc.advance: Must-specify grid.")
+   local gamma = assert(inFld[6],
+      "EmissionSpectrumBc.advance: Must-specify gamma.")
+   local weight     = assert(outFld[1],
       "EmissionSpectrumBc.advance: Must-specify an output field")
-   ffiC.gkyl_bc_emission_spectrum_advance(self._zero, bufferIn._zeroDevice, qOut._zeroDevice)
+   local k     = assert(outFld[2],
+      "EmissionSpectrumBc.advance: Must-specify an output field")
+   local fBuff     = assert(outFld[3],
+      "EmissionSpectrumBc.advance: Must-specify an output field")
+   local otherRange = assert(inFld[7],
+      "EmissionSpectrumBc.advance: Must-specify other species range")
+   local boundRange = gamma:localRange()
+   local confRange = weight:localRange()
+   ffiC.gkyl_bc_emission_spectrum_advance(self._zero, fOther._zeroDevice, fProj._zeroDevice, fBuff._zeroDevice, weight._zeroDevice, k._zeroDevice, flux._zeroDevice, inGrid._zero, gamma._zeroDevice, otherRange, boundRange, confRange)
 end
 
 function EmissionSpectrumBc:getDir() return self._dir end

@@ -119,7 +119,9 @@ function VmSteadyStateSource:advanceCrossSpeciesCoupling(tCurr, species, outIdx)
    local fRhsOut = mySpecies:rkStepperFields()[outIdx]
 
    for _, bc in lume.orderedIter(self.srcBC) do
-      bc.integNumDensityCalc:advance(tCurr, {bc:getBoundaryFluxFields()[outIdx]}, {self.bcSrcFlux[bc:getEdge()]})
+      local confRange = self.bcSrcFlux[bc:getEdge()]:localExtRange()
+      local phaseRange = bc:getBoundaryFluxFields()[outIdx]:localExtRange()
+      bc.integNumDensityCalc:advance(tCurr, {bc:getBoundaryFluxFields()[outIdx], confRange, phaseRange}, {self.bcSrcFlux[bc:getEdge()]})
 
       local flux = self.bcSrcFlux[bc:getEdge()]
       self.localEdgeFlux:data()[0] = 0.0
