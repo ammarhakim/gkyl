@@ -199,7 +199,11 @@ end
 
 -- Methods for EM field object.
 function GkField:hasEB() return true, self.isElectromagnetic end
-function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
+function GkField:setGrid(grid, gridGlobal)
+   self.grid = grid
+   self.ndim = self.grid:ndim()
+   self.gridGlobal = gridGlobal and gridGlobal or nil
+end
 
 local function createField(grid, basis, ghostCells, vComp, periodicSync, useDevice)
    vComp = vComp or 1
@@ -238,7 +242,7 @@ function GkField:alloc(nRkDup)
    -- Create fields for total charge density and other things needed for Poisson solve.
    self.chargeDens      = createField(self.grid,self.basis,{1,1})
    self.chargeDensLocal = createField(self.grid,self.basis,{1,1})
-   -- Insert chargeDensGlobal
+   self.gridGlobal      = self.gridGlobal and createField(self.gridGlobal,self.basis,{1,1}) or nil
    self.polarizationWeight = createField(self.grid,self.basis,{1,1})
    self.polarizationWeightLocal = createField(self.grid,self.basis,{1,1})
    self.modWeightPoisson = createField(self.grid,self.basis,{1,1})
@@ -512,6 +516,13 @@ function GkField:createSolver(population, externalField)
          -- Reduce charge density across species communicator.
          self.chargeDens:clear(0.0)
          populationIn:AllreduceByCell(self.chargeDensLocal, self.chargeDens, 'sum')
+
+         --[[--For paralellization over species
+         if self.gridGlobal
+            self.chargeDensGridGlobal;clear(0.0)
+            messenger:AllGather(self.chargeDens, self.chargeDensGridGlobal, numberOfCells*numberOfComponents)
+         end
+         --]]
 
          -- If not using linearized polarization term, set up laplacian weight.
          self:setPolarizationWeight(populationIn)
