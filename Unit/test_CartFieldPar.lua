@@ -827,6 +827,118 @@ function test_10(comm)
    Mpi.Barrier(comm)
 end
 
+function test_11(comm)
+   --Test the establishment of a global grid and field
+   print("starting test 11")
+   local nz = Mpi.Comm_size(comm)
+   if nz ~= 2 then
+      log("Not running test_11 as numProcs not exactly 2")
+      return
+   end
+   local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
+
+   local decomp = DecompRegionCalc.CartProd { cuts = {2} }   
+   local noDecomp = DecompRegionCalc.CartProd { 
+      cuts = {1},
+      __serTesting = true,
+    }
+   local grid = Grid.RectCart {--located in Grid/RectCart.lua
+      lower = {0.0},
+      upper = {1.0},
+      cells = {10},
+      decomposition = decomp,-- what does decomp do?
+   }
+   local field = DataStruct.Field { --located in DataStruct/CartField.lua
+      onGrid        = grid,
+      numComponents = 3,--what does 3 mean? 3 what? 3 DG polynomials?
+      ghost         = {1, 1},
+   }
+   local gridGlobal = Grid.RectCart {
+      lower = {0.0},
+      upper = {1.0},
+      cells = {10},
+      decomposition = noDecomp,
+   }
+   local fieldGlobal = DataStruct.Field {
+      onGrid        = gridGlobal,
+      numComponents = 3,
+      ghost         = {1, 1},
+   }
+
+   --Local field checks
+   assert_equal(1, field:ndim(), "Checking dimensions")
+   assert_equal(1, field:lowerGhost(), "Checking lower ghost")
+   assert_equal(1, field:upperGhost(), "Checking upper ghost")
+   assert_equal(field:localExtRange():volume()*3, field:size(), "Checking size")
+
+   assert_equal(field:defaultLayout(), field:layout(), "Checking layout")
+
+   local localRange = field:localRange()
+   if rank == 0 then
+      assert_equal(1, localRange:lower(1), "Checking range lower")
+      assert_equal(5, localRange:upper(1), "Checking range upper")
+   elseif rank == 1 then
+      assert_equal(6, localRange:lower(1), "Checking range lower")
+      assert_equal(10, localRange:upper(1), "Checking range upper")
+   end
+
+   local localExtRange = field:localExtRange()
+   if rank == 0 then
+      assert_equal(0, localExtRange:lower(1), "Checking ext range lower")
+      assert_equal(6, localExtRange:upper(1), "Checking ext range upper")
+   elseif rank == 1 then
+      assert_equal(5, localExtRange:lower(1), "Checking ext range lower")
+      assert_equal(11, localExtRange:upper(1), "Checking ext range upper")
+   end
+
+   local indexer = field:indexer()
+   for i = localRange:lower(1), localRange:upper(1) do
+      local fitr = field:get(indexer(i))
+      fitr[1] = i+1
+      fitr[2] = i+2
+      fitr[3] = i+3
+   end
+
+   for i = localRange:lower(1), localRange:upper(1) do
+      local fitr = field:get(indexer(i))
+      assert_equal(i+1, fitr[1], "Checking field value")
+      assert_equal(i+2, fitr[2], "Checking field value")
+      assert_equal(i+3, fitr[3], "Checking field value")
+   end
+
+   --Global field checks
+   assert_equal(1, fieldGlobal:ndim(), "Checking dimensions")
+   assert_equal(1, fieldGlobal:lowerGhost(), "Checking global lower ghost")
+   assert_equal(1, fieldGlobal:upperGhost(), "Checking global upper ghost") -- What should this value be?
+   assert_equal(fieldGlobal:localExtRange():volume()*3, fieldGlobal:size(), "Checking global size")
+
+   assert_equal(fieldGlobal:defaultLayout(), fieldGlobal:layout(), "Checking global layout")
+
+   local localRangeGlobal = fieldGlobal:localRange()
+   assert_equal(1, localRangeGlobal:lower(1), "Checking global range lower")
+   assert_equal(10, localRangeGlobal:upper(1), "Checking global range upper")
+
+   local localExtRangeGlobal = fieldGlobal:localExtRange()
+   assert_equal(0, localExtRangeGlobal:lower(1), "Checking global ext range lower")
+   assert_equal(11, localExtRangeGlobal:upper(1), "Checking global ext range upper")
+
+   local indexer = fieldGlobal:indexer() -- there is an error here
+   for i = localRangeGlobal:lower(1), localRangeGlobal:upper(1) do
+      local fitr = fieldGlobal:get(indexer(i))
+      fitr[1] = i+1
+      fitr[2] = i+2
+      fitr[3] = i+3
+   end
+
+   for i = localRangeGlobal:lower(1), localRangeGlobal:upper(1) do
+      local fitr = fieldGlobal:get(indexer(i))
+      assert_equal(i+1, fitr[1], "Checking global field value")
+      assert_equal(i+2, fitr[2], "Checking global field value")
+      assert_equal(i+3, fitr[3], "Checking global field value")
+   end
+   Mpi.Barrier(comm)
+end
+
 
 comm = Mpi.COMM_WORLD
 test_1(comm)
