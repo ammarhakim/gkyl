@@ -52,8 +52,7 @@ function test_0(comm)
 
    local decomp = DecompRegionCalc.CartProd { cuts = {2} }   
    local noDecomp = DecompRegionCalc.CartProd { 
-      cuts = {1},
-      __serTesting = true,
+      cuts = {1}
     }
    local grid = Grid.RectCart {--located in Grid/RectCart.lua
       lower = {0.0},
@@ -75,11 +74,12 @@ function test_0(comm)
 end
 
 
-function test_1(comm)
-   print("starting test 1")
+function test_11(comm)
+   --Test the establishment of a global grid and field
+   print("starting test 11")
    local nz = Mpi.Comm_size(comm)
    if nz ~= 2 then
-      log("Not running test_1 as numProcs not exactly 2")
+      log("Not running test_11 as numProcs not exactly 2")
       return
    end
    local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
@@ -87,7 +87,7 @@ function test_1(comm)
    local decomp = DecompRegionCalc.CartProd { cuts = {2} }   
    local noDecomp = DecompRegionCalc.CartProd { 
       cuts = {1},
-      __serTesting = true,
+      __serTesting = true, --try without this flag
     }
    local grid = Grid.RectCart {--located in Grid/RectCart.lua
       lower = {0.0},

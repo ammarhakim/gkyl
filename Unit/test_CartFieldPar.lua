@@ -840,7 +840,7 @@ function test_11(comm)
    local decomp = DecompRegionCalc.CartProd { cuts = {2} }   
    local noDecomp = DecompRegionCalc.CartProd { 
       cuts = {1},
-      __serTesting = true,
+      __serTesting = true, --try without this flag
     }
    local grid = Grid.RectCart {--located in Grid/RectCart.lua
       lower = {0.0},
@@ -939,6 +939,38 @@ function test_11(comm)
    Mpi.Barrier(comm)
 end
 
+function test_12(comm)
+   print("starting test 12")
+   local nz = Mpi.Comm_size(comm)
+   if nz ~= 2 then
+      log("Not running test_12 as numProcs not exactly 2")
+      return
+   end
+   local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
+
+   local decomp = DecompRegionCalc.CartProd { cuts = {2} }   
+   local noDecomp = DecompRegionCalc.CartProd { 
+      cuts = {1},
+      __serTesting = true,
+    }
+   local grid = Grid.RectCart {--located in Grid/RectCart.lua
+      lower = {0.0},
+      upper = {1.0},
+      cells = {10},
+      decomposition = decomp,-- what does decomp do?
+   }
+   local gridGlobal = Grid.RectCart {
+      lower = {0.0},
+      upper = {1.0},
+      cells = {10},
+      decomposition = noDecomp,
+   }
+   assert_equal(1, gridGlobal:globalRange():lower(1), "Checking range lower")
+   assert_equal(10, gridGlobal:globalRange():upper(1), "Checking range upper")
+   assert_equal(1,  gridGlobal:localRange():lower(1), "Checking range lower")
+   assert_equal(10, gridGlobal:localRange():upper(1), "Checking range upper")
+   Mpi.Barrier(comm)
+end
 
 comm = Mpi.COMM_WORLD
 test_1(comm)
@@ -951,6 +983,8 @@ test_7(comm)
 test_8(comm)
 test_9(comm)
 test_10(comm)
+test_11(comm)
+test_12(comm)
 
 totalFail = allReduceOneInt(stats.fail)
 totalPass = allReduceOneInt(stats.pass)
