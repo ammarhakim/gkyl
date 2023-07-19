@@ -193,7 +193,9 @@ local function buildApplication(self, tbl)
    }   
    local confGridGlobal = GridConstructor {
       lower = tbl.lower,     decomposition = DecompRegionCalc.CartProd{
-      cuts = {1}, _serTesting = true},
+      cuts = (function() local cuts = {}
+         for i = 1, cdim do cuts[i] = 1 end
+         return cuts end)(), _serTesting = true}, 
       upper = tbl.upper,     mappings = tbl.coordinateMap,
       cells = tbl.cells,     mapc2p = tbl.mapc2p,
       periodicDirs = periodicDirs,  world = tbl.world, 
@@ -231,7 +233,6 @@ local function buildApplication(self, tbl)
       s:setConfBasis(confBasis)
       -- Set up phase grid and basis.
       s:createGrid(confGrid)
-      s:createGridGlobal(confGridGlobal)
       s:createBasis(basisNm, polyOrder)
    end
    for _, s in population.iterLocal() do -- Only allocate fields for species in this rank.
@@ -240,6 +241,7 @@ local function buildApplication(self, tbl)
 
    -- Add grid to app object.
    self._confGrid = confGrid
+   self._confGridGlobal = confGridGlobal
 
    local cflMin = GKYL_MAX_DOUBLE
    -- Compute CFL numbers.
@@ -254,6 +256,7 @@ local function buildApplication(self, tbl)
       fld:setIoMethod(ioMethod)
       fld:setBasis(confBasis)
       fld:setGrid(confGrid)
+      fld:setGridGlobal(confGrid)
       do
 	 local myCfl = tbl.cfl and tbl.cfl or cflFrac
 	 if fld.isElliptic then
