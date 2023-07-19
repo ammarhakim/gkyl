@@ -202,14 +202,12 @@ end
 -- Methods for EM field object.
 function GkField:hasEB() return true, self.isElectromagnetic end
 function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim()
-   print("I'm making a global grid")
    local GridConstructor = Grid.RectCart
    if grid.coordinateMap then
       GridConstructor = Grid.NonUniformRectCart -- will get rid of
    elseif grid.mapc2p then  -- Is this if statement correct?
       GridConstructor = Grid.MappedCart
    end
-   print("I decided on the form of the grid")
    self.gridGlobal  = GridConstructor {
       lower = grid._lower,     decomposition = DecompRegionCalc.CartProd{
       cuts = (function() local cuts = {}
@@ -220,7 +218,6 @@ function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim()
       periodicDirs = grid._periodicDirs,  world = grid.world, --no usages
       messenger = grid.messenger,
    }
-   print("I made a global grid")
    -- create a new grid inside of here
 end
 function GkField:setGridGlobal(grid) self.gridGlobal = grid; self.ndimGlobal = self.gridGlobal:ndim() end
