@@ -256,7 +256,7 @@ local function buildApplication(self, tbl)
       fld:setIoMethod(ioMethod)
       fld:setBasis(confBasis)
       fld:setGrid(confGrid)
-      fld:setGridGlobal(confGrid)
+      fld:setGridGlobal(confGridGlobal) --returns a nill value
       do
 	 local myCfl = tbl.cfl and tbl.cfl or cflFrac
 	 if fld.isElliptic then
