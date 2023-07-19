@@ -1050,7 +1050,9 @@ function _M.getDonors(grid, yShift, yShBasis)
             evPoint[dC] = evPoint[dC]+(xS-1)*(grid:dx(dC)-2.*delta[dC])
 
             -- Evaluate yShift at this point.
-            yShBasis:evalBasis({p2l(evPoint[1],grid:cellCenterInDir(1),grid:dx(1))}, yShBasisEv)
+            local p2l_eval= Lin.Vec(1)
+            p2l_eval[1] = p2l(evPoint[1],grid:cellCenterInDir(1),grid:dx(1))
+            yShBasis:evalBasis(p2l_eval:data(), yShBasisEv:data())
             local yShEv = 0.
             for k = 1,yShNumB do yShEv = yShEv + yShItr[k]*yShBasisEv[k] end
 
@@ -1073,7 +1075,8 @@ function _M.getDonors(grid, yShift, yShBasis)
                if sI==numSteps[stepDim] then newP[stepDim]=newP[stepDim]-2.*delta[stepDim] end
 
                -- Evaluate yShift at this point.
-               yShBasis:evalBasis({p2l(newP[1],grid:cellCenterInDir(1),grid:dx(1))}, yShBasisEv)
+               p2l_eval[1] = p2l(newP[1],grid:cellCenterInDir(1),grid:dx(1))
+               yShBasis:evalBasis(p2l_eval:data(), yShBasisEv:data())
                yShEv = 0.
                for k = 1,yShNumB do yShEv = yShEv + yShItr[k]*yShBasisEv[k] end
 
