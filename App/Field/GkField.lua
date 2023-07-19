@@ -12,17 +12,19 @@
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Constants        = require "Lib.Constants"
 local DataStruct       = require "DataStruct"
-local LinearTrigger    = require "LinearTrigger"
-local Proto            = require "Lib.Proto"
-local Updater          = require "Updater"
-local xsys             = require "xsys"
-local FieldBase        = require "App.Field.FieldBase"
-local Species          = require "App.Species"
-local Time             = require "Lib.Time"
-local math             = require("sci.math").generic
+local DecompRegionCalc = require "Lib.CartDecomp"
 local diff             = require("sci.diff")
+local FieldBase        = require "App.Field.FieldBase"
+local Grid             = require "Grid"
+local LinearTrigger    = require "LinearTrigger"
 local Logger           = require "Lib.Logger"
 local lume             = require "Lib.lume"
+local math             = require("sci.math").generic
+local Proto            = require "Lib.Proto"
+local Species          = require "App.Species"
+local Time             = require "Lib.Time"
+local Updater          = require "Updater"
+local xsys             = require "xsys"
 
 local GkField = Proto(FieldBase.FieldBase)
 
@@ -199,7 +201,28 @@ end
 
 -- Methods for EM field object.
 function GkField:hasEB() return true, self.isElectromagnetic end
-function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
+function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim()
+   print("I'm making a global grid")
+   local GridConstructor = Grid.RectCart
+   if grid.coordinateMap then
+      GridConstructor = Grid.NonUniformRectCart -- will get rid of
+   elseif grid.mapc2p then  -- Is this if statement correct?
+      GridConstructor = Grid.MappedCart
+   end
+   print("I decided on the form of the grid")
+   self.gridGlobal  = GridConstructor {
+      lower = grid._lower,     decomposition = DecompRegionCalc.CartProd{
+      cuts = (function() local cuts = {}
+         for i = 1, self.ndim do cuts[i] = 1 end
+         return cuts end)(), _serTesting = true}, 
+      upper = grid._upper,     mappings = grid.coordinateMap, --where wouold I find this?
+      cells = grid._cells,     mapc2p = grid.mapc2p, -- not in RectCart
+      periodicDirs = grid._periodicDirs,  world = grid.world, --no usages
+      messenger = grid.messenger,
+   }
+   print("I made a global grid")
+   -- create a new grid inside of here
+end
 function GkField:setGridGlobal(grid) self.gridGlobal = grid; self.ndimGlobal = self.gridGlobal:ndim() end
 
 local function createField(grid, basis, ghostCells, vComp, periodicSync, useDevice)
@@ -516,7 +539,7 @@ function GkField:createSolver(population, externalField)
 
          --[[--For paralellization over species
          if self.gridGlobal
-            self.chargeDensGridGlobal;clear(0.0)
+            self.chargeDensGlobal;clear(0.0)
             messenger:AllGather(self.chargeDens, self.chargeDensGridGlobal, numberOfCells*numberOfComponents)
          end
          --]]

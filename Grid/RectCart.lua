@@ -16,10 +16,10 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 -- Gkyl libraries.
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Lin   = require "Lib.Linalg"
+local lume  = require "Lib.lume"
 local Mpi   = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
-local lume  = require "Lib.lume"
 
 local cuda = nil
 if GKYL_HAVE_CUDA then
@@ -87,6 +87,7 @@ local RectCart = Proto()
 
 function RectCart:init(tbl)
    local cells = tbl.cells
+   self._cells = cells
    self._ndim  = #cells
    local lo = tbl.lower and tbl.lower or {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
    local up = tbl.upper and tbl.upper or {1.0, 1.0, 1.0, 1.0, 1.0, 1.0}

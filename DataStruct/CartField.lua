@@ -708,14 +708,14 @@ local function Field_meta_ctor(elct)
          self._zeroForOps:clear(val)
       end,
       fill = function (self, k, fc)
-	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index	 
-	 fc._cdata = self._data+loc
+         local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index	 
+         fc._cdata = self._data+loc
       end,
       _localLower = function (self)
-	 return 0
+	   return 0
       end,
       _localShape = function (self)
-	 return self._localExtRange:volume()*self:numComponents()
+	   return self._localExtRange:volume()*self:numComponents()
       end,
       _assign = function(self, fact, fld)
          self._zeroForOps:set(fact, fld._zeroForOps)
