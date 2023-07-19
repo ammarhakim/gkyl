@@ -199,11 +199,8 @@ end
 
 -- Methods for EM field object.
 function GkField:hasEB() return true, self.isElectromagnetic end
-function GkField:setGrid(grid, gridGlobal)
-   self.grid = grid
-   self.ndim = self.grid:ndim()
-   self.gridGlobal = gridGlobal and gridGlobal or nil
-end
+function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
+function GkField:setGridGlobal(grid) self.gridGlobal = grid; self.ndimGlobal = self.gridGlobal:ndim() end
 
 local function createField(grid, basis, ghostCells, vComp, periodicSync, useDevice)
    vComp = vComp or 1

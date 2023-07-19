@@ -52,7 +52,8 @@ function test_0(comm)
 
    local decomp = DecompRegionCalc.CartProd { cuts = {2} }   
    local noDecomp = DecompRegionCalc.CartProd { 
-      cuts = {1}
+      cuts = {1},
+      __serTesting = true,
     }
    local grid = Grid.RectCart {--located in Grid/RectCart.lua
       lower = {0.0},
@@ -87,7 +88,7 @@ function test_11(comm)
    local decomp = DecompRegionCalc.CartProd { cuts = {2} }   
    local noDecomp = DecompRegionCalc.CartProd { 
       cuts = {1},
-      __serTesting = true, --try without this flag
+      __serTesting = true,
     }
    local grid = Grid.RectCart {--located in Grid/RectCart.lua
       lower = {0.0},

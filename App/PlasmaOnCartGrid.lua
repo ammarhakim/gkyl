@@ -190,6 +190,14 @@ local function buildApplication(self, tbl)
       cells = tbl.cells,     mapc2p = tbl.mapc2p,
       periodicDirs = periodicDirs,  world = tbl.world, 
       messenger = commManager,
+   }   
+   local confGridGlobal = GridConstructor {
+      lower = tbl.lower,     decomposition = DecompRegionCalc.CartProd{
+      cuts = {1}, _serTesting = true},
+      upper = tbl.upper,     mappings = tbl.coordinateMap,
+      cells = tbl.cells,     mapc2p = tbl.mapc2p,
+      periodicDirs = periodicDirs,  world = tbl.world, 
+      messenger = commManager,
    }
    if tbl.coordinateMap or tbl.mapc2p then 
       local metaData = {polyOrder = confBasis:polyOrder(),
@@ -223,6 +231,7 @@ local function buildApplication(self, tbl)
       s:setConfBasis(confBasis)
       -- Set up phase grid and basis.
       s:createGrid(confGrid)
+      s:createGridGlobal(confGridGlobal)
       s:createBasis(basisNm, polyOrder)
    end
    for _, s in population.iterLocal() do -- Only allocate fields for species in this rank.
