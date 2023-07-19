@@ -12,20 +12,20 @@
 local Alloc = require "Alloc"
 local Basis = require "Basis"
 local DataStruct = require "DataStruct"
+local date = require "xsys.date"
 local DecompRegionCalc = require "Lib.CartDecomp"
+local ffi = require "ffi"
 local Grid = require "Grid"
+local lfs = require "lfs"
 local Lin = require "Lib.Linalg"
 local LinearTrigger = require "Lib.LinearTrigger"
+local lume = require "Lib.lume"
 local Messenger = require "Comm.Messenger"
 local Logger = require "Lib.Logger"
 local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
-local date = require "xsys.date"
-local lfs = require "lfs"
-local lume = require "Lib.lume"
 local xsys = require "xsys"
-local ffi = require "ffi"
 
 math = require("sci.math").generic -- this is global so that it affects input file
 
@@ -190,16 +190,6 @@ local function buildApplication(self, tbl)
       cells = tbl.cells,     mapc2p = tbl.mapc2p,
       periodicDirs = periodicDirs,  world = tbl.world, 
       messenger = commManager,
-   }   
-   local confGridGlobal = GridConstructor {
-      lower = tbl.lower,     decomposition = DecompRegionCalc.CartProd{
-      cuts = (function() local cuts = {}
-         for i = 1, cdim do cuts[i] = 1 end
-         return cuts end)(), _serTesting = true}, 
-      upper = tbl.upper,     mappings = tbl.coordinateMap,
-      cells = tbl.cells,     mapc2p = tbl.mapc2p,
-      periodicDirs = periodicDirs,  world = tbl.world, 
-      messenger = commManager,
    }
    if tbl.coordinateMap or tbl.mapc2p then 
       local metaData = {polyOrder = confBasis:polyOrder(),
@@ -241,7 +231,6 @@ local function buildApplication(self, tbl)
 
    -- Add grid to app object.
    self._confGrid = confGrid
-   self._confGridGlobal = confGridGlobal
 
    local cflMin = GKYL_MAX_DOUBLE
    -- Compute CFL numbers.
@@ -256,7 +245,6 @@ local function buildApplication(self, tbl)
       fld:setIoMethod(ioMethod)
       fld:setBasis(confBasis)
       fld:setGrid(confGrid)
-      fld:setGridGlobal(confGridGlobal) --returns a nill value
       do
 	 local myCfl = tbl.cfl and tbl.cfl or cflFrac
 	 if fld.isElliptic then
