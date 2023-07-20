@@ -204,21 +204,24 @@ function GkField:hasEB() return true, self.isElectromagnetic end
 function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim()
    local GridConstructor = Grid.RectCart
    if grid.coordinateMap then
-      GridConstructor = Grid.NonUniformRectCart -- will get rid of
+      GridConstructor = Grid.NonUniformRectCart
    elseif grid.mapc2p then  -- Is this if statement correct?
       GridConstructor = Grid.MappedCart
    end
+   local gridIngredients = grid:childGridIngredients(
+      (function() local keepDims = {}
+      for i = 1, self.ndim do keepDims[i] = i end
+      return keepDims end)())
    self.gridGlobal  = GridConstructor {
-      lower = grid._lower,     decomposition = DecompRegionCalc.CartProd{
+      lower = gridIngredients.lower,     decomposition = DecompRegionCalc.CartProd{
       cuts = (function() local cuts = {}
          for i = 1, self.ndim do cuts[i] = 1 end
          return cuts end)(), _serTesting = true}, 
-      upper = grid._upper,     mappings = grid.coordinateMap, --where wouold I find this?
-      cells = grid._cells,     mapc2p = grid.mapc2p, -- not in RectCart
-      periodicDirs = grid._periodicDirs,  world = grid.world, --no usages
-      messenger = grid.messenger,
+      upper = gridIngredients.upper,     mappings = gridIngredients.coordinateMap, --where wouold I find this?
+      cells = gridIngredients.cells,     mapc2p = gridIngredients.mapc2p, -- not in RectCart
+      periodicDirs = gridIngredients.getPeriodicDirs,  world = gridIngredients.world, --no usages
+      messenger = grid:getMessenger(),
    }
-   -- create a new grid inside of here
 end
 function GkField:setGridGlobal(grid) self.gridGlobal = grid; self.ndimGlobal = self.gridGlobal:ndim() end
 

@@ -87,7 +87,6 @@ local RectCart = Proto()
 
 function RectCart:init(tbl)
    local cells = tbl.cells
-   self._cells = cells
    self._ndim  = #cells
    local lo = tbl.lower and tbl.lower or {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
    local up = tbl.upper and tbl.upper or {1.0, 1.0, 1.0, 1.0, 1.0, 1.0}
