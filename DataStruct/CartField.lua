@@ -650,72 +650,72 @@ local function Field_meta_ctor(elct)
 
    -- Set callable methods.
    Field.__index = {
-      elemType = function (self)
-	 return elct
+      elemType = function(self)
+         return elct
       end,
-      elemSize = function (self)
-	 return elctSize
-      end,      
-      elemCommType = function (self)
-	 return elctCommType
+      elemSize = function(self)
+         return elctSize
       end,
-      ndim = function (self)
-	 return self._ndim
+      elemCommType = function(self)
+         return elctCommType
       end,
-      grid = function (self)
-	 return self._grid
+      ndim = function(self)
+         return self._ndim
       end,
-      numComponents = function (self)
-	 return self._numComponents
+      grid = function(self)
+         return self._grid
       end,
-      hasCuDev = function (self)
+      numComponents = function(self)
+         return self._numComponents
+      end,
+      hasCuDev = function(self)
          if self._zeroDevice then return self._zeroDevice:is_cu_dev() else return false end
       end,
-      setHostOps = function (self)
+      setHostOps = function(self)
          self._zeroForOps = self._zero
       end,
-      setDeviceOps = function (self)
+      setDeviceOps = function(self)
          self._zeroForOps = self._zeroDevice
       end,
-      copy = function (self, fIn)
-	 self._zeroForOps:copy(fIn._zeroForOps)
+      copy = function(self, fIn)
+         self._zeroForOps:copy(fIn._zeroForOps)
       end,
-      deviceCopy = function (self, fIn)
-	 self._zeroDevice:copy(fIn._zeroDevice)
+      deviceCopy = function(self, fIn)
+         self._zeroDevice:copy(fIn._zeroDevice)
       end,
-      copyHostToDevice = function (self)
+      copyHostToDevice = function(self)
          if self._zeroDevice then self._zeroDevice:copy(self._zero) end
       end,
-      copyDeviceToHost = function (self)
+      copyDeviceToHost = function(self)
          if self._zeroDevice then self._zero:copy(self._zeroDevice) end
       end,
-      copyDeviceToHostAsync = function (self)
-	 self._zero:copyAsync(self._zeroDevice)
+      copyDeviceToHostAsync = function(self)
+         self._zero:copyAsync(self._zeroDevice)
       end,
-      copyHostToDeviceAsync = function (self)
-	 self._zero:copyAsync(self._zeroDevice)
+      copyHostToDeviceAsync = function(self)
+         self._zero:copyAsync(self._zeroDevice)
       end,
-      copyRangeToRange = function (self, fIn, outRange, inRange)
+      copyRangeToRange = function(self, fIn, outRange, inRange)
          self._zeroForOps:copyRangeToRange(fIn._zeroForOps, outRange, inRange)
       end,
-      deviceDataPointer = function (self)
-	 return self._devAllocData
+      deviceDataPointer = function(self)
+         return self._devAllocData
       end,
-      dataPointer = function (self)
-	 return self._data
+      dataPointer = function(self)
+         return self._data
       end,
-      clear = function (self, val)
+      clear = function(self, val)
          self._zeroForOps:clear(val)
       end,
-      fill = function (self, k, fc)
-         local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index	 
-         fc._cdata = self._data+loc
+      fill = function(self, k, fc)
+         local loc = (k - 1) * self._numComponents -- (k-1) as k is 1-based index	
+         fc._cdata = self._data + loc
       end,
-      _localLower = function (self)
-	   return 0
+      _localLower = function(self)
+         return 0
       end,
-      _localShape = function (self)
-	   return self._localExtRange:volume()*self:numComponents()
+      _localShape = function(self)
+         return self._localExtRange:volume() * self:numComponents()
       end,
       _assign = function(self, fact, fld)
          self._zeroForOps:set(fact, fld._zeroForOps)
@@ -760,21 +760,21 @@ local function Field_meta_ctor(elct)
       --                          (0-based) offset indicates which is the first component in the input field to accumulate. 
       -- It assumes that the components being summed are continuous.
       _accumulateOffsetOneFld = function(self, fact, fld, compStart)
-	 assert(field_check_range(self, fld),
-		"CartField:accumulateOffsetOneFld: Can only accumulate fields with the same range")
-	 assert(type(fact) == "number",
-		"CartField:accumulateOffsetOneFld: Factor not a number")
+         assert(field_check_range(self, fld),
+            "CartField:accumulateOffsetOneFld: Can only accumulate fields with the same range")
+         assert(type(fact) == "number",
+            "CartField:accumulateOffsetOneFld: Factor not a number")
          assert(self:layout() == fld:layout(),
-		"CartField:accumulateOffsetOneFld: Fields should have same layout for sums to make sense")
+            "CartField:accumulateOffsetOneFld: Fields should have same layout for sums to make sense")
          self._zeroForOps:accumulateOffset(fact, fld._zeroForOps, compStart)
       end,
       _accumulateOffsetOneFldRange = function(self, fact, fld, compStart, rng)
-	 assert(field_check_range(self, fld),
-		"CartField:accumulateOffsetOneFld: Can only accumulate fields with the same range")
-	 assert(type(fact) == "number",
-		"CartField:accumulateOffsetOneFld: Factor not a number")
+         assert(field_check_range(self, fld),
+            "CartField:accumulateOffsetOneFld: Can only accumulate fields with the same range")
+         assert(type(fact) == "number",
+            "CartField:accumulateOffsetOneFld: Factor not a number")
          assert(self:layout() == fld:layout(),
-		"CartField:accumulateOffsetOneFld: Fields should have same layout for sums to make sense")
+            "CartField:accumulateOffsetOneFld: Fields should have same layout for sums to make sense")
          self._zeroForOps:accumulateOffsetRange(fact, fld._zeroForOps, compStart, rng)
       end,
       accumulate = isNumberType and
@@ -785,254 +785,254 @@ local function Field_meta_ctor(elct)
 	    for i = 1, nFlds do -- Accumulate rest of the fields.
 	       self:_accumulateOneFld(args[2*i-1], args[2*i])
 	    end
-	 end or
-	 function (self, c1, fld1, ...)
-	    assert(false, "CartField:accumulate: Accumulate only works on numeric fields")
-	 end,
+          end or
+          function(self, c1, fld1, ...)
+             assert(false, "CartField:accumulate: Accumulate only works on numeric fields")
+          end,
       accumulateOffset = isNumberType and
-	 function (self, c1, fld1, compStart1, ...)
-	    local args = {...} -- Package up rest of args as table.
-	    local nFlds = #args/3
-	    self:_accumulateOffsetOneFld(c1, fld1, compStart1) -- Accumulate first field.
-	    for i = 1, nFlds do -- Accumulate rest of the fields
-	       self:_accumulateOffsetOneFld(args[3*i-2], args[3*i-1], args[3*i])
-	    end
-	 end or
-	 function (self, c1, fld1, compStart1, ...)
-	    assert(false, "CartField:accumulateOffset: Accumulate only works on numeric fields")
-	 end,
+          function(self, c1, fld1, compStart1, ...)
+             local args = { ... }                       -- Package up rest of args as table.
+             local nFlds = #args / 3
+             self:_accumulateOffsetOneFld(c1, fld1, compStart1) -- Accumulate first field.
+             for i = 1, nFlds do                        -- Accumulate rest of the fields
+                self:_accumulateOffsetOneFld(args[3 * i - 2], args[3 * i - 1], args[3 * i])
+             end
+          end or
+          function(self, c1, fld1, compStart1, ...)
+             assert(false, "CartField:accumulateOffset: Accumulate only works on numeric fields")
+          end,
       combine = isNumberType and
-         function (self, c1, fld1, ...)
-            local args = {...} -- Package up rest of args as table.
-            local nFlds = #args/2
-            self:_assign(c1, fld1) -- Assign first field.
-            for i = 1, nFlds do -- Accumulate rest of the fields.
-               self:_accumulateOneFld(args[2*i-1], args[2*i])
-            end
-         end or
-         function (self, c1, fld1, ...)
-            assert(false, "CartField:combine: Combine only works on numeric fields")
-         end,
+          function(self, c1, fld1, ...)
+             local args = { ... }  -- Package up rest of args as table.
+             local nFlds = #args / 2
+             self:_assign(c1, fld1) -- Assign first field.
+             for i = 1, nFlds do   -- Accumulate rest of the fields.
+                self:_accumulateOneFld(args[2 * i - 1], args[2 * i])
+             end
+          end or
+          function(self, c1, fld1, ...)
+             assert(false, "CartField:combine: Combine only works on numeric fields")
+          end,
       combineOffset = isNumberType and
-	 function (self, c1, fld1, compStart1, ...)
-            local args = {...} -- Package up rest of args as table.
-            local nFlds = #args/3
-            local notAssigned = {}
-            for i = 1, self:numComponents() do table.insert(notAssigned,true) end   -- Boolean indicates if already assigned.
-            self:_assignOffsetOneFld(c1, fld1, compStart1) -- Assign first field.
-            notAssigned[compStart1+1] = false
-            for i = 1, nFlds do -- Accumulate rest of the fields.
-               local cOff = args[3*i]
-               if notAssigned[cOff+1] then
-                  self:_assignOffsetOneFld(args[3*i-2], args[3*i-1], cOff)
-                  notAssigned[cOff+1] = false
-               else
-                  self:_accumulateOffsetOneFld(args[3*i-2], args[3*i-1], cOff)
-               end
-            end
-         end or
-         function (self, c1, fld1, ...)
-            assert(false, "CartField:combineOffset: Combine only works on numeric fields")
-         end,
+          function(self, c1, fld1, compStart1, ...)
+             local args = { ... } -- Package up rest of args as table.
+             local nFlds = #args / 3
+             local notAssigned = {}
+             for i = 1, self:numComponents() do table.insert(notAssigned, true) end -- Boolean indicates if already assigned.
+             self:_assignOffsetOneFld(c1, fld1, compStart1)                       -- Assign first field.
+             notAssigned[compStart1 + 1] = false
+             for i = 1, nFlds do                                                  -- Accumulate rest of the fields.
+                local cOff = args[3 * i]
+                if notAssigned[cOff + 1] then
+                   self:_assignOffsetOneFld(args[3 * i - 2], args[3 * i - 1], cOff)
+                   notAssigned[cOff + 1] = false
+                else
+                   self:_accumulateOffsetOneFld(args[3 * i - 2], args[3 * i - 1], cOff)
+                end
+             end
+          end or
+          function(self, c1, fld1, ...)
+             assert(false, "CartField:combineOffset: Combine only works on numeric fields")
+          end,
       accumulateRange = isNumberType and
-	 function (self, c1, fld1, ...)
-	    local args = {...} -- Package up rest of args as table.
-	    local nFlds = (#args-1)/2
-	    local rng = args[#args]
-	    self:_accumulateOneFldRange(c1, fld1, rng) -- Accumulate first field.
-	    for i = 1, nFlds do -- Accumulate rest of the fields.
-	       self:_accumulateOneFldRange(args[2*i-1], args[2*i], rng)
-	    end
-	 end or
-	 function (self, c1, fld1, ...)
-	    assert(false, "CartField:accumulate: Accumulate only works on numeric fields")
-	 end,
+          function(self, c1, fld1, ...)
+             local args = { ... } -- Package up rest of args as table.
+             local nFlds = (#args - 1) / 2
+             local rng = args[#args]
+             self:_accumulateOneFldRange(c1, fld1, rng) -- Accumulate first field.
+             for i = 1, nFlds do                -- Accumulate rest of the fields.
+                self:_accumulateOneFldRange(args[2 * i - 1], args[2 * i], rng)
+             end
+          end or
+          function(self, c1, fld1, ...)
+             assert(false, "CartField:accumulate: Accumulate only works on numeric fields")
+          end,
       accumulateOffsetRange = isNumberType and
-	 function (self, c1, fld1, compStart1, ...)
-	    local args = {...} -- Package up rest of args as table.
-	    local nFlds = #args/3
-	    local rng = args[#args]
-	    self:_accumulateOffsetOneFldRange(c1, fld1, compStart1, rng) -- Accumulate first field.
-	    for i = 1, nFlds do -- Accumulate rest of the fields
-	       self:_accumulateOffsetOneFldRange(args[3*i-2], args[3*i-1], args[3*i], rng)
-	    end
-	 end or
-	 function (self, c1, fld1, compStart1, ...)
-	    assert(false, "CartField:accumulateOffset: Accumulate only works on numeric fields")
-	 end,
+          function(self, c1, fld1, compStart1, ...)
+             local args = { ... } -- Package up rest of args as table.
+             local nFlds = #args / 3
+             local rng = args[#args]
+             self:_accumulateOffsetOneFldRange(c1, fld1, compStart1, rng) -- Accumulate first field.
+             for i = 1, nFlds do                                  -- Accumulate rest of the fields
+                self:_accumulateOffsetOneFldRange(args[3 * i - 2], args[3 * i - 1], args[3 * i], rng)
+             end
+          end or
+          function(self, c1, fld1, compStart1, ...)
+             assert(false, "CartField:accumulateOffset: Accumulate only works on numeric fields")
+          end,
       combineRange = isNumberType and
-         function (self, c1, fld1, ...)
-            local args = {...} -- Package up rest of args as table.
-            local nFlds = #args/2
-	    local rng = args[#args]
-            self:_assignRange(c1, fld1, rng) -- Assign first field.
-            for i = 1, nFlds do -- Accumulate rest of the fields.
-               self:_accumulateOneFldRange(args[2*i-1], args[2*i], rng)
-            end
-         end or
-         function (self, c1, fld1, ...)
-            assert(false, "CartField:combine: Combine only works on numeric fields")
-         end,
+          function(self, c1, fld1, ...)
+             local args = { ... } -- Package up rest of args as table.
+             local nFlds = #args / 2
+             local rng = args[#args]
+             self:_assignRange(c1, fld1, rng) -- Assign first field.
+             for i = 1, nFlds do             -- Accumulate rest of the fields.
+                self:_accumulateOneFldRange(args[2 * i - 1], args[2 * i], rng)
+             end
+          end or
+          function(self, c1, fld1, ...)
+             assert(false, "CartField:combine: Combine only works on numeric fields")
+          end,
       combineOffsetRange = isNumberType and
-	 function (self, c1, fld1, compStart1, ...)
-            local args = {...} -- Package up rest of args as table.
-            local nFlds = #args/3
-	    local rng = args[#args]
-            local notAssigned = {}
-            for i = 1, self:numComponents() do table.insert(notAssigned,true) end   -- Boolean indicates if already assigned.
-            self:_assignOffsetOneFldRange(c1, fld1, compStart1, rng) -- Assign first field.
-            notAssigned[compStart1+1] = false
-            for i = 1, nFlds do -- Accumulate rest of the fields.
-               local cOff = args[3*i]
-               if notAssigned[cOff+1] then
-                  self:_assignOffsetOneFldRange(args[3*i-2], args[3*i-1], cOff, rng)
-                  notAssigned[cOff+1] = false
-               else
-                  self:_accumulateOffsetOneFldRange(args[3*i-2], args[3*i-1], cOff, rng)
-               end
-            end
-         end or
-         function (self, c1, fld1, ...)
-            assert(false, "CartField:combineOffset: Combine only works on numeric fields")
-         end,
+          function(self, c1, fld1, compStart1, ...)
+             local args = { ... } -- Package up rest of args as table.
+             local nFlds = #args / 3
+             local rng = args[#args]
+             local notAssigned = {}
+             for i = 1, self:numComponents() do table.insert(notAssigned, true) end -- Boolean indicates if already assigned.
+             self:_assignOffsetOneFldRange(c1, fld1, compStart1, rng)             -- Assign first field.
+             notAssigned[compStart1 + 1] = false
+             for i = 1, nFlds do                                                  -- Accumulate rest of the fields.
+                local cOff = args[3 * i]
+                if notAssigned[cOff + 1] then
+                   self:_assignOffsetOneFldRange(args[3 * i - 2], args[3 * i - 1], cOff, rng)
+                   notAssigned[cOff + 1] = false
+                else
+                   self:_accumulateOffsetOneFldRange(args[3 * i - 2], args[3 * i - 1], cOff, rng)
+                end
+             end
+          end or
+          function(self, c1, fld1, ...)
+             assert(false, "CartField:combineOffset: Combine only works on numeric fields")
+          end,
       scale = isNumberType and
-	 function (self, fact)
-            self._zeroForOps:scale(fact)
-	 end or
-	 function (self, fact)
-	    assert(false, "CartField:scale: Scale only works on numeric fields")
-	 end,
-      scaleByCell = function (self, factByCell)
+          function(self, fact)
+             self._zeroForOps:scale(fact)
+          end or
+          function(self, fact)
+             assert(false, "CartField:scale: Scale only works on numeric fields")
+          end,
+      scaleByCell = function(self, factByCell)
          self._zeroForOps:scale_by_cell(factByCell._zeroForOps)
       end,
-      shiftc = function (self, val, comp)
+      shiftc = function(self, val, comp)
          self._zeroForOps:shiftc(val, comp)
       end,
-      shiftcRange = function (self, val, comp, rng)
+      shiftcRange = function(self, val, comp, rng)
          self._zeroForOps:shiftc(val, comp, rng)
       end,
       abs = isNumberType and
-         function (self)
-            ffiC.gkylCartFieldAbs(self:_localLower(), self:_localShape(), self._data)
-	 end or
-	 function (self, fact)
-	    assert(false, "CartField:abs: Abs only works on numeric fields")
-	 end,
-      defaultLayout = function (self)
-	 if defaultLayout == rowMajLayout then
-	    return "row-major"
-	 end
-	 return "col-major"
+          function(self)
+             ffiC.gkylCartFieldAbs(self:_localLower(), self:_localShape(), self._data)
+          end or
+          function(self, fact)
+             assert(false, "CartField:abs: Abs only works on numeric fields")
+          end,
+      defaultLayout = function(self)
+         if defaultLayout == rowMajLayout then
+            return "row-major"
+         end
+         return "col-major"
       end,
-      layout = function (self)
-	 if self._layout == rowMajLayout then
-	    return "row-major"
-	 end
-	 return "col-major"
+      layout = function(self)
+         if self._layout == rowMajLayout then
+            return "row-major"
+         end
+         return "col-major"
       end,
-      lowerGhost = function (self)
-	 return self._lowerGhost
+      lowerGhost = function(self)
+         return self._lowerGhost
       end,
-      upperGhost = function (self)
-	 return self._upperGhost
+      upperGhost = function(self)
+         return self._upperGhost
       end,
-      lowerGhostVec = function (self)
-	 return self._lowerGhostVec
+      lowerGhostVec = function(self)
+         return self._lowerGhostVec
       end,
-      upperGhostVec = function (self)
-	 return self._upperGhostVec
+      upperGhostVec = function(self)
+         return self._upperGhostVec
       end,
-      localRange = function (self)
-	 return self._localRange
+      localRange = function(self)
+         return self._localRange
       end,
-      localExtRange = function (self) -- includes ghost cells
-	 return self._localExtRange
-      end,      
-      localEdgeRange = function (self)
-	 return self._localEdgeRange
-      end,      
-      localExtEdgeRange = function (self)
-	 return self._localExtEdgeRange
-      end,      
-      globalRange = function (self)
-	 return self._globalRange
+      localExtRange = function(self)  -- includes ghost cells
+         return self._localExtRange
       end,
-      globalExtRange = function (self) -- includes ghost cells
-	 return self._globalExtRange
+      localEdgeRange = function(self)
+         return self._localEdgeRange
       end,
-      localGhostRangeLower = function (self)
+      localExtEdgeRange = function(self)
+         return self._localExtEdgeRange
+      end,
+      globalRange = function(self)
+         return self._globalRange
+      end,
+      globalExtRange = function(self)  -- includes ghost cells
+         return self._globalExtRange
+      end,
+      localGhostRangeLower = function(self)
          return self._localGhostRngLo
       end,
-      localGhostRangeUpper = function (self)
+      localGhostRangeUpper = function(self)
          return self._localGhostRngUp
       end,
-      globalGhostRangeLower = function (self)
+      globalGhostRangeLower = function(self)
          return self._globalGhostRngLo
       end,
-      globalGhostRangeUpper = function (self)
+      globalGhostRangeUpper = function(self)
          return self._globalGhostRngUp
       end,
-      localGlobalGhostRangeIntersectLower = function (self)
+      localGlobalGhostRangeIntersectLower = function(self)
          return self._locGloGhostRngInterLo
       end,
-      localGlobalGhostRangeIntersectUpper = function (self)
+      localGlobalGhostRangeIntersectUpper = function(self)
          return self._locGloGhostRngInterUp
       end,
-      localSkinRangeLower = function (self)
+      localSkinRangeLower = function(self)
          return self._localSkinRngLo
       end,
-      localSkinRangeUpper = function (self)
+      localSkinRangeUpper = function(self)
          return self._localSkinRngUp
       end,
-      globalSkinRangeLower = function (self)
+      globalSkinRangeLower = function(self)
          return self._globalSkinRngLo
       end,
-      globalSkinRangeUpper = function (self)
+      globalSkinRangeUpper = function(self)
          return self._globalSkinRngUp
       end,
-      localGlobalSkinRangeIntersectLower = function (self)
+      localGlobalSkinRangeIntersectLower = function(self)
          return self._locGloSkinRngInterLo
       end,
-      localGlobalSkinRangeIntersectUpper = function (self)
+      localGlobalSkinRangeIntersectUpper = function(self)
          return self._locGloSkinRngInterUp
       end,
-      localRangeIter = function (self)
-	 if self._layout == rowMajLayout then
-	    return self._localRange:rowMajorIter(self._localStartIdx, self._localNumBump)
-	 end
-	 return self._localRange:colMajorIter(self._localStartIdx, self._localNumBump)
+      localRangeIter = function(self)
+         if self._layout == rowMajLayout then
+            return self._localRange:rowMajorIter(self._localStartIdx, self._localNumBump)
+         end
+         return self._localRange:colMajorIter(self._localStartIdx, self._localNumBump)
       end,
-      localExtRangeIter = function (self) -- includes ghost cells
-	 local lext = self:localRange():extend(self:lowerGhost(), self:upperGhost())
-	 if self._layout == rowMajLayout then
-	    return lext:rowMajorIter(self._localExtStartIdx, self._localExtNumBump)
-	 end
-	 return lext:colMajorIter(self._localExtStartIdx, self._localExtNumBump)
-      end,      
-      size = function (self)
-	 return self._size
+      localExtRangeIter = function(self)  -- includes ghost cells
+         local lext = self:localRange():extend(self:lowerGhost(), self:upperGhost())
+         if self._layout == rowMajLayout then
+            return lext:rowMajorIter(self._localExtStartIdx, self._localExtNumBump)
+         end
+         return lext:colMajorIter(self._localExtStartIdx, self._localExtNumBump)
       end,
-      indexer = function (self) -- linear indexer taking (i,j,...)
-	 return indexerMakerFuncs[self._layout](self:localExtRange())
+      size = function(self)
+         return self._size
       end,
-      genIndexer = function (self) -- linear indexer taking indices as a vector
-	 return genIndexerMakerFuncs[self._layout](self:localExtRange())
+      indexer = function(self)  -- linear indexer taking (i,j,...)
+         return indexerMakerFuncs[self._layout](self:localExtRange())
       end,
-      get = function (self, k) -- k is an integer returned by a linear indexer
-	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index
-	 return fcompct(self._numComponents, self._data+loc)
+      genIndexer = function(self)  -- linear indexer taking indices as a vector
+         return genIndexerMakerFuncs[self._layout](self:localExtRange())
       end,
-      getDataPtrAt = function (self, k) -- k is an integer returned by a linear indexer
-	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index
-	 return self._data+loc
+      get = function(self, k)           -- k is an integer returned by a linear indexer
+         local loc = (k - 1) * self._numComponents -- (k-1) as k is 1-based index
+         return fcompct(self._numComponents, self._data + loc)
       end,
-      write = function (self, fName, tmStamp, frNum, writeGhost)
-	 self._adiosIo:write(self, fName, tmStamp, frNum, writeGhost)
+      getDataPtrAt = function(self, k)  -- k is an integer returned by a linear indexer
+         local loc = (k - 1) * self._numComponents -- (k-1) as k is 1-based index
+         return self._data + loc
       end,
-      read = function (self, fName) --> time-stamp, frame-number
-	 return self._adiosIo:read(self, fName)
+      write = function(self, fName, tmStamp, frNum, writeGhost)
+         self._adiosIo:write(self, fName, tmStamp, frNum, writeGhost)
       end,
-      sync = function (self, syncPeriodicDirs_)
+      read = function(self, fName)  --> time-stamp, frame-number
+         return self._adiosIo:read(self, fName)
+      end,
+      sync = function(self, syncPeriodicDirs_)
          local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
          local mess = self._grid:getMessenger()
 
@@ -1054,13 +1054,13 @@ local function Field_meta_ctor(elct)
       -- This method is an alternative function for applying periodic boundary
       -- conditions when Mpi.Comm_size(nodeComm) = 1 and we do not need to call
       -- Send/Recv to copy the skin cell data into ghost cells.
-      periodicCopy = function (self, syncPeriodicDirs_)
+      periodicCopy = function(self, syncPeriodicDirs_)
          local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
-	 if self._syncPeriodicDirs and syncPeriodicDirs then
+         if self._syncPeriodicDirs and syncPeriodicDirs then
             self._field_periodic_copy(self)
-	 end
+         end
       end,
-      periodicCopyInDir = function (self, dir)
+      periodicCopyInDir = function(self, dir)
          self._field_periodic_copy_indir(self, dir)
       end,
       setBasisId = function(self, basisId)
@@ -1070,7 +1070,7 @@ local function Field_meta_ctor(elct)
          return self._basisId
       end,
       getMetaData = function(self)
-         return self._metaData 
+         return self._metaData
       end,
       compatible = function(self, fld)
          return field_compatible(self, fld)
@@ -1079,24 +1079,24 @@ local function Field_meta_ctor(elct)
          return field_check_range(self, fld)
       end,
       reduce = isNumberType and
-	 function(self, opIn)
-            self._zeroForOps:reduceRange(self.localReductionVal:data(), opIn, self._localRange)
-	    if self.useDevice then self.localReductionVal_h:copy(self.localReductionVal) end
-	      
-	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
-	    local grid = self._grid
-	    local localVal = {}
-            Mpi.Allreduce(self.localReductionVal_h:data(), self.globalReductionVal:data(),
-               self._numComponents, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
+          function(self, opIn)
+             self._zeroForOps:reduceRange(self.localReductionVal:data(), opIn, self._localRange)
+             if self.useDevice then self.localReductionVal_h:copy(self.localReductionVal) end
 
-            --self.localReductionVal:copy(self.globalReductionVal)
-            for k = 1, self._numComponents do localVal[k] = self.globalReductionVal:data()[k-1] end
-            return localVal
-            --return self.localReductionVal:data()
-	 end or
-	 function (self, opIn)
-	    assert(false, "CartField:reduce: Reduce only works on numeric fields")
-	 end,
+             -- Input 'opIn' must be one of the binary operations in binOpFuncs.
+             local grid = self._grid
+             local localVal = {}
+             Mpi.Allreduce(self.localReductionVal_h:data(), self.globalReductionVal:data(),
+                self._numComponents, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
+
+             --self.localReductionVal:copy(self.globalReductionVal)
+             for k = 1, self._numComponents do localVal[k] = self.globalReductionVal:data()[k - 1] end
+             return localVal
+             --return self.localReductionVal:data()
+          end or
+          function(self, opIn)
+             assert(false, "CartField:reduce: Reduce only works on numeric fields")
+          end,
       reduceByCell = function(self, opIn, comm, localFldIn)
          -- Reduce the CartField 'localFldIn' across communicator 'comm',
          -- and put the result in this CartField.
@@ -1104,76 +1104,76 @@ local function Field_meta_ctor(elct)
          Mpi.Allreduce(localFldIn:dataPointer(), self._data,
             self:size(), elctCommType, reduceOpsMPI[opIn], comm)
       end,
-      _copy_from_field_region = function (self, rgn, data)
-	 self._zeroForOps:copy_to_buffer(data:data(), rgn)
+      _copy_from_field_region = function(self, rgn, data)
+         self._zeroForOps:copy_to_buffer(data:data(), rgn)
       end,
-      _copy_to_field_region = function (self, rgn, data)
-	 self._zeroForOps:copy_from_buffer(data:data(), rgn)
+      _copy_to_field_region = function(self, rgn, data)
+         self._zeroForOps:copy_from_buffer(data:data(), rgn)
       end,
-      _field_sync = function (self, dataPtr)
+      _field_sync = function(self, dataPtr)
          local comm = self._grid:commSet().nodeComm -- communicator to use
          if not Mpi.Is_comm_valid(comm) then
-            return -- no need to do anything if communicator is not valid
+            return                                  -- no need to do anything if communicator is not valid
          end
          -- immediately return if nothing to sync
          if self._lowerGhost == 0 and self._upperGhost == 0 then return end
 
          -- immediately return if there is no decomp
          if self._grid:decomposedRange():numSubDomains() == 1 then return end
-        
+
          -- Steps: (1) Post non-blocking recv requests. (2) Do
          -- blocking sends, (3) Complete recv and copy data into ghost
          -- cells.
-        
-         local myId    = self._grid:subGridId() -- grid ID on this processor
+
+         local myId    = self._grid:subGridId()               -- grid ID on this processor
          local neigIds = self._decompNeigh:neighborData(myId) -- list of neighbors
-         local tag     = 42 -- Communicator tag for regular (non-periodic) messages
+         local tag     = 42                                   -- Communicator tag for regular (non-periodic) messages
          -- post a non-blocking recv request
          for _, recvId in ipairs(neigIds) do
             local dataType = self._recvMPIDataType[recvId]
             local loc      = self._recvMPILoc[recvId]
             local recvReq  = self._recvMPIReq[recvId]
             -- recv data: (its from recvId-1 as MPI ranks are zero indexed)
-            local _ = Mpi.Irecv(dataPtr+loc, 1, dataType, recvId-1, tag, comm, recvReq)
+            local _        = Mpi.Irecv(dataPtr + loc, 1, dataType, recvId - 1, tag, comm, recvReq)
          end
-         
+
          -- Do a blocking send (does not really block as recv requests
          -- are already posted).
          for _, sendId in ipairs(neigIds) do
             local dataType = self._sendMPIDataType[sendId]
             local loc      = self._sendMPILoc[sendId]
             -- Send data: (its to sendId-1 as MPI ranks are zero indexed).
-            Mpi.Send(dataPtr+loc, 1, dataType, sendId-1, tag, comm)
+            Mpi.Send(dataPtr + loc, 1, dataType, sendId - 1, tag, comm)
          end
-        
+
          -- Complete recv.
-         -- Since MPI DataTypes eliminate the need for buffers, 
+         -- Since MPI DataTypes eliminate the need for buffers,
          -- all we have to do is wait for non-blocking receives to finish.
          for _, recvId in ipairs(neigIds) do local _ = Mpi.Wait(self._recvMPIReq[recvId], nil) end
       end,
-      _field_periodic_sync = function (self, dataPtr)
+      _field_periodic_sync = function(self, dataPtr)
          local comm = self._grid:commSet().nodeComm -- Communicator to use.
          if not Mpi.Is_comm_valid(comm) then
-            return -- No need to do anything if communicator is not valid
+            return                                  -- No need to do anything if communicator is not valid
          end
-         
+
          -- Immediately return if nothing to sync.
          if self._lowerGhost == 0 and self._upperGhost == 0 then return end
-         
+
          local grid = self._grid
-         
+
          -- Steps: (1) Post non-blocking recv requests. (2) Do
          -- blocking sends, (3) Complete recv and copy data into ghost
          -- cells.
-         
+
          local decomposedRange = self._grid:decomposedRange()
          if decomposedRange:numSubDomains() == 1 and not self._syncCorners then
             return self:periodicCopy()
          end
-         local myId       = self._grid:subGridId() -- Grid ID on this processor.
-         local basePerTag = 53 -- Tag for periodic BCs.
-         local cornerBasePerTag = 70 -- Tag for periodic corner sync.
-         
+         local myId             = self._grid:subGridId() -- Grid ID on this processor.
+         local basePerTag       = 53               -- Tag for periodic BCs.
+         local cornerBasePerTag = 70               -- Tag for periodic corner sync.
+
          -- Note on tags: Each MPI message (send/recv pair) must have
          -- a unique tag. With periodic BCs it is possible that a rank
          -- may send/recv more than one message and hence some way to
@@ -1185,66 +1185,66 @@ local function Field_meta_ctor(elct)
          -- to do periodic communication safely.
          -- However we must also account for corner syncs. In 6D there
          -- are 716 such "corners" that may need to be sync-ed. We will
-         -- thus say that up->lo tags have 70+tn+800, while lo->up tags 
+         -- thus say that up->lo tags have 70+tn+800, while lo->up tags
          -- have 70+tn, where tn is the corner tag number. One way to make
          -- these tag numbers identical is to have them be composed of the
          -- ID of the participating ranks and the corner directions.
-         
+
          -- Post non-blocking recv requests for periodic directions.
          for dir = 1, self._ndim do
             if grid:isDirPeriodic(dir) then
                local skelIds = decomposedRange:boundarySubDomainIds(dir)
                for i = 1, #skelIds do
                   local loId, upId = skelIds[i].lower, skelIds[i].upper
-         
+
                   if myId == loId then
-                     local loTag    = basePerTag+dir+10
+                     local loTag    = basePerTag + dir + 10
                      local dataType = self._recvLowerPerMPIDataType[dir]
                      local loc      = self._recvLowerPerMPILoc[dir]
                      local req      = self._recvLowerPerMPIReq[dir]
-                     local _        = Mpi.Irecv(dataPtr+loc, 1, dataType,
-                                                upId-1, loTag, comm, req)
+                     local _        = Mpi.Irecv(dataPtr + loc, 1, dataType,
+                        upId - 1, loTag, comm, req)
                   end
                   if myId == upId then
-                     local upTag    = basePerTag+dir
+                     local upTag    = basePerTag + dir
                      local dataType = self._recvUpperPerMPIDataType[dir]
                      local loc      = self._recvUpperPerMPILoc[dir]
                      local req      = self._recvUpperPerMPIReq[dir]
-                     local _        = Mpi.Irecv(dataPtr+loc, 1, dataType,
-                                                loId-1, upTag, comm, req)
+                     local _        = Mpi.Irecv(dataPtr + loc, 1, dataType,
+                        loId - 1, upTag, comm, req)
                   end
                end
 
                if self._syncCorners then
                   local cTs = self._cornersToSync[dir]
                   local ccLo, ccUp = 0, 0
-                  for bI, bD in ipairs(cTs) do   -- Loop over lower boundary subdomains.
-                     for _, dC in ipairs(bD) do   -- Loop over corners.
+                  for bI, bD in ipairs(cTs) do  -- Loop over lower boundary subdomains.
+                     for _, dC in ipairs(bD) do -- Loop over corners.
                         local loId, upId, corDirs = dC.lower, dC.upper, dC.dirs
                         if myId == loId then
-                           ccLo = ccLo+1
-                           local loTag    = cornerBasePerTag+tonumber(loId..upId..tblToStr(corDirs)..1)
+                           ccLo           = ccLo + 1
+                           local loTag    = cornerBasePerTag + tonumber(loId .. upId .. tblToStr(corDirs) .. 1)
                            local dataType = self._recvLowerCornerPerMPIDataType[dir][ccLo]
                            local loc      = self._recvLowerCornerPerMPILoc[dir][ccLo]
                            local req      = self._recvLowerCornerPerMPIReq[dir][ccLo]
-                           local _        = Mpi.Irecv(dataPtr+loc, 1, dataType,
-                                                      upId-1, loTag, comm, req)
+                           local _        = Mpi.Irecv(dataPtr + loc, 1, dataType,
+                              upId - 1, loTag, comm, req)
                         end
                         if myId == upId then
-                           ccUp = ccUp+1
-                           local upTag    = cornerBasePerTag+tonumber(loId..upId..tblToStr(corDirs)..2)
+                           ccUp           = ccUp + 1
+                           local upTag    = cornerBasePerTag + tonumber(loId .. upId .. tblToStr(corDirs) .. 2)
                            local dataType = self._recvUpperCornerPerMPIDataType[dir][ccUp]
                            local loc      = self._recvUpperCornerPerMPILoc[dir][ccUp]
                            local req      = self._recvUpperCornerPerMPIReq[dir][ccUp]
-                           local _        = Mpi.Irecv(dataPtr+loc, 1, dataType,
-                                                      loId-1, upTag, comm, req)
+                           local _        = Mpi.Irecv(dataPtr + loc, 1, dataType,
+                              loId - 1, upTag, comm, req)
                         end
                      end
                   end
                end
             end
          end
-         
+
          -- Do a blocking send for periodic directions (does not
          -- really block as recv requests are already posted).
          for dir = 1, self._ndim do
@@ -1252,18 +1252,18 @@ local function Field_meta_ctor(elct)
                local skelIds = decomposedRange:boundarySubDomainIds(dir)
                for i = 1, #skelIds do
                   local loId, upId = skelIds[i].lower, skelIds[i].upper
-         
+
                   if myId == loId then
-                     local loTag    = basePerTag+dir -- This must match recv tag posted above.
+                     local loTag    = basePerTag + dir -- This must match recv tag posted above.
                      local dataType = self._sendLowerPerMPIDataType[dir]
                      local loc      = self._sendLowerPerMPILoc[dir]
-                     Mpi.Send(dataPtr+loc, 1, dataType, upId-1, loTag, comm)
+                     Mpi.Send(dataPtr + loc, 1, dataType, upId - 1, loTag, comm)
                   end
                   if myId == upId then
-                     local upTag    = basePerTag+dir+10 -- This must match recv tag posted above.
+                     local upTag    = basePerTag + dir + 10 -- This must match recv tag posted above.
                      local dataType = self._sendUpperPerMPIDataType[dir]
                      local loc      = self._sendUpperPerMPILoc[dir]
-                     Mpi.Send(dataPtr+loc, 1, dataType, loId-1, upTag, comm)
+                     Mpi.Send(dataPtr + loc, 1, dataType, loId - 1, upTag, comm)
                   end
                end
 
@@ -1271,28 +1271,28 @@ local function Field_meta_ctor(elct)
                   local cTs = self._cornersToSync[dir]
                   local ccLo, ccUp = 0, 0
                   for _, bD in ipairs(cTs) do   -- Loop over lower boundary subdomains.
-                     for _, dC in ipairs(bD) do   -- Loop over corners.
+                     for _, dC in ipairs(bD) do -- Loop over corners.
                         local loId, upId, corDirs = dC.lower, dC.upper, dC.dirs
                         if myId == loId then
-                           ccUp = ccUp+1
-                           local loTag    = cornerBasePerTag+tonumber(loId..upId..tblToStr(corDirs)..2)
+                           ccUp           = ccUp + 1
+                           local loTag    = cornerBasePerTag + tonumber(loId .. upId .. tblToStr(corDirs) .. 2)
                            local dataType = self._sendLowerCornerPerMPIDataType[dir][ccUp]
                            local loc      = self._sendLowerCornerPerMPILoc[dir][ccUp]
-                           Mpi.Send(dataPtr+loc, 1, dataType, upId-1, loTag, comm)
+                           Mpi.Send(dataPtr + loc, 1, dataType, upId - 1, loTag, comm)
                         end
                         if myId == upId then
-                           ccLo = ccLo+1
-                           local upTag    = cornerBasePerTag+tonumber(loId..upId..tblToStr(corDirs)..1)
+                           ccLo           = ccLo + 1
+                           local upTag    = cornerBasePerTag + tonumber(loId .. upId .. tblToStr(corDirs) .. 1)
                            local dataType = self._sendUpperCornerPerMPIDataType[dir][ccLo]
                            local loc      = self._sendUpperCornerPerMPILoc[dir][ccLo]
-                           Mpi.Send(dataPtr+loc, 1, dataType, loId-1, upTag, comm)
+                           Mpi.Send(dataPtr + loc, 1, dataType, loId - 1, upTag, comm)
                         end
                      end
                   end
                end
             end
          end
-         
+
          -- Complete recv for periodic directions.
          -- Since MPI DataTypes eliminate the need for buffers,
          -- all we have to do is wait for non-blocking receives to finish.
@@ -1308,15 +1308,15 @@ local function Field_meta_ctor(elct)
                if self._syncCorners then
                   local cTs = self._cornersToSync[dir]
                   local ccLo, ccUp = 0, 0
-                  for dI, bD in ipairs(cTs) do   -- Loop over lower boundary subdomains.
-                     for _, dC in ipairs(bD) do   -- Loop over corners.
+                  for dI, bD in ipairs(cTs) do  -- Loop over lower boundary subdomains.
+                     for _, dC in ipairs(bD) do -- Loop over corners.
                         local loId, upId = dC.lower, dC.upper
                         if myId == loId then
-                           ccLo = ccLo+1
+                           ccLo = ccLo + 1
                            local _ = Mpi.Wait(self._recvLowerCornerPerMPIReq[dir][ccLo], nil)
                         end
                         if myId == upId then
-                           ccUp = ccUp+1
+                           ccUp = ccUp + 1
                            local _ = Mpi.Wait(self._recvUpperCornerPerMPIReq[dir][ccUp], nil)
                         end
                      end
@@ -1325,7 +1325,7 @@ local function Field_meta_ctor(elct)
             end
          end
       end,
-      _field_periodic_copy_indir = function (self, dir)
+      _field_periodic_copy_indir = function(self, dir)
          -- First get region for skin cells for upper ghost region (the lower skin cells).
          local skinRgnLower = self._localSkinRngLo[dir]
          local skinRgnUpper = self._localSkinRngUp[dir]
@@ -1338,19 +1338,19 @@ local function Field_meta_ctor(elct)
          -- Get region for looping over upper ghost cells and copy lower skin cells into upper ghost cells.
          self:_copy_to_field_region(ghostRgnLower, periodicBuffUpper)
 
-	 -- Now do the same, but for the skin cells for the lower ghost region (the upper skin cells).
+         -- Now do the same, but for the skin cells for the lower ghost region (the upper skin cells).
          local periodicBuffLower = self._lowerPeriodicBuff[dir]
          self:_copy_from_field_region(skinRgnLower, periodicBuffLower)
          self:_copy_to_field_region(ghostRgnUpper, periodicBuffLower)
       end,
-      _field_periodic_copy = function (self)
+      _field_periodic_copy = function(self)
          local grid = self._grid
          for dir = 1, self._ndim do
             if grid:isDirPeriodic(dir) then self:_field_periodic_copy_indir(dir) end
          end
       end,
    }
-   
+
    return Field
 end
 
