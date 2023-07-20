@@ -208,7 +208,7 @@ function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim()
    elseif grid.mapc2p then  -- Is this if statement correct?
       GridConstructor = Grid.MappedCart
    end
-   local gridIngredients = grid:childGridIngredients(
+   local gridIngredients = grid:childGrid(
       (function() local keepDims = {}
       for i = 1, self.ndim do keepDims[i] = i end
       return keepDims end)())
