@@ -139,7 +139,7 @@ function test_4(comm)
       return
    end
 
-   local ranks = Lin.IntVec(2)
+   local ranks = Lin.IntVec(2) --creating an int vector with 2 elements
    ranks[1] = 0; ranks[2] = 1;
    local newComm = Mpi.Split_comm(comm, ranks)
 
@@ -1262,6 +1262,40 @@ function test_18(comm)
    Mpi.Barrier(comm)
 end
 
+function test_19(comm)
+   local sz = Mpi.Comm_size(comm)
+   if sz < 2 then
+      log("Test 19 for Mpi.Allgather not run as the number of processes is less than 2")
+      return
+   end
+
+   -- Get the current process rank
+   local rank = Mpi.Comm_rank(comm)
+
+   -- Prepare test data (unique value per rank)
+   local nz = 100
+   local sendBuf = Alloc.Double(nz)
+   local recvBuf = Alloc.Double(nz * sz)
+   for i = 1, nz do
+      sendBuf[i] = rank + (i * 0.1)  -- Unique value for each rank
+   end
+
+   -- Perform the Mpi.Allgather operation
+   Mpi.Allgather(sendBuf:data(), nz, Mpi.DOUBLE, recvBuf:data(), nz, Mpi.DOUBLE, comm)
+
+   -- Verify the correctness of the gathered data
+   for r = 0, sz - 1 do
+      for i = 1, nz do
+         local expectedValue = r + (i * 0.1)  -- Expected value for each rank
+         local index = r * nz + i
+         assert_equal(expectedValue, recvBuf[index], "Checking gathered data")
+      end
+   end
+
+   -- Barrier synchronization to ensure all processes complete the test
+   Mpi.Barrier(comm)
+end
+
 -- Run tests
 test_0(Mpi.COMM_WORLD)
 test_1(Mpi.COMM_WORLD)
@@ -1322,6 +1356,8 @@ test_16(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
 
 test_17(Mpi.COMM_WORLD)
 test_18(Mpi.COMM_WORLD)
+
+test_19(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
