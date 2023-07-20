@@ -7,15 +7,15 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Proto  = require "Lib.Proto"
-local lume   = require "Lib.lume"
-local Mpi    = require "Comm.Mpi"
-local xsys   = require "xsys"
+local xsys             = require "xsys"
 local DecompRegionCalc = require "Lib.CartDecomp"
-local ffi       = require "ffi"
-local xsys      = require "xsys"
-local sizeof    = xsys.from(ffi, "sizeof")
-local ZeroArray = require "DataStruct.ZeroArray"
+local ffi              = require "ffi"
+local lume             = require "Lib.lume"
+local Mpi              = require "Comm.Mpi"
+local Proto            = require "Lib.Proto"
+local sizeof           = xsys.from(ffi, "sizeof")
+local xsys             = require "xsys"
+local ZeroArray        = require "DataStruct.ZeroArray"
 local cuda, Nccl
 if GKYL_HAVE_CUDA then
    cuda = require "Cuda.RunTime"
@@ -126,19 +126,25 @@ function Messenger:init(tbl)
       self.reduceOps    = {max = Mpi.MAX, min = Mpi.MIN, sum = Mpi.SUM}
       self.commTypes    = {double=Mpi.DOUBLE, float=Mpi.FLOAT, int=Mpi.INT}
 
+      self.AllgatherByCellFunc = function(fldIn, fldOut, comm) --TODO: do it in NCCL
+         Mpi.Allgather(fldIn:dataPointer(), fldIn:size(), fldIn:elemCommType(),
+            fldOut:dataPointer(), fldOut:size(), fldOut:elemCommType(), comm)
+      end
       self.AllreduceByCellFunc = function(fldIn, fldOut, mpiOp, comm)
          Mpi.Allreduce(fldIn:dataPointer(), fldOut:dataPointer(),
             fldOut:size(), fldOut:elemCommType(), mpiOp, comm)
       end
-
       self.SendCartFieldFunc = function(fld, dest, tag, comm)
          Mpi.Send(fld:dataPointer(), fld:size(), fld:elemCommType(), dest, tag, comm)
       end
 
+      self.IallgatherByCellFunc = function(fldIn, fldOut, comm) --TODO: do it in NCCL
+         Mpi.Iallgather(fldIn:dataPointer(), fldIn:size(), fldIn:elemCommType(),
+            fldOut:dataPointer(), fldOut:size(), fldOut:elemCommType(), comm)
+      end
       self.IrecvCartFieldFunc = function(fld, src, tag, comm, req)
          Mpi.Irecv(fld:dataPointer(), fld:size(), fld:elemCommType(), src, tag, comm, req)
       end
-
       self.IsendCartFieldFunc = function(fld, dest, tag, comm, req)
          Mpi.Isend(fld:dataPointer(), fld:size(), fld:elemCommType(), dest, tag, comm, req)
       end

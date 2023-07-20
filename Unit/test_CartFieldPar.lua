@@ -829,7 +829,6 @@ end
 
 function test_11(comm)
    --Test the establishment of a global grid and field
-   print("starting test 11")
    local nz = Mpi.Comm_size(comm)
    if nz ~= 2 then
       log("Not running test_11 as numProcs not exactly 2")
@@ -940,7 +939,6 @@ function test_11(comm)
 end
 
 function test_12(comm)
-   print("starting test 12")
    local nz = Mpi.Comm_size(comm)
    if nz ~= 2 then
       log("Not running test_12 as numProcs not exactly 2")

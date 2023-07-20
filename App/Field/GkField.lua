@@ -216,7 +216,7 @@ function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim()
       lower = gridIngredients.lower,     decomposition = DecompRegionCalc.CartProd{
       cuts = (function() local cuts = {}
          for i = 1, self.ndim do cuts[i] = 1 end
-         return cuts end)(), _serTesting = true}, 
+         return cuts end)(), __serTesting = true}, 
       upper = gridIngredients.upper,     mappings = gridIngredients.coordinateMap, --where wouold I find this?
       cells = gridIngredients.cells,     mapc2p = gridIngredients.mapc2p, -- not in RectCart
       periodicDirs = gridIngredients.getPeriodicDirs,  world = gridIngredients.world, --no usages
