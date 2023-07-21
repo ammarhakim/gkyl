@@ -651,54 +651,6 @@ function test_7(comm)
    end
 end
       
-
-function test_9(comm)
-   local nz = Mpi.Comm_size(comm)
-   if nz ~= 2 then
-      log("Not running test_9 as numProcs not exactly 2")
-      return
-   end
-
-   local decomp = DecompRegionCalc.CartProd { cuts = {2, 1} }
-   
-   local grid = Grid.RectCart {
-      lower = {0.0, 0.0},
-      upper = {1.0, 1.0},
-      cells = {10, 10},
-      decomposition = decomp,
-   }
-   local field = DataStruct.Field {
-      onGrid = grid,
-      numComponents = 3,
-      ghost = {1, 2},
-   }
-   field:clear(10.25)
-
-   -- write field
-   field:write("CartFieldTest_field_p2.bp", 2.5, 50)
-
-   local fieldIn = DataStruct.Field {
-      onGrid = grid,
-      numComponents = 3,
-      ghost = {1, 2},
-   }
-   fieldIn:clear(0.0)
-
-   local tm, fr = fieldIn:read("CartFieldTest_field_p2.bp")
-
-   assert_equal(2.5, tm, "Checking time-stamp")
-   assert_equal(50, fr, "Checking frame")
-   
-   -- check if fields are identical
-   local indexer = field:genIndexer()
-   for idx in field:localRangeIter() do
-      local fitr, fitrIn = field:get(indexer(idx)), fieldIn:get(indexer(idx))
-      for k = 1, field:numComponents() do
-	 assert_equal(fitr[k], fitrIn[k], "Checking if field read correctly")
-      end
-   end
-end
-
 function test_8(comm)
    local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
    if nz ~= 4 then
@@ -719,6 +671,7 @@ function test_8(comm)
       ghost = {1, 2},
    }
 
+   field:clear(10.0)
    
    local field1 = DataStruct.Field {
       onGrid = grid,
@@ -800,7 +753,6 @@ function test_9(comm)
    end
 end
 
-
 function test_10(comm)
    -- Test sending/receving a whole CartField with Isend/Irecv and Wait.
    local defaultCommSize = 4
@@ -840,14 +792,12 @@ function test_10(comm)
       numComponents = 3,
       ghost         = {1, 1},
    }
-
    if rank==0 then field0:clear(0.3) end
    if rank==1 then field1:clear(1.5) end
 
    local recvReq, sendReq = Mpi.Request(), Mpi.Request()
    local recvStat, sendStat = Mpi.Status(), Mpi.Status()
    local tag = 32
-
    if rank==0 then
       local _ = Mpi.Irecv(field1:dataPointer(), field1:size(), field1:elemCommType(),
                           1, tag, comm, recvReq)
@@ -877,10 +827,8 @@ function test_10(comm)
    Mpi.Barrier(comm)
 end
 
-
 function test_11(comm)
    --Test the establishment of a global grid and field
-   print("starting test 11")
    local nz = Mpi.Comm_size(comm)
    if nz ~= 2 then
       log("Not running test_11 as numProcs not exactly 2")
@@ -991,7 +939,6 @@ function test_11(comm)
 end
 
 function test_12(comm)
-   print("starting test 12")
    local nz = Mpi.Comm_size(comm)
    if nz ~= 2 then
       log("Not running test_12 as numProcs not exactly 2")
@@ -1023,104 +970,104 @@ function test_12(comm)
    Mpi.Barrier(comm)
 end
 
-
 function test_13(comm)
    -- Test Allgathering fieldLocals into a fieldGlobal
-   --
-   -- Incomplete, does not work yet
+   -- works in 1D case
 
    local sz = Mpi.Comm_size(comm)
    if sz < 2 then
-      log("Test 19 for Mpi.Allgather not run as the number of processes is less than 2")
+      log("Test 13 for Mpi.Allgather not run as the number of processes is less than 2")
       return
    end
 
    local rank = Mpi.Comm_rank(comm)
-   local nCells = sz
    local nGhost = 1
+   local nComponent = 3
 
-   local decomp = DecompRegionCalc.CartProd { cuts = {sz} }   
+   local nCells = {sz}
+   local lowerBound = {0.0}
+   local upperBound = {0.0}
+
+   -- define grids and decomposition cuts
+   local decomp = DecompRegionCalc.CartProd { 
+	  cuts = {sz} 
+   }   
    local noDecomp = DecompRegionCalc.CartProd { 
       cuts = {1},
-      __serTesting = true, --try without this flag
+      __serTesting = true, 
     }
    local gridLocal = Grid.RectCart {--located in Grid/RectCart.lua
-      lower = {0.0},
-      upper = {1.0},
-      cells = {nCells},
+      lower = lowerBound,
+      upper = upperBound,
+      cells = nCells,
       decomposition = decomp,-- what does decomp do?
    }
-   local fieldLocal = DataStruct.Field { --located in DataStruct/CartField.lua
-      onGrid        = gridLocal,
-      numComponents = 3,--what does 3 mean? 3 what? 3 DG polynomials?
-      ghost         = {nGhost, nGhost},
-   }
    local gridGlobal = Grid.RectCart {
-      lower = {0.0},
-      upper = {1.0},
-      cells = {nCells},
+      lower = lowerBound,
+      upper = upperBound,
+      cells = nCells,
       decomposition = noDecomp,
+   }
+
+   local fieldLocal = DataStruct.Field { 
+      onGrid        = gridLocal,
+      numComponents = nComponent,
+      ghost         = {nGhost, nGhost},
    }
    local fieldGlobal = DataStruct.Field {
       onGrid        = gridGlobal,
-      numComponents = 3,
+      numComponents = nComponent,
       ghost         = {nGhost, nGhost},
    }
 
-   fieldLocal:clear(rank)
-   print("local SIZE", fieldLocal:size())
-   print("global SIZE", fieldGlobal:size())
-   
-   -- test print
-   function fPrint(field,msg)
-      local localRange = field:localRange()
-      local indexer = field:indexer()
-      for i = localRange:lower(1), localRange:upper(1) do
-         local fitr = field:get(indexer(i))
-         print(msg,": rank, val", rank, fitr[0])
- --        print("rank, val", rank, fitr[1])
- --        print("rank, val", rank, fitr[2])
-      end
-   end
+   -- Buffer fields have no Ghost cells for use in MPI Allreduce
+   local fieldLocalBuffer = DataStruct.Field { 
+      onGrid        = gridLocal,
+      numComponents = nComponent,
+      ghost         = {0, 0},
+   }
+   local fieldGlobalBuffer = DataStruct.Field {
+      onGrid        = gridGlobal,
+      numComponents = nComponent,
+      ghost         = {0, 0},
+   }
 
-   fPrint(fieldLocal, "local")
+   -- set local field to unique value for each processor
+   fieldLocal:clear(rank)
+
+   -- copies contents of f2 into f1
+   function copyField(f1,f2)
+	   f1:copyRangeToRange(f2, f1:localRange(), f2:localRange())
+   end
+   copyField( fieldLocalBuffer, fieldLocal )
 
    -- Perform the Mpi.Allgather operation
-   Mpi.Allgather(fieldLocal:dataPointer(), fieldLocal:size(), fieldLocal:elemCommType(), 
-                 fieldGlobal:dataPointer(), fieldLocal:size(), fieldGlobal:elemCommType(),  comm)
+   Mpi.Allgather(fieldLocalBuffer:dataPointer(), fieldLocalBuffer:size(), fieldLocalBuffer:elemCommType(), 
+                 fieldGlobalBuffer:dataPointer(), fieldLocalBuffer:size(), fieldGlobalBuffer:elemCommType(),  comm)
 
-   fPrint(fieldGlobal, "global")
 
-   -- Test sending/receving a whole CartField with Isend/Irecv and Wait.
-   local rank = Mpi.Comm_rank(comm)
+   copyField( fieldGlobal, fieldGlobalBuffer )
+
+
 
    -- Verify the correctness of the gathered data
-   for r = 0, sz - 1 do -- loop over procceses
+   local field = fieldGlobal
 
-      local field = fieldGlobal
-      local value = r  
+   local localRange = field:localRange()
+   local indexer = field:indexer()
+   for i = localRange:lower(1), localRange:upper(1) do
+      local value = i-1
+      local fitr = field:get(indexer(i))
+      assert_equal(value, fitr[1], "test_10: Checking field value")
+      assert_equal(value, fitr[2], "test_10: Checking field value")
+      assert_equal(value, fitr[3], "test_10: Checking field value")
 
-      local localRange = field:localRange()
-      local indexer = field:indexer()
-      for i = localRange:lower(1), localRange:upper(1) do
-         local fitr = field:get(indexer(i))
-         assert_equal(value, fitr[1], "test_10: Checking field value")
- --        assert_equal(value, fitr[2], "test_10: Checking field value")
- --        assert_equal(value, fitr[3], "test_10: Checking field value")
-
-		 if rank == 0 then
-		    print(fitr[2])
-		 end
-      end
---   fPrint(fieldGlobal)
    end
 
    -- Barrier synchronization to ensure all processes complete the test
    Mpi.Barrier(comm)
 end
 
-
-print("START Test")
 comm = Mpi.COMM_WORLD
 test_1(comm)
 test_2(comm)
@@ -1134,9 +1081,7 @@ test_9(comm)
 test_10(comm)
 test_11(comm)
 test_12(comm)
---test_13(comm)
-
-print("FINISH Test")
+test_13(comm)
 
 totalFail = allReduceOneInt(stats.fail)
 totalPass = allReduceOneInt(stats.pass)
@@ -1147,4 +1092,3 @@ if totalFail > 0 then
 else
    log(string.format("PASSED ALL %d tests!", totalPass))
 end
-
