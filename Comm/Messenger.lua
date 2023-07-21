@@ -84,7 +84,18 @@ function Messenger:init(tbl)
 
       self.AllreduceByCellFunc = function(fldIn, fldOut, ncclOp, comm)
          Nccl.AllReduce(fldIn:deviceDataPointer(), fldOut:deviceDataPointer(),
-	    fldIn:size(), self:getCommDataType(fldIn:elemType()), ncclOp, comm, self.ncclStream)
+	         fldIn:size(), self:getCommDataType(fldIn:elemType()), ncclOp, comm, self.ncclStream)
+         local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
+         while (self.ncclResult[0] == Nccl.InProgress) do
+            local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
+         end
+         -- Completing NCCL operation by synchronizing on the CUDA stream.
+         local _ = cuda.StreamSynchronize(self.ncclStream)
+      end
+      
+      self.AllgatherByCellFunc = function(fldIn, fldOut, comm)
+         Nccl.Allgather(fldIn:dataPointer(), fldOut:dataPointer(), fldIn:size(),
+            fldIn:elemCommType(), comm, self.ncclStream)
          local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
          while (self.ncclResult[0] == Nccl.InProgress) do
             local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
