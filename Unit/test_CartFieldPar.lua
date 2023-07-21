@@ -651,72 +651,6 @@ function test_7(comm)
    end
 end
       
-function test_8_2(comm)
-   local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
-   if nz ~= 4 then
-      log("Not running test_8 as numProcs not exactly 4")
-      return
-   end
-
-   local decomp = DecompRegionCalc.CartProd { cuts = {2, 2} }
-   local grid = Grid.RectCart {
-      lower = {0.0, 0.0},
-      upper = {1.0, 1.0},
-      cells = {3, 3},
-      decomposition = decomp,
-   }
-   local field = DataStruct.Field {
-      onGrid = grid,
-      numComponents = 3,
-      ghost = {1, 2},
-   }
-
-   print("field READER\n")
-   local indexer = field:genIndexer()
-   for idx in field:localExtRangeIter() do
-      local fitr = field:get(indexer(idx))
-      fitr[1] = idx[1]+2*idx[2]+1
-      fitr[2] = idx[1]+2*idx[2]+2
-      fitr[3] = idx[1]+2*idx[2]+3
-      print(fitr[1])
-      print(fitr[2])
-      print(fitr[3])
-   end
-   field:clear(10.0)
-   
-   local field1 = DataStruct.Field {
-      onGrid = grid,
-      numComponents = 3,
-      ghost = {1, 2},
-   }
-
-   local indexer = field1:genIndexer()
-   for idx in field1:localExtRangeIter() do
-      local fitr = field1:get(indexer(idx))
-      fitr[1] = idx[1]+2*idx[2]+1
-      fitr[2] = idx[1]+2*idx[2]+2
-      fitr[3] = idx[1]+2*idx[2]+3
-      print(fitr[1])
-   end
-
-   if GKYL_USE_GPU then
-      field1:copyHostToDevice()
-   end
-
-   -- accumulate stuff
-   field:accumulate(1.0, field1, 2.0, field1)
-
-   if GKYL_USE_GPU then
-      field:copyDeviceToHost()
-   end
-
-   for idx in field:localExtRangeIter() do
-      local fitr = field:get(indexer(idx))
-      assert_equal(10+3*(idx[1]+2*idx[2]+1), fitr[1], "Checking field value")
-      assert_equal(10+3*(idx[1]+2*idx[2]+2), fitr[2], "Checking field value")
-      assert_equal(10+3*(idx[1]+2*idx[2]+3), fitr[3], "Checking field value")
-   end   
-end
 
 function test_9(comm)
    local nz = Mpi.Comm_size(comm)
@@ -1179,6 +1113,7 @@ function test_13(comm)
 		 end
       end
 --   fPrint(fieldGlobal)
+   end
 
    -- Barrier synchronization to ensure all processes complete the test
    Mpi.Barrier(comm)
@@ -1195,7 +1130,6 @@ test_5(comm)
 test_6(comm)
 test_7(comm)
 test_8(comm)
-test_8_2(comm)
 test_9(comm)
 test_10(comm)
 test_11(comm)
