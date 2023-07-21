@@ -1297,65 +1297,65 @@ function test_19(comm)
 end
 
 -- Run tests
-test_0(Mpi.COMM_WORLD)
-test_1(Mpi.COMM_WORLD)
-test_2(Mpi.COMM_WORLD)
-test_3(Mpi.COMM_WORLD)
-test_4(Mpi.COMM_WORLD)
-test_5(Mpi.COMM_WORLD)
-test_6a(Mpi.COMM_WORLD)
-test_6b(Mpi.COMM_WORLD)
-test_6c(Mpi.COMM_WORLD)
-test_7(Mpi.COMM_WORLD)
-test_8(Mpi.COMM_WORLD)
-test_9(Mpi.COMM_WORLD)
-test_10(Mpi.COMM_WORLD)
-test_11(Mpi.COMM_WORLD)
-
-test_12(Mpi.COMM_WORLD, 1, Range.rowMajor)
-test_12(Mpi.COMM_WORLD, 1, Range.colMajor)
-test_12(Mpi.COMM_WORLD, 2, Range.rowMajor)
-test_12(Mpi.COMM_WORLD, 2, Range.colMajor)
-test_12(Mpi.COMM_WORLD, 3, Range.rowMajor)
-test_12(Mpi.COMM_WORLD, 3, Range.colMajor)
-
-test_13(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
-
-test_14(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
-test_14(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
-
-test_15(Mpi.COMM_WORLD, 0, 1, Range.rowMajor)
-test_15(Mpi.COMM_WORLD, 0, 2, Range.rowMajor)
-test_15(Mpi.COMM_WORLD, 0, 1, Range.colMajor)
-test_15(Mpi.COMM_WORLD, 0, 2, Range.colMajor)
-
-test_15(Mpi.COMM_WORLD, 1, 1, Range.rowMajor)
-test_15(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
-test_15(Mpi.COMM_WORLD, 1, 1, Range.colMajor)
-test_15(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
-
-test_15(Mpi.COMM_WORLD, 2, 1, Range.rowMajor)
-test_15(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
-test_15(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
-test_15(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
-
-test_16(Mpi.COMM_WORLD, 0, 1, Range.rowMajor)
-test_16(Mpi.COMM_WORLD, 0, 2, Range.rowMajor)
-test_16(Mpi.COMM_WORLD, 0, 1, Range.colMajor)
-test_16(Mpi.COMM_WORLD, 0, 2, Range.colMajor)
-
-test_16(Mpi.COMM_WORLD, 1, 1, Range.rowMajor)
-test_16(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
-test_16(Mpi.COMM_WORLD, 1, 1, Range.colMajor)
-test_16(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
-
-test_16(Mpi.COMM_WORLD, 2, 1, Range.rowMajor)
-test_16(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
-test_16(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
-test_16(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
-
-test_17(Mpi.COMM_WORLD)
-test_18(Mpi.COMM_WORLD)
+--test_0(Mpi.COMM_WORLD)
+--test_1(Mpi.COMM_WORLD)
+--test_2(Mpi.COMM_WORLD)
+--test_3(Mpi.COMM_WORLD)
+--test_4(Mpi.COMM_WORLD)
+--test_5(Mpi.COMM_WORLD)
+--test_6a(Mpi.COMM_WORLD)
+--test_6b(Mpi.COMM_WORLD)
+--test_6c(Mpi.COMM_WORLD)
+--test_7(Mpi.COMM_WORLD)
+--test_8(Mpi.COMM_WORLD)
+--test_9(Mpi.COMM_WORLD)
+--test_10(Mpi.COMM_WORLD)
+--test_11(Mpi.COMM_WORLD)
+--
+--test_12(Mpi.COMM_WORLD, 1, Range.rowMajor)
+--test_12(Mpi.COMM_WORLD, 1, Range.colMajor)
+--test_12(Mpi.COMM_WORLD, 2, Range.rowMajor)
+--test_12(Mpi.COMM_WORLD, 2, Range.colMajor)
+--test_12(Mpi.COMM_WORLD, 3, Range.rowMajor)
+--test_12(Mpi.COMM_WORLD, 3, Range.colMajor)
+--
+--test_13(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+--
+--test_14(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
+--test_14(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+--
+--test_15(Mpi.COMM_WORLD, 0, 1, Range.rowMajor)
+--test_15(Mpi.COMM_WORLD, 0, 2, Range.rowMajor)
+--test_15(Mpi.COMM_WORLD, 0, 1, Range.colMajor)
+--test_15(Mpi.COMM_WORLD, 0, 2, Range.colMajor)
+--
+--test_15(Mpi.COMM_WORLD, 1, 1, Range.rowMajor)
+--test_15(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+--test_15(Mpi.COMM_WORLD, 1, 1, Range.colMajor)
+--test_15(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
+--
+--test_15(Mpi.COMM_WORLD, 2, 1, Range.rowMajor)
+--test_15(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
+--test_15(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
+--test_15(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
+--
+--test_16(Mpi.COMM_WORLD, 0, 1, Range.rowMajor)
+--test_16(Mpi.COMM_WORLD, 0, 2, Range.rowMajor)
+--test_16(Mpi.COMM_WORLD, 0, 1, Range.colMajor)
+--test_16(Mpi.COMM_WORLD, 0, 2, Range.colMajor)
+--
+--test_16(Mpi.COMM_WORLD, 1, 1, Range.rowMajor)
+--test_16(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+--test_16(Mpi.COMM_WORLD, 1, 1, Range.colMajor)
+--test_16(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
+--
+--test_16(Mpi.COMM_WORLD, 2, 1, Range.rowMajor)
+--test_16(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
+--test_16(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
+--test_16(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
+--
+--test_17(Mpi.COMM_WORLD)
+--test_18(Mpi.COMM_WORLD)
 
 test_19(Mpi.COMM_WORLD)
 

@@ -651,6 +651,120 @@ function test_7(comm)
    end
 end
       
+function test_8_2(comm)
+   local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
+   if nz ~= 4 then
+      log("Not running test_8 as numProcs not exactly 4")
+      return
+   end
+
+   local decomp = DecompRegionCalc.CartProd { cuts = {2, 2} }
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {3, 3},
+      decomposition = decomp,
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+      ghost = {1, 2},
+   }
+
+   print("field READER\n")
+   local indexer = field:genIndexer()
+   for idx in field:localExtRangeIter() do
+      local fitr = field:get(indexer(idx))
+      fitr[1] = idx[1]+2*idx[2]+1
+      fitr[2] = idx[1]+2*idx[2]+2
+      fitr[3] = idx[1]+2*idx[2]+3
+      print(fitr[1])
+      print(fitr[2])
+      print(fitr[3])
+   end
+   field:clear(10.0)
+   
+   local field1 = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+      ghost = {1, 2},
+   }
+
+   local indexer = field1:genIndexer()
+   for idx in field1:localExtRangeIter() do
+      local fitr = field1:get(indexer(idx))
+      fitr[1] = idx[1]+2*idx[2]+1
+      fitr[2] = idx[1]+2*idx[2]+2
+      fitr[3] = idx[1]+2*idx[2]+3
+      print(fitr[1])
+   end
+
+   if GKYL_USE_GPU then
+      field1:copyHostToDevice()
+   end
+
+   -- accumulate stuff
+   field:accumulate(1.0, field1, 2.0, field1)
+
+   if GKYL_USE_GPU then
+      field:copyDeviceToHost()
+   end
+
+   for idx in field:localExtRangeIter() do
+      local fitr = field:get(indexer(idx))
+      assert_equal(10+3*(idx[1]+2*idx[2]+1), fitr[1], "Checking field value")
+      assert_equal(10+3*(idx[1]+2*idx[2]+2), fitr[2], "Checking field value")
+      assert_equal(10+3*(idx[1]+2*idx[2]+3), fitr[3], "Checking field value")
+   end   
+end
+
+function test_9(comm)
+   local nz = Mpi.Comm_size(comm)
+   if nz ~= 2 then
+      log("Not running test_9 as numProcs not exactly 2")
+      return
+   end
+
+   local decomp = DecompRegionCalc.CartProd { cuts = {2, 1} }
+   
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {10, 10},
+      decomposition = decomp,
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+      ghost = {1, 2},
+   }
+   field:clear(10.25)
+
+   -- write field
+   field:write("CartFieldTest_field_p2.bp", 2.5, 50)
+
+   local fieldIn = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+      ghost = {1, 2},
+   }
+   fieldIn:clear(0.0)
+
+   local tm, fr = fieldIn:read("CartFieldTest_field_p2.bp")
+
+   assert_equal(2.5, tm, "Checking time-stamp")
+   assert_equal(50, fr, "Checking frame")
+   
+   -- check if fields are identical
+   local indexer = field:genIndexer()
+   for idx in field:localRangeIter() do
+      local fitr, fitrIn = field:get(indexer(idx)), fieldIn:get(indexer(idx))
+      for k = 1, field:numComponents() do
+	 assert_equal(fitr[k], fitrIn[k], "Checking if field read correctly")
+      end
+   end
+end
+
 function test_8(comm)
    local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
    if nz ~= 4 then
@@ -671,7 +785,6 @@ function test_8(comm)
       ghost = {1, 2},
    }
 
-   field:clear(10.0)
    
    local field1 = DataStruct.Field {
       onGrid = grid,
@@ -753,6 +866,7 @@ function test_9(comm)
    end
 end
 
+
 function test_10(comm)
    -- Test sending/receving a whole CartField with Isend/Irecv and Wait.
    local defaultCommSize = 4
@@ -792,12 +906,14 @@ function test_10(comm)
       numComponents = 3,
       ghost         = {1, 1},
    }
+
    if rank==0 then field0:clear(0.3) end
    if rank==1 then field1:clear(1.5) end
 
    local recvReq, sendReq = Mpi.Request(), Mpi.Request()
    local recvStat, sendStat = Mpi.Status(), Mpi.Status()
    local tag = 32
+
    if rank==0 then
       local _ = Mpi.Irecv(field1:dataPointer(), field1:size(), field1:elemCommType(),
                           1, tag, comm, recvReq)
@@ -827,8 +943,10 @@ function test_10(comm)
    Mpi.Barrier(comm)
 end
 
+
 function test_11(comm)
    --Test the establishment of a global grid and field
+   print("starting test 11")
    local nz = Mpi.Comm_size(comm)
    if nz ~= 2 then
       log("Not running test_11 as numProcs not exactly 2")
@@ -939,6 +1057,7 @@ function test_11(comm)
 end
 
 function test_12(comm)
+   print("starting test 12")
    local nz = Mpi.Comm_size(comm)
    if nz ~= 2 then
       log("Not running test_12 as numProcs not exactly 2")
@@ -970,6 +1089,103 @@ function test_12(comm)
    Mpi.Barrier(comm)
 end
 
+
+function test_13(comm)
+   -- Test Allgathering fieldLocals into a fieldGlobal
+   --
+   -- Incomplete, does not work yet
+
+   local sz = Mpi.Comm_size(comm)
+   if sz < 2 then
+      log("Test 19 for Mpi.Allgather not run as the number of processes is less than 2")
+      return
+   end
+
+   local rank = Mpi.Comm_rank(comm)
+   local nCells = sz
+   local nGhost = 1
+
+   local decomp = DecompRegionCalc.CartProd { cuts = {sz} }   
+   local noDecomp = DecompRegionCalc.CartProd { 
+      cuts = {1},
+      __serTesting = true, --try without this flag
+    }
+   local gridLocal = Grid.RectCart {--located in Grid/RectCart.lua
+      lower = {0.0},
+      upper = {1.0},
+      cells = {nCells},
+      decomposition = decomp,-- what does decomp do?
+   }
+   local fieldLocal = DataStruct.Field { --located in DataStruct/CartField.lua
+      onGrid        = gridLocal,
+      numComponents = 3,--what does 3 mean? 3 what? 3 DG polynomials?
+      ghost         = {nGhost, nGhost},
+   }
+   local gridGlobal = Grid.RectCart {
+      lower = {0.0},
+      upper = {1.0},
+      cells = {nCells},
+      decomposition = noDecomp,
+   }
+   local fieldGlobal = DataStruct.Field {
+      onGrid        = gridGlobal,
+      numComponents = 3,
+      ghost         = {nGhost, nGhost},
+   }
+
+   fieldLocal:clear(rank)
+   print("local SIZE", fieldLocal:size())
+   print("global SIZE", fieldGlobal:size())
+   
+   -- test print
+   function fPrint(field,msg)
+      local localRange = field:localRange()
+      local indexer = field:indexer()
+      for i = localRange:lower(1), localRange:upper(1) do
+         local fitr = field:get(indexer(i))
+         print(msg,": rank, val", rank, fitr[0])
+ --        print("rank, val", rank, fitr[1])
+ --        print("rank, val", rank, fitr[2])
+      end
+   end
+
+   fPrint(fieldLocal, "local")
+
+   -- Perform the Mpi.Allgather operation
+   Mpi.Allgather(fieldLocal:dataPointer(), fieldLocal:size(), fieldLocal:elemCommType(), 
+                 fieldGlobal:dataPointer(), fieldLocal:size(), fieldGlobal:elemCommType(),  comm)
+
+   fPrint(fieldGlobal, "global")
+
+   -- Test sending/receving a whole CartField with Isend/Irecv and Wait.
+   local rank = Mpi.Comm_rank(comm)
+
+   -- Verify the correctness of the gathered data
+   for r = 0, sz - 1 do -- loop over procceses
+
+      local field = fieldGlobal
+      local value = r  
+
+      local localRange = field:localRange()
+      local indexer = field:indexer()
+      for i = localRange:lower(1), localRange:upper(1) do
+         local fitr = field:get(indexer(i))
+         assert_equal(value, fitr[1], "test_10: Checking field value")
+ --        assert_equal(value, fitr[2], "test_10: Checking field value")
+ --        assert_equal(value, fitr[3], "test_10: Checking field value")
+
+		 if rank == 0 then
+		    print(fitr[2])
+		 end
+      end
+--   fPrint(fieldGlobal)
+
+   -- Barrier synchronization to ensure all processes complete the test
+   Mpi.Barrier(comm)
+end
+
+
+print("START Test")
 comm = Mpi.COMM_WORLD
 test_1(comm)
 test_2(comm)
@@ -979,10 +1195,14 @@ test_5(comm)
 test_6(comm)
 test_7(comm)
 test_8(comm)
+test_8_2(comm)
 test_9(comm)
 test_10(comm)
 test_11(comm)
 test_12(comm)
+--test_13(comm)
+
+print("FINISH Test")
 
 totalFail = allReduceOneInt(stats.fail)
 totalPass = allReduceOneInt(stats.pass)
@@ -993,3 +1213,4 @@ if totalFail > 0 then
 else
    log(string.format("PASSED ALL %d tests!", totalPass))
 end
+
