@@ -3,8 +3,8 @@
 # Build directory
 OUT=build
 # Install location
-PREFIX=$HOME/CODE/gkylsoft/gkyl
-GKYLSOFT=$HOME/CODE/gkylsoft
+PREFIX=$HOME/gkylsoft/gkyl
+GKYLSOFT=$HOME/gkylsoft
 
 # Compile flags (set optimization/debug flags here)
 CC=clang

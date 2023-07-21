@@ -3,7 +3,7 @@ if [ `dirname "$0"` == "." ]
   then
     cd ..
 fi
-export GKYLSOFT='~/CODE/gkylsoft'
+export GKYLSOFT='~/gkylsoft'
 cd install-deps
 # first build OpenMPI
 ./mkdeps.sh CC=clang CXX=clang++ --build-openmpi=yes
