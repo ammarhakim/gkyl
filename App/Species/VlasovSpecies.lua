@@ -301,6 +301,12 @@ function VlasovSpecies:fullInit(appTbl)
    self.nGhost = 1   -- Default is 1 ghost-cell in each direction.
 
    self.tCurr = 0.0
+
+   self.timers = {
+      mom = 0.,   momcross = 0.,   advance = 0.,
+      advancecross = 0.,   collisions = 0.,   collisionless = 0.,
+      boundflux = 0.,  sources = 0.,   bc = 0.,
+   }
 end
 
 function VlasovSpecies:setCfl(cfl)
@@ -613,12 +619,6 @@ function VlasovSpecies:createSolver(field, externalField)
 
    -- Create species source solvers.
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
-
-   self.timers = {
-      mom = 0.,   momcross = 0.,   advance = 0.,
-      advancecross = 0.,   collisions = 0.,   collisionless = 0.,
-      boundflux = 0.,  sources = 0.,   bc = 0.,
-   }
 end
 
 function VlasovSpecies:initDist(extField)
@@ -815,30 +815,6 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
    for _, coll in lume.orderedIter(self.collisions) do
       coll:calcCouplingMoments(tCurr, rkIdx, species)
-   end
-
-   -- For Ionization.
-   if self.calcReactRate then
-      local neuts = species[self.neutNmIz]
-      -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments. 
-      neuts:calcCouplingMoments(tCurr, rkIdx, species)
-      local neutM0   = neuts:fluidMoments()[1]
-      local neutVtSq = neuts:selfPrimitiveMoments()[2]
-      
-      species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {species[self.name].collisions[self.collNmIoniz].reactRate, self.cflRateByCell})
-   end
-
-   -- For charge exchange.
-   if self.calcCXSrc then
-      -- Calculate Vcx*SigmaCX.
-      local neuts = species[self.neutNmCX]
-      -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments. 
-      neuts:calcCouplingMoments(tCurr, rkIdx, species)
-      local m0       = neuts:fluidMoments()[1]
-      local neutU    = neuts:selfPrimitiveMoments()[1]
-      local neutVtSq = neuts:selfPrimitiveMoments()[2]
-      
-      species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uSelf, neutU, self.vtSqSelf, neutVtSq}, {species[self.name].collisions[self.collNmCX].reactRate})
    end
 
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:calcCouplingMoments(tCurr, rkIdx, species) end

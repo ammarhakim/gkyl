@@ -309,6 +309,12 @@ function GkSpecies:fullInit(appTbl)
    self.nGhost = 1   -- Default is 1 ghost-cell in each direction.
 
    self.tCurr = 0.0
+
+   self.timers = {
+      mom = 0.,   momcross = 0.,   advance = 0.,
+      advancecross = 0.,   collisions = 0.,   collisionless = 0.,
+      boundflux = 0.,  sources = 0.,   bc = 0.,
+   }
 end
 
 function GkSpecies:setCfl(cfl)
@@ -725,12 +731,6 @@ function GkSpecies:createSolver(field, externalField)
 
    -- Create species source solvers.
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
-
-   self.timers = {
-      mom = 0.,   momcross = 0.,   advance = 0.,
-      advancecross = 0.,   collisions = 0.,   collisionless = 0.,
-      boundflux = 0.,  sources = 0.,   bc = 0.,
-   }
 end
 
 function GkSpecies:createCouplingSolver(population, field, externalField)
@@ -992,33 +992,6 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       coll:calcCouplingMoments(tCurr, rkIdx, species)
    end
 
-   -- For ionization.
-   if self.calcReactRate then
-      local neuts = species[self.neutNmIz]
-      -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments.
-      neuts:calcCouplingMoments(tCurr, rkIdx, species)
-      local neutM0   = neuts:fluidMoments()[1]
-      local neutVtSq = neuts:selfPrimitiveMoments()[2]
-         
-      if tCurr == 0.0 then
-         species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      end
-     
-      species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {species[self.name].collisions[self.collNmIoniz].reactRate})
-   end
-
-   if self.calcCXSrc then
-      -- Calculate Vcx*SigmaCX.
-      local neuts = species[self.neutNmCX]
-      -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments.
-      neuts:calcCouplingMoments(tCurr, rkIdx, species)
-      local m0       = neuts:fluidMoments()[1]
-      local neutU    = neuts:selfPrimitiveMoments()[1]
-      local neutVtSq = neuts:selfPrimitiveMoments()[2]
-
-      species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, neutVtSq}, {species[self.name].collisions[self.collNmCX].reactRate})
-   end
-   
    self.timers.mom = self.timers.mom + Time.clock() - tmStart
 end
 
