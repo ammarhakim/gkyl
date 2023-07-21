@@ -976,7 +976,7 @@ function test_13(comm)
 
    local sz = Mpi.Comm_size(comm)
    if sz < 2 then
-      log("Test 13 for Mpi.Allgather not run as the number of processes is less than 2")
+      log("Not running test_13 as numProcs less than 2")
       return
    end
 
@@ -1068,6 +1068,131 @@ function test_13(comm)
    Mpi.Barrier(comm)
 end
 
+function test_14(comm)
+   -- Test Allgathering fieldLocals into a fieldGlobal
+   -- for multiDimension
+
+   local sz = Mpi.Comm_size(comm)
+   if sz ~= 4 then
+      log("Not running test_14 as numProcs not exactly 4")
+      return
+   end
+
+   local rank = Mpi.Comm_rank(comm)
+   local nGhost = 1
+   local nComponent = 3
+
+   local nCells = {10,10}
+   local lowerBound = {0.0, 0.0}
+   local upperBound = {1.0, 1.0}
+
+   -- define grids and decomposition cuts
+   local decomp = DecompRegionCalc.CartProd { 
+	  cuts = {2,2} 
+   }   
+   local noDecomp = DecompRegionCalc.CartProd { 
+      cuts = {1,1},
+      __serTesting = true, 
+    }
+
+   local gridLocal = Grid.RectCart {
+      lower = lowerBound,
+      upper = upperBound,
+      cells = nCells,
+      decomposition = decomp,-- what does decomp do?
+   }
+   local gridGlobal = Grid.RectCart {
+      lower = lowerBound,
+      upper = upperBound,
+      cells = nCells,
+      decomposition = noDecomp,
+   }
+
+   -- define a local field and global field on each process
+   local fieldLocal = DataStruct.Field { 
+      onGrid        = gridLocal,
+      numComponents = nComponent,
+      ghost         = {nGhost, nGhost},
+   }
+   local fieldGlobal = DataStruct.Field {
+      onGrid        = gridGlobal,
+      numComponents = nComponent,
+      ghost         = {nGhost, nGhost},
+   }
+
+   -- Buffer fields have no Ghost cells for use in MPI Allreduce
+   local fieldLocalBuffer = DataStruct.Field { 
+      onGrid        = gridLocal,
+      numComponents = nComponent,
+      ghost         = {0, 0},
+   }
+   local fieldGlobalBuffer = DataStruct.Field {
+      onGrid        = gridGlobal,
+      numComponents = nComponent,
+      ghost         = {0, 0},
+   }
+
+   -- set local field to unique value for each processor
+   fieldLocal:clear(rank)
+   
+   -- test print
+   function fPrint(field,msg)
+      local indexer = field:genIndexer()
+      for i in field:localRangeIter() do
+         local fitr = field:get(indexer(i))
+         print(msg,": rank, val", rank, fitr[2])
+      end
+   end
+
+   -- copies contents of f2 into f1
+   function copyField(f1,f2)
+	   f1:copyRangeToRange(f2, f1:localRange(), f2:localRange())
+   end
+   copyField( fieldLocalBuffer, fieldLocal )
+
+   -- Perform the Mpi.Allgather operation
+   Mpi.Allgather(fieldLocalBuffer:dataPointer(), fieldLocalBuffer:size(), fieldLocalBuffer:elemCommType(), 
+                 fieldGlobalBuffer:dataPointer(), fieldLocalBuffer:size(), fieldGlobalBuffer:elemCommType(),  comm)
+
+
+   copyField( fieldGlobal, fieldGlobalBuffer )
+
+
+   -- Verify the correctness of the gathered data
+   local field = fieldGlobal
+
+   local indexer = field:genIndexer()
+   for i in field:localRangeIter() do
+
+	  -- this is a really kludgy hard coded test
+      local idx = indexer(i) - 14
+      local fitr = field:get(indexer(i))
+	  local j = 2
+
+	  if idx < 25 then
+	     value = 0
+	     assert_equal(value, fitr[j], "test_14: Checking field value")
+	  elseif idx < 50 then
+	     value = 1
+	     assert_equal(value, fitr[j], "test_14: Checking field value")
+	  elseif idx < 75 then
+	     value = 2
+	     assert_equal(value, fitr[j], "test_14: Checking field value")
+	  elseif idx < 100 then
+	     value = 3
+	     assert_equal(value, fitr[j], "test_14: Checking field value")
+	  else
+	     value = 0
+	     assert_equal(value, fitr[j], "test_14: Checking field value")
+	  end
+
+
+   end
+
+   -- Barrier synchronization to ensure all processes complete the test
+   Mpi.Barrier(comm)
+end
+
 comm = Mpi.COMM_WORLD
 test_1(comm)
 test_2(comm)
@@ -1082,6 +1207,7 @@ test_10(comm)
 test_11(comm)
 test_12(comm)
 test_13(comm)
+test_14(comm)
 
 totalFail = allReduceOneInt(stats.fail)
 totalPass = allReduceOneInt(stats.pass)
