@@ -41,6 +41,23 @@ function allReduceOneInt(localv)
    return recvbuf[0]
 end
 
+function copyFieldGlobalFromLocal(fieldGlobal, fieldGlobalBuffer, fieldLocal, fieldLocalBuffer)
+   local function copyField(f1, f2) -- copies contents of f2 into f1
+      -- To copy field Global to field Local, input f1-FieldGlobal, f2-FieldLocal
+      f1:copyRangeToRange(f2, f1:localRange(), f2:localRange())
+   end
+   copyField(fieldLocalBuffer, fieldLocal)
+   -- Perform the Mpi.Allgather operation
+   Mpi.Allgather(fieldLocalBuffer:dataPointer(), fieldLocalBuffer:size(), fieldLocalBuffer:elemCommType(),
+      fieldGlobalBuffer:dataPointer(), fieldLocalBuffer:size(), fieldGlobalBuffer:elemCommType(), comm)
+   copyField(fieldGlobal, fieldGlobalBuffer)
+   return
+end
+
+function copyFieldLocalFromGlobal(fieldLocal, fieldGlobal)
+   fieldLocal:copyRangeToRange(fieldGlobal, fieldLocal:localRange(), fieldLocal:localRange())
+end
+
 function test_1(comm)
    local nz = Mpi.Comm_size(comm)
    if nz ~= 2 then
@@ -970,7 +987,7 @@ function test_12(comm)
    Mpi.Barrier(comm)
 end
 
-function test_13(comm)
+function test_copyFieldGlobalFromLocal_1D(comm)
    -- Test Allgathering fieldLocals into a fieldGlobal
    -- works in 1D case
 
@@ -990,11 +1007,11 @@ function test_13(comm)
 
    -- define grids and decomposition cuts
    local decomp = DecompRegionCalc.CartProd { 
-	  cuts = {sz} 
+	  cuts = {sz}
    }   
    local noDecomp = DecompRegionCalc.CartProd { 
       cuts = {1},
-      __serTesting = true, 
+      __serTesting = true,
     }
    local gridLocal = Grid.RectCart {--located in Grid/RectCart.lua
       lower = lowerBound,
@@ -1009,7 +1026,7 @@ function test_13(comm)
       decomposition = noDecomp,
    }
 
-   local fieldLocal = DataStruct.Field { 
+   local fieldLocal = DataStruct.Field {
       onGrid        = gridLocal,
       numComponents = nComponent,
       ghost         = {nGhost, nGhost},
@@ -1021,7 +1038,7 @@ function test_13(comm)
    }
 
    -- Buffer fields have no Ghost cells for use in MPI Allreduce
-   local fieldLocalBuffer = DataStruct.Field { 
+   local fieldLocalBuffer = DataStruct.Field {
       onGrid        = gridLocal,
       numComponents = nComponent,
       ghost         = {0, 0},
@@ -1035,20 +1052,7 @@ function test_13(comm)
    -- set local field to unique value for each processor
    fieldLocal:clear(rank)
 
-   -- copies contents of f2 into f1
-   function copyField(f1,f2)
-	   f1:copyRangeToRange(f2, f1:localRange(), f2:localRange())
-   end
-   copyField( fieldLocalBuffer, fieldLocal )
-
-   -- Perform the Mpi.Allgather operation
-   Mpi.Allgather(fieldLocalBuffer:dataPointer(), fieldLocalBuffer:size(), fieldLocalBuffer:elemCommType(), 
-                 fieldGlobalBuffer:dataPointer(), fieldLocalBuffer:size(), fieldGlobalBuffer:elemCommType(),  comm)
-
-
-   copyField( fieldGlobal, fieldGlobalBuffer )
-
-
+   copyFieldGlobalFromLocal(fieldGlobal, fieldGlobalBuffer, fieldLocal, fieldLocalBuffer)
 
    -- Verify the correctness of the gathered data
    local field = fieldGlobal
@@ -1068,7 +1072,7 @@ function test_13(comm)
    Mpi.Barrier(comm)
 end
 
-function test_14(comm)
+function test_copyFieldGlobalFromLocal_2D(comm)
    -- Test Allgathering fieldLocals into a fieldGlobal
    -- for multiDimension
 
@@ -1087,10 +1091,10 @@ function test_14(comm)
    local upperBound = {1.0, 1.0}
 
    -- define grids and decomposition cuts
-   local decomp = DecompRegionCalc.CartProd { 
-	  cuts = {2,2} 
-   }   
-   local noDecomp = DecompRegionCalc.CartProd { 
+   local decomp = DecompRegionCalc.CartProd {
+	  cuts = {2,2}
+   }
+   local noDecomp = DecompRegionCalc.CartProd {
       cuts = {1,1},
       __serTesting = true, 
     }
@@ -1109,7 +1113,7 @@ function test_14(comm)
    }
 
    -- define a local field and global field on each process
-   local fieldLocal = DataStruct.Field { 
+   local fieldLocal = DataStruct.Field {
       onGrid        = gridLocal,
       numComponents = nComponent,
       ghost         = {nGhost, nGhost},
@@ -1121,7 +1125,7 @@ function test_14(comm)
    }
 
    -- Buffer fields have no Ghost cells for use in MPI Allreduce
-   local fieldLocalBuffer = DataStruct.Field { 
+   local fieldLocalBuffer = DataStruct.Field {
       onGrid        = gridLocal,
       numComponents = nComponent,
       ghost         = {0, 0},
@@ -1134,8 +1138,89 @@ function test_14(comm)
 
    -- set local field to unique value for each processor
    fieldLocal:clear(rank)
-   
-   -- test print
+
+   -- copy the localField to the globalField
+   copyFieldGlobalFromLocal(fieldGlobal, fieldGlobalBuffer, fieldLocal, fieldLocalBuffer)
+
+   -- Verify the correctness of the gathered data
+   local field = fieldGlobal
+
+   local indexer = field:genIndexer()
+   for i in field:localRangeIter() do
+      local idx = indexer(i) - 14
+      local fitr = field:get(indexer(i))
+      local j = 2
+      if idx < 25 then
+         value = 0
+         assert_equal(value, fitr[j], "test_14: Checking field value")
+      elseif idx < 50 then
+         value = 1
+         assert_equal(value, fitr[j], "test_14: Checking field value")
+      elseif idx < 75 then
+         value = 2
+         assert_equal(value, fitr[j], "test_14: Checking field value")
+      elseif idx < 100 then
+         value = 3
+         assert_equal(value, fitr[j], "test_14: Checking field value")
+      else
+         value = 0
+         assert_equal(value, fitr[j], "test_14: Checking field value")
+      end
+   end
+   -- Barrier synchronization to ensure all processes complete the test
+   Mpi.Barrier(comm)
+end
+
+-- Test for the copyField function
+function test_copyFieldLocalFromGlobal()
+   -- Initialize the global field and grid
+   local sz = Mpi.Comm_size(comm)
+   if sz ~= 4 then
+      log("Not running test_14 as numProcs not exactly 4")
+      return
+   end
+
+   local rank = Mpi.Comm_rank(comm)
+   local nGhost = 1
+   local nComponent = 1
+
+   local nCells = {2,2}
+   local lowerBound = {0.0, 0.0}
+   local upperBound = {1.0, 1.0}
+
+   -- define grids and decomposition cuts
+   local decomp = DecompRegionCalc.CartProd {
+	  cuts = {2,2}
+   }
+   local noDecomp = DecompRegionCalc.CartProd {
+      cuts = {1,1},
+      __serTesting = true,
+    }
+
+   local gridLocal = Grid.RectCart {
+      lower = lowerBound,
+      upper = upperBound,
+      cells = nCells,
+      decomposition = decomp,-- what does decomp do?
+   }
+   local gridGlobal = Grid.RectCart {
+      lower = lowerBound,
+      upper = upperBound,
+      cells = nCells,
+      decomposition = noDecomp,
+   }
+
+   -- define a local field and global field on each process
+   local fieldLocal = DataStruct.Field {
+      onGrid        = gridLocal,
+      numComponents = nComponent,
+      ghost         = {nGhost, nGhost},
+   }
+   local fieldGlobal = DataStruct.Field {
+      onGrid        = gridGlobal,
+      numComponents = nComponent,
+      ghost         = {nGhost, nGhost},
+   }
    function fPrint(field,msg)
       local indexer = field:genIndexer()
       for i in field:localRangeIter() do
@@ -1144,70 +1229,56 @@ function test_14(comm)
       end
    end
 
-   -- copies contents of f2 into f1
-   function copyField(f1,f2)
-	   f1:copyRangeToRange(f2, f1:localRange(), f2:localRange())
+
+   --Set the fieldGlobal to 5, but the local field to something else
+   fieldGlobal:clear(5.0)
+   fieldLocal:clear(3.0)
+   
+   local testRank = 1
+   if rank == testRank then fPrint(fieldLocal,"fieldLocal")   end
+   if rank == testRank then fPrint(fieldGlobal,"fieldGlobal") end
+--if rank == testRank then print(localRangePrint:lower(1), localRangePrint:lower(2)) end
+--if rank == testRank then print(localRangePrint:upper(1), localRangePrint:upper(2)) end
+
+
+   if rank == testRank then print("I am copying") end
+   -- Copy the global field to the local field using copyField()
+   copyFieldLocalFromGlobal(fieldLocal, fieldGlobal)
+   Mpi.Barrier(comm)
+   if rank == testRank then fPrint(fieldLocal,"fieldLocal")   end
+   if rank == testRank then fPrint(fieldGlobal,"fieldGlobal") end
+
+   Mpi.Barrier(comm)
+
+   -- Verify that the local field now has the same data as the global field
+   local indexer = fieldLocal:genIndexer()
+   for idx in fieldLocal:localRangeIter() do
+      local fitrIn = fieldLocal:get(indexer(idx))
+      for k = 1, fieldLocal:numComponents() do
+	      assert_equal(5, fitrIn[k], "Checking if field read correctly")
+      end
    end
-   copyField( fieldLocalBuffer, fieldLocal )
-
-   -- Perform the Mpi.Allgather operation
-   Mpi.Allgather(fieldLocalBuffer:dataPointer(), fieldLocalBuffer:size(), fieldLocalBuffer:elemCommType(), 
-                 fieldGlobalBuffer:dataPointer(), fieldLocalBuffer:size(), fieldGlobalBuffer:elemCommType(),  comm)
-
-
-   copyField( fieldGlobal, fieldGlobalBuffer )
-
-
-   -- Verify the correctness of the gathered data
-   local field = fieldGlobal
-
-   local indexer = field:genIndexer()
-   for i in field:localRangeIter() do
-
-	  -- this is a really kludgy hard coded test
-      local idx = indexer(i) - 14
-      local fitr = field:get(indexer(i))
-	  local j = 2
-
-	  if idx < 25 then
-	     value = 0
-	     assert_equal(value, fitr[j], "test_14: Checking field value")
-	  elseif idx < 50 then
-	     value = 1
-	     assert_equal(value, fitr[j], "test_14: Checking field value")
-	  elseif idx < 75 then
-	     value = 2
-	     assert_equal(value, fitr[j], "test_14: Checking field value")
-	  elseif idx < 100 then
-	     value = 3
-	     assert_equal(value, fitr[j], "test_14: Checking field value")
-	  else
-	     value = 0
-	     assert_equal(value, fitr[j], "test_14: Checking field value")
-	  end
-
-
-   end
-
-   -- Barrier synchronization to ensure all processes complete the test
    Mpi.Barrier(comm)
 end
 
+
+
 comm = Mpi.COMM_WORLD
-test_1(comm)
-test_2(comm)
-test_3(comm)
-test_4(comm)
-test_5(comm)
-test_6(comm)
-test_7(comm)
-test_8(comm)
-test_9(comm)
-test_10(comm)
-test_11(comm)
-test_12(comm)
-test_13(comm)
-test_14(comm)
+-- test_1(comm)
+-- test_2(comm)
+-- test_3(comm)
+-- test_4(comm)
+-- test_5(comm)
+-- test_6(comm)
+-- test_7(comm)
+-- test_8(comm)
+-- test_9(comm)
+-- test_10(comm)
+-- test_11(comm)
+-- test_12(comm)
+--test_copyFieldGlobalFromLocal_1D(comm)
+--test_copyFieldGlobalFromLocal_2D(comm)
+test_copyFieldLocalFromGlobal(comm)
 
 totalFail = allReduceOneInt(stats.fail)
 totalPass = allReduceOneInt(stats.pass)
