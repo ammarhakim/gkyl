@@ -41,11 +41,13 @@ function allReduceOneInt(localv)
    return recvbuf[0]
 end
 
+function copyField(f1, f2) 
+   -- copies contents of f2 into f1
+   f1:copyRangeToRange(f2, f1:localRange(), f2:localRange())
+end
+
+
 function copyFieldGlobalFromLocal(fieldGlobal, fieldGlobalBuffer, fieldLocal, fieldLocalBuffer)
-   local function copyField(f1, f2) -- copies contents of f2 into f1
-      -- To copy field Global to field Local, input f1-FieldGlobal, f2-FieldLocal
-      f1:copyRangeToRange(f2, f1:localRange(), f2:localRange())
-   end
    copyField(fieldLocalBuffer, fieldLocal)
    -- Perform the Mpi.Allgather operation
    Mpi.Allgather(fieldLocalBuffer:dataPointer(), fieldLocalBuffer:size(), fieldLocalBuffer:elemCommType(),
@@ -57,6 +59,7 @@ end
 function copyFieldLocalFromGlobal(fieldLocal, fieldGlobal)
    fieldLocal:copyRangeToRange(fieldGlobal, fieldLocal:localRange(), fieldLocal:localRange())
 end
+
 
 function test_1(comm)
    local nz = Mpi.Comm_size(comm)
@@ -1175,7 +1178,7 @@ end
 function test_copyFieldLocalFromGlobal()
    -- Initialize the global field and grid
    local sz = Mpi.Comm_size(comm)
-   if sz ~= 4 then
+   if sz ~= 1 then
       log("Not running test_14 as numProcs not exactly 4")
       return
    end
@@ -1184,13 +1187,14 @@ function test_copyFieldLocalFromGlobal()
    local nGhost = 1
    local nComponent = 1
 
-   local nCells = {4,2}
+   local nCells = {1,2}
+   local nCells = {2,1}
    local lowerBound = {0.0, 0.0}
    local upperBound = {1.0, 1.0}
 
    -- define grids and decomposition cuts
    local decomp = DecompRegionCalc.CartProd {
-	  cuts = {2,2}
+	  cuts = {1,1}
    }
    local noDecomp = DecompRegionCalc.CartProd {
       cuts = {1,1},
@@ -1216,16 +1220,26 @@ function test_copyFieldLocalFromGlobal()
       numComponents = nComponent,
       ghost         = {nGhost, nGhost},
    }
+   local fieldLocalBuffer = DataStruct.Field {
+      onGrid        = gridLocal,
+      numComponents = nComponent,
+      ghost         = {0,0},
+   }
    local fieldGlobal = DataStruct.Field {
       onGrid        = gridGlobal,
       numComponents = nComponent,
       ghost         = {nGhost, nGhost},
    }
+   local fieldGlobalBuffer = DataStruct.Field {
+      onGrid        = gridGlobal,
+      numComponents = nComponent,
+      ghost         = {0,0},
+   }
    function fPrint(field,msg)
       local indexer = field:genIndexer()
       for i in field:localRangeIter() do
          local fitr = field:get(indexer(i))
-         print(msg,": rank, val", rank, fitr[1])
+         print(msg,": rank, idx, val", rank, indexer(i), fitr[1])
       end
    end
 
@@ -1234,20 +1248,40 @@ function test_copyFieldLocalFromGlobal()
    fieldGlobal:clear(5.0)
    fieldLocal:clear(3.0)
    
-   local testRank = 1
+   local testRank = 0
    if rank == testRank then fPrint(fieldLocal,"fieldLocal")   end
    --if rank == testRank then fPrint(fieldGlobal,"fieldGlobal") end
+   --
+
+   function printRange(range, msg) 
+      if rank == testRank then 
+			  print(msg)
+			  print("lower",range:lower(1), range:lower(2)) 
+			  print("upper",range:upper(1), range:upper(2))
+	  end
+   end
 
 
-   local localRangePrint = fieldLocal:localRange()
-   if rank == testRank then print("lower", localRangePrint:lower(1), localRangePrint:lower(2)) end
-   if rank == testRank then print("upper",localRangePrint:upper(1), localRangePrint:upper(2)) end
-  
-
+   printRange( fieldLocal:localRange(), "fieldLocal" )
 
    if rank == testRank then print("I am copying") end
+
    -- Copy the global field to the local field using copyField()
-   copyFieldLocalFromGlobal(fieldLocal, fieldGlobal)
+   --copyFieldLocalFromGlobal(fieldLocal, fieldGlobal)
+   --fieldLocal:copyRangeToRange(fieldGlobal, fieldLocal:localRange(), fieldLocal:localRange())
+   local sourceRange = fieldGlobal:globalExtRange():subRange( fieldLocal:localRange():lowerAsVec() ,  
+    										 fieldLocal:localRange():upperAsVec() )
+
+
+   copyField(fieldGlobalBuffer, fieldGlobal)
+   copyField(fieldLocalBuffer, fieldGlobalBuffer)
+   copyField(fieldLocal, fieldLocalBuffer)
+
+   --fieldLocal:copyRangeToRange(fieldGlobal, fieldLocal:localRange(), sourceRange )
+   -- out in out in
+  
+   printRange( sourceRange, "sourceRange" )
+   
    Mpi.Barrier(comm)
 
 
@@ -1265,17 +1299,16 @@ function test_copyFieldLocalFromGlobal()
    Mpi.Barrier(comm)
 
    -- Verify that the local field now has the same data as the global field
-   local idx = 0
-   local indexer = fieldLocal:genIndexer()
-	--  if rank == testRank then 
-	--  This idx= 1,12 syntax does not work yet
-    --     for  idx = 1,12 do
-    --        local fitrIn = fieldLocal:get(indexer(idx))
-    --  		  print("idx",indexer(idx), fitrIn[1]) 
-    --     end
-	--  end
-	--
-	--
+--   local idx = 0
+--   local indexer = fieldLocal:genIndexer()
+--	  if rank == testRank then 
+--         for  idx = 1,fieldLocal:localExtRange():volume() do
+--            local fitrIn = fieldLocal:get(idx)
+--      		  print("idx",idx, fitrIn[1]) 
+--         end
+--	  end
+	
+	
 
 	-- commented out for simplicity (but this works)
 --   for idx in fieldLocal:localRangeIter() do
