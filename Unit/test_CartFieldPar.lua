@@ -1178,23 +1178,23 @@ end
 function test_copyFieldLocalFromGlobal()
    -- Initialize the global field and grid
    local sz = Mpi.Comm_size(comm)
-   if sz ~= 1 then
-      log("Not running test_14 as numProcs not exactly 4")
+   local defaultCommSize = 2
+   if sz ~= defaultCommSize then
+      log(string.format("Not running test_14 as numProcs not exactly %d", defaultCommSize))
       return
    end
 
    local rank = Mpi.Comm_rank(comm)
-   local nGhost = 1
+   local nGhost = 0 
    local nComponent = 1
 
-   local nCells = {1,2}
-   local nCells = {2,1}
+   local nCells = {4,2}
    local lowerBound = {0.0, 0.0}
    local upperBound = {1.0, 1.0}
 
    -- define grids and decomposition cuts
    local decomp = DecompRegionCalc.CartProd {
-	  cuts = {1,1}
+	  cuts = {2,1}
    }
    local noDecomp = DecompRegionCalc.CartProd {
       cuts = {1,1},
@@ -1239,7 +1239,7 @@ function test_copyFieldLocalFromGlobal()
       local indexer = field:genIndexer()
       for i in field:localRangeIter() do
          local fitr = field:get(indexer(i))
-         print(msg,": rank, idx, val", rank, indexer(i), fitr[1])
+         print(msg,": rank, c_idx, val", rank, indexer(i)-1, fitr[1])
       end
    end
 
@@ -1269,25 +1269,31 @@ function test_copyFieldLocalFromGlobal()
    -- Copy the global field to the local field using copyField()
    --copyFieldLocalFromGlobal(fieldLocal, fieldGlobal)
    --fieldLocal:copyRangeToRange(fieldGlobal, fieldLocal:localRange(), fieldLocal:localRange())
-   local sourceRange = fieldGlobal:globalExtRange():subRange( fieldLocal:localRange():lowerAsVec() ,  
-    										 fieldLocal:localRange():upperAsVec() )
+   
+   -- test with subRange
+--   local sourceRange = fieldGlobal:globalExtRange():subRange( fieldLocal:localRange():lowerAsVec() ,  
+--    										 fieldLocal:localRange():upperAsVec() )
+--   printRange( sourceRange, "sourceRange" )
 
 
-   copyField(fieldGlobalBuffer, fieldGlobal)
-   copyField(fieldLocalBuffer, fieldGlobalBuffer)
-   copyField(fieldLocal, fieldLocalBuffer)
 
-   --fieldLocal:copyRangeToRange(fieldGlobal, fieldLocal:localRange(), sourceRange )
-   -- out in out in
+     -- triple copy
+--   copyField(fieldGlobalBuffer, fieldGlobal)
+--   print("")
+--   copyField(fieldLocalBuffer, fieldGlobalBuffer)
+--   print("")
+--   copyField(fieldLocal, fieldLocalBuffer)
+--   print("")
+--   copyField(fieldLocal, fieldLocalBuffer)
+ 
+
+     -- direct copy
+--   copyField(fieldLocal, fieldGlobal)
   
-   printRange( sourceRange, "sourceRange" )
    
    Mpi.Barrier(comm)
 
 
---function copyFieldLocalFromGlobal(fieldLocal, fieldGlobal)
---   fieldLocal:copyRangeToRange(fieldGlobal, fieldLocal:localRange(), fieldLocal:localRange())
---end
 
 
    if rank == testRank then 
