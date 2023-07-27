@@ -308,15 +308,19 @@ local function buildApplication(self, tbl)
    end
 
    for _, s in population.iterLocal() do
-      -- Compute the coupling moments.
+      -- Compute moments needed in coupling with fields and collisions.
       s:calcCouplingMoments(0.0, 1, population:getSpecies())
-   end
-   for _, s in population.iterGlobal() do
-      s:calcCrossCouplingMoments(0., 1, population)
    end
 
    -- Initialize field (sometimes requires species to have been initialized).
    field:initField(population)
+
+   for _, s in population.iterGlobal() do
+      -- Compute/comunicate moments needed for cross-species interactions.
+      -- Needs to happen after field:advance because we'll initiate (multi-GPU)
+      -- communication here that needs to finish before starting other comms.
+      s:calcCrossCouplingMoments(0., 1, population)
+   end
 
    -- Initialize diagnostic objects.
    for _, s in population.iterLocal() do s:createDiagnostics(field) end
@@ -441,18 +445,21 @@ local function buildApplication(self, tbl)
       externalField:advance(tCurr)
       
       for _, s in population.iterLocal() do
-         -- Compute moments needed in coupling with fields and
-         -- collisions (the species should update internal datastructures). 
+         -- Compute moments needed in coupling with fields and collisions.
          s:calcCouplingMoments(tCurr, inIdx, population:getSpecies())
-      end
-      for _, s in population.iterGlobal() do
-         s:calcCrossCouplingMoments(tCurr, inIdx, population)
       end
 
       -- Update EM field.
       -- Note that this can be either an elliptic solve, which updates inIdx
       -- or a hyperbolic solve, which updates outIdx = RHS, or a combination of both.
       field:advance(tCurr, population, inIdx, outIdx)
+
+      for _, s in population.iterGlobal() do
+         -- Compute/comunicate moments needed for cross-species interactions.
+	 -- Needs to happen after field:advance because we'll initiate (multi-GPU)
+	 -- communication here that needs to finish before starting other comms.
+         s:calcCrossCouplingMoments(tCurr, inIdx, population)
+      end
 
       -- Update species.
       for _, s in population.iterLocal() do
