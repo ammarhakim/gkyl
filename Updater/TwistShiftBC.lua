@@ -32,7 +32,6 @@ local Mpi          = require "Comm.Mpi"
 local math         = require "sci.math"  -- For sign function.
 local ffi  = require "ffi"
 
-local TwistShiftDecl = require "Updater.twistShiftData.TwistShiftModDecl"
 local tsFun          = require "Updater.twistShiftData.TwistShiftFun"
 
 local TwistShiftBC = Proto(UpdaterBase)

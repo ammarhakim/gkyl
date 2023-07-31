@@ -68,8 +68,6 @@ local SerendipityNodes = require "Lib.SerendipityNodes"
 local ffi              = require "ffi"
 local xsys             = require "xsys"
 
-local TwistShiftDecl = require "Updater.twistShiftData.TwistShiftModDecl"
-
 local ffiC = ffi.C
 ffi.cdef [[
 // Object type

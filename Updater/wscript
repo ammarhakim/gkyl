@@ -11,11 +11,6 @@ def build(bld):
     aSheathPotentialData/asheath_potential_1x_p1_ser.cpp
     aSheathPotentialData/asheath_potential_1x_p2_ser.cpp
 
-    twistShiftData/TwistShiftAllocDel.cpp
-    twistShiftData/TwistShiftSer2xP0.cpp
-    twistShiftData/TwistShiftSer2xP1.cpp
-    twistShiftData/TwistShiftSer3xP1.cpp
-    twistShiftData/TwistShiftSer3x2vP1.cpp
 
     momentCalcData/IntegratedDGMomentSer1x.cpp
     momentCalcData/IntegratedDGMomentSer2x.cpp
