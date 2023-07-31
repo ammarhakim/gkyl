@@ -136,10 +136,10 @@ function TwistShiftBC:init(tbl)
    -- Do the new zero stuff
    --
    local dummyFld = createField(self.grid, self.basis, 1)
-   if self.zEdge==lower then 
-      self.zEdge=0
+   if self.zEdge=='lower' then 
+      self.zEdgeNum=0
    else
-      self.zEdge=1
+      self.zEdgeNum=1
    end
    -- Can't get LinVec to work. try again later
    --numGhosts = Lin.IntVec(self.cDim)
@@ -155,7 +155,6 @@ function TwistShiftBC:init(tbl)
    nDonors = ffi.new("int[?]", self.grid:numCells(1))
    for i = 1, self.grid:numCells(1) do
       nDonors[i-1] = #self.doCells[i][1]
-      print(" i, nonors[i] = ", i-1, nDonors[i-1])
    end
 
    totalDonors = 0
@@ -165,8 +164,6 @@ function TwistShiftBC:init(tbl)
       end
    end
 
-   print("total donors = ", totalDonors)
-
 
    --cellsDo = Lin.IntVec(totalDonors)
    cellsDo = ffi.new("int[?]", totalDonors)
@@ -175,7 +172,6 @@ function TwistShiftBC:init(tbl)
       for i = 1, self.grid:numCells(1) do
          for k = 1, nDonors[i-1] do
             cellsDo[linIdx-1] = self.doCells[i][j][k][2]
-            print("in my doCell loop, i, j, mI =  doCellsC[2] =  linIdx-1 =", i,j,k, cellsDo[linIdx-1], linIdx-1)
             linIdx = linIdx+1
          end
       end
@@ -194,16 +190,12 @@ function TwistShiftBC:init(tbl)
     local localExtInDirRange = localExtRange:intersect(ExtInDirRange)
     local lv = localExtInDirRange:lowerAsVec()
     local uv = localExtInDirRange:upperAsVec()
-    print("the range lv = ", lv[1], lv[2], lv[3])
-    print("the range uv = ", uv[1], uv[2], uv[3])
-
    -- try making it a subrange instead
     self.localExtInDirRange = localExtRange:subRange(lv,uv)
 
 
 --   -- hard code some inputs for now
-   tsFun.init(2, 0, 1, self.zEdge, dummyFld:localExtRange(), self.localExtInDirRange, numGhosts, self.basis, self.grid, self.cDim, dummyFld._zero, nDonors, cellsDo, false )
-   print("initialized")
+   tsFun.init(2, 0, 1, self.zEdgeNum, dummyFld:localExtRange(), self.localExtInDirRange, numGhosts, self.basis, self.grid, self.cDim, dummyFld._zero, nDonors, cellsDo, false )
 --
 --   --
 --
@@ -216,7 +208,6 @@ function TwistShiftBC:init(tbl)
 --
 --   -- Pre-compute matrices using weak equalities between donor and target fields.
    tsFun.preCalcMat(self.grid, self.yShFld, self.doCells, self.matVec)
-   print("precalculated mats")
 --
 --   --self.tsMatVecMult = TwistShiftDecl.selectTwistShiftMatVecMult(self.cDim, self.vDim, self.basis:id(), self.basis:polyOrder())
 --
@@ -324,10 +315,7 @@ function TwistShiftBC:_advance3xInPlace(tCurr, inFld, outFld)
       self.isFirst = false
    end
    
-   print("trying to multiply in lua")
    tsFun.matVecMult(fldDo, fldTar)
-   print("done multiply in lua")
-   fldTar:write("nfield_final_fromgkyl.bp",0.0,2,true)
    --for idxTar in self.ghostRng:rowMajorIter() do
 
    --   fldTar:fill(indexer(idxTar), fldTarItr)
