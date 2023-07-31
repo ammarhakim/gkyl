@@ -133,86 +133,57 @@ function TwistShiftBC:init(tbl)
    -- Call function computing the donor cells.
    self.doCells = tsFun.getDonors(self.grid, self.yShFld, yShBasis)
 
-   -- Do the new zero stuff
-   --
-   local dummyFld = createField(self.grid, self.basis, 1)
+   local sampleFld = createField(self.grid, self.basis, 1)
    if self.zEdge=='lower' then 
       self.zEdgeNum=0
    else
       self.zEdgeNum=1
    end
-   -- Can't get LinVec to work. try again later
-   --numGhosts = Lin.IntVec(self.cDim)
-   --for i = 1, self.cDim do
-   --   numGhosts[i] = 1
-   --end
-   numGhosts = ffi.new("int[?]", self.cDim)
+
+   local numGhosts = Lin.IntVec(self.cDim)
    for i = 1, self.cDim do
-      numGhosts[i-1] = 1
+      numGhosts[i] = 1 -- lua indexing to do the same thing
    end
 
-   --nDonors = Lin.IntVec(self.grid:numCells(1))
-   nDonors = ffi.new("int[?]", self.grid:numCells(1))
+   local nDonors = Lin.IntVec(self.grid:numCells(1))
    for i = 1, self.grid:numCells(1) do
-      nDonors[i-1] = #self.doCells[i][1]
+      nDonors[i] = #self.doCells[i][1]
    end
 
-   totalDonors = 0
+   local totalDonors = 0
    for j = 1, self.grid:numCells(2) do
       for i = 1, self.grid:numCells(1) do
-         totalDonors = totalDonors + nDonors[i-1]
+         totalDonors = totalDonors + nDonors[i]
       end
    end
 
 
-   --cellsDo = Lin.IntVec(totalDonors)
-   cellsDo = ffi.new("int[?]", totalDonors)
-   linIdx = 1;
+   local cellsDo = Lin.IntVec(totalDonors)
+   local linIdx = 1;
    for j = 1, self.grid:numCells(2) do
       for i = 1, self.grid:numCells(1) do
-         for k = 1, nDonors[i-1] do
-            cellsDo[linIdx-1] = self.doCells[i][j][k][2]
+         for k = 1, nDonors[i] do
+            cellsDo[linIdx] = self.doCells[i][j][k][2]
             linIdx = linIdx+1
          end
       end
    end
 
-   --Need to actually pass the ghost range
+   local global, globalExt, localExtRange = sampleFld:globalRange(), sampleFld:globalExtRange(), sampleFld:localExtRange()
+   local lv = global:lowerAsVec()
+   local uv = global:upperAsVec()
+   local ExtInDirRange = global:extendDir(3, 1, 1)
+   local localUpdateRange = localExtRange:intersect(ExtInDirRange)
+   local lv = localUpdateRange:lowerAsVec()
+   local uv = localUpdateRange:upperAsVec()
+   self.localUpdateRange = localExtRange:subRange(lv,uv)
 
-    --local global, globalExt, localExtRange = dummyFld:globalRange(), dummyFld:globalExtRange(), dummyFld:localExtRange()
-    --self.ghostRange = localExtRange:intersect(getGhostRange(global, globalExt, 3, self.zEdge))
+   -- Hard code some inputs for now - shift is in y based on x and bc is applied in z direction
+   -- not sure if we want to consider any other coordinate orderings. AS 7/31/23
+   tsFun.init(2, 0, 1, self.zEdgeNum, sampleFld:localExtRange(), self.localUpdateRange, numGhosts, self.basis, self.grid, self.cDim, sampleFld._zero, nDonors, cellsDo, false )
 
-
-    local global, globalExt, localExtRange = dummyFld:globalRange(), dummyFld:globalExtRange(), dummyFld:localExtRange()
-    local lv = global:lowerAsVec()
-    local uv = global:upperAsVec()
-    local ExtInDirRange = global:extendDir(3, 1, 1)
-    local localExtInDirRange = localExtRange:intersect(ExtInDirRange)
-    local lv = localExtInDirRange:lowerAsVec()
-    local uv = localExtInDirRange:upperAsVec()
-   -- try making it a subrange instead
-    self.localExtInDirRange = localExtRange:subRange(lv,uv)
-
-
---   -- hard code some inputs for now
-   tsFun.init(2, 0, 1, self.zEdgeNum, dummyFld:localExtRange(), self.localExtInDirRange, numGhosts, self.basis, self.grid, self.cDim, dummyFld._zero, nDonors, cellsDo, false )
---
---   --
---
---   -- Allocate matrices that multiply each donor cell to compute its contribution to a target cell.
---   -- Also allocate a temp vector and matrix used in the mat-vec multiply.
---   --self.matVec = tsFun.matVec_alloc(self.yShFld, self.doCells, self.basis)
---
---   -- Select kernels that assign matrices and later, in the :_advance method, do mat-vec multiplies.
---   --tsFun.selectTwistShiftKernels(self.cDim, self.vDim, self.basis:id(), self.basis:polyOrder(), yShPolyOrder)
---
---   -- Pre-compute matrices using weak equalities between donor and target fields.
-   tsFun.preCalcMat(self.grid, self.yShFld, self.doCells, self.matVec)
---
---   --self.tsMatVecMult = TwistShiftDecl.selectTwistShiftMatVecMult(self.cDim, self.vDim, self.basis:id(), self.basis:polyOrder())
---
---   self.idxDoP = Lin.IntVec(self.cDim+self.vDim)
---
+   -- Pre-compute matrices using weak equalities between donor and target fields.
+   tsFun.preCalcMat(self.grid, self.yShFld, self.doCells)
    self.isFirst = true   -- Will be reset the first time _advance() is called.
 
 end
@@ -296,7 +267,6 @@ end
 function TwistShiftBC:_advance3xInPlace(tCurr, inFld, outFld)
    -- For serial testing: twist-shift a 3x field in place (fills ghost cells).
    local fldDo, fldTar = outFld[1], outFld[1]
-   --local fldDo, fldTar = inFld[1], outFld[1]
 
    local cDim = self.cDim
 
@@ -315,30 +285,7 @@ function TwistShiftBC:_advance3xInPlace(tCurr, inFld, outFld)
       self.isFirst = false
    end
    
-   tsFun.matVecMult(fldDo, fldTar)
-   --for idxTar in self.ghostRng:rowMajorIter() do
-
-   --   fldTar:fill(indexer(idxTar), fldTarItr)
-   --   -- Zero out target cell before operation.
-   --   for i = 1, self.basis:numBasis() do fldTarItr[i] = 0. end
-
-   --   local doCellsC = self.doCells[idxTar[1]][idxTar[2]]
-
-   --   idxTar:copyInto(self.idxDoP)
-   --   -- Get z index of skin cells (donor) that will be shift-copied to ghost cells (target).
-   --   self.idxDoP[3] = self.zEdge=="lower" and global:upper(3) or global:lower(3)
-
-   --   for mI = 1, #doCellsC do
-   --      local idxDo2D = doCellsC[mI]
-   --      self.idxDoP[1], self.idxDoP[2] = idxDo2D[1], idxDo2D[2]
-   --      --print("in advance3xinplace method, i, j, mI =  doCellsC[1,2] = ", idxTar[1], idxTar[2], mI, idxDo2D[1],idxDo2D[2])
-
-   --      fldDo:fill(indexer(self.idxDoP), fldDoItr)
-
-   --      -- Matrix-vec multiply to compute the contribution of each donor cell to a target cell..
-   --      self.tsMatVecMult(self.matVec, idxTar[1], mI, fldDoItr:data(), fldTarItr:data())
-   --   end
-   --end
+   tsFun.advance(fldDo, fldTar)
 end
 
 return TwistShiftBC
