@@ -170,7 +170,7 @@ def build(bld):
 
               includes = '. ../Cuda interpolateCalcData mgPoissonCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData twistShiftData projectFluxOnGhostsData aSheathPotentialData', 
 
-              use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
+              use='lib EIGEN MPI CUTOOLS gkylzero', target = 'updater', name = 'updater', vum = '1.0')
     
 ## Removed the following files from the build for now
 #    MomentSrcCommon.cpp

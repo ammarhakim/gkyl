@@ -30,6 +30,7 @@ local Range        = require "Lib.Range"
 local Lin          = require "Lib.Linalg"
 local Mpi          = require "Comm.Mpi"
 local math         = require "sci.math"  -- For sign function.
+local ffi  = require "ffi"
 
 local TwistShiftDecl = require "Updater.twistShiftData.TwistShiftModDecl"
 local tsFun          = require "Updater.twistShiftData.TwistShiftFun"
@@ -48,6 +49,30 @@ local function createBasis(dim, pOrder, bKind)
       assert(false,"Invalid basis")
    end
    return basis
+end
+
+local getGhostRange = function(globalIn, globalExtIn, dir, edge)
+   local lv, uv = globalIn:lowerAsVec(), globalIn:upperAsVec()
+   if edge == "lower" then
+      lv[dir] = globalIn:lower(dir)-1
+      uv[dir] = lv[dir]
+   else
+      lv[dir] = globalIn:upper(dir)+1
+      uv[dir] = lv[dir]
+   end
+   return Range.Range(lv, uv)
+end
+
+local function createField(grid, basis, vComp)
+   vComp = vComp or 1
+   local fld = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = basis:numBasis()*vComp,
+      ghost         = {1, 1},
+      metaData = {polyOrder  = basis:polyOrder(),
+                  basisType  = basis:id(),},
+   }
+   return fld
 end
 
 function TwistShiftBC:init(tbl)
@@ -108,35 +133,99 @@ function TwistShiftBC:init(tbl)
    -- Call function computing the donor cells.
    self.doCells = tsFun.getDonors(self.grid, self.yShFld, yShBasis)
 
-   -- Allocate matrices that multiply each donor cell to compute its contribution to a target cell.
-   -- Also allocate a temp vector and matrix used in the mat-vec multiply.
-   self.matVec = tsFun.matVec_alloc(self.yShFld, self.doCells, self.basis)
+   -- Do the new zero stuff
+   --
+   local dummyFld = createField(self.grid, self.basis, 1)
+   if self.zEdge==lower then 
+      self.zEdge=0
+   else
+      self.zEdge=1
+   end
+   -- Can't get LinVec to work. try again later
+   --numGhosts = Lin.IntVec(self.cDim)
+   --for i = 1, self.cDim do
+   --   numGhosts[i] = 1
+   --end
+   numGhosts = ffi.new("int[?]", self.cDim)
+   for i = 1, self.cDim do
+      numGhosts[i-1] = 1
+   end
 
-   -- Select kernels that assign matrices and later, in the :_advance method, do mat-vec multiplies.
-   tsFun.selectTwistShiftKernels(self.cDim, self.vDim, self.basis:id(), self.basis:polyOrder(), yShPolyOrder)
+   --nDonors = Lin.IntVec(self.grid:numCells(1))
+   nDonors = ffi.new("int[?]", self.grid:numCells(1))
+   for i = 1, self.grid:numCells(1) do
+      nDonors[i-1] = #self.doCells[i][1]
+      print(" i, nonors[i] = ", i-1, nDonors[i-1])
+   end
 
-   -- Pre-compute matrices using weak equalities between donor and target fields.
+   totalDonors = 0
+   for j = 1, self.grid:numCells(2) do
+      for i = 1, self.grid:numCells(1) do
+         totalDonors = totalDonors + nDonors[i-1]
+      end
+   end
+
+   print("total donors = ", totalDonors)
+
+
+   --cellsDo = Lin.IntVec(totalDonors)
+   cellsDo = ffi.new("int[?]", totalDonors)
+   linIdx = 1;
+   for j = 1, self.grid:numCells(2) do
+      for i = 1, self.grid:numCells(1) do
+         for k = 1, nDonors[i-1] do
+            cellsDo[linIdx-1] = self.doCells[i][j][k][2]
+            print("in my doCell loop, i, j, mI =  doCellsC[2] =  linIdx-1 =", i,j,k, cellsDo[linIdx-1], linIdx-1)
+            linIdx = linIdx+1
+         end
+      end
+   end
+
+   --Need to actually pass the ghost range
+
+    --local global, globalExt, localExtRange = dummyFld:globalRange(), dummyFld:globalExtRange(), dummyFld:localExtRange()
+    --self.ghostRange = localExtRange:intersect(getGhostRange(global, globalExt, 3, self.zEdge))
+
+
+    local global, globalExt, localExtRange = dummyFld:globalRange(), dummyFld:globalExtRange(), dummyFld:localExtRange()
+    local lv = global:lowerAsVec()
+    local uv = global:upperAsVec()
+    local ExtInDirRange = global:extendDir(3, 1, 1)
+    local localExtInDirRange = localExtRange:intersect(ExtInDirRange)
+    local lv = localExtInDirRange:lowerAsVec()
+    local uv = localExtInDirRange:upperAsVec()
+    print("the range lv = ", lv[1], lv[2], lv[3])
+    print("the range uv = ", uv[1], uv[2], uv[3])
+
+   -- try making it a subrange instead
+    self.localExtInDirRange = localExtRange:subRange(lv,uv)
+
+
+--   -- hard code some inputs for now
+   tsFun.init(2, 0, 1, self.zEdge, dummyFld:localExtRange(), self.localExtInDirRange, numGhosts, self.basis, self.grid, self.cDim, dummyFld._zero, nDonors, cellsDo, false )
+   print("initialized")
+--
+--   --
+--
+--   -- Allocate matrices that multiply each donor cell to compute its contribution to a target cell.
+--   -- Also allocate a temp vector and matrix used in the mat-vec multiply.
+--   --self.matVec = tsFun.matVec_alloc(self.yShFld, self.doCells, self.basis)
+--
+--   -- Select kernels that assign matrices and later, in the :_advance method, do mat-vec multiplies.
+--   --tsFun.selectTwistShiftKernels(self.cDim, self.vDim, self.basis:id(), self.basis:polyOrder(), yShPolyOrder)
+--
+--   -- Pre-compute matrices using weak equalities between donor and target fields.
    tsFun.preCalcMat(self.grid, self.yShFld, self.doCells, self.matVec)
-
-   self.tsMatVecMult = TwistShiftDecl.selectTwistShiftMatVecMult(self.cDim, self.vDim, self.basis:id(), self.basis:polyOrder())
-
-   self.idxDoP = Lin.IntVec(self.cDim+self.vDim)
-
+   print("precalculated mats")
+--
+--   --self.tsMatVecMult = TwistShiftDecl.selectTwistShiftMatVecMult(self.cDim, self.vDim, self.basis:id(), self.basis:polyOrder())
+--
+--   self.idxDoP = Lin.IntVec(self.cDim+self.vDim)
+--
    self.isFirst = true   -- Will be reset the first time _advance() is called.
 
 end
 
-local getGhostRange = function(globalIn, globalExtIn, dir, edge)
-   local lv, uv = globalIn:lowerAsVec(), globalIn:upperAsVec()
-   if edge == "lower" then
-      lv[dir] = globalIn:lower(dir)-1
-      uv[dir] = lv[dir]
-   else
-      lv[dir] = globalIn:upper(dir)+1
-      uv[dir] = lv[dir]
-   end
-   return Range.Range(lv, uv)
-end
 
 function TwistShiftBC:_advance(tCurr, inFld, outFld)
    -- The donor field here is a ghost-layer buffer field, while the target field is a full domain field.
@@ -216,6 +305,7 @@ end
 function TwistShiftBC:_advance3xInPlace(tCurr, inFld, outFld)
    -- For serial testing: twist-shift a 3x field in place (fills ghost cells).
    local fldDo, fldTar = outFld[1], outFld[1]
+   --local fldDo, fldTar = inFld[1], outFld[1]
 
    local cDim = self.cDim
 
@@ -233,29 +323,34 @@ function TwistShiftBC:_advance3xInPlace(tCurr, inFld, outFld)
       self.ghostRng = localExtRange:intersect(getGhostRange(global, globalExt, 3, self.zEdge))
       self.isFirst = false
    end
+   
+   print("trying to multiply in lua")
+   tsFun.matVecMult(fldDo, fldTar)
+   print("done multiply in lua")
+   fldTar:write("nfield_final_fromgkyl.bp",0.0,2,true)
+   --for idxTar in self.ghostRng:rowMajorIter() do
 
-   for idxTar in self.ghostRng:rowMajorIter() do
+   --   fldTar:fill(indexer(idxTar), fldTarItr)
+   --   -- Zero out target cell before operation.
+   --   for i = 1, self.basis:numBasis() do fldTarItr[i] = 0. end
 
-      fldTar:fill(indexer(idxTar), fldTarItr)
-      -- Zero out target cell before operation.
-      for i = 1, self.basis:numBasis() do fldTarItr[i] = 0. end
+   --   local doCellsC = self.doCells[idxTar[1]][idxTar[2]]
 
-      local doCellsC = self.doCells[idxTar[1]][idxTar[2]]
+   --   idxTar:copyInto(self.idxDoP)
+   --   -- Get z index of skin cells (donor) that will be shift-copied to ghost cells (target).
+   --   self.idxDoP[3] = self.zEdge=="lower" and global:upper(3) or global:lower(3)
 
-      idxTar:copyInto(self.idxDoP)
-      -- Get z index of skin cells (donor) that will be shift-copied to ghost cells (target).
-      self.idxDoP[3] = self.zEdge=="lower" and global:upper(3) or global:lower(3)
+   --   for mI = 1, #doCellsC do
+   --      local idxDo2D = doCellsC[mI]
+   --      self.idxDoP[1], self.idxDoP[2] = idxDo2D[1], idxDo2D[2]
+   --      --print("in advance3xinplace method, i, j, mI =  doCellsC[1,2] = ", idxTar[1], idxTar[2], mI, idxDo2D[1],idxDo2D[2])
 
-      for mI = 1, #doCellsC do
-         local idxDo2D = doCellsC[mI]
-         self.idxDoP[1], self.idxDoP[2] = idxDo2D[1], idxDo2D[2]
+   --      fldDo:fill(indexer(self.idxDoP), fldDoItr)
 
-         fldDo:fill(indexer(self.idxDoP), fldDoItr)
-
-         -- Matrix-vec multiply to compute the contribution of each donor cell to a target cell..
-         self.tsMatVecMult(self.matVec, idxTar[1], mI, fldDoItr:data(), fldTarItr:data())
-      end
-   end
+   --      -- Matrix-vec multiply to compute the contribution of each donor cell to a target cell..
+   --      self.tsMatVecMult(self.matVec, idxTar[1], mI, fldDoItr:data(), fldTarItr:data())
+   --   end
+   --end
 end
 
 return TwistShiftBC
