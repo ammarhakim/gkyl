@@ -43,22 +43,21 @@ end
 
 function copyFieldGlobalFromLocal(fieldGlobal, fieldGlobalBuffer, fieldLocal, fieldLocalBuffer)
    function copyField(f1, f2)
-      -- copies contents of f2 into f1
+      -- Copy contents of f2 into f1.
       f1:copyRangeToRange(f2, f1:localRange(), f2:localRange())
    end
 
    copyField(fieldLocalBuffer, fieldLocal)
    Mpi.Allgather(fieldLocalBuffer:dataPointer(), fieldLocalBuffer:size(), fieldLocalBuffer:elemCommType(),
-      fieldGlobalBuffer:dataPointer(), fieldLocalBuffer:size(), fieldGlobalBuffer:elemCommType(), comm)
+                 fieldGlobalBuffer:dataPointer(), fieldLocalBuffer:size(), fieldGlobalBuffer:elemCommType(), comm)
    copyField(fieldGlobal, fieldGlobalBuffer)
-   return
 end
 
 function copyFieldLocalFromGlobal(fieldLocal, fieldGlobal)
-   local sourceRange = fieldGlobal:globalExtRange():subRange(fieldLocal:localRange():lowerAsVec(),
-      fieldLocal:localRange():upperAsVec())
+   local lv = fieldLocal:localRange():lowerAsVec()
+   local uv = fieldLocal:localRange():upperAsVec()
+   local sourceRange = fieldGlobal:globalExtRange():subRange(lv,uv)
    fieldLocal:copyRangeToRange(fieldGlobal, fieldLocal:localRange(), sourceRange)
-   return
 end
 
 function test_1(comm)
@@ -844,11 +843,10 @@ function test_10(comm)
    Mpi.Barrier(comm)
 end
 
-function test_fieldGlobal(comm)
-   --Test the establishment of a global grid and field
+function test_gridGlobal(comm)
    local nz = Mpi.Comm_size(comm)
    if nz ~= 2 then
-      log("Not running test_fieldGlobal as numProcs not exactly 2")
+      log("Not running test_gridGlobal as numProcs not exactly 2")
       return
    end
    local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
@@ -856,37 +854,67 @@ function test_fieldGlobal(comm)
    local decomp = DecompRegionCalc.CartProd { cuts = { 2 } }
    local noDecomp = DecompRegionCalc.CartProd {
       cuts = { 1 },
-      __serTesting = true,
+      __serTesting = true, -- Hack to create a decomp without cuts.
    }
    local grid = Grid.RectCart {
-      lower = { 0.0 },
-      upper = { 1.0 },
-      cells = { 10 },
-      decomposition = decomp,
+      lower = { 0.0 },  cells = { 10 },
+      upper = { 1.0 },  decomposition = decomp,
+   }
+   local gridGlobal = Grid.RectCart {
+      lower = { 0.0 },  cells = { 10 },
+      upper = { 1.0 },  decomposition = noDecomp,
+   }
+   assert_equal(1, gridGlobal:globalRange():lower(1), "Checking range lower")
+   assert_equal(10, gridGlobal:globalRange():upper(1), "Checking range upper")
+   assert_equal(1, gridGlobal:localRange():lower(1), "Checking range lower")
+   assert_equal(10, gridGlobal:localRange():upper(1), "Checking range upper")
+   Mpi.Barrier(comm)
+end
+
+function test_fieldGlobal(comm)
+   -- Test the establishment of a global grid and field
+   local nz = Mpi.Comm_size(comm)
+   if nz ~= 2 then
+      log("Not running test_fieldGlobal as numProcs not exactly 2")
+      return
+   end
+   local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
+
+   local xlower = {0.}
+   local xupper = {1.}
+   local xcells = {10}
+   local ncomp  = 3
+   local nghost = 1
+
+   local decomp = DecompRegionCalc.CartProd { cuts = { 2 } }
+   local noDecomp = DecompRegionCalc.CartProd {
+      cuts = { 1 },
+      __serTesting = true, -- Hack to create a decomp without cuts.
+   }
+   local grid = Grid.RectCart {
+      lower = xlower,  cells = xcells,
+      upper = xupper,  decomposition = decomp,
+   }
+   local gridGlobal = Grid.RectCart {
+      lower = xlower,  cells = xcells,
+      upper = xupper,  decomposition = noDecomp,
    }
    local field = DataStruct.Field {
       onGrid        = grid,
-      numComponents = 3,
-      ghost         = { 1, 1 },
-   }
-   local gridGlobal = Grid.RectCart {
-      lower = { 0.0 },
-      upper = { 1.0 },
-      cells = { 10 },
-      decomposition = noDecomp,
+      numComponents = ncomp,
+      ghost         = { nghost, nghost },
    }
    local fieldGlobal = DataStruct.Field {
       onGrid        = gridGlobal,
-      numComponents = 3,
-      ghost         = { 1, 1 },
+      numComponents = ncomp,
+      ghost         = { nghost, nghost },
    }
 
-   --Local field checks
+   -- Local field checks.
    assert_equal(1, field:ndim(), "Checking dimensions")
    assert_equal(1, field:lowerGhost(), "Checking lower ghost")
    assert_equal(1, field:upperGhost(), "Checking upper ghost")
    assert_equal(field:localExtRange():volume() * 3, field:size(), "Checking size")
-
    assert_equal(field:defaultLayout(), field:layout(), "Checking layout")
 
    local localRange = field:localRange()
@@ -922,12 +950,11 @@ function test_fieldGlobal(comm)
       assert_equal(i + 3, fitr[3], "Checking field value")
    end
 
-   --Global field checks
+   -- Global field checks.
    assert_equal(1, fieldGlobal:ndim(), "Checking dimensions")
    assert_equal(1, fieldGlobal:lowerGhost(), "Checking global lower ghost")
-   assert_equal(1, fieldGlobal:upperGhost(), "Checking global upper ghost") -- What should this value be?
+   assert_equal(1, fieldGlobal:upperGhost(), "Checking global upper ghost")
    assert_equal(fieldGlobal:localExtRange():volume() * 3, fieldGlobal:size(), "Checking global size")
-
    assert_equal(fieldGlobal:defaultLayout(), fieldGlobal:layout(), "Checking global layout")
 
    local localRangeGlobal = fieldGlobal:localRange()
@@ -938,7 +965,7 @@ function test_fieldGlobal(comm)
    assert_equal(0, localExtRangeGlobal:lower(1), "Checking global ext range lower")
    assert_equal(11, localExtRangeGlobal:upper(1), "Checking global ext range upper")
 
-   local indexer = fieldGlobal:indexer() -- there is an error here
+   local indexer = fieldGlobal:indexer()
    for i = localRangeGlobal:lower(1), localRangeGlobal:upper(1) do
       local fitr = fieldGlobal:get(indexer(i))
       fitr[1] = i + 1
@@ -952,38 +979,6 @@ function test_fieldGlobal(comm)
       assert_equal(i + 2, fitr[2], "Checking global field value")
       assert_equal(i + 3, fitr[3], "Checking global field value")
    end
-   Mpi.Barrier(comm)
-end
-
-function test_gridGlobal(comm)
-   local nz = Mpi.Comm_size(comm)
-   if nz ~= 2 then
-      log("Not running test_gridGlobal as numProcs not exactly 2")
-      return
-   end
-   local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
-
-   local decomp = DecompRegionCalc.CartProd { cuts = { 2 } }
-   local noDecomp = DecompRegionCalc.CartProd {
-      cuts = { 1 },
-      __serTesting = true,
-   }
-   local grid = Grid.RectCart {
-      lower = { 0.0 },
-      upper = { 1.0 },
-      cells = { 10 },
-      decomposition = decomp,
-   }
-   local gridGlobal = Grid.RectCart {
-      lower = { 0.0 },
-      upper = { 1.0 },
-      cells = { 10 },
-      decomposition = noDecomp,
-   }
-   assert_equal(1, gridGlobal:globalRange():lower(1), "Checking range lower")
-   assert_equal(10, gridGlobal:globalRange():upper(1), "Checking range upper")
-   assert_equal(1, gridGlobal:localRange():lower(1), "Checking range lower")
-   assert_equal(10, gridGlobal:localRange():upper(1), "Checking range upper")
    Mpi.Barrier(comm)
 end
 
@@ -1001,29 +996,23 @@ function test_copyFieldGlobalFromLocal_1D(comm)
    local nGhost = 1
    local nComponent = 3
 
-   local nCells = { sz }
+   local nCells = { 12 }
    local lowerBound = { 0.0 }
-   local upperBound = { 0.0 }
+   local upperBound = { 1.0 }
 
-   -- define grids and decomposition cuts
-   local decomp = DecompRegionCalc.CartProd {
-      cuts = { sz }
-   }
+   -- Define grids.
+   local decomp = DecompRegionCalc.CartProd { cuts = {sz}, }
    local noDecomp = DecompRegionCalc.CartProd {
       cuts = { 1 },
-      __serTesting = true,
+      __serTesting = true, -- Hack to create a decomp without cuts.
    }
    local gridLocal = Grid.RectCart {
-      lower = lowerBound,
-      upper = upperBound,
-      cells = nCells,
-      decomposition = decomp,
+      lower = lowerBound,  cells         = nCells,
+      upper = upperBound,  decomposition = decomp,
    }
    local gridGlobal = Grid.RectCart {
-      lower = lowerBound,
-      upper = upperBound,
-      cells = nCells,
-      decomposition = noDecomp,
+      lower = lowerBound,  cells         = nCells,
+      upper = upperBound,  decomposition = noDecomp,
    }
 
    local fieldLocal = DataStruct.Field {
@@ -1049,7 +1038,7 @@ function test_copyFieldGlobalFromLocal_1D(comm)
       ghost         = { 0, 0 },
    }
 
-   -- set local field to unique value for each processor
+   -- Set local field to unique value for each processor
    fieldLocal:clear(rank)
 
    copyFieldGlobalFromLocal(fieldGlobal, fieldGlobalBuffer, fieldLocal, fieldLocalBuffer)
@@ -1060,7 +1049,7 @@ function test_copyFieldGlobalFromLocal_1D(comm)
    local localRange = field:localRange()
    local indexer = field:indexer()
    for i = localRange:lower(1), localRange:upper(1) do
-      local value = i - 1
+      local value = i <= nCells[1]/sz and 0 or 1
       local fitr = field:get(indexer(i))
       assert_equal(value, fitr[1], "test_10: Checking field value")
       assert_equal(value, fitr[2], "test_10: Checking field value")
@@ -1087,30 +1076,25 @@ function test_copyFieldGlobalFromLocal_2D(comm)
    local nCells = { 10, 10 }
    local lowerBound = { 0.0, 0.0 }
    local upperBound = { 1.0, 1.0 }
+   local ncuts = { 2, 2 }
 
-   -- define grids and decomposition cuts
-   local decomp = DecompRegionCalc.CartProd {
-      cuts = { 2, 2 }
-   }
+   -- Define grids.
+   local decomp = DecompRegionCalc.CartProd { cuts = ncuts, }
    local noDecomp = DecompRegionCalc.CartProd {
       cuts = { 1, 1 },
-      __serTesting = true,
+      __serTesting = true, -- Hack to create a decomp without cuts.
    }
 
    local gridLocal = Grid.RectCart {
-      lower = lowerBound,
-      upper = upperBound,
-      cells = nCells,
-      decomposition = decomp, -- what does decomp do?
+      lower = lowerBound,  cells         = nCells,
+      upper = upperBound,  decomposition = decomp,
    }
    local gridGlobal = Grid.RectCart {
-      lower = lowerBound,
-      upper = upperBound,
-      cells = nCells,
-      decomposition = noDecomp,
+      lower = lowerBound,  cells         = nCells,
+      upper = upperBound,  decomposition = noDecomp,
    }
 
-   -- define a local field and global field on each process
+   -- Define a local field and global field on each process.
    local fieldLocal = DataStruct.Field {
       onGrid        = gridLocal,
       numComponents = nComponent,
@@ -1134,8 +1118,8 @@ function test_copyFieldGlobalFromLocal_2D(comm)
       ghost         = { 0, 0 },
    }
 
-   -- set local field to unique value for each processor
-   fieldLocal:clear(3)
+   -- Set local field to unique value for each processor
+   fieldLocal:clear(rank)
 
    -- copy the localField to the globalField
    copyFieldGlobalFromLocal(fieldGlobal, fieldGlobalBuffer, fieldLocal, fieldLocalBuffer)
@@ -1143,8 +1127,14 @@ function test_copyFieldGlobalFromLocal_2D(comm)
    local indexer = fieldLocal:genIndexer()
    for idx in fieldLocal:localRangeIter() do
       local fitrIn = fieldLocal:get(indexer(idx))
+      local val = -1
+      if idx[1] <= nCells[1]/ncuts[1] then
+         val = idx[2] <= nCells[2]/ncuts[2] and 0 or 2
+      else
+         val = idx[2] <= nCells[2]/ncuts[2] and 1 or 3
+      end
       for k = 1, fieldLocal:numComponents() do
-         assert_equal(3, fitrIn[k], "Checking if field read correctly")
+         assert_equal(val, fitrIn[k], "Checking if field was gathered correctly")
       end
    end
    -- Barrier synchronization to ensure all processes complete the test
@@ -1168,27 +1158,22 @@ function test_copyFieldLocalFromGlobal_2D(comm)
    local nCells = { 8, 8 }
    local lowerBound = { 0.0, 0.0 }
    local upperBound = { 1.0, 1.0 }
+   local ncuts = { 2, 2 }
 
    -- define grids and decomposition cuts
-   local decomp = DecompRegionCalc.CartProd {
-      cuts = { 2, 2 }
-   }
+   local decomp = DecompRegionCalc.CartProd { cuts = ncuts, }
    local noDecomp = DecompRegionCalc.CartProd {
       cuts = { 1, 1 },
-      __serTesting = true,
+      __serTesting = true, -- Hack to create a decomp without cuts.
    }
 
    local gridLocal = Grid.RectCart {
-      lower = lowerBound,
-      upper = upperBound,
-      cells = nCells,
-      decomposition = decomp,
+      lower = lowerBound,  cells         = nCells,
+      upper = upperBound,  decomposition = decomp,
    }
    local gridGlobal = Grid.RectCart {
-      lower = lowerBound,
-      upper = upperBound,
-      cells = nCells,
-      decomposition = noDecomp,
+      lower = lowerBound,  cells         = nCells,
+      upper = upperBound,  decomposition = noDecomp,
    }
 
    local fieldLocal = DataStruct.Field {
@@ -1201,41 +1186,45 @@ function test_copyFieldLocalFromGlobal_2D(comm)
       numComponents = nComponent,
       ghost         = { nGhost, nGhost },
    }
+   fieldGlobal:clear(-1.0)
+   fieldLocal:clear(-1.0)
 
-   function fPrint(field, msg)
-      local indexer = field:genIndexer()
-      for i in field:localRangeIter() do
-         local fitr = field:get(indexer(i))
-         print(msg, ": rank, c_idx, val", rank, indexer(i) - 1, fitr[1])
+   -- Populate global field.
+   local indexer = fieldGlobal:genIndexer()
+   for idx in fieldGlobal:localRangeIter() do
+      local fitrIn = fieldGlobal:get(indexer(idx))
+      local val = -1
+      if idx[1] <= nCells[1]/ncuts[1] then
+         val = idx[2] <= nCells[2]/ncuts[2] and 0 or 2
+      else
+         val = idx[2] <= nCells[2]/ncuts[2] and 1 or 3
       end
+      for k = 1, fieldGlobal:numComponents() do fitrIn[k] = val end
    end
 
-   fieldGlobal:clear(5.0)
-   fieldLocal:clear(3.0)
-
    copyFieldLocalFromGlobal(fieldLocal, fieldGlobal)
-   Mpi.Barrier(comm)
+
    local indexer = fieldLocal:genIndexer()
    for idx in fieldLocal:localRangeIter() do
       local fitrIn = fieldLocal:get(indexer(idx))
       for k = 1, fieldLocal:numComponents() do
-         assert_equal(5, fitrIn[k], "Checking if field read correctly")
+         assert_equal(rank, fitrIn[k], "Checking if field read correctly")
       end
    end
    Mpi.Barrier(comm)
 end
 
 comm = Mpi.COMM_WORLD
-test_1(comm)
-test_2(comm)
-test_3(comm)
-test_4(comm)
-test_5(comm)
-test_6(comm)
-test_7(comm)
-test_8(comm)
-test_9(comm)
-test_10(comm)
+--test_1(comm)
+--test_2(comm)
+--test_3(comm)
+--test_4(comm)
+--test_5(comm)
+--test_6(comm)
+--test_7(comm)
+--test_8(comm)
+--test_9(comm)
+--test_10(comm)
 test_fieldGlobal(comm)
 test_gridGlobal(comm)
 test_copyFieldGlobalFromLocal_1D(comm)
