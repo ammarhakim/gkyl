@@ -1041,7 +1041,7 @@ function test_copyFieldGlobalFromLocal_1D(comm)
    -- Set local field to unique value for each processor
    fieldLocal:clear(rank)
 
-   copyFieldGlobalFromLocal(fieldGlobal, fieldGlobalBuffer, fieldLocal, fieldLocalBuffer)
+   fieldGlobal:copyFromLocal(fieldGlobalBuffer, fieldLocal, fieldLocalBuffer)
 
    -- Verify the correctness of the gathered data
    local field = fieldGlobal
@@ -1049,11 +1049,11 @@ function test_copyFieldGlobalFromLocal_1D(comm)
    local localRange = field:localRange()
    local indexer = field:indexer()
    for i = localRange:lower(1), localRange:upper(1) do
-      local value = i <= nCells[1]/sz and 0 or 1
+      local value =  math.floor((i-1) / (nCells[1]/sz))
       local fitr = field:get(indexer(i))
-      assert_equal(value, fitr[1], "test_10: Checking field value")
-      assert_equal(value, fitr[2], "test_10: Checking field value")
-      assert_equal(value, fitr[3], "test_10: Checking field value")
+      assert_equal(value, fitr[1], "test_copyFieldGlobalFromLocal_1D: Checking field value")
+      assert_equal(value, fitr[2], "test_copyFieldGlobalFromLocal_1D: Checking field value")
+      assert_equal(value, fitr[3], "test_copyFieldGlobalFromLocal_1D: Checking field value")
    end
 
    Mpi.Barrier(comm)
@@ -1122,7 +1122,7 @@ function test_copyFieldGlobalFromLocal_2D(comm)
    fieldLocal:clear(rank)
 
    -- copy the localField to the globalField
-   copyFieldGlobalFromLocal(fieldGlobal, fieldGlobalBuffer, fieldLocal, fieldLocalBuffer)
+   fieldGlobal:copyFromLocal(fieldGlobalBuffer, fieldLocal, fieldLocalBuffer)
 
    local indexer = fieldLocal:genIndexer()
    for idx in fieldLocal:localRangeIter() do
@@ -1202,7 +1202,7 @@ function test_copyFieldLocalFromGlobal_2D(comm)
       for k = 1, fieldGlobal:numComponents() do fitrIn[k] = val end
    end
 
-   copyFieldLocalFromGlobal(fieldLocal, fieldGlobal)
+   fieldLocal:copyFromGlobal(fieldGlobal)
 
    local indexer = fieldLocal:genIndexer()
    for idx in fieldLocal:localRangeIter() do
@@ -1215,16 +1215,16 @@ function test_copyFieldLocalFromGlobal_2D(comm)
 end
 
 comm = Mpi.COMM_WORLD
---test_1(comm)
---test_2(comm)
---test_3(comm)
---test_4(comm)
---test_5(comm)
---test_6(comm)
---test_7(comm)
---test_8(comm)
---test_9(comm)
---test_10(comm)
+test_1(comm)
+test_2(comm)
+test_3(comm)
+test_4(comm)
+test_5(comm)
+test_6(comm)
+-- test_7(comm) Broken 2 Aug 2023
+test_8(comm)
+test_9(comm)
+test_10(comm)
 test_fieldGlobal(comm)
 test_gridGlobal(comm)
 test_copyFieldGlobalFromLocal_1D(comm)

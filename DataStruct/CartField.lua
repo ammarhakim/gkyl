@@ -698,6 +698,20 @@ local function Field_meta_ctor(elct)
       copyRangeToRange = function(self, fIn, outRange, inRange)
          self._zeroForOps:copyRangeToRange(fIn._zeroForOps, outRange, inRange)
       end,
+      copyFromLocal = function(self, fGlobBuff, fLoc, fLocBuff)
+         -- called by a global field to copy a local field to it
+         fLocBuff:copyRangeToRange(fLoc, fLocBuff:localRange(), fLoc:localRange())
+         Mpi.Allgather(fLocBuff:dataPointer(), fLocBuff:size(), fLocBuff:elemCommType(),
+            fGlobBuff:dataPointer(), fGlobBuff:size(), fGlobBuff:elemCommType(), comm)
+
+         self:copyRangeToRange(fGlobBuff, self:localRange(), fGlobBuff:localRange())
+      end,
+      copyFromGlobal = function(self,fGlob)
+         -- Called by a local field to copy a global field to it
+         local sourceRange = fGlob:globalExtRange():subRange(self:localRange():lowerAsVec(),
+            self:localRange():upperAsVec())
+         self:copyRangeToRange(fGlob, self:localRange(), sourceRange)
+      end,
       deviceDataPointer = function(self)
          return self._devAllocData
       end,
