@@ -179,7 +179,10 @@ function TwistShiftBC:init(tbl)
 
    -- Hard code some inputs for now - shift is in y based on x and bc is applied in z direction
    -- not sure if we want to consider any other coordinate orderings. AS 7/31/23
-   tsFun.init(2, 0, 1, self.zEdgeNum, sampleFld:localExtRange(), self.localUpdateRange, numGhosts, self.basis, self.grid, self.cDim, sampleFld._zero, nDonors, cellsDo, false )
+   self.dir = 3
+   self.shiftDir = 2
+   self.doDir = 1
+   tsFun.init(self.dir-1, self.doDir-1, self.shiftDir-1, self.zEdgeNum, sampleFld:localExtRange(), self.localUpdateRange, numGhosts, self.basis, self.grid, self.cDim, sampleFld._zero, nDonors, cellsDo, false )
 
    -- Pre-compute matrices using weak equalities between donor and target fields.
    tsFun.preCalcMat(self.grid, self.yShFld, self.doCells)
@@ -239,28 +242,7 @@ function TwistShiftBC:_advance2x(tCurr, inFld, outFld)
    local indexer = fldTar:genIndexer()
    local fldDoItr, fldTarItr = fldDo:get(1), fldTar:get(1)
 
-   local localRange = fldTar:localRange()
-
-   for idxTar in localRange:rowMajorIter() do
-
-      fldTar:fill(indexer(idxTar), fldTarItr)
-      -- Zero out target cell before operation.
-      for i = 1, self.basis:numBasis() do fldTarItr[i] = 0. end
-
-      local doCellsC = self.doCells[idxTar[1]][idxTar[2]]
-
-      idxTar:copyInto(self.idxDoP)
-
-      for mI = 1, #doCellsC do
-         local idxDo2D = doCellsC[mI]
-         self.idxDoP[1], self.idxDoP[2] = idxDo2D[1], idxDo2D[2] 
-
-         fldDo:fill(indexer(self.idxDoP), fldDoItr)
-
-         -- Matrix-vec multiply to compute the contribution of each donor cell to a target cell..
-         self.tsMatVecMult(self.matVec, idxTar[1], mI, fldDoItr:data(), fldTarItr:data())
-      end
-   end
+   tsFun.advance(fldDo, fldTar)
 end
 
 function TwistShiftBC:_advance3xInPlace(tCurr, inFld, outFld)
