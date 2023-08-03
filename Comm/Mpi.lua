@@ -471,7 +471,8 @@ function _M.Get_count(status, datatype, off)
 end
 -- MPI_Allgather
 function _M.Allgather(sendbuff, sendcount, senddatatype, recvbuf, recvcount, recvdatatype, comm)
-   local _ = ffiC.MPI_Allgather(sendbuff, sendcount, senddatatype, recvbuf, recvcount, recvdatatype, getObj(comm, "MPI_Comm[1]")) --not sure which comm to getObj of
+   local _ = ffiC.MPI_Allgather(sendbuff, sendcount, senddatatype,
+                                recvbuf, recvcount, recvdatatype, getObj(comm, "MPI_Comm[1]"))
 end
 -- MPI_Allreduce
 function _M.Allreduce(sendbuf, recvbuf, count, datatype, op, comm)

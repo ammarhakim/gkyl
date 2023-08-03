@@ -469,8 +469,8 @@ function GkField:createSolver(population, externalField)
       if self.ndim == 1 then
          self.modWeightPoisson:copyDeviceToHost()
          self.phiParSlvr = Updater.FemParproj {
-            onGrid = self.grid,  basis = self.basis,
-            weight = self.modWeightPoisson,
+            onGrid = self.grid,              basis = self.basis,
+            weight = self.modWeightPoisson,  onField = self:rkStepperFields()[1].phi,
             periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
          }
          self.phiSlvr = {
@@ -504,7 +504,8 @@ function GkField:createSolver(population, externalField)
          self.parSmooth = function(tCurr, fldIn, fldOut) fldOut:copy(fldIn) end
          if self.ndim == 3 and not self.discontinuousPhi then
             self.parSmoother = Updater.FemParproj {
-               onGrid = self.grid,  basis = self.basis,
+               onGrid  = self.grid,  basis = self.basis,
+               onField = self:rkStepperFields()[1].phi,
                periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
             }
             self.parSmooth = function(tCurr, fldIn, fldOut)
