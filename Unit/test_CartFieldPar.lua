@@ -1044,16 +1044,14 @@ function test_copyFieldGlobalFromLocal_1D(comm)
    copyFieldGlobalFromLocal(fieldGlobal, fieldGlobalBuffer, fieldLocal, fieldLocalBuffer)
 
    -- Verify the correctness of the gathered data
-   local field = fieldGlobal
-
-   local localRange = field:localRange()
-   local indexer = field:indexer()
+   local localRange = fieldGlobal:localRange()
+   local indexer = fieldGlobal:indexer()
    for i = localRange:lower(1), localRange:upper(1) do
       local value = i <= nCells[1]/sz and 0 or 1
-      local fitr = field:get(indexer(i))
-      assert_equal(value, fitr[1], "test_10: Checking field value")
-      assert_equal(value, fitr[2], "test_10: Checking field value")
-      assert_equal(value, fitr[3], "test_10: Checking field value")
+      local fitr = fieldGlobal:get(indexer(i))
+      assert_equal(value, fitr[1], "test_10: Checking fieldGlobal value")
+      assert_equal(value, fitr[2], "test_10: Checking fieldGlobal value")
+      assert_equal(value, fitr[3], "test_10: Checking fieldGlobal value")
    end
 
    Mpi.Barrier(comm)
@@ -1124,17 +1122,17 @@ function test_copyFieldGlobalFromLocal_2D(comm)
    -- copy the localField to the globalField
    copyFieldGlobalFromLocal(fieldGlobal, fieldGlobalBuffer, fieldLocal, fieldLocalBuffer)
 
-   local indexer = fieldLocal:genIndexer()
-   for idx in fieldLocal:localRangeIter() do
-      local fitrIn = fieldLocal:get(indexer(idx))
+   local indexer = fieldGlobal:genIndexer()
+   for idx in fieldGlobal:localRangeIter() do
+      local fitrIn = fieldGlobal:get(indexer(idx))
       local val = -1
       if idx[1] <= nCells[1]/ncuts[1] then
          val = idx[2] <= nCells[2]/ncuts[2] and 0 or 2
       else
          val = idx[2] <= nCells[2]/ncuts[2] and 1 or 3
       end
-      for k = 1, fieldLocal:numComponents() do
-         assert_equal(val, fitrIn[k], "Checking if field was gathered correctly")
+      for k = 1, fieldGlobal:numComponents() do
+         assert_equal(val, fitrIn[k], "Checking if fieldGlobal was gathered correctly")
       end
    end
    -- Barrier synchronization to ensure all processes complete the test
