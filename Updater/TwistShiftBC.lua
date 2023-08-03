@@ -36,7 +36,7 @@ local tsFun          = require "Updater.twistShiftData.TwistShiftFun"
 
 local TwistShiftBC = Proto(UpdaterBase)
 
-local function createBasis(dim, pOrder, bKind)
+local function createBasis(dim, pOrder, bKind, vdim, cdim)
    local basis
    if (bKind=="serendipity") then
       basis = Basis.CartModalSerendipity { ndim = dim, polyOrder = pOrder }
@@ -44,6 +44,8 @@ local function createBasis(dim, pOrder, bKind)
       basis = Basis.CartModalMaxOrder { ndim = dim, polyOrder = pOrder }
    elseif (bKind=="tensor") then
       basis = Basis.CartModalTensor { ndim = dim, polyOrder = pOrder }
+   elseif (bKind=="gkhybrid") then
+      basis = Basis.CartModalGkHybrid{ vdim = vdim, cdim = cdim, polyOrder = pOrder }
    else
       assert(false,"Invalid basis")
    end
@@ -88,6 +90,7 @@ function TwistShiftBC:init(tbl)
       self.vDim = self.basis:ndim() - self.cDim
    else
       self.cDim, self.vDim = self.basis:ndim(), 0
+      self.confBasis = self.basis
    end
 
    if self.cDim == 3 then
@@ -108,7 +111,7 @@ function TwistShiftBC:init(tbl)
       upper = yShGridIngr.upper,  decomposition = yShGridIngr.decomposition,
       cells = yShGridIngr.cells,
    }
-   local yShBasis = createBasis(yShGrid:ndim(), yShPolyOrder, self.basis:id())
+   local yShBasis = createBasis(yShGrid:ndim(), yShPolyOrder, self.confBasis:id())
    self.yShFld = DataStruct.Field {
       onGrid        = yShGrid,
       numComponents = yShBasis:numBasis(),
@@ -194,78 +197,18 @@ end
 function TwistShiftBC:_advance(tCurr, inFld, outFld)
    -- The donor field here is a ghost-layer buffer field, while the target field is a full domain field.
    local fldDo, fldTar = inFld[1], outFld[1]
-
-   local cDim = self.cDim
-
-   local indexer   = fldTar:genIndexer()
-   local doIndexer = fldDo:genIndexer()
-   local fldDoItr, fldTarItr = fldDo:get(1), fldTar:get(1)
-
-   if self.isFirst then
-      local global, globalExt, localExtRange = fldTar:globalRange(), fldTar:globalExtRange(), fldTar:localExtRange()
-      self.ghostRange = localExtRange:intersect(getGhostRange(global, globalExt, 3, self.zEdge))
-      self.isFirst = false
-   end
-
-   for idxTar in self.ghostRange:rowMajorIter() do
-
-      fldTar:fill(indexer(idxTar), fldTarItr)
-      -- Zero out target cell before operation.
-      for k = 1, self.basis:numBasis() do fldTarItr[k] = 0. end
-
-      local doCellsC = self.doCells[idxTar[1]][idxTar[2]]
-
-      idxTar:copyInto(self.idxDoP)
-      self.idxDoP[3] = 1
-
-      for mI = 1, #doCellsC do
-         local idxDo2D = doCellsC[mI]
-         self.idxDoP[1], self.idxDoP[2] = idxDo2D[1], idxDo2D[2] 
-
-         fldDo:fill(doIndexer(self.idxDoP), fldDoItr)
-
-         -- Matrix-vec multiply to compute the contribution of each donor cell to a target cell..
-         self.tsMatVecMult(self.matVec, idxTar[1], mI, fldDoItr:data(), fldTarItr:data())
-      end
-   end
+   tsFun.advance(fldDo, fldTar)
 end
 
 function TwistShiftBC:_advance2x(tCurr, inFld, outFld)
    -- For testing: twist-shift a 2x field and return a different 2x field.
    local fldDo, fldTar = inFld[1], outFld[1]
-
-   local cDim = self.cDim
-
-   assert(cDim==2, "Updater.TwistShift._advance2x: fields must be 2D")
-   assert(fldDo~=fldTar, "Updater.TwistShift._advance2x: in-place operation not allowed.")
-
-   local indexer = fldTar:genIndexer()
-   local fldDoItr, fldTarItr = fldDo:get(1), fldTar:get(1)
-
    tsFun.advance(fldDo, fldTar)
 end
 
 function TwistShiftBC:_advance3xInPlace(tCurr, inFld, outFld)
    -- For serial testing: twist-shift a 3x field in place (fills ghost cells).
    local fldDo, fldTar = outFld[1], outFld[1]
-
-   local cDim = self.cDim
-
-   assert(inFld[1]==nil, "Updater.TwistShift_advance3xInPlace: no separate donor field needed. Just use the outFld to pass a donor/target field.")
-   assert(cDim==3, "Updater.TwistShift_advance3xInPlace: performing twist-shift to a single field is only available for 3D fields.")
-
-   local indexer = fldTar:genIndexer()
-   local fldDoItr, fldTarItr = fldDo:get(1), fldTar:get(1)
-
-   local global = fldTar:globalRange()
-
-   if self.isFirst then
-      local globalExt     = fldTar:globalExtRange()
-      local localExtRange = fldTar:localExtRange()
-      self.ghostRng = localExtRange:intersect(getGhostRange(global, globalExt, 3, self.zEdge))
-      self.isFirst = false
-   end
-   
    tsFun.advance(fldDo, fldTar)
 end
 
