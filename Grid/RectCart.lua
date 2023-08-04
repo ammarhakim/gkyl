@@ -70,11 +70,11 @@ local rectCartSz = sizeof("struct gkyl_rect_grid")
 
 -- Determine local domain index.
 local function getSubDomIndex(comm)
-   local idx = ffi.new("int[1]")
+   local idx = -1
    if Mpi.Is_comm_valid(comm) then
-      idx[0] = Mpi.Comm_rank(comm)+1 -- sub-domains are indexed from 1
+      idx = Mpi.Comm_rank(comm)+1 -- Sub-domains are 1-indexed.
    end
-   return idx[0]
+   return idx
 end
 
 -- RectCart --------------------------------------------------------------------

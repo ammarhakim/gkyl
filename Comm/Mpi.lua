@@ -25,191 +25,241 @@ local timeMpiBarrier = 0.0
 local _M = {}
 
 ffi.cdef [[
-   // Opaque types
-   typedef struct MPI_Comm_type *MPI_Comm;
-   typedef struct MPI_Datatype_type *MPI_Datatype;
-   typedef struct MPI_Op_type *MPI_Op;
-   typedef struct MPI_Status_type *MPI_Status;
-   typedef struct MPI_Group_type *MPI_Group;
-   typedef struct MPI_Request_type *MPI_Request;
-   typedef struct MPI_Info_type *MPI_Info;
-   typedef struct MPI_Win_type *MPI_Win;
-   typedef unsigned MPI_Aint; /* Not sure if this is correct, but it seems to work */
+  // Opaque types
+  typedef struct MPI_Comm_type *MPI_Comm;
+  typedef struct MPI_Datatype_type *MPI_Datatype;
+  typedef struct MPI_Op_type *MPI_Op;
+  typedef struct MPI_Status_type *MPI_Status;
+  typedef struct MPI_Group_type *MPI_Group;
+  typedef struct MPI_Request_type *MPI_Request;
+  typedef struct MPI_Info_type *MPI_Info;
+  typedef struct MPI_Win_type *MPI_Win;
+  typedef ptrdiff_t MPI_Aint;
 
-   // size of various objects
-   int sizeof_MPI_Status();
-   int sizeof_MPI_Group();
-   int sizeof_MPI_Comm();
-   int sizeof_MPI_Request();
-   // size of various object pointers
-   int sizeof_ptr_MPI_Status();
-   int sizeof_ptr_MPI_Request();
+  // size of various objects
+  int sizeof_MPI_Status();
+  int sizeof_MPI_Group();
+  int sizeof_MPI_Comm();
+  int sizeof_MPI_Request();
+  int sizeof_MPI_Aint();
+  // size of various object pointers
+  int sizeof_ptr_MPI_Status();
+  int sizeof_ptr_MPI_Request();
 
-   // Pre-defined objects and constants
-   MPI_Comm get_MPI_COMM_WORLD();
-   MPI_Comm get_MPI_COMM_NULL();
-   MPI_Comm get_MPI_COMM_SELF();
-   MPI_Request get_MPI_REQUEST_NULL();
-   MPI_Status *getPtr_MPI_STATUS_IGNORE();
-   MPI_Info get_MPI_INFO_NULL();
-   int get_MPI_PROC_NULL();
-   int get_MPI_COMM_TYPE_SHARED();
-   int get_MPI_UNDEFINED();
-   int get_MPI_ORDER_C();
-   int get_MPI_ORDER_FORTRAN();
+  // Pre-defined objects and constants
+  MPI_Comm get_MPI_COMM_WORLD();
+  MPI_Comm get_MPI_COMM_NULL();
+  MPI_Comm get_MPI_COMM_SELF();
+  MPI_Request get_MPI_REQUEST_NULL();
+  MPI_Status *getPtr_MPI_STATUS_IGNORE();
+  MPI_Info get_MPI_INFO_NULL();
+  int get_MPI_PROC_NULL();
+  int get_MPI_COMM_TYPE_SHARED();
+  int get_MPI_UNDEFINED();
+  int get_MPI_ORDER_C();
+  int get_MPI_ORDER_FORTRAN();
+  int * get_MPI_UNWEIGHTED();
+  void * get_MPI_BOTTOM();
 
-   // Datatypes
-   MPI_Datatype get_MPI_C_BOOL();
-   MPI_Datatype get_MPI_CHAR();
-   MPI_Datatype get_MPI_BYTE();
-   MPI_Datatype get_MPI_SHORT();
-   MPI_Datatype get_MPI_INT();
-   MPI_Datatype get_MPI_LONG();
-   MPI_Datatype get_MPI_FLOAT();
-   MPI_Datatype get_MPI_DOUBLE();
-   MPI_Datatype get_MPI_UNSIGNED_CHAR();
-   MPI_Datatype get_MPI_UNSIGNED_SHORT();
-   MPI_Datatype get_MPI_UNSIGNED();
-   MPI_Datatype get_MPI_UNSIGNED_LONG();
-   MPI_Datatype get_MPI_LONG_DOUBLE();
-   MPI_Datatype get_MPI_LONG_LONG_INT();
-   MPI_Datatype get_MPI_FLOAT_INT();
-   MPI_Datatype get_MPI_LONG_INT();
-   MPI_Datatype get_MPI_DOUBLE_INT();
-   MPI_Datatype get_MPI_SHORT_INT();
-   MPI_Datatype get_MPI_2INT();
-   MPI_Datatype get_MPI_LONG_DOUBLE_INT();
-   MPI_Datatype get_MPI_PACKED();
+  // Datatypes
+  MPI_Datatype get_MPI_C_BOOL();
+  MPI_Datatype get_MPI_CHAR();
+  MPI_Datatype get_MPI_BYTE();
+  MPI_Datatype get_MPI_SHORT();
+  MPI_Datatype get_MPI_INT();
+  MPI_Datatype get_MPI_LONG();
+  MPI_Datatype get_MPI_FLOAT();
+  MPI_Datatype get_MPI_DOUBLE();
+  MPI_Datatype get_MPI_UNSIGNED_CHAR();
+  MPI_Datatype get_MPI_UNSIGNED_SHORT();
+  MPI_Datatype get_MPI_UNSIGNED();
+  MPI_Datatype get_MPI_UNSIGNED_LONG();
+  MPI_Datatype get_MPI_LONG_DOUBLE();
+  MPI_Datatype get_MPI_LONG_LONG_INT();
+  MPI_Datatype get_MPI_FLOAT_INT();
+  MPI_Datatype get_MPI_LONG_INT();
+  MPI_Datatype get_MPI_DOUBLE_INT();
+  MPI_Datatype get_MPI_SHORT_INT();
+  MPI_Datatype get_MPI_2INT();
+  MPI_Datatype get_MPI_LONG_DOUBLE_INT();
+  MPI_Datatype get_MPI_PACKED();
 
-   // Operators
-   MPI_Op get_MPI_MAX();
-   MPI_Op get_MPI_MIN();
-   MPI_Op get_MPI_SUM();
-   MPI_Op get_MPI_PROD();
-   MPI_Op get_MPI_LAND();
-   MPI_Op get_MPI_BAND();
-   MPI_Op get_MPI_LOR();
-   MPI_Op get_MPI_BOR();
-   MPI_Op get_MPI_LXOR();
-   MPI_Op get_MPI_BXOR();
-   MPI_Op get_MPI_MINLOC();
-   MPI_Op get_MPI_MAXLOC();
+  // Operators
+  MPI_Op get_MPI_MAX();
+  MPI_Op get_MPI_MIN();
+  MPI_Op get_MPI_SUM();
+  MPI_Op get_MPI_PROD();
+  MPI_Op get_MPI_LAND();
+  MPI_Op get_MPI_BAND();
+  MPI_Op get_MPI_LOR();
+  MPI_Op get_MPI_BOR();
+  MPI_Op get_MPI_LXOR();
+  MPI_Op get_MPI_BXOR();
+  MPI_Op get_MPI_MINLOC();
+  MPI_Op get_MPI_MAXLOC();
 
-   // Errors
-   int get_MPI_SUCCESS();
+  // Errors
+  int get_MPI_SUCCESS();
 
-   // Communicators
-   int MPI_Comm_rank(MPI_Comm comm, int *rank);
-   int MPI_Comm_size(MPI_Comm comm, int *size);
-   int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm);
-   int MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm);
+  // Communicators
+  int MPI_Comm_rank(MPI_Comm comm, int *rank);
+  int MPI_Comm_size(MPI_Comm comm, int *size);
+  int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm);
+  int MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm);
+  int MPI_Comm_free(MPI_Comm *comm);
 
   // MPI_Datatype handling
-   int MPI_Type_contiguous(int count, MPI_Datatype oldtype, MPI_Datatype *newtype);
-   int MPI_Type_vector(int count,
-      int blocklength, int stride, MPI_Datatype oldtype, MPI_Datatype * newtype);
-   int MPI_Type_indexed(int count, const int array_of_blocklengths[],
-      const int array_of_displacements[], MPI_Datatype oldtype, MPI_Datatype *newtype);
-   int MPI_Type_create_subarray(int ndims, const int array_of_sizes[], const
-      int array_of_subsizes[], const int array_of_starts[], int order, MPI_Datatype
-      oldtype, MPI_Datatype *newtype);
-   int MPI_Type_commit(MPI_Datatype * datatype);
-   int MPI_Type_free(MPI_Datatype *datatype);
+  int MPI_Type_contiguous(int count, MPI_Datatype oldtype, MPI_Datatype *newtype);
+  int MPI_Type_vector(int count,
+    int blocklength, int stride, MPI_Datatype oldtype, MPI_Datatype * newtype);
+  int MPI_Type_indexed(int count, const int array_of_blocklengths[],
+    const int array_of_displacements[], MPI_Datatype oldtype, MPI_Datatype *newtype);
+  int MPI_Type_create_subarray(int ndims, const int array_of_sizes[], const
+    int array_of_subsizes[], const int array_of_starts[], int order, MPI_Datatype
+    oldtype, MPI_Datatype *newtype);
+  int MPI_Type_commit(MPI_Datatype * datatype);
+  int MPI_Type_free(MPI_Datatype *datatype);
+  int MPI_Get_address(const void *location, MPI_Aint *address);
 
-   // Win & SHM calls
-   int MPI_Comm_split_type(MPI_Comm comm, int split_type, int key, MPI_Info info, MPI_Comm *newcomm);
-   int MPI_Win_allocate_shared (MPI_Aint size, int disp_unit, MPI_Info info, MPI_Comm comm, void *baseptr, MPI_Win *win);
-   int MPI_Win_shared_query(MPI_Win win, int rank, MPI_Aint *size, int *disp_unit, void *baseptr);
-   int MPI_Win_lock_all(int assert, MPI_Win win);
-   int MPI_Win_unlock_all(MPI_Win win);
-   int MPI_Win_free(MPI_Win *win);
+  // Win & SHM calls
+  int MPI_Comm_split_type(MPI_Comm comm, int split_type, int key, MPI_Info info, MPI_Comm *newcomm);
+  int MPI_Win_allocate_shared (MPI_Aint size, int disp_unit, MPI_Info info, MPI_Comm comm, void *baseptr, MPI_Win *win);
+  int MPI_Win_shared_query(MPI_Win win, int rank, MPI_Aint *size, int *disp_unit, void *baseptr);
+  int MPI_Win_lock_all(int assert, MPI_Win win);
+  int MPI_Win_unlock_all(MPI_Win win);
+  int MPI_Win_free(MPI_Win *win);
 
-   // Point-to-point communication
-   int MPI_Get_count(const MPI_Status *status, MPI_Datatype datatype, int *count);\
-   int MPI_Allgather(const void *sendbuf, int sendcount, MPI_Datatype senddatatype,
-         const void *recvbuf, int recvcount, MPI_Datatype recvdatatype, MPI_Comm comm);
-   int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
-         MPI_Datatype datatype, MPI_Op op, MPI_Comm comm);
-   int MPI_Bcast(void *buffer, int count, MPI_Datatype datatype, int root,
-         MPI_Comm comm );
-   int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
-         MPI_Comm comm);
-   int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
-         MPI_Comm comm, MPI_Status *status);
-   int MPI_Wait(MPI_Request *request, MPI_Status *status);
-   int MPI_Waitall(int count, MPI_Request array_of_requests[],
-         MPI_Status *array_of_statuses);
-   int MPI_Waitany(int count, MPI_Request array_of_requests[],
-         int *index, MPI_Status *status);
+  // Point-to-point communication
+  int MPI_Get_count(const MPI_Status *status, MPI_Datatype datatype, int *count);
+  int MPI_Allgather(const void *sendbuf, int sendcount, MPI_Datatype senddatatype,
+    const void *recvbuf, int recvcount, MPI_Datatype recvdatatype, MPI_Comm comm);
+  int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
+    MPI_Datatype datatype, MPI_Op op, MPI_Comm comm);
+  int MPI_Bcast(void *buffer, int count, MPI_Datatype datatype, int root,
+    MPI_Comm comm);
+  int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+    MPI_Comm comm);
+  int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
+    MPI_Comm comm, MPI_Status *status);
+  int MPI_Wait(MPI_Request *request, MPI_Status *status);
+  int MPI_Waitall(int count, MPI_Request array_of_requests[],
+    MPI_Status *array_of_statuses);
+  int MPI_Waitany(int count, MPI_Request array_of_requests[],
+    int *index, MPI_Status *status);
 
-   // Nonblocking
-   int MPI_Iallgather(const void *sendbuf, int sendcount, MPI_Datatype senddatatype,
-         const void *recvbuf, int recvcount, MPI_Datatype recvdatatype, MPI_Comm comm);
+  // Nonblocking
+  int MPI_Iallgather(const void *sendbuf, int sendcount, MPI_Datatype senddatatype,
+    const void *recvbuf, int recvcount, MPI_Datatype recvdatatype, MPI_Comm comm);
+  int MPI_Iallreduce(const void *sendbuf, void *recvbuf, int count,
+    MPI_Datatype datatype, MPI_Op op, MPI_Comm comm, MPI_Request *request);
+  int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
+    int tag, MPI_Comm comm, MPI_Request *request);
+  int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source,
+    int tag, MPI_Comm comm, MPI_Request *request);
 
-   int MPI_Iallreduce(const void *sendbuf, void *recvbuf, int count,
-         MPI_Datatype datatype, MPI_Op op, MPI_Comm comm, MPI_Request *request);
-   int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
-         int tag, MPI_Comm comm, MPI_Request *request);
-   int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source,
-         int tag, MPI_Comm comm, MPI_Request *request);
-   
+  int MPI_Request_free(MPI_Request *request);
 
-   int MPI_Request_free(MPI_Request *request);
+  // Groups
+  int MPI_Comm_group(MPI_Comm comm, MPI_Group *group);
+  int MPI_Group_rank(MPI_Group group, int *rank);
+  int MPI_Group_size(MPI_Group group, int *size);
+  int MPI_Group_incl(MPI_Group group, int n, const int ranks[], MPI_Group *newgroup);
+  int MPI_Comm_create(MPI_Comm comm, MPI_Group group, MPI_Comm *newcomm);
+  int MPI_Group_translate_ranks(MPI_Group group1, int n, const int ranks1[], MPI_Group group2, int ranks2[]);
+  int MPI_Comm_create_group(MPI_Comm comm, MPI_Group group, int tag, MPI_Comm *newcomm);
+  int MPI_Group_free(MPI_Group *group);
 
-   // Groups
-   int MPI_Comm_group(MPI_Comm comm, MPI_Group *group);
-   int MPI_Group_rank(MPI_Group group, int *rank);
-   int MPI_Group_size(MPI_Group group, int *size);
-   int MPI_Group_incl(MPI_Group group, int n, const int ranks[], MPI_Group *newgroup);
-   int MPI_Comm_create(MPI_Comm comm, MPI_Group group, MPI_Comm *newcomm);
-   int MPI_Group_translate_ranks(MPI_Group group1, int n, const int ranks1[], MPI_Group group2, int ranks2[]);
+  // Cartesian communicator functions.
+  int MPI_Cart_coords(MPI_Comm comm, int rank, int maxdims, int coords[]);
+  int MPI_Cart_create(MPI_Comm comm_old, int ndims, const int dims[], const int periods[], int reorder, MPI_Comm *comm_cart);
+  int MPI_Cart_get(MPI_Comm comm, int maxdims, int dims[], int periods[], int coords[]);
+  int MPI_Cart_rank(MPI_Comm comm, int coords[], int *rank);
+  int MPI_Cart_shift(MPI_Comm comm, int direction, int disp, int *rank_source, int *rank_dest);
+  int MPI_Cart_sub(MPI_Comm comm, const int remain_dims[], MPI_Comm *comm_new);
+  int MPI_Cartdim_get(MPI_Comm comm, int *ndims);
 
-   // Cartesian communicator functions.
-   int MPI_Cart_coords(MPI_Comm comm, int rank, int maxdims, int coords[]);
-   int MPI_Cart_create(MPI_Comm comm_old, int ndims, const int dims[], const int periods[], int reorder, MPI_Comm *comm_cart);
-   int MPI_Cart_get(MPI_Comm comm, int maxdims, int dims[], int periods[], int coords[]);
-   int MPI_Cart_rank(MPI_Comm comm, int coords[], int *rank);
-   int MPI_Cart_shift(MPI_Comm comm, int direction, int disp, int *rank_source, int *rank_dest);
-   int MPI_Cart_sub(MPI_Comm comm, const int remain_dims[], MPI_Comm *comm_new);
-   int MPI_Cartdim_get(MPI_Comm comm, int *ndims);
+  // Graph constructors and query functions.
+  int MPI_Dist_graph_create(MPI_Comm comm_old, int n, const int sources[],
+                            const int degrees[], const int destinations[], const int weights[],
+                            MPI_Info info, int reorder, MPI_Comm *comm_dist_graph);
+  int MPI_Dist_graph_create_adjacent(MPI_Comm comm_old, int indegree, const int sources[],
+                                     const int sourceweights[], int outdegree, const int destinations[],
+                                     const int destweights[], MPI_Info info, int reorder,
+                                     MPI_Comm *comm_dist_graph);
+  int MPI_Dist_graph_neighbors(MPI_Comm comm, int maxindegree, int sources[],
+                               int sourceweights[], int maxoutdegree, int destinations[],
+                               int destweights[]);
+  int MPI_Dist_graph_neighbors_count(MPI_Comm comm, int *indegree, int *outdegree, int *weighted);
 
-   // Global operators
-   int MPI_Barrier(MPI_Comm comm);
-   int MPI_Abort(MPI_Comm comm, int errorcode);
+  // Neighbor collectives.
+  int MPI_Neighbor_allgather(const void *sendbuf, int  sendcount, MPI_Datatype sendtype, void *recvbuf,
+                             int recvcount, MPI_Datatype recvtype, MPI_Comm comm);
+  int MPI_Ineighbor_allgather(const void *sendbuf, int  sendcount, MPI_Datatype sendtype, void *recvbuf,
+                              int recvcount, MPI_Datatype recvtype, MPI_Comm comm, MPI_Request req);
+  int MPI_Neighbor_allgatherv(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf,
+                              const int recvcounts[], const int displs[], MPI_Datatype recvtype, MPI_Comm comm);
+  int MPI_Ineighbor_allgatherv(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf,
+                               const int recvcounts[], const int displs[], MPI_Datatype recvtype, MPI_Comm comm,
+                               MPI_Request *request);
+  int MPI_Neighbor_alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, int recvcount,
+                            MPI_Datatype recvtype, MPI_Comm comm);
+  int MPI_Ineighbor_alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, int recvcount,
+                             MPI_Datatype recvtype, MPI_Comm comm, MPI_Request *request);
+  int MPI_Neighbor_alltoallv(const void *sendbuf, const int sendcounts[], const int sdispls[], MPI_Datatype sendtype,
+                             void *recvbuf, const int recvcounts[], const int rdispls[], MPI_Datatype recvtype,
+                             MPI_Comm comm);
+  int MPI_Ineighbor_alltoallv(const void *sendbuf, const int sendcounts[], const int sdispls[], MPI_Datatype sendtype,
+                              void *recvbuf, const int recvcounts[], const int rdispls[], MPI_Datatype recvtype,
+                              MPI_Comm comm, MPI_Request *request);
+  int MPI_Neighbor_alltoallw(const void *sendbuf, const int sendcounts[], const MPI_Aint sdispls[],
+                             const MPI_Datatype sendtypes[], void *recvbuf, const int recvcounts[],
+                             const MPI_Aint rdispls[], const MPI_Datatype recvtypes[], MPI_Comm comm);
+  int MPI_Ineighbor_alltoallw(const void *sendbuf, const int sendcounts[], const MPI_Aint sdispls[],
+                              const MPI_Datatype sendtypes[], void *recvbuf, const int recvcounts[],
+                              const MPI_Aint rdispls[], const MPI_Datatype recvtypes[], MPI_Comm comm, MPI_Request *request);
 
-   // CUDA test 
-   int MPIX_Query_cuda_support();
 
-   // Gkyl structs holding status and requests.
-   typedef struct {
-      MPI_Request *req;
-   } gkyl_MPI_Request;
 
-   typedef struct {
-      MPI_Status *stat;
-   } gkyl_MPI_Status;
+  // Global operators
+  int MPI_Barrier(MPI_Comm comm);
+  int MPI_Abort(MPI_Comm comm, int errorcode);
 
-   typedef struct {
-      MPI_Request *req;
-      MPI_Status *stat;
-   } gkyl_MPI_Request_Status;
+  // CUDA test 
+  int MPIX_Query_cuda_support();
 
-   // Functions to allocate and free structs holding requests and statuses.
-   void gkyl_MPI_Request_alloc(gkyl_MPI_Request *rs, int num);
-   void gkyl_MPI_Request_release(gkyl_MPI_Request *rs);
-   void gkyl_MPI_Status_alloc(gkyl_MPI_Status *ss, int num);
-   void gkyl_MPI_Status_release(gkyl_MPI_Status *ss);
-   void gkyl_MPI_Request_Status_alloc(gkyl_MPI_Request_Status *rss, int num);
-   void gkyl_MPI_Request_Status_release(gkyl_MPI_Request_Status *rss);
+  // Gkyl utility functions
+  void GkMPI_fillStatus(const MPI_Status* inStatus, int *outStatus);
 
-   // Functions to fetch members of status.
-   int gkyl_mpi_get_status_SOURCE(const MPI_Status* instat, int off);
-   int gkyl_mpi_get_status_TAG(const MPI_Status* instat, int off);
-   int gkyl_mpi_get_status_ERROR(const MPI_Status* instat, int off);
+  // Gkyl structs holding status and requests.
+  typedef struct {
+     MPI_Request *req;
+  } gkyl_MPI_Request;
 
-   // Get count from a status (which may be one of several in an array of
-   // statuses).
-   int gkyl_mpi_get_status_count(const MPI_Status *instat, MPI_Datatype datatype, int *count, int off);
+  typedef struct {
+     MPI_Status *stat;
+  } gkyl_MPI_Status;
+
+  typedef struct {
+     MPI_Request *req;
+     MPI_Status *stat;
+  } gkyl_MPI_Request_Status;
+
+  // Functions to allocate and free structs holding requests and statuses.
+  void gkyl_MPI_Request_alloc(gkyl_MPI_Request *rs, int num);
+  void gkyl_MPI_Request_release(gkyl_MPI_Request *rs);
+  void gkyl_MPI_Status_alloc(gkyl_MPI_Status *ss, int num);
+  void gkyl_MPI_Status_release(gkyl_MPI_Status *ss);
+  void gkyl_MPI_Request_Status_alloc(gkyl_MPI_Request_Status *rss, int num);
+  void gkyl_MPI_Request_Status_release(gkyl_MPI_Request_Status *rss);
+
+  // Functions to fetch members of status.
+  int gkyl_mpi_get_status_SOURCE(const MPI_Status* instat, int off);
+  int gkyl_mpi_get_status_TAG(const MPI_Status* instat, int off);
+  int gkyl_mpi_get_status_ERROR(const MPI_Status* instat, int off);
+
+  // Get count from a status (which may be one of several in an array of
+  // statuses).
+  int gkyl_mpi_get_status_count(const MPI_Status *instat, MPI_Datatype datatype, int *count, int off);
 ]]
 
 -- Predefined objects and constants
@@ -225,10 +275,13 @@ _M.COMM_TYPE_SHARED = ffiC.get_MPI_COMM_TYPE_SHARED()
 _M.UNDEFINED        = ffiC.get_MPI_UNDEFINED()
 _M.ORDER_C          = ffiC.get_MPI_ORDER_C()
 _M.ORDER_FORTRAN    = ffiC.get_MPI_ORDER_FORTRAN()
+_M.UNWEIGHTED       = ffiC.get_MPI_UNWEIGHTED()
+_M.BOTTOM           = ffiC.get_MPI_BOTTOM()
 
 -- Object sizes
-_M.SIZEOF_STATUS  = ffiC.sizeof_MPI_Status()
-_M.SIZEOF_REQUEST = ffiC.sizeof_MPI_Request()
+_M.SIZEOF_AINT        = ffiC.sizeof_MPI_Aint()
+_M.SIZEOF_STATUS      = ffiC.sizeof_MPI_Status()
+_M.SIZEOF_REQUEST     = ffiC.sizeof_MPI_Request()
 _M.SIZEOF_STATUS_PTR  = ffiC.sizeof_ptr_MPI_Status()
 _M.SIZEOF_REQUEST_PTR = ffiC.sizeof_ptr_MPI_Request()
 
@@ -313,6 +366,17 @@ end
 local function new_MPI_Datatype()
    return new("MPI_Datatype[1]")
 end
+local function new_MPI_Datatype_vec(sz)
+   local sz = sz or 1
+   return new("MPI_Datatype[?]", sz)
+end
+local function new_MPI_Aint()
+   return new("MPI_Aint[1]")
+end
+local function new_MPI_Aint_vec(sz)
+   local sz = sz or 1
+   return new("MPI_Aint[?]", sz)
+end
 
 -- de-reference if object is a pointer
 local function getObj(obj, ptyp)
@@ -361,6 +425,10 @@ function _M.Comm()  return new_MPI_Comm() end
 function _M.Group()  return new_MPI_Group() end
 -- MPI_Datatype object
 function _M.MPI_Datatype() return new_MPI_Datatype() end
+function _M.MPI_Datatype_vec(sz) return new_MPI_Datatype_vec(sz) end
+-- MPI_Aint object
+function _M.MPI_Aint() return new_MPI_Aint() end
+function _M.MPI_Aint_vec(sz) return new_MPI_Aint_vec(sz) end
 
 -- MPI_Comm_rank
 function _M.Comm_rank(comm)
@@ -386,6 +454,11 @@ function _M.Comm_split(comm, color, key)
    local _ = ffiC.MPI_Comm_split(getObj(comm, "MPI_Comm[1]"), color, key, c)
    return c
 end
+-- MPI_Comm_free
+function _M.Comm_free(comm)
+   local _ = ffiC.MPI_Comm_free(comm)
+end
+
 -- MPI_Comm_split_type
 function _M.Comm_split_type(comm, split_type, key, info)
    local c = new_MPI_Comm()
@@ -460,6 +533,12 @@ end
 -- MPI_Type_free
 function _M.Type_free(datatype)
    local _ = ffiC.MPI_Type_free(datatype)
+end
+-- int MPI_Get_address(const void *location, MPI_Aint *address)
+function _M.Get_address(location)
+   local newAddress = new_MPI_Aint()
+   local _ = ffiC.MPI_Get_address(location, newAddress)
+   return newAddress
 end
 
 -- MPI_Get_count
@@ -594,6 +673,16 @@ function _M.Group_translate_ranks(group1, ranks1, group2)
       getObj(group1, "MPI_Group[1]"), n, ranks1:data(), getObj(group2, "MPI_Group[1]"), ranks2:data())
    return ranks2
 end
+-- MPI_Comm_create_group.
+function _M.Comm_create_group(comm, group, tag)
+   local c = new_MPI_Comm()
+   local _ = ffiC.MPI_Comm_create_group(getObj(comm, "MPI_Comm[1]"), getObj(group, "MPI_Group[1]"), tag, c)
+   return c
+end
+-- MPI_Group_free
+function _M.Group_free(group)
+   local _ = ffiC.MPI_Group_free(group)
+end
 
 -- MPI_Cart_coords
 function _M.Cart_coords(comm, rank, maxdims)
@@ -639,6 +728,63 @@ function _M.Cartdim_get(comm)
    local _ = ffiC.MPI_Cartdim_get(getObj(comm, "MPI_Comm[1]"), ndims)
    return ndims[0]
 end
+
+-- MPI_Dist_graph_create_adjacent.
+function _M.Dist_graph_create_adjacent(comm_old, indegree, sources, sourceweights, outdegree, destinations,
+                                       destweights, info, reorder)
+   local comm_dist_graph = new_MPI_Comm()
+   local _ = ffiC.MPI_Dist_graph_create_adjacent(getObj(comm_old, "MPI_Comm[1]"), indegree, sources:data(),
+      sourceweights, outdegree, destinations:data(), destweights, info, reorder,
+      comm_dist_graph)
+   return comm_dist_graph
+end
+-- MPI_Dist_graph_neighbors.
+function _M.Dist_graph_neighbors(comm, maxindegree, maxoutdegree)
+   local sources, sourceweights = Lin.IntVec(maxindegree), Lin.IntVec(maxindegree)
+   local destinations, destinationweights = Lin.IntVec(maxoutdegree), Lin.IntVec(maxoutdegree)
+   local _ = ffiC.MPI_Dist_graph_neighbors(getObj(comm, "MPI_Comm[1]"),
+     maxindegree, sources:data(), sourceweights:data(),
+     maxoutdegree, destinations:data(), destinationweights:data());
+   return sources, sourceweights, destinations, destinationweights
+end
+-- MPI_Dist_graph_neighbors_count.
+function _M.Dist_graph_neighbors_count(comm)
+  local indegree, outdegree, weighted = int_1(), int_1(), int_1()
+  local _ = ffiC.MPI_Dist_graph_neighbors_count(getObj(comm, "MPI_Comm[1]"), indegree, outdegree, weighted);
+  return indegree[0], outdegree[0], weighted[0]==1 and true or false
+end
+-- MPI_Neighbor_allgather.
+function _M.Neighbor_allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm)
+  local _ = ffiC.MPI_Neighbor_allgather(sendbuf, sendcount, getObj(sendtype, "MPI_Datatype[1]"), recvbuf,
+                                        recvcount, getObj(recvtype, "MPI_Datatype[1]"), getObj(comm, "MPI_Comm[1]"));
+end
+-- MPI_Neighbor_allgatherv.
+function _M.Neighbor_allgatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype, comm)
+  local _ = ffiC.MPI_Neighbor_allgatherv(sendbuf, sendcount, getObj(sendtype, "MPI_Datatype[1]"), recvbuf,
+                                         recvcounts, displs, getObj(recvtype, "MPI_Datatype[1]"), getObj(comm, "MPI_Comm[1]"
+));
+end
+-- MPI_Neighbor_alltoall.
+function _M.Neighbor_alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm)
+  local _ = ffiC.MPI_Neighbor_alltoall(sendbuf, sendcount, getObj(sendtype, "MPI_Datatype[1]"),
+                                       recvbuf, recvcount, getObj(recvtype, "MPI_Datatype[1]"),
+                                       getObj(comm, "MPI_Comm[1]"));
+end
+-- MPI_Neighbor_alltoallv.
+function _M.Neighbor_alltoallv(sendbuf, sendcounts, sdispls, sendtype, recvbuf, recvcounts, rdispls, recvtype, comm)
+  local _ = ffiC.MPI_Neighbor_alltoallv(sendbuf, sendcounts, sdispls, getObj(sendtype, "MPI_Datatype[1]"),
+                                        recvbuf, recvcounts, rdispls, getObj(recvtype, "MPI_Datatype[1]"),
+                                        getObj(comm, "MPI_Comm[1]"));
+end
+-- MPI_Neighbor_alltoallw.
+function _M.Neighbor_alltoallw(sendbuf, sendcounts, sdispls, sendtypes, recvbuf, recvcounts, rdispls, recvtypes, comm)
+  -- Here we assume sendtypes and recvtypes is an array of MPI_Datatype, so we don't need to getObj
+  -- as in previous functions, otherwise it would pick the first type only and not the whole array.
+  local _ = ffiC.MPI_Neighbor_alltoallw(sendbuf, sendcounts, sdispls, sendtypes,
+                                        recvbuf, recvcounts, rdispls, recvtypes,
+                                        getObj(comm, "MPI_Comm[1]"));
+end
+
 
 -- Convenience functions (these are not wrappers over MPI but make
 -- some things a little cleaner)
