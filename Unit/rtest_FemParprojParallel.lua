@@ -14,6 +14,7 @@ local Updater    = require "Updater"
 local Lin        = require "Lib.Linalg"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Mpi              = require "Comm.Mpi"
+local Range      = require "Lib.Range"
 
 local assert_equal = Unit.assert_equal
 local assert_close = Unit.assert_close
@@ -105,8 +106,9 @@ function test_femparproj_1x(nx, polyOrder)
    local phiGlobal       = createField(gridGlobal, basis, numGhost)
    local phiSmoothGlobal = createField(gridGlobal, basis, numGhost)
 
-   local phi_noghost       = createField(grid, basis, 0)
-   local phiGlobal_noghost = createField(gridGlobal, basis, 0)
+   local phiIn        = createField(grid, basis, 0)
+   local phiGlobalIn  = createField(gridGlobal, basis, 0)
+   local globalBuffer = createField(gridGlobal, basis, 0)
 
    -- Initialize phi.
    local initPhiFunc = function (t,xn)
@@ -120,15 +122,32 @@ function test_femparproj_1x(nx, polyOrder)
    initPhi:setFunc(initPhiFunc)
    initPhi:advance(0.,{},{phi})
 
-   -- Copy to a local buffer without ghosts.
-   phi_noghost:copyRangeToRange(phi, phi_noghost:localRange(), phi:localRange())
+   -- Copy to a local buffer without ghosts (these two are equivalent here).
+   phiIn:copyRangeToRange(phi, phiIn:localRange(), phi:localRange())
+--   phi:copyRangeToBuffer(phi:localRange(), phiIn:dataPointer())
 
-   -- Gather the field from other processes.
-   Mpi.Allgather(phi_noghost:dataPointer(), phi_noghost:size(), phi_noghost:elemCommType(),
-                 phiGlobal_noghost:dataPointer(), phi_noghost:size(), phiGlobal_noghost:elemCommType(), comm)
+   -- Gather flat buffers from other processes.
+   Mpi.Allgather(phiIn:dataPointer(), phiIn:size(), phiIn:elemCommType(),
+                 globalBuffer:dataPointer(), phiIn:size(), globalBuffer:elemCommType(), comm)
 
-   -- Copy to a global field with ghosts
-   phiGlobal:copyRangeToRange(phiGlobal_noghost, phiGlobal:localRange(), phiGlobal_noghost:localRange())
+   -- Rearrange into a global field without ghosts, i.e. reconstruct the multi-D array
+   -- using the collection of flat buffers we gathered from each process.
+   local decompRange = grid:decomposedRange()
+   local cutsIdxr    = decompRange:cutsIndexer()
+   local ones, upper = {}, {}
+   for d=1,decompRange:ndim() do ones[d], upper[d] = 1, decompRange:cuts(d) end
+   local cutsRange = Range.Range(ones, upper) -- A range over the MPI decomposition.
+   for idx in cutsRange:colMajorIter() do  -- MPI processes are column-major ordered.
+      local subdomainID  = cutsIdxr(idx)
+      local destRange    = decompRange:subDomain(subdomainID)
+      local lv, uv       = destRange:lowerAsVec(), destRange:upperAsVec()
+      local destRange    = phiGlobalIn:globalExtRange():subRange(lv,uv)
+      local bufferOffset = (subdomainID-1)*phiIn:size()
+      phiGlobalIn:copyRangeFromBuffer(destRange, globalBuffer:dataPointer()+bufferOffset)
+   end
+
+   -- Copy to a global field with ghosts.
+   phiGlobal:copyRangeToRange(phiGlobalIn, phiGlobal:localRange(), phiGlobalIn:localRange())
 
    local smoothUpd = Updater.FemParproj {
       onGrid = gridGlobal,  periodicParallelDir = false,
@@ -168,7 +187,7 @@ function test_femparproj_3x(nx, ny, nz, polyOrder)
 
    local comm = Mpi.COMM_WORLD
    local sz = Mpi.Comm_size(comm)
-   if sz < 2 then
+   if sz < 4 then
       log("Not running test_copyFieldGlobalFromLocal_1D as numProcs less than 2")
       return
    end
@@ -176,7 +195,7 @@ function test_femparproj_3x(nx, ny, nz, polyOrder)
    local lower = {-2.0, -2.0, -.50}
    local upper = { 2.0,  2.0,  .50}
    local cells = {nx, ny, nz}
-   local ncuts = {sz, 1, 1}
+   local ncuts = {1, 2, 2}
    local numGhost = 1
    log(string.format("nx=%d ny=%d nz=%d polyOrder=%d\n", nx, ny, nz, polyOrder))
 
@@ -196,8 +215,9 @@ function test_femparproj_3x(nx, ny, nz, polyOrder)
    local phiGlobal       = createField(gridGlobal, basis, numGhost)
    local phiSmoothGlobal = createField(gridGlobal, basis, numGhost)
 
-   local phi_noghost       = createField(grid, basis, 0)
-   local phiGlobal_noghost = createField(gridGlobal, basis, 0)
+   local phiIn        = createField(grid, basis, 0)
+   local phiGlobalIn  = createField(gridGlobal, basis, 0)
+   local globalBuffer = createField(gridGlobal, basis, 0)
 
    -- Initialize phi.
    local initPhiFunc = function (t,xn)
@@ -213,24 +233,40 @@ function test_femparproj_3x(nx, ny, nz, polyOrder)
    initPhi:setFunc(initPhiFunc)
    initPhi:advance(0.,{},{phi})
 
-   -- Copy to a local buffer without ghosts.
-   phi_noghost:copyRangeToRange(phi, phi_noghost:localRange(), phi:localRange())
+   -- Copy to a local buffer without ghosts (these two are equivalent here).
+   phiIn:copyRangeToRange(phi, phiIn:localRange(), phi:localRange())
+--   phi:copyRangeToBuffer(phi:localRange(), phiIn:dataPointer())
 
-   -- Gather the field from other processes.
-   Mpi.Allgather(phi_noghost:dataPointer(), phi_noghost:size(), phi_noghost:elemCommType(),
-                 phiGlobal_noghost:dataPointer(), phi_noghost:size(), phiGlobal_noghost:elemCommType(), comm)
+   -- Gather flat buffers from other processes.
+   Mpi.Allgather(phiIn:dataPointer(), phiIn:size(), phiIn:elemCommType(),
+                 globalBuffer:dataPointer(), phiIn:size(), globalBuffer:elemCommType(), comm)
 
-   -- Copy to a global field with ghosts
-   phiGlobal:copyRangeToRange(phiGlobal_noghost, phiGlobal:localRange(), phiGlobal_noghost:localRange())
+   -- Rearrange into a global field without ghosts, i.e. reconstruct the multi-D array
+   -- using the collection of flat buffers we gathered from each process.
+   local decompRange = grid:decomposedRange()
+   local cutsIdxr    = decompRange:cutsIndexer()
+   local ones, upper = {}, {}
+   for d=1,decompRange:ndim() do ones[d], upper[d] = 1, decompRange:cuts(d) end
+   local cutsRange = Range.Range(ones, upper) -- A range over the MPI decomposition.
+   for idx in cutsRange:colMajorIter() do  -- MPI processes are column-major ordered.
+      local subdomainID  = cutsIdxr(idx)
+      local destRange    = decompRange:subDomain(subdomainID)
+      local lv, uv       = destRange:lowerAsVec(), destRange:upperAsVec()
+      local destRange    = phiGlobalIn:globalExtRange():subRange(lv,uv)
+      local bufferOffset = (subdomainID-1)*phiIn:size()
+      phiGlobalIn:copyRangeFromBuffer(destRange, globalBuffer:dataPointer()+bufferOffset)
+   end
 
---   local smoothUpd = Updater.FemParproj {
---      onGrid = gridGlobal,   periodicParallelDir = false,
---      basis  = basis,        onField             = phiGlobal,
---   }
---   local t1 = os.clock()
---   smoothUpd:advance(0.,{phiGlobal},{phiSmoothGlobal})
---   log(string.format("3D parallel smooth took %g s\n", os.clock()-t1))
-   phiSmoothGlobal:copy(phiGlobal)
+   -- Copy to a global field with ghosts.
+   phiGlobal:copyRangeToRange(phiGlobalIn, phiGlobal:localRange(), phiGlobalIn:localRange())
+
+   local smoothUpd = Updater.FemParproj {
+      onGrid = gridGlobal,   periodicParallelDir = false,
+      basis  = basis,        onField             = phiGlobal,
+   }
+   local t1 = os.clock()
+   smoothUpd:advance(0.,{phiGlobal},{phiSmoothGlobal})
+   log(string.format("3D parallel smooth took %g s\n", os.clock()-t1))
 
    -- Copy portion of the global field belonging to this process.
    local lv = phiSmooth:localRange():lowerAsVec()
@@ -241,8 +277,8 @@ function test_femparproj_3x(nx, ny, nz, polyOrder)
    local err = createField(grid, basis, numGhost)
    err:combine(1.0, phi, -1.0, phiSmooth)
 
-   phi:write("phi-rough-3d.bp", 0.0)
-   phiSmooth:write("phi-smooth-3d.bp", 0.0)
+--   phi:write("phi-rough-3d.bp", 0.0)
+--   phiSmooth:write("phi-smooth-3d.bp", 0.0)
 --   err:write("error-1d.bp", 0.0)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
@@ -261,24 +297,28 @@ function test_1x_p1()
    err1 = test_femparproj_1x(32, 1)
    err2 = test_femparproj_1x(64, 1)
    err3 = test_femparproj_1x(128, 1)
-   log(string.format("Order: %g %g\n", err1/err2/2.0, err2/err3/2.0))
-   assert_close(4.0, err1/err2/2.0, .05)
-   assert_close(4.0, err2/err3/2.0, .05)
+   if err1 and err2 and err3 then
+      log(string.format("Order: %g %g\n", err1/err2/2.0, err2/err3/2.0))
+      assert_close(4.0, err1/err2/2.0, .05)
+      assert_close(4.0, err2/err3/2.0, .05)
+   end
    log("")
 end
 
 function test_3x_p1()
    log("--- Testing convergence of 3D FEM parallel projection with p=1 ---")
    err1 = test_femparproj_3x(4, 4, 32, 1)
---   err2 = test_femparproj_3x(4, 4, 64, 1)
---   err3 = test_femparproj_3x(4, 4, 128, 1)
---   log(string.format("Order: %g %g\n", err1/err2/2.0, err2/err3/2.0))
---   assert_close(4.0, err1/err2/2.0, .05)
---   assert_close(4.0, err2/err3/2.0, .05)
---   log("")
+   err2 = test_femparproj_3x(4, 4, 64, 1)
+   err3 = test_femparproj_3x(4, 4, 128, 1)
+   if err1 and err2 and err3 then
+      log(string.format("Order: %g %g\n", err1/err2/2.0, err2/err3/2.0))
+      assert_close(4.0, err1/err2/2.0, .05)
+      assert_close(4.0, err2/err3/2.0, .05)
+   end
+   log("")
 end
 
---test_1x_p1()
+test_1x_p1()
 test_3x_p1()
 log("")
 

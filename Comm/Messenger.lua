@@ -315,11 +315,11 @@ function Messenger:syncCartFieldMPI(fld, comm)
       -- Copy data to send buffer, and send it.
       local sendRgn = fld._syncSendRng[rank]
       local sendSz  = nc*sendRgn:volume()
-      fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
+      fld:copyRangeToBuffer(sendRgn, sendBuf:data()) -- copy from skin cells.
       Mpi.Send(sendPtr, sendSz, dataType, rank-1, tag, comm)
       -- Complete the recv and copy data from buffer to field.
       local _ = Mpi.Wait(self.syncReqStat, self.syncReqStat)
-      fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
+      fld:copyRangeFromBuffer(recvRgn, recvBuf:data()) -- copy data into ghost cells.
    end
 end
 
@@ -346,12 +346,12 @@ function Messenger:syncCartFieldNCCL(fld, comm)
             Nccl.Recv(recvPtr, recvSz, dataType, rank-1, comm, self.ncclStream)
             -- Complete the recv and copy data from buffer to field.
             self:Wait(req, stat, comm)
-            fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
+            fld:copyRangeFromBuffer(recvRgn, recvBuf:data()) -- copy data into ghost cells.
          else
             -- Copy data to send buffer, and send it.
             local sendRgn = fld._syncSendRng[rank]
             local sendSz  = nc*sendRgn:volume()
-            fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
+            fld:copyRangeToBuffer(sendRgn, sendBuf:data()) -- copy from skin cells.
             Nccl.Send(sendPtr, sendSz, dataType, rank-1, comm, self.ncclStream)
             -- Complete the send.
             self:Wait(req, stat, comm)
@@ -396,11 +396,11 @@ function Messenger:syncPeriodicCartFieldMPI(fld, comm, dirs)
             -- Copy data to send buffer, and send it.
             local sendRgn = fld._syncPerSendRng[dir]
             local sendSz  = nc*sendRgn:volume()
-            fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
+            fld:copyRangeToBuffer(sendRgn, sendBuf:data()) -- copy from skin cells.
             Mpi.Send(sendPtr, sendSz, dataType, rank-1, tag, comm)
             -- Complete the recv and copy data from buffer to field.
             local _ = Mpi.Wait(self.syncReqStat, self.syncReqStat)
-            fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
+            fld:copyRangeFromBuffer(recvRgn, recvBuf:data()) -- copy data into ghost cells.
          end
       end
    end
@@ -438,12 +438,12 @@ function Messenger:syncPeriodicCartFieldNCCL(fld, comm, dirs)
                   Nccl.Recv(recvPtr, recvSz, dataType, rank-1, comm, self.ncclStream)
                   -- Complete the recv and copy data from buffer to field.
                   self:Wait(req, stat, comm)
-                  fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
+                  fld:copyRangeFromBuffer(recvRgn, recvBuf:data()) -- copy data into ghost cells.
                else
                   -- Copy data to send buffer, and send it.
                   local sendRgn = fld._syncPerSendRng[dir]
                   local sendSz  = nc*sendRgn:volume()
-                  fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
+                  fld:copyRangeToBuffer(sendRgn, sendBuf:data()) -- copy from skin cells.
                   Nccl.Send(sendPtr, sendSz, dataType, rank-1, comm, self.ncclStream)
                   -- Complete the send.
                   self:Wait(req, stat, comm)
