@@ -222,53 +222,6 @@ function Messenger:initGPUcomms()
    self.ncclStream = cuda.StreamCreate()
 end
 
-function Messenger:getComms()       return self.defaultComms end
-function Messenger:getWorldComm()   return self.defaultComms["world"] end
-function Messenger:getConfComm()    return self.defaultComms["conf"] end
-function Messenger:getSpeciesComm() return self.defaultComms["species"] end
-
-function Messenger:getConfComm_host()    return self.confComm end
-function Messenger:getSpeciesComm_host() return self.speciesComm end
-function Messenger:getConfComm_device()    return self.confComm_dev end
-function Messenger:getSpeciesComm_device() return self.speciesComm_dev end
-
-function Messenger:getRanks() return {world=self.worldRank, conf=self.confRank, species=self.speciesRank} end
-function Messenger:getWorldRank() return self.worldRank end
-function Messenger:getConfRank() return self.confRank end
-function Messenger:getSpeciesRank() return self.speciesRank end
-
-function Messenger:getConfDecompCuts() return self.decompCutsConf end
-function Messenger:getSpeciesDecompCuts() return self.decompCutsSpecies end
-
-function Messenger:getConfDecomp() return self.decompConf end
-
-function Messenger:getCommDataType(dataType)
-   local dataCommType = type(dataType)=="string" and self.commTypes[dataType]
-                       or (ffi.istype("double",dataType) and self.commTypes["double"] or
-                           (ffi.istype("int",dataType) and self.commTypes["int"] or
-                            (ffi.istype("float",dataType) and self.commTypes["float"] or
-		             assert(false,"Messenger: type not supported"))))
-   return dataCommType
-end
-
-function Messenger:AllreduceByCell(fieldIn, fieldOut, op, comm)
-   self.AllreduceByCellFunc(fieldIn, fieldOut, self.reduceOps[op], comm)
-end
-
-function Messenger:SendCartField(fld, dest, tag, comm)
-   self.SendCartFieldFunc(fld, dest, tag, comm)
-end
-
-function Messenger:IsendCartField(fld, dest, tag, comm, req)
-   self.IsendCartFieldFunc(fld, dest, tag, comm, req)
-end
-
-function Messenger:IrecvCartField(fld, src, tag, comm, req)
-   self.IrecvCartFieldFunc(fld, src, tag, comm, req)
-end
-
-function Messenger:Wait(req, stat, comm) self.WaitFunc(req, stat, comm) end
-
 function Messenger:chooseSyncBuf(fld)
    local nc = fld:numComponents()
    local bufVol = {recv=fld._syncRecvBufVol, send=fld._syncSendBufVol}
@@ -361,10 +314,6 @@ function Messenger:syncCartFieldNCCL(fld, comm)
    end
 end
 
-function Messenger:syncCartField(fld, comm)
-   self.syncCartFieldFunc(fld, comm)
-end
-
 function Messenger:syncPeriodicCartFieldMPI(fld, comm, dirs)
    -- No need to do anything if communicator is not valid.
    if not Mpi.Is_comm_valid(comm) then return end
@@ -453,6 +402,57 @@ function Messenger:syncPeriodicCartFieldNCCL(fld, comm, dirs)
          end
       end
    end
+end
+
+function Messenger:getComms()       return self.defaultComms end
+function Messenger:getWorldComm()   return self.defaultComms["world"] end
+function Messenger:getConfComm()    return self.defaultComms["conf"] end
+function Messenger:getSpeciesComm() return self.defaultComms["species"] end
+
+function Messenger:getConfComm_host()    return self.confComm end
+function Messenger:getSpeciesComm_host() return self.speciesComm end
+function Messenger:getConfComm_device()    return self.confComm_dev end
+function Messenger:getSpeciesComm_device() return self.speciesComm_dev end
+
+function Messenger:getRanks() return {world=self.worldRank, conf=self.confRank, species=self.speciesRank} end
+function Messenger:getWorldRank() return self.worldRank end
+function Messenger:getConfRank() return self.confRank end
+function Messenger:getSpeciesRank() return self.speciesRank end
+
+function Messenger:getConfDecompCuts() return self.decompCutsConf end
+function Messenger:getSpeciesDecompCuts() return self.decompCutsSpecies end
+
+function Messenger:getConfDecomp() return self.decompConf end
+
+function Messenger:getCommDataType(dataType)
+   local dataCommType = type(dataType)=="string" and self.commTypes[dataType]
+                       or (ffi.istype("double",dataType) and self.commTypes["double"] or
+                           (ffi.istype("int",dataType) and self.commTypes["int"] or
+                            (ffi.istype("float",dataType) and self.commTypes["float"] or
+		             assert(false,"Messenger: type not supported"))))
+   return dataCommType
+end
+
+function Messenger:AllreduceByCell(fieldIn, fieldOut, op, comm)
+   self.AllreduceByCellFunc(fieldIn, fieldOut, self.reduceOps[op], comm)
+end
+
+function Messenger:SendCartField(fld, dest, tag, comm)
+   self.SendCartFieldFunc(fld, dest, tag, comm)
+end
+
+function Messenger:IsendCartField(fld, dest, tag, comm, req)
+   self.IsendCartFieldFunc(fld, dest, tag, comm, req)
+end
+
+function Messenger:IrecvCartField(fld, src, tag, comm, req)
+   self.IrecvCartFieldFunc(fld, src, tag, comm, req)
+end
+
+function Messenger:Wait(req, stat, comm) self.WaitFunc(req, stat, comm) end
+
+function Messenger:syncCartField(fld, comm)
+   self.syncCartFieldFunc(fld, comm)
 end
 
 function Messenger:syncPeriodicCartField(fld, comm, dirs)

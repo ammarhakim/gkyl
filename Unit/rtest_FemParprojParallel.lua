@@ -324,6 +324,8 @@ function test_femparproj_3x_zglobalOnly(nx, ny, nz, polyOrder)
    local subdomainIdx    = {}
    decompRange:cutsInvIndexer()(grid:subGridId(), subdomainIdx) -- Grid ID on this processor.
    local group  = Mpi.Comm_group(comm)
+   -- Create a cuts range that only has the subdomains at the same x and y.
+   local zCutsRange = cutsRange:deflate({1,1,0}, {subdomainIdx[1],subdomainIdx[2],0})
 
    -- Create a z communicator.
    local zNumRanks = decompRange:cuts(3)
@@ -362,13 +364,11 @@ function test_femparproj_3x_zglobalOnly(nx, ny, nz, polyOrder)
    local basis = createBasis(grid:ndim(), polyOrder)
 
    -- Allocate fields.
-   local phi             = createField(grid, basis, numGhost)
-   local phiSmooth       = createField(grid, basis, numGhost)
-   local phiGlobal       = createField(gridGlobal, basis, numGhost)
-   local phiSmoothGlobal = createField(gridGlobal, basis, numGhost)
+   local phi       = createField(grid, basis, numGhost)
+   local phiSmooth = createField(grid, basis, numGhost)
+   local phiGlobal = createField(gridGlobal, basis, numGhost)
 
    local phiIn        = createField(grid, basis, 0)
-   local phiGlobalIn  = createField(gridGlobal, basis, 0)
    local globalBuffer = createField(gridGlobal, basis, 0)
 
    -- Initialize phi.
@@ -393,35 +393,30 @@ function test_femparproj_3x_zglobalOnly(nx, ny, nz, polyOrder)
    Mpi.Allgather(phiIn:dataPointer(), phiIn:size(), phiIn:elemCommType(),
                  globalBuffer:dataPointer(), phiIn:size(), globalBuffer:elemCommType(), zComm)
 
-   -- Rearrange into a global field without ghosts, i.e. reconstruct the multi-D array
+   -- Rearrange into a global field, i.e. reconstruct the multi-D array
    -- using the collection of flat buffers we gathered from each process.
-   for idx in cutsRange:colMajorIter() do  -- MPI processes are column-major ordered.
-      if idx[1] == subdomainIdx[1] and idx[2] == subdomainIdx[2] then
-         local subdomainID  = cutsIdxr(idx)
-         local destRange    = decompRange:subDomain(subdomainID)
-         local lv, uv       = destRange:lowerAsVec(), destRange:upperAsVec()
-         local destRange    = phiGlobalIn:localExtRange():subRange(lv,uv)
-         local bufferOffset = (idx[3]-1)*phiIn:size()
-         phiGlobalIn:copyRangeFromBuffer(destRange, globalBuffer:dataPointer()+bufferOffset)
-      end
+   for idx in zCutsRange:colMajorIter() do  -- MPI processes are column-major ordered.
+      local subdomainID  = cutsIdxr({subdomainIdx[1],subdomainIdx[2],idx[1]})
+      local bufferOffset = (idx[1]-1)*phiIn:size()
+      local destRange    = decompRange:subDomain(subdomainID)
+      local lv, uv       = destRange:lowerAsVec(), destRange:upperAsVec()
+      local destRange    = phiGlobal:localExtRange():subRange(lv,uv)
+      phiGlobal:copyRangeFromBuffer(destRange, globalBuffer:dataPointer()+bufferOffset)
    end
-
-   -- Copy to a global field with ghosts.
-   phiGlobal:copyRangeToRange(phiGlobalIn, phiGlobal:localRange(), phiGlobalIn:localRange())
 
    local smoothUpd = Updater.FemParproj {
       onGrid = gridGlobal,   periodicParallelDir = false,
       basis  = basis,        onField             = phiGlobal,
    }
    local t1 = os.clock()
-   smoothUpd:advance(0.,{phiGlobal},{phiSmoothGlobal})
+   smoothUpd:advance(0.,{phiGlobal},{phiGlobal})
    log(string.format("3D parallel smooth took %g s\n", os.clock()-t1))
 
    -- Copy portion of the global field belonging to this process.
    local lv = phiSmooth:localRange():lowerAsVec()
    local uv = phiSmooth:localRange():upperAsVec()
-   local sourceRange = phiSmoothGlobal:localExtRange():subRange(lv,uv)
-   phiSmooth:copyRangeToRange(phiSmoothGlobal, phiSmooth:localRange(), sourceRange)
+   local sourceRange = phiGlobal:localExtRange():subRange(lv,uv)
+   phiSmooth:copyRangeToRange(phiGlobal, phiSmooth:localRange(), sourceRange)
 
    local err = createField(grid, basis, numGhost)
    err:combine(1.0, phi, -1.0, phiSmooth)
