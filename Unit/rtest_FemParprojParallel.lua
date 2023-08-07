@@ -321,7 +321,7 @@ function test_femparproj_3x_zglobalOnly(nx, ny, nz, polyOrder)
    local ones, upper = {}, {}
    for d=1,decompRange:ndim() do ones[d], upper[d] = 1, decompRange:cuts(d) end
    local cutsRange = Range.Range(ones, upper) -- A range over the MPI decomposition.
-   local subdomainIdx    = {}
+   local subdomainIdx = {}
    decompRange:cutsInvIndexer()(grid:subGridId(), subdomainIdx) -- Grid ID on this processor.
    local group  = Mpi.Comm_group(comm)
    -- Create a cuts range that only has the subdomains at the same x and y.
@@ -353,11 +353,14 @@ function test_femparproj_3x_zglobalOnly(nx, ny, nz, polyOrder)
    local tag     = subdomainIdx[3]-1
    local xyComm  = Mpi.Comm_create_group(comm, xyGroup, tag);
 
+   Mpi.Group_free(group)
+   Mpi.Group_free(zGroup)
+   Mpi.Group_free(xyGroup)
+
    -- Create decomposition object that decomposes in x-y but not z.
    local xyDecomp = DecompRegionCalc.CartProd {
       cuts = { ncuts[1], ncuts[2], 1 },
       comm = xyComm,
-      __serTesting = true, -- Hack to create a decomp without cuts.
    }
    local gridGlobal = createGrid(lower, upper, cells, nil, xyDecomp)
 
@@ -366,9 +369,9 @@ function test_femparproj_3x_zglobalOnly(nx, ny, nz, polyOrder)
    -- Allocate fields.
    local phi       = createField(grid, basis, numGhost)
    local phiSmooth = createField(grid, basis, numGhost)
-   local phiGlobal = createField(gridGlobal, basis, numGhost)
-
+   -- Extra fields needed to solve problem in parallel.
    local phiIn        = createField(grid, basis, 0)
+   local phiGlobal    = createField(gridGlobal, basis, numGhost)
    local globalBuffer = createField(gridGlobal, basis, 0)
 
    -- Initialize phi.
@@ -434,9 +437,6 @@ function test_femparproj_3x_zglobalOnly(nx, ny, nz, polyOrder)
    local tm, lv = dynVec:lastData()
    log(string.format("Average RMS error = %g\n", math.sqrt(lv[1])))
 
-   Mpi.Group_free(group)
-   Mpi.Group_free(zGroup)
-   Mpi.Group_free(xyGroup)
    Mpi.Comm_free(zComm)
    Mpi.Comm_free(xyComm)
 

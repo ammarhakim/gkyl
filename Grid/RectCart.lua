@@ -135,9 +135,7 @@ function RectCart:init(tbl)
       -- In parallel, we need to adjust local range. 
       self._commSet         = self.decomp:commSet()
       local cutsProd = 1
-      for i = 1, self._ndim do
-         cutsProd = cutsProd * self.decomp:cuts(i)
-      end
+      for i = 1, self._ndim do cutsProd = cutsProd * self.decomp:cuts(i) end
       if cutsProd > 1 then
          self._decomposedRange = self.decomp:decompose(self._globalRange)
          local subDomIdx       = getSubDomIndex(self._commSet.comm)
@@ -394,7 +392,7 @@ function RectCart:childGrid(keepDims)
    if self.decomp then
       local childComm, childWriteRank, childCuts = self.decomp:childDecomp(keepDims)
       childDecomp = DecompRegionCalc.CartProd {
-         comm         = childComm,       cuts      = childCuts,
+         comm         = childComm,       cuts = childCuts,
          writeRank    = childWriteRank,
          __serTesting = true,
       }

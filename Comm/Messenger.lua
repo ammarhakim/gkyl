@@ -16,6 +16,7 @@ local Proto            = require "Lib.Proto"
 local sizeof           = xsys.from(ffi, "sizeof")
 local xsys             = require "xsys"
 local ZeroArray        = require "DataStruct.ZeroArray"
+local Lin              = require "Lib.Linalg"
 local cuda, Nccl
 if GKYL_HAVE_CUDA then
    cuda = require "Cuda.RunTime"
@@ -93,7 +94,7 @@ function Messenger:init(tbl)
          local _ = cuda.StreamSynchronize(self.ncclStream)
       end
       
-      self.AllgatherByCellFunc = function(fldIn, fldOut, comm)
+      self.AllgatherFunc = function(fldIn, fldOut, comm)
          Nccl.Allgather(fldIn:dataPointer(), fldOut:dataPointer(), fldIn:size(),
             fldIn:elemCommType(), comm, self.ncclStream)
          local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
@@ -137,9 +138,9 @@ function Messenger:init(tbl)
       self.reduceOps    = {max = Mpi.MAX, min = Mpi.MIN, sum = Mpi.SUM}
       self.commTypes    = {double=Mpi.DOUBLE, float=Mpi.FLOAT, int=Mpi.INT}
 
-      self.AllgatherByCellFunc = function(fldIn, fldOut, comm) --TODO: do it in NCCL
+      self.AllgatherFunc = function(fldIn, fldOut, comm)
          Mpi.Allgather(fldIn:dataPointer(), fldIn:size(), fldIn:elemCommType(),
-            fldOut:dataPointer(), fldOut:size(), fldOut:elemCommType(), comm)
+                       fldOut:dataPointer(), fldIn:size(), fldOut:elemCommType(), comm)
       end
       self.AllreduceByCellFunc = function(fldIn, fldOut, mpiOp, comm)
          Mpi.Allreduce(fldIn:dataPointer(), fldOut:dataPointer(),
@@ -220,6 +221,85 @@ function Messenger:initGPUcomms()
 
    -- Create a new CUDA stream (needed by NCCL).
    self.ncclStream = cuda.StreamCreate()
+end
+
+function Messenger:createSubComms(grid)
+   -- Create subcommunicators along some dimensions.
+   local decompRange  = grid:decomposedRange()
+   local cutsIdxr     = decompRange:cutsIndexer()
+   local cutsRange    = decompRange:cutsRange()
+   local subdomainIdx = {} -- Grid ID on this processor.
+   decompRange:cutsInvIndexer()(grid:subGridId(), subdomainIdx)
+   local confComm = self:getConfComm_host()
+   local group = Mpi.Comm_group(confComm)
+
+   local ndim = grid:ndim()
+   -- Create comm along the last dimension.
+   local zNumRanks = decompRange:cuts(ndim)
+   local zCommGroupRanks = Lin.IntVec(zNumRanks)
+   local j = 0
+   for idx in cutsRange:colMajorIter() do  -- MPI processes are column-major ordered.
+      local sameXY = true
+      for d = ndim-1,1,-1 do sameXY = sameXY and idx[d] == subdomainIdx[d] end
+      if sameXY then
+         j = j+1;  zCommGroupRanks[j] = cutsIdxr(idx)-1
+      end
+   end
+   local zGroup   = Mpi.Group_incl(group, zNumRanks, zCommGroupRanks:data());
+   local tag = ndim > 1 and subdomainIdx[1]-1 or 0
+   for d = ndim-2,1,-1 do 
+      tag = tag + (subdomainIdx[d+1]-1)*decompRange:cuts(d)
+   end
+   self.confCommZ = Mpi.Comm_create_group(confComm, zGroup, tag);
+   Mpi.Group_free(zGroup)
+
+   -- Create a x-y communicator.
+   local xyNumRanks = 1
+   for d = ndim-1,1,-1 do xyNumRanks = xyNumRanks*decompRange:cuts(d) end
+   local xyCommGroupRanks = Lin.IntVec(xyNumRanks)
+   local j = 0
+   for idx in cutsRange:colMajorIter() do  -- MPI processes are column-major ordered.
+      if idx[ndim] == subdomainIdx[ndim] then
+         j = j+1;  xyCommGroupRanks[j] = cutsIdxr(idx)-1
+      end
+   end
+   local xyGroup   = Mpi.Group_incl(group, xyNumRanks, xyCommGroupRanks:data());
+   local tag       = subdomainIdx[ndim]-1
+   self.confCommXY = Mpi.Comm_create_group(confComm, xyGroup, tag);
+   Mpi.Group_free(xyGroup)
+
+   if GKYL_USE_GPU then
+      -- Create NCCL comms.
+      self.confCommZ_dev, self.ncclIdConfZ   = self:newNCCLcomm(self.confCommZ)
+      self.confCommXY_dev, self.ncclIdConfXY = self:newNCCLcomm(self.confCommXY)
+      self.defaultComms["z"]  = self.confCommZ_dev
+      self.defaultComms["xy"] = self.confCommXY_dev
+   else
+      self.defaultComms["z"]  = self.confCommZ
+      self.defaultComms["xy"] = self.confCommXY
+   end
+
+   Mpi.Group_free(group)
+end
+
+function Messenger:newNCCLcomm(mpiComm)
+   local commConfig = Nccl.Config()
+   commConfig[0].blocking = 0;   -- Nonblocking comm.
+
+   -- Get NCCL unique ID at rank 0 and broadcast it to all others.
+   local ncclId = Nccl.UniqueId()
+   local mpiRank, mpiCommSize = Mpi.Comm_rank(mpiComm), Mpi.Comm_size(mpiComm)
+   if mpiRank == 0 then local _ = Nccl.GetUniqueId(ncclId) end
+   Mpi.Bcast(ncclId, sizeof(ncclId), Mpi.BYTE, 0, mpiComm)
+
+   local ncclComm = Nccl.Comm()
+   local _ = Nccl.CommInitRankConfig(ncclComm, mpiCommSize, ncclId, mpiRank, commConfig)
+   local _ = Nccl.CommGetAsyncError(ncclComm, self.ncclResult)
+   while (self.ncclResult[0] == Nccl.InProgress) do
+      local _ = Nccl.CommGetAsyncError(ncclComm, self.ncclResult)
+   end
+
+   return ncclComm, ncclId
 end
 
 function Messenger:chooseSyncBuf(fld)
@@ -435,6 +515,10 @@ end
 
 function Messenger:AllreduceByCell(fieldIn, fieldOut, op, comm)
    self.AllreduceByCellFunc(fieldIn, fieldOut, self.reduceOps[op], comm)
+end
+
+function Messenger:Allgather(localField, globalField, comm)
+   self.AllgatherFunc(localField, globalField, comm)
 end
 
 function Messenger:SendCartField(fld, dest, tag, comm)
