@@ -165,6 +165,11 @@ void gkyl_bc_twistshift_integral_fullcelllimdg(struct gkyl_bc_twistshift *up,
 void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
 
 /**
+ * Copy donor matrices to device if necessary
+ */
+void gkyl_bc_twistshift_copy_matsdo(struct gkyl_bc_twistshift *up);
+
+/**
  * Free memory associated with bc_twistshift updater.
  *
  * @param up BC updater.
@@ -195,8 +200,16 @@ function _M.init(dir, do_dir, shift_dir, edge, localExtRange, localUpdateRange, 
                       ffiC.gkyl_bc_twistshift_release)
 end
 
+function _M.copyMatsToDevice()
+   ffiC.gkyl_bc_twistshift_copy_matsdo(_M._zero)
+end
+
 function _M.advance(fldDo, fldTar)
-   ffiC.gkyl_bc_twistshift_advance(_M._zero, fldDo._zero, fldTar._zero)
+   if GKYL_USE_GPU then
+      ffiC.gkyl_bc_twistshift_advance(_M._zero, fldDo._zeroDevice, fldTar._zeroDevice)
+   else
+      ffiC.gkyl_bc_twistshift_advance(_M._zero, fldDo._zero, fldTar._zero)
+   end
 end
 
 local p2l = function(valIn, xcIn, dxIn)

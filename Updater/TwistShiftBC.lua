@@ -79,6 +79,11 @@ end
 function TwistShiftBC:init(tbl)
    TwistShiftBC.super.init(self, tbl) -- Setup base object.
 
+   if GKYL_USE_GPU then
+      self.useGpu = true
+   else
+      self.useGpu = false
+   end
    self.grid = assert(
       tbl.onGrid, "Updater.TwistShift: Must provide grid to interpolate to using 'onGrid'.")
    self.basis = assert(
@@ -185,10 +190,14 @@ function TwistShiftBC:init(tbl)
    self.dir = 3
    self.shiftDir = 2
    self.doDir = 1
-   tsFun.init(self.dir-1, self.doDir-1, self.shiftDir-1, self.zEdgeNum, sampleFld:localExtRange(), self.localUpdateRange, numGhosts, self.basis, self.grid, self.cDim, sampleFld._zero, nDonors, cellsDo, false )
+   tsFun.init(self.dir-1, self.doDir-1, self.shiftDir-1, self.zEdgeNum, sampleFld:localExtRange(), self.localUpdateRange, numGhosts, self.basis, self.grid, self.cDim, sampleFld._zero, nDonors, cellsDo, false)
 
    -- Pre-compute matrices using weak equalities between donor and target fields.
    tsFun.preCalcMat(self.grid, self.yShFld, self.doCells)
+
+   if self.useGpu then
+      tsFun.copyMatsToDevice()
+   end
    self.isFirst = true   -- Will be reset the first time _advance() is called.
 
 end
