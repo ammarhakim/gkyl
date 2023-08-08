@@ -152,25 +152,25 @@ function TwistShiftBC:init(tbl)
       numGhosts[i] = 1 -- lua indexing to do the same thing
    end
 
-   local nDonors = Lin.IntVec(self.grid:numCells(1))
+   self.nDonors = Lin.IntVec(self.grid:numCells(1))
    for i = 1, self.grid:numCells(1) do
-      nDonors[i] = #self.doCells[i][1]
+      self.nDonors[i] = #self.doCells[i][1]
    end
 
    local totalDonors = 0
    for j = 1, self.grid:numCells(2) do
       for i = 1, self.grid:numCells(1) do
-         totalDonors = totalDonors + nDonors[i]
+         totalDonors = totalDonors + self.nDonors[i]
       end
    end
 
 
-   local cellsDo = Lin.IntVec(totalDonors)
+   self.cellsDo = Lin.IntVec(totalDonors)
    local linIdx = 1;
    for j = 1, self.grid:numCells(2) do
       for i = 1, self.grid:numCells(1) do
-         for k = 1, nDonors[i] do
-            cellsDo[linIdx] = self.doCells[i][j][k][2]
+         for k = 1, self.nDonors[i] do
+            self.cellsDo[linIdx] = self.doCells[i][j][k][2]
             linIdx = linIdx+1
          end
       end
@@ -190,7 +190,7 @@ function TwistShiftBC:init(tbl)
    self.dir = 3
    self.shiftDir = 2
    self.doDir = 1
-   tsFun.init(self.dir-1, self.doDir-1, self.shiftDir-1, self.zEdgeNum, sampleFld:localExtRange(), self.localUpdateRange, numGhosts, self.basis, self.grid, self.cDim, sampleFld._zero, nDonors, cellsDo, false)
+   tsFun.init(self.dir-1, self.doDir-1, self.shiftDir-1, self.zEdgeNum, sampleFld:localExtRange(), self.localUpdateRange, numGhosts, self.basis, self.grid, self.cDim, sampleFld._zero, self.nDonors, self.cellsDo, false)
 
    -- Pre-compute matrices using weak equalities between donor and target fields.
    tsFun.preCalcMat(self.grid, self.yShFld, self.doCells)
