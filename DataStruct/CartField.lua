@@ -623,6 +623,9 @@ local function Field_meta_ctor(elct)
 
    -- Set callable methods.
    Field.__index = {
+      data = function(self)
+         return self._zeroForOps:data()
+      end,
       elemType = function(self)
          return elct
       end,
@@ -1071,9 +1074,11 @@ local function Field_meta_ctor(elct)
             self:size(), elctCommType, reduceOpsMPI[opIn], comm)
       end,
       copyRangeToBuffer = function(self, rgn, dataPointer)
+         -- Copy the data in a range of this CartField to a buffer.
          self._zeroForOps:copy_to_buffer(dataPointer, rgn)
       end,
       copyRangeFromBuffer = function(self, rgn, dataPointer)
+         -- Copy the data in a range of this CartField to a buffer.
          self._zeroForOps:copy_from_buffer(dataPointer, rgn)
       end,
       _field_sync = function(self, dataPtr)

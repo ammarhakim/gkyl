@@ -210,7 +210,7 @@ function GkField:setGrid(grid)
    local GridConstructor = grid.mapc2p and Grid.MappedCart or Grid.RectCart
 
    -- Create global in z (local in xy) grid.
-   local xyComm = self.grid:getMessenger():getComms()['xy']
+   local xyComm = self.grid:getMessenger():getSubComms_host()['xy']
    local xyCuts = {};  xyCuts[self.ndim] = 1
    for d = self.ndim-1, 1, -1 do xyCuts[d] = self.grid:cuts(d) end
    local xyDecomp = DecompRegionCalc.CartProd {  -- Decomp in x-y but not z.
@@ -662,7 +662,7 @@ end
 
 function GkField:AllgatherFieldZ(fldLocal, fldGlobal)
    -- Gather a CartField distributed along z onto a global-in-z field.
-   fldLocal:copyRangeToBuffer(fldLocal:localRange(), self.localBuffer:dataPointer())
+   fldLocal:copyRangeToBuffer(fldLocal:localRange(), self.localBuffer:data())
 
    -- Gather flat buffers from other processes.
    local mess = self.grid:getMessenger()
@@ -673,7 +673,7 @@ function GkField:AllgatherFieldZ(fldLocal, fldGlobal)
    -- using the collection of flat buffers we gathered from each process.
    for zIdx in self.zCutsRange:colMajorIter() do
       fldGlobal:copyRangeFromBuffer(self.zDestRange[zIdx[1]],
-         self.globalBufferZ:dataPointer()+self.zBufferOffset[zIdx[1]])
+         self.globalBufferZ:data()+self.zBufferOffset[zIdx[1]])
    end
 end
 

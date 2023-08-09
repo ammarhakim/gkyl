@@ -84,8 +84,8 @@ function Messenger:init(tbl)
       self.commTypes    = {double=Nccl.Double, float=Nccl.Float, int=Nccl.Int}
 
       self.AllreduceByCellFunc = function(fldIn, fldOut, ncclOp, comm)
-         Nccl.AllReduce(fldIn:deviceDataPointer(), fldOut:deviceDataPointer(),
-	         fldIn:size(), self:getCommDataType(fldIn:elemType()), ncclOp, comm, self.ncclStream)
+         Nccl.AllReduce(fldIn:deviceDataPointer(), fldOut:deviceDataPointer(), fldIn:size(),
+            self:getCommDataType(fldIn:elemType()), ncclOp, comm, self.ncclStream)
          local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
          while (self.ncclResult[0] == Nccl.InProgress) do
             local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
@@ -95,8 +95,8 @@ function Messenger:init(tbl)
       end
       
       self.AllgatherFunc = function(fldIn, fldOut, comm)
-         Nccl.Allgather(fldIn:dataPointer(), fldOut:dataPointer(), fldIn:size(),
-            fldIn:elemCommType(), comm, self.ncclStream)
+         Nccl.AllGather(fldIn:deviceDataPointer(), fldOut:deviceDataPointer(), fldIn:size(),
+            self:getCommDataType(fldIn:elemType()), comm, self.ncclStream)
          local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
          while (self.ncclResult[0] == Nccl.InProgress) do
             local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
@@ -268,15 +268,20 @@ function Messenger:createSubComms(grid)
    self.confCommXY = Mpi.Comm_create_group(confComm, xyGroup, tag);
    Mpi.Group_free(xyGroup)
 
+   self.subComms = {z = self.confCommZ, xy = self.confCommXY}
+
    if GKYL_USE_GPU then
       -- Create NCCL comms.
       self.confCommZ_dev, self.ncclIdConfZ   = self:newNCCLcomm(self.confCommZ)
       self.confCommXY_dev, self.ncclIdConfXY = self:newNCCLcomm(self.confCommXY)
       self.defaultComms["z"]  = self.confCommZ_dev
       self.defaultComms["xy"] = self.confCommXY_dev
+      self.subComms_dev       = {z = self.confCommZ_dev, xy = self.confCommXY_dev}
+      self.defaultSubComms    = self.subComms_dev
    else
       self.defaultComms["z"]  = self.confCommZ
       self.defaultComms["xy"] = self.confCommXY
+      self.defaultSubComms    = self.subComms
    end
 
    Mpi.Group_free(group)
@@ -488,11 +493,14 @@ function Messenger:getComms()       return self.defaultComms end
 function Messenger:getWorldComm()   return self.defaultComms["world"] end
 function Messenger:getConfComm()    return self.defaultComms["conf"] end
 function Messenger:getSpeciesComm() return self.defaultComms["species"] end
+function Messenger:getSubComms()    return self.defaultSubComms end
 
 function Messenger:getConfComm_host()    return self.confComm end
 function Messenger:getSpeciesComm_host() return self.speciesComm end
+function Messenger:getSubComms_host()       return self.subComms end
 function Messenger:getConfComm_device()    return self.confComm_dev end
 function Messenger:getSpeciesComm_device() return self.speciesComm_dev end
+function Messenger:getSubComms_device()       return self.subComms_dev end
 
 function Messenger:getRanks() return {world=self.worldRank, conf=self.confRank, species=self.speciesRank} end
 function Messenger:getWorldRank() return self.worldRank end
