@@ -429,8 +429,8 @@ local function buildApplication(self, tbl)
       -- Below: an entry per stage (max 4 stages + 2 for operator splitting).
       nFail = {0, 0, 0, 0, 0, 0},
       dtDiff = {{GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.},
-                      {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.},
-                      {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.}},
+                {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.},
+                {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.}},
    }
 
    local function dydt(tCurr, inIdx, outIdx)
