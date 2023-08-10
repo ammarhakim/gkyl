@@ -24,21 +24,10 @@ local Range            = require "Lib.Range"
 local ZeroArray        = require "DataStruct.ZeroArray"
 local lume             = require "Lib.lume"
 
--- Load CUDA allocators (or dummy when CUDA is not found).
-local cuda = nil
-local cuAlloc = require "Cuda.AllocDummy"
-if GKYL_HAVE_CUDA then
-   cuAlloc = require "Cuda.Alloc"
-   cuda    = require "Cuda.RunTime"
-end
-
 local RangeVec = Lin.new_vec_ct(ffi.typeof("struct gkyl_range"))
 
 -- C interfaces
 ffi.cdef [[
-    // s: start index. nv: number of values.
-    void gkylCartFieldAbs(unsigned s, unsigned nv, double *out);
-
 /**
  * Create ghost and skin sub-ranges given parent range. The skin and
  * ghost ranges are sub-ranges of the parent range and DO NOT include
@@ -145,19 +134,6 @@ local function Field_meta_ctor(elct)
       elctCommType = Mpi.BYTE -- by default, send stuff as byte array
    end
 
-   -- functions for regular and device memory allocations
-   local allocFunc = Alloc.Alloc_meta_ctor(elct)
-   local allocCudaFunc = cuAlloc.Alloc_meta_ctor(elct, false) -- don't used managed memory
-   
-   -- allocator for use in applications
-   local function allocatorFunc(comm, numElem)
-      return allocFunc(numElem)
-   end
-   -- allocator for use in memory on device
-   local function deviceAllocatorFunc(comm, numElem)
-      return allocCudaFunc(numElem)
-   end
-
    -- Binary operation functions and reduce MPI types (used in reduce method).
    local binOpFuncs = {
       max = function(a,b) return math.max(a,b) end,
@@ -187,9 +163,6 @@ local function Field_meta_ctor(elct)
 
       local nodeComm = grid:commSet().nodeComm
 
-      -- Allocator function.
-      local allocator = allocatorFunc
-      
       local sz = localRange:extend(ghost[1], ghost[2]):volume()*nc -- Amount of data in field.
       -- Setup object.
       self._grid = grid
@@ -650,6 +623,9 @@ local function Field_meta_ctor(elct)
 
    -- Set callable methods.
    Field.__index = {
+      data = function(self)
+         return self._zeroForOps:data()
+      end,
       elemType = function(self)
          return elct
       end,
@@ -925,13 +901,6 @@ local function Field_meta_ctor(elct)
       shiftcRange = function(self, val, comp, rng)
          self._zeroForOps:shiftc(val, comp, rng)
       end,
-      abs = isNumberType and
-          function(self)
-             ffiC.gkylCartFieldAbs(self:_localLower(), self:_localShape(), self._data)
-          end or
-          function(self, fact)
-             assert(false, "CartField:abs: Abs only works on numeric fields")
-          end,
       defaultLayout = function(self)
          if defaultLayout == rowMajLayout then
             return "row-major"
@@ -1118,11 +1087,13 @@ local function Field_meta_ctor(elct)
          Mpi.Allreduce(localFldIn:dataPointer(), self._data,
             self:size(), elctCommType, reduceOpsMPI[opIn], comm)
       end,
-      _copy_from_field_region = function(self, rgn, data)
-         self._zeroForOps:copy_to_buffer(data:data(), rgn)
+      copyRangeToBuffer = function(self, rgn, dataPointer)
+         -- Copy the data in a range of this CartField to a buffer.
+         self._zeroForOps:copy_to_buffer(dataPointer, rgn)
       end,
-      _copy_to_field_region = function(self, rgn, data)
-         self._zeroForOps:copy_from_buffer(data:data(), rgn)
+      copyRangeFromBuffer = function(self, rgn, dataPointer)
+         -- Copy the data in a range of this CartField to a buffer.
+         self._zeroForOps:copy_from_buffer(dataPointer, rgn)
       end,
       _field_sync = function(self, dataPtr)
          local comm = self._grid:commSet().nodeComm -- communicator to use
@@ -1348,14 +1319,14 @@ local function Field_meta_ctor(elct)
 
          local periodicBuffUpper = self._upperPeriodicBuff[dir]
          -- Copy skin cells into temporary buffer.
-         self:_copy_from_field_region(skinRgnUpper, periodicBuffUpper)
+         self:copyRangeToBuffer(skinRgnUpper, periodicBuffUpper:data())
          -- Get region for looping over upper ghost cells and copy lower skin cells into upper ghost cells.
-         self:_copy_to_field_region(ghostRgnLower, periodicBuffUpper)
+         self:copyRangeFromBuffer(ghostRgnLower, periodicBuffUpper:data())
 
          -- Now do the same, but for the skin cells for the lower ghost region (the upper skin cells).
          local periodicBuffLower = self._lowerPeriodicBuff[dir]
-         self:_copy_from_field_region(skinRgnLower, periodicBuffLower)
-         self:_copy_to_field_region(ghostRgnUpper, periodicBuffLower)
+         self:copyRangeToBuffer(skinRgnLower, periodicBuffLower:data())
+         self:copyRangeFromBuffer(ghostRgnUpper, periodicBuffLower:data())
       end,
       _field_periodic_copy = function(self)
          local grid = self._grid

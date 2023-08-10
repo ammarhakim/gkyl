@@ -77,7 +77,6 @@ def build(bld):
     
     # recurse down directories and build C++ code
     bld.recurse("Comm")
-    bld.recurse("DataStruct")
     bld.recurse("Eq")
     bld.recurse("Grid")
     bld.recurse("Lib")

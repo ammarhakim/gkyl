@@ -81,6 +81,22 @@ int gkyl_range_is_sub_range(const struct gkyl_range *rng);
  */
 void gkyl_sub_range_init(struct gkyl_range *rng,
   const struct gkyl_range *bigrng, const int *sublower, const int *subupper);
+
+/**
+ * Return range which has some directions removed by setting the index
+ * in those directions to fixed values. The "deflated" range has lower
+ * dimension than the parent 'rng' object. The indexing into the
+ * returned lower dimensional range gives the same index as the
+ * corresponding location in the parent range (with the missing
+ * indices set to 'locDir[dir]').
+ *
+ * @param srng Deflated range.
+ * @param rng Range object to deflate
+ * @param remDir 'ndim' Array of flags: 0 to keep direction, 1 to remove
+ * @param loc Index to set removed direction.
+ */
+void gkyl_range_deflate(struct gkyl_range* srng,
+  const struct gkyl_range* rng, const int *remDir, const int *locDir);
 ]]
 local rTy = typeof("struct gkyl_range")
 local rSz = sizeof(typeof("struct gkyl_range"))
@@ -283,6 +299,15 @@ local range_mt = {
 	 r._lower[dir-1], r._upper[dir-1] = self:upper(dir)+1, self:upper(dir)+nGhost
          ffiC.gkyl_range_init(r, r._ndim, r._lower, r._upper)
 	 return r
+      end,
+      deflate = function (self, removeDir, locationInDir)
+	 local r = new(rTy)
+	 local remDir, locDir = Lin.IntVec(self:ndim()), Lin.IntVec(self:ndim())
+         for d = 1, self:ndim() do
+	    remDir[d], locDir[d] = removeDir[d], locationInDir[d]
+         end
+         ffiC.gkyl_range_deflate(r, self, remDir:data(), locDir:data())
+         return r
       end,
       shorten = function (self, dir, len)
          len = len or 1

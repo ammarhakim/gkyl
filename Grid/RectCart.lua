@@ -70,11 +70,11 @@ local rectCartSz = sizeof("struct gkyl_rect_grid")
 
 -- Determine local domain index.
 local function getSubDomIndex(comm)
-   local idx = ffi.new("int[1]")
+   local idx = -1
    if Mpi.Is_comm_valid(comm) then
-      idx[0] = Mpi.Comm_rank(comm)+1 -- sub-domains are indexed from 1
+      idx = Mpi.Comm_rank(comm)+1 -- Sub-domains are 1-indexed.
    end
-   return idx[0]
+   return idx
 end
 
 -- RectCart --------------------------------------------------------------------
@@ -135,9 +135,7 @@ function RectCart:init(tbl)
       -- In parallel, we need to adjust local range. 
       self._commSet         = self.decomp:commSet()
       local cutsProd = 1
-      for i = 1, self._ndim do
-         cutsProd = cutsProd * self.decomp:cuts(i)
-      end
+      for i = 1, self._ndim do cutsProd = cutsProd * self.decomp:cuts(i) end
       if cutsProd > 1 then
          self._decomposedRange = self.decomp:decompose(self._globalRange)
          local subDomIdx       = getSubDomIndex(self._commSet.comm)
@@ -394,7 +392,7 @@ function RectCart:childGrid(keepDims)
    if self.decomp then
       local childComm, childWriteRank, childCuts = self.decomp:childDecomp(keepDims)
       childDecomp = DecompRegionCalc.CartProd {
-         comm         = childComm,       cuts      = childCuts,
+         comm         = childComm,       cuts = childCuts,
          writeRank    = childWriteRank,
          __serTesting = true,
       }

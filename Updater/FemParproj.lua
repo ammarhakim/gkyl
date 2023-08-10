@@ -43,7 +43,9 @@ enum gkyl_fem_parproj_bc_type {
  * and \doteq implies weak equality with respect to the FEM basis.
  * Free using gkyl_fem_parproj_release method.
  *
- * @param grid Grid object
+ * @param solve_range Range in which to perform the projection operation.
+ * @param solve_range_ext solve_range with ghost cells (in z primarily) used
+ *                        for the Dirichlet BC case.
  * @param basis Basis functions of the DG field.
  * @param bctype Type of boundary condition (see gkyl_fem_parproj_bc_type).
  * @param weight multiplicative weight on left-side of the operator.
@@ -51,9 +53,9 @@ enum gkyl_fem_parproj_bc_type {
  * @return New updater pointer.
  */
 struct gkyl_fem_parproj* gkyl_fem_parproj_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  enum gkyl_fem_parproj_bc_type bctype, const struct gkyl_array *weight,
-  bool use_gpu);
+  const struct gkyl_range *solve_range, const struct gkyl_range *solve_range_ext,
+  const struct gkyl_basis *basis, enum gkyl_fem_parproj_bc_type bctype,
+  const struct gkyl_array *weight, bool use_gpu);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field.
@@ -87,6 +89,7 @@ function FemParproj:init(tbl)
 
    self._grid  = assert(tbl.onGrid, "Updater.FemParproj: Must specify grid to use with 'onGrid'.")
    self._basis = assert(tbl.basis, "Updater.FemParproj: Must specify the basis in 'basis'.")
+   local onField = assert(tbl.onField, "Updater.FemParproj: Must specify a sample field (to get ranges) in 'onField'.")
 
    local isParPeriodic = tbl.periodicParallelDir
    assert(isParPeriodic ~= nil, "Updater.FemParproj: Must specify if parallel direction is periodic with 'periodicParallelDir'.")
@@ -94,10 +97,11 @@ function FemParproj:init(tbl)
 
    local weightFld = tbl.weight and tbl.weight._zero or nil
 
+   local localRange, localExtRange = onField:localRange(), onField:localExtRange()
+
    local parBC = isParPeriodic and 0 or 2  -- MF 2023/08/01: Dirichlet not yet implemented.
 
-   self._zero = ffi.gc(ffiC.gkyl_fem_parproj_new(self._grid._zero, self._basis._zero, parBC,
-                                                 weightFld, self._useGPU),
+   self._zero = ffi.gc(ffiC.gkyl_fem_parproj_new(localRange, localExtRange, self._basis._zero, parBC, weightFld, self._useGPU),
                        ffiC.gkyl_fem_parproj_release)
 end
 

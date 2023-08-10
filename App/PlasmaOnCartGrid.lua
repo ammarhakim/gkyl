@@ -161,7 +161,7 @@ local function buildApplication(self, tbl)
 
    -- Object that handles MPI/NCCL communication (some comms are still elsewhere).
    local commManager = Messenger{
-      cells = tbl.cells,   decompCutsConf = tbl.decompCuts,
+      cells      = tbl.cells,   decompCutsConf     = tbl.decompCuts,
       numSpecies = numSpecies,  parallelizeSpecies = tbl.parallelizeSpecies,
    }
 
@@ -211,6 +211,9 @@ local function buildApplication(self, tbl)
 
    -- Distribute species across MPI ranks in species communicator.
    population:decompose()
+
+   -- Create other subcommunicators.
+   commManager:createSubComms(confGrid)
 
    for _, s in population.iterGlobal() do
       s:fullInit(tbl) -- Initialize species.
@@ -426,8 +429,8 @@ local function buildApplication(self, tbl)
       -- Below: an entry per stage (max 4 stages + 2 for operator splitting).
       nFail = {0, 0, 0, 0, 0, 0},
       dtDiff = {{GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.},
-                      {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.},
-                      {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.}},
+                {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.},
+                {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.}},
    }
 
    local function dydt(tCurr, inIdx, outIdx)
