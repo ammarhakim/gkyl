@@ -134,22 +134,6 @@ function VlasovEmissionBC:createSolver(mySpecies, field, externalField)
    end
 
    self.bcBuffer = allocDistf() -- Buffer used by BasicBc updater.
-
-   local bcFunc, skinType
-   self.bcSolver = {}
-   self.gamma = {}
-   for ispec, otherNm in ipairs(self.inSpecies) do
-      local bc = self.fluxBC[otherNm]
-      self.gamma[otherNm] = self:allocCartField(bc.boundaryGrid, 1, {0,0}, distf:getMetaData())
-      self.bcSolver[otherNm] = Updater.EmissionSpectrumBc{
-         onGrid  = bc.boundaryGrid,   edge   = self.bcEdge,  
-         cdim    = self.cdim,   vdim   = self.vdim,
-         dir     = self.bcDir,  bcType = self.bcKind,
-	 gammaType = self.gammaKind,
-	 bcParam = self.bcParam[otherNm]:data(), gammaParam = self.gammaParam[otherNm]:data(),
-	 onField = self.gamma[otherNm],
-      }
-   end
    
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
    -- the fluxes through a boundary (e.g. neutral recycling).
@@ -333,6 +317,25 @@ function VlasovEmissionBC:getFlucF() return self.boundaryFluxRate end
 function VlasovEmissionBC:createCouplingSolver(species, field, extField)
    local allocDistf = function()
       return self:allocCartField(self.boundaryGrid, self.basis:numBasis(), {0,0}, self.bcBuffer:getMetaData())
+   end
+
+   local mySpecies = species[self.speciesName]
+
+   local distf = mySpecies:getDistF()
+
+   self.bcSolver = {}
+   self.gamma = {}
+   for ispec, otherNm in ipairs(self.inSpecies) do
+      local bc = self.fluxBC[otherNm]
+      self.gamma[otherNm] = self:allocCartField(bc.boundaryGrid, 1, {0,0}, distf:getMetaData())
+      self.bcSolver[otherNm] = Updater.EmissionSpectrumBc{
+         onGrid  = bc.boundaryGrid,   edge   = self.bcEdge,  
+         cdim    = self.cdim,   vdim   = self.vdim,
+         dir     = self.bcDir,  bcType = self.bcKind,
+	 gammaType = self.gammaKind,
+	 bcParam = self.bcParam[otherNm]:data(), gammaParam = self.gammaParam[otherNm]:data(),
+	 onField = self.gamma[otherNm],
+      }
    end
    
    self.fProj = {}
