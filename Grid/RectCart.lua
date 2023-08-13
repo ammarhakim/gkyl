@@ -16,10 +16,10 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 -- Gkyl libraries.
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Lin   = require "Lib.Linalg"
+local lume  = require "Lib.lume"
 local Mpi   = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
-local lume  = require "Lib.lume"
 
 local cuda = nil
 if GKYL_HAVE_CUDA then
@@ -70,11 +70,11 @@ local rectCartSz = sizeof("struct gkyl_rect_grid")
 
 -- Determine local domain index.
 local function getSubDomIndex(comm)
-   local idx = ffi.new("int[1]")
+   local idx = -1
    if Mpi.Is_comm_valid(comm) then
-      idx[0] = Mpi.Comm_rank(comm)+1 -- sub-domains are indexed from 1
+      idx = Mpi.Comm_rank(comm)+1 -- Sub-domains are 1-indexed.
    end
-   return idx[0]
+   return idx
 end
 
 -- RectCart --------------------------------------------------------------------
@@ -134,11 +134,19 @@ function RectCart:init(tbl)
 
       -- In parallel, we need to adjust local range. 
       self._commSet         = self.decomp:commSet()
-      self._decomposedRange = self.decomp:decompose(self._globalRange)
-      local subDomIdx       = getSubDomIndex(self._commSet.comm)
-      self._block           = subDomIdx
-      local localRange      = self._decomposedRange:subDomain(subDomIdx)
-      self._localRange:copy(localRange)
+      local cutsProd = 1
+      for i = 1, self._ndim do cutsProd = cutsProd * self.decomp:cuts(i) end
+      if cutsProd > 1 then
+         self._decomposedRange = self.decomp:decompose(self._globalRange)
+         local subDomIdx       = getSubDomIndex(self._commSet.comm)
+         self._block           = subDomIdx
+         local localRange      = self._decomposedRange:subDomain(subDomIdx) --Local range is set using the decomposed subdomain
+         self._localRange:copy(localRange)
+      else
+         self._decomposedRange = self.decomp:decompose(self._globalRange) -- I think something is wrong with this approach. 
+         self._block           = 1
+         self._localRange:copy(self._globalRange)
+      end
       self._cuts = {}
       for i = 1, self._ndim do 
          assert(self.decomp:cuts(i) <= self._numCells[i],
@@ -384,7 +392,7 @@ function RectCart:childGrid(keepDims)
    if self.decomp then
       local childComm, childWriteRank, childCuts = self.decomp:childDecomp(keepDims)
       childDecomp = DecompRegionCalc.CartProd {
-         comm         = childComm,       cuts      = childCuts,
+         comm         = childComm,       cuts = childCuts,
          writeRank    = childWriteRank,
          __serTesting = true,
       }

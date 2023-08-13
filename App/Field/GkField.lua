@@ -12,17 +12,19 @@
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Constants        = require "Lib.Constants"
 local DataStruct       = require "DataStruct"
-local LinearTrigger    = require "LinearTrigger"
-local Proto            = require "Lib.Proto"
-local Updater          = require "Updater"
-local xsys             = require "xsys"
-local FieldBase        = require "App.Field.FieldBase"
-local Species          = require "App.Species"
-local Time             = require "Lib.Time"
-local math             = require("sci.math").generic
+local DecompRegionCalc = require "Lib.CartDecomp"
 local diff             = require("sci.diff")
+local FieldBase        = require "App.Field.FieldBase"
+local Grid             = require "Grid"
+local LinearTrigger    = require "LinearTrigger"
 local Logger           = require "Lib.Logger"
 local lume             = require "Lib.lume"
+local math             = require("sci.math").generic
+local Proto            = require "Lib.Proto"
+local Species          = require "App.Species"
+local Time             = require "Lib.Time"
+local Updater          = require "Updater"
+local xsys             = require "xsys"
 
 local GkField = Proto(FieldBase.FieldBase)
 
@@ -199,7 +201,30 @@ end
 
 -- Methods for EM field object.
 function GkField:hasEB() return true, self.isElectromagnetic end
-function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
+function GkField:setGrid(grid)
+   self.grid = grid
+   self.ndim = self.grid:ndim()
+
+   local keepDims = {};  for i = 1, self.ndim do keepDims[i] = i end
+   local gridInfo = grid:childGrid(keepDims)
+   local GridConstructor = grid.mapc2p and Grid.MappedCart or Grid.RectCart
+
+   -- Create global in z (local in xy) grid.
+   local xyComm = self.grid:getMessenger():getSubComms_host()['xy']
+   local xyCuts = {};  xyCuts[self.ndim] = 1
+   for d = self.ndim-1, 1, -1 do xyCuts[d] = self.grid:cuts(d) end
+   local xyDecomp = DecompRegionCalc.CartProd {  -- Decomp in x-y but not z.
+      cuts = xyCuts,  comm = xyComm,
+   }
+   self.gridGlobalZ = GridConstructor {
+      lower = gridInfo.lower,  world    = gridInfo.world, --no usages
+      upper = gridInfo.upper,  mappings = gridInfo.coordinateMap, --where wouold I find this?
+      cells = gridInfo.cells,  mapc2p   = gridInfo.mapc2p, -- not in RectCart
+      periodicDirs  = gridInfo.getPeriodicDirs,
+      messenger     = grid:getMessenger(),
+      decomposition = xyDecomp,
+   }
+end
 
 local function createField(grid, basis, ghostCells, vComp, periodicSync, useDevice)
    vComp = vComp or 1
@@ -236,11 +261,11 @@ function GkField:alloc(nRkDup)
    self.dApardtProv = createField(self.grid,self.basis,{1,1})
 
    -- Create fields for total charge density and other things needed for Poisson solve.
-   self.chargeDens      = createField(self.grid,self.basis,{1,1})
-   self.chargeDensLocal = createField(self.grid,self.basis,{1,1})
-   self.polarizationWeight = createField(self.grid,self.basis,{1,1})
+   self.chargeDens              = createField(self.grid,self.basis,{1,1})
+   self.chargeDensLocal         = createField(self.grid,self.basis,{1,1})
+   self.polarizationWeight      = createField(self.grid,self.basis,{1,1})
    self.polarizationWeightLocal = createField(self.grid,self.basis,{1,1})
-   self.modWeightPoisson = createField(self.grid,self.basis,{1,1})
+   self.modWeightPoisson        = createField(self.grid,self.basis,{1,1})
 
    if self.isElectromagnetic then
       -- Create fields for total current density and other things needed for Ampere solve.
@@ -251,6 +276,11 @@ function GkField:alloc(nRkDup)
       self.modWeightAmpere       = createField(self.grid,self.basis,{1,1})
       self.modWeightAmpereLocal  = createField(self.grid,self.basis,{1,1})
    end
+
+   -- Extra fields needed for the distributed parallel field solve.
+   self.localBuffer   = createField(self.grid,self.basis,{0,0})
+   self.globalBufferZ = createField(self.gridGlobalZ,self.basis,{0,0})
+   self.globalSolZ    = createField(self.gridGlobalZ,self.basis,{1,1})
    
    -- For diagnostics:
    self.phiSq = createField(self.grid,self.basis,{1,1})
@@ -338,6 +368,30 @@ function GkField:createSolver(population, externalField)
 	 self.calcPhi = function(tCurr, populationIn, potentialsIn, potentialsOut) end
       end
    else
+      -- Range of MPI processes participating in z field solve.
+      local decompRange = self.grid:decomposedRange()
+      local cutsRange   = decompRange:cutsRange()
+      local subdomIdx   = {};  decompRange:cutsInvIndexer()(self.grid:subGridId(), subdomIdx)
+      local removeDir, locInDir = {}, {}
+      for d=1,self.ndim-1 do removeDir[d], locInDir[d] = 1, subdomIdx[d] end
+      removeDir[self.ndim], locInDir[self.ndim] = 0, 0
+      self.zCutsRange = cutsRange:deflate(removeDir, locInDir)
+      -- Ranges in a global field into which we will copy a buffer obtained form other processes.
+      self.zDestRange, self.zBufferOffset = {}, {}
+      for zIdx in self.zCutsRange:colMajorIter() do
+         local idx = {};  for d=1,self.ndim-1 do idx[d] = subdomIdx[d] end
+         idx[self.ndim] = zIdx[1]
+
+         local linIdx    = decompRange:cutsIndexer()(idx)
+         local destRange = decompRange:subDomain(linIdx)
+         local lv, uv    = destRange:lowerAsVec(), destRange:upperAsVec()
+         self.zDestRange[zIdx[1]]    = self.globalSolZ:localExtRange():subRange(lv,uv)
+         self.zBufferOffset[zIdx[1]] = (zIdx[1]-1)*self.localBuffer:size()
+      end
+      -- Range in a global field we'll copy the local solution from.
+      local lv, uv = self.potentials[1].phi:localRange():lowerAsVec(), self.potentials[1].phi:localRange():upperAsVec()
+      self.zSrcRange = self.globalSolZ:localExtRange():subRange(lv,uv)
+
       -- Get adiabatic species info.
       for _, s in population.iterGlobal() do
          if Species.AdiabaticSpecies.is(s) then
@@ -442,17 +496,28 @@ function GkField:createSolver(population, externalField)
       -- on the device because they were assigned with :accumulate and :combine, which use the
       -- device pointer if the CartField was created with useDevice=nil. Copy them to host.
       if self.ndim == 1 then
-         self.modWeightPoisson:copyDeviceToHost()
+         -- Gather the weight in the z-field solve.
+         self:AllgatherFieldZ(self.modWeightPoisson, self.globalSolZ)
+         self.globalSolZ:copyDeviceToHost()
+
          self.phiParSlvr = Updater.FemParproj {
-            onGrid = self.grid,  basis = self.basis,
-            weight = self.modWeightPoisson,
+            onGrid = self.gridGlobalZ,  basis   = self.basis,
+            weight = self.globalSolZ,   onField = self.globalSolZ,
             periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
          }
          self.phiSlvr = {
             advance = function(tcurr, inFlds, outFlds)
                local qDens  = inFlds[1]
                local phiOut = outFlds[1].phi  -- OutFlds[1] is a table of potentials.
-               self.phiParSlvr:advance(tCurr, {qDens}, {phiOut})
+
+               -- Gather the charge density onto a global field.
+               self:AllgatherFieldZ(qDens, self.globalSolZ)
+
+               -- Solve linear problem.
+               self.phiParSlvr:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
+
+               -- Copy portion of the global field belonging to this process.
+               phiOut:copyRangeToRange(self.globalSolZ, phiOut:localRange(), self.zSrcRange)
             end,
 	    printDevDiagnostics = function() self.phiParSlvr:printDevDiagnostics() end,
          }
@@ -479,7 +544,8 @@ function GkField:createSolver(population, externalField)
          self.parSmooth = function(tCurr, fldIn, fldOut) fldOut:copy(fldIn) end
          if self.ndim == 3 and not self.discontinuousPhi then
             self.parSmoother = Updater.FemParproj {
-               onGrid = self.grid,  basis = self.basis,
+               onGrid  = self.grid,  basis = self.basis,
+               onField = self:rkStepperFields()[1].phi,
                periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
             }
             self.parSmooth = function(tCurr, fldIn, fldOut)
@@ -592,6 +658,23 @@ function GkField:createSolver(population, externalField)
                     basisType = self.basis:id(),},
       writeRankInComm = {0, population:getComm_host(),}
    }
+end
+
+function GkField:AllgatherFieldZ(fldLocal, fldGlobal)
+   -- Gather a CartField distributed along z onto a global-in-z field.
+   fldLocal:copyRangeToBuffer(fldLocal:localRange(), self.localBuffer:data())
+
+   -- Gather flat buffers from other processes.
+   local mess = self.grid:getMessenger()
+   local comm = mess:getComms()["z"]
+   mess:Allgather(self.localBuffer, self.globalBufferZ, comm) 
+
+   -- Rearrange into a global field, i.e. reconstruct the multi-D array
+   -- using the collection of flat buffers we gathered from each process.
+   for zIdx in self.zCutsRange:colMajorIter() do
+      fldGlobal:copyRangeFromBuffer(self.zDestRange[zIdx[1]],
+         self.globalBufferZ:data()+self.zBufferOffset[zIdx[1]])
+   end
 end
 
 function GkField:createDiagnostics()

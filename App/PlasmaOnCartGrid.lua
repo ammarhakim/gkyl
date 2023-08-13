@@ -12,20 +12,20 @@
 local Alloc = require "Alloc"
 local Basis = require "Basis"
 local DataStruct = require "DataStruct"
+local date = require "xsys.date"
 local DecompRegionCalc = require "Lib.CartDecomp"
+local ffi = require "ffi"
 local Grid = require "Grid"
+local lfs = require "lfs"
 local Lin = require "Lib.Linalg"
 local LinearTrigger = require "Lib.LinearTrigger"
+local lume = require "Lib.lume"
 local Messenger = require "Comm.Messenger"
 local Logger = require "Lib.Logger"
 local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
-local date = require "xsys.date"
-local lfs = require "lfs"
-local lume = require "Lib.lume"
 local xsys = require "xsys"
-local ffi = require "ffi"
 
 math = require("sci.math").generic -- this is global so that it affects input file
 
@@ -161,7 +161,7 @@ local function buildApplication(self, tbl)
 
    -- Object that handles MPI/NCCL communication (some comms are still elsewhere).
    local commManager = Messenger{
-      cells = tbl.cells,   decompCutsConf = tbl.decompCuts,
+      cells      = tbl.cells,   decompCutsConf     = tbl.decompCuts,
       numSpecies = numSpecies,  parallelizeSpecies = tbl.parallelizeSpecies,
    }
 
@@ -211,6 +211,9 @@ local function buildApplication(self, tbl)
 
    -- Distribute species across MPI ranks in species communicator.
    population:decompose()
+
+   -- Create other subcommunicators.
+   commManager:createSubComms(confGrid)
 
    for _, s in population.iterGlobal() do
       s:fullInit(tbl) -- Initialize species.
@@ -430,8 +433,8 @@ local function buildApplication(self, tbl)
       -- Below: an entry per stage (max 4 stages + 2 for operator splitting).
       nFail = {0, 0, 0, 0, 0, 0},
       dtDiff = {{GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.},
-                      {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.},
-                      {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.}},
+                {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.},
+                {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.}},
    }
 
    local function dydt(tCurr, inIdx, outIdx)

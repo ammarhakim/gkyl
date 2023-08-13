@@ -7,15 +7,16 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Proto  = require "Lib.Proto"
-local lume   = require "Lib.lume"
-local Mpi    = require "Comm.Mpi"
-local xsys   = require "xsys"
+local xsys             = require "xsys"
 local DecompRegionCalc = require "Lib.CartDecomp"
-local ffi       = require "ffi"
-local xsys      = require "xsys"
-local sizeof    = xsys.from(ffi, "sizeof")
-local ZeroArray = require "DataStruct.ZeroArray"
+local ffi              = require "ffi"
+local lume             = require "Lib.lume"
+local Mpi              = require "Comm.Mpi"
+local Proto            = require "Lib.Proto"
+local sizeof           = xsys.from(ffi, "sizeof")
+local xsys             = require "xsys"
+local ZeroArray        = require "DataStruct.ZeroArray"
+local Lin              = require "Lib.Linalg"
 local cuda, Nccl
 if GKYL_HAVE_CUDA then
    cuda = require "Cuda.RunTime"
@@ -83,8 +84,19 @@ function Messenger:init(tbl)
       self.commTypes    = {double=Nccl.Double, float=Nccl.Float, int=Nccl.Int}
 
       self.AllreduceByCellFunc = function(fldIn, fldOut, ncclOp, comm)
-         Nccl.AllReduce(fldIn:deviceDataPointer(), fldOut:deviceDataPointer(),
-	    fldIn:size(), self:getCommDataType(fldIn:elemType()), ncclOp, comm, self.ncclStream)
+         Nccl.AllReduce(fldIn:deviceDataPointer(), fldOut:deviceDataPointer(), fldIn:size(),
+            self:getCommDataType(fldIn:elemType()), ncclOp, comm, self.ncclStream)
+         local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
+         while (self.ncclResult[0] == Nccl.InProgress) do
+            local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
+         end
+         -- Completing NCCL operation by synchronizing on the CUDA stream.
+         local _ = cuda.StreamSynchronize(self.ncclStream)
+      end
+      
+      self.AllgatherFunc = function(fldIn, fldOut, comm)
+         Nccl.AllGather(fldIn:deviceDataPointer(), fldOut:deviceDataPointer(), fldIn:size(),
+            self:getCommDataType(fldIn:elemType()), comm, self.ncclStream)
          local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
          while (self.ncclResult[0] == Nccl.InProgress) do
             local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
@@ -126,19 +138,25 @@ function Messenger:init(tbl)
       self.reduceOps    = {max = Mpi.MAX, min = Mpi.MIN, sum = Mpi.SUM}
       self.commTypes    = {double=Mpi.DOUBLE, float=Mpi.FLOAT, int=Mpi.INT}
 
+      self.AllgatherFunc = function(fldIn, fldOut, comm)
+         Mpi.Allgather(fldIn:dataPointer(), fldIn:size(), fldIn:elemCommType(),
+                       fldOut:dataPointer(), fldIn:size(), fldOut:elemCommType(), comm)
+      end
       self.AllreduceByCellFunc = function(fldIn, fldOut, mpiOp, comm)
          Mpi.Allreduce(fldIn:dataPointer(), fldOut:dataPointer(),
             fldOut:size(), fldOut:elemCommType(), mpiOp, comm)
       end
-
       self.SendCartFieldFunc = function(fld, dest, tag, comm)
          Mpi.Send(fld:dataPointer(), fld:size(), fld:elemCommType(), dest, tag, comm)
       end
 
+      self.IallgatherByCellFunc = function(fldIn, fldOut, comm) --TODO: do it in NCCL
+         Mpi.Iallgather(fldIn:dataPointer(), fldIn:size(), fldIn:elemCommType(),
+            fldOut:dataPointer(), fldOut:size(), fldOut:elemCommType(), comm)
+      end
       self.IrecvCartFieldFunc = function(fld, src, tag, comm, req)
          Mpi.Irecv(fld:dataPointer(), fld:size(), fld:elemCommType(), src, tag, comm, req)
       end
-
       self.IsendCartFieldFunc = function(fld, dest, tag, comm, req)
          Mpi.Isend(fld:dataPointer(), fld:size(), fld:elemCommType(), dest, tag, comm, req)
       end
@@ -205,52 +223,89 @@ function Messenger:initGPUcomms()
    self.ncclStream = cuda.StreamCreate()
 end
 
-function Messenger:getComms()       return self.defaultComms end
-function Messenger:getWorldComm()   return self.defaultComms["world"] end
-function Messenger:getConfComm()    return self.defaultComms["conf"] end
-function Messenger:getSpeciesComm() return self.defaultComms["species"] end
+function Messenger:createSubComms(grid)
+   -- Create subcommunicators along some dimensions.
+   local decompRange  = grid:decomposedRange()
+   local cutsIdxr     = decompRange:cutsIndexer()
+   local cutsRange    = decompRange:cutsRange()
+   local subdomainIdx = {} -- Grid ID on this processor.
+   decompRange:cutsInvIndexer()(grid:subGridId(), subdomainIdx)
+   local confComm = self:getConfComm_host()
+   local group = Mpi.Comm_group(confComm)
 
-function Messenger:getConfComm_host()    return self.confComm end
-function Messenger:getSpeciesComm_host() return self.speciesComm end
-function Messenger:getConfComm_device()    return self.confComm_dev end
-function Messenger:getSpeciesComm_device() return self.speciesComm_dev end
+   local ndim = grid:ndim()
+   -- Create comm along the last dimension.
+   local zNumRanks = decompRange:cuts(ndim)
+   local zCommGroupRanks = Lin.IntVec(zNumRanks)
+   local j = 0
+   for idx in cutsRange:colMajorIter() do  -- MPI processes are column-major ordered.
+      local sameXY = true
+      for d = ndim-1,1,-1 do sameXY = sameXY and idx[d] == subdomainIdx[d] end
+      if sameXY then
+         j = j+1;  zCommGroupRanks[j] = cutsIdxr(idx)-1
+      end
+   end
+   local zGroup   = Mpi.Group_incl(group, zNumRanks, zCommGroupRanks:data());
+   local tag = ndim > 1 and subdomainIdx[1]-1 or 0
+   for d = ndim-2,1,-1 do 
+      tag = tag + (subdomainIdx[d+1]-1)*decompRange:cuts(d)
+   end
+   self.confCommZ = Mpi.Comm_create_group(confComm, zGroup, tag);
+   Mpi.Group_free(zGroup)
 
-function Messenger:getRanks() return {world=self.worldRank, conf=self.confRank, species=self.speciesRank} end
-function Messenger:getWorldRank() return self.worldRank end
-function Messenger:getConfRank() return self.confRank end
-function Messenger:getSpeciesRank() return self.speciesRank end
+   -- Create a x-y communicator.
+   local xyNumRanks = 1
+   for d = ndim-1,1,-1 do xyNumRanks = xyNumRanks*decompRange:cuts(d) end
+   local xyCommGroupRanks = Lin.IntVec(xyNumRanks)
+   local j = 0
+   for idx in cutsRange:colMajorIter() do  -- MPI processes are column-major ordered.
+      if idx[ndim] == subdomainIdx[ndim] then
+         j = j+1;  xyCommGroupRanks[j] = cutsIdxr(idx)-1
+      end
+   end
+   local xyGroup   = Mpi.Group_incl(group, xyNumRanks, xyCommGroupRanks:data());
+   local tag       = subdomainIdx[ndim]-1
+   self.confCommXY = Mpi.Comm_create_group(confComm, xyGroup, tag);
+   Mpi.Group_free(xyGroup)
 
-function Messenger:getConfDecompCuts() return self.decompCutsConf end
-function Messenger:getSpeciesDecompCuts() return self.decompCutsSpecies end
+   self.subComms = {z = self.confCommZ, xy = self.confCommXY}
 
-function Messenger:getConfDecomp() return self.decompConf end
+   if GKYL_USE_GPU then
+      -- Create NCCL comms.
+      self.confCommZ_dev, self.ncclIdConfZ   = self:newNCCLcomm(self.confCommZ)
+      self.confCommXY_dev, self.ncclIdConfXY = self:newNCCLcomm(self.confCommXY)
+      self.defaultComms["z"]  = self.confCommZ_dev
+      self.defaultComms["xy"] = self.confCommXY_dev
+      self.subComms_dev       = {z = self.confCommZ_dev, xy = self.confCommXY_dev}
+      self.defaultSubComms    = self.subComms_dev
+   else
+      self.defaultComms["z"]  = self.confCommZ
+      self.defaultComms["xy"] = self.confCommXY
+      self.defaultSubComms    = self.subComms
+   end
 
-function Messenger:getCommDataType(dataType)
-   local dataCommType = type(dataType)=="string" and self.commTypes[dataType]
-                       or (ffi.istype("double",dataType) and self.commTypes["double"] or
-                           (ffi.istype("int",dataType) and self.commTypes["int"] or
-                            (ffi.istype("float",dataType) and self.commTypes["float"] or
-		             assert(false,"Messenger: type not supported"))))
-   return dataCommType
+   Mpi.Group_free(group)
 end
 
-function Messenger:AllreduceByCell(fieldIn, fieldOut, op, comm)
-   self.AllreduceByCellFunc(fieldIn, fieldOut, self.reduceOps[op], comm)
-end
+function Messenger:newNCCLcomm(mpiComm)
+   local commConfig = Nccl.Config()
+   commConfig[0].blocking = 0;   -- Nonblocking comm.
 
-function Messenger:SendCartField(fld, dest, tag, comm)
-   self.SendCartFieldFunc(fld, dest, tag, comm)
-end
+   -- Get NCCL unique ID at rank 0 and broadcast it to all others.
+   local ncclId = Nccl.UniqueId()
+   local mpiRank, mpiCommSize = Mpi.Comm_rank(mpiComm), Mpi.Comm_size(mpiComm)
+   if mpiRank == 0 then local _ = Nccl.GetUniqueId(ncclId) end
+   Mpi.Bcast(ncclId, sizeof(ncclId), Mpi.BYTE, 0, mpiComm)
 
-function Messenger:IsendCartField(fld, dest, tag, comm, req)
-   self.IsendCartFieldFunc(fld, dest, tag, comm, req)
-end
+   local ncclComm = Nccl.Comm()
+   local _ = Nccl.CommInitRankConfig(ncclComm, mpiCommSize, ncclId, mpiRank, commConfig)
+   local _ = Nccl.CommGetAsyncError(ncclComm, self.ncclResult)
+   while (self.ncclResult[0] == Nccl.InProgress) do
+      local _ = Nccl.CommGetAsyncError(ncclComm, self.ncclResult)
+   end
 
-function Messenger:IrecvCartField(fld, src, tag, comm, req)
-   self.IrecvCartFieldFunc(fld, src, tag, comm, req)
+   return ncclComm, ncclId
 end
-
-function Messenger:Wait(req, stat, comm) self.WaitFunc(req, stat, comm) end
 
 function Messenger:chooseSyncBuf(fld)
    local nc = fld:numComponents()
@@ -298,11 +353,11 @@ function Messenger:syncCartFieldMPI(fld, comm)
       -- Copy data to send buffer, and send it.
       local sendRgn = fld._syncSendRng[rank]
       local sendSz  = nc*sendRgn:volume()
-      fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
+      fld:copyRangeToBuffer(sendRgn, sendBuf:data()) -- copy from skin cells.
       Mpi.Send(sendPtr, sendSz, dataType, rank-1, tag, comm)
       -- Complete the recv and copy data from buffer to field.
       local _ = Mpi.Wait(self.syncReqStat, self.syncReqStat)
-      fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
+      fld:copyRangeFromBuffer(recvRgn, recvBuf:data()) -- copy data into ghost cells.
    end
 end
 
@@ -329,12 +384,12 @@ function Messenger:syncCartFieldNCCL(fld, comm)
             Nccl.Recv(recvPtr, recvSz, dataType, rank-1, comm, self.ncclStream)
             -- Complete the recv and copy data from buffer to field.
             self:Wait(req, stat, comm)
-            fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
+            fld:copyRangeFromBuffer(recvRgn, recvBuf:data()) -- copy data into ghost cells.
          else
             -- Copy data to send buffer, and send it.
             local sendRgn = fld._syncSendRng[rank]
             local sendSz  = nc*sendRgn:volume()
-            fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
+            fld:copyRangeToBuffer(sendRgn, sendBuf:data()) -- copy from skin cells.
             Nccl.Send(sendPtr, sendSz, dataType, rank-1, comm, self.ncclStream)
             -- Complete the send.
             self:Wait(req, stat, comm)
@@ -342,10 +397,6 @@ function Messenger:syncCartFieldNCCL(fld, comm)
 	 isLo = not isLo
       end
    end
-end
-
-function Messenger:syncCartField(fld, comm)
-   self.syncCartFieldFunc(fld, comm)
 end
 
 function Messenger:syncPeriodicCartFieldMPI(fld, comm, dirs)
@@ -379,11 +430,11 @@ function Messenger:syncPeriodicCartFieldMPI(fld, comm, dirs)
             -- Copy data to send buffer, and send it.
             local sendRgn = fld._syncPerSendRng[dir]
             local sendSz  = nc*sendRgn:volume()
-            fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
+            fld:copyRangeToBuffer(sendRgn, sendBuf:data()) -- copy from skin cells.
             Mpi.Send(sendPtr, sendSz, dataType, rank-1, tag, comm)
             -- Complete the recv and copy data from buffer to field.
             local _ = Mpi.Wait(self.syncReqStat, self.syncReqStat)
-            fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
+            fld:copyRangeFromBuffer(recvRgn, recvBuf:data()) -- copy data into ghost cells.
          end
       end
    end
@@ -421,12 +472,12 @@ function Messenger:syncPeriodicCartFieldNCCL(fld, comm, dirs)
                   Nccl.Recv(recvPtr, recvSz, dataType, rank-1, comm, self.ncclStream)
                   -- Complete the recv and copy data from buffer to field.
                   self:Wait(req, stat, comm)
-                  fld:_copy_to_field_region(recvRgn, recvBuf) -- copy data into ghost cells.
+                  fld:copyRangeFromBuffer(recvRgn, recvBuf:data()) -- copy data into ghost cells.
                else
                   -- Copy data to send buffer, and send it.
                   local sendRgn = fld._syncPerSendRng[dir]
                   local sendSz  = nc*sendRgn:volume()
-                  fld:_copy_from_field_region(sendRgn, sendBuf) -- copy from skin cells.
+                  fld:copyRangeToBuffer(sendRgn, sendBuf:data()) -- copy from skin cells.
                   Nccl.Send(sendPtr, sendSz, dataType, rank-1, comm, self.ncclStream)
                   -- Complete the send.
                   self:Wait(req, stat, comm)
@@ -436,6 +487,64 @@ function Messenger:syncPeriodicCartFieldNCCL(fld, comm, dirs)
          end
       end
    end
+end
+
+function Messenger:getComms()       return self.defaultComms end
+function Messenger:getWorldComm()   return self.defaultComms["world"] end
+function Messenger:getConfComm()    return self.defaultComms["conf"] end
+function Messenger:getSpeciesComm() return self.defaultComms["species"] end
+function Messenger:getSubComms()    return self.defaultSubComms end
+
+function Messenger:getConfComm_host()    return self.confComm end
+function Messenger:getSpeciesComm_host() return self.speciesComm end
+function Messenger:getSubComms_host()       return self.subComms end
+function Messenger:getConfComm_device()    return self.confComm_dev end
+function Messenger:getSpeciesComm_device() return self.speciesComm_dev end
+function Messenger:getSubComms_device()       return self.subComms_dev end
+
+function Messenger:getRanks() return {world=self.worldRank, conf=self.confRank, species=self.speciesRank} end
+function Messenger:getWorldRank() return self.worldRank end
+function Messenger:getConfRank() return self.confRank end
+function Messenger:getSpeciesRank() return self.speciesRank end
+
+function Messenger:getConfDecompCuts() return self.decompCutsConf end
+function Messenger:getSpeciesDecompCuts() return self.decompCutsSpecies end
+
+function Messenger:getConfDecomp() return self.decompConf end
+
+function Messenger:getCommDataType(dataType)
+   local dataCommType = type(dataType)=="string" and self.commTypes[dataType]
+                       or (ffi.istype("double",dataType) and self.commTypes["double"] or
+                           (ffi.istype("int",dataType) and self.commTypes["int"] or
+                            (ffi.istype("float",dataType) and self.commTypes["float"] or
+		             assert(false,"Messenger: type not supported"))))
+   return dataCommType
+end
+
+function Messenger:AllreduceByCell(fieldIn, fieldOut, op, comm)
+   self.AllreduceByCellFunc(fieldIn, fieldOut, self.reduceOps[op], comm)
+end
+
+function Messenger:Allgather(localField, globalField, comm)
+   self.AllgatherFunc(localField, globalField, comm)
+end
+
+function Messenger:SendCartField(fld, dest, tag, comm)
+   self.SendCartFieldFunc(fld, dest, tag, comm)
+end
+
+function Messenger:IsendCartField(fld, dest, tag, comm, req)
+   self.IsendCartFieldFunc(fld, dest, tag, comm, req)
+end
+
+function Messenger:IrecvCartField(fld, src, tag, comm, req)
+   self.IrecvCartFieldFunc(fld, src, tag, comm, req)
+end
+
+function Messenger:Wait(req, stat, comm) self.WaitFunc(req, stat, comm) end
+
+function Messenger:syncCartField(fld, comm)
+   self.syncCartFieldFunc(fld, comm)
 end
 
 function Messenger:syncPeriodicCartField(fld, comm, dirs)
