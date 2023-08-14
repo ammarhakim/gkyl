@@ -109,7 +109,6 @@ function VlasovEmissionBC:initCrossSpeciesCoupling(species)
 end
 
 function VlasovEmissionBC:createSolver(mySpecies, field, externalField)
-
    self.basis, self.grid = mySpecies.basis, mySpecies.grid
    self.ndim, self.cdim, self.vdim = self.grid:ndim(), self.confGrid:ndim(), self.grid:ndim()-self.confGrid:ndim()
 
@@ -119,6 +118,8 @@ function VlasovEmissionBC:createSolver(mySpecies, field, externalField)
    self.globalGhostRange = self.bcEdge=="lower" and distf:localGhostRangeLower()[self.bcDir]
                                                   or distf:localGhostRangeUpper()[self.bcDir]
    self:createBoundaryGrid(self.globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
+   -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
+   self:createConfBoundaryGrid(self.globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
    
    -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
    self.allocCartField = function(self, grid, nComp, ghosts, metaData)
@@ -138,9 +139,6 @@ function VlasovEmissionBC:createSolver(mySpecies, field, externalField)
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
    -- the fluxes through a boundary (e.g. neutral recycling).
    if self.saveFlux then
-
-      -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
-      self:createConfBoundaryGrid(self.globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
 
       self.allocMoment = function(self)
          return self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, numDensity:getMetaData())
