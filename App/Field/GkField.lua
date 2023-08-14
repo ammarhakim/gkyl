@@ -217,11 +217,11 @@ function GkField:setGrid(grid)
       cuts = xyCuts,  comm = xyComm,
    }
    self.gridGlobalZ = GridConstructor {
-      lower = gridInfo.lower,  world    = gridInfo.world, --no usages
-      upper = gridInfo.upper,  mappings = gridInfo.coordinateMap, --where wouold I find this?
-      cells = gridInfo.cells,  mapc2p   = gridInfo.mapc2p, -- not in RectCart
-      periodicDirs  = gridInfo.getPeriodicDirs,
-      messenger     = grid:getMessenger(),
+      lower = gridInfo.lower,  world    = gridInfo.world,
+      upper = gridInfo.upper,  mappings = gridInfo.coordinateMap,
+      cells = gridInfo.cells,  mapc2p   = gridInfo.mapc2p,
+      periodicDirs  = gridInfo.periodicDirs,
+      messenger     = gridInfo.messenger,
       decomposition = xyDecomp,
    }
 end
