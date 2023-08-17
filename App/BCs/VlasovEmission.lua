@@ -25,18 +25,18 @@ local VlasovEmissionBC = Proto(BCsBase)
 -- Store table passed to it and defer construction to :fullInit().
 function VlasovEmissionBC:init(tbl) self.tbl = tbl end
 
-function VlasovEmissionBC:ChungEverhart(t, xn, mass, charge, phi)
+function VlasovEmissionBC:ChungEverhart(t, xn, phi)
    local E = 0.0
    for d = self.cdim+1, self.cdim+self.vdim do
-      E = E + 0.5*mass*xn[d]^2/math.abs(charge)
+      E = E + 0.5*self.mass*xn[d]^2/math.abs(self.charge)
    end
    return E/(E + phi)^4
 end
 
-function VlasovEmissionBC:Gaussian(t, xn, mass, charge, E_0, tau)
+function VlasovEmissionBC:Gaussian(t, xn, E_0, tau)
    local E = 0.0
    for d = self.cdim+1, self.cdim+self.vdim do
-      E = E + 0.5*mass*xn[d]^2/math.abs(charge)
+      E = E + 0.5*self.mass*xn[d]^2/math.abs(self.charge)
    end
    return math.exp(-math.log(E/E_0)^2/(2.0*tau^2))
 end
@@ -58,24 +58,24 @@ function VlasovEmissionBC:fullInit(mySpecies)
    self.charge = mySpecies.charge
    for ispec, otherNm in ipairs(self.inSpecies) do
       self.bcParam[otherNm] = Lin.Vec(10)
-      self.bcParam[otherNm]:data()[0] = assert(tbl.spectrumFit[ispec].mass, "VlasovEmissionBC: must specify the emitted species mass in 'mass'.")
-      self.bcParam[otherNm]:data()[1] = assert(tbl.spectrumFit[ispec].charge, "VlasovEmissionBC: must specify the emitted species charge in 'charge'.")
+      self.bcParam[otherNm]:data()[0] = self.mass
+      self.bcParam[otherNm]:data()[1] = self.charge
       if self.bcKind == "chung-everhart" then
 	 self.bcParam[otherNm]:data()[2] = assert(tbl.spectrumFit[ispec].phi, "VlasovEmissionBC: must specify the material work function in 'phi'.")
          self.proj[otherNm] = Projection.KineticProjection.FunctionProjection
-	    { func = function(t, zn) return self:ChungEverhart(t, zn, self.bcParam[otherNm]:data()[0], self.bcParam[otherNm]:data()[1], self.bcParam[otherNm]:data()[2]) end, }
+	    { func = function(t, zn) return self:ChungEverhart(t, zn, self.bcParam[otherNm]:data()[2]) end, }
       elseif self.bcKind == "gaussian" then
          self.bcParam[otherNm]:data()[2] = assert(tbl.spectrumFit[ispec].E0, "VlasovEmissionBC: must specify fitting parameter 'E0'.")
          self.bcParam[otherNm]:data()[3] = assert(tbl.spectrumFit[ispec].tau, "VlasovEmissionBC: must specify fitting parameter 'tau'.")
 	 self.proj[otherNm] = Projection.KineticProjection.FunctionProjection
-            { func = function(t, zn) return self:Gaussian(t, zn, self.bcParam[otherNm]:data()[0], self.bcParam[otherNm]:data()[1], self.bcParam[otherNm]:data()[2], self.bcParam[otherNm]:data()[3]) end, }
+            { func = function(t, zn) return self:Gaussian(t, zn, self.bcParam[otherNm]:data()[2], self.bcParam[otherNm]:data()[3]) end, }
       else
          assert(false, "VlasovEmissionBC: Fitting model not recognized.")
       end
       self.gammaParam[otherNm] = Lin.Vec(10)
       if self.gammaKind == "furman-pivi" then
-	 self.gammaParam[otherNm]:data()[0] = self.mass
-	 self.gammaParam[otherNm]:data()[1] = self.charge
+	 self.gammaParam[otherNm]:data()[0] = assert(tbl.yieldFit[ispec].mass, "VlasovEmissionBC: must specify the impacting species mass in 'mass'.")
+	 self.gammaParam[otherNm]:data()[1] = assert(tbl.yieldFit[ispec].charge, "VlasovEmissionBC: must specify the impacting species charge in 'charge'.")
          self.gammaParam[otherNm]:data()[2] = assert(tbl.yieldFit[ispec].gammahat_ts, "VlasovEmissionBC: must specify fitting parameter 'gammahat_ts'.")
 	 self.gammaParam[otherNm]:data()[3] = assert(tbl.yieldFit[ispec].Ehat_ts, "VlasovEmissionBC: must specify fitting parameter 'Ehat_ts'.")
 	 self.gammaParam[otherNm]:data()[4] = assert(tbl.yieldFit[ispec].t1, "VlasovEmissionBC: must specify fitting parameter 't1'.")
