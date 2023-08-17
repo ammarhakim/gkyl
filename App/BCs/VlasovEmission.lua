@@ -25,18 +25,18 @@ local VlasovEmissionBC = Proto(BCsBase)
 -- Store table passed to it and defer construction to :fullInit().
 function VlasovEmissionBC:init(tbl) self.tbl = tbl end
 
-function VlasovEmissionBC:ChungEverhart(t, xn, phi)
+function VlasovEmissionBC:ChungEverhart(t, xn, mass, charge, phi)
    local E = 0.0
    for d = self.cdim+1, self.cdim+self.vdim do
-      E = E + 0.5*self.mass*xn[d]^2/math.abs(self.charge)
+      E = E + 0.5*mass*xn[d]^2/math.abs(charge)
    end
    return E/(E + phi)^4
 end
 
-function VlasovEmissionBC:Gaussian(t, xn, E_0, tau)
+function VlasovEmissionBC:Gaussian(t, xn, mass, charge, E_0, tau)
    local E = 0.0
    for d = self.cdim+1, self.cdim+self.vdim do
-      E = E + 0.5*self.mass*xn[d]^2/math.abs(self.charge)
+      E = E + 0.5*mass*xn[d]^2/math.abs(charge)
    end
    return math.exp(-math.log(E/E_0)^2/(2.0*tau^2))
 end
@@ -63,12 +63,12 @@ function VlasovEmissionBC:fullInit(mySpecies)
       if self.bcKind == "chung-everhart" then
 	 self.bcParam[otherNm]:data()[2] = assert(tbl.spectrumFit[ispec].phi, "VlasovEmissionBC: must specify the material work function in 'phi'.")
          self.proj[otherNm] = Projection.KineticProjection.FunctionProjection
-	    { func = function(t, zn) return self:ChungEverhart(t, zn, self.bcParam[otherNm]:data()[2]) end, }
+	    { func = function(t, zn) return self:ChungEverhart(t, zn, self.bcParam[otherNm]:data()[0], self.bcParam[otherNm]:data()[1], self.bcParam[otherNm]:data()[2]) end, }
       elseif self.bcKind == "gaussian" then
          self.bcParam[otherNm]:data()[2] = assert(tbl.spectrumFit[ispec].E0, "VlasovEmissionBC: must specify fitting parameter 'E0'.")
          self.bcParam[otherNm]:data()[3] = assert(tbl.spectrumFit[ispec].tau, "VlasovEmissionBC: must specify fitting parameter 'tau'.")
 	 self.proj[otherNm] = Projection.KineticProjection.FunctionProjection
-            { func = function(t, zn) return self:Gaussian(t, zn, self.bcParam[otherNm]:data()[2], self.bcParam[otherNm]:data()[3]) end, }
+            { func = function(t, zn) return self:Gaussian(t, zn, self.bcParam[otherNm]:data()[0], self.bcParam[otherNm]:data()[1], self.bcParam[otherNm]:data()[2], self.bcParam[otherNm]:data()[3]) end, }
       else
          assert(false, "VlasovEmissionBC: Fitting model not recognized.")
       end
