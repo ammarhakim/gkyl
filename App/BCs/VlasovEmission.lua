@@ -58,8 +58,8 @@ function VlasovEmissionBC:fullInit(mySpecies)
    self.charge = mySpecies.charge
    for ispec, otherNm in ipairs(self.inSpecies) do
       self.bcParam[otherNm] = Lin.Vec(10)
-      self.bcParam[otherNm]:data()[0] = self.mass
-      self.bcParam[otherNm]:data()[1] = self.charge
+      self.bcParam[otherNm]:data()[0] = assert(tbl.spectrumFit[ispec].mass, "VlasovEmissionBC: must specify the emitted species mass in 'mass'.")
+      self.bcParam[otherNm]:data()[1] = assert(tbl.spectrumFit[ispec].charge, "VlasovEmissionBC: must specify the emitted species charge in 'charge'.")
       if self.bcKind == "chung-everhart" then
 	 self.bcParam[otherNm]:data()[2] = assert(tbl.spectrumFit[ispec].phi, "VlasovEmissionBC: must specify the material work function in 'phi'.")
          self.proj[otherNm] = Projection.KineticProjection.FunctionProjection
@@ -74,13 +74,15 @@ function VlasovEmissionBC:fullInit(mySpecies)
       end
       self.gammaParam[otherNm] = Lin.Vec(10)
       if self.gammaKind == "furman-pivi" then
-         self.gammaParam[otherNm]:data()[0] = assert(tbl.yieldFit[ispec].gammahat_ts, "VlasovEmissionBC: must specify fitting parameter 'gammahat_ts'.")
-	 self.gammaParam[otherNm]:data()[1] = assert(tbl.yieldFit[ispec].Ehat_ts, "VlasovEmissionBC: must specify fitting parameter 'Ehat_ts'.")
-	 self.gammaParam[otherNm]:data()[2] = assert(tbl.yieldFit[ispec].t1, "VlasovEmissionBC: must specify fitting parameter 't1'.")
-	 self.gammaParam[otherNm]:data()[3] = assert(tbl.yieldFit[ispec].t2, "VlasovEmissionBC: must specify fitting parameter 't2'.")
-	 self.gammaParam[otherNm]:data()[4] = assert(tbl.yieldFit[ispec].t3, "VlasovEmissionBC: must specify fitting parameter 't3'.")
-	 self.gammaParam[otherNm]:data()[5] = assert(tbl.yieldFit[ispec].t4, "VlasovEmissionBC: must specify fitting parameter 't4'.")
-	 self.gammaParam[otherNm]:data()[6] = assert(tbl.yieldFit[ispec].s, "VlasovEmissionBC: must specify fitting parameter 's'.")
+	 self.gammaParam[otherNm]:data()[0] = self.mass
+	 self.gammaParam[otherNm]:data()[1] = self.charge
+         self.gammaParam[otherNm]:data()[2] = assert(tbl.yieldFit[ispec].gammahat_ts, "VlasovEmissionBC: must specify fitting parameter 'gammahat_ts'.")
+	 self.gammaParam[otherNm]:data()[3] = assert(tbl.yieldFit[ispec].Ehat_ts, "VlasovEmissionBC: must specify fitting parameter 'Ehat_ts'.")
+	 self.gammaParam[otherNm]:data()[4] = assert(tbl.yieldFit[ispec].t1, "VlasovEmissionBC: must specify fitting parameter 't1'.")
+	 self.gammaParam[otherNm]:data()[5] = assert(tbl.yieldFit[ispec].t2, "VlasovEmissionBC: must specify fitting parameter 't2'.")
+	 self.gammaParam[otherNm]:data()[6] = assert(tbl.yieldFit[ispec].t3, "VlasovEmissionBC: must specify fitting parameter 't3'.")
+	 self.gammaParam[otherNm]:data()[7] = assert(tbl.yieldFit[ispec].t4, "VlasovEmissionBC: must specify fitting parameter 't4'.")
+	 self.gammaParam[otherNm]:data()[8] = assert(tbl.yieldFit[ispec].s, "VlasovEmissionBC: must specify fitting parameter 's'.")
       else
          assert(false, "VlasovEmissionBC: SEY model not recognized.")   
       end
