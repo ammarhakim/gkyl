@@ -365,7 +365,7 @@ function VlasovEmissionBC:advanceCrossSpeciesCoupling(tCurr, species, inIdx, out
       local mout = self.bcFlux[otherNm]
 
       local confRange = mout:localExtRange()
-      local phaseRange = qIn:localPosRange()[self.bcDir+self.cdim]
+      local phaseRange = self.bcEdge=="lower" and qIn:localNegRange()[self.bcDir+self.cdim] or qIn:localPosRange()[self.bcDir+self.cdim]
       bc.integNumDensityCalc:advance(tCurr, {qIn, confRange, phaseRange}, {mout})
 
       local fOther = otherSpecies:rkStepperFields()[inIdx]
