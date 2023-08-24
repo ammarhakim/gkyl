@@ -62,7 +62,8 @@ void gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *u
   struct gkyl_array *f_skin, const struct gkyl_array *f_proj, struct gkyl_array *f_buff,
   struct gkyl_array *weight, struct gkyl_array *k,
   const struct gkyl_array *flux, struct gkyl_rect_grid *grid, struct gkyl_array *gamma,
-  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_range *conf_r);
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_range *conf_r,
+  const struct gkyl_range *buff_r);
 
 void gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *gamma, struct gkyl_rect_grid *grid, const struct gkyl_range *ghost_r);
 
@@ -152,7 +153,8 @@ function EmissionSpectrumBc:_advance(tCurr, inFld, outFld)
       "EmissionSpectrumBc.advance: Must-specify other species range")
    local boundRange = gamma:localRange()
    local confRange = weight:localRange()
-   ffiC.gkyl_bc_emission_spectrum_advance(self._zero, fOther._zero, fProj._zero, fBuff._zero, weight._zero, k._zero, flux._zero, inGrid._zero, gamma._zero, otherRange, boundRange, confRange)
+   local buffRange = fBuff:localRange()
+   ffiC.gkyl_bc_emission_spectrum_advance(self._zero, fOther._zero, fProj._zero, fBuff._zero, weight._zero, k._zero, flux._zero, inGrid._zero, gamma._zero, otherRange, boundRange, confRange, buffRange)
 end
 
 function EmissionSpectrumBc:_advanceOnDevice(tCurr, inFld, outFld)
@@ -178,7 +180,8 @@ function EmissionSpectrumBc:_advanceOnDevice(tCurr, inFld, outFld)
       "EmissionSpectrumBc.advance: Must-specify other species range")
    local boundRange = gamma:localRange()
    local confRange = weight:localRange()
-   ffiC.gkyl_bc_emission_spectrum_advance(self._zero, fOther._zeroDevice, fProj._zeroDevice, fBuff._zeroDevice, weight._zeroDevice, k._zeroDevice, flux._zeroDevice, inGrid._zero, gamma._zeroDevice, otherRange, boundRange, confRange)
+   local buffRange = fBuff:localRange()
+   ffiC.gkyl_bc_emission_spectrum_advance(self._zero, fOther._zeroDevice, fProj._zeroDevice, fBuff._zeroDevice, weight._zeroDevice, k._zeroDevice, flux._zeroDevice, inGrid._zero, gamma._zeroDevice, otherRange, boundRange, confRange, buffRange)
 end
 
 function EmissionSpectrumBc:getDir() return self._dir end
