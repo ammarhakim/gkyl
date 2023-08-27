@@ -162,6 +162,8 @@ function VlasovSpecies:createSolver(field, externalField)
 
    self.computePlasmaB = true and plasmaB or extHasB   -- Differentiate plasma B from external B.
 
+   -- Create table of pointers to fields needed in update
+   self.fldPtrs = {self.totalEmField}
    -- Create updater to advance solution by one time-step.
    if self.evolveCollisionless then
       self.solver = Updater.VlasovDG {
@@ -169,7 +171,7 @@ function VlasovSpecies:createSolver(field, externalField)
          confBasis  = self.confBasis,                  hasMagneticField = hasB,
          phaseBasis = self.basis,                      hasExtForce      = self.hasExtForce,
          confRange  = self.totalEmField:localRange(),  phaseRange       = self.distf[1]:localRange(),  
-         plasmaMagField = self.computePlasmaB
+         plasmaMagField = self.computePlasmaB,         fldPtrs          = self.fldPtrs, 
       }
       self.collisionlessAdvance = function(tCurr, inFlds, outFlds)
          self.solver:advance(tCurr, inFlds, outFlds)
