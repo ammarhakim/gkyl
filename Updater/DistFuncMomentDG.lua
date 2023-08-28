@@ -55,31 +55,14 @@ gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid,
  * @param moment moment updater object
  * @param update_phase_rng Phase space range on which to compute.
  * @param update_conf_rng Configuration space range on which to compute.
- * Auxiliary variables used by special relativistic vlasov solver
- * @param p_over_gamma p/gamma (velocity)
- * @param gamma gamma = sqrt(1 + p^2)
- * @param gamma_inv gamma_inv = 1/gamma = 1/sqrt(1 + p^2)
- * @param V_drift bulk fluid velocity (computed from M0*V_drift = M1i with weak division)
- * @param GammaV2 Gamma^2 = 1/(1 - V_drift^2/c^2), Lorentz boost factor squared from bulk fluid velocity
- * @param GammaV_inv Gamma_inv = sqrt(1 - V_drift^2/c^2), inverse Lorentz boost factor from bulk fluid velocity
+ * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
  * @param fIn Input to updater
  * @param mout Output moment
  */
 void
 gkyl_dg_updater_moment_advance(struct gkyl_dg_updater_moment *moment,
   const struct gkyl_range *update_phase_rng, const struct gkyl_range *update_conf_rng,
-  const struct gkyl_array *p_over_gamma, const struct gkyl_array *gamma, 
-  const struct gkyl_array *gamma_inv, const struct gkyl_array *V_drift, 
-  const struct gkyl_array *GammaV2, const struct gkyl_array *GammaV_inv, 
-  const struct gkyl_array* fIn, struct gkyl_array* mout);
-
-void
-gkyl_dg_updater_moment_advance_cu(struct gkyl_dg_updater_moment *moment,
-  const struct gkyl_range *update_phase_rng, const struct gkyl_range *update_conf_rng,
-  const struct gkyl_array *p_over_gamma, const struct gkyl_array *gamma, 
-  const struct gkyl_array *gamma_inv, const struct gkyl_array *V_drift, 
-  const struct gkyl_array *GammaV2, const struct gkyl_array *GammaV_inv, 
-  const struct gkyl_array* fIn, struct gkyl_array* mout);
+  void *aux_inp, const struct gkyl_array* fIn, struct gkyl_array* mout);
 
 /**
  * Delete updater.
@@ -105,7 +88,8 @@ function DistFuncMomentDG:init(tbl)
 
    local useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU)
 
-   self._zero = ffi.gc(ffiC.gkyl_dg_updater_moment_new(self._onGrid._zero, self._confBasis._zero, self._phaseBasis._zero, nil, nil, self._modelId, self._moment, self._isIntegrated, 0.0, useGPU or 0),
+   self._zero = ffi.gc(ffiC.gkyl_dg_updater_moment_new(self._onGrid._zero, self._confBasis._zero, self._phaseBasis._zero, 
+                       nil, nil, self._modelId, self._moment, self._isIntegrated, 0.0, useGPU or 0),
                        ffiC.gkyl_dg_updater_moment_release)
 end
 
@@ -117,7 +101,7 @@ function DistFuncMomentDG:_advance(tCurr, inFld, outFld)
    local confRange = mOut:localExtRange()
    local phaseRange = qIn:localExtRange()
 
-   ffiC.gkyl_dg_updater_moment_advance(self._zero, phaseRange, confRange, nil, nil, nil, nil, nil, nil, qIn._zero, mOut._zero)
+   ffiC.gkyl_dg_updater_moment_advance(self._zero, phaseRange, confRange, nil, qIn._zero, mOut._zero)
 end
 
 function DistFuncMomentDG:_advanceOnDevice(tCurr, inFld, outFld)
@@ -127,7 +111,7 @@ function DistFuncMomentDG:_advanceOnDevice(tCurr, inFld, outFld)
    local confRange = mOut:localExtRange()
    local phaseRange = qIn:localExtRange()
 
-   ffiC.gkyl_dg_updater_moment_advance_cu(self._zero, phaseRange, confRange, nil, nil, nil, nil, nil, nil, qIn._zeroDevice, mOut._zeroDevice)
+   ffiC.gkyl_dg_updater_moment_advance(self._zero, phaseRange, confRange, nil, qIn._zeroDevice, mOut._zeroDevice)
 end
 
 
