@@ -309,6 +309,12 @@ function GkSpecies:fullInit(appTbl)
    self.nGhost = 1   -- Default is 1 ghost-cell in each direction.
 
    self.tCurr = 0.0
+
+   self.timers = {
+      mom = 0.,   momcross = 0.,   advance = 0.,
+      advancecross = 0.,   collisions = 0.,   collisionless = 0.,
+      boundflux = 0.,  sources = 0.,   bc = 0.,
+   }
 end
 
 function GkSpecies:setCfl(cfl)
@@ -725,12 +731,6 @@ function GkSpecies:createSolver(field, externalField)
 
    -- Create species source solvers.
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
-
-   self.timers = {
-      mom = 0.,   momcross = 0.,   advance = 0.,
-      advancecross = 0.,   collisions = 0.,   collisionless = 0.,
-      boundflux = 0.,  sources = 0.,   bc = 0.,
-   }
 end
 
 function GkSpecies:createCouplingSolver(population, field, externalField)

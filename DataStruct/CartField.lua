@@ -272,50 +272,11 @@ local function Field_meta_ctor(elct)
          self._decompNeigh:calcFaceCommNeigh(ghost[1], ghost[2])
       end
 
-      -- Pre-create MPI DataTypes for send/recv calls when doing ghost-cell
-      -- sync(). Using MPI DataTypes, we do not require temporary buffers
-      -- for send/recv.
-      -- Also pre-create the location in memory required so that we know 
-      -- what parts of the data structure are being sent and received to.
-      self._sendMPIDataType, self._recvMPIDataType = {}, {}
-      self._sendMPILoc, self._recvMPILoc = {}, {}
-      self._recvMPIReq = {}
       local localExtRange   = self._localExtRange
       local indexer         = self:genIndexer()
       local decomposedRange = self._grid:decomposedRange()
       local myId            = self._grid:subGridId() -- Grid ID on this processor.
       local neigIds         = self._decompNeigh:neighborData(myId) -- List of neighbors.
-
-      for _, sendId in ipairs(neigIds) do
-         local neighRgn = decomposedRange:subDomain(sendId)
-         local sendRgn  = self._localRange:intersect(
-            neighRgn:extend(self._lowerGhost, self._upperGhost))
-         local idx      = sendRgn:lowerAsVec()
-         -- Set idx to starting point of region you want to recv.
-         self._sendMPILoc[sendId]      = (indexer(idx)-1)*self._numComponents
-         self._sendMPIDataType[sendId] = Mpi.createDataTypeFromRangeAndSubRange(
-            sendRgn, localExtRange, self._numComponents, self._layout, elctCommType)
-      end
-
-      for _, recvId in ipairs(neigIds) do
-         local neighRgn = decomposedRange:subDomain(recvId)
-         local recvRgn  = self._localExtRange:intersect(neighRgn)
-         local idx      = recvRgn:lowerAsVec()
-         -- set idx to starting point of region you want to recv
-         self._recvMPILoc[recvId]      = (indexer(idx)-1)*self._numComponents
-         self._recvMPIDataType[recvId] = Mpi.createDataTypeFromRangeAndSubRange(
-            recvRgn, localExtRange, self._numComponents, self._layout, elctCommType)
-         self._recvMPIReq[recvId]      = Mpi.Request()
-      end
-
-      -- Create MPI DataTypes for periodic directions.
-      -- Also store location in memory required for sending/receiving periodic data.
-      self._sendLowerPerMPIDataType, self._recvLowerPerMPIDataType = {}, {}
-      self._sendUpperPerMPIDataType, self._recvUpperPerMPIDataType = {}, {}
-      self._sendLowerPerMPILoc, self._recvLowerPerMPILoc = {}, {}
-      self._sendUpperPerMPILoc, self._recvUpperPerMPILoc = {}, {}
-      self._recvLowerPerMPIReq = {}
-      self._recvUpperPerMPIReq = {}
 
       -- Create buffers for periodic copy if Mpi.Comm_size(nodeComm) = 1.
       for dir = 1, self._ndim do
@@ -325,59 +286,28 @@ local function Field_meta_ctor(elct)
          end
       end
 
-      -- Following loop creates Datatypes for periodic directions.
+      -- Following loop creates buffers for periodic directions.
       -- This is complicated as one needs to treat lower -> upper
       -- transfers differently than upper -> lower as the number of
       -- ghost cells may be different on each lower/upper side. (AHH)
       for dir = 1, self._ndim do
-         -- set up periodic-sync Datatypes for all dirs, in case we want to change periodicDirs later
+         -- Set up periodic-sync buffers for all dirs.
          if self._lowerGhost > 0 and self._upperGhost > 0 then
             local skelIds = decomposedRange:boundarySubDomainIds(dir)
             for i = 1, #skelIds do
                local loId, upId = skelIds[i].lower, skelIds[i].upper
 
-               -- Only create if we are on proper ranks.
-               -- Note that if the node communicator has rank size of 1, then we can access all the 
-               -- memory needed for periodic boundary conditions and we do not need MPI Datatypes.
-               if myId == loId then
+               if myId == loId then  -- Redundant for cuts=1.
                   local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
                   if self._grid:cuts(dir) == 1 then
-                     local szSend = rgnSend:volume()*self._numComponents
                      self._lowerPeriodicBuff[dir] = ZeroArray.Array(ZeroArray.double, self._numComponents, rgnSend:volume(), self.useDevice)
                   end
-                  local idx = rgnSend:lowerAsVec()
-                  -- Set idx to starting point of region you want to recv.
-                  self._sendLowerPerMPILoc[dir]      = (indexer(idx)-1)*self._numComponents
-                  self._sendLowerPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(
-                     rgnSend, localExtRange, self._numComponents, self._layout, elctCommType)
-                  
-                  local rgnRecv = decomposedRange:subDomain(loId):lowerGhost(dir, self._lowerGhost)
-                  local idx     = rgnRecv:lowerAsVec()
-                  -- Set idx to starting point of region you want to recv.
-                  self._recvLowerPerMPILoc[dir]      = (indexer(idx)-1)*self._numComponents
-                  self._recvLowerPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(
-                     rgnRecv, localExtRange, self._numComponents, self._layout, elctCommType)
-                  self._recvLowerPerMPIReq[dir]      = Mpi.Request()
                end
-               if myId == upId then
+               if myId == upId then  -- Redundant for cuts=1.
                   local rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
                   if self._grid:cuts(dir) == 1 then
-                     local szSend = rgnSend:volume()*self._numComponents
                      self._upperPeriodicBuff[dir] = ZeroArray.Array(ZeroArray.double, self._numComponents, rgnSend:volume(), self.useDevice)
                   end
-                  local idx = rgnSend:lowerAsVec()
-                  -- Set idx to starting point of region you want to recv.
-                  self._sendUpperPerMPILoc[dir]      = (indexer(idx)-1)*self._numComponents
-                  self._sendUpperPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(
-                     rgnSend, localExtRange, self._numComponents, self._layout, elctCommType)
-                  
-                  local rgnRecv = decomposedRange:subDomain(upId):upperGhost(dir, self._upperGhost)
-                  local idx     = rgnRecv:lowerAsVec()
-                  -- Set idx to starting point of region you want to recv.
-                  self._recvUpperPerMPILoc[dir]      = (indexer(idx)-1)*self._numComponents
-                  self._recvUpperPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(
-                     rgnRecv, localExtRange, self._numComponents, self._layout, elctCommType)
-                  self._recvUpperPerMPIReq[dir]      = Mpi.Request()
                end	       
             end
          end
@@ -385,44 +315,25 @@ local function Field_meta_ctor(elct)
       
 
       -- Get info for syncs without MPI datatypes. We'll loop over blocks and post a send/recv pair ourselves.
-      self._syncSendLoc, self._syncRecvLoc = {}, {}
-      self._syncSendBlockSz, self._syncRecvBlockSz = {}, {}
-      self._syncSendBlockOff, self._syncRecvBlockOff = {}, {}
       self._syncSendRng, self._syncRecvRng = {}, {}
       self._syncSendBufVol, self._syncRecvBufVol = 0, 0
       for _, sendId in ipairs(neigIds) do
          local neighRgn = decomposedRange:subDomain(sendId)
          local sendRgn  = self._localRange:intersect(
             neighRgn:extend(self._lowerGhost, self._upperGhost))
-         local idx      = sendRgn:lowerAsVec()
-         -- Set idx to starting point of region you want to recv.
-         self._syncSendLoc[sendId] = (indexer(idx)-1)*self._numComponents
-         self._syncSendBlockSz[sendId], self._syncSendBlockOff[sendId] = Mpi.createBlockInfoFromRangeAndSubRange(
-            sendRgn, localExtRange, self._numComponents, self._layout)
          self._syncSendRng[sendId] = self._localExtRange:subRange(sendRgn:lowerAsVec(), sendRgn:upperAsVec())
          self._syncSendBufVol = math.max(self._syncSendBufVol, sendRgn:volume())
       end
       for _, recvId in ipairs(neigIds) do
          local neighRgn = decomposedRange:subDomain(recvId)
          local recvRgn  = self._localExtRange:intersect(neighRgn)
-         local idx      = recvRgn:lowerAsVec()
-         -- set idx to starting point of region you want to recv
-         self._syncRecvLoc[recvId] = (indexer(idx)-1)*self._numComponents
-         self._syncRecvBlockSz[recvId], self._syncRecvBlockOff[recvId] = Mpi.createBlockInfoFromRangeAndSubRange(
-            recvRgn, localExtRange, self._numComponents, self._layout)
          self._syncRecvRng[recvId] = self._localExtRange:subRange(recvRgn:lowerAsVec(), recvRgn:upperAsVec())
          self._syncRecvBufVol = math.max(self._syncRecvBufVol, recvRgn:volume())
       end
 
       -- Get info for periodic syncs without MPI datatypes.
       self._syncPerNeigh = {}
-      self._syncPerSendLoc,      self._syncPerRecvLoc = {}, {}
-      self._syncPerSendBlockSz,  self._syncPerRecvBlockSz = {}, {}
-      self._syncPerSendBlockOff, self._syncPerRecvBlockOff = {}, {}
-      self._syncPerRecvRng,      self._syncPerRecvRng = {}, {}
-      self._syncPerRecvBufVol,   self._syncPerRecvBufVol = 0, 0
-      self._syncPerSendRng,      self._syncPerRecvRng = {}, {}
-      self._syncPerSendBufVol,   self._syncPerRecvBufVol = 0, 0
+      self._syncPerSendRng, self._syncPerRecvRng = {}, {}
       self._onPerBound = {}
       for dir = 1, self._ndim do
          -- set up periodic-sync Datatypes for all dirs, in case we want to change periodicDirs later
@@ -449,160 +360,8 @@ local function Field_meta_ctor(elct)
                if oppId ~= nil then
                   self._syncPerNeigh[dir] = oppId
                   self._syncPerSendRng[dir] = self._localExtRange:subRange(rgnSend:lowerAsVec(), rgnSend:upperAsVec())
-                  self._syncPerSendBufVol = math.max(self._syncPerSendBufVol, rgnSend:volume())
-                  local idx = rgnSend:lowerAsVec()
-                  -- Set idx to starting point of region you want to send.
-                  self._syncPerSendLoc[dir] = (indexer(idx)-1)*self._numComponents
-                  self._syncPerSendBlockSz[dir], self._syncPerSendBlockOff[dir] = Mpi.createBlockInfoFromRangeAndSubRange(
-                     rgnSend, localExtRange, self._numComponents, self._layout)
 
                   self._syncPerRecvRng[dir] = self._localExtRange:subRange(rgnRecv:lowerAsVec(), rgnRecv:upperAsVec())
-                  self._syncPerRecvBufVol = math.max(self._syncPerRecvBufVol, rgnRecv:volume())
-                  local idx = rgnRecv:lowerAsVec()
-                  -- Set idx to starting point of region you want to recv.
-                  self._syncPerRecvLoc[dir] = (indexer(idx)-1)*self._numComponents
-                  self._syncPerRecvBlockSz[dir], self._syncPerRecvBlockOff[dir] = Mpi.createBlockInfoFromRangeAndSubRange(
-                     rgnRecv, localExtRange, self._numComponents, self._layout)
-               end
-            end
-         end
-      end
-
-      local structAny = function(key,structIn, idIn)
-         for i = 1, #structIn do if structIn[i][key] == idIn then return true end end
-         return false
-      end
-      local tblAbs = function(tblIn)
-         local tblOut = lume.clone(tblIn)
-         for i, v in ipairs(tblOut) do tblOut[i] = math.abs(v) end
-         return tblOut
-      end
-      -- For corner sync, decomposedRange provides all the corner neighbors assuming all
-      -- directions are periodic. Because some directions may not be periodic, not all of
-      -- those corner neighbors need to communicate. Remove such pairs.
-      self._cornersToSync = {}
-      for dir = 1, self._ndim do
-         self._cornersToSync[dir] = {}
-         if grid:isDirPeriodic(dir) then
-            local corIds = decomposedRange:boundarySubDomainCornerIds(dir)
-            for i, bD in ipairs(corIds) do   -- Loop over lower boundary subdomains.
-               self._cornersToSync[dir][i] = {}
-               for j, dC in ipairs(bD) do   -- Loop over corners.
-                  local loId, upId, corDirs = dC.lower, dC.upper, dC.dirs
-
-                  -- Check if this subdomain abutts a boundary in another periodic dimension.
-                  local syncThisCorner = true
-                  for dI = 2,#corDirs do
-                     local oDir    = math.abs(corDirs[dI])   -- Signs used to differentiate corners. See CartDecomp.
-                     local skelIds = decomposedRange:boundarySubDomainIds(oDir)
-                     if structAny("lower",skelIds,loId) then
-                        -- This subdomain is on lower boundary of other dimension. If
-                        -- other direction is not periodic then don't sync this corner.
-                        if corDirs[dI]<0 and not grid:isDirPeriodic(oDir) then syncThisCorner=false end
-                     end
-                     if structAny("upper",skelIds,loId) then
-                        -- This subdomain is on upper boundary of other dimension. If
-                        -- other direction is not periodic then don't sync this corner.
-                        if corDirs[dI]>0 and not grid:isDirPeriodic(oDir) then syncThisCorner=false end
-                     end
-                     -- Subdomains not on the boundary in the other direction do sync this corner. 
-                  end
-
-                  if syncThisCorner then
-                     table.insert(self._cornersToSync[dir][i],{lower=loId, upper=upId, dirs=corDirs})
-                  end
-
-               end
-            end
-         end
-      end
-
-      -- Create MPI DataTypes for syncing corners in periodic directions.
-      -- Also store location in memory required for sending/receiving periodic data.
-      -- Note: please understand the code for the face-sync first. It'll help in understanding corner sync.
-      self._sendLowerCornerPerMPIDataType, self._recvLowerCornerPerMPIDataType = {}, {}
-      self._sendUpperCornerPerMPIDataType, self._recvUpperCornerPerMPIDataType = {}, {}
-      self._sendLowerCornerPerMPILoc, self._recvLowerCornerPerMPILoc = {}, {}
-      self._sendUpperCornerPerMPILoc, self._recvUpperCornerPerMPILoc = {}, {}
-      self._recvLowerCornerPerMPIReq = {}
-      self._recvUpperCornerPerMPIReq = {}
-      for dir = 1, self._ndim do
-         self._sendLowerCornerPerMPILoc[dir]     , self._sendUpperCornerPerMPILoc[dir]      = {}, {}
-         self._sendLowerCornerPerMPIDataType[dir], self._sendUpperCornerPerMPIDataType[dir] = {}, {}
-         self._recvLowerCornerPerMPILoc[dir]     , self._recvUpperCornerPerMPILoc[dir]      = {}, {}
-         self._recvLowerCornerPerMPIDataType[dir], self._recvUpperCornerPerMPIDataType[dir] = {}, {}
-         self._recvLowerCornerPerMPIReq[dir]     , self._recvUpperCornerPerMPIReq[dir]      = {}, {}
-         if grid:isDirPeriodic(dir) then
-            local cTs = self._cornersToSync[dir]
-            for dI, bD in ipairs(cTs) do   -- Loop over lower boundary subdomains.
-               for cI, dC in ipairs(bD) do   -- Loop over corners.
-                  local loId, upId, corDirs = dC.lower, dC.upper, dC.dirs
-                  if myId == loId then
-                     local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
-                     for dI = 2,#corDirs do
-                        local oDir = math.abs(corDirs[dI])   -- Signs used to differentiate corners. See CartDecomp.
-                        if corDirs[dI]<0 then
-                           rgnSend = rgnSend:shorten(oDir, self._upperGhost)
-                        else
-                           rgnSend = rgnSend:shortenFromBelow(oDir, self._upperGhost)
-                        end
-                     end
-                     local idx = rgnSend:lowerAsVec()
-                     -- Set idx to starting point of region you want to recv.
-                     table.insert(self._sendLowerCornerPerMPILoc[dir], (indexer(idx)-1)*self._numComponents)
-                     table.insert(self._sendLowerCornerPerMPIDataType[dir], Mpi.createDataTypeFromRangeAndSubRange(
-                        rgnSend, localExtRange, self._numComponents, self._layout, elctCommType))
-
-                     local rgnRecv = decomposedRange:subDomain(loId):extendDirs(tblAbs(corDirs),self._lowerGhost,self._upperGhost)
-                     local rgnRecv = rgnRecv:shorten(dir, self._lowerGhost)
-                     for dI = 2,#corDirs do
-                        local oDir = math.abs(corDirs[dI])   -- Signs used to differentiate corners. See CartDecomp.
-                        if corDirs[dI]<0 then
-                           rgnRecv = rgnRecv:shorten(oDir, self._upperGhost)
-                        else
-                           rgnRecv = rgnRecv:shortenFromBelow(oDir, self._upperGhost)
-                        end
-                     end
-                     local idx = rgnRecv:lowerAsVec()
-                     -- Set idx to starting point of region you want to recv.
-                     table.insert(self._recvLowerCornerPerMPILoc[dir], (indexer(idx)-1)*self._numComponents)
-                     table.insert(self._recvLowerCornerPerMPIDataType[dir], Mpi.createDataTypeFromRangeAndSubRange(
-                        rgnRecv, localExtRange, self._numComponents, self._layout, elctCommType))
-                     table.insert(self._recvLowerCornerPerMPIReq[dir], Mpi.Request())
-                  end
-                  if myId == upId then
-                     local rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
-                     for dI = 2,#corDirs do
-                        local oDir = math.abs(corDirs[dI])   -- Signs used to differentiate corners. See CartDecomp.
-                        if corDirs[dI]<0 then
-                           rgnSend = rgnSend:shortenFromBelow(oDir, self._upperGhost)
-                        else
-                           rgnSend = rgnSend:shorten(oDir, self._upperGhost)
-                        end
-                     end
-                     local idx = rgnSend:lowerAsVec()
-                     -- Set idx to starting point of region you want to recv.
-                     table.insert(self._sendUpperCornerPerMPILoc[dir], (indexer(idx)-1)*self._numComponents)
-                     table.insert(self._sendUpperCornerPerMPIDataType[dir], Mpi.createDataTypeFromRangeAndSubRange(
-                        rgnSend, localExtRange, self._numComponents, self._layout, elctCommType))
-
-                     local rgnRecv = decomposedRange:subDomain(upId):extendDirs(tblAbs(corDirs),self._lowerGhost,self._upperGhost)
-                     local rgnRecv = rgnRecv:shortenFromBelow(dir, self._upperGhost)
-                     for dI = 2,#corDirs do
-                        local oDir = math.abs(corDirs[dI])   -- Signs used to differentiate corners. See CartDecomp.
-                        if corDirs[dI]<0 then
-                           rgnRecv = rgnRecv:shortenFromBelow(oDir, self._upperGhost)
-                        else
-                           rgnRecv = rgnRecv:shorten(oDir, self._upperGhost)
-                        end
-                     end
-                     local idx = rgnRecv:lowerAsVec()
-                     -- Set idx to starting point of region you want to recv.
-                     table.insert(self._recvUpperCornerPerMPILoc[dir], (indexer(idx)-1)*self._numComponents)
-                     table.insert(self._recvUpperCornerPerMPIDataType[dir], Mpi.createDataTypeFromRangeAndSubRange(
-                        rgnRecv, localExtRange, self._numComponents, self._layout, elctCommType))
-                     table.insert(self._recvUpperCornerPerMPIReq[dir], Mpi.Request())
-                  end
                end
             end
          end
@@ -673,20 +432,6 @@ local function Field_meta_ctor(elct)
       end,
       copyRangeToRange = function(self, fIn, outRange, inRange)
          self._zeroForOps:copyRangeToRange(fIn._zeroForOps, outRange, inRange)
-      end,
-      copyFromLocal = function(self, fGlobBuff, fLoc, fLocBuff)
-         -- called by a global field to copy a local field to it
-         fLocBuff:copyRangeToRange(fLoc, fLocBuff:localRange(), fLoc:localRange())
-         Mpi.Allgather(fLocBuff:dataPointer(), fLocBuff:size(), fLocBuff:elemCommType(),
-            fGlobBuff:dataPointer(), fGlobBuff:size(), fGlobBuff:elemCommType(), comm)
-
-         self:copyRangeToRange(fGlobBuff, self:localRange(), fGlobBuff:localRange())
-      end,
-      copyFromGlobal = function(self,fGlob)
-         -- Called by a local field to copy a global field to it
-         local sourceRange = fGlob:globalExtRange():subRange(self:localRange():lowerAsVec(),
-            self:localRange():upperAsVec())
-         self:copyRangeToRange(fGlob, self:localRange(), sourceRange)
       end,
       deviceDataPointer = function(self)
          return self._devAllocData
@@ -1028,7 +773,6 @@ local function Field_meta_ctor(elct)
                mess:syncPeriodicCartField(self, mess:getConfComm())
             end
          else
-            self._field_sync(self, self._zeroForOps:data())
             if self._syncPeriodicDirs and syncPeriodicDirs then
                self._field_periodic_sync(self, self._zeroForOps:data())
             end
@@ -1095,47 +839,6 @@ local function Field_meta_ctor(elct)
          -- Copy the data in a range of this CartField to a buffer.
          self._zeroForOps:copy_from_buffer(dataPointer, rgn)
       end,
-      _field_sync = function(self, dataPtr)
-         local comm = self._grid:commSet().nodeComm -- communicator to use
-         if not Mpi.Is_comm_valid(comm) then
-            return                                  -- no need to do anything if communicator is not valid
-         end
-         -- immediately return if nothing to sync
-         if self._lowerGhost == 0 and self._upperGhost == 0 then return end
-
-         -- immediately return if there is no decomp
-         if self._grid:decomposedRange():numSubDomains() == 1 then return end
-
-         -- Steps: (1) Post non-blocking recv requests. (2) Do
-         -- blocking sends, (3) Complete recv and copy data into ghost
-         -- cells.
-
-         local myId    = self._grid:subGridId()               -- grid ID on this processor
-         local neigIds = self._decompNeigh:neighborData(myId) -- list of neighbors
-         local tag     = 42                                   -- Communicator tag for regular (non-periodic) messages
-         -- post a non-blocking recv request
-         for _, recvId in ipairs(neigIds) do
-            local dataType = self._recvMPIDataType[recvId]
-            local loc      = self._recvMPILoc[recvId]
-            local recvReq  = self._recvMPIReq[recvId]
-            -- recv data: (its from recvId-1 as MPI ranks are zero indexed)
-            local _        = Mpi.Irecv(dataPtr + loc, 1, dataType, recvId - 1, tag, comm, recvReq)
-         end
-
-         -- Do a blocking send (does not really block as recv requests
-         -- are already posted).
-         for _, sendId in ipairs(neigIds) do
-            local dataType = self._sendMPIDataType[sendId]
-            local loc      = self._sendMPILoc[sendId]
-            -- Send data: (its to sendId-1 as MPI ranks are zero indexed).
-            Mpi.Send(dataPtr + loc, 1, dataType, sendId - 1, tag, comm)
-         end
-
-         -- Complete recv.
-         -- Since MPI DataTypes eliminate the need for buffers,
-         -- all we have to do is wait for non-blocking receives to finish.
-         for _, recvId in ipairs(neigIds) do local _ = Mpi.Wait(self._recvMPIReq[recvId], nil) end
-      end,
       _field_periodic_sync = function(self, dataPtr)
          local comm = self._grid:commSet().nodeComm -- Communicator to use.
          if not Mpi.Is_comm_valid(comm) then
@@ -1145,170 +848,9 @@ local function Field_meta_ctor(elct)
          -- Immediately return if nothing to sync.
          if self._lowerGhost == 0 and self._upperGhost == 0 then return end
 
-         local grid = self._grid
-
-         -- Steps: (1) Post non-blocking recv requests. (2) Do
-         -- blocking sends, (3) Complete recv and copy data into ghost
-         -- cells.
-
          local decomposedRange = self._grid:decomposedRange()
-         if decomposedRange:numSubDomains() == 1 and not self._syncCorners then
-            return self:periodicCopy()
-         end
-         local myId             = self._grid:subGridId() -- Grid ID on this processor.
-         local basePerTag       = 53               -- Tag for periodic BCs.
-         local cornerBasePerTag = 70               -- Tag for periodic corner sync.
-
-         -- Note on tags: Each MPI message (send/recv pair) must have
-         -- a unique tag. With periodic BCs it is possible that a rank
-         -- may send/recv more than one message and hence some way to
-         -- distinguishing various messages is needed. The
-         -- non-periodic messages are all tagged 42. The periodic
-         -- messages have a base tag of 53, with up->lo tags being
-         -- 53+dir+10, while lo->up tags being 53+dir. As at most we
-         -- will have 6 directions, this generates enough unique tags
-         -- to do periodic communication safely.
-         -- However we must also account for corner syncs. In 6D there
-         -- are 716 such "corners" that may need to be sync-ed. We will
-         -- thus say that up->lo tags have 70+tn+800, while lo->up tags
-         -- have 70+tn, where tn is the corner tag number. One way to make
-         -- these tag numbers identical is to have them be composed of the
-         -- ID of the participating ranks and the corner directions.
-
-         -- Post non-blocking recv requests for periodic directions.
-         for dir = 1, self._ndim do
-            if grid:isDirPeriodic(dir) then
-               local skelIds = decomposedRange:boundarySubDomainIds(dir)
-               for i = 1, #skelIds do
-                  local loId, upId = skelIds[i].lower, skelIds[i].upper
-
-                  if myId == loId then
-                     local loTag    = basePerTag + dir + 10
-                     local dataType = self._recvLowerPerMPIDataType[dir]
-                     local loc      = self._recvLowerPerMPILoc[dir]
-                     local req      = self._recvLowerPerMPIReq[dir]
-                     local _        = Mpi.Irecv(dataPtr + loc, 1, dataType,
-                        upId - 1, loTag, comm, req)
-                  end
-                  if myId == upId then
-                     local upTag    = basePerTag + dir
-                     local dataType = self._recvUpperPerMPIDataType[dir]
-                     local loc      = self._recvUpperPerMPILoc[dir]
-                     local req      = self._recvUpperPerMPIReq[dir]
-                     local _        = Mpi.Irecv(dataPtr + loc, 1, dataType,
-                        loId - 1, upTag, comm, req)
-                  end
-               end
-
-               if self._syncCorners then
-                  local cTs = self._cornersToSync[dir]
-                  local ccLo, ccUp = 0, 0
-                  for bI, bD in ipairs(cTs) do  -- Loop over lower boundary subdomains.
-                     for _, dC in ipairs(bD) do -- Loop over corners.
-                        local loId, upId, corDirs = dC.lower, dC.upper, dC.dirs
-                        if myId == loId then
-                           ccLo           = ccLo + 1
-                           local loTag    = cornerBasePerTag + tonumber(loId .. upId .. tblToStr(corDirs) .. 1)
-                           local dataType = self._recvLowerCornerPerMPIDataType[dir][ccLo]
-                           local loc      = self._recvLowerCornerPerMPILoc[dir][ccLo]
-                           local req      = self._recvLowerCornerPerMPIReq[dir][ccLo]
-                           local _        = Mpi.Irecv(dataPtr + loc, 1, dataType,
-                              upId - 1, loTag, comm, req)
-                        end
-                        if myId == upId then
-                           ccUp           = ccUp + 1
-                           local upTag    = cornerBasePerTag + tonumber(loId .. upId .. tblToStr(corDirs) .. 2)
-                           local dataType = self._recvUpperCornerPerMPIDataType[dir][ccUp]
-                           local loc      = self._recvUpperCornerPerMPILoc[dir][ccUp]
-                           local req      = self._recvUpperCornerPerMPIReq[dir][ccUp]
-                           local _        = Mpi.Irecv(dataPtr + loc, 1, dataType,
-                              loId - 1, upTag, comm, req)
-                        end
-                     end
-                  end
-               end
-            end
-         end
-
-         -- Do a blocking send for periodic directions (does not
-         -- really block as recv requests are already posted).
-         for dir = 1, self._ndim do
-            if grid:isDirPeriodic(dir) then
-               local skelIds = decomposedRange:boundarySubDomainIds(dir)
-               for i = 1, #skelIds do
-                  local loId, upId = skelIds[i].lower, skelIds[i].upper
-
-                  if myId == loId then
-                     local loTag    = basePerTag + dir -- This must match recv tag posted above.
-                     local dataType = self._sendLowerPerMPIDataType[dir]
-                     local loc      = self._sendLowerPerMPILoc[dir]
-                     Mpi.Send(dataPtr + loc, 1, dataType, upId - 1, loTag, comm)
-                  end
-                  if myId == upId then
-                     local upTag    = basePerTag + dir + 10 -- This must match recv tag posted above.
-                     local dataType = self._sendUpperPerMPIDataType[dir]
-                     local loc      = self._sendUpperPerMPILoc[dir]
-                     Mpi.Send(dataPtr + loc, 1, dataType, loId - 1, upTag, comm)
-                  end
-               end
-
-               if self._syncCorners then
-                  local cTs = self._cornersToSync[dir]
-                  local ccLo, ccUp = 0, 0
-                  for _, bD in ipairs(cTs) do   -- Loop over lower boundary subdomains.
-                     for _, dC in ipairs(bD) do -- Loop over corners.
-                        local loId, upId, corDirs = dC.lower, dC.upper, dC.dirs
-                        if myId == loId then
-                           ccUp           = ccUp + 1
-                           local loTag    = cornerBasePerTag + tonumber(loId .. upId .. tblToStr(corDirs) .. 2)
-                           local dataType = self._sendLowerCornerPerMPIDataType[dir][ccUp]
-                           local loc      = self._sendLowerCornerPerMPILoc[dir][ccUp]
-                           Mpi.Send(dataPtr + loc, 1, dataType, upId - 1, loTag, comm)
-                        end
-                        if myId == upId then
-                           ccLo           = ccLo + 1
-                           local upTag    = cornerBasePerTag + tonumber(loId .. upId .. tblToStr(corDirs) .. 1)
-                           local dataType = self._sendUpperCornerPerMPIDataType[dir][ccLo]
-                           local loc      = self._sendUpperCornerPerMPILoc[dir][ccLo]
-                           Mpi.Send(dataPtr + loc, 1, dataType, loId - 1, upTag, comm)
-                        end
-                     end
-                  end
-               end
-            end
-         end
-
-         -- Complete recv for periodic directions.
-         -- Since MPI DataTypes eliminate the need for buffers,
-         -- all we have to do is wait for non-blocking receives to finish.
-         for dir = 1, self._ndim do
-            if grid:isDirPeriodic(dir) then
-               local skelIds = decomposedRange:boundarySubDomainIds(dir)
-               for i = 1, #skelIds do
-                  local loId, upId = skelIds[i].lower, skelIds[i].upper
-                  if myId == loId then local _ = Mpi.Wait(self._recvLowerPerMPIReq[dir], nil) end
-                  if myId == upId then local _ = Mpi.Wait(self._recvUpperPerMPIReq[dir], nil) end
-               end
-
-               if self._syncCorners then
-                  local cTs = self._cornersToSync[dir]
-                  local ccLo, ccUp = 0, 0
-                  for dI, bD in ipairs(cTs) do  -- Loop over lower boundary subdomains.
-                     for _, dC in ipairs(bD) do -- Loop over corners.
-                        local loId, upId = dC.lower, dC.upper
-                        if myId == loId then
-                           ccLo = ccLo + 1
-                           local _ = Mpi.Wait(self._recvLowerCornerPerMPIReq[dir][ccLo], nil)
-                        end
-                        if myId == upId then
-                           ccUp = ccUp + 1
-                           local _ = Mpi.Wait(self._recvUpperCornerPerMPIReq[dir][ccUp], nil)
-                        end
-                     end
-                  end
-               end
-            end
-         end
+         assert((decomposedRange:numSubDomains() == 1) and (not self._syncCorners), "CartField: sync without messenger only allowed for serial runs.")
+         return self:periodicCopy()
       end,
       _field_periodic_copy_indir = function(self, dir)
          -- First get region for skin cells for upper ghost region (the lower skin cells).

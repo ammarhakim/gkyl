@@ -51,14 +51,16 @@ function BCsBase:createBoundaryGrid(ghostRange, ghostVec)
                                                           or self.grid:upper(d)+ghostVec[d]*self.grid:dx(d))
          table.insert(reducedNumCells, ghostVec[d])
          table.insert(reducedCuts, 1)
+         table.insert(reducedLowerRng, ghostRange:lower(d))
+         table.insert(reducedUpperRng, ghostRange:upper(d))
       else
          table.insert(reducedLower,    self.grid:lower(d))
          table.insert(reducedUpper,    self.grid:upper(d))
          table.insert(reducedNumCells, self.grid:numCells(d))
          table.insert(reducedCuts,     self.grid:cuts(d))
+         table.insert(reducedLowerRng, self.grid:globalRange():lower(d))
+         table.insert(reducedUpperRng, self.grid:globalRange():upper(d))
       end
-      table.insert(reducedLowerRng, ghostRange:lower(d))
-      table.insert(reducedUpperRng, ghostRange:upper(d))
    end
    local worldComm = self.grid:commSet().comm
    local worldRank = Mpi.Comm_rank(worldComm)
@@ -73,6 +75,7 @@ function BCsBase:createBoundaryGrid(ghostRange, ghostVec)
    elseif self.bcDir == 3 then
       dirRank = math.floor(worldRank/cuts[1]/cuts[2])
    end
+
    self._splitComm = Mpi.Comm_split(worldComm, dirRank, worldRank)
    -- Set up which ranks to write from.
    if (self.bcEdge == "lower" and dirRank == 0) or
@@ -107,14 +110,16 @@ function BCsBase:createConfBoundaryGrid(ghostRange, ghostVec)
                                                              or self.grid:upper(d)+ghostVec[d]*self.grid:dx(d))
             table.insert(reducedNumCells, ghostVec[d])
             table.insert(reducedCuts, 1)
+            table.insert(reducedLowerRng, ghostRange:lower(d))
+            table.insert(reducedUpperRng, ghostRange:upper(d))
          else
             table.insert(reducedLower,    self.grid:lower(d))
             table.insert(reducedUpper,    self.grid:upper(d))
             table.insert(reducedNumCells, self.grid:numCells(d))
             table.insert(reducedCuts,     self.grid:cuts(d))
+            table.insert(reducedLowerRng, self.grid:globalRange():lower(d))
+            table.insert(reducedUpperRng, self.grid:globalRange():upper(d))
          end
-         table.insert(reducedLowerRng, ghostRange:lower(d))
-         table.insert(reducedUpperRng, ghostRange:upper(d))
       end
       local reducedDecomp = CartDecomp.CartProd {
          comm      = self._splitComm,  cuts = reducedCuts,

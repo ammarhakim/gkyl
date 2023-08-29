@@ -12,6 +12,7 @@
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Constants        = require "Lib.Constants"
 local DataStruct       = require "DataStruct"
+local Range            = require "Lib.Range"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local diff             = require("sci.diff")
 local FieldBase        = require "App.Field.FieldBase"
@@ -224,6 +225,22 @@ function GkField:setGrid(grid)
       messenger     = gridInfo.messenger,
       decomposition = xyDecomp,
    }
+
+   -- Create global in xy (local in z) grid.
+   local zComm = self.grid:getMessenger():getSubComms_host()['z']
+   local zCuts = {};  zCuts[self.ndim] = self.grid:cuts(self.ndim)
+   for d = self.ndim-1, 1, -1 do zCuts[d] = 1 end
+   local zDecomp = DecompRegionCalc.CartProd {  -- Decomp in x-y but not z.
+      cuts = zCuts,  comm = zComm,
+   }
+   self.gridGlobalXY = GridConstructor {
+      lower = gridInfo.lower,  world    = gridInfo.world,
+      upper = gridInfo.upper,  mappings = gridInfo.coordinateMap,
+      cells = gridInfo.cells,  mapc2p   = gridInfo.mapc2p,
+      periodicDirs  = gridInfo.periodicDirs,
+      messenger     = gridInfo.messenger,
+      decomposition = zDecomp,
+   }
 end
 
 local function createField(grid, basis, ghostCells, vComp, periodicSync, useDevice)
@@ -278,9 +295,11 @@ function GkField:alloc(nRkDup)
    end
 
    -- Extra fields needed for the distributed parallel field solve.
-   self.localBuffer   = createField(self.grid,self.basis,{0,0})
-   self.globalBufferZ = createField(self.gridGlobalZ,self.basis,{0,0})
-   self.globalSolZ    = createField(self.gridGlobalZ,self.basis,{1,1})
+   self.localBuffer    = createField(self.grid,self.basis,{0,0})
+   self.globalBufferZ  = createField(self.gridGlobalZ,self.basis,{0,0})
+   self.globalSolZ     = createField(self.gridGlobalZ,self.basis,{1,1})
+   self.globalBufferXY = createField(self.gridGlobalXY,self.basis,{0,0})
+   self.globalSolXY    = createField(self.gridGlobalXY,self.basis,{1,1})
    
    -- For diagnostics:
    self.phiSq = createField(self.grid,self.basis,{1,1})
@@ -368,19 +387,21 @@ function GkField:createSolver(population, externalField)
 	 self.calcPhi = function(tCurr, populationIn, potentialsIn, potentialsOut) end
       end
    else
-      -- Range of MPI processes participating in z field solve.
+      local perpDim     = 2
+      local parDir      = self.ndim == 2 and -1 or self.ndim
       local decompRange = self.grid:decomposedRange()
-      local cutsRange   = decompRange:cutsRange()
+      local cutsRange   = decompRange:cutsRange()  -- Range of MPI processes sharing a field solve.
       local subdomIdx   = {};  decompRange:cutsInvIndexer()(self.grid:subGridId(), subdomIdx)
+      -- Range of MPI processes participating in z-field solve.
       local removeDir, locInDir = {}, {}
-      for d=1,self.ndim-1 do removeDir[d], locInDir[d] = 1, subdomIdx[d] end
-      removeDir[self.ndim], locInDir[self.ndim] = 0, 0
+      for d=1,perpDim do removeDir[d], locInDir[d] = 1, subdomIdx[d] end
+      removeDir[parDir], locInDir[parDir] = 0, 0
       self.zCutsRange = cutsRange:deflate(removeDir, locInDir)
-      -- Ranges in a global field into which we will copy a buffer obtained form other processes.
+      -- Ranges in a z-global field into which we will copy a buffer obtained form other processes.
       self.zDestRange, self.zBufferOffset = {}, {}
       for zIdx in self.zCutsRange:colMajorIter() do
-         local idx = {};  for d=1,self.ndim-1 do idx[d] = subdomIdx[d] end
-         idx[self.ndim] = zIdx[1]
+         local idx = {};  for d=1,perpDim do idx[d] = subdomIdx[d] end
+         idx[parDir] = zIdx[1]
 
          local linIdx    = decompRange:cutsIndexer()(idx)
          local destRange = decompRange:subDomain(linIdx)
@@ -391,6 +412,30 @@ function GkField:createSolver(population, externalField)
       -- Range in a global field we'll copy the local solution from.
       local lv, uv = self.potentials[1].phi:localRange():lowerAsVec(), self.potentials[1].phi:localRange():upperAsVec()
       self.zSrcRange = self.globalSolZ:localExtRange():subRange(lv,uv)
+
+      -- Range of MPI processes participating in xy-field solve.
+      local removeDir, locInDir = {}, {}
+      for d=1,perpDim do removeDir[d], locInDir[d] = 0, 0 end
+      removeDir[parDir], locInDir[parDir] = 1, subdomIdx[parDir]
+      self.xyCutsRange = cutsRange:deflate(removeDir, locInDir)
+      -- Ranges in a xy-global field into which we will copy a buffer obtained form other processes.
+      self.xyDestRange, self.xyBufferOffset = {}, {}
+      self.xyCutsRangeIdxr = self.xyCutsRange:indexer(Range.colMajor)
+      for xyIdx in self.xyCutsRange:colMajorIter() do
+         local linIdxPerp = self.xyCutsRangeIdxr(xyIdx[1],xyIdx[2])
+
+         local idx = {};  for d=1,perpDim do idx[d] = xyIdx[d] end
+         idx[parDir] = subdomIdx[parDir]
+
+         local linIdx    = decompRange:cutsIndexer()(idx)
+         local destRange = decompRange:subDomain(linIdx)
+         local lv, uv    = destRange:lowerAsVec(), destRange:upperAsVec()
+         self.xyDestRange[linIdxPerp]    = self.globalSolXY:localExtRange():subRange(lv,uv)
+         self.xyBufferOffset[linIdxPerp] = (linIdxPerp-1)*self.localBuffer:size()
+      end
+      -- Range in a global field we'll copy the local solution from.
+      local lv, uv = self.potentials[1].phi:localRange():lowerAsVec(), self.potentials[1].phi:localRange():upperAsVec()
+      self.xySrcRange = self.globalSolXY:localExtRange():subRange(lv,uv)
 
       -- Get adiabatic species info.
       for _, s in population.iterGlobal() do
@@ -498,7 +543,7 @@ function GkField:createSolver(population, externalField)
       if self.ndim == 1 then
          -- Gather the weight in the z-field solve.
          self:AllgatherFieldZ(self.modWeightPoisson, self.globalSolZ)
-         self.globalSolZ:copyDeviceToHost()
+         self.globalSolZ:copyDeviceToHost()  -- FemParproj expects the weight on the host.
 
          self.phiParSlvr = Updater.FemParproj {
             onGrid = self.gridGlobalZ,  basis   = self.basis,
@@ -529,41 +574,87 @@ function GkField:createSolver(population, externalField)
          self.weakMultiply:advance(0., {self.polarizationWeight, self.epsPoisson}, {self.epsPoisson})
          self.epsPoisson:copyDeviceToHost()
          self.modWeightPoisson:copyDeviceToHost()
+
+         -- Gather the permittivity and the k^2 multiplier.
+         local AllgatherFieldXY3 = function(fldLocal, fldGlobal)
+            -- Gather a CartField with 3 times more components distributed along xy onto a global-in-xy field.
+            local localBuffer    = createField(self.grid,self.basis,{0,0},3)
+            local globalBufferXY = createField(self.gridGlobalXY,self.basis,{0,0},3)
+
+            fldLocal:copyRangeToBuffer(fldLocal:localRange(), localBuffer:data())
+         
+            -- Gather flat buffers from other processes.
+            local mess = self.grid:getMessenger()
+            local comm = mess:getComms()["xy"]
+            mess:Allgather(localBuffer, globalBufferXY, comm) 
+         
+            -- Rearrange into a global field, i.e. reconstruct the multi-D array
+            -- using the collection of flat buffers we gathered from each process.
+            for xyIdx in self.xyCutsRange:colMajorIter() do
+               local linIdxPerp = self.xyCutsRangeIdxr(xyIdx[1],xyIdx[2])
+               fldGlobal:copyRangeFromBuffer(self.xyDestRange[linIdxPerp],
+                  globalBufferXY:data()+3*self.xyBufferOffset[linIdxPerp])
+            end
+         end
+         self.epsPoissonGlobal        = createField(self.gridGlobalXY,self.basis,{1,1},3)
+         local modWeightPoissonGlobal = createField(self.gridGlobalXY,self.basis,{1,1})
+         AllgatherFieldXY3(self.epsPoisson, self.epsPoissonGlobal)
+         self:AllgatherFieldXY(self.modWeightPoisson, modWeightPoissonGlobal)
+         -- Permittivity and k^2 modifier were initialized on the device,
+         -- but FemPoissonPerp expects it on the host.
+         self.epsPoissonGlobal:copyDeviceToHost()
+         modWeightPoissonGlobal:copyDeviceToHost()
+
          self.phiPerpSlvr = self.ndim == 2
             and Updater.FemPoisson {
-               onGrid  = self.grid,        bcLower = self.bcLowerPhi,
-               basis   = self.basis,       bcUpper = self.bcUpperPhi,
-               epsilon = self.epsPoisson,  kSq     = self.modWeightPoisson,
+               onGrid  = self.gridGlobalXY,      bcLower = self.bcLowerPhi,
+               basis   = self.basis,             bcUpper = self.bcUpperPhi,
+               epsilon = self.epsPoissonGlobal,  kSq     = modWeightPoissonGlobal,
             }
             or Updater.FemPoissonPerp {
-               onGrid  = self.grid,        bcLower = self.bcLowerPhi,
-               basis   = self.basis,       bcUpper = self.bcUpperPhi,
-               epsilon = self.epsPoisson,  kSq     = self.modWeightPoisson,
+               onGrid  = self.gridGlobalXY,      bcLower = self.bcLowerPhi,
+               basis   = self.basis,             bcUpper = self.bcUpperPhi,
+               epsilon = self.epsPoissonGlobal,  kSq     = modWeightPoissonGlobal,
             }
+         self.phiPerpSolve = function(tCurr, qDensIn, phiOut)
+            -- Gather the discontinuous field onto a global field.
+            self:AllgatherFieldXY(qDensIn, self.globalSolXY)
+
+            self.phiPerpSlvr:advance(tCurr, {self.globalSolXY}, {self.globalSolXY})
+
+            -- Copy portion of the global field belonging to this process.
+            phiOut:copyRangeToRange(self.globalSolXY, phiOut:localRange(), self.xySrcRange)
+         end
 
          self.parSmooth = function(tCurr, fldIn, fldOut) fldOut:copy(fldIn) end
          if self.ndim == 3 and not self.discontinuousPhi then
             self.parSmoother = Updater.FemParproj {
-               onGrid  = self.grid,  basis = self.basis,
-               onField = self:rkStepperFields()[1].phi,
+               onGrid  = self.gridGlobalZ,  basis = self.basis,
+               onField = self.globalSolZ,
                periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
             }
             self.parSmooth = function(tCurr, fldIn, fldOut)
-               self.parSmoother:advance(tCurr, {fldIn}, {fldOut})
+               -- Gather the discontinuous field onto a global field.
+               self:AllgatherFieldZ(fldIn, self.globalSolZ)
+
+               self.parSmoother:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
+
+               -- Copy portion of the global field belonging to this process.
+               fldOut:copyRangeToRange(self.globalSolZ, fldOut:localRange(), self.zSrcRange)
             end
          end
 
          self.phiSlvr = {
             advance = function(tCurr, inFlds, outFlds)
-               local qDens  = inFlds[1]
+               local qDens = inFlds[1]
                local phiAux, phiOut = outFlds[1].phiAux, outFlds[1].phi  -- OutFlds[1] is a table of potentials.
                self.parSmooth(tCurr, qDens, qDens) -- Reusing chargeDensLocal temporarily.
-               self.phiPerpSlvr:advance(tCurr, {qDens}, {phiAux})
+               self.phiPerpSolve(tCurr, qDens, phiAux)
                self.parSmooth(tCurr, phiAux, phiOut)
             end,
             printDevDiagnostics = function()
 --               self.parSmoother:printDevDiagnostics()
-               self.phiPerpSlvr:printDevDiagnostics()
+--               self.phiPerpSlvr:printDevDiagnostics()
             end,
          }
       end
@@ -674,6 +765,24 @@ function GkField:AllgatherFieldZ(fldLocal, fldGlobal)
    for zIdx in self.zCutsRange:colMajorIter() do
       fldGlobal:copyRangeFromBuffer(self.zDestRange[zIdx[1]],
          self.globalBufferZ:data()+self.zBufferOffset[zIdx[1]])
+   end
+end
+
+function GkField:AllgatherFieldXY(fldLocal, fldGlobal)
+   -- Gather a CartField distributed along xy onto a global-in-xy field.
+   fldLocal:copyRangeToBuffer(fldLocal:localRange(), self.localBuffer:data())
+
+   -- Gather flat buffers from other processes.
+   local mess = self.grid:getMessenger()
+   local comm = mess:getComms()["xy"]
+   mess:Allgather(self.localBuffer, self.globalBufferXY, comm) 
+
+   -- Rearrange into a global field, i.e. reconstruct the multi-D array
+   -- using the collection of flat buffers we gathered from each process.
+   for xyIdx in self.xyCutsRange:colMajorIter() do
+      local linIdxPerp = self.xyCutsRangeIdxr(xyIdx[1],xyIdx[2])
+      fldGlobal:copyRangeFromBuffer(self.xyDestRange[linIdxPerp],
+         self.globalBufferXY:data()+self.xyBufferOffset[linIdxPerp])
    end
 end
 
