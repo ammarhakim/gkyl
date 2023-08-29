@@ -126,7 +126,7 @@ function RectCart:init(tbl)
    self._localRange  = Range.Range(l, u)
    self._block       = 1   -- Block number for use in parallel communications.
    
-   self.messenger = tbl.messenger or nil  -- Object managing communications.
+   self._messenger = tbl.messenger or nil  -- Object managing communications.
    self.decomp = tbl.decomposition and tbl.decomposition or nil  -- Decomposition.
    if self.decomp then
       assert(self.decomp:ndim() == self._ndim,
@@ -134,19 +134,11 @@ function RectCart:init(tbl)
 
       -- In parallel, we need to adjust local range. 
       self._commSet         = self.decomp:commSet()
-      local cutsProd = 1
-      for i = 1, self._ndim do cutsProd = cutsProd * self.decomp:cuts(i) end
-      if cutsProd > 1 then
-         self._decomposedRange = self.decomp:decompose(self._globalRange)
-         local subDomIdx       = getSubDomIndex(self._commSet.comm)
-         self._block           = subDomIdx
-         local localRange      = self._decomposedRange:subDomain(subDomIdx) --Local range is set using the decomposed subdomain
-         self._localRange:copy(localRange)
-      else
-         self._decomposedRange = self.decomp:decompose(self._globalRange) -- I think something is wrong with this approach. 
-         self._block           = 1
-         self._localRange:copy(self._globalRange)
-      end
+      self._decomposedRange = self.decomp:decompose(self._globalRange)
+      local subDomIdx       = getSubDomIndex(self._commSet.comm)
+      self._block           = subDomIdx
+      local localRange      = self._decomposedRange:subDomain(subDomIdx)
+      self._localRange:copy(localRange)
       self._cuts = {}
       for i = 1, self._ndim do 
          assert(self.decomp:cuts(i) <= self._numCells[i],
@@ -167,7 +159,7 @@ end
 
 -- Member functions.
 function RectCart:id() return "uniform" end
-function RectCart:getMessenger() return self.messenger end
+function RectCart:getMessenger() return self._messenger end
 function RectCart:commSet() return self._commSet end 
 function RectCart:subGridId() return self._block end
 function RectCart:subGridIdByDim(idx) 
@@ -401,7 +393,7 @@ function RectCart:childGrid(keepDims)
    local childGridIngredients = {
       lower = childLower,  periodicDirs  = childPeriodicDirs,
       upper = childUpper,  decomposition = childDecomp,
-      cells = childCells,
+      cells = childCells,  messenger     = self._messenger,
    }
    return childGridIngredients
 end

@@ -150,10 +150,6 @@ function Messenger:init(tbl)
          Mpi.Send(fld:dataPointer(), fld:size(), fld:elemCommType(), dest, tag, comm)
       end
 
-      self.IallgatherByCellFunc = function(fldIn, fldOut, comm) --TODO: do it in NCCL
-         Mpi.Iallgather(fldIn:dataPointer(), fldIn:size(), fldIn:elemCommType(),
-            fldOut:dataPointer(), fldOut:size(), fldOut:elemCommType(), comm)
-      end
       self.IrecvCartFieldFunc = function(fld, src, tag, comm, req)
          Mpi.Irecv(fld:dataPointer(), fld:size(), fld:elemCommType(), src, tag, comm, req)
       end
