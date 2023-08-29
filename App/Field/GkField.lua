@@ -567,12 +567,12 @@ function GkField:createSolver(population, externalField)
 	    printDevDiagnostics = function() self.phiParSlvr:printDevDiagnostics() end,
          }
       else
-         self.epsPoisson = createField(self.grid,self.basis,{1,1},3)
-         self.epsPoisson:combineOffset(1., gxxPoisson, 0*self.basis:numBasis(),
+         local epsPoisson = createField(self.grid,self.basis,{1,1},3)
+         epsPoisson:combineOffset(1., gxxPoisson, 0*self.basis:numBasis(),
                                        1., gxyPoisson, 1*self.basis:numBasis(),
                                        1., gyyPoisson, 2*self.basis:numBasis())
-         self.weakMultiply:advance(0., {self.polarizationWeight, self.epsPoisson}, {self.epsPoisson})
-         self.epsPoisson:copyDeviceToHost()
+         self.weakMultiply:advance(0., {self.polarizationWeight, epsPoisson}, {epsPoisson})
+         epsPoisson:copyDeviceToHost()
          self.modWeightPoisson:copyDeviceToHost()
 
          -- Gather the permittivity and the k^2 multiplier.
@@ -598,7 +598,7 @@ function GkField:createSolver(population, externalField)
          end
          self.epsPoissonGlobal        = createField(self.gridGlobalXY,self.basis,{1,1},3)
          local modWeightPoissonGlobal = createField(self.gridGlobalXY,self.basis,{1,1})
-         AllgatherFieldXY3(self.epsPoisson, self.epsPoissonGlobal)
+         AllgatherFieldXY3(epsPoisson, self.epsPoissonGlobal)
          self:AllgatherFieldXY(self.modWeightPoisson, modWeightPoissonGlobal)
          -- Permittivity and k^2 modifier were initialized on the device,
          -- but FemPoissonPerp expects it on the host.
