@@ -413,29 +413,31 @@ function GkField:createSolver(population, externalField)
       local lv, uv = self.potentials[1].phi:localRange():lowerAsVec(), self.potentials[1].phi:localRange():upperAsVec()
       self.zSrcRange = self.globalSolZ:localExtRange():subRange(lv,uv)
 
-      -- Range of MPI processes participating in xy-field solve.
-      local removeDir, locInDir = {}, {}
-      for d=1,perpDim do removeDir[d], locInDir[d] = 0, 0 end
-      removeDir[parDir], locInDir[parDir] = 1, subdomIdx[parDir]
-      self.xyCutsRange = cutsRange:deflate(removeDir, locInDir)
-      -- Ranges in a xy-global field into which we will copy a buffer obtained form other processes.
-      self.xyDestRange, self.xyBufferOffset = {}, {}
-      self.xyCutsRangeIdxr = self.xyCutsRange:indexer(Range.colMajor)
-      for xyIdx in self.xyCutsRange:colMajorIter() do
-         local linIdxPerp = self.xyCutsRangeIdxr(xyIdx[1],xyIdx[2])
+      if self.ndim > 1 then
+         -- Range of MPI processes participating in xy-field solve.
+         local removeDir, locInDir = {}, {}
+         for d=1,perpDim do removeDir[d], locInDir[d] = 0, 0 end
+         removeDir[parDir], locInDir[parDir] = 1, subdomIdx[parDir]
+         self.xyCutsRange = cutsRange:deflate(removeDir, locInDir)
+         -- Ranges in a xy-global field into which we will copy a buffer obtained form other processes.
+         self.xyDestRange, self.xyBufferOffset = {}, {}
+         self.xyCutsRangeIdxr = self.xyCutsRange:indexer(Range.colMajor)
+         for xyIdx in self.xyCutsRange:colMajorIter() do
+            local linIdxPerp = self.xyCutsRangeIdxr(xyIdx[1],xyIdx[2])
 
-         local idx = {};  for d=1,perpDim do idx[d] = xyIdx[d] end
-         idx[parDir] = subdomIdx[parDir]
+            local idx = {};  for d=1,perpDim do idx[d] = xyIdx[d] end
+            idx[parDir] = subdomIdx[parDir]
 
-         local linIdx    = decompRange:cutsIndexer()(idx)
-         local destRange = decompRange:subDomain(linIdx)
-         local lv, uv    = destRange:lowerAsVec(), destRange:upperAsVec()
-         self.xyDestRange[linIdxPerp]    = self.globalSolXY:localExtRange():subRange(lv,uv)
-         self.xyBufferOffset[linIdxPerp] = (linIdxPerp-1)*self.localBuffer:size()
+            local linIdx    = decompRange:cutsIndexer()(idx)
+            local destRange = decompRange:subDomain(linIdx)
+            local lv, uv    = destRange:lowerAsVec(), destRange:upperAsVec()
+            self.xyDestRange[linIdxPerp]    = self.globalSolXY:localExtRange():subRange(lv,uv)
+            self.xyBufferOffset[linIdxPerp] = (linIdxPerp-1)*self.localBuffer:size()
+         end
+         -- Range in a global field we'll copy the local solution from.
+         local lv, uv = self.potentials[1].phi:localRange():lowerAsVec(), self.potentials[1].phi:localRange():upperAsVec()
+         self.xySrcRange = self.globalSolXY:localExtRange():subRange(lv,uv)
       end
-      -- Range in a global field we'll copy the local solution from.
-      local lv, uv = self.potentials[1].phi:localRange():lowerAsVec(), self.potentials[1].phi:localRange():upperAsVec()
-      self.xySrcRange = self.globalSolXY:localExtRange():subRange(lv,uv)
 
       -- Get adiabatic species info.
       for _, s in population.iterGlobal() do
