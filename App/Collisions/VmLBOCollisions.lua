@@ -153,7 +153,7 @@ function VmLBOCollisions:fullInit(speciesTbl)
 
    self.nuFrac = tbl.nuFrac and tbl.nuFrac or 1.0
 
-   self.timers = {nonSlvr = 0.}
+   self.timers = {mom = 0.,   momcross = 0.,   advance = 0.,}
 end
 
 function VmLBOCollisions:setName(nm) self.name = self.speciesName.."_"..nm end
@@ -331,18 +331,24 @@ end
 
 function VmLBOCollisions:calcCouplingMoments(tCurr, rkIdx, species)
    -- Compute self-primitive moments u and vtSq.
+   local tmStart = Time.clock()
+
    local fIn      = species[self.speciesName]:rkStepperFields()[rkIdx]
    local momsSelf = species[self.speciesName]:fluidMoments()
 
    self.primMomsSelfCalc:advance(tCurr, {momsSelf, fIn}, {self.boundCorrs, self.primMomsSelf})
+   self.timers.mom = self.timers.mom + Time.clock() - tmStart
 end
 
 function VmLBOCollisions:calcCrossCouplingMoments(tCurr, rkIdx, population)
    -- Perform cross-species calculation related to coupling moments that require the
    -- self-species coupling moments.
+   local tmStart = Time.clock()
 
    -- Begin sending/receiving drift velocity and thermal speed squared if needed.
    population:speciesXferField_begin(self.primMomsSelfXfer, self.primMomsSelf, 33)
+
+   self.timers.momcross = self.timers.momcross + Time.clock() - tmStart
 end
 
 function VmLBOCollisions:calcSelfNuTimeConst(momsSelf, nuOut) nuOut:copy(self.nuSelf) end
@@ -378,7 +384,7 @@ function VmLBOCollisions:calcCrossNuTimeDep(otherNm, chargeOther,
 end
 
 function VmLBOCollisions:advance(tCurr, fIn, population, out)
-   local tmNonSlvrStart = Time.clock()
+   local tmStart = Time.clock()
 
    local fRhsOut, cflRateByCell = out[1], out[2]
    local species = population:getSpecies()
@@ -426,11 +432,11 @@ function VmLBOCollisions:advance(tCurr, fIn, population, out)
       end  -- end loop over other species that this species collides with.
 
    end  -- end if self.crossCollisions.
-   self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 
    -- Compute increment from collisions and accumulate it into output.
    self.collisionSlvr:advance(tCurr, {fIn, self.nuPrimMomsSum, self.nuSum}, {fRhsOut, cflRateByCell})
 
+   self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end
 
 function VmLBOCollisions:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
@@ -439,15 +445,5 @@ function VmLBOCollisions:advanceCrossSpeciesCoupling(tCurr, population, emIn, in
 end
 
 function VmLBOCollisions:write(tm, frame) end
-
-function VmLBOCollisions:totalTime()
-   return self.collisionSlvr.totalTime + self.timers.nonSlvr
-end
-function VmLBOCollisions:slvrTime()
-   return self.collisionSlvr.totalTime
-end
-function VmLBOCollisions:nonSlvrTime()
-   return self.timers.nonSlvr
-end
 
 return VmLBOCollisions

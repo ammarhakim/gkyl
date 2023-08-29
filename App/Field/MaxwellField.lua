@@ -172,15 +172,14 @@ function MaxwellField:fullInit(appTbl)
       self.hasNonPeriodicBc = true
    end
 
-   self.tmCurrentAccum = 0.0 -- Time spent in current accumulate.
-   self.integratedEMTime = 0.0 -- Time spent integrating EM fields.
-
    -- Create trigger for how frequently to compute integrated EM fields.
    if appTbl.calcIntQuantEvery then
       self.calcIntEMQuantTrigger = LinearTrigger(0, appTbl.tEnd,  math.floor(1/appTbl.calcIntQuantEvery))
    else
       self.calcIntEMQuantTrigger = function(t) return true end
    end
+
+   self.timers = {advance = 0.,   bc = 0.}
 end
 
 -- Methods for EM field object.
@@ -319,9 +318,9 @@ function MaxwellField:createSolver(population)
       for d=1,self.grid:ndim() do if self.grid:cuts(d)>1 then isParallel=true end end
 
       self.fieldSlvr = Updater.FemPoisson {
-         onGrid    = self.grid,   bcLower = self.bcLowerPhi,
-         basis     = self.basis,  bcUpper = self.bcUpperPhi,
-         epsilon_0 = self.epsilon0,
+         onGrid  = self.grid,   bcLower = self.bcLowerPhi,
+         basis   = self.basis,  bcUpper = self.bcUpperPhi,
+         epsilon = self.epsilon0,
       }
       self.esEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
          onGrid = self.grid,   quantity = "V2",
@@ -472,13 +471,10 @@ end
 
 function MaxwellField:write(tm, force)
    if self.evolve or self.forceWrite then
-      local tmStart = Time.clock()
       -- Compute EM energy integrated over domain.
       if self.calcIntEMQuantTrigger(tm) then
          self.emEnergyCalc(tm, { self.em[1] }, { self.emEnergy })
       end
-      -- Time computation of integrated moments.
-      self.integratedEMTime = self.integratedEMTime + Time.clock() - tmStart
 
       if self.ioTrigger(tm) or force then
 	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm, self.ioFrame)
@@ -550,12 +546,11 @@ end
 
 function MaxwellField:accumulateCurrent(current, emRhs)
    if current == nil then return end
-   local tmStart = Time.clock()
    emRhs:accumulateRange(-1.0/self.epsilon0, current, emRhs:localRange())
-   self.tmCurrentAccum = self.tmCurrentAccum + Time.clock()-tmStart
 end
 
 function MaxwellField:advance(tCurr, population, inIdx, outIdx)
+   local tmStart = Time.clock()
    local emIn = self:rkStepperFields()[inIdx]
    local emRhsOut = self:rkStepperFields()[outIdx]
 
@@ -590,6 +585,7 @@ function MaxwellField:advance(tCurr, population, inIdx, outIdx)
       -- Solve for the potential.
       self.fieldSlvr:advance(tCurr, {self.chargeDens}, {emIn})
    end
+   self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end
 
 function MaxwellField:applyBcIdx(tCurr, idx)
@@ -607,7 +603,11 @@ function MaxwellField:applyBc(tCurr, emIn, dir)
    end   
 
    emIn:sync()
-   self.bcTime = self.bcTime + Time.clock()-tmStart
+   self.timers.bc = self.timers.bc + Time.clock() - tmStart
+end
+
+function MaxwellField:clearTimers()
+   for nm, _ in pairs(self.timers) do self.timers[nm] = 0. end
 end
  
 MaxwellField.bcConst = function(Ex, Ey, Ez, Bx, By, Bz, phiE, phiB)
@@ -618,18 +618,6 @@ MaxwellField.bcConst = function(Ex, Ey, Ez, Bx, By, Bz, phiE, phiB)
    return { bc }
 end
   
-function MaxwellField:totalSolverTime()
-   local ftm = 0.0
-   if self.fieldSlvr then
-      ftm = self.fieldSlvr.totalTime
-   end
-   return ftm + self.tmCurrentAccum
-end
-
-function MaxwellField:totalBcTime() return self.bcTime end
-
-function MaxwellField:energyCalcTime() return self.integratedEMTime end
-
 -- ExternalMaxwellField ---------------------------------------------------------------------
 --
 -- A field object with external EM fields specified as a time-dependent function.
@@ -672,6 +660,8 @@ function ExternalMaxwellField:fullInit(appTbl)
          return ex, ey, ez
       end
    end
+
+   self.timers = {advance = 0.,   bc = 0.}
 end
 
 function ExternalMaxwellField:hasEB() return true, self.hasMagField end
@@ -747,25 +737,28 @@ function ExternalMaxwellField:rkStepperFields()
 end
 
 function ExternalMaxwellField:advance(tCurr)
+   local tmStart = Time.clock()
    local emOut = self:rkStepperFields()[1]
    if self.evolve then
       self.fieldSlvr:advance(tCurr, {}, {emOut})
       self:applyBc(tCurr, emOut)
    end
+   self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end
 
 function ExternalMaxwellField:applyBcIdx(tCurr, idx)
    self:applyBc(tCurr, self:rkStepperFields()[1])
 end
 
-function ExternalMaxwellField:applyBc(tCurr, emIn) emIn:sync() end
-
-function ExternalMaxwellField:totalSolverTime()
-   return self.fieldSlvr.totalTime
+function ExternalMaxwellField:applyBc(tCurr, emIn)
+   local tmStart = Time.clock()
+   emIn:sync()
+   self.timers.bc = self.timers.bc + Time.clock() - tmStart
 end
 
-function ExternalMaxwellField:totalBcTime() return 0.0 end
-function ExternalMaxwellField:energyCalcTime() return 0.0 end
+function ExternalMaxwellField:clearTimers()
+   for nm, _ in pairs(self.timers) do self.timers[nm] = 0. end
+end
 
 return {
    MaxwellField         = MaxwellField,

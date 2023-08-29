@@ -44,17 +44,18 @@ typedef struct gkyl_bc_basic gkyl_bc_basic;
  *
  * @param dir Direction in which to apply BC.
  * @param edge Lower or upper edge at which to apply BC (see gkyl_edge_loc).
- * @param local_range_ext Local extended range.
- * @param num_ghosts Number of ghosts in each dimension.
  * @param bctype BC type (see gkyl_bc_basic_type).
  * @param basis Basis on which coefficients in array are expanded.
- * @param num_comp Number of components (DOFs) within a cell.
+ * @param skin_r Skin range.
+ * @param ghost_r Ghost range.
  * @param cdim Configuration space dimensions.
+ * @param num_comp Number of components (DOFs) within a cell.
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
-struct gkyl_bc_basic* gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range* local_range_ext,
-  const int *num_ghosts, enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis, int num_comp, int cdim, bool use_gpu);
+struct gkyl_bc_basic* gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, enum gkyl_bc_basic_type bctype,
+  const struct gkyl_basis *basis, const struct gkyl_range *skin_r,
+  const struct gkyl_range *ghost_r, int num_comp, int cdim, bool use_gpu);
 
 /**
  * Create new updater to apply basic BCs to a field
@@ -103,11 +104,20 @@ function BasicBc:init(tbl)
    elseif self._bcType == "maxwell_pec" then bctype = 3 
    end
 
+   local skinRange, ghostRange
+   if self._edge == 'lower' then
+      skinRange  = onField:localGlobalSkinRangeIntersectLower()[self._dir]
+      ghostRange = onField:localGlobalGhostRangeIntersectLower()[self._dir]
+   else
+      skinRange  = onField:localGlobalSkinRangeIntersectUpper()[self._dir]
+      ghostRange = onField:localGlobalGhostRangeIntersectUpper()[self._dir]
+   end
+
    local useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU)
    local basis  = useGPU and self._basis._zeroDevice or self._basis._zero
 
-   self._zero = ffi.gc(ffiC.gkyl_bc_basic_new(self._dir-1, edge, localExtRange, numGhostVec:data(), bctype,
-                                              basis, onField:numComponents(), cDim, useGPU or 0),
+   self._zero = ffi.gc(ffiC.gkyl_bc_basic_new(self._dir-1, edge, bctype, basis, skinRange, ghostRange,
+                                              onField:numComponents(), cDim, useGPU or 0),
                        ffiC.gkyl_bc_basic_release)
 
    local dirlabel = {"X", "Y", "Z"}

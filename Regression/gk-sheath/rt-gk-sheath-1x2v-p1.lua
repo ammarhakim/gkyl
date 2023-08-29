@@ -37,6 +37,9 @@ nuElc = nuFrac*logLambdaElc*eV^4*n0/(6*math.sqrt(2)*math.pi^(3/2)*eps0^2*math.sq
 -- Ion collision freq.
 logLambdaIon = 6.6 - 0.5*math.log(n0/1e20) + 1.5*math.log(Ti0/eV)
 nuIon = nuFrac*logLambdaIon*eV^4*n0/(12*math.pi^(3/2)*eps0^2*math.sqrt(mi)*(Ti0)^(3/2))
+-- Electron-ion and ion-electron collision frequencies.
+nuElcIon     = nuElc*2.0
+nuIonElc     = me*nuElcIon/mi -- Ion-electron collision frequency.
 
 -- Derived parameters
 vti, vte = math.sqrt(Ti0/mi), math.sqrt(Te0/me)
@@ -90,7 +93,7 @@ plasmaApp = Plasma.App {
    calcIntQuantEvery = 1./60.,
 
    decompCuts  = {1},    -- MPI subdomains/processes.
---   parallelizeSpecies = true,
+   parallelizeSpecies = true,
 
    -- Gyrokinetic electrons.
    elc = Plasma.Species {
@@ -120,8 +123,8 @@ plasmaApp = Plasma.App {
          scaleWithSourcePower = true,
       },
       coll = Plasma.LBOCollisions {
-         collideWith = {'elc'},
-         frequencies = {nuElc},
+         collideWith = {'elc','ion'},
+         frequencies = {nuElc,nuElcIon},
       },
       source = Plasma.Source {
          kind        = "Maxwellian",
@@ -168,8 +171,8 @@ plasmaApp = Plasma.App {
          scaleWithSourcePower = true,
       },
       coll = Plasma.LBOCollisions {
-         collideWith = {'ion'},
-         frequencies = {nuIon},
+         collideWith = {'ion','elc'},
+         frequencies = {nuIon,nuIonElc},
       },
       source = Plasma.Source {
          kind        = "Maxwellian",

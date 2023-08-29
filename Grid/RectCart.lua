@@ -16,10 +16,10 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 -- Gkyl libraries.
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Lin   = require "Lib.Linalg"
+local lume  = require "Lib.lume"
 local Mpi   = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
-local lume  = require "Lib.lume"
 
 local cuda = nil
 if GKYL_HAVE_CUDA then
@@ -70,11 +70,11 @@ local rectCartSz = sizeof("struct gkyl_rect_grid")
 
 -- Determine local domain index.
 local function getSubDomIndex(comm)
-   local idx = ffi.new("int[1]")
+   local idx = -1
    if Mpi.Is_comm_valid(comm) then
-      idx[0] = Mpi.Comm_rank(comm)+1 -- sub-domains are indexed from 1
+      idx = Mpi.Comm_rank(comm)+1 -- Sub-domains are 1-indexed.
    end
-   return idx[0]
+   return idx
 end
 
 -- RectCart --------------------------------------------------------------------
@@ -126,7 +126,7 @@ function RectCart:init(tbl)
    self._localRange  = Range.Range(l, u)
    self._block       = 1   -- Block number for use in parallel communications.
    
-   self.messenger = tbl.messenger or nil  -- Object managing communications.
+   self._messenger = tbl.messenger or nil  -- Object managing communications.
    self.decomp = tbl.decomposition and tbl.decomposition or nil  -- Decomposition.
    if self.decomp then
       assert(self.decomp:ndim() == self._ndim,
@@ -159,7 +159,7 @@ end
 
 -- Member functions.
 function RectCart:id() return "uniform" end
-function RectCart:getMessenger() return self.messenger end
+function RectCart:getMessenger() return self._messenger end
 function RectCart:commSet() return self._commSet end 
 function RectCart:subGridId() return self._block end
 function RectCart:subGridIdByDim(idx) 
@@ -384,7 +384,7 @@ function RectCart:childGrid(keepDims)
    if self.decomp then
       local childComm, childWriteRank, childCuts = self.decomp:childDecomp(keepDims)
       childDecomp = DecompRegionCalc.CartProd {
-         comm         = childComm,       cuts      = childCuts,
+         comm         = childComm,       cuts = childCuts,
          writeRank    = childWriteRank,
          __serTesting = true,
       }
@@ -393,7 +393,7 @@ function RectCart:childGrid(keepDims)
    local childGridIngredients = {
       lower = childLower,  periodicDirs  = childPeriodicDirs,
       upper = childUpper,  decomposition = childDecomp,
-      cells = childCells,
+      cells = childCells,  messenger     = self._messenger,
    }
    return childGridIngredients
 end
