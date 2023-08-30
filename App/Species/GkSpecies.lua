@@ -99,7 +99,7 @@ end
 
 function GkSpecies:createBasis(nm, polyOrder)
    self.basis = createBasis(nm, self.cdim, self.vdim, polyOrder)
-   for _, c in pairs(self.collisions) do c:setPhaseBasis(self.basis) end
+   for _, c in lume.orderedIter(self.collisions) do c:setPhaseBasis(self.basis) end
 
    -- Output of grid file is placed here because as the file name is associated
    -- with a species, we wish to save the basisID and polyOrder in it. But these
@@ -319,22 +319,22 @@ end
 
 function GkSpecies:setCfl(cfl)
    self.cfl = cfl
-   for _, c in pairs(self.collisions) do c:setCfl(cfl) end
+   for _, c in lume.orderedIter(self.collisions) do c:setCfl(cfl) end
 end
 
 function GkSpecies:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 
 function GkSpecies:setConfBasis(basis)
    self.confBasis = basis
-   for _, c in pairs(self.collisions) do c:setConfBasis(basis) end
+   for _, c in lume.orderedIter(self.collisions) do c:setConfBasis(basis) end
    for _, src in pairs(self.sources) do src:setConfBasis(basis) end
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:setConfBasis(basis) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:setConfBasis(basis) end
 end
 function GkSpecies:setConfGrid(grid)
    self.confGrid = grid
-   for _, c in pairs(self.collisions) do c:setConfGrid(grid) end
+   for _, c in lume.orderedIter(self.collisions) do c:setConfGrid(grid) end
    for _, src in pairs(self.sources) do src:setConfGrid(grid) end
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:setConfGrid(grid) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:setConfGrid(grid) end
 end
 
 function GkSpecies:createGrid(confGridIn)
@@ -402,7 +402,7 @@ function GkSpecies:createGrid(confGridIn)
       messenger = confGrid:getMessenger(),
    }
 
-   for _, c in pairs(self.collisions) do c:setPhaseGrid(self.grid) end
+   for _, c in lume.orderedIter(self.collisions) do c:setPhaseGrid(self.grid) end
 end
 
 -- Field allocation in the species objects should be performed with one
@@ -506,12 +506,6 @@ function GkSpecies:createSolver(field, externalField)
       end
    end
 
-   -- Create solvers for collisions.
-   for _, c in pairs(self.collisions) do c:createSolver(self, externalField) end
-
-   -- Create BC solvers.
-   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self, field, externalField) end
-
    local hasE, hasB       = field:hasEB()
    local extHasE, extHasB = externalField:hasEB()
 
@@ -538,7 +532,19 @@ function GkSpecies:createSolver(field, externalField)
       local xMid = {}
       for d = 1,self.cdim do xMid[d]=self.confGrid:mid(d) end
       self.bmagMid = self.bmagFunc(0.0, xMid)
+
    end
+
+   -- Minimum vtSq supported by the grid (for p=1 only for now):
+   local TparMin  = (self.mass/6.)*self.grid:dx(self.cdim+1)
+   local TperpMin = self.vdim==1 and TparMin or (self.bmagMid/3.)*self.grid:dx(self.cdim+2)
+   self.vtSqMinSupported = (TparMin + 2.*TperpMin)/(3.*self.mass)
+
+   -- Create solvers for collisions.
+   for _, c in lume.orderedIter(self.collisions) do c:createSolver(self, externalField) end
+
+   -- Create BC solvers.
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self, field, externalField) end
 
    self.hasSheathBCs = false
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
@@ -889,7 +895,7 @@ function GkSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
 
    -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
    self.timers.collisions = 0.
-   for _, c in pairs(self.collisions) do
+   for _, c in lume.orderedIter(self.collisions) do
       c:advance(tCurr, fIn, population, {fRhsOut, self.cflRateByCell})
       self.timers.collisions = self.timers.collisions + c:getTimer('advance')
    end
@@ -943,7 +949,7 @@ function GkSpecies:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, o
       coll:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
    end
 
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
    self.timers.advancecross = self.timers.advancecross + Time.clock() - tmStart
 end
 
@@ -1027,7 +1033,7 @@ function GkSpecies:getFlucF() return self.flucF end
 function GkSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
 
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:copyBoundaryFluxField(aIdx, outIdx) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:copyBoundaryFluxField(aIdx, outIdx) end
 end
 
 function GkSpecies:combineRk(outIdx, a, aIdx, ...)
@@ -1038,7 +1044,7 @@ function GkSpecies:combineRk(outIdx, a, aIdx, ...)
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end
 
-   for _, bc in pairs(self.nonPeriodicBCs) do
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
       bc:combineBoundaryFluxField(outIdx, a, aIdx, ...)
    end
 end
@@ -1102,6 +1108,8 @@ end
 
 function GkSpecies:fluidMoments() return self.threeMoments end
 
+function GkSpecies:vtSqMin() return self.vtSqMinSupported end
+
 function GkSpecies:getNumDensity(rkIdx)
    -- If no rkIdx specified, assume numDensity has already been calculated.
    if rkIdx == nil then return self.numDensity end 
@@ -1162,7 +1170,7 @@ function GkSpecies:write(tm, field, force)
          dOb:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.
       end
 
-      for _, bc in pairs(self.nonPeriodicBCs) do
+      for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
          bc:computeBoundaryFluxRate(self.dtGlobal[0])
       end
 
@@ -1281,7 +1289,7 @@ end
 function GkSpecies:clearTimers() 
    for nm, _ in pairs(self.timers) do self.timers[nm] = 0. end
    self.solver.totalTime = 0.
-   for _, c in pairs(self.collisions) do c:clearTimers() end
+   for _, c in lume.orderedIter(self.collisions) do c:clearTimers() end
    for _, src in lume.orderedIter(self.sources) do src:clearTimers() end
 end
 
