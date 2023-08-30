@@ -46,13 +46,18 @@ typedef enum { ncclSuccess                 =  0,
 
 /* Communicator configuration. Users can assign value to attributes to specify the
  * behavior of a communicator. */
-typedef struct ncclConfig_v21400 {
+typedef struct ncclConfig_v21700 {
   /* attributes that users should never touch. */
   size_t size;
   unsigned int magic;
   unsigned int version;
   /* attributes that users are able to customize. */
   int blocking;
+  int cgaClusterSize;
+  int minCTAs;
+  int maxCTAs;
+  const char *netName;
+  int splitShare;
 } ncclConfig_t;
 
 /* Data types */
@@ -65,6 +70,7 @@ typedef enum { ncclInt8       = 0, ncclChar       = 0,
                ncclFloat16    = 6, ncclHalf       = 6,
                ncclFloat32    = 7, ncclFloat      = 7,
                ncclFloat64    = 8, ncclDouble     = 8,
+// MF Commented these out presumably because LuaJIT can't handle preprocessor instructions.
 // #if defined(__CUDA_BF16_TYPES_EXIST__)
 //                ncclBfloat16   = 9,
 //                ncclNumTypes   = 10
