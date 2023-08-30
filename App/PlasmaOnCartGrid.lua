@@ -959,8 +959,8 @@ return {
          VlasovNeutral = require ("App.Species.VlasovSpecies").VlasovNeutral,
          VlasovGenGeoNeutral = require ("App.Species.VlasovSpecies").VlasovGenGeoNeutral,
          -- Relativistic Vlasov flavors
-         VlasovSR = require ("App.Species.VlasovSRSpecies").VlasovSRMaxwell,
-         VlasovSRNeutral = require ("App.Species.VlasovSRSpecies").VlasovSRNeutral,
+         VlasovSR = require ("App.Species.VlasovSpecies").VlasovSRMaxwell,
+         VlasovSRNeutral = require ("App.Species.VlasovSpecies").VlasovSRNeutral,
       }
       GenField = {
          Maxwell = require ("App.Field.MaxwellField").MaxwellField,

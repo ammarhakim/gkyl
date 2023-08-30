@@ -557,10 +557,29 @@ function VlasovSpecies:createSolver(field, externalField)
       self.totEmFptr, self.totEmFidxr = self.totalEmField:get(1), self.totalEmField:genIndexer()
    end
 
-   self.computePlasmaB = true and plasmaB or extHasB   -- Differentiate plasma B from external B.
+   self.computePlasmaB = true and plasmaB or extHasB
 
-   -- Create table of pointers to fields needed in update
-   self.fldPtrs = {self.totalEmField}
+   if self.model_id == "GKYL_MODEL_SR" then 
+      -- Initialize velocity-space arrays for relativistic Vlasov
+      -- Only need to do this once, so we don't need to store the updater
+      local initSRVarsCalc = Updater.CalcSRVars {
+         velGrid = self.velGrid, 
+         confBasis = self.confBasis, 
+         velBasis = self.velBasis, 
+         phaseBasis = self.basis, 
+         operation = "init", 
+      }
+      initSRVarsCalc:advance(0.0, {}, {self.p_over_gamma, self.gamma, self.gamma_inv})
+      -- Create table of pointers to fields needed in update
+      self.fldPtrs = {self.totalEmField, self.p_over_gamma}
+      self.momPtrs = {self.p_over_gamma, self.gamma, self.gamma_inv}
+   else
+      -- Create table of pointers to fields needed in update
+      self.fldPtrs = {self.totalEmField}
+      -- No auxiliary fields for moments for non-relativistic Vlasov
+      self.momPtrs = {}
+   end
+
    -- Create updater to advance solution by one time-step.
    if self.evolveCollisionless then
       self.solver = Updater.VlasovDG {
@@ -589,30 +608,44 @@ function VlasovSpecies:createSolver(field, externalField)
    end
 
    -- Create updaters to compute various moments.
-   self.numDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,   confBasis  = self.confBasis,
-      phaseBasis = self.basis,  moment     = "M0",
+   -- M0 and M1i are common to both non-relativistic and relativistic Vlasov, so use common DistFuncMomentDG 
+   self.numDensityCalc = Updater.DistFuncMomentDG {
+      onGrid    = self.grid,                      confBasis = self.confBasis,                phaseBasis = self.basis, 
+      confRange = self.totalEmField:localRange(), velRange = self.p_over_gamma:localRange(), 
+      model_id  = self.model_id,                  isIntegrated = false,                      momPtrs    = self.momPtrs, 
+      moment    = "M0", 
    }
-   self.momDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,   confBasis  = self.confBasis,
-      phaseBasis = self.basis,  moment     = "M1i",
+   self.momDensityCalc = Updater.DistFuncMomentDG {
+      onGrid    = self.grid,                      confBasis = self.confBasis,                phaseBasis = self.basis, 
+      confRange = self.totalEmField:localRange(), velRange = self.p_over_gamma:localRange(), 
+      model_id  = self.model_id,                  isIntegrated = false,                      momPtrs    = self.momPtrs,  
+      moment    = "M1i", 
    }
-   self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,   confBasis  = self.confBasis,
-      phaseBasis = self.basis,  moment     = "M2",
-   }
-   self.M2ijCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,   confBasis = self.confBasis,
-      phaseBasis = self.basis,  moment    = "M2ij",
-   }
-   self.M3iCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,   confBasis = self.confBasis,
-      phaseBasis = self.basis,  moment    = "M3i",
-   }
-   self.calcMaxwell = Updater.MaxwellianOnBasis {
-      onGrid     = self.grid,   confGrid  = self.confGrid,
-      phaseBasis = self.basis,  confBasis = self.confBasis,
-   }
+   if self.model_id == "GKYL_MODEL_SR" then
+      self.ptclEnergyCalc = Updater.DistFuncMomentDG {
+         onGrid    = self.grid,                      confBasis = self.confBasis,                phaseBasis = self.basis, 
+         confRange = self.totalEmField:localRange(), velRange = self.p_over_gamma:localRange(), 
+         model_id  = self.model_id,                  isIntegrated = false,                      momPtrs    = self.momPtrs,   
+         moment    = "Energy", 
+      } 
+   else
+      self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.grid,   confBasis  = self.confBasis,
+         phaseBasis = self.basis,  moment     = "M2",
+      }
+      self.M2ijCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.grid,   confBasis = self.confBasis,
+         phaseBasis = self.basis,  moment    = "M2ij",
+      }
+      self.M3iCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.grid,   confBasis = self.confBasis,
+         phaseBasis = self.basis,  moment    = "M3i",
+      }
+      self.calcMaxwell = Updater.MaxwellianOnBasis {
+         onGrid     = self.grid,   confGrid  = self.confGrid,
+         phaseBasis = self.basis,  confBasis = self.confBasis,
+      }
+   end
    if self.needFiveMoments then
       -- Create updater to compute M0, M1i, M2 moments.
       self.fiveMomentsCalc = Updater.DistFuncMomentCalc {
@@ -1222,10 +1255,28 @@ function VlasovGenGeoNeutralSpecies:fullInit(mySpecies)
    self.field_id = "GKYL_FIELD_NULL"
    VlasovGenGeoNeutralSpecies.super.fullInit(self, mySpecies)
 end
+
+-- Special Relativistic Vlasov-Maxwell (Cartesian geometry)
+local VlasovSRMaxwellSpecies = Proto(VlasovSpecies)
+function VlasovSRMaxwellSpecies:fullInit(mySpecies)
+   self.model_id = "GKYL_MODEL_SR"
+   self.field_id = "GKYL_FIELD_E_B"
+   VlasovSRMaxwellSpecies.super.fullInit(self, mySpecies)
+end
+
+-- Neutral Special Relativistic Vlasov (Cartesian geometry)
+local VlasovSRNeutralSpecies = Proto(VlasovSpecies)
+function VlasovSRNeutralSpecies:fullInit(mySpecies)
+   self.model_id = "GKYL_MODEL_SR"
+   self.field_id = "GKYL_FIELD_NULL"
+   VlasovSRNeutralSpecies.super.fullInit(self, mySpecies)
+end
 -- ................... End of VlasovSpecies alias classes .................... --
 
 return {VlasovMaxwell       = VlasovMaxwellSpecies,
         VlasovPoisson       = VlasovPoissonSpecies,
         VlasovPoissonA      = VlasovPoissonASpecies,
         VlasovNeutral       = VlasovNeutralSpecies,
-        VlasovGenGeoNeutral = VlasovGenGeoNeutralSpecies}
+        VlasovGenGeoNeutral = VlasovGenGeoNeutralSpecies, 
+        VlasovSRMaxwell     = VlasovSRMaxwellSpecies,
+        VlasovSRNeutral     = VlasovSRNeutralSpecies}

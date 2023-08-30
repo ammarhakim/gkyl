@@ -92,10 +92,6 @@ function DistFuncMomentDG:init(tbl)
    self._onGrid = assert(tbl.onGrid, "Updater.DistFuncMomentDG: Must specify grid to use with 'onGrid'.")
    self._confBasis = assert(tbl.confBasis, "Updater.DistFuncMomentDG: Must specify configuration space basis with 'confBasis'.")
    self._phaseBasis = assert(tbl.phaseBasis, "Updater.DistFuncMomentDG: Must specify phase space basis with 'confBasis'.")
-   self._moment = assert(tbl.moment, "Updater.DistFuncMomentDG: Must specify moment type with 'moment'.")
-   self._isIntegrated = assert(tbl.isIntegrated, "Updater.DistFuncMomentDG: Must specify if integrated moment with 'isIntegrated'.")
-
-   local useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU)
 
    -- Get the ranges needed for certain moment routines if they were passed as inputs
    self._velRange = nil
@@ -109,14 +105,13 @@ function DistFuncMomentDG:init(tbl)
       assert(self._confRange:isSubRange()==1, "Updater.DistFuncMomentDG: confRange must be a sub-range") 
    end
 
-   self._moment = assert(
-     tbl.moment, "Updater.DistFuncMomentDG: Must specify moment type with 'moment'.")
+   self._moment = assert(tbl.moment, "Updater.DistFuncMomentDG: Must specify moment type with 'moment'.")
    self._isIntegrated = tbl.isIntegrated or false
 
    local useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU)
 
-   self._modelId = assert(
-     tbl.model_id, "Updater.DistFuncMomentDG: Must provide model ID using 'model_id'")
+   self._modelId = assert(tbl.model_id, "Updater.DistFuncMomentDG: Must provide model ID using 'model_id'")
+   
    local model_id
    if self._modelId == "GKYL_MODEL_DEFAULT" then model_id = 0
    elseif self._modelId == "GKYL_MODEL_SR"  then model_id = 1
@@ -129,13 +124,13 @@ function DistFuncMomentDG:init(tbl)
       -- Create aux fields struct for special relativistic moments
       self._auxfields = ffi.new("struct gkyl_mom_vlasov_sr_auxfields")
       if useGPU then
-         self._auxfields.p_over_gamma = tbl.fldPtrs[1]._zeroDevice
-         self._auxfields.gamma = tbl.fldPtrs[2]._zeroDevice
-         self._auxfields.gamma_inv = tbl.fldPtrs[3]._zeroDevice
+         self._auxfields.p_over_gamma = tbl.momPtrs[1]._zeroDevice
+         self._auxfields.gamma = tbl.momPtrs[2]._zeroDevice
+         self._auxfields.gamma_inv = tbl.momPtrs[3]._zeroDevice
       else
-         self._auxfields.p_over_gamma = tbl.fldPtrs[1]._zero
-         self._auxfields.gamma = tbl.fldPtrs[2]._zero
-         self._auxfields.gamma_inv = tbl.fldPtrs[3]._zero
+         self._auxfields.p_over_gamma = tbl.momPtrs[1]._zero
+         self._auxfields.gamma = tbl.momPtrs[2]._zero
+         self._auxfields.gamma_inv = tbl.momPtrs[3]._zero
       end
    end
 

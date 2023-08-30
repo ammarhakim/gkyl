@@ -141,10 +141,10 @@ function VlasovDG:init(tbl)
    if model_id == 1 then 
       self._auxfields = ffi.new("struct gkyl_dg_vlasov_sr_auxfields")
       if self._useGPU then
-         self._auxfields.field = tbl.fldPtrs[1]._zeroDevice
+         self._auxfields.qmem = tbl.fldPtrs[1]._zeroDevice
          self._auxfields.p_over_gamma = tbl.fldPtrs[2]._zeroDevice
       else
-         self._auxfields.field = tbl.fldPtrs[1]._zero
+         self._auxfields.qmem = tbl.fldPtrs[1]._zero
          self._auxfields.p_over_gamma = tbl.fldPtrs[2]._zero
       end
    else
