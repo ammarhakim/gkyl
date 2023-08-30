@@ -128,7 +128,7 @@ function VmBGKCollisions:fullInit(speciesTbl)
 
    self.exactLagFixM012 = xsys.pickBool(tbl.exactLagFixM012, true) 
 
-   self.timers = {nonSlvr = 0.}
+   self.timers = {mom = 0.,   momcross = 0.,   advance = 0.,}
 end
 
 function VmBGKCollisions:setName(nm) self.name = self.speciesName.."_"..nm end
@@ -345,18 +345,25 @@ function VmBGKCollisions:crossNormNu(speciesName) return self.normNuCross[specie
 
 function VmBGKCollisions:calcCouplingMoments(tCurr, rkIdx, species)
    -- Compute self-primitive moments u and vtSq.
+   local tmStart = Time.clock()
+
    local fIn      = species[self.speciesName]:rkStepperFields()[rkIdx]
    local momsSelf = species[self.speciesName]:fluidMoments()
 
    self.primMomsSelfCalc:advance(tCurr, {momsSelf, fIn}, {self.boundCorrs, self.primMomsSelf})
+
+   self.timers.mom = self.timers.mom + Time.clock() - tmStart
 end
 
 function VmBGKCollisions:calcCrossCouplingMoments(tCurr, rkIdx, population)
    -- Perform cross-species calculation related to coupling moments that require the
    -- self-species coupling moments.
+   local tmStart = Time.clock()
 
    -- Begin sending/receiving drift velocity and thermal speed squared if needed.
    population:speciesXferField_begin(self.primMomsSelfXfer, self.primMomsSelf, 33)
+
+   self.timers.momcross = self.timers.momcross + Time.clock() - tmStart
 end
 
 function VmBGKCollisions:calcSelfNuTimeConst(momsSelf, nuOut) nuOut:copy(self.nuSelf) end
@@ -392,7 +399,7 @@ function VmBGKCollisions:calcCrossNuTimeDep(otherNm, chargeOther,
 end
 
 function VmBGKCollisions:advance(tCurr, fIn, population, out)
-   local tmNonSlvrStart = Time.clock()
+   local tmStart = Time.clock()
 
    local fRhsOut, cflRateByCell = out[1], out[2]
    local species = population:getSpecies()
@@ -463,11 +470,11 @@ function VmBGKCollisions:advance(tCurr, fIn, population, out)
          self.nufMaxwellSum:accumulate(1.0, self.nufMaxwellCross)
       end    -- end loop over other species that this species collides with.
    end    -- end if self.crossCollisions.
-   self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 
    -- Calculate the BGK increment.
    self.collisionSlvr:advance(tCurr, {self.nuSum, self.nufMaxwellSum, fIn}, {fRhsOut, cflRateByCell})
 
+   self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end
 
 function VmBGKCollisions:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
@@ -476,17 +483,5 @@ function VmBGKCollisions:advanceCrossSpeciesCoupling(tCurr, population, emIn, in
 end
 
 function VmBGKCollisions:write(tm, frame) end
-
-function VmBGKCollisions:totalTime()
-   return self.collisionSlvr.totalTime + self.timers.nonSlvr
-end
-
-function VmBGKCollisions:slvrTime()
-   return self.collisionSlvr.totalTime + self.maxwellian.totalTime
-end
-
-function VmBGKCollisions:nonSlvrTime()
-   return self.timers.nonSlvr
-end
 
 return VmBGKCollisions

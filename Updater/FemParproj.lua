@@ -25,6 +25,13 @@ ffi.cdef [[
 // Object type
 typedef struct gkyl_fem_parproj gkyl_fem_parproj;
 
+// Boundary condition types.
+enum gkyl_fem_parproj_bc_type {
+  GKYL_FEM_PARPROJ_PERIODIC = 0,
+  GKYL_FEM_PARPROJ_DIRICHLET, // sets the value.
+  GKYL_FEM_PARPROJ_NONE,      // does not enforce a BC.
+};
+
 /**
  * Create new updater to project a DG field onto the FEM (nodal) basis
  * in order to make the field continuous or, thanks to the option to pass
@@ -36,40 +43,42 @@ typedef struct gkyl_fem_parproj gkyl_fem_parproj;
  * and \doteq implies weak equality with respect to the FEM basis.
  * Free using gkyl_fem_parproj_release method.
  *
- * @param grid Grid object
+ * @param solve_range Range in which to perform the projection operation.
+ * @param solve_range_ext solve_range with ghost cells (in z primarily) used
+ *                        for the Dirichlet BC case.
  * @param basis Basis functions of the DG field.
- * @param isparperiodic boolean indicating if parallel direction is periodic.
- * @param isweighted boolean indicating if wgt\=1.
+ * @param bctype Type of boundary condition (see gkyl_fem_parproj_bc_type).
  * @param weight multiplicative weight on left-side of the operator.
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_fem_parproj* gkyl_fem_parproj_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  bool isparperiodic, bool isweighted, const struct gkyl_array *weight,
-  bool use_gpu);
+struct gkyl_fem_parproj* gkyl_fem_parproj_new(
+  const struct gkyl_range *solve_range, const struct gkyl_range *solve_range_ext,
+  const struct gkyl_basis *basis, enum gkyl_fem_parproj_bc_type bctype,
+  const struct gkyl_array *weight, bool use_gpu);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field.
  *
  * @param up FEM project updater to run.
  * @param rhsin DG field to set as RHS source.
+ * @param phibc Potential to use for Dirichlet BCs (only use ghost cells).
  */
-void gkyl_fem_parproj_set_rhs(gkyl_fem_parproj* up, const struct gkyl_array *rhsin);
+void gkyl_fem_parproj_set_rhs(struct gkyl_fem_parproj* up, const struct gkyl_array *rhsin, const struct gkyl_array *phibc);
 
 /**
  * Solve the linear problem.
  *
  * @param up FEM project updater to run.
  */
-void gkyl_fem_parproj_solve(gkyl_fem_parproj* up, struct gkyl_array *phiout);
+void gkyl_fem_parproj_solve(struct gkyl_fem_parproj* up, struct gkyl_array *phiout);
 
 /**
  * Delete updater.
  *
  * @param up Updater to delete.
  */
-void gkyl_fem_parproj_release(gkyl_fem_parproj *up);
+void gkyl_fem_parproj_release(struct gkyl_fem_parproj *up);
 ]]
 
 -- Boundary condition updater.
@@ -80,22 +89,19 @@ function FemParproj:init(tbl)
 
    self._grid  = assert(tbl.onGrid, "Updater.FemParproj: Must specify grid to use with 'onGrid'.")
    self._basis = assert(tbl.basis, "Updater.FemParproj: Must specify the basis in 'basis'.")
+   local onField = assert(tbl.onField, "Updater.FemParproj: Must specify a sample field (to get ranges) in 'onField'.")
 
-   self._isParPeriodic = tbl.periodicParallelDir
-   assert(self._isParPeriodic ~= nil, "Updater.FemParproj: Must specify if parallel direction is periodic with 'periodicParallelDir'.")
+   local isParPeriodic = tbl.periodicParallelDir
+   assert(isParPeriodic ~= nil, "Updater.FemParproj: Must specify if parallel direction is periodic with 'periodicParallelDir'.")
+   self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
 
-   local weightFld  = tbl.weight
-   local isWeighted = weightFld ~= nil
-   if not isWeighted then  -- Create a dummy weight (not used).
-      weightFld = DataStruct.Field {
-         onGrid = self._grid,  numComponents = self._basis:numBasis(),
-         ghost  = {1,1},       useDevice = false,
-      }
-      weightFld:clear(0.0)
-   end
+   local weightFld = tbl.weight and tbl.weight._zero or nil
 
-   self._zero = ffi.gc(ffiC.gkyl_fem_parproj_new(self._grid._zero, self._basis._zero, self._isParPeriodic,
-                                                 isWeighted, weightFld._zero, GKYL_USE_GPU or 0),
+   local localRange, localExtRange = onField:localRange(), onField:localExtRange()
+
+   local parBC = isParPeriodic and 0 or 2  -- MF 2023/08/01: Dirichlet not yet implemented.
+
+   self._zero = ffi.gc(ffiC.gkyl_fem_parproj_new(localRange, localExtRange, self._basis._zero, parBC, weightFld, self._useGPU),
                        ffiC.gkyl_fem_parproj_release)
 end
 
@@ -103,9 +109,7 @@ function FemParproj:_advance(tCurr, inFld, outFld)
    local rhoIn = assert(inFld[1], "FemParproj.advance: Must-specify an input field")
    local qOut  = assert(outFld[1], "FemParproj.advance: Must-specify an output field")
 
-   if self._isParPeriodic then rhoIn:sync(true) end
-
-   ffiC.gkyl_fem_parproj_set_rhs(self._zero, rhoIn._zero)
+   ffiC.gkyl_fem_parproj_set_rhs(self._zero, rhoIn._zero, nil)
    ffiC.gkyl_fem_parproj_solve(self._zero, qOut._zero)
 end
 
@@ -113,9 +117,7 @@ function FemParproj:_advanceOnDevice(tCurr, inFld, outFld)
    local rhoIn = assert(inFld[1], "FemParproj.advance: Must-specify an input field")
    local qOut  = assert(outFld[1], "FemParproj.advance: Must-specify an output field")
 
-   if self._isParPeriodic then rhoIn:sync(true) end
-
-   ffiC.gkyl_fem_parproj_set_rhs(self._zero, rhoIn._zeroDevice)
+   ffiC.gkyl_fem_parproj_set_rhs(self._zero, rhoIn._zeroDevice, nil)
    ffiC.gkyl_fem_parproj_solve(self._zero, qOut._zeroDevice)
 end
 

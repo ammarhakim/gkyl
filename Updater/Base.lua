@@ -92,7 +92,7 @@ function _M:_advanceNoDeviceImpl(tCurr, inFld, outFld)
    end
    -- Also copy input fields in case they were modified.
    for _, fld in ipairs(inFld) do 
-      if type(fld)=="table" and fld._zero then fld:copyDeviceToHost() end
+      if type(fld)=="table" and fld._zero then fld:copyHostToDevice() end
    end
 end
 
@@ -108,11 +108,11 @@ function _M:getComm() return self._comm end
 -- computes a "total Time", and also synchronizes the status and
 -- time-step suggestion across processors.
 function _M:advance(tCurr, inFld, outFld)
-   -- Advance updater, measuring how long it took
    local tmStart = Time.clock()
-   local status, dtSuggested = self:_advanceFunc(tCurr, inFld, outFld)
-   self.totalTime = self.totalTime + (Time.clock()-tmStart)
 
+   local status, dtSuggested = self:_advanceFunc(tCurr, inFld, outFld)
+
+   self.totalTime = self.totalTime + (Time.clock()-tmStart)
    return status, dtSuggested
 end
 

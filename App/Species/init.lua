@@ -13,7 +13,6 @@ local GkSpecies          = require "App.Species.GkSpecies"
 local GyrofluidSpecies   = require "App.Species.GyrofluidSpecies"
 local HasegawaWakataniSpecies = require "App.Species.HasegawaWakataniSpecies"
 local IncompEulerSpecies = require "App.Species.IncompEulerSpecies"
-local KineticSpecies     = require "App.Species.KineticSpecies"
 local MomentSpecies      = require "App.Species.MomentSpecies"
 local PassiveAdvectionSpecies = require "App.Species.PassiveAdvectionSpecies"
 local SpeciesBase        = require "App.Species.SpeciesBase"
@@ -27,7 +26,6 @@ return {
    GyrofluidSpecies   = GyrofluidSpecies,
    HasegawaWakataniSpecies = HasegawaWakataniSpecies,
    IncompEulerSpecies = IncompEulerSpecies,
-   KineticSpecies     = KineticSpecies,
    MomentSpecies      = MomentSpecies,
    PassiveAdvectionSpecies = PassiveAdvectionSpecies,
    SpeciesBase        = SpeciesBase,

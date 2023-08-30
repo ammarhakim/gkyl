@@ -117,9 +117,9 @@ function ProjectOnBasis:init(tbl)
    -- Construct various functions from template representations.
    self._compToPhys = loadstring(compToPhysTempl {NDIM = ndim} )()
 
-   self.dx  = Lin.Vec(ndim)           -- Cell shape.
-   self.xc  = Lin.Vec(ndim)           -- Cell center.
-   self.xmu = Lin.Vec(ndim)           -- Coordinate at ordinate.
+   self.dx  = Lin.Vec(ndim) -- Cell shape.
+   self.xc  = Lin.Vec(ndim) -- Cell center.
+   self.xmu = Lin.Vec(ndim) -- Coordinate at ordinate.
 end
 
 -- Advance method.
@@ -133,16 +133,15 @@ function ProjectOnBasis:_advance(tCurr, inFld, outFld)
    local numVal   = qOut:numComponents()/numBasis
 
    if self._isFirst then
-      -- Construct function to evaluate function at specified coorindate.
+      -- Construct function to evaluate function at specified coordinate.
       self._evalFunc = loadstring(evalFuncTempl { M = numVal } )()
       self.numVal    = self.numVal and self.numVal or numVal
+      self.fv        = Lin.Mat(numOrd, numVal) -- Function values at ordinates.
    end
-   assert(numVal == self.numVal, "ProjectOnBasis: this updater was created for a scalar/vector field, not a vector/scalar field.")
+   assert(numVal == self.numVal, "ProjectOnBasis: created for a scalar/vector field, not a vector/scalar field.")
 
    -- Sanity check: ensure number of variables, components and basis functions are consistent.
    assert(qOut:numComponents() % numBasis == 0, "ProjectOnBasis:advance: Incompatible input field")
-
-   local fv = Lin.Mat(numOrd, numVal) -- Function values at ordinates.
 
    -- Object to iterate over only region owned by local SHM thread.
    local localRangeOut = self._onGhosts and qOut:localExtRange() or qOut:localRange()
@@ -159,12 +158,12 @@ function ProjectOnBasis:_advance(tCurr, inFld, outFld)
       -- Precompute value of function at each ordinate.
       for mu = 1, numOrd do
          self._compToPhys(self._ordinates[mu], self.dx, self.xc, self.xmu) -- Compute coordinate.
-         self._evalFunc(tCurr, self.xmu, self._evaluate, fv[mu])
+         self._evalFunc(tCurr, self.xmu, self._evaluate, self.fv[mu])
       end
       
       qOut:fill(indexer(idx), fItr)
       ffiC.projectF(
-         fItr:data(), self._weights:data(), self._basisAtOrdinates:data(), fv:data(), numVal, numBasis, numOrd)
+         fItr:data(), self._weights:data(), self._basisAtOrdinates:data(), self.fv:data(), numVal, numBasis, numOrd)
    end
 
    -- Set id of output to id of projection basis.

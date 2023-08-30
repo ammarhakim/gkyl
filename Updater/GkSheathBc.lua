@@ -27,9 +27,9 @@ typedef struct gkyl_bc_sheath_gyrokinetic gkyl_bc_sheath_gyrokinetic;
  *
  * @param dir Direction in which to apply BC.
  * @param edge Lower or upper edge at which to apply BC (see gkyl_edge_loc).
- * @param local_range_ext Local extended range.
- * @param num_ghosts Number of ghosts in each dimension.
  * @param basis Basis on which coefficients in array are expanded (a device pointer if use_gpu=true).
+ * @param skin_r Skin range.
+ * @param ghost_r Ghost range.
  * @param grid cartesian grid dynamic field is defined on.
  * @param cdim Configuration space dimensions.
  * @param q2Dm charge-to-mass ratio times 2.
@@ -37,7 +37,7 @@ typedef struct gkyl_bc_sheath_gyrokinetic gkyl_bc_sheath_gyrokinetic;
  * @return New updater pointer.
  */
 struct gkyl_bc_sheath_gyrokinetic* gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge,
-  const struct gkyl_range *local_range_ext, const int *num_ghosts, const struct gkyl_basis *basis,
+  const struct gkyl_basis *basis, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
   const struct gkyl_rect_grid *grid, int cdim, double q2Dm, bool use_gpu);
 
 /**
@@ -50,9 +50,10 @@ struct gkyl_bc_sheath_gyrokinetic* gkyl_bc_sheath_gyrokinetic_new(int dir, enum 
  * @param phi Electrostatic potential.
  * @param phi_wall Wall potential.
  * @param distf Distribution function array to apply BC to.
+ * @param conf_r Configuration space range (to index phi).
  */
 void gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
-  const struct gkyl_array *phi_wall, struct gkyl_array *distf);
+  const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r);
 
 /**
  * Free memory associated with bc_sheath_gyrokinetic updater.
@@ -81,15 +82,22 @@ function GkSheathBc:init(tbl)
 
    assert(self._edge == "lower" or self._edge == "upper", "Updater.GkSheathBc: 'edge' must be 'lower' or 'upper'.")
 
-   local edge          = self._edge == 'lower' and 0 or 1 -- Match gkyl_edge_loc in gkylzero/zero/gkyl_range.h.
-   local localExtRange = onField:localExtRange()
-   local numGhostVec   = self._edge == 'lower' and onField:lowerGhostVec() or onField:upperGhostVec()
+   local edge = self._edge == 'lower' and 0 or 1 -- Match gkyl_edge_loc in gkylzero/zero/gkyl_range.h.
 
    local q2Dm  = 2.*charge/mass
    local basis = useGPU and self._basis._zeroDevice or self._basis._zero
 
-   self._zero = ffi.gc(ffiC.gkyl_bc_sheath_gyrokinetic_new(self._dir-1, edge, localExtRange, numGhostVec:data(),
-                                                           basis, self._grid._zero, cDim, q2Dm, useGPU),
+   local skinRange, ghostRange
+   if self._edge == 'lower' then
+      skinRange  = onField:localGlobalSkinRangeIntersectLower()[self._dir]
+      ghostRange = onField:localGlobalGhostRangeIntersectLower()[self._dir]
+   else
+      skinRange  = onField:localGlobalSkinRangeIntersectUpper()[self._dir]
+      ghostRange = onField:localGlobalGhostRangeIntersectUpper()[self._dir]
+   end
+
+   self._zero = ffi.gc(ffiC.gkyl_bc_sheath_gyrokinetic_new(self._dir-1, edge, basis, skinRange, ghostRange,
+                                                           self._grid._zero, cDim, q2Dm, useGPU),
                        ffiC.gkyl_bc_sheath_gyrokinetic_release)
 
    local dirlabel = {"X", "Y", "Z"}
@@ -99,13 +107,19 @@ end
 function GkSheathBc:_advance(tCurr, inFld, outFld)
    local phi  = assert(inFld[1], "GkSheathBc.advance: Must-specify a buffer as large as the ghost cells for this BC.")
    local qOut = assert(outFld[1], "GkSheathBc.advance: Must-specify an output field")
-   ffiC.gkyl_bc_sheath_gyrokinetic_advance(self._zero, phi._zero, self._phiWall._zero, qOut._zero)
+
+   local confRange = phi:localRange()
+
+   ffiC.gkyl_bc_sheath_gyrokinetic_advance(self._zero, phi._zero, self._phiWall._zero, qOut._zero, confRange)
 end
 
 function GkSheathBc:_advanceOnDevice(tCurr, inFld, outFld)
    local phi  = assert(inFld[1], "GkSheathBc.advance: Must-specify a buffer as large as the ghost cells for this BC.")
    local qOut = assert(outFld[1], "GkSheathBc.advance: Must-specify an output field")
-   ffiC.gkyl_bc_sheath_gyrokinetic_advance(self._zero, phi._zeroDevice, self._phiWall._zeroDevice, qOut._zeroDevice)
+
+   local confRange = phi:localRange()
+
+   ffiC.gkyl_bc_sheath_gyrokinetic_advance(self._zero, phi._zeroDevice, self._phiWall._zeroDevice, qOut._zeroDevice, confRange)
 end
 
 function GkSheathBc:getDir() return self._dir end

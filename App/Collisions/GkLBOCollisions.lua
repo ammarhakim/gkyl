@@ -127,7 +127,7 @@ function GkLBOCollisions:fullInit(speciesTbl)
 
    self.nuFrac = tbl.nuFrac and tbl.nuFrac or 1.0
 
-   self.timers = {nonSlvr = 0.}
+   self.timers = {mom = 0.,   momcross = 0.,   advance = 0.,}
 end
 
 function GkLBOCollisions:setName(nm) self.name = self.speciesName.."_"..nm end
@@ -310,18 +310,24 @@ end
 
 function GkLBOCollisions:calcCouplingMoments(tCurr, rkIdx, species)
    -- Compute self-primitive moments u and vtSq.
+   local tmStart = Time.clock()
    local fIn      = species[self.speciesName]:rkStepperFields()[rkIdx]
    local momsSelf = species[self.speciesName]:fluidMoments()
 
    self.primMomsSelfCalc:advance(tCurr, {momsSelf, fIn}, {self.boundCorrs, self.primMomsSelf})
+
+   self.timers.mom = self.timers.mom + Time.clock() - tmStart
 end
 
 function GkLBOCollisions:calcCrossCouplingMoments(tCurr, rkIdx, population)
    -- Perform cross-species calculation related to coupling moments that require the
    -- self-species coupling moments.
+   local tmStart = Time.clock()
 
    -- Begin sending/receiving drift velocity and thermal speed squared if needed.
    population:speciesXferField_begin(self.primMomsSelfXfer, self.primMomsSelf, 33)
+
+   self.timers.momcross = self.timers.momcross + Time.clock() - tmStart
 end
 
 function GkLBOCollisions:calcSelfNuTimeConst(momsSelf, nuOut) nuOut:copy(self.nuSelf) end
@@ -358,7 +364,7 @@ function GkLBOCollisions:calcCrossNuTimeDep(otherNm, chargeOther,
 end
 
 function GkLBOCollisions:advance(tCurr, fIn, population, out)
-   local tmNonSlvrStart = Time.clock()
+   local tmStart = Time.clock()
 
    local fRhsOut, cflRateByCell = out[1], out[2]
    local species = population:getSpecies()
@@ -406,7 +412,6 @@ function GkLBOCollisions:advance(tCurr, fIn, population, out)
       end    -- end loop over other species that this species collides with.
 
    end    -- end if self.crossCollisions.
-   self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 
    -- M2 self is needed as a precaution in GkLBO.
    self.m2Self:combineOffset(1., momsSelf, 2*self.confBasis:numBasis())
@@ -414,6 +419,8 @@ function GkLBOCollisions:advance(tCurr, fIn, population, out)
    -- Compute increment from collisions and accumulate it into output.
    self.collisionSlvr:advance(
       tCurr, {fIn, self.bmagInv, self.nuPrimMomsSum, self.nuSum, self.m2Self}, {fRhsOut, cflRateByCell})
+
+   self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end
 
 function GkLBOCollisions:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
@@ -422,11 +429,5 @@ function GkLBOCollisions:advanceCrossSpeciesCoupling(tCurr, population, emIn, in
 end
 
 function GkLBOCollisions:write(tm, frame) end
-
-function GkLBOCollisions:totalTime() return self.collisionSlvr.totalTime + self.timers.nonSlvr end
-
-function GkLBOCollisions:slvrTime() return self.collisionSlvr.totalTime end
-
-function GkLBOCollisions:nonSlvrTime() return self.timers.nonSlvr end
 
 return GkLBOCollisions

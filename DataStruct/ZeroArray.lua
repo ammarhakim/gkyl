@@ -188,6 +188,16 @@ struct gkyl_array* gkyl_array_scale(struct gkyl_array *out, double a);
 struct gkyl_array* gkyl_array_scale_by_cell(struct gkyl_array *out, const struct gkyl_array *a);
 
 /**
+ * Shift the k-th coefficient in every cell, out_k = a+out_k. Returns out.
+ *
+ * @param out Output array.
+ * @param a Factor to shift k-th coefficient by.
+ * @param k Coefficient to be shifted.
+ * @return out array.
+ */
+struct gkyl_array* gkyl_array_shiftc(struct gkyl_array *out, double a, unsigned k);
+
+/**
  * Clear out = val. Returns out.
  *
  * @param out Output array
@@ -261,6 +271,19 @@ struct gkyl_array* gkyl_array_scale_range(struct gkyl_array *out,
   double a, struct gkyl_range range);
 
 /**
+ * Shift the k-th coefficient in every cell, out_k = a+out_k within
+ * a given range. Returns out.
+ *
+ * @param out Output array.
+ * @param a Factor to shift k-th coefficient by.
+ * @param k Coefficient to be shifted.
+ * @param range Range to shift coefficient k in.
+ * @return out array.
+ */
+struct gkyl_array* gkyl_array_shiftc_range(struct gkyl_array *out, double a,
+  unsigned k, struct gkyl_range range);
+
+/**
  * Copy out inp. Returns out.
  *
  * @param out Output array
@@ -320,7 +343,7 @@ void gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
  * Copy buffer into region of array. The array must be preallocated.
  *
  * @param arr Array to copy into
- * @param data Output data buffer.
+ * @param data Input data buffer.
  * @param range Range specifying region to copy into
  */
 void gkyl_array_copy_from_buffer(struct gkyl_array *arr,
@@ -337,19 +360,22 @@ void gkyl_array_release(const struct gkyl_array* arr);
 local longSz = sizeof("long")
 
 -- Various types for arrays of basic C-types
-_M.float = 'GKYL_FLOAT'
+_M.int    = 'GKYL_INT'
+_M.int64  = 'GKYL_INT64'
+_M.float  = 'GKYL_FLOAT'
 _M.double = 'GKYL_DOUBLE'
-_M.int = 'GKYL_INT'
-_M.long = typeof('long')
-_M.char = typeof('char')
+_M.long   = typeof('long')
+_M.char   = typeof('char')
 
 local function getArrayTypeCode(atype)
    if atype == typeof("int") then
       return 1
-   elseif atype == typeof("float") then
+   elseif atype == typeof("int64") then
       return 2
-   elseif atype == typeof("double") then
+   elseif atype == typeof("float") then
       return 3
+   elseif atype == typeof("double") then
+      return 4
    end
    return 42 -- user-defined type
 end
@@ -358,8 +384,10 @@ local function getType(enum)
    if enum == 0 then
       return "int"
    elseif enum == 1 then
-      return "float"
+      return "int64"
    elseif enum == 2 then
+      return "float"
+   elseif enum == 3 then
       return "double"
    end
 end
@@ -435,6 +463,12 @@ local array_fn = {
    end,
    scale_by_cell = function (self, val)
       ffiC.gkyl_array_scale_by_cell(self, val)
+   end,
+   shiftc = function (self, val, comp)
+      ffiC.gkyl_array_shiftc(self, val, comp)
+   end,
+   shiftcRange = function (self, val, comp, rng)
+      ffiC.gkyl_array_shiftc_range(self, val, comp, rng)
    end,
    reduceRange = function (self, out, op, rng)
       if op == "min" then 
