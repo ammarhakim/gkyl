@@ -53,6 +53,12 @@ struct gkyl_dg_vlasov_auxfields {
   const struct gkyl_array *alpha_geo; // alpha^i (e^i . alpha) used in surface term if general geometry enabled
 };
 
+// Struct containing the pointers to auxiliary fields.
+struct gkyl_dg_vlasov_sr_auxfields { 
+  const struct gkyl_array *qmem; // q/m * EM
+  const struct gkyl_array *p_over_gamma; // p/gamma (velocity)
+};
+
 // Object type
 typedef struct gkyl_dg_updater_vlasov gkyl_dg_updater_vlasov;
 
@@ -112,51 +118,68 @@ function VlasovDG:init(tbl)
 
    -- Read data from input file.
    self._onGrid = assert(tbl.onGrid, "Updater.VlasovDG: Must provide grid object using 'onGrid'")
-   self._phaseBasis = assert(tbl.phaseBasis,
-     "Updater.VlasovDG: Must specify phase-space basis functions to use using 'phaseBasis'")
-   self._confBasis = assert(tbl.confBasis,
-     "Updater.VlasovDG: Must specify conf-space basis functions to use using 'confBasis'")
+   self._phaseBasis = assert(
+     tbl.phaseBasis, "Updater.VlasovDG: Must specify phase-space basis functions to use using 'phaseBasis'")
+   self._confBasis = assert(
+     tbl.confBasis, "Updater.VlasovDG: Must specify conf-space basis functions to use using 'confBasis'")
 
-   self._confRange = assert(tbl.confRange,
-     "Updater.VlasovDG: Must specify conf-space range using 'confRange'")
-   assert(self._confRange:isSubRange()==1, "Eq.Vlasov: confRange must be a sub-range") 
+   self._confRange = assert(
+     tbl.confRange, "Updater.VlasovDG: Must specify conf-space range using 'confRange'")
+   assert(self._confRange:isSubRange()==1, "Updater.VlasovDG: confRange must be a sub-range") 
 
-   self._phaseRange = assert(tbl.phaseRange,
-     "Updater.VlasovDG: Must specify phase-space range using 'phaseRange'")
-   assert(self._phaseRange:isSubRange()==1, "Eq.Vlasov: phaseRange must be a sub-range") 
+   self._velRange = assert(
+     tbl.velRange, "Updater.VlasovDG: Must specify velocity-space range using 'velRange'")
+   assert(self._velRange:isSubRange()==1, "Updater.VlasovDG: velRange must be a sub-range") 
+
+   self._phaseRange = assert(
+     tbl.phaseRange, "Updater.VlasovDG: Must specify phase-space range using 'phaseRange'")
+   assert(self._phaseRange:isSubRange()==1, "Updater.VlasovDG: phaseRange must be a sub-range") 
 
    self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
-   
-   -- Check if we have an electric and magnetic field.
-   local hasElcField    = xsys.pickBool(tbl.hasElectricField, false)
-   local hasMagField    = xsys.pickBool(tbl.hasMagneticField, false)
-   local hasExtForce    = xsys.pickBool(tbl.hasExtForce, false)
-   self._plasmaMagField = xsys.pickBool(tbl.plasmaMagField, false)
 
-   self._modelId = "GKYL_MODEL_DEFAULT"
-   
-   if hasElcField and self._plasmaMagField then 
-      self._fieldId = "GKYL_FIELD_E_B"
-   elseif hasElcField then
-      self._fieldId = "GKYL_FIELD_PHI"
-   else
-      self._fieldId = "GKYL_FIELD_NULL"
-   end
+   self._modelId = assert(tbl.model_id, "Updater.VlasovDG: Must provide model ID using 'model_id'")
+   self._fieldId = assert(tbl.field_id, "Updater.VlasovDG: Must provide field ID using 'field_id'")
+
+   local model_id
+   if self._modelId == "GKYL_MODEL_DEFAULT" then model_id = 0
+   elseif self._modelId == "GKYL_MODEL_SR"  then model_id = 1
+   elseif self._modelId == "GKYL_MODEL_GEN_GEO"  then model_id = 2 
+   elseif self._modelId == "GKYL_MODEL_PKPM"  then model_id = 3
+   elseif self._modelId == "GKYL_MODEL_SR_PKPM"  then model_id = 4
+   end   
+
+   local field_id
+   if self._fieldId == "GKYL_FIELD_E_B" then field_id = 0
+   elseif self._fieldId == "GKYL_FIELD_PHI"  then field_id = 1
+   elseif self._fieldId == "GKYL_FIELD_PHI_A"  then field_id = 2
+   elseif self._fieldId == "GKYL_FIELD_NULL"  then field_id = 3
+   end 
 
    -- Create aux fields struct for Vlasov and set pointers based on input fields
-   -- Only supports Vlasov-Maxwell and Vlasov-Poisson for now
-   self._auxfieldsC = ffi.new("struct gkyl_dg_vlasov_auxfields")
-   if self._useGPU then
-      self._auxfieldsC.field = tbl.fldPtrs[1]._zeroDevice
+   -- Only supports Vlasov-Maxwell, Vlasov-Poisson (no external B), and SR Vlasov for now
+   if model_id == 1 then 
+      self._auxfields = ffi.new("struct gkyl_dg_vlasov_sr_auxfields")
+      if self._useGPU then
+         self._auxfields.field = tbl.fldPtrs[1]._zeroDevice
+         self._auxfields.p_over_gamma = tbl.fldPtrs[2]._zeroDevice
+      else
+         self._auxfields.field = tbl.fldPtrs[1]._zero
+         self._auxfields.p_over_gamma = tbl.fldPtrs[2]._zero
+      end
    else
-      self._auxfieldsC.field = tbl.fldPtrs[1]._zero
+      self._auxfields = ffi.new("struct gkyl_dg_vlasov_auxfields")
+      if self._useGPU then
+         self._auxfields.field = tbl.fldPtrs[1]._zeroDevice
+      else
+         self._auxfields.field = tbl.fldPtrs[1]._zero
+      end
    end
 
    self._zero = ffi.gc(
       ffiC.gkyl_dg_updater_vlasov_new(self._onGrid._zero, 
         self._confBasis._zero, self._phaseBasis._zero, 
-        self._confRange, nil, self._phaseRange,
-        self._modelId, self._fieldId, self._auxfieldsC, self._useGPU),
+        self._confRange, self._velRange, self._phaseRange,
+        model_id, field_id, self._auxfields, self._useGPU),
       ffiC.gkyl_dg_updater_vlasov_release
    )
 

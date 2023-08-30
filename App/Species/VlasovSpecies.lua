@@ -97,8 +97,22 @@ local function createBasis(nm, cdim, vdim, polyOrder)
    end
 end
 
+-- Function to create velocity space basis functions.
+local function createVelBasis(nm, vdim, polyOrder)
+   if nm == "serendipity" then
+      if polyOrder == 1 then
+         return Basis.CartModalSerendipity { ndim = vdim, polyOrder = 2 }
+      else
+         return Basis.CartModalSerendipity { ndim = vdim, polyOrder = polyOrder }
+      end
+   elseif nm == "tensor" then
+      return Basis.CartModalTensor { ndim = vdim, polyOrder = polyOrder }
+   end
+end
+
 function VlasovSpecies:createBasis(nm, polyOrder)
    self.basis = createBasis(nm, self.cdim, self.vdim, polyOrder)
+   self.velBasis = createVelBasis(nm, self.vdim, polyOrder)
    for _, c in pairs(self.collisions) do c:setPhaseBasis(self.basis) end
 
    -- Output of grid file is placed here because as the file name is associated
@@ -149,6 +163,23 @@ function VlasovSpecies:alloc(nRkDup)
    self.fiveMoments = self:allocVectorMoment(self.vdim+2)
 
    self.ptclEnergyAux = self:allocMoment()
+
+   -- Special relativistic only arrays
+   -- Allocate fields to store velocity space arrays:
+   -- p/gamma (relativistic velocity)
+   -- gamma (particle Lorentz boost factor = sqrt(1 + p^2))
+   -- gamma_inv = 1/gamma
+   self.p_over_gamma  = self:allocVectorVelMoment(self.vdim)
+   self.gamma  = self:allocVelMoment()
+   self.gamma_inv  = self:allocVelMoment()
+
+   -- Allocate additional auxiliary fields needed for certain relativistic moments
+   -- V_drift (bulk velocity)
+   -- GammaV2 (bulk velocity Lorentz boost factor squared = 1/(1 - V_drift^2))
+   -- GammaV_inv = 1/GammaV = sqrt(1 - V_drift^2)
+   self.V_drift = self:allocVectorMoment(self.vdim)
+   self.GammaV2 = self:allocMoment()
+   self.GammaV_inv = self:allocMoment()
 
    -- Allocate field for external forces if any.
    if self.hasExtForce then 
@@ -395,6 +426,19 @@ function VlasovSpecies:createGrid(confGridIn)
    }
 
    for _, c in pairs(self.collisions) do c:setPhaseGrid(self.grid) end
+
+   -- Construct velocity space grid from phase space grid
+   local dimsV = {}
+   for d = 1, self.vdim do
+      table.insert(dimsV, self.cdim+d)
+   end
+   -- Get the ingredients of the velocity space grid from the phase space grid
+   local velGridIngr = self.grid:childGrid(dimsV)
+   self.velGrid = GridConstructor {
+      lower = velGridIngr.lower,  periodicDirs  = velGridIngr.periodicDirs,
+      upper = velGridIngr.upper,  decomposition = velGridIngr.decomposition,
+      cells = velGridIngr.cells,      
+   }
 end
 
 -- Field allocation in the species objects should be performed with one
@@ -428,6 +472,21 @@ function VlasovSpecies:allocVectorMoment(dim)
                      charge    = self.charge,
                      mass      = self.mass,}
    return self:allocCartField(self.confGrid,dim*self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
+end
+-- Velocity space arrays (no ghost cells in velocity space arrays)
+function VlasovSpecies:allocVelMoment()
+   local metaData = {polyOrder = self.velBasis:polyOrder(),
+                     basisType = self.velBasis:id(),
+                     charge    = self.charge,
+                     mass      = self.mass,}
+   return self:allocCartField(self.velGrid,self.velBasis:numBasis(),{0,0},metaData)
+end
+function VlasovSpecies:allocVectorVelMoment(dim)
+   local metaData = {polyOrder = self.velBasis:polyOrder(),
+                     basisType = self.velBasis:id(),
+                     charge    = self.charge,
+                     mass      = self.mass,}
+   return self:allocCartField(self.velGrid,dim*self.velBasis:numBasis(),{0,0},metaData)
 end
 function VlasovSpecies:allocIntMoment(comp)
    local metaData = {charge = self.charge,
@@ -505,11 +564,9 @@ function VlasovSpecies:createSolver(field, externalField)
    -- Create updater to advance solution by one time-step.
    if self.evolveCollisionless then
       self.solver = Updater.VlasovDG {
-         onGrid     = self.grid,                       hasElectricField = hasE,
-         confBasis  = self.confBasis,                  hasMagneticField = hasB,
-         phaseBasis = self.basis,                      hasExtForce      = self.hasExtForce,
-         confRange  = self.totalEmField:localRange(),  phaseRange       = self.distf[1]:localRange(),  
-         plasmaMagField = self.computePlasmaB,         fldPtrs          = self.fldPtrs, 
+         onGrid    = self.grid,                      confBasis = self.confBasis,                phaseBasis = self.basis, 
+         confRange = self.totalEmField:localRange(), velRange = self.p_over_gamma:localRange(), phaseRange = self.distf[1]:localRange(), 
+         model_id  = self.model_id,                  field_id = self.field_id,                  fldPtrs    = self.fldPtrs, 
       }
       self.collisionlessAdvance = function(tCurr, inFlds, outFlds)
          self.solver:advance(tCurr, inFlds, outFlds)
@@ -760,7 +817,7 @@ function VlasovSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
    self.accumulateExtForce(tCurr, totalEmField)
 
-   self.collisionlessAdvance(tCurr, {fIn, totalEmField, emField}, {fRhsOut, self.cflRateByCell})
+   self.collisionlessAdvance(tCurr, {fIn}, {fRhsOut, self.cflRateByCell})
    self.timers.collisionless = self.solver.totalTime
 
    -- Perform the collision update.
@@ -1125,4 +1182,50 @@ function VlasovSpecies:clearTimers()
    for _, src in lume.orderedIter(self.sources) do src:clearTimers() end
 end
 
-return VlasovSpecies
+-- ................... Classes meant as aliases to simplify input files ...................... --
+-- Default: Non-Relativistic Vlasov-Maxwell (Cartesian geometry)
+local VlasovMaxwellSpecies = Proto(VlasovSpecies)
+function VlasovMaxwellSpecies:fullInit(mySpecies)
+   self.model_id = "GKYL_MODEL_DEFAULT"
+   self.field_id = "GKYL_FIELD_E_B"
+   VlasovMaxwellSpecies.super.fullInit(self, mySpecies)
+end
+
+-- Vlasov-Poisson, only phi (Cartesian geometry)
+local VlasovPoissonSpecies = Proto(VlasovSpecies)
+function VlasovPoissonSpecies:fullInit(mySpecies)
+   self.model_id = "GKYL_MODEL_DEFAULT"
+   self.field_id = "GKYL_FIELD_PHI"
+   VlasovPoissonSpecies.super.fullInit(self, mySpecies)
+end
+
+-- Vlasov-Poisson, phi + constant A (constant background magnetic field, Cartesian geometry)
+local VlasovPoissonASpecies = Proto(VlasovSpecies)
+function VlasovPoissonASpecies:fullInit(mySpecies)
+   self.model_id = "GKYL_MODEL_DEFAULT"
+   self.field_id = "GKYL_FIELD_PHI_A"
+   VlasovPoissonASpecies.super.fullInit(self, mySpecies)
+end
+
+-- Neutral Non-Relativistic Vlasov (Cartesian geometry)
+local VlasovNeutralSpecies = Proto(VlasovSpecies)
+function VlasovNeutralSpecies:fullInit(mySpecies)
+   self.model_id = "GKYL_MODEL_DEFAULT"
+   self.field_id = "GKYL_FIELD_NULL"
+   VlasovNeutralSpecies.super.fullInit(self, mySpecies)
+end
+
+-- Neutral Vlasov (General geometry)
+local VlasovGenGeoNeutralSpecies = Proto(VlasovSpecies)
+function VlasovGenGeoNeutralSpecies:fullInit(mySpecies)
+   self.model_id = "GKYL_MODEL_GEN_GEO"
+   self.field_id = "GKYL_FIELD_NULL"
+   VlasovGenGeoNeutralSpecies.super.fullInit(self, mySpecies)
+end
+-- ................... End of VlasovSpecies alias classes .................... --
+
+return {VlasovMaxwell       = VlasovMaxwellSpecies,
+        VlasovPoisson       = VlasovPoissonSpecies,
+        VlasovPoissonA      = VlasovPoissonASpecies,
+        VlasovNeutral       = VlasovNeutralSpecies,
+        VlasovGenGeoNeutral = VlasovGenGeoNeutralSpecies}
