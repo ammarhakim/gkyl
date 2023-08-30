@@ -124,6 +124,7 @@ end
 
 -- Set callable methods.
 function DecomposedRange:commSet() return self._commSet end
+function DecomposedRange:cutsRange() return self._cutsRange end
 function DecomposedRange:ndim() return self._cutsRange:ndim() end
 function DecomposedRange:cuts(dir) return self._cutsRange:upper(dir) end
 function DecomposedRange:numSubDomains() return self._cutsRange:volume() end

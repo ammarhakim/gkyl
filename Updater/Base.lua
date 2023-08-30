@@ -83,11 +83,11 @@ function _M:getComm() return self._comm end
 -- computes a "total Time", and also synchronizes the status and
 -- time-step suggestion across processors.
 function _M:advance(tCurr, inFld, outFld)
-   -- Advance updater, measuring how long it took
    local tmStart = Time.clock()
-   local status, dtSuggested = self:_advanceFunc(tCurr, inFld, outFld)
-   self.totalTime = self.totalTime + (Time.clock()-tmStart)
 
+   local status, dtSuggested = self:_advanceFunc(tCurr, inFld, outFld)
+
+   self.totalTime = self.totalTime + (Time.clock()-tmStart)
    return status, dtSuggested
 end
 

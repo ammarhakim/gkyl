@@ -61,7 +61,8 @@ function VmSource:fullInit(speciesTbl)
          power       = self.power,
       }
    end
-   self.tmEvalSrc = 0.0
+
+   self.timers = {advance = 0.}
 end
 
 function VmSource:setName(nm) self.name = self.speciesName.."_"..nm end
@@ -124,9 +125,9 @@ function VmSource:createDiagnostics(mySpecies, field)
 end
 
 function VmSource:advance(tCurr, fIn, species, fRhsOut)
-   local tm = Time.clock()
+   local tmStart = Time.clock()
    fRhsOut:accumulate(self.timeDependence(tCurr), self.fSource)
-   self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
+   self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end
 
 -- These are needed to recycle the VlasovDiagnostics with VmSource.
@@ -134,7 +135,5 @@ function VmSource:rkStepperFields() return {self.fSource, self.fSource, self.fSo
 function VmSource:getFlucF() return self.fSource end
 
 function VmSource:write(tm, frame) end
-
-function VmSource:srcTime() return self.tmEvalSrc end
 
 return VmSource

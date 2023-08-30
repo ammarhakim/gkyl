@@ -26,5 +26,15 @@ function SourceBase:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
 function SourceBase:createDiagnostics(thisSpecies, momTable) end
 function SourceBase:writeDiagnosticIntegratedMoments(tm, frame) end
 function SourceBase:write(tm, frame) end
+function SourceBase:clearTimers() 
+   for nm, _ in pairs(self.timers) do self.timers[nm] = 0. end
+end
+function SourceBase:getTimer(timerNm)
+   if self.timers then
+      if self.timers[timerNm] == nil then return 0. end
+      return self.timers[timerNm]
+   end
+   return 0.
+end
 
 return SourceBase
