@@ -70,6 +70,10 @@ function EvalOnNodes:init(tbl)
 
    -- Construct various functions from template representations.
    self._compToPhys = loadstring(compToPhysTempl {NDIM = ndim} )()
+
+   self.dx  = Lin.Vec(ndim) -- Cell shape.
+   self.xc  = Lin.Vec(ndim) -- Cell center.
+   self.xmu = Lin.Vec(ndim) -- Coordinate at ordinate.
 end
 
 -- Advance method.
@@ -78,22 +82,17 @@ function EvalOnNodes:_advance(tCurr, inFld, outFld)
    local qOut = assert(outFld[1], "EvalOnNodes.advance: Must specify an output field")
 
    local ndim      = grid:ndim()
-   local numBasis  = self._basis:numBasis()
    local polyOrder = self._basis:polyOrder()
+   local numBasis  = self._basis:numBasis()
    local numVal    = qOut:numComponents()/numBasis
 
    if self._isFirst then
       -- Construct function to evaluate function at specified coordinate.
       self._evalFunc = loadstring(evalFuncTempl { M = numVal } )()
+      self.numVal    = self.numVal and self.numVal or numVal
+      self.fv        = Lin.Mat(self.numNodes, numVal) -- Function values at ordinates.
    end
-
-   -- Sanity check: ensure number of variables, components and basis functions are consistent.
-   assert(qOut:numComponents() % numBasis == 0, "EvalOnNodes:advance: Incompatible input field")
-
-   local dx = Lin.Vec(ndim)                  -- Cell shape.
-   local xc = Lin.Vec(ndim)                  -- Cell center.
-   local fv = Lin.Mat(self.numNodes, numVal) -- Function values at ordinates.
-   local xi = Lin.Vec(ndim)                  -- Coordinates at node.
+   assert(numVal == self.numVal, "EvalOnNodes: created for a scalar/vector field, not a vector/scalar field.")
 
    local localRangeOut = self._onGhosts and qOut:localExtRange() or qOut:localRange()
 
@@ -103,17 +102,17 @@ function EvalOnNodes:_advance(tCurr, inFld, outFld)
    -- Loop, computing projections in each cell.
    for idx in localRangeOut:colMajorIter() do
       grid:setIndex(idx)
-      for d = 1, ndim do dx[d] = grid:dx(d) end
-      grid:cellCenter(xc)
+      grid:getDx(self.dx)
+      grid:cellCenter(self.xc)
 
       -- Precompute value of function at each node.
       for i = 1, self.numNodes do
-	 self._compToPhys(self.nodes[i], dx, xc, xi)      -- Compute physical coordinate xi.
-	 self._evalFunc(tCurr, xi, self._evaluate, fv[i]) -- Compute function value fv at xi.
+	 self._compToPhys(self.nodes[i], self.dx, self.xc, self.xmu)      -- Compute physical coordinate xmu.
+	 self._evalFunc(tCurr, self.xmu, self._evaluate, self.fv[i]) -- Compute function value fv at xmu.
       end
 
       qOut:fill(indexer(idx), fItr)
-      ffiC.nodToMod(fv:data(), self.numNodes, numVal, ndim, polyOrder, fItr:data())
+      ffiC.nodToMod(self.fv:data(), self.numNodes, numVal, ndim, polyOrder, fItr:data())
    end
 
    -- Set id of output to id of projection basis.

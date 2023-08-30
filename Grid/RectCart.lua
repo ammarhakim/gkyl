@@ -316,7 +316,7 @@ function RectCart:findCell(point, cellIdx, pickLower, knownIdx)
 end
 
 function RectCart:getNodalCoords() return nil end
-function RectCart:write(fName) end
+function RectCart:write(basis, rankInComm) end
 
 function RectCart:getMappings(dir)
    return nil
