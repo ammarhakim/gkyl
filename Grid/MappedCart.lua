@@ -17,6 +17,8 @@ local diff       = require "sci.diff-recursive"
 local diff1      = require "sci.diff"
 local math       = require("sci.math").generic
 local lume       = require "Lib.lume"
+local evOnNodes        = require "Updater.EvalOnNodes"
+local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 
 -- MappedCartGrid --------------------------------------------------------------
 --
@@ -307,10 +309,27 @@ function MappedCart:getNodalCoords()
    return nodalCoords
 end
 
-function MappedCart:write(fName)
-   -- Write a file containing the grid node coordinates.
-   local nodalCoords = self:getNodalCoords()
-   nodalCoords:write(fName)
+function MappedCart:write(basis, rankInComm)
+   -- Write a file containing the grid node coordinates,
+   -- and a file with the DG representation of mapc2p.
+   local metaData = {polyOrder = basis:polyOrder(),  basisType = basis:id(),}
+   local mapc2pDG = DataStruct.Field {
+      onGrid        = self,                          ghost    = {0,0},
+      numComponents = self:rdim()*basis:numBasis(),  metaData = metaData,
+   }
+   local gridIo = AdiosCartFieldIo {
+      elemType = mapc2pDG:elemType(),  writeGhost      = false,
+      method   = "MPI",                writeRankInComm = rankInComm,
+   }
+
+   gridIo:write(self:getNodalCoords(), "grid.bp", 0., 0)
+
+   local projUpd = evOnNodes {
+      onGrid = self,   evaluate = function(t, xn) return self:mapc2p(xn) end,
+      basis  = basis,  onGhosts = false,
+   }
+   projUpd:advance(0., {}, {mapc2pDG})
+   gridIo:write(mapc2pDG, "mapc2p.bp", 0., 0)
 end
 
 function MappedCart:childGrid(keepDims)

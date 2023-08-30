@@ -9,23 +9,23 @@
 --------------------------------------------------------------------------------
 
 -- Infrastructure loads
-local Alloc = require "Alloc"
-local Basis = require "Basis"
-local DataStruct = require "DataStruct"
-local date = require "xsys.date"
+local Alloc            = require "Alloc"
+local Basis            = require "Basis"
+local DataStruct       = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
-local ffi = require "ffi"
-local Grid = require "Grid"
-local lfs = require "lfs"
-local Lin = require "Lib.Linalg"
-local LinearTrigger = require "Lib.LinearTrigger"
-local lume = require "Lib.lume"
-local Messenger = require "Comm.Messenger"
-local Logger = require "Lib.Logger"
-local Mpi = require "Comm.Mpi"
-local Proto = require "Lib.Proto"
-local Time = require "Lib.Time"
-local xsys = require "xsys"
+local Grid             = require "Grid"
+local Lin              = require "Lib.Linalg"
+local LinearTrigger    = require "Lib.LinearTrigger"
+local Messenger        = require "Comm.Messenger"
+local Logger           = require "Lib.Logger"
+local Mpi              = require "Comm.Mpi"
+local Proto            = require "Lib.Proto"
+local Time             = require "Lib.Time"
+local date             = require "xsys.date"
+local lfs              = require "lfs"
+local lume             = require "Lib.lume"
+local xsys             = require "xsys"
+local ffi              = require "ffi"
 
 math = require("sci.math").generic -- this is global so that it affects input file
 
@@ -191,13 +191,6 @@ local function buildApplication(self, tbl)
       periodicDirs = periodicDirs,  world = tbl.world, 
       messenger = commManager,
    }
-   if tbl.coordinateMap or tbl.mapc2p then 
-      local metaData = {polyOrder = confBasis:polyOrder(),
-                        basisType = confBasis:id(),
-                        grid = GKYL_OUT_PREFIX .. "_grid.bp"}
-      confGrid:write("grid.bp", 0.0, metaData)
-   end
-
    -- Read in information about each species.
    local population = PopApp{ messenger = commManager }
    for nm, val in pairs(tbl) do
@@ -214,6 +207,11 @@ local function buildApplication(self, tbl)
 
    -- Create other subcommunicators.
    commManager:createSubComms(confGrid)
+
+   if tbl.coordinateMap or tbl.mapc2p then 
+      -- Placing this writing step after population:decompose so that only one species rank writes.
+      confGrid:write(confBasis, {0, population:getComm_host(),})
+   end
 
    for _, s in population.iterGlobal() do
       s:fullInit(tbl) -- Initialize species.
