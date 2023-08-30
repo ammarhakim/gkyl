@@ -11,6 +11,7 @@ local BasicBc = require "Updater.BasicBc"
 local Bc = require "Updater.Bc"
 local BGKcollisions = require "Updater.BGKcollisions"
 local BoundaryFluxCalc = require "Updater.BoundaryFluxCalc"
+local CalcSRVars = require "Updater.CalcSRVars"
 local CartFieldBinOp = require "Updater.CartFieldBinOp"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local CartFieldInterpolate = require "Updater.CartFieldInterpolate"
@@ -74,6 +75,7 @@ return {
    Bc = Bc,
    BGKcollisions = BGKcollisions,
    BoundaryFluxCalc = BoundaryFluxCalc,
+   CalcSRVars = CalcSRVars,
    CartFieldBinOp = CartFieldBinOp,
    CartFieldIntegratedQuantCalc = CartFieldIntegratedQuantCalc,
    CartFieldInterpolate = CartFieldInterpolate,
