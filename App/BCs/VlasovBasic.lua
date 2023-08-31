@@ -198,7 +198,7 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
       self.integNumDensityCalc = Updater.DistFuncMomentDG {
          onGrid     = self.boundaryGrid,   confBasis  = self.confBasis,
          phaseBasis = self.basis,          moment     = "M0",
-         isIntegrated = true,
+         isIntegrated = true,              model_id   = "GKYL_MODEL_DEFAULT", 
       }
 
       if not self.anyDiagnostics then
