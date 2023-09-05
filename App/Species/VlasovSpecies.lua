@@ -438,6 +438,12 @@ function VlasovSpecies:allocIntMoment(comp)
    return f
 end
 
+local function vtSqMinCalc(mass,grid,cdim,vdim)
+   local TempMin = 0.
+   for d = 1, vdim do TempMin = TempMin + (1./3.)*(mass/6.)*grid:dx(cdim+d) end
+   return TempMin/mass	
+end
+
 function VlasovSpecies:createSolver(field, externalField)
    -- Set up weak multiplication and division operators.
    self.confWeakMultiply = Updater.CartFieldBinOp {
@@ -467,6 +473,9 @@ function VlasovSpecies:createSolver(field, externalField)
          return VlasovSpecies["applyBcDontEvolve"](self, tCurr, field, externalField, inIdx, outIdx)
       end
    end
+
+   -- Minimum vtSq supported by the grid (for p=1 only for now):
+   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.confGrid,self.cdim,self.vdim)
 
    -- Create solvers for collisions.
    for _, c in pairs(self.collisions) do c:createSolver(self, externalField) end
@@ -652,6 +661,11 @@ function VlasovSpecies:createCouplingSolver(population, field, externalField)
    -- needed for cross-species solves (e.g. cross-species collisions).
 
    local species = population:getSpecies()
+
+   -- Minimum vtSq supported by the grid (for p=1 only for now).
+   -- Recomputed here because we need it for all species (for species parallelization)
+   -- and createSolver is only called for the local species.
+   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.confGrid,self.cdim,self.vdim)
 
    -- Create cross collision solvers.
    for _, c in lume.orderedIter(self.collisions) do c:createCouplingSolver(population, field, externalField) end
@@ -952,6 +966,8 @@ function VlasovSpecies:getDistF(rkIdx)
 end
 
 function VlasovSpecies:fluidMoments() return self.fiveMoments end
+
+function VlasovSpecies:vtSqMin() return self.vtSqMinSupported end
 
 function VlasovSpecies:getNumDensity(rkIdx)
    -- If no rkIdx specified, assume numDensity has already been calculated.

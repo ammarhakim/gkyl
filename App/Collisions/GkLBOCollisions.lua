@@ -275,7 +275,7 @@ function GkLBOCollisions:createCouplingSolver(population, field, externalField)
          local sOrank = population:getSpeciesOwner(sO)
          local selfRank = population:getSpeciesOwner(self.speciesName)
          if isThisSpeciesMine then
-            -- Only species owned by this rank send primMoms other ranks.
+            -- Only species owned by this rank send primMoms to other ranks.
             if #self.primMomsSelfXfer.destRank == 0 and (not population:isSpeciesMine(sO)) then
                table.insert(self.primMomsSelfXfer.destRank, sOrank)
                self.primMomsSelfXfer.sendReqStat = Mpi.RequestStatus()
@@ -343,7 +343,7 @@ function GkLBOCollisions:calcSelfNuTimeDep(momsSelf, nuOut)
 end
 
 function GkLBOCollisions:calcCrossNuTimeConst(otherNm, chargeOther,
-   mOther, momsOther, primMomsOther, nuCrossSelf, nuCrossOther) end
+   mOther, momsOther, primMomsOther, vtSqMinOther, nuCrossSelf, nuCrossOther) end
 
 function GkLBOCollisions:calcCrossNuTimeDep(otherNm, chargeOther,
    mOther, momsOther, primMomsOther, vtSqMinOther, nuCrossSelf, nuCrossOther)

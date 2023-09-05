@@ -446,6 +446,12 @@ function GkSpecies:allocIntMoment(comp)
    return f
 end
 
+local function vtSqMinCalc(mass,grid,cdim,vdim,bmagMid)
+   local TparMin  = (mass/6.)*grid:dx(cdim+1)
+   local TperpMin = vdim==1 and TparMin or (bmagMid/3.)*grid:dx(cdim+2)
+   return (TparMin + 2.*TperpMin)/(3.*mass)
+end
+
 function GkSpecies:createSolver(field, externalField)
    -- Set up weak multiplication and division operators.
    self.confWeakMultiply = Updater.CartFieldBinOp {
@@ -536,9 +542,7 @@ function GkSpecies:createSolver(field, externalField)
    end
 
    -- Minimum vtSq supported by the grid (for p=1 only for now):
-   local TparMin  = (self.mass/6.)*self.grid:dx(self.cdim+1)
-   local TperpMin = self.vdim==1 and TparMin or (self.bmagMid/3.)*self.grid:dx(self.cdim+2)
-   self.vtSqMinSupported = (TparMin + 2.*TperpMin)/(3.*self.mass)
+   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.grid,self.cdim,self.vdim,self.bmagMid)
 
    -- Create solvers for collisions.
    for _, c in lume.orderedIter(self.collisions) do c:createSolver(self, externalField) end
@@ -745,6 +749,19 @@ function GkSpecies:createCouplingSolver(population, field, externalField)
 
    local species = population:getSpecies()
 
+   -- Minimum vtSq supported by the grid (for p=1 only for now).
+   -- Recomputed here because we need it for all species (for species parallelization)
+   -- and createSolver is only called for the local species.
+   local bmagMid
+   if externalField then
+      -- Magnetic field in the center of the domain.
+      local bmagFunc = externalField.bmagFunc
+      local xMid = {}
+      for d = 1,self.cdim do xMid[d]=self.confGrid:mid(d) end
+      bmagMid = bmagFunc(0.0, xMid)
+   end
+   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.grid,self.cdim,self.vdim,bmagMid)
+
    -- Create cross collision solvers.
    for _, c in lume.orderedIter(self.collisions) do c:createCouplingSolver(population, field, externalField) end
 
@@ -869,8 +886,8 @@ function GkSpecies:initCrossSpeciesCoupling(population)
                self.threeMomentsXfer.recvReqStat = Mpi.RequestStatus()
             end
          end
-       end
-    end
+      end
+   end
 
    -- Initialize the BC cross-coupling interactions.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:initCrossSpeciesCoupling(species) end
