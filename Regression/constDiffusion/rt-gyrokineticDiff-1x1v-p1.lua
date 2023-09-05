@@ -4,7 +4,7 @@
 -- but without evolving the collisionless terms.
 --
 ---------------------------------------------------------------------------
-local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell()
+local Plasma = require("App.PlasmaOnCartGrid").Gyrokinetic()
 
 local k_x = 0.3
 local k_v = k_x
@@ -42,7 +42,7 @@ plasmaApp = Plasma.App {
       evolve = true, -- Evolve species?
       evolveCollisionless = false, -- Don't evolve collisionless terms.
       -- Write out density, flow, total energy, and heat flux moments.
-      diagnostics = { "M0", "M1i", "M2", "intM0", "intM1i", "intM2Flow", "intM2Thermal", "intL2" },
+      diagnostics = { "M0", "M1", "M2", "intM0", "intM1", "intM2Flow", "intM2Thermal" },
       diff = Plasma.Diffusion {
          coefficient   = nu_x,
          -- Optional inputs:
@@ -51,28 +51,41 @@ plasmaApp = Plasma.App {
       },
    },
 
-   -- Spatially varying diffusion along x.
-   fVarDiffx = Plasma.Species {
-      charge = 0.,  mass = 1.,
-      -- Velocity space grid.
-      lower = {-math.pi/k_v},
-      upper = { math.pi/k_v},
-      cells = {32},
-      -- Initial conditions.
-      init = function (t, xn)
-         local x, v = xn[1], xn[2]
-         return (1+0.25*math.cos(k_x*x))
-      end,
-      evolve = true, -- Evolve species?
-      evolveCollisionless = false, -- Don't evolve collisionless terms.
-      -- Write out density, flow, total energy, and heat flux moments.
-      diagnostics = { "M0", "M1i", "M2", "intM0", "intM1i", "intM2Flow", "intM2Thermal", "intL2" },
-      diff = Plasma.Diffusion {
-         coefficient   = {function(t,xn) return nu_x*(1+0.25*math.cos(2.*k_x*xn[1])) end},
-         -- Optional inputs:
-         diffusiveDirs = {1},
-         order = 2,   -- Diffusion order: 2, 4, or 6.
-      },
+--   -- Spatially varying diffusion along x.
+--   fVarDiffx = Plasma.Species {
+--      charge = 0.,  mass = 1.,
+--      -- Velocity space grid.
+--      lower = {-math.pi/k_v},
+--      upper = { math.pi/k_v},
+--      cells = {32},
+--      -- Initial conditions.
+--      init = function (t, xn)
+--         local x, v = xn[1], xn[2]
+--         return (1+0.25*math.cos(k_x*x))
+--      end,
+--      evolve = true, -- Evolve species?
+--      evolveCollisionless = false, -- Don't evolve collisionless terms.
+--      -- Write out density, flow, total energy, and heat flux moments.
+--      diagnostics = { "M0", "M1", "M2", "intM0", "intM1", "intM2Flow", "intM2Thermal", "intL2" },
+--      diff = Plasma.Diffusion {
+--         coefficient   = {function(t,xn) return nu_x*(1+0.25*math.cos(2.*k_x*xn[1])) end},
+--         -- Optional inputs:
+--         diffusiveDirs = {1},
+--         order = 2,   -- Diffusion order: 2, 4, or 6.
+--      },
+--   },
+
+   -- Field solver.
+   field = Plasma.Field {
+      evolve      = false, -- Evolve fields?
+      externalPhi = function (t, xn) return 0.0 end,
+   },
+
+   -- Magnetic geometry.
+   externalField = Plasma.Geometry {
+      -- Background magnetic field.
+      bmag = function (t, xn) return 1. end,
+      evolve = false,  -- Geometry is not time-dependent.
    },
 
 }

@@ -77,12 +77,10 @@ function Diffusion:createSolver(mySpecies, externalField)
       for d = 1, cdim do self.diffDirs[d] = d end
    end
 
-   local diffKind = ""
    local diffConfRange
+   local isVarCoeff = false
    if diffCoeffType == "number" then
       -- Set the diffusion coefficient to the same amplitude in all directions.
-      diffKind = 'diagonal_constant_' .. self.speciesKind
-
       self.coefficient = {
          _zero = ZeroArray.Array(ZeroArray.double, cdim, 1, GKYL_USE_GPU and 1 or 0),
       }
@@ -102,11 +100,10 @@ function Diffusion:createSolver(mySpecies, externalField)
 
       -- Check if any of the diffusion coefficients are functions. If yes, project
       -- the diffusion coefficient vector onto the basis.
-      local isVarCoeff = lume.any(self.diffCoeff, function(e) return type(e) == "function" end )
+      isVarCoeff = lume.any(self.diffCoeff, function(e) return type(e) == "function" end)
       if isVarCoeff == false then
          -- All entries should be numbers, so we'll use constant diffusion.
          for d = 1, #self.diffDirs do assert(type(self.diffCoeff[d]) == "number", "App.Diffusion: 'coefficient' entries can only be numbers or functions.") end
-         diffKind = 'diagonal_constant_' .. self.speciesKind
 
          self.coefficient = {
             _zero = ZeroArray.Array(ZeroArray.double, cdim, 1, GKYL_USE_GPU and 1 or 0),
@@ -118,7 +115,6 @@ function Diffusion:createSolver(mySpecies, externalField)
          diffConfRange = self.confGrid:localRange() -- Not used.
       else
          -- Some entries must be functions. Turn number entries into functions and use varying diffusion.
-         diffKind = 'diagonal_varying_' .. self.speciesKind
 
          local coeffFuncs = {}
          for d = 1, cdim do coeffFuncs[d] = function(t, xn) return 0. end end
@@ -152,16 +148,25 @@ function Diffusion:createSolver(mySpecies, externalField)
       end
    end
 
-   local grid  = self.phaseGrid and self.phaseGrid   or self.confGrid
-   local basis = self.phaseGrid and self.phaseBasis  or self.confBasis 
+   local grid  = self.phaseGrid and self.phaseGrid  or self.confGrid
+   local basis = self.phaseGrid and self.phaseBasis or self.confBasis
 
    -- Diffusion equation solver.
-   self.collisionSlvr = Updater.DiffusionDG {
-      onGrid    = grid,            modelType  = diffKind,
-      onBasis   = basis,           directions = self.diffDirs,
-      confBasis = self.confBasis,  order      = self.diffOrder,
-      confRange = diffConfRange,
-   }
+   if self.speciesKind == "vlasov" then
+      self.collisionSlvr = Updater.VlasovDiffusion {
+         onGrid    = grid,            constDiff  = not isVarCoeff,
+         onBasis   = basis,           directions = self.diffDirs,
+         confBasis = self.confBasis,  order      = self.diffOrder,
+         confRange = diffConfRange,
+      }
+   elseif self.speciesKind == "gyrokinetic" then
+      self.collisionSlvr = Updater.GyrokineticDiffusion {
+         onGrid    = grid,            constDiff  = not isVarCoeff,
+         onBasis   = basis,           directions = self.diffDirs,
+         confBasis = self.confBasis,  order      = self.diffOrder,
+         confRange = diffConfRange,
+      }
+   end
 end
 
 function Diffusion:advance(tCurr, fIn, population, outFlds)
