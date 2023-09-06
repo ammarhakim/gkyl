@@ -112,6 +112,18 @@ local function buildApplication(self, tbl)
    -- Create basis function for configuration space.
    local confBasis = createBasis(basisNm, cdim, polyOrder)
 
+   local rzBasis
+   local rzPolyOrder
+   local rzBasisNm
+   if tbl.hasRZ then
+      rzBasisNm = tbl.rzBasis and tbl.rzBasis or "serendipity"
+      if rzBasisNm ~= "serendipity" and rzBasisNm ~= "maximal-order" and rzBasisNm ~= "tensor" then
+         assert(false, "Incorrect basis type " .. rzBasisNm .. " specified")
+      end
+      rzPolyOrder = assert(tbl.rzPolyOrder, "Must specify polynomial order in 'polyOrder'.")
+      rzBasis = createBasis(rzBasisNm, 2, rzPolyOrder)
+   end
+
    -- I/O method
    local ioMethod = tbl.ioMethod and tbl.ioMethod or "MPI"
    if ioMethod ~= "POSIX" and ioMethod ~= "MPI" then
@@ -191,6 +203,19 @@ local function buildApplication(self, tbl)
       periodicDirs = periodicDirs,  world = tbl.world, 
       messenger = commManager,
    }
+
+   -- Setup RZ grid.
+   local rzGrid
+   if tbl.hasRZ then
+         rzGrid = Grid.RectCart{
+         lower = tbl.rzlower,  --decomposition = commManager:getConfDecomp(),
+         upper = tbl.rzupper,  --mappings = tbl.coordinateMap,
+         cells = tbl.rzcells,  --mapc2p = tbl.mapc2p,
+         --periodicDirs = periodicDirs,  world = tbl.world, 
+         --messenger = commManager,
+      }
+   end
+
    -- Read in information about each species.
    local population = PopApp{ messenger = commManager }
    for nm, val in pairs(tbl) do
@@ -208,15 +233,18 @@ local function buildApplication(self, tbl)
    -- Create other subcommunicators.
    commManager:createSubComms(confGrid)
 
-   if tbl.coordinateMap or tbl.mapc2p then 
-      -- Placing this writing step after population:decompose so that only one species rank writes.
-      confGrid:write(confBasis, {0, population:getComm_host(),})
-   end
+--   print("writing conf gird")
+--   if tbl.coordinateMap or tbl.mapc2p then 
+--      -- Placing this writing step after population:decompose so that only one species rank writes.
+--      confGrid:write(confBasis, {0, population:getComm_host(),})
+--   end
+--   print("wrote conf gird")
 
    for _, s in population.iterGlobal() do
       s:fullInit(tbl) -- Initialize species.
    end
 
+   print("do species")
    -- Setup each species.
    for _, s in population.iterGlobal() do
       -- Set up conf grid and basis.
@@ -226,6 +254,7 @@ local function buildApplication(self, tbl)
       s:createGrid(confGrid)
       s:createBasis(basisNm, polyOrder)
    end
+   print("did species")
    for _, s in population.iterLocal() do -- Only allocate fields for species in this rank.
       s:alloc(timeStepper.numFields)
    end
@@ -244,8 +273,8 @@ local function buildApplication(self, tbl)
    local function completeFieldSetup(fld)
       fld:fullInit(tbl) -- Complete initialization.
       fld:setIoMethod(ioMethod)
-      fld:setBasis(confBasis)
-      fld:setGrid(confGrid)
+      fld:setBasis(confBasis, rzBasis)
+      fld:setGrid(confGrid, rzGrid)
       do
 	 local myCfl = tbl.cfl and tbl.cfl or cflFrac
 	 if fld.isElliptic then
@@ -266,6 +295,7 @@ local function buildApplication(self, tbl)
    -- assumed there are no force terms (neutral particles).
    local field = nil
    local nfields = 0
+   print("doing fields ")
    for _, val in pairs(tbl) do
       if FieldBase.is(val) then
          field = val
@@ -273,12 +303,14 @@ local function buildApplication(self, tbl)
          nfields = nfields + 1
       end
    end
+   print("did fields ")
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one Field object!")
    if field == nil then field = NoField {} end
 
    -- Initialize externalField, which is sometimes needed to initialize species.
    local externalField = nil
    nfields = 0
+   print("doing external fields ")
    for _, val in pairs(tbl) do
       if ExternalFieldBase.is(val) then
          externalField = val
@@ -286,6 +318,7 @@ local function buildApplication(self, tbl)
          nfields = nfields + 1
       end
    end
+   print("did external fields ")
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one ExternalField object!")
    if externalField == nil then externalField = NoField {} end
    externalField:createSolver(population)

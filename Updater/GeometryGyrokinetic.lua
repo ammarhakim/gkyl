@@ -1,0 +1,354 @@
+-- System libraries
+local xsys = require "xsys"
+
+-- Gkyl libraries.
+local Proto       = require "Lib.Proto"
+local UpdaterBase = require "Updater.Base"
+local DataStruct  = require "DataStruct"
+local ffi         = require "ffi"
+
+local ffiC = ffi.C
+require "Lib.ZeroUtil"
+
+-- Declaration of gkylzero objects and functions.
+ffi.cdef [[
+
+// Object type
+typedef struct gkyl_geo_gyrokinetic gkyl_geo_gyrokinetic;
+//
+//
+//struct gkyl_geo_gyrokinetic {
+//  struct gkyl_rect_grid rzgrid; // RZ grid on which psi(R,Z) is defined
+//  const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
+//  struct gkyl_range rzlocal; // local range over which psiRZ is defined
+//  int num_rzbasis; // number of basis functions in RZ
+//
+//  struct { int max_iter; double eps; } root_param;
+//  struct { int max_level; double eps; } quad_param;
+//
+//  // pointer to root finder (depends on polyorder)
+//  struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
+//    double xc[2], double dx[2]);
+//
+//  struct gkyl_geo_gyrokinetic_stat stat; 
+//  double B0;
+//  double R0;
+//};
+//
+// Type of flux surface
+enum gkyl_geo_gyrokinetic_type {
+  GKYL_SOL_DN, // SOL of double-null configuration
+  GKYL_SOL_SN, // SOL of single-null configuration
+  GKYL_PF, // Private flux region
+  GKYL_CORE // Core (closed flux-surface)
+};  
+
+// Inputs to create a new GK geometry creation object
+struct gkyl_geo_gyrokinetic_inp {
+  // psiRZ and related inputs  
+  const struct gkyl_rect_grid *rzgrid; // RZ grid on which psi(R,Z) is defined
+  const struct gkyl_basis *rzbasis; // basis functions for R,Z grid
+  const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
+  const struct gkyl_range *rzlocal; // local range over which psiRZ is defined
+  double B0; // Toroidal Field on axis
+  double R0; // Axis
+
+  // Parameters for root finder: leave unset to use defaults
+  struct {
+    int max_iter; // typically 20
+    double eps; // typically 1e-10
+  } root_param;
+
+  // Parameters for nmumerical quadrature: leave unset to use default
+  struct {
+   int max_levels; // typically 6-7    
+    double eps; // typically 1e-10
+  } quad_param;
+};
+
+// Inputs to create geometry for a specific computational grid
+struct gkyl_geo_gyrokinetic_geo_inp {
+  const struct gkyl_rect_grid *cgrid;
+  const struct gkyl_basis *cbasis;
+
+  enum gkyl_geo_gyrokinetic_type ftype; // type of geometry
+  
+  double rclose; // closest R to discrimate
+  double zmin, zmax; // extents of Z for integration
+
+  bool write_node_coord_array; // set to true if nodal coordinates should be written
+  const char *node_file_nm; // name of nodal coordinate file
+};
+
+// Some cumulative statistics
+struct gkyl_geo_gyrokinetic_stat {
+  long nquad_cont_calls; // num calls from quadrature
+  long nroot_cont_calls; // num calls from root-finder
+};  
+
+/**
+ * Create new updater to compute the geometry (mapc2p) needed in GK
+ * simulations.
+ *
+ * @param inp Input parameters
+ * @param New GK geometry updater
+ */
+gkyl_geo_gyrokinetic *gkyl_geo_gyrokinetic_new(const struct gkyl_geo_gyrokinetic_inp *inp);
+
+/**
+ * Get R(psi,Z) for a specified psi and Z value. Multiple values may
+ * be returned (or none). The R(psi,Z) and dR/dZ are stored in the R
+ * and dR arrays which be allocated by the caller.
+ *
+ * @param geo Geometry object
+ * @param psi Psi value
+ * @param Z Z value
+ * @param nmaxroots Maximum number of roots
+ * @param R on output, R(psi,Z)
+ * @param dR on output, dR/dZ
+ */
+int gkyl_geo_gyrokinetic_R_psiZ(const gkyl_geo_gyrokinetic *geo, double psi, double Z, int nmaxroots,
+  double *R, double *dR);
+
+/**
+ * Integrate along a specified psi countour and return its length. The
+ * contour must lie completely inside the RZ domain of the psiRZ DG
+ * field. The @a rclose parameter is used to select amongst the
+ * multiple possible countours with the same psi. Foe example, to
+ * select a flux surface on the outboard side of a double-null
+ * configuration choose rclose to be Rmax.
+ *
+ * @param geo Geometry object
+ * @param psi Psi value of contour
+ * @param zmin Starting z location
+ * @param zmax Ending z location
+ * @param rclose Value of radial coordinate to discrimate between multiple
+ *    contours
+ * @return Length of contour
+ */
+double gkyl_geo_gyrokinetic_integrate_psi_contour(const gkyl_geo_gyrokinetic *geo, double psi,
+  double zmin, double zmax, double rclose);
+
+/**
+ * Compute physical coordinates (mapc2p)  given computational coordinates
+ *
+ * @param geo Geometry object
+ * @param xn computational coordinates
+ * @param ret physical coordinates
+ */
+void gkyl_geo_gyrokinetic_mapc2p(const gkyl_geo_gyrokinetic *geo, const struct gkyl_geo_gyrokinetic_geo_inp *inp,
+    const double *xn, double *ret);
+
+/**
+ * Compute geometry (mapc2p) on a specified computational grid. The
+ * output array must be pre-allocated by the caller.
+ *
+ * @param geo Geometry object
+ * @param ginp Input structure for creating mapc2p
+ * @param mapc2p On output, the DG representation of mapc2p
+ */
+void gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
+  const struct gkyl_geo_gyrokinetic_geo_inp *ginp, struct gkyl_array *mapc2p, struct gkyl_range *conversion_range);
+
+/**
+ * Return cumulative statistics from geometry computations
+ *
+ * @param geo Geometry object
+ * @return Cumulative statistics
+ */
+struct gkyl_geo_gyrokinetic_stat gkyl_geo_gyrokinetic_get_stat(const gkyl_geo_gyrokinetic *geo);
+
+/**
+ * Delete updater.
+ *
+ * @param geo Geometry object to delete
+ */
+void gkyl_geo_gyrokinetic_release(gkyl_geo_gyrokinetic *geo);
+
+// Object type
+typedef struct gkyl_calc_bmag gkyl_calc_bmag;
+typedef struct bmag_ctx bmag_ctx;
+
+/**
+ * Create new updater to compute the metric coefficients
+ *
+ * @param cbasis Basis object (configuration space).
+ * @param use_gpu boolean indicating whether to use the GPU.
+ * @return New updater pointer.
+ */
+gkyl_calc_bmag* 
+gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  struct gkyl_rect_grid *cgrid, struct gkyl_rect_grid *pgrid, const gkyl_geo_gyrokinetic *app, const struct gkyl_geo_gyrokinetic_geo_inp *ginp, bool use_gpu);
+
+
+/**
+ * Advance calc_metric (compute the metric coefficients).
+ *
+ * @param up calc_metric updater object.
+ * @param crange Config-space range.
+ * @param XYZ field containing DG rep of cartesian coordinates
+ * @param gFld output field where metric coefficients will be placed
+ */
+
+void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange, const struct gkyl_range *crange_ext,
+     const struct gkyl_range *prange, const struct gkyl_range *prange_ext, struct gkyl_array *psidg, struct gkyl_array *psibyrdg, struct gkyl_array *psibyr2dg, struct gkyl_array *bphidg, struct gkyl_array* bmag_compdg, struct gkyl_array* mapc2p);
+
+/**
+ * Delete updater.
+ *
+ * @param up Updater to delete.
+ */
+void gkyl_calc_bmag_release(gkyl_calc_bmag* up);
+
+// Object type
+typedef struct gkyl_calc_metric gkyl_calc_metric;
+
+/**
+ * Create new updater to compute the metric coefficients
+ *
+ * @param cbasis Basis object (configuration space).
+ * @param use_gpu boolean indicating whether to use the GPU.
+ * @return New updater pointer.
+ */
+gkyl_calc_metric* gkyl_calc_metric_new(const struct gkyl_basis *cbasis,
+  struct gkyl_rect_grid *grid, bool use_gpu);
+
+/**
+ * Advance calc_metric (compute the metric coefficients).
+ *
+ * @param up calc_metric updater object.
+ * @param crange Config-space range.
+ * @param XYZ field containing DG rep of cartesian coordinates
+ * @param gFld output field where metric coefficients will be placed
+ */
+
+void gkyl_calc_metric_advance(const gkyl_calc_metric *up, const struct gkyl_range *crange,
+    struct gkyl_array *XYZ, struct gkyl_array *gFld);
+
+/**
+ * Delete updater.
+ *
+ * @param up Updater to delete.
+ */
+void gkyl_calc_metric_release(gkyl_calc_metric* up);
+
+// Object type
+typedef struct gkyl_calc_derived_geo gkyl_calc_derived_geo;
+
+/**
+ * Create new updater to compute the derived_geo coefficients
+ *
+ * @param cbasis Basis object (configuration space).
+ * @param use_gpu boolean indicating whether to use the GPU.
+ * @return New updater pointer.
+ */
+gkyl_calc_derived_geo* gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis,
+  struct gkyl_rect_grid *grid, bool use_gpu);
+
+/**
+ * Advance calc_derived_geo (compute the derived_geo coefficients).
+ *
+ * @param up calc_derived_geo updater object.
+ * @param crange Config-space range.
+ * @param gFld field containing DG rep of the metric coefficients
+ * @param jFld output field where jacobian will be placed
+ */
+
+void gkyl_calc_derived_geo_advance(const gkyl_calc_derived_geo *up, const struct gkyl_range *crange,
+    struct gkyl_array *gFld, struct gkyl_array *bmagFld, struct gkyl_array *jFld, struct gkyl_array *jinvFld,
+    struct gkyl_array *grFld, struct gkyl_array *biFld, struct gkyl_array *cmagFld);
+
+/**
+ * Delete updater.
+ *
+ * @param up Updater to delete.
+ */
+void gkyl_calc_derived_geo_release(gkyl_calc_derived_geo* up);
+
+]]
+
+-- Boundary condition updater.
+local GeometryGyrokinetic = Proto(UpdaterBase)
+
+function GeometryGyrokinetic:init(tbl)
+   GeometryGyrokinetic.super.init(self, tbl) -- Setup base object.
+   self.grid = tbl.grid
+   self.rzGrid = tbl.rzGrid
+   self.basis = tbl.basis
+   self.rzBasis = tbl.rzBasis
+   self.localRange = tbl.localRange
+   self.localRangeExt = tbl.localRangeExt
+   self.rzLocalRange = tbl.rzLocalRange
+   self.rzLocalRangeExt = tbl.rzLocalRangeExt
+   self.mapc2p_field = tbl.mapc2p_field
+   self.psiRZ = tbl.psiRZ
+   self.psibyrRZ = tbl.psibyrRZ
+   self.psibyr2RZ = tbl.psibyr2RZ
+   self.bphiRZ = tbl.bphiRZ
+   self.gFld = tbl.gFld
+   self.jacobGeo = tbl.jacobGeo
+   self.jacobGeoInv = tbl.jacobGeoInv
+   self.jacobTot = tbl.jacobTot
+   self.jacobTotInv = tbl.jacobTotInv
+   self.grFld = tbl.grFld
+   self.b_i = tbl.b_i
+   self.cmag = tbl.cmag
+   self.bmag = tbl.bmag
+   self.B0 = tbl.B0
+   self.R0 = tbl.R0
+   
+
+   --self.GeoUpdater:advance(self.grid, self.basis, self.rzGrid, self.rzBasis, self.localRange, self.localRangeExt, self.rzLocalRange, self.rzLocalRangeExt, geo_updater, geo_inp, self.mapc2p_field, self.psiRZ, self.psibyrRZ, self.geo.psibyr2RZ, self.geo.bphiRZ, self.geo.gFld, self.geo.jacobGeo, self.geo.jacobGeoInv, self.jacobTot, self.JacobTotInv, self.geo.grFld, self.geo.b_i, self.geo.cmag)
+
+   self.inp = ffi.new("struct gkyl_geo_gyrokinetic_inp")
+
+   self.inp.rzgrid = self.rzGrid._zero
+   self.inp.rzbasis = self.rzBasis._zero
+   self.inp.psiRZ = tbl.psiRZ._zero
+   self.inp.rzlocal = self.rzLocalRange
+   self.inp.B0 = self.B0
+   self.inp.R0 = self.R0
+
+   self._zero_geom = ffi.gc(ffiC.gkyl_geo_gyrokinetic_new(self.inp), ffiC.gkyl_geo_gyrokinetic_release)
+   self.ginp = ffi.new("struct gkyl_geo_gyrokinetic_geo_inp")
+   self.ginp.cgrid = self.grid._zero
+   self.ginp.cbasis = self.basis._zero
+   --self.ginp.ftype = GKYL_SOL_DN
+   self.ginp.rclose = self.rzGrid:upper(1)
+   self.ginp.zmin = self.rzGrid:lower(2)
+   self.ginp.zmax = self.rzGrid:upper(2)
+   self.ginp.write_node_coord_array = true
+   self.ginp.node_file_nm = "g2nodes"
+
+   self._zero_bmag = ffi.gc(ffiC.gkyl_calc_bmag_new(self.basis._zero, self.rzBasis._zero, self.grid._zero, self.rzGrid._zero, self.geo, self.ginp, false), ffiC.gkyl_calc_bmag_release)
+
+   self._zero_metric = ffi.gc(ffiC.gkyl_calc_metric_new(self.basis._zero, self.grid._zero, false), ffiC.gkyl_calc_metric_release)
+
+   self._zero_derived = ffi.gc(ffiC.gkyl_calc_derived_geo_new(self.basis._zero, self.grid._zero, false), ffiC.gkyl_calc_derived_geo_release)
+
+
+
+end
+
+function GeometryGyrokinetic:advance()
+
+   -- Fill mapc2p
+   ffiC.gkyl_geo_gyrokinetic_calcgeom(self._zero_geom, self.ginp, self.mapc2p_field._zero, self.localRangeExt)
+   print("did calcgeom")
+
+   -- Fill bmag
+   ffiC.gkyl_calc_bmag_advance(self._zero_bmag, self.localRange, self.localRangeExt, self.rzLocalRange, self.rzLocalRangeExt, self.psiRZ._zero, self.psibyrRZ._zero, self.psibyr2RZ._zero, self.bphiRZ._zero,  self.bmag._zero, self.mapc2p_field._zero)
+   print("did calcbmag")
+
+   -- Fill metrics
+   ffiC.gkyl_calc_metric_advance(self._zero_metric, self.localRange, self.mapc2p_field._zero, self.gFld._zero)
+   print("did calcmetric")
+
+   -- Fill derived geo
+   ffiC.gkyl_calc_derived_geo_advance(self._zero_derived, self.localRange, self.gFld._zero, self.bmag._zero, self.jacobGeo._zero, self.jacobGeoInv._zero, self.grFld._zero, self.b_i._zero , self.cmag._zero)
+
+   print("did calcderived")
+end
+
+return GeometryGyrokinetic
+ 

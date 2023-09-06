@@ -368,6 +368,7 @@ function GkField:createSolver(population, externalField)
    -- Need to set this flag so that field calculated self-consistently at end of full RK timestep.
    self.isElliptic = true
 
+   print("in GKField:createSolver")
    if self.externalPhi then
       local evalOnNodes = Updater.EvalOnNodes {
          onGrid = self.grid,   evaluate = self.externalPhi,
@@ -1042,11 +1043,13 @@ local GkGeometry = Proto(FieldBase.ExternalFieldBase)
 
 -- Methods for no field object.
 function GkGeometry:init(tbl)
+   print("GkGeom: init")
    GkGeometry.super.init(self, tbl)
    self.tbl = tbl
 end
 
 function GkGeometry:fullInit(appTbl)
+   print("GkGeom: full init")
    local tbl = self.tbl -- previously store table.
 
    self.ioMethod = "MPI"
@@ -1069,9 +1072,27 @@ function GkGeometry:fullInit(appTbl)
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 
    self.timers = {advance = 0.,   bc = 0.}
+
+   -- functions and params needed for new g0 implementation
+   self.psifunc = assert(tbl.psifunc, "must provide psi")
+   self.psibyrfunc = tbl.psibyrfunc
+   self.psibyr2func = tbl.psibyr2func
+   self.bphifunc = tbl.bphifunc
+   self.B0 = tbl.B0
+   self.R0 = tbl.R0
+
 end
 
-function GkGeometry:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
+function GkGeometry:setGrid(grid, rzGrid) 
+   self.grid = grid
+   self.ndim = self.grid:ndim() 
+   self.rzGrid = rzGrid
+end
+
+function GkGeometry:setBasis(basis, rzBasis)
+   self.basis = basis 
+   self.rzBasis = rzBasis 
+end
 
 function GkGeometry:alloc()
    -- Allocate fields.
@@ -1098,6 +1119,19 @@ function GkGeometry:alloc()
    -- g^yy = |grad y|**2.
    self.geo.gyy = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
+   -- other ones
+   self.geo.gxz = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   self.geo.gyz = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   self.geo.gzz = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+
+   -- lower ones
+   self.geo.g_xx = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   self.geo.g_xy = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   self.geo.g_yy = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   self.geo.g_xz = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   self.geo.g_yz = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   self.geo.g_zz = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+
    -- Jacobian of coordinate transformation.
    self.geo.jacobGeo = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
@@ -1121,6 +1155,19 @@ function GkGeometry:alloc()
    self.geo.b_z = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
    self.geo.b_i = createField(self.grid,self.basis,ghostNum,3,syncPeriodic)
+
+
+   -- Extra fields needed for g0 implementation
+   print("Creating extra fields")
+   self.geo.psiRZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
+   self.geo.psibyrRZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
+   self.geo.psibyr2RZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
+   self.geo.bphiRZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
+   self.geo.mapc2p_field = createField(self.rzGrid, self.rzBasis, ghostNum, 3, syncPeriodic)
+   self.geo.gFld = createField(self.grid,self.basis,ghostNum,6,syncPeriodic)
+   self.geo.grFld = createField(self.grid,self.basis,ghostNum,6,syncPeriodic)
+   print("Created extra fields")
+
  
    -- Functions for laplacian, including Jacobian factor.
    self.geo.gxxJ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
@@ -1272,12 +1319,103 @@ function GkGeometry:initField(population)
          gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
          self.fromFile, true)
    else
-      self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
-      self.separateComponents:advance(0, {self.geo.allGeo},
-         {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
-          self.geo.bmag, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
-          self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
+      -- Here is where we can do g0 instead of two lines below
+      print("skipping the g2 stuff")
+      --self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
+      --self.separateComponents:advance(0, {self.geo.allGeo},
+      --   {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
+      --    self.geo.bmag, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
+      --    self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
+
+
+      print("filling psi")
+      -- fill psi and bphi
+      local psieval = Updater.EvalOnNodes {
+         onGrid = self.rzGrid,   evaluate = self.psifunc,
+         basis  = self.rzBasis,  onGhosts = true,
+      }
+
+      print("made psi eval")
+      local psibyreval = Updater.EvalOnNodes {
+         onGrid = self.rzGrid,   evaluate = self.psibyrfunc,
+         basis  = self.rzBasis,  onGhosts = true,
+      }
+      print("made psibyr eval")
+      local psibyr2eval = Updater.EvalOnNodes {
+         onGrid = self.rzGrid,   evaluate = self.psibyr2func,
+         basis  = self.rzBasis,  onGhosts = true,
+      }
+      print("made psibyrr2 eval")
+      local bphieval = Updater.EvalOnNodes {
+         onGrid = self.rzGrid,   evaluate = self.bphifunc,
+         basis  = self.rzBasis,  onGhosts = true,
+      }
+      print("made bphieval")
+      psieval:advance(0.0, {}, {self.geo.psiRZ})
+      psibyreval:advance(0.0, {}, {self.geo.psibyrRZ})
+      psibyr2eval:advance(0.0, {}, {self.geo.psibyr2RZ})
+      bphieval:advance(0.0, {}, {self.geo.bphiRZ})
+
+      print("advanced psis and bphi")
+
+
+      local numB = self.basis:numBasis()
+      --self.geo.grFld:combineOffset(1, self.geo.gxx, 0*numB, 1, self.geo.gxy, 1*numB, 1, self.geo.gxz, 2*numB, 1, self.geo.gyy, 3*numB, 1, self.geo.gyz, 4*numB, 1, self.geo.gzz, 5*numB)
+      --print("combined grFld")
+
+      self.localRange = self.geo.jacobGeo:localRange()
+      print("set local range")
+
+      self.localRangeExt = self.geo.jacobGeo:localExtRange()
+      self.rzLocalRange = self.geo.psiRZ:localRange()
+      self.rzLocalRangeExt = self.geo.psiRZ:localExtRange()
+
+      print("set the geo ranges")
+
+      --self.GeoUpdater:advance(self.grid, self.basis, self.rzGrid, self.rzBasis, self.localRange, self.localRangeExt, self.rzLocalRange, self.rzLocalRangeExt, geo_updater, geo_inp, self.mapc2p_field, self.psiRZ, self.psibyrRZ, self.geo.psibyr2RZ, self.geo.bphiRZ, self.geo.gFld, self.geo.jacobGeo, self.geo.jacobGeoInv, self.jacobTot, self.JacobTotInv, self.geo.grFld, self.geo.b_i, self.geo.cmag, self.geo.bmag)
+      -- Need to add definition of updater and geo inp. Need to change g0 kernels to calculate jacobTot and jacobTotInv as well.
+
+      self.GeoUpdater = Updater.GeometryGyrokinetic{
+      grid = self.grid,
+      rzGrid = self.rzGrid,
+      basis = self.basis,
+      rzBasis = self.rzBasis,
+      localRange = self.localRange,
+      localRangeExt = self.localRangeExt,
+      rzLocalRange = self.rzLocalRange,
+      rzLocalRangeExt = self.rzLocalRangeExt,
+      mapc2p_field = self.geo.mapc2p_field,
+      psiRZ = self.geo.psiRZ,
+      psibyrRZ = self.geo.psibyrRZ,
+      psibyr2RZ = self.geo.psibyr2RZ,
+      bphiRZ = self.geo.bphiRZ,
+      gFld = self.geo.gFld,
+      jacobGeo = self.geo.jacobGeo,
+      jacobGeoInv = self.geo.jacobGeoInv,
+      jacobTot = self.geo.jacobTot,
+      jacobTotInv = self.geo.jacobTotInv,
+      grFld = self.geo.grFld,
+      b_i = self.geo.b_i,
+      cmag = self.geo.cmag,
+      bmag = self.geo.bmag,
+      B0 = self.B0,
+      R0 = self.R0
+      }
+      print("initialized the geo updater")
+      self.GeoUpdater:advance()
+      print("advanced the geo updater")
+
+      
+      
+      self.separateComponents:advance(0, {self.geo.b_i}, {self.geo.b_x, self.geo.b_y, self.geo.b_z})
+      print("separated b")
+      self.separateComponents:advance(0, {self.geo.grFld}, {self.geo.gxx, self.geo.gxy, self.geo.gxz, self.geo.gyy, self.geo.gyz, self.geo.gzz })
+      print("separated gr")
+      self.separateComponents:advance(0, {self.geo.gFld}, {self.geo.g_xx, self.geo.g_xy, self.geo.g_xz, self.geo.g_yy, self.geo.g_yz, self.geo.g_zz })
+      print("separated g")
    end
+
+   -- Two lines below may unnecessary because  g0 will group bx by and bz
    local numB = self.basis:numBasis()
    self.geo.b_i:combineOffset(1, self.geo.b_x, 0*numB, 1, self.geo.b_y, 1*numB, 1, self.geo.b_z, 2*numB)
 
