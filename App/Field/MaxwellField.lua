@@ -85,21 +85,11 @@ function MaxwellField:fullInit(appTbl)
       self.cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 1.0
    
       self.lightSpeed = 1/math.sqrt(self.epsilon0*self.mu0)
-   
-      -- tau parameter used for adding extra (less) diffusion to
-      -- Ampere-Maxwell, while adding less (more) diffusion to Faraday
-      -- equation if no tau parameter is specified, Eq object defaults to
-      -- the speed of light.
-      self.tau = tbl.tau
 
       self._inOutFunc = tbl.inOutFunc
 
-      self.limiter = self.tbl.limiter and self.tbl.limiter or "monotonized-centered"
-
-      -- numFlux used for selecting which type of numerical flux function to use
-      -- defaults to "upwind" in Eq object, supported options: "central," "upwind"
-      -- only used for DG Maxwell.
-      self.numFlux = tbl.numFlux
+      -- No ghost current by default.
+      self.useGhostCurrent = xsys.pickBool(tbl.useGhostCurrent, false)
 
       -- Store initial condition function (this is a wrapper around user
       -- supplied function as we need to add correction potential ICs here).
@@ -294,9 +284,9 @@ function MaxwellField:createSolver(population)
    if self.hasMagField then   -- Maxwell's induction equations.
 
       self.equation = PerfMaxwell {
-         lightSpeed          = self.lightSpeed,  tau     = self.tau,
-         elcErrorSpeedFactor = self.ce,          numFlux = self.numFlux,
-         mgnErrorSpeedFactor = self.cb,          basis   = self.basis,
+         lightSpeed          = self.lightSpeed,  
+         elcErrorSpeedFactor = self.ce,         mgnErrorSpeedFactor = self.cb, 
+         basis   = self.basis,
       }
 
       self.fieldSlvr = Updater.HyperDisCont {
@@ -547,6 +537,26 @@ end
 function MaxwellField:accumulateCurrent(current, emRhs)
    if current == nil then return end
    emRhs:accumulateRange(-1.0/self.epsilon0, current, emRhs:localRange())
+   -- If we are to use ghost currents, compute mean current.
+   local ghostCurrent = 0.0
+   if self.useGhostCurrent then
+      local cItr, eItr = current:get(1), emRhs:get(1)
+      local cIdxr, eIdxr = current:genIndexer(), emRhs:genIndexer()
+      local nx = self.grid:numCells(1)
+      local localMeanCurrent = ffi.new("double[2]")
+      for idx in emRhs:localRangeIter() do
+         current:fill(cIdxr(idx), cItr)
+         localMeanCurrent[0] = localMeanCurrent[0]+cItr[1]
+      end
+      local globalMeanCurrent = ffi.new("double[2]")
+      Mpi.Allreduce(localMeanCurrent, globalMeanCurrent, 1, Mpi.DOUBLE, Mpi.SUM, self.grid:commSet().comm)
+      ghostCurrent = globalMeanCurrent[0]/nx
+
+      for idx in emRhs:localRangeIter() do
+         emRhs:fill(eIdxr(idx), eItr)
+         eItr[1] = eItr[1]+1.0/self.epsilon0*ghostCurrent
+      end
+   end
 end
 
 function MaxwellField:advance(tCurr, population, inIdx, outIdx)
