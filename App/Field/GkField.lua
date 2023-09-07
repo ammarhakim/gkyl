@@ -1394,6 +1394,8 @@ function GkGeometry:initField(population)
       jacobGeoInv = self.geo.jacobGeoInv,
       jacobTot = self.geo.jacobTot,
       jacobTotInv = self.geo.jacobTotInv,
+      bmagInv = self.geo.bmagInv,
+      bmagInvSq = self.geo.bmagInvSq,
       grFld = self.geo.grFld,
       b_i = self.geo.b_i,
       cmag = self.geo.cmag,
@@ -1429,8 +1431,9 @@ function GkGeometry:initField(population)
       weakBasis = self.basis,  operation = "Divide",
       onRange   = self.unitWeight:localExtRange(),  onGhosts = true,
    }
-   confWeakDivide:advance(0., {self.geo.bmag, self.unitWeight}, {self.geo.bmagInv})
-   confWeakMultiply:advance(0., {self.geo.bmagInv, self.geo.bmagInv}, {self.geo.bmagInvSq})
+   -- Calculate bmagInv and bmagInvSq in g0 at nodes instead
+   --confWeakDivide:advance(0., {self.geo.bmag, self.unitWeight}, {self.geo.bmagInv})
+   --confWeakMultiply:advance(0., {self.geo.bmagInv, self.geo.bmagInv}, {self.geo.bmagInvSq})
 
    log("...Finished initializing the geometry\n")
 

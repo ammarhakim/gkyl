@@ -256,7 +256,7 @@ gkyl_calc_derived_geo* gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis
 
 void gkyl_calc_derived_geo_advance(const gkyl_calc_derived_geo *up, const struct gkyl_range *crange,
     struct gkyl_array *gFld, struct gkyl_array *bmagFld, struct gkyl_array *jFld, struct gkyl_array *jinvFld,
-    struct gkyl_array *grFld, struct gkyl_array *biFld, struct gkyl_array *cmagFld);
+    struct gkyl_array *grFld, struct gkyl_array *biFld, struct gkyl_array *cmagFld, struct gkyl_array *jtotFld, struct gkyl_array *jtotinvFld, struct gkyl_array *bmaginvFld, struct gkyl_array *bmaginvsqFld);
 
 /**
  * Delete updater.
@@ -290,6 +290,8 @@ function GeometryGyrokinetic:init(tbl)
    self.jacobGeoInv = tbl.jacobGeoInv
    self.jacobTot = tbl.jacobTot
    self.jacobTotInv = tbl.jacobTotInv
+   self.bmagInv = tbl.bmagInv
+   self.bmagInvSq = tbl.bmagInvSq
    self.grFld = tbl.grFld
    self.b_i = tbl.b_i
    self.cmag = tbl.cmag
@@ -318,7 +320,7 @@ function GeometryGyrokinetic:init(tbl)
    self.ginp.zmin = self.rzGrid:lower(2)
    self.ginp.zmax = self.rzGrid:upper(2)
    self.ginp.write_node_coord_array = true
-   self.ginp.node_file_nm = "g2nodes"
+   self.ginp.node_file_nm = "g2nodes.gkyl"
 
    self._zero_bmag = ffi.gc(ffiC.gkyl_calc_bmag_new(self.basis._zero, self.rzBasis._zero, self.grid._zero, self.rzGrid._zero, self.geo, self.ginp, false), ffiC.gkyl_calc_bmag_release)
 
@@ -345,7 +347,7 @@ function GeometryGyrokinetic:advance()
    print("did calcmetric")
 
    -- Fill derived geo
-   ffiC.gkyl_calc_derived_geo_advance(self._zero_derived, self.localRange, self.gFld._zero, self.bmag._zero, self.jacobGeo._zero, self.jacobGeoInv._zero, self.grFld._zero, self.b_i._zero , self.cmag._zero)
+   ffiC.gkyl_calc_derived_geo_advance(self._zero_derived, self.localRange, self.gFld._zero, self.bmag._zero, self.jacobGeo._zero, self.jacobGeoInv._zero, self.grFld._zero, self.b_i._zero , self.cmag._zero, self.jacobTot._zero, self.jacobTotInv._zero, self.bmagInv._zero, self.bmagInvSq._zero)
 
    print("did calcderived")
 end
