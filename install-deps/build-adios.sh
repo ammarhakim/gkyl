@@ -5,10 +5,7 @@ source ./build-opts.sh
 # Install prefix
 PREFIX=$GKYLSOFT/adios-1.13.1
 
-# delete old checkout and builds
-rm -rf adios-1.13.1.tar* adios-1.13.1
-
-curl -L http://users.nccs.gov/~pnorbert/adios-1.13.1.tar.gz > adios-1.13.1.tar.gz
+# Tar file is checked in to repo
 gunzip adios-1.13.1.tar.gz
 tar -xvf adios-1.13.1.tar
 cd adios-1.13.1

@@ -193,9 +193,20 @@ function GkSpecies:createSolver(field, externalField)
 --            equation = self.equationStep2,  globalUpwind       = false,   -- Don't reduce max speed.
 --         }
 --      end
+
+   -- Boundary flux updater.
+   self.boundaryFluxSlvr = Updater.BoundaryFluxCalc {
+      onGrid = self.grid,  equation    = self.solver:getEquation(),
+      cdim   = self.cdim,  equation_id = "gyrokinetic",
+   }
+   self.collisionlessBoundaryAdvance = function(tCurr, inFlds, outFlds)
+      self.boundaryFluxSlvr:advance(tCurr, inFlds, outFlds)
+   end
+
    else
       self.solver = {totalTime = 0.}
       self.collisionlessAdvance = function(tCurr, inFlds, outFlds) end
+      self.collisionlessBoundaryAdvance = function(tCurr, inFlds, outFlds) end
    end
    
    -- Create updaters to compute various moments.
@@ -267,12 +278,6 @@ function GkSpecies:createSolver(field, externalField)
          onGrid = self.confGrid,   numComponents = 1,
          basis  = self.confBasis,  quantity      = "V",
       }
-   }
-
-   -- Boundary flux updater.
-   self.fluxSlvr = Updater.BoundaryFluxCalc {
-      onGrid = self.grid,  equation    = self.solver:getEquation(),
-      cdim   = self.cdim,  equation_id = "gyrokinetic",
    }
 
    -- Select the function that returns the mass density factor for the polarization (Poisson equation).
@@ -449,7 +454,7 @@ function GkSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
 
    self.collisionlessAdvance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut, self.cflRateByCell})
 
-   self.fluxSlvr:advance(tCurr, {fIn}, {fRhsOut})
+   self.collisionlessBoundaryAdvance(tCurr, {fIn}, {fRhsOut})
 
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
       bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)   -- Save boundary fluxes.

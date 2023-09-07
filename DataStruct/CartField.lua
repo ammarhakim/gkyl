@@ -925,6 +925,12 @@ local function Field_meta_ctor(elct)
       scaleByCell = function (self, factByCell)
          self._zeroForOps:scale_by_cell(factByCell._zeroForOps)
       end,
+      shiftc = function (self, val, comp)
+         self._zeroForOps:shiftc(val, comp)
+      end,
+      shiftcRange = function (self, val, comp, rng)
+         self._zeroForOps:shiftc(val, comp, rng)
+      end,
       abs = isNumberType and
          function (self)
             ffiC.gkylCartFieldAbs(self:_localLower(), self:_localShape(), self._data)
