@@ -46,13 +46,11 @@ gkyl_correct_maxwellian_gyrokinetic *gkyl_correct_maxwellian_gyrokinetic_new(
  * @param err_max Tolerance of error in M1 and M2
  * @param iter_max Maximum number of iteration
  * @param conf_local Local configuration space range
- * @param conf_local_ext Local extended configuration space range
  * @param phase_local Local phase-space range
  */
 void gkyl_correct_maxwellian_gyrokinetic_fix(gkyl_correct_maxwellian_gyrokinetic *cmax,
   struct gkyl_array *fM, const struct gkyl_array *moms_in, double err_max, int iter_max,
-  const struct gkyl_range *conf_local, const struct gkyl_range *conf_local_ext,
-  const struct gkyl_range *phase_local);
+  const struct gkyl_range *conf_local, const struct gkyl_range *phase_local);
 
 /**
  * Delete updater.
@@ -85,7 +83,8 @@ function CorrectMaxwellian:init(tbl)
    self.confRange = bmag:localRange() 
    self.confRangeExt = bmag:localExtRange()
 
-   self._zero = ffi.gc(ffiC.gkyl_correct_maxwellian_gyrokinetic_new(phaseGrid._zero, confBasis._zero, phaseBasis._zero, self.confRange, self.confRangeExt, bmag._zero, jacobTot._zero, self.mass, self._useGPU), ffiC.gkyl_correct_maxwellian_gyrokinetic_release)
+   self._zero = ffi.gc(ffiC.gkyl_correct_maxwellian_gyrokinetic_new(phaseGrid._zero, confBasis._zero, phaseBasis._zero, self.confRange, self.confRangeExt, bmag._zero, jacobTot._zero, self.mass, self._useGPU), 
+                       ffiC.gkyl_correct_maxwellian_gyrokinetic_release)
  
 end
 
@@ -98,7 +97,7 @@ function CorrectMaxwellian:_advance(tCurr, inFld, outFld)
 
    print("CorrectMaxwellian is called")
 
-   ffiC.gkyl_correct_maxwellian_gyrokinetic_fix(self._zero, fM._zero, moms._zero, self.err_max, self.iter_max, self.confRange, self.confRangeExt, phaseRange)
+   ffiC.gkyl_correct_maxwellian_gyrokinetic_fix(self._zero, fM._zero, moms._zero, self.err_max, self.iter_max, self.confRange, phaseRange)
    fOut:copy(fM)
 end
 
