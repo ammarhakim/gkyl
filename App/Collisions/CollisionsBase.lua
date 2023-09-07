@@ -14,6 +14,9 @@ function CollisionsBase:setSpeciesName(nm) self.speciesName = nm end
 function CollisionsBase:fullInit(speciesTbl) end
 function CollisionsBase:createDiagnostics(mySpecies, field) return nil end
 function CollisionsBase:calcCouplingMoments(tCurr, rkIdx, species) end
+function CollisionsBase:calcCrossCouplingMoments(tCurr, rkIdx, population) end
+function CollisionsBase:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx) end
+function CollisionsBase:setCfl(cfl) self.cfl = cfl end
 function CollisionsBase:clearTimers() 
    for nm, _ in pairs(self.timers) do self.timers[nm] = 0. end
 end
