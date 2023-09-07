@@ -17,6 +17,7 @@ local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCa
 local CartFieldInterpolate = require "Updater.CartFieldInterpolate"
 local ChargeExchange = require "Updater.ChargeExchange"
 local ConfToPhase = require "Updater.ConfToPhase"
+local CorrectMaxwellian = require "Updater.CorrectMaxwellian"
 local CrossPrimMoments = require "Updater.CrossPrimMoments"
 local DistFuncMomentDG = require "Updater.DistFuncMomentDG"
 local DiscontGenPoisson = require "Updater.DiscontGenPoisson"
@@ -81,6 +82,7 @@ return {
    CartFieldInterpolate = CartFieldInterpolate,
    ChargeExchange = ChargeExchange,
    ConfToPhase = ConfToPhase,
+   CorrectMaxwellian = CorrectMaxwellian,
    CrossPrimMoments = CrossPrimMoments,
    DistFuncMomentDG = DistFuncMomentDG,
    DiscontGenPoisson = DiscontGenPoisson,
