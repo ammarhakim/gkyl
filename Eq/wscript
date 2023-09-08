@@ -20,55 +20,6 @@ def build(bld):
     incompEulerData/IncompEulerSurfSer2xP2.cpp
     incompEulerData/IncompEulerSurfPositivitySer2xP1.cpp
 
-    constDiffusionData/ConstDiffusionSer1xP1.cpp
-    constDiffusionData/ConstDiffusionSer2xP1.cpp
-    constDiffusionData/ConstDiffusionSer3xP1.cpp
-    constDiffusionData/ConstDiffusionSer4xP1.cpp
-    constDiffusionData/ConstDiffusionSurfSer1xP1.cpp
-    constDiffusionData/ConstDiffusionSurfSer2xP1.cpp
-    constDiffusionData/ConstDiffusionSurfSer3xP1.cpp
-    constDiffusionData/ConstDiffusionSurfSer4xP1.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer1xP1.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer2xP1.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer3xP1.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer4xP1.cpp
-    constDiffusionData/ConstDiffusionSer1xP2.cpp
-    constDiffusionData/ConstDiffusionSer2xP2.cpp
-    constDiffusionData/ConstDiffusionSer3xP2.cpp
-    constDiffusionData/ConstDiffusionSer4xP2.cpp
-    constDiffusionData/ConstDiffusionSurfSer1xP2.cpp
-    constDiffusionData/ConstDiffusionSurfSer2xP2.cpp
-    constDiffusionData/ConstDiffusionSurfSer3xP2.cpp
-    constDiffusionData/ConstDiffusionSurfSer4xP2.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer1xP2.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer2xP2.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer3xP2.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer4xP2.cpp
-    constDiffusionData/ConstDiffusionSer1xP3.cpp
-    constDiffusionData/ConstDiffusionSer2xP3.cpp
-    constDiffusionData/ConstDiffusionSurfSer1xP3.cpp
-    constDiffusionData/ConstDiffusionSurfSer2xP3.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer1xP3.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer2xP3.cpp
-    constDiffusionData/ConstDiffusionSurfPositivitySer1xP1.cpp
-    constDiffusionData/ConstDiffusionSurfPositivitySer2xP1.cpp
-    constDiffusionData/ConstDiffusionSurfPositivitySer3xP1.cpp
-    constDiffusionData/ConstDiffusionSurfPositivitySer4xP1.cpp
-    constDiffusionData/ConstDiffusionBCsSer.cpp
-
-    constDiffusionData/ConstDiffusionTensor2xP2.cpp
-    constDiffusionData/ConstDiffusionSurfTensor2xP2.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfTensor2xP2.cpp
-    constDiffusionData/ConstDiffusionTensor2xP3.cpp
-    constDiffusionData/ConstDiffusionSurfTensor2xP3.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfTensor2xP3.cpp
-    constDiffusionData/ConstDiffusionTensor3xP2.cpp
-    constDiffusionData/ConstDiffusionSurfTensor3xP2.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfTensor3xP2.cpp
-    constDiffusionData/ConstDiffusionTensor4xP2.cpp
-    constDiffusionData/ConstDiffusionSurfTensor4xP2.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfTensor4xP2.cpp
-
     pbData/CanonicalSer1x1v.cpp
     pbData/CanonicalSer2x2v.cpp
     pbData/CanonicalSurfSer1x1v.cpp
@@ -111,7 +62,7 @@ def build(bld):
 
     """,
               name = 'eq',
-              target = 'eq', use='EIGEN CUTOOLS', includes = '. hasegawaWakataniData incompEulerData constDiffusionData pbData gyrofluidData gfHeatFluxData passiveAdvectionData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct',
+              target = 'eq', use='EIGEN CUTOOLS', includes = '. hasegawaWakataniData incompEulerData pbData gyrofluidData gfHeatFluxData passiveAdvectionData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct',
               vnum = '1.0',
               
     )
