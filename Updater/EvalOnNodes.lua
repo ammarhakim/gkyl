@@ -81,7 +81,7 @@ void gkyl_eval_on_nodes_advance(const gkyl_eval_on_nodes *up,
  * @param fun_at_nodes Function evaluated at nodes in one cell.
  * @param f Modal coefficients of the function in one cell.
  */
-void gkyl_eval_on_nodes_nod2mod(const struct gkyl_eval_on_nodes *up, const struct gkyl_array *fun_at_nodes, double *f);
+void gkyl_eval_on_nodes_nod2mod(const gkyl_eval_on_nodes *up, const struct gkyl_array *fun_at_nodes, double *f);
 
 /**
  * Get the coordinates of a given node.
@@ -90,7 +90,7 @@ void gkyl_eval_on_nodes_nod2mod(const struct gkyl_eval_on_nodes *up, const struc
  * @param node Index indicate the desired node.
  * @return Node coordinates.
  */
-double* gkyl_eval_on_nodes_fetch_node(const struct gkyl_eval_on_nodes *up, long node);
+double* gkyl_eval_on_nodes_fetch_node(const gkyl_eval_on_nodes *up, long node);
 
 /**
  * Delete updater.

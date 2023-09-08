@@ -75,7 +75,7 @@ struct gkyl_proj_on_basis_inp {
  * @param ctx Context for function evaluation. Can be NULL.
  * @return New updater pointer.
  */
-struct gkyl_proj_on_basis *gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid,
+gkyl_proj_on_basis *gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, int num_quad, int num_ret_vals, evalf_t eval, void *ctx);
 
 /**
@@ -85,7 +85,7 @@ struct gkyl_proj_on_basis *gkyl_proj_on_basis_new(const struct gkyl_rect_grid *g
  * @param inp Input parameters
  * @return New updater pointer.
  */
-struct gkyl_proj_on_basis* gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp);
+gkyl_proj_on_basis* gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp);
 
 /**
  * Perform the quadrature in the proj_on_basis procedure.
@@ -95,7 +95,7 @@ struct gkyl_proj_on_basis* gkyl_proj_on_basis_inew(const struct gkyl_proj_on_bas
  * @param fun_at_ords Function evaluated at ordinates in one cell.
  * @param f Output projected function in one cell.
  */
-void gkyl_proj_on_basis_quad(const struct gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double* f);
+void gkyl_proj_on_basis_quad(const gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double* f);
 
 /**
  * Return the total number of quadrature points/ordinates.
@@ -103,7 +103,7 @@ void gkyl_proj_on_basis_quad(const struct gkyl_proj_on_basis *up, const struct g
  * @param up Project on basis updater.
  * @return Number of ordinates.
  */
-int gkyl_proj_on_basis_get_tot_quad(const struct gkyl_proj_on_basis *up);
+int gkyl_proj_on_basis_get_tot_quad(const gkyl_proj_on_basis *up);
 
 /**
  * Get the coordinates of a given ordinate.
@@ -112,14 +112,14 @@ int gkyl_proj_on_basis_get_tot_quad(const struct gkyl_proj_on_basis *up);
  * @param node Index indicate the desired node.
  * @return Node coordinates.
  */
-double* gkyl_proj_on_basis_fetch_ordinate(const struct gkyl_proj_on_basis *up, long node);
+double* gkyl_proj_on_basis_fetch_ordinate(const gkyl_proj_on_basis *up, long node);
 
 /**
  * Delete updater.
  *
  * @param pob Updater to delete.
  */
-void gkyl_proj_on_basis_release(struct gkyl_proj_on_basis* pob);
+void gkyl_proj_on_basis_release(gkyl_proj_on_basis* pob);
 ]]
 
 -- Projection  updater object.
