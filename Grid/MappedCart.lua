@@ -82,7 +82,8 @@ function MappedCart:init(tbl)
       self._rdim  = #{ self._mapc2p(self._worldCoord) }   -- Number of values mapc2p returns.
    else
       self._inDim = self:ndim()                      -- Dimensionality of the input to mapc2p.
-      self._rdim  = #{ self._mapc2p(self._lower) }   -- Number of values mapc2p returns.
+      self._rdim = self:ndim() -- set it to same for now
+      --self._rdim  = #{ self._mapc2p(self._lower) }   -- Number of values mapc2p returns.
    end
 
    self._xc = Lin.Vec(self._inDim)

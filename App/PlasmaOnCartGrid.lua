@@ -124,6 +124,7 @@ local function buildApplication(self, tbl)
       rzBasis = createBasis(rzBasisNm, 2, rzPolyOrder)
    end
 
+
    -- I/O method
    local ioMethod = tbl.ioMethod and tbl.ioMethod or "MPI"
    if ioMethod ~= "POSIX" and ioMethod ~= "MPI" then
@@ -188,6 +189,7 @@ local function buildApplication(self, tbl)
       end
    end
 
+
    -- Pick grid ctor based on uniform/non-uniform grid.
    local GridConstructor = Grid.RectCart
    if tbl.coordinateMap then
@@ -244,7 +246,6 @@ local function buildApplication(self, tbl)
       s:fullInit(tbl) -- Initialize species.
    end
 
-   print("do species")
    -- Setup each species.
    for _, s in population.iterGlobal() do
       -- Set up conf grid and basis.
@@ -254,7 +255,6 @@ local function buildApplication(self, tbl)
       s:createGrid(confGrid)
       s:createBasis(basisNm, polyOrder)
    end
-   print("did species")
    for _, s in population.iterLocal() do -- Only allocate fields for species in this rank.
       s:alloc(timeStepper.numFields)
    end
@@ -270,7 +270,7 @@ local function buildApplication(self, tbl)
       s:setCfl(cflMin)
    end
 
-   local function completeFieldSetup(fld)
+   local function completeExtFieldSetup(fld)
       fld:fullInit(tbl) -- Complete initialization.
       fld:setIoMethod(ioMethod)
       fld:setBasis(confBasis, rzBasis)
@@ -291,11 +291,31 @@ local function buildApplication(self, tbl)
       fld:createDiagnostics()
    end
 
+   local function completeFieldSetup(fld)
+      fld:fullInit(tbl) -- Complete initialization.
+      fld:setIoMethod(ioMethod)
+      fld:setBasis(confBasis)
+      fld:setGrid(confGrid)
+      do
+	 local myCfl = tbl.cfl and tbl.cfl or cflFrac
+	 if fld.isElliptic then
+	    myCfl = tbl.cfl and tbl.cfl or cflFrac
+	 end
+	 cflMin = math.min(cflMin, myCfl)
+	 fld:setCfl(myCfl)
+      end
+      
+      -- Allocate field data.
+      fld:alloc(timeStepper.numFields)
+
+      -- Initialize field solvers and diagnostics.
+      fld:createDiagnostics()
+   end
+
    -- Setup information about fields: if this is not specified, it is
    -- assumed there are no force terms (neutral particles).
    local field = nil
    local nfields = 0
-   print("doing fields ")
    for _, val in pairs(tbl) do
       if FieldBase.is(val) then
          field = val
@@ -303,22 +323,19 @@ local function buildApplication(self, tbl)
          nfields = nfields + 1
       end
    end
-   print("did fields ")
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one Field object!")
    if field == nil then field = NoField {} end
 
    -- Initialize externalField, which is sometimes needed to initialize species.
    local externalField = nil
    nfields = 0
-   print("doing external fields ")
    for _, val in pairs(tbl) do
       if ExternalFieldBase.is(val) then
          externalField = val
-         completeFieldSetup(externalField)
+         completeExtFieldSetup(externalField)
          nfields = nfields + 1
       end
    end
-   print("did external fields ")
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one ExternalField object!")
    if externalField == nil then externalField = NoField {} end
    externalField:createSolver(population)

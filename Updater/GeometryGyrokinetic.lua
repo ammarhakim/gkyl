@@ -256,7 +256,7 @@ gkyl_calc_derived_geo* gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis
 
 void gkyl_calc_derived_geo_advance(const gkyl_calc_derived_geo *up, const struct gkyl_range *crange,
     struct gkyl_array *gFld, struct gkyl_array *bmagFld, struct gkyl_array *jFld, struct gkyl_array *jinvFld,
-    struct gkyl_array *grFld, struct gkyl_array *biFld, struct gkyl_array *cmagFld, struct gkyl_array *jtotFld, struct gkyl_array *jtotinvFld, struct gkyl_array *bmaginvFld, struct gkyl_array *bmaginvsqFld);
+    struct gkyl_array *grFld, struct gkyl_array *biFld, struct gkyl_array *cmagFld, struct gkyl_array *jtotFld, struct gkyl_array *jtotinvFld, struct gkyl_array *bmaginvFld, struct gkyl_array *bmaginvsqFld,struct gkyl_array *gxxJFld,  struct gkyl_array *gxyJFld, struct gkyl_array *gyyJFld);
 
 /**
  * Delete updater.
@@ -292,6 +292,9 @@ function GeometryGyrokinetic:init(tbl)
    self.jacobTotInv = tbl.jacobTotInv
    self.bmagInv = tbl.bmagInv
    self.bmagInvSq = tbl.bmagInvSq
+   self.gxxJ = tbl.gxxJ
+   self.gxyJ = tbl.gxyJ
+   self.gyyJ = tbl.gyyJ
    self.grFld = tbl.grFld
    self.b_i = tbl.b_i
    self.cmag = tbl.cmag
@@ -336,20 +339,17 @@ function GeometryGyrokinetic:advance()
 
    -- Fill mapc2p
    ffiC.gkyl_geo_gyrokinetic_calcgeom(self._zero_geom, self.ginp, self.mapc2p_field._zero, self.localRangeExt)
-   print("did calcgeom")
 
    -- Fill bmag
+   print(self._zero_bmag, self.localRange, self.localRangeExt, self.rzLocalRange, self.rzLocalRangeExt, self.psiRZ._zero, self.psibyrRZ._zero, self.psibyr2RZ._zero, self.bphiRZ._zero,  self.bmag._zero, self.mapc2p_field._zero)
    ffiC.gkyl_calc_bmag_advance(self._zero_bmag, self.localRange, self.localRangeExt, self.rzLocalRange, self.rzLocalRangeExt, self.psiRZ._zero, self.psibyrRZ._zero, self.psibyr2RZ._zero, self.bphiRZ._zero,  self.bmag._zero, self.mapc2p_field._zero)
-   print("did calcbmag")
 
    -- Fill metrics
    ffiC.gkyl_calc_metric_advance(self._zero_metric, self.localRange, self.mapc2p_field._zero, self.gFld._zero)
-   print("did calcmetric")
 
    -- Fill derived geo
-   ffiC.gkyl_calc_derived_geo_advance(self._zero_derived, self.localRange, self.gFld._zero, self.bmag._zero, self.jacobGeo._zero, self.jacobGeoInv._zero, self.grFld._zero, self.b_i._zero , self.cmag._zero, self.jacobTot._zero, self.jacobTotInv._zero, self.bmagInv._zero, self.bmagInvSq._zero)
+   ffiC.gkyl_calc_derived_geo_advance(self._zero_derived, self.localRange, self.gFld._zero, self.bmag._zero, self.jacobGeo._zero, self.jacobGeoInv._zero, self.grFld._zero, self.b_i._zero , self.cmag._zero, self.jacobTot._zero, self.jacobTotInv._zero, self.bmagInv._zero, self.bmagInvSq._zero, self.gxxJ._zero, self.gxyJ._zero, self.gyyJ._zero)
 
-   print("did calcderived")
 end
 
 return GeometryGyrokinetic

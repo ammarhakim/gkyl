@@ -1320,7 +1320,6 @@ function GkGeometry:initField(population)
          self.fromFile, true)
    else
       -- Here is where we can do g0 instead of two lines below
-      print("skipping the g2 stuff")
       --self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
       --self.separateComponents:advance(0, {self.geo.allGeo},
       --   {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
@@ -1328,35 +1327,29 @@ function GkGeometry:initField(population)
       --    self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
 
 
-      print("filling psi")
       -- fill psi and bphi
       local psieval = Updater.EvalOnNodes {
          onGrid = self.rzGrid,   evaluate = self.psifunc,
          basis  = self.rzBasis,  onGhosts = true,
       }
 
-      print("made psi eval")
       local psibyreval = Updater.EvalOnNodes {
          onGrid = self.rzGrid,   evaluate = self.psibyrfunc,
          basis  = self.rzBasis,  onGhosts = true,
       }
-      print("made psibyr eval")
       local psibyr2eval = Updater.EvalOnNodes {
          onGrid = self.rzGrid,   evaluate = self.psibyr2func,
          basis  = self.rzBasis,  onGhosts = true,
       }
-      print("made psibyrr2 eval")
       local bphieval = Updater.EvalOnNodes {
          onGrid = self.rzGrid,   evaluate = self.bphifunc,
          basis  = self.rzBasis,  onGhosts = true,
       }
-      print("made bphieval")
       psieval:advance(0.0, {}, {self.geo.psiRZ})
       psibyreval:advance(0.0, {}, {self.geo.psibyrRZ})
       psibyr2eval:advance(0.0, {}, {self.geo.psibyr2RZ})
       bphieval:advance(0.0, {}, {self.geo.bphiRZ})
 
-      print("advanced psis and bphi")
 
 
       local numB = self.basis:numBasis()
@@ -1364,13 +1357,11 @@ function GkGeometry:initField(population)
       --print("combined grFld")
 
       self.localRange = self.geo.jacobGeo:localRange()
-      print("set local range")
 
       self.localRangeExt = self.geo.jacobGeo:localExtRange()
       self.rzLocalRange = self.geo.psiRZ:localRange()
       self.rzLocalRangeExt = self.geo.psiRZ:localExtRange()
 
-      print("set the geo ranges")
 
       --self.GeoUpdater:advance(self.grid, self.basis, self.rzGrid, self.rzBasis, self.localRange, self.localRangeExt, self.rzLocalRange, self.rzLocalRangeExt, geo_updater, geo_inp, self.mapc2p_field, self.psiRZ, self.psibyrRZ, self.geo.psibyr2RZ, self.geo.bphiRZ, self.geo.gFld, self.geo.jacobGeo, self.geo.jacobGeoInv, self.jacobTot, self.JacobTotInv, self.geo.grFld, self.geo.b_i, self.geo.cmag, self.geo.bmag)
       -- Need to add definition of updater and geo inp. Need to change g0 kernels to calculate jacobTot and jacobTotInv as well.
@@ -1396,6 +1387,9 @@ function GkGeometry:initField(population)
       jacobTotInv = self.geo.jacobTotInv,
       bmagInv = self.geo.bmagInv,
       bmagInvSq = self.geo.bmagInvSq,
+      gxxJ = self.geo.gxxJ,
+      gxyJ = self.geo.gxyJ,
+      gyyJ = self.geo.gyyJ,
       grFld = self.geo.grFld,
       b_i = self.geo.b_i,
       cmag = self.geo.cmag,
@@ -1403,18 +1397,13 @@ function GkGeometry:initField(population)
       B0 = self.B0,
       R0 = self.R0
       }
-      print("initialized the geo updater")
       self.GeoUpdater:advance()
-      print("advanced the geo updater")
 
       
       
       self.separateComponents:advance(0, {self.geo.b_i}, {self.geo.b_x, self.geo.b_y, self.geo.b_z})
-      print("separated b")
       self.separateComponents:advance(0, {self.geo.grFld}, {self.geo.gxx, self.geo.gxy, self.geo.gxz, self.geo.gyy, self.geo.gyz, self.geo.gzz })
-      print("separated gr")
       self.separateComponents:advance(0, {self.geo.gFld}, {self.geo.g_xx, self.geo.g_xy, self.geo.g_xz, self.geo.g_yy, self.geo.g_yz, self.geo.g_zz })
-      print("separated g")
    end
 
    -- Two lines below may unnecessary because  g0 will group bx by and bz
@@ -1466,7 +1455,7 @@ function GkGeometry:write(tm)
    if self.ioFrame == 0 then
       -- Write the geometry quantities to a file.
       for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
-         self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
+         self.fieldIo:write({gzz = self.geo.gzz, g_zz = self.geo.g_zz, jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
             jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
             cmag=self.geo.cmag, b_x=self.geo.b_x, b_y=self.geo.b_y, b_z=self.geo.b_z, b_i=self.geo.b_i, gxx=self.geo.gxx,
             gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
