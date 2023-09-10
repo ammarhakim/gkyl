@@ -12,6 +12,8 @@
 local AdiosCartFieldIo  = require "Io.AdiosCartFieldIo"
 local DataStruct        = require "DataStruct"
 local FieldBase         = require "App.Field.FieldBase"
+local Grid              = require "Grid"
+local DecompRegionCalc  = require "Lib.CartDecomp"
 local LinearTrigger     = require "LinearTrigger"
 local Mpi               = require "Comm.Mpi"
 local PerfMaxwell       = require "Eq.PerfMaxwell"
@@ -186,7 +188,29 @@ end
 function MaxwellField:hasEB() return true, self.hasMagField end
 function MaxwellField:setCfl(cfl) self.cfl = cfl end
 function MaxwellField:getCfl() return self.cfl end
-function MaxwellField:setGrid(grid) self.grid = grid end
+function MaxwellField:setGrid(grid)
+   self.grid = grid
+   self.ndim = self.grid:ndim()
+
+   local keepDims = {};  for i = 1, self.ndim do keepDims[i] = i end
+   local gridInfo = grid:childGrid(keepDims)
+   local GridConstructor = grid.mapc2p and Grid.MappedCart or Grid.RectCart
+
+   -- Create global grid for Poisson solver.
+   local confComm = self.grid:getMessenger():getConfComm_host()
+   local noCuts = {};  for d = 1,self.ndim do noCuts[d] = 1 end
+   local noDecomp = DecompRegionCalc.CartProd {  -- Decomp in x-y but not z.
+      cuts = noCuts,  comm = confComm,
+   }
+   self.gridGlobal = GridConstructor {
+      lower = gridInfo.lower,  world    = gridInfo.world,
+      upper = gridInfo.upper,  mappings = gridInfo.coordinateMap,
+      cells = gridInfo.cells,  mapc2p   = gridInfo.mapc2p,
+      periodicDirs  = gridInfo.periodicDirs,
+      messenger     = gridInfo.messenger,
+      decomposition = noDecomp,
+   }
+end
 
 function MaxwellField:getEpsilon0() return self.epsilon0 end
 function MaxwellField:getMu0() return self.mu0 end
@@ -235,26 +259,30 @@ function MaxwellField:esEnergy(tCurr, fldIn, outDynV)
    if self.esEnergyFirst then self.esEnergyFirst = false end
 end
 
+local function createField(grid, basis, ghostCells, ncomp, periodicSync, useDevice)
+   local metadata = basis and {polyOrder = basis:polyOrder(), basisType = basis:id()} or nil
+   local fld = DataStruct.Field {
+      onGrid   = grid,        numComponents    = ncomp,
+      metaData = metadata,    syncPeriodicDirs = periodicSync,
+      ghost    = ghostCells,  useDevice        = useDevice,
+   }
+   fld:clear(0.0)
+   return fld
+end
+
 function MaxwellField:alloc(nRkDup)
-   local nGhost = 1
    
+   local ghostNum = {1,1}
+
    self.em = {}
    if self.hasMagField then   -- Maxwell's induction equations.
       -- Allocate fields needed in RK update.
       for i = 1, nRkDup do
-         self.em[i] = DataStruct.Field {
-            onGrid        = self.grid,
-            numComponents = 8*self.basis:numBasis(),
-            ghost         = {nGhost, nGhost}
-         }
+         self.em[i] = createField(self.grid, self.basis, ghostNum, 8*self.basis:numBasis())
       end
 
       -- Array with one component per cell to store cflRate in each cell.
-      self.cflRateByCell = DataStruct.Field {
-         onGrid        = self.grid,
-         numComponents = 1,
-         ghost         = {1, 1},
-      }
+      self.cflRateByCell = createField(self.grid, self.basis, ghostNum, 1)
       self.cflRateByCell:clear(0.0)
       self.cflRatePtr  = self.cflRateByCell:get(1)
       self.cflRateIdxr = self.cflRateByCell:genIndexer()
@@ -265,11 +293,7 @@ function MaxwellField:alloc(nRkDup)
 
    else   -- Poisson equation.
       -- Electrostatic potential, phi.
-      local phiFld = DataStruct.Field {
-         onGrid        = self.grid,
-         numComponents = self.basis:numBasis(),
-         ghost         = {1, 1}
-      }
+      local phiFld = createField(self.grid, self.basis, ghostNum, self.basis:numBasis())
       for i = 1, nRkDup do self.em[i] = phiFld end
 
       -- For storing integrated energy components.
@@ -668,16 +692,12 @@ function ExternalMaxwellField:hasEB() return true, self.hasMagField end
 function ExternalMaxwellField:setGrid(grid) self.grid = grid end
 
 function ExternalMaxwellField:alloc(nField)
-   local nGhost = 1
+   local ghostNum = {1,1}
 
    -- Allocate fields needed in RK update.
    local emVecComp = 8
    if not self.hasMagField then emVecComp = 1 end  -- Electric field only.
-   self.em = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = emVecComp*self.basis:numBasis(),
-      ghost         = {nGhost, nGhost},
-   }
+   self.em = createField(self.grid, self.basis, ghostNum, emVecComp*self.basis:numBasis())
 end
 
 function ExternalMaxwellField:createSolver(population)

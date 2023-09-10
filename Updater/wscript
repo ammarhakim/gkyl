@@ -27,6 +27,13 @@ def build(bld):
     interpolateCalcData/CartFieldInterpSer1x.cpp
     interpolateCalcData/CartFieldInterpSer2x.cpp
 
+    mgPoissonCalcData/MGpoissonDGSer1x.cpp
+    mgPoissonCalcData/MGpoissonDGSer2x.cpp
+    mgPoissonCalcData/MGpoissonFEMSer1x.cpp
+    mgPoissonCalcData/MGpoissonFEMSer2x.cpp
+    mgPoissonCalcData/MGpoissonESenergySer1x.cpp
+    mgPoissonCalcData/MGpoissonESenergySer2x.cpp
+
     momentCalcData/DistFuncMomentLBOCalcSer1x1v.cpp
     momentCalcData/DistFuncMomentLBOCalcSer1x2v.cpp
     momentCalcData/DistFuncMomentLBOCalcSer1x3v.cpp
@@ -99,7 +106,7 @@ def build(bld):
 
     bld.shlib(source = sources,
 
-              includes = '. ../Cuda interpolateCalcData momentCalcData twistShiftData projectFluxOnGhostsData aSheathPotentialData', 
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData momentCalcData twistShiftData projectFluxOnGhostsData aSheathPotentialData', 
 
               use='lib EIGEN MPI CUTOOLS gkylzero', target = 'updater', name = 'updater', vum = '1.0')
     
