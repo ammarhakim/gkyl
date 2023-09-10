@@ -11,6 +11,7 @@
 
 local AdiosCartFieldIo  = require "Io.AdiosCartFieldIo"
 local DataStruct        = require "DataStruct"
+local Range             = require "Lib.Range"
 local FieldBase         = require "App.Field.FieldBase"
 local Grid              = require "Grid"
 local DecompRegionCalc  = require "Lib.CartDecomp"
@@ -197,10 +198,17 @@ function MaxwellField:setGrid(grid)
    local GridConstructor = grid.mapc2p and Grid.MappedCart or Grid.RectCart
 
    -- Create global grid for Poisson solver.
+   -- Need a communicator with just ourselves.
    local confComm = self.grid:getMessenger():getConfComm_host()
+   local confGroup = Mpi.Comm_group(confComm)
+   local noDecompGroupRanks = Lin.IntVec(1);  noDecompGroupRanks[1] = self.grid:getMessenger():getConfRank()
+   local noDecompGroup = Mpi.Group_incl(confGroup, 1, noDecompGroupRanks:data());
+   local tag = self.grid:getMessenger():getConfRank()
+   self.noDecompComm = Mpi.Comm_create_group(confComm, noDecompGroup, tag);
+   Mpi.Group_free(confGroup);  Mpi.Group_free(noDecompGroup)
    local noCuts = {};  for d = 1,self.ndim do noCuts[d] = 1 end
    local noDecomp = DecompRegionCalc.CartProd {  -- Decomp in x-y but not z.
-      cuts = noCuts,  comm = confComm,
+      cuts = noCuts,  comm = self.noDecompComm,
    }
    self.gridGlobal = GridConstructor {
       lower = gridInfo.lower,  world    = gridInfo.world,
@@ -296,6 +304,11 @@ function MaxwellField:alloc(nRkDup)
       local phiFld = createField(self.grid, self.basis, ghostNum, self.basis:numBasis())
       for i = 1, nRkDup do self.em[i] = phiFld end
 
+      -- Extra fields needed for the distributed parallel field solve.
+      self.localBuffer  = createField(self.grid, self.basis, {0,0}, self.basis:numBasis())
+      self.globalBuffer = createField(self.gridGlobal, self.basis, {0,0}, self.basis:numBasis())
+      self.globalSol    = createField(self.gridGlobal, self.basis, {1,1}, self.basis:numBasis())
+   
       -- For storing integrated energy components.
       self.emEnergy = DataStruct.DynVector { numComponents = self.grid:ndim() }
    end
@@ -338,12 +351,29 @@ function MaxwellField:createSolver(population)
 
       self.isElliptic = true
 
-      local isParallel = false
-      for d=1,self.grid:ndim() do if self.grid:cuts(d)>1 then isParallel=true end end
+      local decompRange = self.grid:decomposedRange()
+      local subdomIdx   = {};  decompRange:cutsInvIndexer()(self.grid:subGridId(), subdomIdx)
+
+      -- Range of MPI processes participating in field solve.
+      local ndim = self.grid:ndim()
+      self.cutsRange = decompRange:cutsRange()  -- Range of MPI processes sharing a field solve.
+      -- Ranges in a global field into which we will copy a buffer obtained from other processes.
+      self.destRange, self.bufferOffset = {}, {}
+      self.cutsRangeIdxr = self.cutsRange:indexer(Range.colMajor)
+      for idx in self.cutsRange:colMajorIter() do
+         local linIdx    = decompRange:cutsIndexer()(idx)
+         local destRange = decompRange:subDomain(linIdx)
+         local lv, uv    = destRange:lowerAsVec(), destRange:upperAsVec()
+         self.destRange[linIdx]    = self.globalSol:localExtRange():subRange(lv,uv)
+         self.bufferOffset[linIdx] = (linIdx-1)*self.localBuffer:size()
+      end
+      -- Range in a global field we'll copy the local solution from.
+      local lv, uv = self.em[1]:localRange():lowerAsVec(), self.em[1]:localRange():upperAsVec()
+      self.srcRange = self.globalSol:localExtRange():subRange(lv,uv)
 
       self.fieldSlvr = Updater.FemPoisson {
-         onGrid  = self.grid,   bcLower = self.bcLowerPhi,
-         basis   = self.basis,  bcUpper = self.bcUpperPhi,
+         onGrid  = self.gridGlobal,  bcLower = self.bcLowerPhi,
+         basis   = self.basis,       bcUpper = self.bcUpperPhi,
          epsilon = self.epsilon0,
       }
       self.esEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
@@ -456,6 +486,24 @@ function MaxwellField:createSolver(population)
    handleBc(3, self.bcz)
 
    self.bcTime = 0.0 -- Timer for BCs.
+end
+
+function MaxwellField:AllgatherField(fldLocal, fldGlobal)
+   -- Gather a CartField distributed in configuration space onto a global field.
+   fldLocal:copyRangeToBuffer(fldLocal:localRange(), self.localBuffer:data())
+
+   -- Gather flat buffers from other processes.
+   local mess = self.grid:getMessenger()
+   local comm = mess:getComms()["conf"]
+   mess:Allgather(self.localBuffer, self.globalBuffer, comm)
+
+   -- Rearrange into a global field, i.e. reconstruct the multi-D array
+   -- using the collection of flat buffers we gathered from each process.
+   for idx in self.cutsRange:colMajorIter() do
+      local linIdx = self.cutsRangeIdxr(idx[1],idx[2],idx[3])
+      fldGlobal:copyRangeFromBuffer(self.destRange[linIdx],
+         self.globalBuffer:data()+self.bufferOffset[linIdx])
+   end
 end
 
 function MaxwellField:createDiagnostics() end
@@ -607,7 +655,12 @@ function MaxwellField:advance(tCurr, population, inIdx, outIdx)
       population:AllreduceByCell(self.chargeDensLocal, self.chargeDens, 'sum')
 
       -- Solve for the potential.
-      self.fieldSlvr:advance(tCurr, {self.chargeDens}, {emIn})
+      self:AllgatherField(self.chargeDens, self.globalSol)  -- Gather charge density in global field.
+
+      self.fieldSlvr:advance(tCurr, {self.globalSol}, {self.globalSol})
+
+      -- Copy portion of global field belonging to this process.
+      emIn:copyRangeToRange(self.globalSol, emIn:localRange(), self.srcRange)
    end
    self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end
