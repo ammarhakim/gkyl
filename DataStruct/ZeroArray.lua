@@ -337,7 +337,7 @@ void gkyl_array_reduce_range(double *res,
  * @param range Range specifying region to copy from
  */
 void gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
-  struct gkyl_range range);
+  struct gkyl_range *range);
 
 /**
  * Copy buffer into region of array. The array must be preallocated.
@@ -347,7 +347,7 @@ void gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
  * @param range Range specifying region to copy into
  */
 void gkyl_array_copy_from_buffer(struct gkyl_array *arr,
-  const void *data, struct gkyl_range range);
+  const void *data, struct gkyl_range *range);
 
 /**
  * Release pointer to array
