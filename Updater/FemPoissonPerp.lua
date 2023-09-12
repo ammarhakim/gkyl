@@ -32,6 +32,7 @@ typedef struct gkyl_fem_poisson_perp gkyl_fem_poisson_perp;
  * DG field phi, after we've translated the FEM solution to DG.
  * Free using gkyl_fem_poisson_perp_release method.
  *
+ * @param solve_range Range in which to perform the projection operation.
  * @param grid Grid object
  * @param basis Basis functions of the DG field.
  * @param bcs Boundary conditions.
@@ -41,8 +42,9 @@ typedef struct gkyl_fem_poisson_perp gkyl_fem_poisson_perp;
  * @return New updater pointer.
  */
 struct gkyl_fem_poisson_perp* gkyl_fem_poisson_perp_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
-  struct gkyl_array *epsilon, struct gkyl_array *kSq, bool use_gpu);
+  const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs, struct gkyl_array *epsilon,
+  struct gkyl_array *kSq, bool use_gpu);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field.
@@ -119,7 +121,9 @@ function FemPoissonPerp:init(tbl)
       kSq_p = self._useGPU and kSq._zeroDevice or kSq._zero
    end
 
-   self._zero = ffi.gc(ffiC.gkyl_fem_poisson_perp_new(self._grid._zero, self._basis._zero, bc_zero,
+   local localRange = eps:localRange()
+
+   self._zero = ffi.gc(ffiC.gkyl_fem_poisson_perp_new(localRange, self._grid._zero, self._basis._zero, bc_zero,
                                                       eps_p, kSq_p, self._useGPU),
                        ffiC.gkyl_fem_poisson_perp_release)
 end

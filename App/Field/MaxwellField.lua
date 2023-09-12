@@ -11,7 +11,10 @@
 
 local AdiosCartFieldIo  = require "Io.AdiosCartFieldIo"
 local DataStruct        = require "DataStruct"
+local Range             = require "Lib.Range"
 local FieldBase         = require "App.Field.FieldBase"
+local Grid              = require "Grid"
+local DecompRegionCalc  = require "Lib.CartDecomp"
 local LinearTrigger     = require "LinearTrigger"
 local Mpi               = require "Comm.Mpi"
 local PerfMaxwell       = require "Eq.PerfMaxwell"
@@ -172,22 +175,50 @@ function MaxwellField:fullInit(appTbl)
       self.hasNonPeriodicBc = true
    end
 
-   self.tmCurrentAccum = 0.0 -- Time spent in current accumulate.
-   self.integratedEMTime = 0.0 -- Time spent integrating EM fields.
-
    -- Create trigger for how frequently to compute integrated EM fields.
    if appTbl.calcIntQuantEvery then
       self.calcIntEMQuantTrigger = LinearTrigger(0, appTbl.tEnd,  math.floor(1/appTbl.calcIntQuantEvery))
    else
       self.calcIntEMQuantTrigger = function(t) return true end
    end
+
+   self.timers = {advance = 0.,   bc = 0.}
 end
 
 -- Methods for EM field object.
 function MaxwellField:hasEB() return true, self.hasMagField end
 function MaxwellField:setCfl(cfl) self.cfl = cfl end
 function MaxwellField:getCfl() return self.cfl end
-function MaxwellField:setGrid(grid) self.grid = grid end
+function MaxwellField:setGrid(grid)
+   self.grid = grid
+   self.ndim = self.grid:ndim()
+
+   local keepDims = {};  for i = 1, self.ndim do keepDims[i] = i end
+   local gridInfo = grid:childGrid(keepDims)
+   local GridConstructor = grid.mapc2p and Grid.MappedCart or Grid.RectCart
+
+   -- Create global grid for Poisson solver.
+   -- Need a communicator with just ourselves.
+   local confComm = self.grid:getMessenger():getConfComm_host()
+   local confGroup = Mpi.Comm_group(confComm)
+   local noDecompGroupRanks = Lin.IntVec(1);  noDecompGroupRanks[1] = self.grid:getMessenger():getConfRank()
+   local noDecompGroup = Mpi.Group_incl(confGroup, 1, noDecompGroupRanks:data());
+   local tag = self.grid:getMessenger():getConfRank()
+   self.noDecompComm = Mpi.Comm_create_group(confComm, noDecompGroup, tag);
+   Mpi.Group_free(confGroup);  Mpi.Group_free(noDecompGroup)
+   local noCuts = {};  for d = 1,self.ndim do noCuts[d] = 1 end
+   local noDecomp = DecompRegionCalc.CartProd {  -- Decomp in x-y but not z.
+      cuts = noCuts,  comm = self.noDecompComm,
+   }
+   self.gridGlobal = GridConstructor {
+      lower = gridInfo.lower,  world    = gridInfo.world,
+      upper = gridInfo.upper,  mappings = gridInfo.coordinateMap,
+      cells = gridInfo.cells,  mapc2p   = gridInfo.mapc2p,
+      periodicDirs  = gridInfo.periodicDirs,
+      messenger     = gridInfo.messenger,
+      decomposition = noDecomp,
+   }
+end
 
 function MaxwellField:getEpsilon0() return self.epsilon0 end
 function MaxwellField:getMu0() return self.mu0 end
@@ -236,26 +267,30 @@ function MaxwellField:esEnergy(tCurr, fldIn, outDynV)
    if self.esEnergyFirst then self.esEnergyFirst = false end
 end
 
+local function createField(grid, basis, ghostCells, ncomp, periodicSync, useDevice)
+   local metadata = basis and {polyOrder = basis:polyOrder(), basisType = basis:id()} or nil
+   local fld = DataStruct.Field {
+      onGrid   = grid,        numComponents    = ncomp,
+      metaData = metadata,    syncPeriodicDirs = periodicSync,
+      ghost    = ghostCells,  useDevice        = useDevice,
+   }
+   fld:clear(0.0)
+   return fld
+end
+
 function MaxwellField:alloc(nRkDup)
-   local nGhost = 1
    
+   local ghostNum = {1,1}
+
    self.em = {}
    if self.hasMagField then   -- Maxwell's induction equations.
       -- Allocate fields needed in RK update.
       for i = 1, nRkDup do
-         self.em[i] = DataStruct.Field {
-            onGrid        = self.grid,
-            numComponents = 8*self.basis:numBasis(),
-            ghost         = {nGhost, nGhost}
-         }
+         self.em[i] = createField(self.grid, self.basis, ghostNum, 8*self.basis:numBasis())
       end
 
       -- Array with one component per cell to store cflRate in each cell.
-      self.cflRateByCell = DataStruct.Field {
-         onGrid        = self.grid,
-         numComponents = 1,
-         ghost         = {1, 1},
-      }
+      self.cflRateByCell = createField(self.grid, self.basis, ghostNum, 1)
       self.cflRateByCell:clear(0.0)
       self.cflRatePtr  = self.cflRateByCell:get(1)
       self.cflRateIdxr = self.cflRateByCell:genIndexer()
@@ -266,13 +301,14 @@ function MaxwellField:alloc(nRkDup)
 
    else   -- Poisson equation.
       -- Electrostatic potential, phi.
-      local phiFld = DataStruct.Field {
-         onGrid        = self.grid,
-         numComponents = self.basis:numBasis(),
-         ghost         = {1, 1}
-      }
+      local phiFld = createField(self.grid, self.basis, ghostNum, self.basis:numBasis())
       for i = 1, nRkDup do self.em[i] = phiFld end
 
+      -- Extra fields needed for the distributed parallel field solve.
+      self.localBuffer  = createField(self.grid, self.basis, {0,0}, self.basis:numBasis())
+      self.globalBuffer = createField(self.gridGlobal, self.basis, {0,0}, self.basis:numBasis())
+      self.globalSol    = createField(self.gridGlobal, self.basis, {1,1}, self.basis:numBasis())
+   
       -- For storing integrated energy components.
       self.emEnergy = DataStruct.DynVector { numComponents = self.grid:ndim() }
    end
@@ -315,13 +351,30 @@ function MaxwellField:createSolver(population)
 
       self.isElliptic = true
 
-      local isParallel = false
-      for d=1,self.grid:ndim() do if self.grid:cuts(d)>1 then isParallel=true end end
+      local decompRange = self.grid:decomposedRange()
+      local subdomIdx   = {};  decompRange:cutsInvIndexer()(self.grid:subGridId(), subdomIdx)
+
+      -- Range of MPI processes participating in field solve.
+      local ndim = self.grid:ndim()
+      self.cutsRange = decompRange:cutsRange()  -- Range of MPI processes sharing a field solve.
+      -- Ranges in a global field into which we will copy a buffer obtained from other processes.
+      self.destRange, self.bufferOffset = {}, {}
+      self.cutsRangeIdxr = self.cutsRange:indexer(Range.colMajor)
+      for idx in self.cutsRange:colMajorIter() do
+         local linIdx    = decompRange:cutsIndexer()(idx)
+         local destRange = decompRange:subDomain(linIdx)
+         local lv, uv    = destRange:lowerAsVec(), destRange:upperAsVec()
+         self.destRange[linIdx]    = self.globalSol:localExtRange():subRange(lv,uv)
+         self.bufferOffset[linIdx] = (linIdx-1)*self.localBuffer:size()
+      end
+      -- Range in a global field we'll copy the local solution from.
+      local lv, uv = self.em[1]:localRange():lowerAsVec(), self.em[1]:localRange():upperAsVec()
+      self.srcRange = self.globalSol:localExtRange():subRange(lv,uv)
 
       self.fieldSlvr = Updater.FemPoisson {
-         onGrid    = self.grid,   bcLower = self.bcLowerPhi,
-         basis     = self.basis,  bcUpper = self.bcUpperPhi,
-         epsilon_0 = self.epsilon0,
+         onGrid  = self.gridGlobal,  bcLower = self.bcLowerPhi,
+         basis   = self.basis,       bcUpper = self.bcUpperPhi,
+         epsilon = self.epsilon0,
       }
       self.esEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
          onGrid = self.grid,   quantity = "V2",
@@ -435,6 +488,24 @@ function MaxwellField:createSolver(population)
    self.bcTime = 0.0 -- Timer for BCs.
 end
 
+function MaxwellField:AllgatherField(fldLocal, fldGlobal)
+   -- Gather a CartField distributed in configuration space onto a global field.
+   fldLocal:copyRangeToBuffer(fldLocal:localRange(), self.localBuffer:data())
+
+   -- Gather flat buffers from other processes.
+   local mess = self.grid:getMessenger()
+   local comm = mess:getComms()["conf"]
+   mess:Allgather(self.localBuffer, self.globalBuffer, comm)
+
+   -- Rearrange into a global field, i.e. reconstruct the multi-D array
+   -- using the collection of flat buffers we gathered from each process.
+   for idx in self.cutsRange:colMajorIter() do
+      local linIdx = self.cutsRangeIdxr(idx[1],idx[2],idx[3])
+      fldGlobal:copyRangeFromBuffer(self.destRange[linIdx],
+         self.globalBuffer:data()+self.bufferOffset[linIdx])
+   end
+end
+
 function MaxwellField:createDiagnostics() end
 
 function MaxwellField:initField(population)
@@ -472,13 +543,10 @@ end
 
 function MaxwellField:write(tm, force)
    if self.evolve or self.forceWrite then
-      local tmStart = Time.clock()
       -- Compute EM energy integrated over domain.
       if self.calcIntEMQuantTrigger(tm) then
          self.emEnergyCalc(tm, { self.em[1] }, { self.emEnergy })
       end
-      -- Time computation of integrated moments.
-      self.integratedEMTime = self.integratedEMTime + Time.clock() - tmStart
 
       if self.ioTrigger(tm) or force then
 	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm, self.ioFrame)
@@ -550,12 +618,11 @@ end
 
 function MaxwellField:accumulateCurrent(current, emRhs)
    if current == nil then return end
-   local tmStart = Time.clock()
    emRhs:accumulateRange(-1.0/self.epsilon0, current, emRhs:localRange())
-   self.tmCurrentAccum = self.tmCurrentAccum + Time.clock()-tmStart
 end
 
 function MaxwellField:advance(tCurr, population, inIdx, outIdx)
+   local tmStart = Time.clock()
    local emIn = self:rkStepperFields()[inIdx]
    local emRhsOut = self:rkStepperFields()[outIdx]
 
@@ -588,8 +655,14 @@ function MaxwellField:advance(tCurr, population, inIdx, outIdx)
       population:AllreduceByCell(self.chargeDensLocal, self.chargeDens, 'sum')
 
       -- Solve for the potential.
-      self.fieldSlvr:advance(tCurr, {self.chargeDens}, {emIn})
+      self:AllgatherField(self.chargeDens, self.globalSol)  -- Gather charge density in global field.
+
+      self.fieldSlvr:advance(tCurr, {self.globalSol}, {self.globalSol})
+
+      -- Copy portion of global field belonging to this process.
+      emIn:copyRangeToRange(self.globalSol, emIn:localRange(), self.srcRange)
    end
+   self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end
 
 function MaxwellField:applyBcIdx(tCurr, idx)
@@ -607,7 +680,11 @@ function MaxwellField:applyBc(tCurr, emIn, dir)
    end   
 
    emIn:sync()
-   self.bcTime = self.bcTime + Time.clock()-tmStart
+   self.timers.bc = self.timers.bc + Time.clock() - tmStart
+end
+
+function MaxwellField:clearTimers()
+   for nm, _ in pairs(self.timers) do self.timers[nm] = 0. end
 end
  
 MaxwellField.bcConst = function(Ex, Ey, Ez, Bx, By, Bz, phiE, phiB)
@@ -618,18 +695,6 @@ MaxwellField.bcConst = function(Ex, Ey, Ez, Bx, By, Bz, phiE, phiB)
    return { bc }
 end
   
-function MaxwellField:totalSolverTime()
-   local ftm = 0.0
-   if self.fieldSlvr then
-      ftm = self.fieldSlvr.totalTime
-   end
-   return ftm + self.tmCurrentAccum
-end
-
-function MaxwellField:totalBcTime() return self.bcTime end
-
-function MaxwellField:energyCalcTime() return self.integratedEMTime end
-
 -- ExternalMaxwellField ---------------------------------------------------------------------
 --
 -- A field object with external EM fields specified as a time-dependent function.
@@ -672,22 +737,20 @@ function ExternalMaxwellField:fullInit(appTbl)
          return ex, ey, ez
       end
    end
+
+   self.timers = {advance = 0.,   bc = 0.}
 end
 
 function ExternalMaxwellField:hasEB() return true, self.hasMagField end
 function ExternalMaxwellField:setGrid(grid) self.grid = grid end
 
 function ExternalMaxwellField:alloc(nField)
-   local nGhost = 1
+   local ghostNum = {1,1}
 
    -- Allocate fields needed in RK update.
    local emVecComp = 8
    if not self.hasMagField then emVecComp = 1 end  -- Electric field only.
-   self.em = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = emVecComp*self.basis:numBasis(),
-      ghost         = {nGhost, nGhost},
-   }
+   self.em = createField(self.grid, self.basis, ghostNum, emVecComp*self.basis:numBasis())
 end
 
 function ExternalMaxwellField:createSolver(population)
@@ -747,25 +810,28 @@ function ExternalMaxwellField:rkStepperFields()
 end
 
 function ExternalMaxwellField:advance(tCurr)
+   local tmStart = Time.clock()
    local emOut = self:rkStepperFields()[1]
    if self.evolve then
       self.fieldSlvr:advance(tCurr, {}, {emOut})
       self:applyBc(tCurr, emOut)
    end
+   self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end
 
 function ExternalMaxwellField:applyBcIdx(tCurr, idx)
    self:applyBc(tCurr, self:rkStepperFields()[1])
 end
 
-function ExternalMaxwellField:applyBc(tCurr, emIn) emIn:sync() end
-
-function ExternalMaxwellField:totalSolverTime()
-   return self.fieldSlvr.totalTime
+function ExternalMaxwellField:applyBc(tCurr, emIn)
+   local tmStart = Time.clock()
+   emIn:sync()
+   self.timers.bc = self.timers.bc + Time.clock() - tmStart
 end
 
-function ExternalMaxwellField:totalBcTime() return 0.0 end
-function ExternalMaxwellField:energyCalcTime() return 0.0 end
+function ExternalMaxwellField:clearTimers()
+   for nm, _ in pairs(self.timers) do self.timers[nm] = 0. end
+end
 
 return {
    MaxwellField         = MaxwellField,

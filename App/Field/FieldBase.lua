@@ -22,6 +22,14 @@ function FieldBase:applyBcIdx(tCurr, idx) end
 function FieldBase:useBoundaryFlux(tCurr, outIdx) end
 function FieldBase:suggestDt() return GKYL_MAX_DOUBLE end
 function FieldBase:clearCFL() end
+function FieldBase:getTimer(timerNm)
+   if self.timers then
+      if self.timers[timerNm] == nil then return 0. end
+      return self.timers[timerNm]
+   end
+   return 0.
+end
+function FieldBase:clearTimers() end
 
 
 local ExternalFieldBase = Proto()
@@ -32,6 +40,14 @@ function ExternalFieldBase:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 function ExternalFieldBase:setBasis(basis) self.basis = basis end
 function ExternalFieldBase:readRestart() end
 function ExternalFieldBase:printDevDiagnostics() end
+function ExternalFieldBase:getTimer(timerNm)
+   if self.timers then
+      if self.timers[timerNm] == nil then return 0. end
+      return self.timers[timerNm]
+   end
+   return 0.
+end
+function ExternalFieldBase:clearTimers() end
 
 -- NoField ---------------------------------------------------------------------
 --
@@ -70,6 +86,14 @@ function NoField:energyCalcTime() return 0.0 end
 function NoField:copyRk() end
 function NoField:combineRk() end
 function NoField:printDevDiagnostics() end
+function NoField:getTimer(timerNm)
+   if self.timers then
+      if self.timers[timerNm] == nil then return 0. end
+      return self.timers[timerNm]
+   end
+   return 0.
+end
+function NoField:clearTimers() end
 
 return {
    FieldBase         = FieldBase,

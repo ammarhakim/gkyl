@@ -12,6 +12,7 @@
 
 // Sizeof operators for various objects
 GET_MPI_OBJ_SIZE(MPI_Status);
+GET_MPI_OBJ_SIZE(MPI_Aint);
 GET_MPI_OBJ_SIZE(MPI_Request);
 GET_MPI_OBJ_PTR_SIZE(MPI_Status);
 GET_MPI_OBJ_PTR_SIZE(MPI_Request);
@@ -70,6 +71,8 @@ GET_INT_OBJECT(MPI_COMM_TYPE_SHARED);
 GET_INT_OBJECT(MPI_UNDEFINED);
 GET_INT_OBJECT(MPI_ORDER_C);
 GET_INT_OBJECT(MPI_ORDER_FORTRAN);
+GET_INT_OBJECT_PTR(MPI_UNWEIGHTED);
+GET_VOID_OBJECT_PTR(MPI_BOTTOM);
 
 // Functions to allocate and free structs holding requests and statuses.
 void gkyl_MPI_Request_alloc(gkyl_MPI_Request *rs, int num) {

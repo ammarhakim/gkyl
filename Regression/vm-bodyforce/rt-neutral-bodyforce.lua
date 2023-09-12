@@ -41,9 +41,17 @@ App = Vlasov.App {
       evolve = true,
       diagnostics = {"M0", "M1i", "M2"},   
       
+      -- Three equivalent ways of specifying this force.
       vlasovExtForceFunc = function(t, xn)
          return -5.0, 0.0, 0.0
       end,
+--      vlasovExtForceFunc = {
+--         {timeDependence = function(t) return 1. end, spatialDependence = function(xn) return -5.0, 0.0, 0.0  end},
+--      },
+--      vlasovExtForceFunc = {
+--         {timeDependence = function(t) return 1. end, spatialDependence = function(xn) return -2.0, 0.0, 0.0  end},
+--         {timeDependence = function(t) return 1. end, spatialDependence = function(xn) return -3.0, 0.0, 0.0  end},
+--      },
    },   
 
 }

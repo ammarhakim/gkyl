@@ -172,6 +172,7 @@ return {
    Vec = new_vec_ct(typeof("double")),
    UIntVec = new_vec_ct(typeof("unsigned")),
    IntVec = new_vec_ct(typeof("int")),
+   BoolVec = new_vec_ct(typeof("bool")),
    FloatVec = new_vec_ct(typeof("float")),
    ComplexVec = new_vec_ct(typeof("double complex")),
    FloatComplexVec = new_vec_ct(typeof("float complex")),
