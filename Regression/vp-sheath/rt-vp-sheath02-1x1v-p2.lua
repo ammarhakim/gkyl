@@ -41,7 +41,7 @@ sim = Plasma.App {
 
    -- Decomposition for configuration space.
    decompCuts = {1},   -- Cuts in each configuration direction.
-   parallelizeSpecies = true,
+   parallelizeSpecies = false,
 
    -- Boundary conditions for configuration space.
    periodicDirs = {}, -- Periodic directions.
