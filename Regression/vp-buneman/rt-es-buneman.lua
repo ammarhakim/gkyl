@@ -39,7 +39,7 @@ plasmaApp = Plasma.App {
    periodicDirs = {1}, -- Periodic directions
 
    -- Electrons.
-   elc = Plasma.Species {
+   elc = Plasma.GenSpecies.VlasovPoisson {
       charge = -1.0,  mass = 1.0,
       -- Velocity space grid.
       lower = {-6.0*vDriftElc},
@@ -56,7 +56,7 @@ plasmaApp = Plasma.App {
    },
 
    -- Electrons
-   ion = Plasma.Species {
+   ion = Plasma.GenSpecies.VlasovPoisson {
       charge = 1.0,  mass = massRatio,
       -- Velocity space grid.
       lower = {-32.0*vtIon},

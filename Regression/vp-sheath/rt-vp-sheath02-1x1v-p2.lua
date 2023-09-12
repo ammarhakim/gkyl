@@ -41,13 +41,13 @@ sim = Plasma.App {
 
    -- Decomposition for configuration space.
    decompCuts = {1},   -- Cuts in each configuration direction.
-   parallelizeSpecies = true,
+   parallelizeSpecies = false,
 
    -- Boundary conditions for configuration space.
    periodicDirs = {}, -- Periodic directions.
 
    -- Electrons.
-   elc = Plasma.Species {
+   elc = Plasma.GenSpecies.VlasovPoisson {
       charge = q_e, mass = m_e,
       -- Velocity space grid.
       lower = {-6.0*vth_e},
@@ -71,7 +71,7 @@ sim = Plasma.App {
       diagnostics = { "M0", "M1i", "M2", "intM0", "intM1i", "intM2" },
    },
 
-   ion = Plasma.Species {
+   ion = Plasma.GenSpecies.VlasovPoisson {
       charge = q_i, mass = m_i,
       -- Velocity space grid.
       lower = {-6.0*vth_i},

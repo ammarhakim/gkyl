@@ -156,13 +156,12 @@ function VmLBOCollisions:fullInit(speciesTbl)
    self.timers = {mom = 0.,   momcross = 0.,   advance = 0.,}
 end
 
-function VmLBOCollisions:setName(nm) self.name = self.speciesName.."_"..nm end
-function VmLBOCollisions:setSpeciesName(nm) self.speciesName = nm end
-function VmLBOCollisions:setCfl(cfl) self.cfl = cfl end
-function VmLBOCollisions:setConfBasis(basis) self.confBasis = basis end
-function VmLBOCollisions:setConfGrid(grid) self.confGrid = grid end
-function VmLBOCollisions:setPhaseBasis(basis) self.phaseBasis = basis end
-function VmLBOCollisions:setPhaseGrid(grid) self.phaseGrid = grid end
+function VmLBOCollisions:setSpeciesName(nm)   self.speciesName = nm end
+function VmLBOCollisions:setName(nm)          self.name        = self.speciesName.."_"..nm end
+function VmLBOCollisions:setConfBasis(basis)  self.confBasis   = basis end
+function VmLBOCollisions:setConfGrid(grid)    self.confGrid    = grid end
+function VmLBOCollisions:setPhaseBasis(basis) self.phaseBasis  = basis end
+function VmLBOCollisions:setPhaseGrid(grid)   self.phaseGrid   = grid end
 
 function VmLBOCollisions:createSolver(mySpecies, extField)
    self.vdim = self.phaseGrid:ndim() - self.confGrid:ndim()

@@ -97,9 +97,23 @@ local function createBasis(nm, cdim, vdim, polyOrder)
    end
 end
 
+-- Function to create velocity space basis functions.
+local function createVelBasis(nm, vdim, polyOrder)
+   if nm == "serendipity" then
+      if polyOrder == 1 then
+         return Basis.CartModalSerendipity { ndim = vdim, polyOrder = 2 }
+      else
+         return Basis.CartModalSerendipity { ndim = vdim, polyOrder = polyOrder }
+      end
+   elseif nm == "tensor" then
+      return Basis.CartModalTensor { ndim = vdim, polyOrder = polyOrder }
+   end
+end
+
 function VlasovSpecies:createBasis(nm, polyOrder)
    self.basis = createBasis(nm, self.cdim, self.vdim, polyOrder)
-   for _, c in pairs(self.collisions) do c:setPhaseBasis(self.basis) end
+   self.velBasis = createVelBasis(nm, self.vdim, polyOrder)
+   for _, c in lume.orderedIter(self.collisions) do c:setPhaseBasis(self.basis) end
 
    -- Output of grid file is placed here because as the file name is associated
    -- with a species, we wish to save the basisID and polyOrder in it. But these
@@ -150,11 +164,22 @@ function VlasovSpecies:alloc(nRkDup)
 
    self.ptclEnergyAux = self:allocMoment()
 
-   -- Allocate field for external forces if any.
-   if self.hasExtForce then 
-      self.vExtForce = self:allocVectorMoment(self.vdim)
-      self.vExtFptr, self.vExtFidxr = self.vExtForce:get(1), self.vExtForce:genIndexer()
-   end
+   -- Special relativistic only arrays
+   -- Allocate fields to store velocity space arrays:
+   -- p/gamma (relativistic velocity)
+   -- gamma (particle Lorentz boost factor = sqrt(1 + p^2))
+   -- gamma_inv = 1/gamma
+   self.p_over_gamma  = self:allocVectorVelMoment(self.vdim)
+   self.gamma  = self:allocVelMoment()
+   self.gamma_inv  = self:allocVelMoment()
+
+   -- Allocate additional auxiliary fields needed for certain relativistic moments
+   -- V_drift (bulk velocity)
+   -- GammaV2 (bulk velocity Lorentz boost factor squared = 1/(1 - V_drift^2))
+   -- GammaV_inv = 1/GammaV = sqrt(1 - V_drift^2)
+   self.V_drift = self:allocVectorMoment(self.vdim)
+   self.GammaV2 = self:allocMoment()
+   self.GammaV_inv = self:allocMoment()
 end
 
 -- Actual function for initialization. This indirection is needed as
@@ -289,7 +314,7 @@ function VlasovSpecies:fullInit(appTbl)
    -- If there is an external force, get the force function.
    self.hasExtForce = false
    if tbl.vlasovExtForceFunc then
-      self.vlasovExtForceFunc = tbl.vlasovExtForceFunc
+      self.vlasovExtForceIn = tbl.vlasovExtForceFunc
       self.hasExtForce = true
    end
 
@@ -311,22 +336,22 @@ end
 
 function VlasovSpecies:setCfl(cfl)
    self.cfl = cfl
-   for _, c in pairs(self.collisions) do c:setCfl(cfl) end
+   for _, c in lume.orderedIter(self.collisions) do c:setCfl(cfl) end
 end
 
 function VlasovSpecies:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 
 function VlasovSpecies:setConfBasis(basis)
    self.confBasis = basis
-   for _, c in pairs(self.collisions) do c:setConfBasis(basis) end
-   for _, src in pairs(self.sources) do src:setConfBasis(basis) end
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:setConfBasis(basis) end
+   for _, c in lume.orderedIter(self.collisions) do c:setConfBasis(basis) end
+   for _, src in lume.orderedIter(self.sources) do src:setConfBasis(basis) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:setConfBasis(basis) end
 end
 function VlasovSpecies:setConfGrid(grid)
    self.confGrid = grid
-   for _, c in pairs(self.collisions) do c:setConfGrid(grid) end
-   for _, src in pairs(self.sources) do src:setConfGrid(grid) end
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:setConfGrid(grid) end
+   for _, c in lume.orderedIter(self.collisions) do c:setConfGrid(grid) end
+   for _, src in lume.orderedIter(self.sources) do src:setConfGrid(grid) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:setConfGrid(grid) end
 end
 
 function VlasovSpecies:createGrid(confGridIn)
@@ -394,7 +419,20 @@ function VlasovSpecies:createGrid(confGridIn)
       messenger = confGrid:getMessenger(),
    }
 
-   for _, c in pairs(self.collisions) do c:setPhaseGrid(self.grid) end
+   for _, c in lume.orderedIter(self.collisions) do c:setPhaseGrid(self.grid) end
+
+   -- Construct velocity space grid from phase space grid
+   local dimsV = {}
+   for d = 1, self.vdim do
+      table.insert(dimsV, self.cdim+d)
+   end
+   -- Get the ingredients of the velocity space grid from the phase space grid
+   local velGridIngr = self.grid:childGrid(dimsV)
+   self.velGrid = GridConstructor {
+      lower = velGridIngr.lower,  periodicDirs  = velGridIngr.periodicDirs,
+      upper = velGridIngr.upper,  decomposition = velGridIngr.decomposition,
+      cells = velGridIngr.cells,      
+   }
 end
 
 -- Field allocation in the species objects should be performed with one
@@ -428,6 +466,21 @@ function VlasovSpecies:allocVectorMoment(dim)
                      charge    = self.charge,
                      mass      = self.mass,}
    return self:allocCartField(self.confGrid,dim*self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
+end
+-- Velocity space arrays (no ghost cells in velocity space arrays)
+function VlasovSpecies:allocVelMoment()
+   local metaData = {polyOrder = self.velBasis:polyOrder(),
+                     basisType = self.velBasis:id(),
+                     charge    = self.charge,
+                     mass      = self.mass,}
+   return self:allocCartField(self.velGrid,self.velBasis:numBasis(),{0,0},metaData)
+end
+function VlasovSpecies:allocVectorVelMoment(dim)
+   local metaData = {polyOrder = self.velBasis:polyOrder(),
+                     basisType = self.velBasis:id(),
+                     charge    = self.charge,
+                     mass      = self.mass,}
+   return self:allocCartField(self.velGrid,dim*self.velBasis:numBasis(),{0,0},metaData)
 end
 function VlasovSpecies:allocIntMoment(comp)
    local metaData = {charge = self.charge,
@@ -478,7 +531,7 @@ function VlasovSpecies:createSolver(field, externalField)
    self.vtSqMinSupported = vtSqMinCalc(self.mass,self.confGrid,self.cdim,self.vdim)
 
    -- Create solvers for collisions.
-   for _, c in pairs(self.collisions) do c:createSolver(self, externalField) end
+   for _, c in lume.orderedIter(self.collisions) do c:createSolver(self, externalField) end
 
    -- Create BC solvers.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self, field, externalField) end
@@ -503,20 +556,34 @@ function VlasovSpecies:createSolver(field, externalField)
       --self.totalEmField = self:allocVectorMoment(3)     -- Electric field only.
       self.totalEmField = self:allocMoment()  -- Phi only (Vlasov-Poisson)
    end
-   if self.hasExtForce then
-      self.totEmFptr, self.totEmFidxr = self.totalEmField:get(1), self.totalEmField:genIndexer()
-   end
 
-   self.computePlasmaB = true and plasmaB or extHasB   -- Differentiate plasma B from external B.
+   self.computePlasmaB = true and plasmaB or extHasB
+
+   if self.model_id == "GKYL_MODEL_SR" then 
+      -- Initialize velocity-space arrays for relativistic Vlasov
+      -- Only need to do this once, so we don't need to store the updater
+      local initSRVarsCalc = Updater.CalcSRVars {
+         velGrid   = self.velGrid,    velBasis   = self.velBasis,  
+         confBasis = self.confBasis,  phaseBasis = self.basis,     
+         operation = "init", 
+      }
+      initSRVarsCalc:advance(0.0, {}, {self.p_over_gamma, self.gamma, self.gamma_inv})
+      -- Create table of pointers to fields needed in update
+      self.fldPtrs = {self.totalEmField, self.p_over_gamma}
+      self.momPtrs = {self.p_over_gamma, self.gamma, self.gamma_inv}
+   else
+      -- Create table of pointers to fields needed in update
+      self.fldPtrs = {self.totalEmField}
+      -- No auxiliary fields for moments for non-relativistic Vlasov
+      self.momPtrs = {}
+   end
 
    -- Create updater to advance solution by one time-step.
    if self.evolveCollisionless then
       self.solver = Updater.VlasovDG {
-         onGrid     = self.grid,                       hasElectricField = hasE,
-         confBasis  = self.confBasis,                  hasMagneticField = hasB,
-         phaseBasis = self.basis,                      hasExtForce      = self.hasExtForce,
-         confRange  = self.totalEmField:localRange(),  phaseRange       = self.distf[1]:localRange(),  
-         plasmaMagField = self.computePlasmaB
+         onGrid    = self.grid,                      confBasis = self.confBasis,                phaseBasis = self.basis, 
+         confRange = self.totalEmField:localRange(), velRange = self.p_over_gamma:localRange(), phaseRange = self.distf[1]:localRange(), 
+         model_id  = self.model_id,                  field_id = self.field_id,                  fldPtrs    = self.fldPtrs, 
       }
       self.collisionlessAdvance = function(tCurr, inFlds, outFlds)
          self.solver:advance(tCurr, inFlds, outFlds)
@@ -539,30 +606,44 @@ function VlasovSpecies:createSolver(field, externalField)
    end
 
    -- Create updaters to compute various moments.
-   self.numDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,   confBasis  = self.confBasis,
-      phaseBasis = self.basis,  moment     = "M0",
+   -- M0 and M1i are common to both non-relativistic and relativistic Vlasov, so use common DistFuncMomentDG 
+   self.numDensityCalc = Updater.DistFuncMomentDG {
+      onGrid    = self.grid,                      confBasis = self.confBasis,                phaseBasis = self.basis, 
+      confRange = self.totalEmField:localRange(), velRange = self.p_over_gamma:localRange(), 
+      model_id  = self.model_id,                  isIntegrated = false,                      momPtrs    = self.momPtrs, 
+      moment    = "M0", 
    }
-   self.momDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,   confBasis  = self.confBasis,
-      phaseBasis = self.basis,  moment     = "M1i",
+   self.momDensityCalc = Updater.DistFuncMomentDG {
+      onGrid    = self.grid,                      confBasis = self.confBasis,                phaseBasis = self.basis, 
+      confRange = self.totalEmField:localRange(), velRange = self.p_over_gamma:localRange(), 
+      model_id  = self.model_id,                  isIntegrated = false,                      momPtrs    = self.momPtrs,  
+      moment    = "M1i", 
    }
-   self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,   confBasis  = self.confBasis,
-      phaseBasis = self.basis,  moment     = "M2",
-   }
-   self.M2ijCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,   confBasis = self.confBasis,
-      phaseBasis = self.basis,  moment    = "M2ij",
-   }
-   self.M3iCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,   confBasis = self.confBasis,
-      phaseBasis = self.basis,  moment    = "M3i",
-   }
-   self.calcMaxwell = Updater.MaxwellianOnBasis {
-      onGrid     = self.grid,   confGrid  = self.confGrid,
-      phaseBasis = self.basis,  confBasis = self.confBasis,
-   }
+   if self.model_id == "GKYL_MODEL_SR" then
+      self.ptclEnergyCalc = Updater.DistFuncMomentDG {
+         onGrid    = self.grid,                      confBasis = self.confBasis,                phaseBasis = self.basis, 
+         confRange = self.totalEmField:localRange(), velRange = self.p_over_gamma:localRange(), 
+         model_id  = self.model_id,                  isIntegrated = false,                      momPtrs    = self.momPtrs,   
+         moment    = "Energy", 
+      } 
+   else
+      self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.grid,   confBasis  = self.confBasis,
+         phaseBasis = self.basis,  moment     = "M2",
+      }
+      self.M2ijCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.grid,   confBasis = self.confBasis,
+         phaseBasis = self.basis,  moment    = "M2ij",
+      }
+      self.M3iCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.grid,   confBasis = self.confBasis,
+         phaseBasis = self.basis,  moment    = "M3i",
+      }
+      self.calcMaxwell = Updater.MaxwellianOnBasis {
+         onGrid     = self.grid,   confGrid  = self.confGrid,
+         phaseBasis = self.basis,  confBasis = self.confBasis,
+      }
+   end
    if self.needFiveMoments then
       -- Create updater to compute M0, M1i, M2 moments.
       self.fiveMomentsCalc = Updater.DistFuncMomentCalc {
@@ -593,22 +674,50 @@ function VlasovSpecies:createSolver(field, externalField)
    end
 
    if self.hasExtForce then
-      self.evalVlasovExtForce = Updater.ProjectOnBasis {
-         onGrid = self.confGrid,   evaluate = self.vlasovExtForceFunc,
-         basis  = self.confBasis,  onGhosts = false
+      -- Options for the external force include:
+      --   a) Passing a single function, which gets projected in every time step.
+      --   b) Passing a table of tables. The outer table is for providing multiple forces.
+      --      Each table/force has a 2-element (functions) table (timeDependence and spatialDependence),
+      --      where one element is the time-dependent part (a function of time only) and the
+      --      other the time independent part.
+      self.projExtForce = Updater.ProjectOnBasis {
+         onGrid = self.confGrid,   onGhosts = false,
+         basis  = self.confBasis,
+         evaluate = function(t, xn)
+                       if self.vdim==1 then return 1.
+                       elseif self.vdim==2 then return 1., 1.
+                       elseif self.vdim==3 then return 1., 1., 1. end
+                    end,
       }
 
-      self.accumulateExtForce = function(tCurr, totalEmField)
-         local vExtForce  = self.vExtForce
-         local vItr, eItr = self.vExtFptr, self.totEmFptr
-         self.evalVlasovExtForce:advance(tCurr, {}, {vExtForce})
+      if type(self.vlasovExtForceIn) == 'function' then
+         self.projExtForce:setFunc(self.vlasovExtForceIn)
+         self.vExtForce = self:allocVectorMoment(self.vdim)
 
-         -- Analogous to the current, the external force only gets accumulated onto the electric field.
-         for idx in totalEmField:localRangeIter() do
-            vExtForce:fill(self.vExtFidxr(idx), vItr)
-            totalEmField:fill(self.totEmFidxr(idx), eItr)
-            for i = 1, vExtForce:numComponents() do eItr[i] = eItr[i]+vItr[i] end
+         self.accumulateExtForce = function(tCurr, totalEmField)
+            local vExtForce = self.vExtForce
+            self.projExtForce:advance(tCurr, {}, {vExtForce})
+
+            -- Analogous to the current, the external force only gets accumulated onto the electric field.
+            totalEmField:accumulateOffset(1., vExtForce, 0)
          end
+      elseif type(self.vlasovExtForceIn) == 'table' then
+         self.extForces = {}
+         for _, ef in ipairs(self.vlasovExtForceIn) do
+            table.insert(self.extForces, {timeDepFac = ef.timeDependence, spatialFac = self:allocVectorMoment(self.vdim)})
+            self.projExtForce:setFunc(function(t,xn) return ef.spatialDependence(xn) end)
+            self.projExtForce:advance(0., {}, {self.extForces[#self.extForces].spatialFac})
+         end
+         lume.setOrder(self.extForces)
+
+         self.accumulateExtForce = function(tCurr, totalEmField)
+            -- Analogous to the current, the external force only gets accumulated onto the electric field.
+            for i, ef in lume.orderedIter(self.extForces) do
+               totalEmField:accumulateOffset(ef["timeDepFac"](tCurr),ef["spatialFac"], 0)
+            end
+         end
+      else
+         assert(false, "App.Field.MaxwellField: vlasovExtForce should be a function or a table.")
       end
    else
       self.accumulateExtForce = function(tCurr, totalEmField) end
@@ -772,12 +881,12 @@ function VlasovSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
    self.accumulateExtForce(tCurr, totalEmField)
 
-   self.collisionlessAdvance(tCurr, {fIn, totalEmField, emField}, {fRhsOut, self.cflRateByCell})
+   self.collisionlessAdvance(tCurr, {fIn}, {fRhsOut, self.cflRateByCell})
    self.timers.collisionless = self.solver.totalTime
 
    -- Perform the collision update.
    self.timers.collisions = 0.
-   for _, c in pairs(self.collisions) do
+   for _, c in lume.orderedIter(self.collisions) do
       c:advance(tCurr, fIn, population, {fRhsOut, self.cflRateByCell})   -- 'population' needed for cross-species collisions.
       self.timers.collisions = self.timers.collisions + c:getTimer('advance')
    end
@@ -811,7 +920,7 @@ function VlasovSpecies:advanceCrossSpeciesCoupling(tCurr, population, emIn, inId
       coll:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
    end
 
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
 
    for _, src in lume.orderedIter(self.sources) do src:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
 
@@ -854,7 +963,7 @@ end
 function VlasovSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
 
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:copyBoundaryFluxField(aIdx, outIdx) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:copyBoundaryFluxField(aIdx, outIdx) end
 
    if self.positivity then
       self.fDelPos[outIdx]:copy(self.fDelPos[aIdx])
@@ -869,7 +978,7 @@ function VlasovSpecies:combineRk(outIdx, a, aIdx, ...)
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end
 
-   for _, bc in pairs(self.nonPeriodicBCs) do
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
       bc:combineBoundaryFluxField(outIdx, a, aIdx, ...)
    end
 
@@ -1022,7 +1131,7 @@ function VlasovSpecies:write(tm, field, force)
          dOb:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.
       end
 
-      for _, bc in pairs(self.nonPeriodicBCs) do
+      for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
          bc:computeBoundaryFluxRate(self.dtGlobal[0])
       end
 
@@ -1135,8 +1244,72 @@ end
 function VlasovSpecies:clearTimers()
    for nm, _ in pairs(self.timers) do self.timers[nm] = 0. end
    self.solver.totalTime = 0.
-   for _, c in pairs(self.collisions) do c:clearTimers() end
+   for _, c in lume.orderedIter(self.collisions) do c:clearTimers() end
    for _, src in lume.orderedIter(self.sources) do src:clearTimers() end
 end
 
-return VlasovSpecies
+-- ................... Classes meant as aliases to simplify input files ...................... --
+-- Default: Non-Relativistic Vlasov-Maxwell (Cartesian geometry)
+local VlasovMaxwellSpecies = Proto(VlasovSpecies)
+function VlasovMaxwellSpecies:fullInit(mySpecies)
+   self.model_id = "GKYL_MODEL_DEFAULT"
+   self.field_id = "GKYL_FIELD_E_B"
+   VlasovMaxwellSpecies.super.fullInit(self, mySpecies)
+end
+
+-- Vlasov-Poisson, only phi (Cartesian geometry)
+local VlasovPoissonSpecies = Proto(VlasovSpecies)
+function VlasovPoissonSpecies:fullInit(mySpecies)
+   self.model_id = "GKYL_MODEL_DEFAULT"
+   self.field_id = "GKYL_FIELD_PHI"
+   VlasovPoissonSpecies.super.fullInit(self, mySpecies)
+end
+
+-- Vlasov-Poisson, phi + constant A (constant background magnetic field, Cartesian geometry)
+local VlasovPoissonASpecies = Proto(VlasovSpecies)
+function VlasovPoissonASpecies:fullInit(mySpecies)
+   self.model_id = "GKYL_MODEL_DEFAULT"
+   self.field_id = "GKYL_FIELD_PHI_A"
+   VlasovPoissonASpecies.super.fullInit(self, mySpecies)
+end
+
+-- Neutral Non-Relativistic Vlasov (Cartesian geometry)
+local VlasovNeutralSpecies = Proto(VlasovSpecies)
+function VlasovNeutralSpecies:fullInit(mySpecies)
+   self.model_id = "GKYL_MODEL_DEFAULT"
+   self.field_id = "GKYL_FIELD_NULL"
+   VlasovNeutralSpecies.super.fullInit(self, mySpecies)
+end
+
+-- Neutral Vlasov (General geometry)
+local VlasovGenGeoNeutralSpecies = Proto(VlasovSpecies)
+function VlasovGenGeoNeutralSpecies:fullInit(mySpecies)
+   self.model_id = "GKYL_MODEL_GEN_GEO"
+   self.field_id = "GKYL_FIELD_NULL"
+   VlasovGenGeoNeutralSpecies.super.fullInit(self, mySpecies)
+end
+
+-- Special Relativistic Vlasov-Maxwell (Cartesian geometry)
+local VlasovSRMaxwellSpecies = Proto(VlasovSpecies)
+function VlasovSRMaxwellSpecies:fullInit(mySpecies)
+   self.model_id = "GKYL_MODEL_SR"
+   self.field_id = "GKYL_FIELD_E_B"
+   VlasovSRMaxwellSpecies.super.fullInit(self, mySpecies)
+end
+
+-- Neutral Special Relativistic Vlasov (Cartesian geometry)
+local VlasovSRNeutralSpecies = Proto(VlasovSpecies)
+function VlasovSRNeutralSpecies:fullInit(mySpecies)
+   self.model_id = "GKYL_MODEL_SR"
+   self.field_id = "GKYL_FIELD_NULL"
+   VlasovSRNeutralSpecies.super.fullInit(self, mySpecies)
+end
+-- ................... End of VlasovSpecies alias classes .................... --
+
+return {VlasovMaxwell       = VlasovMaxwellSpecies,
+        VlasovPoisson       = VlasovPoissonSpecies,
+        VlasovPoissonA      = VlasovPoissonASpecies,
+        VlasovNeutral       = VlasovNeutralSpecies,
+        VlasovGenGeoNeutral = VlasovGenGeoNeutralSpecies, 
+        VlasovSRMaxwell     = VlasovSRMaxwellSpecies,
+        VlasovSRNeutral     = VlasovSRNeutralSpecies}

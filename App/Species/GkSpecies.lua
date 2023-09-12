@@ -144,13 +144,10 @@ function GkSpecies:alloc(nRkDup)
 
    -- Allocate fields to store coupling moments (for use in coupling
    -- to field and collisions).
-   self.numDensity    = self:allocMoment()
-   self.numDensityAux = self:allocMoment()
-   self.momDensity    = self:allocMoment()
-   self.momDensityAux = self:allocMoment()
-   self.ptclEnergy    = self:allocMoment()
-   self.ptclEnergyAux = self:allocMoment()
-   self.threeMoments  = self:allocVectorMoment(3)
+   self.numDensity, self.numDensityAux = self:allocMoment(), self:allocMoment()
+   self.momDensity, self.momDensityAux = self:allocMoment(), self:allocMoment()
+   self.ptclEnergy, self.ptclEnergyAux = self:allocMoment(), self:allocMoment()
+   self.threeMoments = self:allocVectorMoment(3)
 			
    self.vDegFreedom = self.vdim == 1 and 1.0 or 3.0
 
