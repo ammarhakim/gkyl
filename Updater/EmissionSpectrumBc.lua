@@ -28,7 +28,8 @@ enum gkyl_bc_emission_spectrum_type {
   GKYL_BC_GAUSSIAN = 1};
 
 enum gkyl_bc_emission_spectrum_gamma_type {
-  GKYL_BC_FURMAN_PIVI = 0};
+  GKYL_BC_FURMAN_PIVI = 0,
+  GKYL_BC_SCHOU = 1};
 
 // Object type
 typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
@@ -113,6 +114,7 @@ function EmissionSpectrumBc:init(tbl)
    end
    local gammatype -- Match gkyl_bc_emission_spectrum_gamma_type in gkylzero/zero/gkyl_bc_emission_spectrum.h
    if self._gammaType == "furman-pivi" then gammatype = 0 end
+   if self._gammaType == "schou" then gammatype = 1 end
 
    local useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU)
    
