@@ -214,6 +214,7 @@ function VlasovEmissionBC:createSolver(mySpecies, field, externalField)
       self.integNumDensityCalc = Updater.DistFuncMomentDG {
          onGrid     = self.boundaryGrid,   confBasis  = self.confBasis,
          phaseBasis = self.basis,          moment     = "M0",
+	 model_id   = "GKYL_MODEL_DEFAULT",
          isIntegrated = true,
       }
 
