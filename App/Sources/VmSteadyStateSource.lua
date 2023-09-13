@@ -35,7 +35,7 @@ function VmSteadyStateSource:fullInit(speciesTbl)
    assert(type(tbl.profile) == "function", "App.VmSteadyStateSource: 'profile' must be a function")
    self.profile = Projection.KineticProjection.FunctionProjection { func = function(t, zn) return tbl.profile(t, zn, self) end, }
 
-   self.tmEvalSrc = 0.0
+   self.timers = {advance = 0.}
 end
 
 function VmSteadyStateSource:setName(nm) self.name = self.speciesName.."_"..nm end
@@ -112,7 +112,7 @@ function VmSteadyStateSource:createCouplingSolver(population, field, extField)
 end
 
 function VmSteadyStateSource:advanceCrossSpeciesCoupling(tCurr, species, outIdx)
-   local tm = Time.clock()
+   local tmStart = Time.clock()
 
    local mySpecies = species[self.speciesName]
 
@@ -140,7 +140,7 @@ function VmSteadyStateSource:advanceCrossSpeciesCoupling(tCurr, species, outIdx)
 
    fRhsOut:accumulate(densFactor, self.fSource)
    
-   self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
+   self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end
 
 function VmSteadyStateSource:createDiagnostics(thisSpecies, momTable)
