@@ -36,6 +36,15 @@ function MappedCart:init(tbl)
    -- cartesian coordinates of the form 
    -- X, Y, Z = f({xcomp1, xcomp2, xcomp3})
    self._mapc2p = tbl.mapc2p
+   if type(self._mapc2p) == "table" then
+      -- The user may specify a table with any of:
+      --   mapc2p function,
+      --   mapc2p file containing the DG representation of the function (MF 2023/03/09 NOT READY YET),
+      --   grid   file.
+      assert(self._mapc2p.mapc2p and type(self._mapc2p.mapc2p)=="function", "Grid.MappedCart: need to specify mapc2p function")
+      self._mapc2p     = tbl.mapc2p.mapc2p
+      self._gridFileNm = tbl.mapc2p.grid
+   end
 
    -- Domain of the higher dimensional world this simulation lives in.
    -- These optional parameters are used to call mapc2p with more computational
@@ -79,7 +88,9 @@ function MappedCart:init(tbl)
       for d = 1, self:ndim() do self._worldCoord[self._compIdx[d]] = self._lower[d] end
       for d = 1, self._addDim do self._worldCoord[self._addIdx[d]] = self._addCoord[d] end
       self._inDim = self._worldDim                        -- Dimensionality of the input to mapc2p.
-      self._rdim  = #{ self._mapc2p(self._worldCoord) }   -- Number of values mapc2p returns.
+      -- MF 2023/09/13: getting rdim from mapc2p seems more general, but in most cases currently of
+      -- interest it is the same as worldDim, and mapc2p could take a while to call.
+      self._rdim  = self._worldDim --#{ self._mapc2p(self._worldCoord) }   -- Number of values mapc2p returns.
    else
       self._inDim = self:ndim()                      -- Dimensionality of the input to mapc2p.
       self._rdim  = #{ self._mapc2p(self._lower) }   -- Number of values mapc2p returns.
@@ -312,24 +323,26 @@ end
 function MappedCart:write(basis, rankInComm)
    -- Write a file containing the grid node coordinates,
    -- and a file with the DG representation of mapc2p.
-   local metaData = {polyOrder = basis:polyOrder(),  basisType = basis:id(),}
-   local mapc2pDG = DataStruct.Field {
-      onGrid        = self,                          ghost    = {0,0},
-      numComponents = self:rdim()*basis:numBasis(),  metaData = metaData,
-   }
-   local gridIo = AdiosCartFieldIo {
-      elemType = mapc2pDG:elemType(),  writeGhost      = false,
-      method   = "MPI",                writeRankInComm = rankInComm,
-   }
-
-   gridIo:write(self:getNodalCoords(), "grid.bp", 0., 0)
-
-   local projUpd = evOnNodes {
-      onGrid = self,   evaluate = function(t, xn) return self:mapc2p(xn) end,
-      basis  = basis,  onGhosts = false,
-   }
-   projUpd:advance(0., {}, {mapc2pDG})
-   gridIo:write(mapc2pDG, "mapc2p.bp", 0., 0)
+   if not self._gridFileNm then
+      local metaData = {polyOrder = basis:polyOrder(),  basisType = basis:id(),}
+      local mapc2pDG = DataStruct.Field {
+         onGrid        = self,                          ghost    = {0,0},
+         numComponents = self:rdim()*basis:numBasis(),  metaData = metaData,
+      }
+      local gridIo = AdiosCartFieldIo {
+         elemType = mapc2pDG:elemType(),  writeGhost      = false,
+         method   = "MPI",                writeRankInComm = rankInComm,
+      }
+   
+      gridIo:write(self:getNodalCoords(), "grid.bp", 0., 0)
+   
+      local projUpd = evOnNodes {
+         onGrid = self,   evaluate = function(t, xn) return self:mapc2p(xn) end,
+         basis  = basis,  onGhosts = false,
+      }
+      projUpd:advance(0., {}, {mapc2pDG})
+      gridIo:write(mapc2pDG, "mapc2p.bp", 0., 0)
+   end
 end
 
 function MappedCart:childGrid(keepDims)

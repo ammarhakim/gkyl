@@ -1332,9 +1332,10 @@ function GkGeometry:write(tm)
             string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
       end
 
-      -- Write a grid file.
-      local gridNodalCoords = self.grid:getNodalCoords()
-      if gridNodalCoords then self.fieldIo:write(gridNodalCoords, "grid.bp", tm, self.ioFrame) end
+--      -- MF 2023/09/13: I don't remember why this was necessary if PlasmaOnCartGrid already calls the :write method of the grid.
+--      -- Write a grid file.
+--      local gridNodalCoords = self.grid:getNodalCoords()
+--      if gridNodalCoords then self.fieldIo:write(gridNodalCoords, "grid.bp", tm, self.ioFrame) end
    end
    self.ioFrame = self.ioFrame+1
 end
