@@ -48,7 +48,7 @@ gkyl_correct_maxwellian_gyrokinetic *gkyl_correct_maxwellian_gyrokinetic_new(
  * @param conf_local Local configuration space range
  * @param phase_local Local phase-space range
  */
-void gkyl_correct_maxwellian_gyrokinetic_fix(gkyl_correct_maxwellian_gyrokinetic *cmax,
+void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokinetic *cmax,
   struct gkyl_array *fM, const struct gkyl_array *moms_in, double err_max, int iter_max,
   const struct gkyl_range *conf_local, const struct gkyl_range *phase_local);
 
@@ -65,7 +65,6 @@ local CorrectMaxwellian = Proto(UpdaterBase)
 
 function CorrectMaxwellian:init(tbl)
    CorrectMaxwellian.super.init(self, tbl)  -- set up base object
-
    local phaseGrid = assert(tbl.onGrid, "Updater.CorrectMaxwellian: Must provide phase space grid object 'onGrid'")
    local confGrid = assert(tbl.confGrid, "Updater.CorrectMaxwellian: Must provide configuration space grid object 'confGrid'")
    local phaseBasis = assert(tbl.phaseBasis, "Updater.CorrectMaxwellian: Must provide phase space basis object 'phaseBasis'")
@@ -73,19 +72,19 @@ function CorrectMaxwellian:init(tbl)
    local bmag = assert(tbl.bmag, "Updater.CorrectMaxwellian: Must provide gkyl_array object 'bmag'")
    local jacobTot = assert(tbl.jacobTot, "Updater.CorrectMaxwellian: Must provide gkyl_array object 'jacobTot'")
    
-   --self.bmag = tbl.bmag
-   --self.jacobTot = tbl.jacobTot
    self.mass = tbl.mass
    self.iter_max = tbl.iter_max
    self.err_max = tbl.err_max
    self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
  
+   local bmagFld, jacobTotFld = nil, nil
+   bmagFld = self._useGPU and bmag._zeroDevice or bmag._zero
+   jacobTotFld = self._useGPU and jacobTot._zeroDevice or jacobTot._zero
+   
    self.confRange = bmag:localRange() 
    self.confRangeExt = bmag:localExtRange()
 
-   self._zero = ffi.gc(ffiC.gkyl_correct_maxwellian_gyrokinetic_new(phaseGrid._zero, confBasis._zero, phaseBasis._zero, self.confRange, self.confRangeExt, bmag._zero, jacobTot._zero, self.mass, self._useGPU), 
-                       ffiC.gkyl_correct_maxwellian_gyrokinetic_release)
- 
+   self._zero = ffi.gc(ffiC.gkyl_correct_maxwellian_gyrokinetic_new(phaseGrid._zero, confBasis._zero, phaseBasis._zero, self.confRange, self.confRangeExt, bmagFld, jacobTotFld, self.mass, self._useGPU), ffiC.gkyl_correct_maxwellian_gyrokinetic_release)
 end
 
 function CorrectMaxwellian:_advance(tCurr, inFld, outFld)
@@ -95,14 +94,20 @@ function CorrectMaxwellian:_advance(tCurr, inFld, outFld)
 
    local phaseRange = fM:localRange() 
 
-   print("CorrectMaxwellian is called")
-
-   ffiC.gkyl_correct_maxwellian_gyrokinetic_fix(self._zero, fM._zero, moms._zero, self.err_max, self.iter_max, self.confRange, phaseRange)
+   ffiC.gkyl_correct_maxwellian_gyrokinetic_advance(self._zero, fM._zero, moms._zero, self.err_max, self.iter_max, self.confRange, phaseRange)
    fOut:copy(fM)
 end
 
---[[function CorrectMaxwellian:_advanceOnDevice(tCurr, inFld, outFld)
-end--]]
+function CorrectMaxwellian:_advanceOnDevice(tCurr, inFld, outFld)
+   local fM = assert(inFld[1], "CorrectMaxwellian.advance: Must specify an input maxwellian in 'inFld[1]'")
+   local moms = assert(inFld[2], "CorrectMaxwellian.advance: Must specify the target velocity moments in 'inFld[2]'")
+   local fOut =  assert(outFld[1], "CorrectMaxwellian.advance: Must specify an output field in 'outFld[1]'")
+
+   local phaseRange = fM:localRange() 
+    
+   ffiC.gkyl_correct_maxwellian_gyrokinetic_advance(self._zero, fM._zeroDevice, moms._zeroDevice, self.err_max, self.iter_max, self.confRange, phaseRange)
+   fOut:copy(fM)
+end
 
 return CorrectMaxwellian
 
