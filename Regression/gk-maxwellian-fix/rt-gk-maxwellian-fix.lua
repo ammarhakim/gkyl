@@ -95,11 +95,11 @@ function testGK_1x1v()
       end
       local bmagFunc = function (t, xn) return B0 end
       local jacobTotFunc = function (t, xn) return 1.0 end
-      
+   
       local projMoms = Updater.ProjectOnBasis {
          onGrid   = confGrid,  basis = confBasis,
          evaluate = function (t, xn) return momsFunc(t,xn) end
-      } 
+      }  
       local projPhaseScalar = Updater.ProjectOnBasis {
          onGrid = phaseGrid,
          basis = phaseBasis,
@@ -115,7 +115,7 @@ function testGK_1x1v()
       projConfScalar:advance(0.0, {}, {bmag}) 
       projConfScalar:setFunc(function(t,xn) return jacobTotFunc(t,xn) end)
       projConfScalar:advance(0.0, {}, {jacobTot}) 
-      
+   
       local maxwellian = Updater.MaxwellianOnBasis {
          onGrid = phaseGrid,
          confGrid = confGrid,
@@ -124,7 +124,7 @@ function testGK_1x1v()
          mass = mass,
       }
       maxwellian:advance(0.0, {moms_in, bmag, jacobTot}, {fM})
-      
+   
       local iterFix = Updater.CorrectMaxwellian {
          onGrid = phaseGrid,
          phaseBasis = phaseBasis,
@@ -135,10 +135,10 @@ function testGK_1x1v()
          jacobTot = jacobTot,
          iter_max = 100,
          err_max = 1e-14,
-         useDevice = false,
+         useDevice = GKYL_USE_GPU,
       }
       iterFix:advance(0.0, {fM, moms_in}, {fOut})
-      
+ 
       local calcMoms = Updater.DistFuncMomentCalc {
          onGrid = phaseGrid,
          confBasis = confBasis,
@@ -147,7 +147,11 @@ function testGK_1x1v()
          gkfacs = {mass, bmag},
       }  
       calcMoms:advance(0.0, {fOut}, {moms_out})
---[[
+
+      if GKYL_USE_GPU then
+         moms_out:copyDeviceToHost()
+      end
+
       local indexer    = moms_in:genIndexer()
       local localRange = moms_in:localRange()
       local momsInPtr  = moms_in:get(1)
@@ -159,7 +163,6 @@ function testGK_1x1v()
             assert_close(momsInPtr[1], momsOutPtr[1], 1.e-14, "Checking mom CorrectMaxwellian 1x1v.")
          end
       end
---]]
    end
 end
 
