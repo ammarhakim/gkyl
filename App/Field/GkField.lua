@@ -1461,10 +1461,6 @@ function GkGeometry:write(tm)
             gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
             string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
       end
-
-      -- Write a grid file.
-      local gridNodalCoords = self.grid:getNodalCoords()
-      if gridNodalCoords then self.fieldIo:write(gridNodalCoords, "grid.bp", tm, self.ioFrame) end
    end
    self.ioFrame = self.ioFrame+1
 end
