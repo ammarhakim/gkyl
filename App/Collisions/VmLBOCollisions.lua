@@ -179,8 +179,8 @@ function VmLBOCollisions:createSolver(mySpecies, extField)
       vbounds[i-1+self.vdim] = self.phaseGrid:upper(self.confGrid:ndim()+i)
    end
    self.primMomsSelfCalc = Updater.SelfPrimMoments {
-      onGrid     = self.phaseGrid,   operator = "VmLBO",
-      phaseBasis = self.phaseBasis,  vbounds  = vbounds,
+      onGrid     = self.phaseGrid,   operator  = "VmLBO",
+      phaseBasis = self.phaseBasis,  vbounds   = vbounds,
       confBasis  = self.confBasis,   confRange = self.nuSelf:localRange(),
    }
 
@@ -286,25 +286,28 @@ function VmLBOCollisions:createCouplingSolver(population, field, externalField)
          end
       end
 
+      local messenger = self.confGrid:getMessenger()
       -- Create list of ranks we need to send/recv local self primitive moments to/from.
       -- MF: We'll merge u and vtSq into a single CartField, and merge these two Xfer objects.
       self.primMomsSelfXfer = {}
       self.primMomsSelfXfer.destRank, self.primMomsSelfXfer.srcRank = {}, {}
-      self.primMomsSelfXfer.sendReqStat, self.primMomsSelfXfer.recvReqStat = nil, nil
+      self.primMomsSelfXfer.sendReqStat, self.primMomsSelfXfer.recvReqStat = {}, {}
       for _, sO in ipairs(self.crossSpecies) do
          local sOrank = population:getSpeciesOwner(sO)
          local selfRank = population:getSpeciesOwner(self.speciesName)
          if isThisSpeciesMine then
             -- Only species owned by this rank send primMoms to other ranks.
-            if #self.primMomsSelfXfer.destRank == 0 and (not population:isSpeciesMine(sO)) then
+            if (not lume.any(self.primMomsSelfXfer.destRank, function(e) return e==sOrank end)) and
+               (not population:isSpeciesMine(sO)) then
                table.insert(self.primMomsSelfXfer.destRank, sOrank)
-               self.primMomsSelfXfer.sendReqStat = Mpi.RequestStatus()
+               table.insert(self.primMomsSelfXfer.sendReqStat, messenger:newRequestStatus())
             end
          else
             -- Only species not owned by this rank receive primMoms from other ranks.
-            if #self.primMomsSelfXfer.srcRank == 0 and (not population:isSpeciesMine(self.speciesName)) then
+            if (not lume.any(self.primMomsSelfXfer.srcRank, function(e) return e==selfRank end)) and
+               (not population:isSpeciesMine(self.speciesName)) then
                table.insert(self.primMomsSelfXfer.srcRank, selfRank)
-               self.primMomsSelfXfer.recvReqStat = Mpi.RequestStatus()
+               table.insert(self.primMomsSelfXfer.recvReqStat, messenger:newRequestStatus())
             end
          end
       end

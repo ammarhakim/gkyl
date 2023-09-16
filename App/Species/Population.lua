@@ -119,27 +119,27 @@ function Population:speciesXferField_begin(xferObj, fld, tag)
    -- the destination and source ranks, and the necessary MPI requests/statuses.
 
    -- Post receive from rank owning this species.
-   for _, rank in ipairs(xferObj.srcRank) do
-      self.messenger:IrecvCartField(fld, rank, tag, self:getComm(), xferObj.recvReqStat)
+   for i, rank in ipairs(xferObj.srcRank) do
+      self.messenger:IrecvCartField(fld, rank, tag, self:getComm(), xferObj.recvReqStat[i])
    end
    -- Post sends to species that don't have this species.
-   for _, rank in ipairs(xferObj.destRank) do
-      self.messenger:IsendCartField(fld, rank, tag, self:getComm(), xferObj.sendReqStat)
+   for i, rank in ipairs(xferObj.destRank) do
+      self.messenger:IsendCartField(fld, rank, tag, self:getComm(), xferObj.sendReqStat[i])
    end
 end
 
 function Population:speciesXferField_waitRecv(xferObj)
-   for _, rank in ipairs(xferObj.srcRank) do
-      self.messenger:Wait(xferObj.recvReqStat, xferObj.recvReqStat, self:getComm())
+   for i, rank in ipairs(xferObj.srcRank) do
+      self.messenger:Wait(xferObj.recvReqStat[i], xferObj.recvReqStat[i], self:getComm())
    end
-   for _, rank in ipairs(xferObj.destRank) do
-      self.messenger:Wait(xferObj.sendReqStat, xferObj.sendReqStat, self:getComm())
+   for i, rank in ipairs(xferObj.destRank) do
+      self.messenger:Wait(xferObj.sendReqStat[i], xferObj.sendReqStat[i], self:getComm())
    end
 end
 
 function Population:speciesXferField_waitSend(xferObj)
-   for _, rank in ipairs(xferObj.destRank) do
-      self.messenger:Wait(xferObj.sendReqStat, xferObj.sendReqStat, self:getComm())
+   for i, rank in ipairs(xferObj.destRank) do
+      self.messenger:Wait(xferObj.sendReqStat[i], xferObj.sendReqStat[i], self:getComm())
    end
 end
 

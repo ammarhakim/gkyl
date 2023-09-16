@@ -862,25 +862,28 @@ function GkSpecies:initCrossSpeciesCoupling(population)
       self.threeMoments = self:allocVectorMoment(3)
    end
 
+   local messenger = self.confGrid:getMessenger()
    -- Create list of ranks we need to send/recv local threeMoments to/from.
    self.threeMomentsXfer = {}
    self.threeMomentsXfer.destRank, self.threeMomentsXfer.srcRank  = {}, {}
-   self.threeMomentsXfer.sendReqStat, self.threeMomentsXfer.recvReqStat = nil, nil
+   self.threeMomentsXfer.sendReqStat, self.threeMomentsXfer.recvReqStat = {}, {}
    for sO, info in pairs(self.collPairs[self.name]) do
       local sOrank = population:getSpeciesOwner(sO)
       local selfRank = population:getSpeciesOwner(self.name)
       if sO~=self.name and info.on then
          if isThisSpeciesMine then
             -- Only species owned by this rank send threeMoments to other ranks.
-            if #self.threeMomentsXfer.destRank == 0 and (not population:isSpeciesMine(sO)) then
+            if (not lume.any(self.threeMomentsXfer.destRank, function(e) return e==sOrank end)) and
+               (not population:isSpeciesMine(sO)) then
                table.insert(self.threeMomentsXfer.destRank, sOrank)
-               self.threeMomentsXfer.sendReqStat = Mpi.RequestStatus()
+               table.insert(self.threeMomentsXfer.sendReqStat, messenger:newRequestStatus())
             end
          else
             -- Only species not owned by this rank receive threeMoments from other ranks.
-            if #self.threeMomentsXfer.srcRank == 0 and (not population:isSpeciesMine(self.name)) then
+            if (not lume.any(self.threeMomentsXfer.srcRank, function(e) return e==selfRank end)) and
+               (not population:isSpeciesMine(self.name)) then
                table.insert(self.threeMomentsXfer.srcRank, selfRank)
-               self.threeMomentsXfer.recvReqStat = Mpi.RequestStatus()
+               table.insert(self.threeMomentsXfer.recvReqStat, messenger:newRequestStatus())
             end
          end
       end

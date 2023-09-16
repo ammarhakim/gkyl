@@ -830,25 +830,28 @@ function VlasovSpecies:initCrossSpeciesCoupling(population)
       self.fiveMoments = self:allocVectorMoment(self.vdim+2)
    end
 
+   local messenger = self.confGrid:getMessenger()
    -- Create list of ranks we need to send/recv local fiveMoments to/from.
    self.fiveMomentsXfer = {}
    self.fiveMomentsXfer.destRank, self.fiveMomentsXfer.srcRank  = {}, {}
-   self.fiveMomentsXfer.sendReqStat, self.fiveMomentsXfer.recvReqStat = nil, nil
+   self.fiveMomentsXfer.sendReqStat, self.fiveMomentsXfer.recvReqStat = {}, {}
    for sO, info in pairs(self.collPairs[self.name]) do
       local sOrank = population:getSpeciesOwner(sO)
       local selfRank = population:getSpeciesOwner(self.name)
       if sO~=self.name and info.on then
          if isThisSpeciesMine then
             -- Only species owned by this rank send fiveMoments to other ranks.
-            if #self.fiveMomentsXfer.destRank == 0 and (not population:isSpeciesMine(sO)) then
+            if (not lume.any(self.threeMomentsXfer.destRank, function(e) return e==sOrank end)) and
+               (not population:isSpeciesMine(sO)) then
                table.insert(self.fiveMomentsXfer.destRank, sOrank)
-               self.fiveMomentsXfer.sendReqStat = Mpi.RequestStatus()
+               table.insert(self.threeMomentsXfer.sendReqStat, messenger:newRequestStatus())
             end
          else
             -- Only species not owned by this rank receive fiveMoments from other ranks.
-            if #self.fiveMomentsXfer.srcRank == 0 and (not population:isSpeciesMine(self.name)) then
+            if (not lume.any(self.threeMomentsXfer.srcRank, function(e) return e==selfRank end)) and
+               (not population:isSpeciesMine(self.name)) then
                table.insert(self.fiveMomentsXfer.srcRank, selfRank)
-               self.fiveMomentsXfer.recvReqStat = Mpi.RequestStatus()
+               table.insert(self.threeMomentsXfer.recvReqStat, messenger:newRequestStatus())
             end
          end
       end

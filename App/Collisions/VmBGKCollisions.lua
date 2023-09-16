@@ -311,6 +311,7 @@ function VmBGKCollisions:createCouplingSolver(population, field, externalField)
          end
       end
 
+      local messenger = self.confGrid:getMessenger()
       -- Create list of ranks we need to send/recv local self primitive moments to/from.
       -- MF: We'll merge u and vtSq into a single CartField, and merge these two Xfer objects.
       self.primMomsSelfXfer = {}
@@ -321,15 +322,17 @@ function VmBGKCollisions:createCouplingSolver(population, field, externalField)
          local selfRank = population:getSpeciesOwner(self.speciesName)
          if isThisSpeciesMine then
             -- Only species owned by this rank send primMoms other ranks.
-            if #self.primMomsSelfXfer.destRank == 0 and (not population:isSpeciesMine(sO)) then
+            if (not lume.any(self.primMomsSelfXfer.destRank, function(e) return e==sOrank end)) and
+               (not population:isSpeciesMine(sO)) then
                table.insert(self.primMomsSelfXfer.destRank, sOrank)
-               self.primMomsSelfXfer.sendReqStat = Mpi.RequestStatus()
+               table.insert(self.primMomsSelfXfer.sendReqStat, messenger:newRequestStatus())
             end
          else
             -- Only species not owned by this rank receive primMoms from other ranks.
-            if #self.primMomsSelfXfer.srcRank == 0 and (not population:isSpeciesMine(self.speciesName)) then
+            if (not lume.any(self.primMomsSelfXfer.srcRank, function(e) return e==selfRank end)) and
+               (not population:isSpeciesMine(self.speciesName)) then
                table.insert(self.primMomsSelfXfer.srcRank, selfRank)
-               self.primMomsSelfXfer.recvReqStat = Mpi.RequestStatus()
+               table.insert(self.primMomsSelfXfer.recvReqStat, messenger:newRequestStatus())
             end
          end
       end

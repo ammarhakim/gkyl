@@ -83,6 +83,11 @@ function Messenger:init(tbl)
       self.reduceOps    = {max = Nccl.Max, min = Nccl.Min, sum = Nccl.Sum}
       self.commTypes    = {double=Nccl.Double, float=Nccl.Float, int=Nccl.Int}
 
+      self.newRequestStatusFunc = function()
+         local reqstat = {srcdest = 0,  tag = -1,  stream = 0,}
+         return reqstat
+      end
+
       self.AllreduceByCellFunc = function(fldIn, fldOut, ncclOp, comm)
          Nccl.AllReduce(fldIn:deviceDataPointer(), fldOut:deviceDataPointer(), fldIn:size(),
             self:getCommDataType(fldIn:elemType()), ncclOp, comm, self.ncclStream)
@@ -137,6 +142,11 @@ function Messenger:init(tbl)
       self.defaultComms = {world=Mpi.COMM_WORLD, conf=self.confComm, species=self.speciesComm}
       self.reduceOps    = {max = Mpi.MAX, min = Mpi.MIN, sum = Mpi.SUM}
       self.commTypes    = {double=Mpi.DOUBLE, float=Mpi.FLOAT, int=Mpi.INT}
+
+      self.newRequestStatusFunc = function()
+         local reqstat = Mpi.RequestStatus()
+         return reqstat
+      end
 
       self.AllgatherFunc = function(fldIn, fldOut, comm)
          Mpi.Allgather(fldIn:dataPointer(), fldIn:size(), fldIn:elemCommType(),
@@ -515,6 +525,10 @@ function Messenger:getCommDataType(dataType)
                             (ffi.istype("float",dataType) and self.commTypes["float"] or
 		             assert(false,"Messenger: type not supported"))))
    return dataCommType
+end
+
+function Messenger:newRequestStatus()
+   return self.newRequestStatusFunc()
 end
 
 function Messenger:AllreduceByCell(fieldIn, fieldOut, op, comm)
