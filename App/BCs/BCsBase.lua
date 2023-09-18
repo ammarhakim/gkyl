@@ -51,14 +51,16 @@ function BCsBase:createBoundaryGrid(ghostRange, ghostVec)
                                                           or self.grid:upper(d)+ghostVec[d]*self.grid:dx(d))
          table.insert(reducedNumCells, ghostVec[d])
          table.insert(reducedCuts, 1)
+         table.insert(reducedLowerRng, ghostRange:lower(d))
+         table.insert(reducedUpperRng, ghostRange:upper(d))
       else
          table.insert(reducedLower,    self.grid:lower(d))
          table.insert(reducedUpper,    self.grid:upper(d))
          table.insert(reducedNumCells, self.grid:numCells(d))
          table.insert(reducedCuts,     self.grid:cuts(d))
+         table.insert(reducedLowerRng, self.grid:globalRange():lower(d))
+         table.insert(reducedUpperRng, self.grid:globalRange():upper(d))
       end
-      table.insert(reducedLowerRng, ghostRange:lower(d))
-      table.insert(reducedUpperRng, ghostRange:upper(d))
    end
    local worldComm = self.grid:commSet().comm
    local worldRank = Mpi.Comm_rank(worldComm)
@@ -73,6 +75,7 @@ function BCsBase:createBoundaryGrid(ghostRange, ghostVec)
    elseif self.bcDir == 3 then
       dirRank = math.floor(worldRank/cuts[1]/cuts[2])
    end
+
    self._splitComm = Mpi.Comm_split(worldComm, dirRank, worldRank)
    -- Set up which ranks to write from.
    if (self.bcEdge == "lower" and dirRank == 0) or
@@ -89,7 +92,7 @@ function BCsBase:createBoundaryGrid(ghostRange, ghostVec)
    self.boundaryGrid = Grid.RectCart {
       lower      = reducedLower,     cells         = reducedNumCells,
       upper      = reducedUpper,     decomposition = reducedDecomp,
-      rangeLower = reducedLowerRng,  rangeUpper    = reducedUpperRng,
+      rangeLower = reducedLowerRng,  rangeUpper    = reducedUpperRng, 
    }
 end
 function BCsBase:createConfBoundaryGrid(ghostRange, ghostVec)
@@ -107,14 +110,16 @@ function BCsBase:createConfBoundaryGrid(ghostRange, ghostVec)
                                                              or self.grid:upper(d)+ghostVec[d]*self.grid:dx(d))
             table.insert(reducedNumCells, ghostVec[d])
             table.insert(reducedCuts, 1)
+            table.insert(reducedLowerRng, ghostRange:lower(d))
+            table.insert(reducedUpperRng, ghostRange:upper(d))
          else
             table.insert(reducedLower,    self.grid:lower(d))
             table.insert(reducedUpper,    self.grid:upper(d))
             table.insert(reducedNumCells, self.grid:numCells(d))
             table.insert(reducedCuts,     self.grid:cuts(d))
+            table.insert(reducedLowerRng, self.grid:globalRange():lower(d))
+            table.insert(reducedUpperRng, self.grid:globalRange():upper(d))
          end
-         table.insert(reducedLowerRng, ghostRange:lower(d))
-         table.insert(reducedUpperRng, ghostRange:upper(d))
       end
       local reducedDecomp = CartDecomp.CartProd {
          comm      = self._splitComm,  cuts = reducedCuts,
@@ -123,7 +128,7 @@ function BCsBase:createConfBoundaryGrid(ghostRange, ghostVec)
       self.confBoundaryGrid = Grid.RectCart {
          lower      = reducedLower,     cells         = reducedNumCells,
          upper      = reducedUpper,     decomposition = reducedDecomp,
-         rangeLower = reducedLowerRng,  rangeUpper    = reducedUpperRng,
+         rangeLower = reducedLowerRng,  rangeUpper    = reducedUpperRng, 
       }
    end
 end
@@ -150,16 +155,15 @@ function BCsBase:getGhostRange(global, globalExt)
    end
    return Range.Range(lv, uv)
 end
-function BCsBase:evalOnBoundary(inFld)
+function BCsBase:evalOnBoundary(inFld, outFld)
    -- Evaluate inFld on the boundary grid and copy it to the boundary field buffer.
-   self.boundaryField:copyRangeToRange(inFld, self.boundaryField:localRange(), self.myGlobalGhostRange)
-   return self.boundaryField
+   outFld:copyRangeToRange(inFld, outFld:localRange(), self.myGlobalGhostRange)
+   return outFld
 end
-function BCsBase:evalOnConfBoundary(inFld)
+function BCsBase:evalOnConfBoundary(inFld, outFld)
    -- For kinetic species this method evaluates inFld on the confBoundary grid.
-   self.confBoundaryField:copyRangeToRange(inFld, self.confBoundaryField:localRange(), self.myGlobalConfGhostRange)
-   return self.confBoundaryField
+   outFld:copyRangeToRange(inFld, outFld:localRange(), self.myGlobalConfGhostRange)
+   return outFld
 end
-
 
 return BCsBase

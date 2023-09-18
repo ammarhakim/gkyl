@@ -118,6 +118,7 @@ function GkLBO:_advance(tCurr, inFld, outFld)
    local cflRateByCell = assert(outFld[2], "GkLBO.advance: Must pass cflRate field in output table")
 
    local localRange = fRhsOut:localRange()
+
    ffiC.gkyl_dg_updater_lbo_gyrokinetic_advance(self._zero, localRange, bmagInv._zero, nu_sum._zero, nu_prim_moms._zero, m2self._zero, fIn._zero, cflRateByCell._zero, fRhsOut._zero)
 
 end
@@ -135,6 +136,7 @@ function GkLBO:_advanceOnDevice(tCurr, inFld, outFld)
    local cflRateByCell = assert(outFld[2], "GkLBO.advance: Must pass cflRate field in output table")
 
    local localRange = fRhsOut:localRange()
+
    ffiC.gkyl_dg_updater_lbo_gyrokinetic_advance_cu(self._zero, localRange, bmagInv._zeroDevice, nu_sum._zeroDevice, nu_prim_moms._zeroDevice, m2self._zeroDevice, fIn._zeroDevice, cflRateByCell._zeroDevice, fRhsOut._zeroDevice)
 
 end

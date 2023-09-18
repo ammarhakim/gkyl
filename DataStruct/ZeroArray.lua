@@ -188,6 +188,16 @@ struct gkyl_array* gkyl_array_scale(struct gkyl_array *out, double a);
 struct gkyl_array* gkyl_array_scale_by_cell(struct gkyl_array *out, const struct gkyl_array *a);
 
 /**
+ * Shift the k-th coefficient in every cell, out_k = a+out_k. Returns out.
+ *
+ * @param out Output array.
+ * @param a Factor to shift k-th coefficient by.
+ * @param k Coefficient to be shifted.
+ * @return out array.
+ */
+struct gkyl_array* gkyl_array_shiftc(struct gkyl_array *out, double a, unsigned k);
+
+/**
  * Clear out = val. Returns out.
  *
  * @param out Output array
@@ -261,6 +271,19 @@ struct gkyl_array* gkyl_array_scale_range(struct gkyl_array *out,
   double a, struct gkyl_range range);
 
 /**
+ * Shift the k-th coefficient in every cell, out_k = a+out_k within
+ * a given range. Returns out.
+ *
+ * @param out Output array.
+ * @param a Factor to shift k-th coefficient by.
+ * @param k Coefficient to be shifted.
+ * @param range Range to shift coefficient k in.
+ * @return out array.
+ */
+struct gkyl_array* gkyl_array_shiftc_range(struct gkyl_array *out, double a,
+  unsigned k, struct gkyl_range range);
+
+/**
  * Copy out inp. Returns out.
  *
  * @param out Output array
@@ -320,7 +343,7 @@ void gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
  * Copy buffer into region of array. The array must be preallocated.
  *
  * @param arr Array to copy into
- * @param data Output data buffer.
+ * @param data Input data buffer.
  * @param range Range specifying region to copy into
  */
 void gkyl_array_copy_from_buffer(struct gkyl_array *arr,
@@ -443,6 +466,12 @@ local array_fn = {
    end,
    scale_by_cell = function (self, val)
       ffiC.gkyl_array_scale_by_cell(self, val)
+   end,
+   shiftc = function (self, val, comp)
+      ffiC.gkyl_array_shiftc(self, val, comp)
+   end,
+   shiftcRange = function (self, val, comp, rng)
+      ffiC.gkyl_array_shiftc_range(self, val, comp, rng)
    end,
    reduceRange = function (self, out, op, rng)
       if op == "min" then 

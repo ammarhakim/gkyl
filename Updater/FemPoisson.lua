@@ -1,7 +1,8 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Solve the Poisson equation -epsilon_0*del^2(phi)=rho using the
--- continuous finite element method.
+-- Solve the Poisson equation
+--   - div epsilon grad(phi) - k^2 * phi = rho
+-- using the continuous finite element method
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -10,11 +11,7 @@
 local xsys = require "xsys"
 
 -- Gkyl libraries.
-local CartDecomp  = require "Lib.CartDecomp"
-local Grid        = require "Grid"
-local Lin         = require "Lib.Linalg"
 local Proto       = require "Lib.Proto"
-local Range       = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
 local DataStruct  = require "DataStruct"
 local ffi         = require "ffi"
@@ -45,27 +42,27 @@ struct gkyl_poisson_bc {
 };
 
 /**
- * Create new updater to solve the Poisson problem
- *   - nabla . (epsilon * nabla phi) = rho
- * using a FEM to ensure phi is continuous. The input is the
+ * Create new updater to solve the Helmholtz problem
+ *   - nabla . (epsilon * nabla phi) - kSq * phi = rho
+ * using a FEM to ensure phi is continuous. This solver is also
+ * used as a Poisson solver by passing a zero kSq. The input is the
  * DG field rho, which is translated to FEM. The output is the
- * DG field phi, after we've translted the FEM solution to DG.
+ * DG field phi, after we've translated the FEM solution to DG.
  * Free using gkyl_fem_poisson_release method.
- *
- * For scalar, spatially constant epsilon use gkyl_fem_poisson_consteps_new,
- * for tensor or heterogenous epsilon use gkyl_fem_poisson_vareps_new.
  *
  * @param grid Grid object
  * @param basis Basis functions of the DG field.
  * @param bcs Boundary conditions.
- * @param epsilon_const Constant scalar value of the permittivity.
- * @param epsilon_var Spatially varying permittivity tensor.
+ * @param epsilon Permittivity tensor. Defined over the extended range.
+ * @param kSq Squared wave number (factor multiplying phi in Helmholtz eq).
+ * @param is_epsilon_const =true if permittivity is constant in space.
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_fem_poisson* gkyl_fem_poisson_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
-  double epsilon_const, struct gkyl_array *epsilon_var, bool use_gpu);
+struct gkyl_fem_poisson* gkyl_fem_poisson_new(
+  const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
+  struct gkyl_poisson_bc *bcs, struct gkyl_array *epsilon_var, struct gkyl_array *kSq, bool is_epsilon_const,
+  bool use_gpu);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field.
@@ -98,7 +95,8 @@ function FemPoisson:init(tbl)
 
    self._grid   = assert(tbl.onGrid, "Updater.FemPoisson: Must specify grid to use with 'onGrid'.")
    self._basis  = assert(tbl.basis, "Updater.FemPoisson: Must specify the basis in 'basis'.")
-   local eps0   = assert(tbl.epsilon_0, "Updater.FemPoisson: Must specify the permittivity of space 'epsilon_0'.")
+   local eps0   = assert(tbl.epsilon, "Updater.FemPoisson: Must specify the permittivity of space 'epsilon'.")
+   local kSq    = tbl.kSq -- Wave number squared.
    self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
 
    local ndim = self._grid:ndim()
@@ -139,16 +137,34 @@ function FemPoisson:init(tbl)
       assert(false, "Updater.FemPoisson: must specify 'bcLower' and 'bcUpper'.")
    end
 
-   local eps0_const, eps0_var = nil, nil
+   local is_eps_const = nil
+   self.epsilon = nil
    if type(eps0) == 'number' then
-      eps0_const = eps0
+      is_eps_const = true
+      self.epsilon = DataStruct.Field {
+         onGrid        = self._grid,  ghost = {1,1},
+         numComponents = self._basis:numBasis(),
+         metaData      = {polyOrder = self._basis:polyOrder(), basisType = self._basis:id()},
+      }
+      self.epsilon:clear(0.)
+      self.epsilon:shiftc(eps0*(math.sqrt(2.)^ndim),0)
    elseif type(eps0) == 'table' then
       -- eps0 must be an array with the tensor permittivity.
-      eps0_var = self._useGPU and eps0._zeroDevice or eps0._zero
+      is_eps_const = false
+      self.epsilon = eps0
+   end
+   local eps_p = self._useGPU and self.epsilon._zeroDevice or self.epsilon._zero
+
+   local kSq_p = nil
+   if kSq then
+      assert(type(kSq) == 'table', "Updater.FemPoissonPerp: squared wave-number kSq must be a CartField.")
+      kSq_p = self._useGPU and kSq._zeroDevice or kSq._zero
    end
 
-   self._zero = ffi.gc(ffiC.gkyl_fem_poisson_new(self._grid._zero, self._basis._zero, bc_zero,
-                                                 eps0_const, eps0_var, self._useGPU),
+   local localRange = self.epsilon:localRange()
+
+   self._zero = ffi.gc(ffiC.gkyl_fem_poisson_new(localRange, self._grid._zero, self._basis._zero, bc_zero,
+                                                 eps_p, kSq_p, is_eps_const, self._useGPU),
                        ffiC.gkyl_fem_poisson_release)
 end
 

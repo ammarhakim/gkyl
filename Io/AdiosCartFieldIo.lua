@@ -171,9 +171,16 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
    local localRange, globalRange = field:localRange(), field:globalRange()
    if _writeGhost then 
       -- Extend localRange to include ghost cells if on edge of global domain.
+      local localExtRange = field:localExtRange()
       for d = 1, ndim do
-         if localRange:lower(d)==globalRange:lower(d) then localRange = localRange:extendDir(d, field:lowerGhost(), 0) end
-         if localRange:upper(d)==globalRange:upper(d) then localRange = localRange:extendDir(d, 0, field:upperGhost()) end
+         if localRange:lower(d)==globalRange:lower(d) then
+            local localExtInDirRange = localRange:extendDir(d, field:lowerGhost(), 0)
+            localRange = localExtRange:subRange(localExtInDirRange:lowerAsVec(), localExtInDirRange:upperAsVec())
+         end
+         if localRange:upper(d)==globalRange:upper(d) then
+            local localExtInDirRange = localRange:extendDir(d, 0, field:upperGhost())
+            localRange = localExtRange:subRange(localExtInDirRange:lowerAsVec(), localExtInDirRange:upperAsVec())
+         end
       end
       globalRange = field:globalExtRange()  -- Extend globalRange to include ghost cells.
    end
@@ -329,10 +336,17 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
       local ndim = field:ndim()
       local localRange, globalRange = field:localRange(), field:globalRange()
       if _readGhost then 
-         -- extend localRange to include ghost cells if on edge of global domain
+         -- Extend localRange to include ghost cells if on edge of global domain.
+         local localExtRange = field:localExtRange()
          for d = 1, ndim do
-            if localRange:lower(d)==globalRange:lower(d) then localRange = localRange:extendDir(d, field:lowerGhost(), 0) end
-            if localRange:upper(d)==globalRange:upper(d) then localRange = localRange:extendDir(d, 0, field:upperGhost()) end
+            if localRange:lower(d)==globalRange:lower(d) then
+               local localExtInDirRange = localRange:extendDir(d, field:lowerGhost(), 0)
+               localRange = localExtRange:subRange(localExtInDirRange:lowerAsVec(), localExtInDirRange:upperAsVec())
+            end
+            if localRange:upper(d)==globalRange:upper(d) then
+               local localExtInDirRange = localRange:extendDir(d, 0, field:upperGhost())
+               localRange = localExtRange:subRange(localExtInDirRange:lowerAsVec(), localExtInDirRange:upperAsVec())
+            end
          end
          -- extend globalRange to include ghost cells
          globalRange = field:globalExtRange() 

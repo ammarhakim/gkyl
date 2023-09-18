@@ -71,52 +71,53 @@ app = Plasma.App {
       diagnostics = { "M0", "M1i", "M2" }
    },
 
-   lagFix = Plasma.Species {
-      charge = 1.0, mass = 1.0,
-      -- velocity space grid
-      lower = {-7.0, -7.0},
-      upper = {7.0, 7.0},
-      cells = {nCells, nCells},
-      -- initial conditions
-      init = Plasma.MaxwellianProjection {
-         density = function (t, zn)
-	    local x = zn[1]
-	    return 0.5*x + 0.5
-	 end,
-	 driftSpeed = {1.0, 0.0},
-         temperature = function (t, zn)
-	    local x = zn[1]
-	    return 1.0 - 0.5*x
-	 end,
-         exactScaleM0 = false,
-         exactLagFixM012 = true,
-      },
-      evolve = true, -- evolve species?
-
-      diagnostics = { "M0", "M1i", "M2" }
-   },
-
-   double = Plasma.Species {
-      charge = 1.0, mass = 1.0,
-      -- velocity space grid
-      lower = {-6.0, -6.0},
-      upper = {6.0, 6.0},
-      cells = {4, 6},
-      -- initial conditions
-      init1 = Plasma.MaxwellianProjection {
-         density = 1.0,
-         driftSpeed = {1.0, 0.0},
-         temperature = 1.0,
-         exactScaleM0 = false,
-         exactLagFixM012 = true,
-      },
-      init2 = Plasma.MaxwellianProjection {
-         density = 1.0,
-         driftSpeed = {-1.0, 0.0},
-         temperature = 1.0,
-         exactScaleM0 = false,
-         exactLagFixM012 = true,
-      },
-      diagnostics = { "M0", "M1i", "M2" }
-   },
+-- MF 2023/07/09: commenting this out because lag fix is not available.
+--   lagFix = Plasma.Species {
+--      charge = 1.0, mass = 1.0,
+--      -- velocity space grid
+--      lower = {-7.0, -7.0},
+--      upper = {7.0, 7.0},
+--      cells = {nCells, nCells},
+--      -- initial conditions
+--      init = Plasma.MaxwellianProjection {
+--         density = function (t, zn)
+--	    local x = zn[1]
+--	    return 0.5*x + 0.5
+--	 end,
+--	 driftSpeed = {1.0, 0.0},
+--         temperature = function (t, zn)
+--	    local x = zn[1]
+--	    return 1.0 - 0.5*x
+--	 end,
+--         exactScaleM0 = false,
+--         exactLagFixM012 = true,
+--      },
+--      evolve = true, -- evolve species?
+--
+--      diagnostics = { "M0", "M1i", "M2" }
+--   },
+--
+--   double = Plasma.Species {
+--      charge = 1.0, mass = 1.0,
+--      -- velocity space grid
+--      lower = {-6.0, -6.0},
+--      upper = {6.0, 6.0},
+--      cells = {4, 6},
+--      -- initial conditions
+--      init1 = Plasma.MaxwellianProjection {
+--         density = 1.0,
+--         driftSpeed = {1.0, 0.0},
+--         temperature = 1.0,
+--         exactScaleM0 = false,
+--         exactLagFixM012 = true,
+--      },
+--      init2 = Plasma.MaxwellianProjection {
+--         density = 1.0,
+--         driftSpeed = {-1.0, 0.0},
+--         temperature = 1.0,
+--         exactScaleM0 = false,
+--         exactLagFixM012 = true,
+--      },
+--      diagnostics = { "M0", "M1i", "M2" }
+--   },
 }

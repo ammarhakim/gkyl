@@ -65,7 +65,8 @@ function GkSource:fullInit(thisSpecies)
          power       = self.power,
       }
    end
-   self.tmEvalSrc = 0.0
+
+   self.timers = {advance = 0.}
 end
 
 function GkSource:setName(nm) self.name = self.speciesName.."_"..nm end
@@ -127,9 +128,11 @@ function GkSource:createDiagnostics(mySpecies, field)
 end
 
 function GkSource:advance(tCurr, fIn, species, fRhsOut)
-   local tm = Time.clock()
+   local tmStart = Time.clock()
+
    fRhsOut:accumulate(self.timeDependence(tCurr), self.fSource)
-   self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
+
+   self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end
 
 -- These are needed to recycle the GkDiagnostics with GkSource.
@@ -137,7 +140,5 @@ function GkSource:rkStepperFields() return {self.fSource, self.fSource, self.fSo
 function GkSource:getFlucF() return self.fSource end
 
 function GkSource:write(tm, frame) end
-
-function GkSource:srcTime() return self.tmEvalSrc end
 
 return GkSource
