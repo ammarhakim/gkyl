@@ -83,9 +83,24 @@ function Messenger:init(tbl)
       self.reduceOps    = {max = Nccl.Max, min = Nccl.Min, sum = Nccl.Sum}
       self.commTypes    = {double=Nccl.Double, float=Nccl.Float, int=Nccl.Int}
 
+      -- Keep a list of available streams.
+      self.twoPointCommStreams = {
+        {inUseBy = -1, stream = self.ncclStream}
+      }
+
       self.newRequestStatusFunc = function()
-         local reqstat = {srcdest = 0,  tag = -1,  stream = 0,}
+         local reqstat = {srcdest = 0,  tag = -1,  streamIdx = 0,}
          return reqstat
+      end
+
+      -- A NCCL group is needed to send multiple messages concurrently, e.g. electrons
+      -- sending their moments to ions, and ions sending their moments to electrons.
+      self.startCommGroupFunc = function()
+         local ncclErr = Nccl.GroupStart()
+      end
+
+      self.endCommGroupFunc = function()
+         local ncclErr = Nccl.GroupEnd()
       end
 
       self.AllreduceByCellFunc = function(fldIn, fldOut, ncclOp, comm)
@@ -115,11 +130,49 @@ function Messenger:init(tbl)
       end
 
       self.IrecvCartFieldFunc = function(fld, src, tag, comm, req)
+         local idx, stream
+         if req then
+            -- Find an available stream.
+            local streamTbl
+            streamTbl, idx = lume.match(self.twoPointCommStreams, function(e) return (e.inUseBy==-1) or (e.inUseBy==tag) end)
+            if idx == nil then
+                -- No available streams. Create a new one.
+               table.insert(self.twoPointCommStreams, {inUseBy=tag, stream=cuda.StreamCreate()})
+               idx, stream = #self.twoPointCommStreams, self.twoPointCommStreams[#self.twoPointCommStreams].stream
+            else
+               stream = streamTbl.stream
+            end
+            req.srcdest, req.tag, req.streamIdx = src, tag, idx
+         else
+            idx, stream = 1, self.ncclStream
+         end
+
          Nccl.Recv(fld:deviceDataPointer(), fld:size(), self:getCommDataType(fld:elemType()), src, comm, self.ncclStream)
+
+         self.twoPointCommStreams[idx].inUseBy = tag
       end
 
       self.IsendCartFieldFunc = function(fld, dest, tag, comm, req)
+         local idx, stream
+         if req then
+            -- Find an available stream.
+            local streamTbl
+            streamTbl, idx = lume.match(self.twoPointCommStreams, function(e) return (e.inUseBy==-1) or (e.inUseBy==tag) end)
+            if idx == nil then
+                -- No available streams. Create a new one.
+               table.insert(self.twoPointCommStreams, {inUseBy=tag, stream=cuda.StreamCreate()})
+               idx, stream = #self.twoPointCommStreams, self.twoPointCommStreams[#self.twoPointCommStreams].stream
+            else
+               stream = streamTbl.stream
+            end
+            req.srcdest, req.tag, req.streamIdx = src, tag, idx
+         else
+            idx, stream = 1, self.ncclStream
+         end
+
          Nccl.Send(fld:deviceDataPointer(), fld:size(), self:getCommDataType(fld:elemType()), dest, comm, self.ncclStream)
+
+         self.twoPointCommStreams[idx].inUseBy = tag
       end
 
       self.WaitFunc = function(req, stat, comm)
@@ -128,6 +181,13 @@ function Messenger:init(tbl)
             local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
          end
          -- Completing NCCL operation by synchronizing on the CUDA stream.
+         local stream
+         if req then
+            stream = self.twoPointCommStreams[req.streamIdx].stream
+            self.twoPointCommStreams[req.streamIdx].inUseBy = -1  -- Free stream for use by others.
+         else
+            stream = self.ncclStream
+         end
          local _ = cuda.StreamSynchronize(self.ncclStream)
       end
 
@@ -147,6 +207,10 @@ function Messenger:init(tbl)
          local reqstat = Mpi.RequestStatus()
          return reqstat
       end
+
+      self.startCommGroupFunc = function() end
+
+      self.endCommGroupFunc = function() end
 
       self.AllgatherFunc = function(fldIn, fldOut, comm)
          Mpi.Allgather(fldIn:dataPointer(), fldIn:size(), fldIn:elemCommType(),
@@ -529,6 +593,14 @@ end
 
 function Messenger:newRequestStatus()
    return self.newRequestStatusFunc()
+end
+
+function Messenger:startCommGroup()
+   return self.startCommGroupFunc()
+end
+
+function Messenger:endCommGroup()
+   return self.endCommGroupFunc()
 end
 
 function Messenger:AllreduceByCell(fieldIn, fieldOut, op, comm)

@@ -129,16 +129,16 @@ function Population:speciesXferField_begin(xferObj, fld, tag)
 end
 
 function Population:speciesXferField_waitRecv(xferObj)
-   for i, rank in ipairs(xferObj.srcRank) do
+   for i, _ in ipairs(xferObj.srcRank) do
       self.messenger:Wait(xferObj.recvReqStat[i], xferObj.recvReqStat[i], self:getComm())
    end
-   for i, rank in ipairs(xferObj.destRank) do
+   for i, _ in ipairs(xferObj.destRank) do
       self.messenger:Wait(xferObj.sendReqStat[i], xferObj.sendReqStat[i], self:getComm())
    end
 end
 
 function Population:speciesXferField_waitSend(xferObj)
-   for i, rank in ipairs(xferObj.destRank) do
+   for i, _ in ipairs(xferObj.destRank) do
       self.messenger:Wait(xferObj.sendReqStat[i], xferObj.sendReqStat[i], self:getComm())
    end
 end

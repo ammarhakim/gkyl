@@ -316,12 +316,14 @@ local function buildApplication(self, tbl)
    -- Initialize field (sometimes requires species to have been initialized).
    field:initField(population)
 
+   commManager:startCommGroup()  -- Needed by NCCL.
    for _, s in population.iterGlobal() do
       -- Compute/comunicate moments needed for cross-species interactions.
       -- Needs to happen after field:advance because we'll initiate (multi-GPU)
       -- communication here that needs to finish before starting other comms.
       s:calcCrossCouplingMoments(0., 1, population)
    end
+   commManager:endCommGroup()  -- Needed by NCCL.
 
    -- Initialize diagnostic objects.
    for _, s in population.iterLocal() do s:createDiagnostics(field) end
@@ -455,12 +457,14 @@ local function buildApplication(self, tbl)
       -- or a hyperbolic solve, which updates outIdx = RHS, or a combination of both.
       field:advance(tCurr, population, inIdx, outIdx)
 
+      commManager:startCommGroup()  -- Needed by NCCL.
       for _, s in population.iterGlobal() do
          -- Compute/comunicate moments needed for cross-species interactions.
 	 -- Needs to happen after field:advance because we'll initiate (multi-GPU)
 	 -- communication here that needs to finish before starting other comms.
          s:calcCrossCouplingMoments(tCurr, inIdx, population)
       end
+      commManager:endCommGroup()  -- Needed by NCCL.
 
       -- Update species.
       for _, s in population.iterLocal() do
