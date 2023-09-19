@@ -2,10 +2,8 @@
 
 # Edit the paths and options in the following command to suit your system
 module load PrgEnv-gnu/8.3.3
-module load cray-mpich/8.1.22
+module load cray-mpich/8.1.25
 module load python/3.9-anaconda-2021.11
-module load cudatoolkit/11.7
-module load nccl/2.15.5-ofi
 module unload darshan
 
 # Build directory
@@ -48,20 +46,8 @@ SUPERLU_LIB_DIR=$GKYLSOFT/superlu/lib
 GKYLZERO_INC_DIR=$GKYLSOFT/gkylzero/include
 GKYLZERO_LIB_DIR=$GKYLSOFT/gkylzero/lib
 
-# CUDA options
-ENABLE_CUDA="--enable-cuda"
-CUTOOLS_INC_DIR=$CPATH
-CUTOOLS_LIB_DIR=$LD_LIBRARY_PATH
-CUTOOLS_LINK_LIBS="cudart"
-
-# NCCL
-ENABLE_NCCL="--enable-nccl"
-NCCL_INC_DIR=$NCCL_DIR/include
-NCCL_LIB_DIR=$NCCL_DIR/lib
-NCCL_LINK_LIBS="nccl"
-
 # You probably do not need to modify the command itself
-cmd="./waf CC=$CC CXX=$CXX MPICC=$MPICC MPICXX=$MPICXX --out=$OUT -p $GKYLSOFT --prefix=$GKYLSOFT/gkyl --cxxflags=$CXXFLAGS --luajit-inc-dir=$LUAJIT_INC_DIR --luajit-lib-dir=$LUAJIT_LIB_DIR --luajit-share-dir=$LUAJIT_SHARE_DIR $ENABLE_MPI --mpi-inc-dir=$MPI_INC_DIR --mpi-lib-dir=$MPI_LIB_DIR --mpi-link-libs=$MPI_LINK_LIBS $ENABLE_ADIOS --adios-inc-dir=$ADIOS_INC_DIR --adios-lib-dir=$ADIOS_LIB_DIR --eigen-inc-dir=$EIGEN_INC_DIR --enable-gkylzero --gkylzero-inc-dir=$GKYLZERO_INC_DIR --gkylzero-lib-dir=$GKYLZERO_LIB_DIR --enable-superlu --superlu-inc-dir=$SUPERLU_INC_DIR --superlu-lib-dir=$SUPERLU_LIB_DIR --enable-openblas --openblas-inc-dir=$OPENBLAS_INC_DIR --openblas-lib-dir=$OPENBLAS_LIB_DIR $ENABLE_CUDA --cuda-inc-dir=$CUTOOLS_INC_DIR --cuda-lib-dir=$CUTOOLS_LIB_DIR --cuda-link-libs=$CUTOOLS_LINK_LIBS $ENABLE_NCCL --nccl-inc-dir=$NCCL_INC_DIR --nccl-lib-dir=$NCCL_LIB_DIR --nccl-link-libs=$NCCL_LINK_LIBS configure"
+cmd="./waf CC=$CC CXX=$CXX MPICC=$MPICC MPICXX=$MPICXX --out=$OUT -p $GKYLSOFT --prefix=$GKYLSOFT/gkyl --cxxflags=$CXXFLAGS --luajit-inc-dir=$LUAJIT_INC_DIR --luajit-lib-dir=$LUAJIT_LIB_DIR --luajit-share-dir=$LUAJIT_SHARE_DIR $ENABLE_MPI --mpi-inc-dir=$MPI_INC_DIR --mpi-lib-dir=$MPI_LIB_DIR --mpi-link-libs=$MPI_LINK_LIBS $ENABLE_ADIOS --adios-inc-dir=$ADIOS_INC_DIR --adios-lib-dir=$ADIOS_LIB_DIR --eigen-inc-dir=$EIGEN_INC_DIR --enable-gkylzero --gkylzero-inc-dir=$GKYLZERO_INC_DIR --gkylzero-lib-dir=$GKYLZERO_LIB_DIR --enable-superlu --superlu-inc-dir=$SUPERLU_INC_DIR --superlu-lib-dir=$SUPERLU_LIB_DIR --enable-openblas --openblas-inc-dir=$OPENBLAS_INC_DIR --openblas-lib-dir=$OPENBLAS_LIB_DIR configure"
 # if we are in machines directory, go up a directory before executing cmd
 if [ `dirname "$0"` == "." ] 
   then
