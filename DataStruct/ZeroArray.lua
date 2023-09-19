@@ -284,6 +284,19 @@ struct gkyl_array* gkyl_array_shiftc_range(struct gkyl_array *out, double a,
   unsigned k, const struct gkyl_range *range);
 
 /**
+ * Shift the k-th coefficient in every cell, out_k = a+out_k within
+ * a given range. Returns out.
+ *
+ * @param out Output array.
+ * @param a Factor to shift k-th coefficient by.
+ * @param k Coefficient to be shifted.
+ * @param range Range to shift coefficient k in.
+ * @return out array.
+ */
+struct gkyl_array* gkyl_array_shiftc_range(struct gkyl_array *out, double a,
+  unsigned k, struct gkyl_range range);
+
+/**
  * Copy out inp. Returns out.
  *
  * @param out Output array
@@ -451,6 +464,9 @@ local array_fn = {
    end,
    copyRangeToRange = function (self, infld, outrng, inrng)
       ffiC.gkyl_array_copy_range_to_range(self, infld, outrng, inrng)
+   end,
+   copyRange = function (self, infld, inrng)
+      ffiC.gkyl_array_copy_range(self, infld, inrng)
    end,
    accumulateRange = function (self, val, fld, rng)
       ffiC.gkyl_array_accumulate_range(self, val, fld, rng)
