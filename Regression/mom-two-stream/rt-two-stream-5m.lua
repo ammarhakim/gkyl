@@ -18,7 +18,6 @@
 ------------------------
 
 -- Parameters that should not be changed
-
 gasGamma = 3.0 -- adiabatic gas gamma, typically (f+3) / f where if is degree of freedom
 -- Light speed is needed for any EM simulation. A large value is chosen to minimize the
 -- impact of the EM effects over ES effects.
@@ -34,7 +33,7 @@ qe = -1.0 -- charge
 
 -- Physical parameters intended to be changed for parameter scanning
 vDrift__vTe = 5.0 -- drift velocity / thermal velocity
-kx_de = 0.5 -- wavenumber * Debye length
+kx_de = 0.1 -- wavenumber * Debye length
 pert = 1.0e-3 -- perturbation magnitude to the uniform background density
 
 -- Computational paremters
@@ -71,6 +70,7 @@ log("%30s = %g", "Nx", Nx)
 log("%30s = %g", "nFrame", nFrame)
 log("%30s = %g", "tEnd / nFrame", tEnd / nFrame)
 log("%30s = %g", "lightSpeed / vTe", lightSpeed / vTe)
+log("")
 
 ----------------------------------------
 -- CREATING AND RUNNING THE GKYL APPS --
