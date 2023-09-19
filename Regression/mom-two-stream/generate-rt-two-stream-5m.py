@@ -46,6 +46,8 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
+print(f"\n{args}\n")
+
 input_str = """
 -- 1d 5-moment simulation of two-stream instability with two counter-streaming electron
 -- species, with an immobile ion species (that is not evolved).
@@ -203,15 +205,7 @@ app = Moments.App {{
 }}
 
 app:run()
-""".format(
-    vDrift__vTe=args.vDrift__vTe,
-    kx_de=args.kx_de,
-    pert=args.pert,
-    nProcs=args.nProcs,
-    tEnd_wpe=args.tEnd_wpe,
-    nFrame=args.nFrame,
-    Nx=args.Nx,
-)
+""".format(**vars(args))
 
 with open(args.filename, "w") as script_file:
     script_file.write(input_str)

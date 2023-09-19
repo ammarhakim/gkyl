@@ -1,3 +1,4 @@
+
 -- 1d 5-moment simulation of two-stream instability with two counter-streaming electron
 -- species, with an immobile ion species (that is not evolved).
 --
@@ -34,7 +35,7 @@ qe = -1.0 -- charge
 -- Physical parameters intended to be changed for parameter scanning
 vDrift__vTe = 5.0 -- drift velocity / thermal velocity
 kx_de = 0.1 -- wavenumber * Debye length
-pert = 1.0e-3 -- perturbation magnitude to the uniform background density
+pert = 0.001 -- perturbation magnitude to the uniform background density
 
 -- Computational paremters
 nProcs = 1 -- number of processors for parallel computing
