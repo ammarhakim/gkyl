@@ -1,6 +1,10 @@
 import argparse
 
-parser = argparse.ArgumentParser(description="Generate gkyl input file.")
+parser = argparse.ArgumentParser(
+    description=(
+        "Generate gkyl input file of the 5-moment simulation of two-stream instability."
+    )
+)
 parser.add_argument("filename", help="name of the gkyl lua input file to be generated")
 parser.add_argument(
     "--vDrift__vTe",
@@ -205,7 +209,9 @@ app = Moments.App {{
 }}
 
 app:run()
-""".format(**vars(args))
+""".format(
+    **vars(args)
+)
 
 with open(args.filename, "w") as script_file:
     script_file.write(input_str)
