@@ -6,6 +6,7 @@
 local Plasma = (require "App.PlasmaOnCartGrid").VlasovMaxwell()
 
 -- SI units.
+local eV              = 1.6021766e-19
 local epsilon_0, mu_0 = 8.854e-12, 1.257e-6
 local q_e, q_i        = -1.6021766e-19, 1.6021766e-19
 local m_e, m_i        = 9.109383e-31, 1.6726218e-27
@@ -26,6 +27,17 @@ local omega_pe     = math.sqrt((n_e * q_e^2)/(epsilon_0*m_e))
 local lambda_D     = math.sqrt((epsilon_0 * T_e)/(n_e * q_e^2))
 -- Artificially decrease the speed of light.
 mu_0 = 1.0/(epsilon_0 * (10*vth_e)^2)
+
+-- Collision parameters.
+nuFrac = 0.1
+logLambdaElc = 6.6 - 0.5*math.log(n_e/1e20) + 1.5*math.log(T_e/eV)
+nuElc     = nuFrac*logLambdaElc*eV^4*n_e/(6*math.sqrt(2)*math.pi^(3/2)*epsilon_0^2*math.sqrt(m_e)*(T_e)^(3/2))  --collision freq
+
+logLambdaIon = 6.6 - 0.5*math.log(n_i/1e20) + 1.5*math.log(T_i/eV)
+nuIon     = nuFrac*logLambdaIon*eV^4*n_i/(12*math.pi^(3/2)*epsilon_0^2*math.sqrt(m_i)*(T_i)^(3/2))
+
+nuElcIon = math.sqrt(2)*nuElc
+nuIonElc = nuElcIon/(m_i/m_e)
 
 sim = Plasma.App {
    logToFile = false,
@@ -65,6 +77,10 @@ sim = Plasma.App {
             return {vd_e}
          end
       },
+--      coll = Plasma.LBOCollisions {
+--        collideWith = {'elc', 'ion'},
+--        normNu      = {nuElc*((2*(vth_e^2))^(3/2))/n_e, nuElcIon*((vth_e^2+vth_i^2)^(3/2))/n_e},
+--      },
       evolve = true, -- Evolve species?
       bcx = { Plasma.AbsorbBC{diagnostics={"intM0", "intM1i", "intM2"}},
               Plasma.ReflectBC{diagnostics={"intM0", "intM1i", "intM2"}} },
@@ -89,6 +105,10 @@ sim = Plasma.App {
             return {vd_i}
          end
       },
+--      coll = Plasma.LBOCollisions {
+--        collideWith = {'ion', 'elc'},
+--        normNu      = {nuIon*((2*(vth_i^2))^(3/2))/n_i, nuIonElc*((vth_i^2+vth_e^2)^(3/2))/n_i},
+--      },
       evolve = true, -- Evolve species?
       bcx = { Plasma.AbsorbBC{diagnostics={"intM0", "intM1i", "intM2"}},
               Plasma.ReflectBC{diagnostics={"intM0", "intM1i", "intM2"}} },

@@ -14,14 +14,13 @@ end
 local Unit  = require "Unit"
 local Mpi   = require "Comm.Mpi"
 local Alloc = require "Lib.Alloc"
-local Nccl  = require "Comm.Nccl"
 local Grid             = require "Grid"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local DataStruct       = require "DataStruct"
 
-local cuda
-local cuAlloc
+local cuda, cuAlloc, Nccl 
 if GKYL_HAVE_CUDA then
+   Nccl    = require "Comm.Nccl"
    cuda    = require "Cuda.RunTime"
    cuAlloc = require "Cuda.Alloc"
 end
@@ -316,24 +315,6 @@ function test_4(comm)
    local rank = numCutsConf==1 and speciesRank or confRank
    local comm = numCutsConf==1 and speciesComm or confComm
 
-   local decomp = DecompRegionCalc.CartProd { cuts = {numCutsConf}, comm = confComm }
-   local grid = Grid.RectCart {
-      lower = {0.0},  cells = {12},
-      upper = {1.0},  decomposition = decomp,
-   }
-   local field0 = DataStruct.Field {
-      onGrid        = grid,
-      numComponents = 3,
-      ghost         = {1, 1},
-   }
-   local field1 = DataStruct.Field {
-      onGrid        = grid,
-      numComponents = 3,
-      ghost         = {1, 1},
-   }
-   if speciesRank==0 then field0:clear(0.3) end
-   if speciesRank==1 then field1:clear(1.5) end
-
    local speciesComm_sz = Mpi.Comm_size(speciesComm)
    local num_devices, _ = cuda.GetDeviceCount() 
    local local_rank = speciesRank % num_devices
@@ -354,6 +335,24 @@ function test_4(comm)
    -- Initializing NCCL.
    local devComm = Nccl.Comm()
    local _ = Nccl.CommInitRank(devComm, speciesComm_sz, ncclId, speciesRank)
+
+   local decomp = DecompRegionCalc.CartProd { cuts = {numCutsConf}, comm = confComm }
+   local grid = Grid.RectCart {
+      lower = {0.0},  cells = {12},
+      upper = {1.0},  decomposition = decomp,
+   }
+   local field0 = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 3,
+      ghost         = {1, 1},
+   }
+   local field1 = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 3,
+      ghost         = {1, 1},
+   }
+   if speciesRank==0 then field0:clear(0.3) end
+   if speciesRank==1 then field1:clear(1.5) end
 
    -- Communicate data from rank 0 to rank 1.
    if speciesRank == 0 then
@@ -387,6 +386,113 @@ function test_4(comm)
 end
 
 function test_5(comm)
+   -- ncclSend and ncclRecv a whole CartField with a nonblocking communicator.
+
+   local defaultCommSize = 2
+   local comm_sz = Mpi.Comm_size(comm)
+   if comm_sz ~= defaultCommSize then
+      log(string.format("Not running test_4 as numProcs not exactly %d",defaultCommSize))
+      return
+   end
+
+   local worldRank = Mpi.Comm_rank(Mpi.COMM_WORLD)
+   local numCutsConf = 1
+
+   local confColor = math.floor(worldRank/numCutsConf)
+   local confComm  = Mpi.Comm_split(Mpi.COMM_WORLD, confColor, worldRank)
+   local speciesColor = worldRank % numCutsConf
+   local speciesComm  = Mpi.Comm_split(Mpi.COMM_WORLD, speciesColor, worldRank)
+   local confRank = Mpi.Comm_rank(confComm)
+   local speciesRank = Mpi.Comm_rank(speciesComm)
+
+   local rank = numCutsConf==1 and speciesRank or confRank
+   local comm = numCutsConf==1 and speciesComm or confComm
+
+   local speciesComm_sz = Mpi.Comm_size(speciesComm)
+   local num_devices, _ = cuda.GetDeviceCount() 
+   local local_rank = speciesRank % num_devices
+
+   -- Picking a GPU based on localRank, allocate device buffers.
+   local err = cuda.SetDevice(local_rank)
+
+   -- Get NCCL unique ID at rank 0 and broadcast it to all others.
+   local ncclId = Nccl.UniqueId()
+   if speciesRank == 0 then
+      local _ = Nccl.GetUniqueId(ncclId)
+   end
+   Mpi.Bcast(ncclId, sizeof(ncclId), Mpi.BYTE, 0, speciesComm)
+
+   -- Create a new CUDA stream (needed by NCCL).
+   local custream = cuda.StreamCreate()
+
+   -- Initializing NCCL.
+   local commConfig = Nccl.Config()
+--   commConfig[0].blocking = 1;   -- Standard comm.
+   commConfig[0].blocking = 0;   -- Nonblocking comm.
+   local devComm = Nccl.Comm()
+   local devResult = Nccl.Result()
+   local _ = Nccl.CommInitRankConfig(devComm, speciesComm_sz, ncclId, speciesRank, commConfig)
+   if commConfig[0].blocking == 0 then
+      local _ = Nccl.CommGetAsyncError(devComm, devResult)
+      while (devResult[0] == Nccl.InProgress) do
+         local _ = Nccl.CommGetAsyncError(devComm, devResult)
+      end
+   end
+
+   local decomp = DecompRegionCalc.CartProd { cuts = {numCutsConf}, comm = confComm }
+   local grid = Grid.RectCart {
+      lower = {0.0},  cells = {12},
+      upper = {1.0},  decomposition = decomp,
+   }
+   local field0 = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 3,
+      ghost         = {1, 1},
+   }
+   local field1 = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 3,
+      ghost         = {1, 1},
+   }
+   if speciesRank==0 then field0:clear(0.3) end
+   if speciesRank==1 then field1:clear(1.5) end
+
+   -- Communicate data from rank 0 to rank 1.
+   local gErr = Nccl.GroupStart()
+   if speciesRank == 0 then
+      local err = Nccl.Recv(field1:deviceDataPointer(), field1:size(), Nccl.Double, 1, devComm, custream)
+      local err = Nccl.Send(field0:deviceDataPointer(), field0:size(), Nccl.Double, 1, devComm, custream)
+   end
+   if speciesRank == 1 then
+      local err = Nccl.Send(field1:deviceDataPointer(), field1:size(), Nccl.Double, 0, devComm, custream)
+      local err = Nccl.Recv(field0:deviceDataPointer(), field0:size(), Nccl.Double, 0, devComm, custream)
+   end
+   local gErr = Nccl.GroupEnd()
+   local _ = Nccl.CommGetAsyncError(devComm, devResult)
+   while (devResult[0] == Nccl.InProgress) do
+      local _ = Nccl.CommGetAsyncError(devComm, devResult)
+   end
+   local _ = cuda.StreamSynchronize(custream)
+
+   -- Copy data to host and check results.
+   field1:copyDeviceToHost()
+   field0:copyDeviceToHost()
+
+   local field = speciesRank==0 and field1 or field0
+   local value = speciesRank==0 and 1.5 or 0.3
+   local localRange = field:localRange()
+   local indexer = field:indexer()
+   for i = localRange:lower(1), localRange:upper(1) do
+      local fitr = field:get(indexer(i))
+      assert_equal(value, fitr[1], "test_5: Checking field value")
+      assert_equal(value, fitr[2], "test_5: Checking field value")
+      assert_equal(value, fitr[3], "test_5: Checking field value")
+   end
+
+   Mpi.Barrier(comm)
+end
+
+function test_6(comm)
    -- ncclAllReduce a whole CartField, and create Nccl multiple communicators.
    -- Multiple communicator creation appears to require distinct unique IDs,
    -- and although there may be multiple communicators one should not initiate
@@ -485,6 +591,7 @@ test_2(Mpi.COMM_WORLD)
 test_3(Mpi.COMM_WORLD)
 test_4(Mpi.COMM_WORLD)
 test_5(Mpi.COMM_WORLD)
+test_6(Mpi.COMM_WORLD)
 
 
 function allReduceOneInt(localv)
