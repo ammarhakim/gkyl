@@ -1,23 +1,22 @@
 #!/bin/bash
 
 # Edit the paths and options in the following command to suit your system
-module load PrgEnv-gnu/8.3.3
-module load cray-mpich/8.1.22
 module load python/3.9-anaconda-2021.11
-module load cudatoolkit/11.7
-module load nccl/2.15.5-ofi
+module load openmpi/5.0.0rc12
+module load cudatoolkit/12.0
+module load nccl/2.18.3-cu12
 module unload darshan
 
 # Build directory
 OUT=build
 # Install location
-GKYLSOFT=$HOME/gkylsoft
+GKYLSOFT=$HOME/perlmutter/gkeyll/code/gpu/gkylsoft
 
 # Compile flags (set optimization/debug flags here)
 CC=cc
 CXX=CC
-MPICC=cc
-MPICXX=CC
+MPICC=mpicc
+MPICXX=mpicxx
 CXXFLAGS='-O3,-std=c++17'
 
 # LuaJIT options
@@ -27,8 +26,8 @@ LUAJIT_SHARE_DIR=$GKYLSOFT/luajit/share/luajit-2.1.0-beta3
 
 ## MPI options
 ENABLE_MPI="--enable-mpi"
-MPI_INC_DIR=
-MPI_LIB_DIR=
+MPI_INC_DIR=$MPI_ROOT/include
+MPI_LIB_DIR=$MPI_ROOT/lib
 MPI_LINK_LIBS="mpi" #"mpich"
 
 # ADIOS options
