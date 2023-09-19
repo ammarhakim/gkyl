@@ -155,15 +155,15 @@ function BCsBase:getGhostRange(global, globalExt)
    end
    return Range.Range(lv, uv)
 end
-function BCsBase:evalOnBoundary(inFld)
+function BCsBase:evalOnBoundary(inFld, outFld)
    -- Evaluate inFld on the boundary grid and copy it to the boundary field buffer.
-   self.boundaryField:copyRangeToRange(inFld, self.boundaryField:localRange(), self.myGlobalGhostRange)
-   return self.boundaryField
+   outFld:copyRangeToRange(inFld, outFld:localRange(), self.myGlobalGhostRange)
+   return outFld
 end
-function BCsBase:evalOnConfBoundary(inFld)
+function BCsBase:evalOnConfBoundary(inFld, outFld)
    -- For kinetic species this method evaluates inFld on the confBoundary grid.
-   self.confBoundaryField:copyRangeToRange(inFld, self.confBoundaryField:localRange(), self.myGlobalConfGhostRange)
-   return self.confBoundaryField
+   outFld:copyRangeToRange(inFld, outFld:localRange(), self.myGlobalConfGhostRange)
+   return outFld
 end
 
 return BCsBase

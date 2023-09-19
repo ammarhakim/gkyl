@@ -36,15 +36,11 @@ local GkSpecies = Proto(SpeciesBase)
 -- ............. Backwards compatible treatment of BCs .....................--
 -- Add constants to object indicate various supported boundary conditions.
 local SP_BC_ABSORB   = 1
-local SP_BC_OPEN     = 2
 local SP_BC_REFLECT  = 3
-local SP_BC_SHEATH   = 4
 local SP_BC_ZEROFLUX = 5
 local SP_BC_COPY     = 6
 GkSpecies.bcAbsorb   = SP_BC_ABSORB      -- Absorb all particles.
-GkSpecies.bcOpen     = SP_BC_OPEN        -- Zero gradient.
 GkSpecies.bcReflect  = SP_BC_REFLECT     -- Specular reflection.
-GkSpecies.bcSheath   = SP_BC_SHEATH      -- Sheath.
 GkSpecies.bcZeroFlux = SP_BC_ZEROFLUX    -- Zero flux.
 GkSpecies.bcCopy     = SP_BC_COPY        -- Copy stuff.
 
@@ -58,16 +54,9 @@ function GkSpecies:makeBcApp(bcIn, dir, edge)
    elseif bcIn == SP_BC_ABSORB then
       print("GkSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
       bcOut = BasicBC{kind="absorb", diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_OPEN then
-      print("GkSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
-      -- AHH: open seems unstable. So using plain copy.
-      bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
    elseif bcIn == SP_BC_REFLECT then
       print("GkSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
       bcOut = BasicBC{kind="reflect", diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_SHEATH then
-      print("GkSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
-      bcOut = BasicBC{kind="sheath", diagnostics={}, saveFlux=false}
    elseif bcIn == SP_BC_ZEROFLUX or bcIn.tbl.kind=="zeroFlux" then
       bcOut = "zeroFlux"
       table.insert(self.zeroFluxDirections, dir)
@@ -549,7 +538,7 @@ function GkSpecies:createSolver(field, externalField)
 
    self.hasSheathBCs = false
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
-      self.hasSheathBCs = self.hasSheathBCs or (bc.bcKind=="sheath" and true or false)
+      self.hasSheathBCs = self.hasSheathBCs or (bc.phiWallFld and true or false)
    end
 
    -- Create updater to advance solution by one time-step.
@@ -758,6 +747,13 @@ function GkSpecies:createCouplingSolver(population, field, externalField)
       bmagMid = bmagFunc(0.0, xMid)
    end
    self.vtSqMinSupported = vtSqMinCalc(self.mass,self.grid,self.cdim,self.vdim,bmagMid)
+
+   -- For initial conditions where the ICs of one species depends on another species.
+   for nm, pr in lume.orderedIter(self.projections) do
+      if string.find(nm,"init") then
+         pr:createCouplingSolver(species, field, externalField)
+      end
+   end
 
    -- Create cross collision solvers.
    for _, c in lume.orderedIter(self.collisions) do c:createCouplingSolver(population, field, externalField) end
