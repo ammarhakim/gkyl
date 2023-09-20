@@ -126,8 +126,25 @@ parser.add_argument(
     type=int,
     help=("number of cells in z direction"),
 )
+parser.add_argument(
+    "--decompCuts",
+    "--nprocs",
+    default=None,
+    type=int,
+    nargs=3,
+    metavar="NPROCS",
+    help=("number of processors in x, y, and z directions"),
+)
+
 
 args = parser.parse_args()
+
+if args.decompCuts is None:
+    args.decompCuts = "nil"
+elif isinstance(args.decompCuts, list):
+    args.decompCuts = ", ".join([str(c) for c in args.decompCuts])
+else:
+    raise ValueError(f"can't process nprocs (decompCuts) {args.decompCuts}")
 
 print(f"\n{args}\n")
 
@@ -198,7 +215,7 @@ local zlo, zup, Nz = {zlo_R0} * R0, {zup_R0} * R0, {Nz}
 local lower = {{xlo, ylo, zlo}}
 local upper = {{xup, yup, zup}}
 local cells = {{Nx, Ny, Nz}}
-local decompCuts = nil  -- {{nProcessorsX, nProcessosY, nProcessorsZ}}
+local decompCuts = {decompCuts}  -- {{nProcessorsX, nProcessosY, nProcessorsZ}}
 local useNonUniformGrid = true
 -- Using two tanh functions to rampd down and up the grid sizes (U-shape).
 -- xl, wxl: Floor and transition-layer width of the left tanh (ramping down dx.)
