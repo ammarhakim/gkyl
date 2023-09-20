@@ -215,7 +215,7 @@ local zlo, zup, Nz = {zlo_R0} * R0, {zup_R0} * R0, {Nz}
 local lower = {{xlo, ylo, zlo}}
 local upper = {{xup, yup, zup}}
 local cells = {{Nx, Ny, Nz}}
-local decompCuts = {decompCuts}  -- {{nProcessorsX, nProcessosY, nProcessorsZ}}
+local decompCuts = {{{decompCuts}}}  -- {{nProcessorsX, nProcessosY, nProcessorsZ}}
 local useNonUniformGrid = true
 -- Using two tanh functions to rampd down and up the grid sizes (U-shape).
 -- xl, wxl: Floor and transition-layer width of the left tanh (ramping down dx.)
