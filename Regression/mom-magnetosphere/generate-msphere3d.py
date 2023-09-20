@@ -9,6 +9,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument("filename", help="name of the gkyl lua input file to be generated")
 parser.add_argument(
     "--speed_of_light_factor",
+    "--speed_of_light",
+    "--c",
     default=100.0,
     type=float,
     help="lightSpeed = Consts.SPEED_OF_LIGHT / speed_of_light_factorx}",
@@ -129,6 +131,7 @@ parser.add_argument(
 parser.add_argument(
     "--decompCuts",
     "--nprocs",
+    "--nProcs",
     default=None,
     type=int,
     nargs=3,
