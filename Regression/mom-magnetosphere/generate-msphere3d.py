@@ -1,4 +1,137 @@
+import argparse
 
+parser = argparse.ArgumentParser(
+    description=(
+        "Generate gkyl input file of the 3d 10-moment simulation of Ganymede's "
+        "magnetosphere."
+    )
+)
+parser.add_argument("filename", help="name of the gkyl lua input file to be generated")
+parser.add_argument(
+    "--speed_of_light_factor",
+    default=100.0,
+    type=float,
+    help="lightSpeed = Consts.SPEED_OF_LIGHT / speed_of_light_factorx}",
+)
+parser.add_argument(
+    "--ion_to_electron_mass_ratio",
+    "--mass_ratio",
+    default=25.0,
+    type=float,
+    help="electron mass me = mi / ion_to_electron_mass_ratio",
+)
+parser.add_argument(
+    "--rho_in_amu_cm3",
+    "--rho_in",
+    default=56.0,
+    type=float,
+    help=(
+        "upstream inflow plasma density [amu/cm^3]; rho_in = {rho_in_amu_cm3} * 1e6 "
+        "* PROTON_MASS"
+    ),
+)
+parser.add_argument(
+    "--vx_in",
+    default=140e3,
+    type=float,
+    help=("upstream inflow plasma velocity, x component [m/s]"),
+)
+parser.add_argument(
+    "--vy_in",
+    default=0,
+    type=float,
+    help=("upstream inflow plasma velocity, y component [m/s]"),
+)
+parser.add_argument(
+    "--vz_in",
+    default=0,
+    type=float,
+    help=("upstream inflow plasma velocity, z component [m/s]"),
+)
+parser.add_argument(
+    "--p_in",
+    default=3.8e-9,
+    type=float,
+    help=("upstream inflow plasma pressure [Pa]"),
+)
+parser.add_argument(
+    "--Bx_in",
+    default=0,
+    type=float,
+    help=("upstream inflow B field, x component [T]"),
+)
+parser.add_argument(
+    "--By_in",
+    default=-6e-9,
+    type=float,
+    help=("upstream inflow B field, y component [T]"),
+)
+parser.add_argument(
+    "--Bz_in",
+    default=-77e-9,
+    type=float,
+    help=("upstream inflow B field, z component [T]"),
+)
+parser.add_argument(
+    "--xlo_R0",
+    default=-24,
+    type=float,
+    help=("domain bound, x direction, lower side, in units of planet/moon radius R0"),
+)
+parser.add_argument(
+    "--xup_R0",
+    default=24,
+    type=float,
+    help=("domain bound, x direction, upper side, in units of planet/moon radius R0"),
+)
+parser.add_argument(
+    "--ylo_R0",
+    default=-24,
+    type=float,
+    help=("domain bound, y direction, lower side, in units of planet/moon radius R0"),
+)
+parser.add_argument(
+    "--yup_R0",
+    default=24,
+    type=float,
+    help=("domain bound, y direction, upper side, in units of planet/moon radius R0"),
+)
+parser.add_argument(
+    "--zlo_R0",
+    default=-24,
+    type=float,
+    help=("domain bound, z direction, lower side, in units of planet/moon radius R0"),
+)
+parser.add_argument(
+    "--zup_R0",
+    default=24,
+    type=float,
+    help=("domain bound, z direction, upper side, in units of planet/moon radius R0"),
+)
+parser.add_argument(
+    "--Nx",
+    default=96,
+    type=int,
+    help=("number of cells in x direction"),
+)
+parser.add_argument(
+    "--Ny",
+    default=96,
+    type=int,
+    help=("number of cells in y direction"),
+)
+parser.add_argument(
+    "--Nz",
+    default=96,
+    type=int,
+    help=("number of cells in z direction"),
+)
+
+args = parser.parse_args()
+
+print(f"\n{args}\n")
+
+input_str = """
 -----------------------------------------------------------------
 -- Two-fluid modeling of mangetosphere-solar wind interaction. --
 -----------------------------------------------------------------
@@ -17,7 +150,7 @@ local Logger = require "Logger"
 ----------------
 local gasGamma = 5 / 3
 local mu0 = Consts.MU0
-local lightSpeed = Consts.SPEED_OF_LIGHT / 100.0
+local lightSpeed = Consts.SPEED_OF_LIGHT / {speed_of_light_factor}
 local epsilon0 = 1 / mu0 / (lightSpeed ^ 2)
 
 local R0 = 2634.1e3 -- Planet radius.
@@ -31,15 +164,15 @@ local rInnerBoundary = R0 -- Radius of the inner boundary.
 
 -- Inflow conditions.
 -- Inflow plasma density, velocity, and pressure.
-local rho_in = 56.0 * 1e6 * Consts.PROTON_MASS
-local vx_in = 140000.0
-local vy_in = 0
-local vz_in = 0
-local p_in = 3.8e-09
+local rho_in = {rho_in_amu_cm3} * 1e6 * Consts.PROTON_MASS
+local vx_in = {vx_in}
+local vy_in = {vy_in}
+local vz_in = {vz_in}
+local p_in = {p_in}
 -- Inflow magnetic field.
-local Bx_in = 0
-local By_in = -6e-09
-local Bz_in = -7.7e-08
+local Bx_in = {Bx_in}
+local By_in = {By_in}
+local Bz_in = {Bz_in}
 
 -- Mirror-dipole (mirdip) setup.
 local mirdip_rRamp1 = 2 * R0
@@ -50,7 +183,7 @@ local mirdip_xMirror = -2.578125 * R0
 -- Kinetic (non-MHD) parameters.
 local mi = 14 * Consts.PROTON_MASS  -- Ion mass.
 local di_in = 0.2 * R0  -- Ion inertial length based on inflow conditions.
-local mi__me = 25.0  -- Ion-to-electron mass ratio.
+local mi__me = {ion_to_electron_mass_ratio}  -- Ion-to-electron mass ratio.
 local pi__pe = 5  -- Ion-to-electron pressure ratio.
 local me = mi / mi__me  -- electron mass.
 local qi = mi / di_in / math.sqrt(mu0 * rho_in)  -- Ion charge.
@@ -58,14 +191,14 @@ local qe = -qi  -- Electron charge.
 local de_in = di_in * math.sqrt(me / mi)  -- Electron inertial length.
 
 -- Domain.
-local xlo, xup, Nx = -24 * R0, 24 * R0, 96
-local ylo, yup, Ny = -24 * R0, 24 * R0, 96
-local zlo, zup, Nz = -24 * R0, 24 * R0, 96
+local xlo, xup, Nx = {xlo_R0} * R0, {xup_R0} * R0, {Nx}
+local ylo, yup, Ny = {ylo_R0} * R0, {yup_R0} * R0, {Ny}
+local zlo, zup, Nz = {zlo_R0} * R0, {zup_R0} * R0, {Nz}
 -- Grid.
-local lower = {xlo, ylo, zlo}
-local upper = {xup, yup, zup}
-local cells = {Nx, Ny, Nz}
-local decompCuts = nil  -- {nProcessorsX, nProcessosY, nProcessorsZ}
+local lower = {{xlo, ylo, zlo}}
+local upper = {{xup, yup, zup}}
+local cells = {{Nx, Ny, Nz}}
+local decompCuts = nil  -- {{nProcessorsX, nProcessosY, nProcessorsZ}}
 local useNonUniformGrid = true
 -- Using two tanh functions to rampd down and up the grid sizes (U-shape).
 -- xl, wxl: Floor and transition-layer width of the left tanh (ramping down dx.)
@@ -125,8 +258,8 @@ local vA_in = B_in / math.sqrt(mu0 * rho_in)
 local pmag_in = B_in ^ 2 / 2 / mu0
 local beta_in = p_in / pmag_in
 
-local logger = Logger {logToFile = True}
-local log = function(...) logger(string.format(...).."\n") end
+local logger = Logger {{logToFile = True}}
+local log = function(...) logger(string.format(...).."\\n") end
 
 log("%30s = %g", "lightSpeed [km/s]", lightSpeed / 1e3)
 log("%30s = %g, %g, %g", "Dipole strength [nT]", Dx / R0 ^ 3 / 1e-9,
@@ -245,7 +378,7 @@ local function initElc(t, xc)
    local vx, vy, vz = initV(x, y, z)
    local p = initP(x, y, z) / (1 + pi__pe)
 
-   local q = {}
+   local q = {{}}
    rho_v_p_to_10m(q, rho, vx, vy, vz, p)
 
    return unpack(q)
@@ -258,7 +391,7 @@ local function initIon(t, xc)
    local vx, vy, vz = initV(x, y, z)
    local p = initP(x, y, z) * pi__pe / (1 + pi__pe)
 
-   local q = {}
+   local q = {{}}
    rho_v_p_to_10m(q, rho, vx, vy, vz, p)
 
    return unpack(q)
@@ -336,13 +469,13 @@ if useNonUniformGrid then
    --    grid size on the computational grid.
    local get_comput2phys = function(xlo, Lx, Nx, _x2dx)
       -- Node-center computational coordinates.
-      local xnComput = {0}
+      local xnComput = {{0}}
       for i = 2, Nx + 1 do
          xnComput[i] = xnComput[i - 1] + _x2dx((i - 0.5) / Nx)
       end
 
       -- Node-center physical coordinates.
-      local xnPhys = {}
+      local xnPhys = {{}}
       for i = 1, Nx + 1 do
          xnPhys[i] = xlo + xnComput[i] * Lx / xnComput[Nx + 1]
       end
@@ -356,12 +489,12 @@ if useNonUniformGrid then
       end
    end
 
-   coordinateMap = {
+   coordinateMap = {{
       get_comput2phys(xlo, Lx, Nx, _x2dx), get_comput2phys(ylo, Ly, Ny, _y2dy),
       get_comput2phys(zlo, Lz, Nz, _z2dz)
-   }
-   lower = {0, 0, 0}
-   upper = {1, 1, 1}
+   }}
+   lower = {{0, 0, 0}}
+   upper = {{1, 1, 1}}
 end
 
 -------------------------
@@ -376,7 +509,7 @@ local bcInflow_ion = TenMoment.bcConst(rhoi_in, rhovxi_in, rhovyi_in, rhovzi_in,
                                        Pxxi_in, Pxyi_in, Pxzi_in, Pyyi_in,
                                        Pyzi_in, Pzzi_in)
 
-local bcInflow_field = {
+local bcInflow_field = {{
    function(dir, tm, idxSkin, qSkin, qGhost, xcGhost, xcSkin)
       qGhost[1] = Ex_in
       qGhost[2] = Ey_in
@@ -393,22 +526,22 @@ local bcInflow_field = {
       qGhost[7] = qSkin[7]
       qGhost[8] = qSkin[8]
    end
-}
+}}
 
 -- Boundary conditions applied at the embedded inner boundary.
-local bcInner_elc = {
+local bcInner_elc = {{
    function(dir, tm, idxSkin, qSkin, qGhost, xcGhost, xcSkin)
       rho_v_p_to_10m(qGhost, rhoe_in, 0, 0, 0, pe_in)
    end
-}
+}}
 
-local bcInner_ion = {
+local bcInner_ion = {{
    function(dir, tm, idxSkin, qSkin, qGhost, xcGhost, xcSkin)
       rho_v_p_to_10m(qGhost, rhoi_in, 0, 0, 0, pi_in)
    end
-}
+}}
 
-local bcInner_field = {
+local bcInner_field = {{
    function(dir, tm, idxSkin, qSkin, qGhost, xcGhost, xcSkin)
       qGhost[1] = 0
       qGhost[2] = 0
@@ -421,12 +554,12 @@ local bcInner_field = {
       qGhost[7] = qSkin[7]
       qGhost[8] = qSkin[8]
    end
-}
+}}
 
 ------------------
 -- APP CREATION --
 ------------------
-local momentApp = Moments.App {
+local momentApp = Moments.App {{
    logToFile = true,
 
    tEnd = tEnd,
@@ -441,70 +574,76 @@ local momentApp = Moments.App {
    suggestedDt = suggestedDt,
    maximumDt = maximumDt,
 
-   elc = Moments.Species {
+   elc = Moments.Species {{
       charge = qe,
       mass = me,
-      equation = TenMoment {},
-      equationInv = TenMoment {numericalFlux = "lax"},
+      equation = TenMoment {{}},
+      equationInv = TenMoment {{numericalFlux = "lax"}},
       limiter = limiter,
       init = initElc,
-      bcx = {bcInflow_elc, Moments.Species.bcCopy},
-      bcy = {Moments.Species.bcCopy, Moments.Species.bcCopy},
-      bcz = {Moments.Species.bcCopy, Moments.Species.bcCopy},
+      bcx = {{bcInflow_elc, Moments.Species.bcCopy}},
+      bcy = {{Moments.Species.bcCopy, Moments.Species.bcCopy}},
+      bcz = {{Moments.Species.bcCopy, Moments.Species.bcCopy}},
       hasSsBnd = true,
       inOutFunc = inOutFunc,
-      ssBc = {bcInner_elc}
-   },
+      ssBc = {{bcInner_elc}}
+   }},
 
-   ion = Moments.Species {
+   ion = Moments.Species {{
       charge = qi,
       mass = mi,
-      equation = TenMoment {},
-      equationInv = TenMoment {numericalFlux = "lax"},
+      equation = TenMoment {{}},
+      equationInv = TenMoment {{numericalFlux = "lax"}},
       limiter = limiter,
       init = initIon,
-      bcx = {bcInflow_ion, Moments.Species.bcCopy},
-      bcy = {Moments.Species.bcCopy, Moments.Species.bcCopy},
-      bcz = {Moments.Species.bcCopy, Moments.Species.bcCopy},
+      bcx = {{bcInflow_ion, Moments.Species.bcCopy}},
+      bcy = {{Moments.Species.bcCopy, Moments.Species.bcCopy}},
+      bcz = {{Moments.Species.bcCopy, Moments.Species.bcCopy}},
       hasSsBnd = true,
       inOutFunc = inOutFunc,
-      ssBc = {bcInner_ion}
-   },
+      ssBc = {{bcInner_ion}}
+   }},
 
-   field = Moments.Field {
+   field = Moments.Field {{
       epsilon0 = epsilon0,
       mu0 = mu0,
       limiter = limiter,
       init = initField,
-      bcx = {bcInflow_field, Moments.Field.bcCopy},
-      bcy = {Moments.Field.bcCopy, Moments.Field.bcCopy},
-      bcz = {Moments.Field.bcCopy, Moments.Field.bcCopy},
+      bcx = {{bcInflow_field, Moments.Field.bcCopy}},
+      bcy = {{Moments.Field.bcCopy, Moments.Field.bcCopy}},
+      bcz = {{Moments.Field.bcCopy, Moments.Field.bcCopy}},
       hasSsBnd = true,
       inOutFunc = inOutFunc,
-      ssBc = {bcInner_field}
-   },
+      ssBc = {{bcInner_field}}
+   }},
 
-   emSource = Moments.CollisionlessEmSource {
-      species = {"elc", "ion"},
+   emSource = Moments.CollisionlessEmSource {{
+      species = {{"elc", "ion"}},
       timeStepper = "direct",
       hasStaticField = true,
       staticEmFunction = staticEmFunction
-   },
+   }},
 
-   elc10mRelax = Moments.TenMomentRelaxSource {
-      species = {"elc"},
+   elc10mRelax = Moments.TenMomentRelaxSource {{
+      species = {{"elc"}},
       timeStepper = "explicit",
       k = 1/de_in,
-   },
+   }},
 
-   ion10mRelax = Moments.TenMomentRelaxSource {
-      species = {"ion"},
+   ion10mRelax = Moments.TenMomentRelaxSource {{
+      species = {{"ion"}},
       timeStepper = "explicit",
       k = 1/de_in,
-   },
-}
+   }},
+}}
 
 ---------
 -- RUN --
 ---------
 momentApp:run()
+""".format(
+    **vars(args)
+)
+
+with open(args.filename, "w") as script_file:
+    script_file.write(input_str)
