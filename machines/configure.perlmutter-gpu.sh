@@ -1,19 +1,22 @@
 #!/bin/bash
 
 # Edit the paths and options in the following command to suit your system
-module load gcc/8
+module load python/3.9-anaconda-2021.11
+module load openmpi/5.0.0rc12
 module load cudatoolkit/12.0
-module load openmpi/cuda-11.1/gcc/4.1.1
-module load anaconda3/2020.11
+module load nccl/2.18.3-cu12
+module unload darshan
 
 # Build directory
 OUT=build
 # Install location
-GKYLSOFT=$HOME/gkylsoft-amd
+GKYLSOFT=$HOME/perlmutter/gkeyll/code/gpu/gkylsoft
 
 # Compile flags (set optimization/debug flags here)
-CC=mpicc
-CXX=mpicxx
+CC=cc
+CXX=CC
+MPICC=mpicc
+MPICXX=mpicxx
 CXXFLAGS='-O3,-std=c++17'
 
 # LuaJIT options
@@ -22,12 +25,10 @@ LUAJIT_LIB_DIR=$GKYLSOFT/luajit/lib
 LUAJIT_SHARE_DIR=$GKYLSOFT/luajit/share/luajit-2.1.0-beta3
 
 ## MPI options
-MPICC=mpicc
-MPICXX=mpicxx
 ENABLE_MPI="--enable-mpi"
-MPI_INC_DIR=$MPI_HOME/include
-MPI_LIB_DIR=$MPI_HOME/lib64
-MPI_LINK_LIBS="mpi"
+MPI_INC_DIR=$MPI_ROOT/include
+MPI_LIB_DIR=$MPI_ROOT/lib
+MPI_LINK_LIBS="mpi" #"mpich"
 
 # ADIOS options
 ENABLE_ADIOS="--enable-adios" # set to blank to disable ADIOS
@@ -49,13 +50,13 @@ GKYLZERO_LIB_DIR=$GKYLSOFT/gkylzero/lib
 # CUDA options
 ENABLE_CUDA="--enable-cuda"
 CUTOOLS_INC_DIR=$CPATH
-CUTOOLS_LIB_DIR=$LIBRARY_PATH
+CUTOOLS_LIB_DIR=$LD_LIBRARY_PATH
 CUTOOLS_LINK_LIBS="cudart"
 
 # NCCL
 ENABLE_NCCL="--enable-nccl"
-NCCL_INC_DIR=/usr/include
-NCCL_LIB_DIR=/usr/lib64
+NCCL_INC_DIR=$NCCL_DIR/include
+NCCL_LIB_DIR=$NCCL_DIR/lib
 NCCL_LINK_LIBS="nccl"
 
 # You probably do not need to modify the command itself

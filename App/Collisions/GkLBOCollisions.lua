@@ -61,9 +61,9 @@ function GkLBOCollisions:fullInit(speciesTbl)
       self.calcSelfNu = function(momsIn, nuOut) GkLBOCollisions['calcSelfNuTimeConst'](self,momsIn,nuOut) end
       self.calcCrossNu = self.crossCollisions
          and function(otherNm, qOther, mOther, momsOther,
-                      primMomsOther, nuCrossSelf, nuCrossOther)
+                      primMomsOther, vtSqMinOther, nuCrossSelf, nuCrossOther)
             GkLBOCollisions['calcCrossNuTimeConst'](self, otherNm, qOther,
-              mOther, momsOther, primMomsOther, nuCrossSelf, nuCrossOther)
+              mOther, momsOther, primMomsOther, vtSqMinOther, nuCrossSelf, nuCrossOther)
          end
          or nil
 
@@ -89,9 +89,9 @@ function GkLBOCollisions:fullInit(speciesTbl)
       self.calcSelfNu = function(momsIn, nuOut) GkLBOCollisions['calcSelfNuTimeDep'](self,momsIn,nuOut) end
       self.calcCrossNu = self.crossCollisions
          and function(otherNm, qOther, mOther, momsOther,
-                      primMomsOther, nuCrossSelf, nuCrossOther)
+                      primMomsOther, vtSqMinOther, nuCrossSelf, nuCrossOther)
             GkLBOCollisions['calcCrossNuTimeDep'](self, otherNm, qOther,
-              mOther, momsOther, primMomsOther, nuCrossSelf, nuCrossOther)
+              mOther, momsOther, primMomsOther, vtSqMinOther, nuCrossSelf, nuCrossOther)
          end
          or nil
 
@@ -130,13 +130,12 @@ function GkLBOCollisions:fullInit(speciesTbl)
    self.timers = {mom = 0.,   momcross = 0.,   advance = 0.,}
 end
 
-function GkLBOCollisions:setName(nm) self.name = self.speciesName.."_"..nm end
-function GkLBOCollisions:setSpeciesName(nm) self.speciesName = nm end
-function GkLBOCollisions:setCfl(cfl) self.cfl = cfl end
-function GkLBOCollisions:setConfBasis(basis) self.confBasis = basis end
-function GkLBOCollisions:setConfGrid(grid) self.confGrid = grid end
-function GkLBOCollisions:setPhaseBasis(basis) self.phaseBasis = basis end
-function GkLBOCollisions:setPhaseGrid(grid) self.phaseGrid = grid end
+function GkLBOCollisions:setSpeciesName(nm)   self.speciesName = nm end
+function GkLBOCollisions:setName(nm)          self.name        = self.speciesName.."_"..nm end
+function GkLBOCollisions:setConfBasis(basis)  self.confBasis   = basis end
+function GkLBOCollisions:setConfGrid(grid)    self.confGrid    = grid end
+function GkLBOCollisions:setPhaseBasis(basis) self.phaseBasis  = basis end
+function GkLBOCollisions:setPhaseGrid(grid)   self.phaseGrid   = grid end
 
 function GkLBOCollisions:createSolver(mySpecies, externalField)
    local vDim = self.phaseGrid:ndim() - self.confGrid:ndim()
@@ -162,14 +161,15 @@ function GkLBOCollisions:createSolver(mySpecies, externalField)
       onGrid     = self.phaseGrid,   operator = "GkLBO",
       phaseBasis = self.phaseBasis,  vbounds  = vbounds,
       confBasis  = self.confBasis,   mass     = self.mass,
-      confRange = self.nuSelf:localRange(),
+      confRange  = self.nuSelf:localRange(),
    }
 
    local projectUserNu
    if self.timeDepNu then
-      self.m0Self    = mySpecies:allocMoment()  -- M0, to be extracted from fiveMoments.
-      self.vtSqSelf  = mySpecies:allocMoment()
-      self.vtSqOther = self.crossCollisions and mySpecies:allocMoment() or nil
+      self.m0Self      = mySpecies:allocMoment()  -- M0, to be extracted from fiveMoments.
+      self.vtSqSelf    = mySpecies:allocMoment()
+      self.vtSqMinSelf = mySpecies:vtSqMin()
+      self.vtSqOther   = self.crossCollisions and mySpecies:allocMoment() or nil
       -- Updater to compute spatially varying (Spitzer) nu.
       self.spitzerNu = Updater.SpitzerCollisionality {
          confBasis       = self.confBasis,  epsilon0 = self.epsilon0,
@@ -265,25 +265,28 @@ function GkLBOCollisions:createCouplingSolver(population, field, externalField)
          end
       end
 
+      local messenger = self.confGrid:getMessenger()
       -- Create list of ranks we need to send/recv local self primitive moments to/from.
       -- MF: We'll merge u and vtSq into a single CartField, and merge these two Xfer objects.
       self.primMomsSelfXfer = {}
       self.primMomsSelfXfer.destRank, self.primMomsSelfXfer.srcRank = {}, {}
-      self.primMomsSelfXfer.sendReqStat, self.primMomsSelfXfer.recvReqStat = nil, nil
+      self.primMomsSelfXfer.sendReqStat, self.primMomsSelfXfer.recvReqStat = {}, {}
       for _, sO in ipairs(self.crossSpecies) do
          local sOrank = population:getSpeciesOwner(sO)
          local selfRank = population:getSpeciesOwner(self.speciesName)
          if isThisSpeciesMine then
-            -- Only species owned by this rank send primMoms other ranks.
-            if #self.primMomsSelfXfer.destRank == 0 and (not population:isSpeciesMine(sO)) then
+            -- Only species owned by this rank send primMoms to other ranks.
+            if (not lume.any(self.primMomsSelfXfer.destRank, function(e) return e==sOrank end)) and
+               (not population:isSpeciesMine(sO)) then
                table.insert(self.primMomsSelfXfer.destRank, sOrank)
-               self.primMomsSelfXfer.sendReqStat = Mpi.RequestStatus()
+               table.insert(self.primMomsSelfXfer.sendReqStat, messenger:newRequestStatus())
             end
          else
             -- Only species not owned by this rank receive primMoms from other ranks.
-            if #self.primMomsSelfXfer.srcRank == 0 and (not population:isSpeciesMine(self.speciesName)) then
+            if (not lume.any(self.primMomsSelfXfer.srcRank, function(e) return e==selfRank end)) and
+               (not population:isSpeciesMine(self.speciesName)) then
                table.insert(self.primMomsSelfXfer.srcRank, selfRank)
-               self.primMomsSelfXfer.recvReqStat = Mpi.RequestStatus()
+               table.insert(self.primMomsSelfXfer.recvReqStat, messenger:newRequestStatus())
             end
          end
       end
@@ -336,16 +339,16 @@ function GkLBOCollisions:calcSelfNuTimeDep(momsSelf, nuOut)
    -- Compute the Spitzer collisionality.
    self.m0Self:combineOffset(1., momsSelf, 0)
    self.vtSqSelf:combineOffset(1., self.primMomsSelf, self.confBasis:numBasis())
-   self.spitzerNu:advance(tCurr, {self.charge, self.mass, self.m0Self, self.vtSqSelf,
-                                  self.charge, self.mass, self.m0Self, self.vtSqSelf,
+   self.spitzerNu:advance(tCurr, {self.charge, self.mass, self.m0Self, self.vtSqSelf, self.vtSqMinSelf,
+                                  self.charge, self.mass, self.m0Self, self.vtSqSelf, self.vtSqMinSelf,
                                   self.normNuSelf, self.bmag}, {nuOut})
 end
 
 function GkLBOCollisions:calcCrossNuTimeConst(otherNm, chargeOther,
-   mOther, momsOther, primMomsOther, nuCrossSelf, nuCrossOther) end
+   mOther, momsOther, primMomsOther, vtSqMinOther, nuCrossSelf, nuCrossOther) end
 
 function GkLBOCollisions:calcCrossNuTimeDep(otherNm, chargeOther,
-   mOther, momsOther, primMomsOther, nuCrossSelf, nuCrossOther)
+   mOther, momsOther, primMomsOther, vtSqMinOther, nuCrossSelf, nuCrossOther)
    -- Compute the Spitzer collisionality. There's some duplication here in which
    -- two species compute the same cross collision frequency, but that is simpler
    -- and better for species parallelization.
@@ -353,13 +356,13 @@ function GkLBOCollisions:calcCrossNuTimeDep(otherNm, chargeOther,
    self.vtSqOther:combineOffset(1., primMomsOther, self.confBasis:numBasis())
 
    local crossNormNuSelf = self.normNuCross[otherNm]
-   self.spitzerNu:advance(tCurr, {self.charge, self.mass, self.m0Self, self.vtSqSelf,
-                                  chargeOther, mOther, self.m0Other, self.vtSqOther, crossNormNuSelf, self.bmag},
+   self.spitzerNu:advance(tCurr, {self.charge, self.mass, self.m0Self, self.vtSqSelf, self.vtSqMinSelf,
+                                  chargeOther, mOther, self.m0Other, self.vtSqOther, vtSqMinOther, crossNormNuSelf, self.bmag},
                                  {nuCrossSelf})
 
    local crossNormNuOther = self.collAppOther[otherNm]:crossNormNu(self.speciesName)
-   self.spitzerNu:advance(tCurr, {chargeOther, mOther, self.m0Other, self.vtSqOther,
-                                  self.charge, self.mass, self.m0Self, self.vtSqSelf, crossNormNuOther, self.bmag},
+   self.spitzerNu:advance(tCurr, {chargeOther, mOther, self.m0Other, self.vtSqOther, vtSqMinOther,
+                                  self.charge, self.mass, self.m0Self, self.vtSqSelf, self.vtSqMinSelf, crossNormNuOther, self.bmag},
                                  {nuCrossOther})
 end
 
@@ -390,6 +393,7 @@ function GkLBOCollisions:advance(tCurr, fIn, population, out)
          local mOther        = species[otherNm]:getMass()
          local momsOther     = species[otherNm]:fluidMoments()
          local primMomsOther = self.collAppOther[otherNm]:selfPrimitiveMoments()
+         local vtSqMinOther  = species[otherNm]:vtSqMin()
 
          local nuCrossSelf  = self.nuCross[otherNm]
          local nuCrossOther = self.collAppOther[otherNm]:crossFrequencies(self.speciesName)
@@ -397,7 +401,7 @@ function GkLBOCollisions:advance(tCurr, fIn, population, out)
          -- Calculate time-dependent collision frequency if needed.
          local chargeOther = species[otherNm]:getCharge()
          self.calcCrossNu(otherNm, chargeOther, mOther, momsOther, primMomsOther,
-                          nuCrossSelf, nuCrossOther)
+                          vtSqMinOther, nuCrossSelf, nuCrossOther)
 
          -- Calculate cross primitive moments.
          self.primMomCross:advance(tCurr, {self.mass, nuCrossSelf, momsSelf, self.primMomsSelf, bCorrectionsSelf,

@@ -18,6 +18,8 @@ local CartFieldInterpolate = require "Updater.CartFieldInterpolate"
 local ChargeExchange = require "Updater.ChargeExchange"
 local ConfToPhase = require "Updater.ConfToPhase"
 local CrossPrimMoments = require "Updater.CrossPrimMoments"
+local VlasovDiffusion = require "Updater.VlasovDiffusion"
+local GyrokineticDiffusion = require "Updater.GyrokineticDiffusion"
 local DistFuncMomentDG = require "Updater.DistFuncMomentDG"
 local DiscontGenPoisson = require "Updater.DiscontGenPoisson"
 local DiscontPoisson = require "Updater.DiscontPoisson"
@@ -82,6 +84,8 @@ return {
    ChargeExchange = ChargeExchange,
    ConfToPhase = ConfToPhase,
    CrossPrimMoments = CrossPrimMoments,
+   VlasovDiffusion = VlasovDiffusion,
+   GyrokineticDiffusion = GyrokineticDiffusion,
    DistFuncMomentDG = DistFuncMomentDG,
    DiscontGenPoisson = DiscontGenPoisson,
    DiscontPoisson = DiscontPoisson,
