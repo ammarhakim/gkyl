@@ -241,8 +241,8 @@ local function buildApplication(self, tbl)
       s:setCfl(cflMin)
    end
 
-   local function completeFieldSetup(fld)
-      fld:fullInit(tbl) -- Complete initialization.
+   local function completeFieldSetup(fld, plasmaField)
+      fld:fullInit(tbl, field) -- Complete initialization.
       fld:setIoMethod(ioMethod)
       fld:setBasis(confBasis)
       fld:setGrid(confGrid)
@@ -269,7 +269,7 @@ local function buildApplication(self, tbl)
    for _, val in pairs(tbl) do
       if FieldBase.is(val) then
          field = val
-         completeFieldSetup(field)
+         completeFieldSetup(field, field)
          nfields = nfields + 1
       end
    end
@@ -282,7 +282,7 @@ local function buildApplication(self, tbl)
    for _, val in pairs(tbl) do
       if ExternalFieldBase.is(val) then
          externalField = val
-         completeFieldSetup(externalField)
+         completeFieldSetup(externalField, field)
          nfields = nfields + 1
       end
    end
