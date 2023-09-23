@@ -113,7 +113,7 @@ end
 function VlasovSpecies:createBasis(nm, polyOrder)
    self.basis = createBasis(nm, self.cdim, self.vdim, polyOrder)
    self.velBasis = createVelBasis(nm, self.vdim, polyOrder)
-   for _, c in pairs(self.collisions) do c:setPhaseBasis(self.basis) end
+   for _, c in lume.orderedIter(self.collisions) do c:setPhaseBasis(self.basis) end
 
    -- Output of grid file is placed here because as the file name is associated
    -- with a species, we wish to save the basisID and polyOrder in it. But these
@@ -342,22 +342,22 @@ end
 
 function VlasovSpecies:setCfl(cfl)
    self.cfl = cfl
-   for _, c in pairs(self.collisions) do c:setCfl(cfl) end
+   for _, c in lume.orderedIter(self.collisions) do c:setCfl(cfl) end
 end
 
 function VlasovSpecies:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 
 function VlasovSpecies:setConfBasis(basis)
    self.confBasis = basis
-   for _, c in pairs(self.collisions) do c:setConfBasis(basis) end
-   for _, src in pairs(self.sources) do src:setConfBasis(basis) end
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:setConfBasis(basis) end
+   for _, c in lume.orderedIter(self.collisions) do c:setConfBasis(basis) end
+   for _, src in lume.orderedIter(self.sources) do src:setConfBasis(basis) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:setConfBasis(basis) end
 end
 function VlasovSpecies:setConfGrid(grid)
    self.confGrid = grid
-   for _, c in pairs(self.collisions) do c:setConfGrid(grid) end
-   for _, src in pairs(self.sources) do src:setConfGrid(grid) end
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:setConfGrid(grid) end
+   for _, c in lume.orderedIter(self.collisions) do c:setConfGrid(grid) end
+   for _, src in lume.orderedIter(self.sources) do src:setConfGrid(grid) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:setConfGrid(grid) end
 end
 
 function VlasovSpecies:createGrid(confGridIn)
@@ -425,7 +425,7 @@ function VlasovSpecies:createGrid(confGridIn)
       messenger = confGrid:getMessenger(),
    }
 
-   for _, c in pairs(self.collisions) do c:setPhaseGrid(self.grid) end
+   for _, c in lume.orderedIter(self.collisions) do c:setPhaseGrid(self.grid) end
 
    -- Construct velocity space grid from phase space grid
    local dimsV = {}
@@ -528,7 +528,7 @@ function VlasovSpecies:createSolver(field, externalField)
    end
 
    -- Create solvers for collisions.
-   for _, c in pairs(self.collisions) do c:createSolver(self, externalField) end
+   for _, c in lume.orderedIter(self.collisions) do c:createSolver(self, externalField) end
 
    -- Create BC solvers.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self, field, externalField) end
@@ -855,7 +855,7 @@ function VlasovSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
 
    -- Perform the collision update.
    self.timers.collisions = 0.
-   for _, c in pairs(self.collisions) do
+   for _, c in lume.orderedIter(self.collisions) do
       c:advance(tCurr, fIn, population, {fRhsOut, self.cflRateByCell})   -- 'population' needed for cross-species collisions.
       self.timers.collisions = self.timers.collisions + c:getTimer('advance')
    end
@@ -889,7 +889,7 @@ function VlasovSpecies:advanceCrossSpeciesCoupling(tCurr, population, emIn, inId
       coll:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
    end
 
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
 
    for _, src in lume.orderedIter(self.sources) do src:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
 
@@ -932,7 +932,7 @@ end
 function VlasovSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
 
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:copyBoundaryFluxField(aIdx, outIdx) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:copyBoundaryFluxField(aIdx, outIdx) end
 
    if self.positivity then
       self.fDelPos[outIdx]:copy(self.fDelPos[aIdx])
@@ -947,7 +947,7 @@ function VlasovSpecies:combineRk(outIdx, a, aIdx, ...)
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end
 
-   for _, bc in pairs(self.nonPeriodicBCs) do
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
       bc:combineBoundaryFluxField(outIdx, a, aIdx, ...)
    end
 
@@ -1098,7 +1098,7 @@ function VlasovSpecies:write(tm, field, force)
          dOb:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.
       end
 
-      for _, bc in pairs(self.nonPeriodicBCs) do
+      for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
          bc:computeBoundaryFluxRate(self.dtGlobal[0])
       end
 
@@ -1211,7 +1211,7 @@ end
 function VlasovSpecies:clearTimers()
    for nm, _ in pairs(self.timers) do self.timers[nm] = 0. end
    self.solver.totalTime = 0.
-   for _, c in pairs(self.collisions) do c:clearTimers() end
+   for _, c in lume.orderedIter(self.collisions) do c:clearTimers() end
    for _, src in lume.orderedIter(self.sources) do src:clearTimers() end
 end
 

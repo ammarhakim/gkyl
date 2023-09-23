@@ -957,6 +957,7 @@ return {
 	 VmReflectBC = require ("App.BCs.VlasovBasic").VlasovReflect,
 	 BGKCollisions = require "App.Collisions.GkBGKCollisions",
 	 BgkCollisions = require "App.Collisions.GkBGKCollisions",
+	 Diffusion = require ("App.Collisions.Diffusion").DiffusionGyrokinetic,
 	 ChargeExchange = require "App.Collisions.GkChargeExchange",
 	 Field = require ("App.Field.GkField").GkField,
 	 AmbipolarSheathField = require "App.Field.AmbipolarSheathField",
@@ -1041,7 +1042,7 @@ return {
          LboCollisions = require "App.Collisions.VmLBOCollisions",
          ChargeExchange = require "App.Collisions.VmChargeExchange",
          Ionization = require "App.Collisions.VmIonization",
-         Diffusion = require "App.Collisions.Diffusion",
+	 Diffusion = require ("App.Collisions.Diffusion").DiffusionVlasov,
          SteadySource = require "App.Sources.VmSteadyStateSource",
          Source = require "App.Sources.VmSource",
       }
@@ -1066,10 +1067,10 @@ return {
       App.label = "Isothermal Euler"
       return {
         App = App,
-         BasicBC = require ("App.BCs.FluidBasic").FluidBasic,
-         AbsorbBC = require ("App.BCs.FluidBasic").FluidAbsorb,
-         CopyBC = require ("App.BCs.FluidBasic").FluidCopy,
-         ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
+        BasicBC = require ("App.BCs.FluidBasic").FluidBasic,
+        AbsorbBC = require ("App.BCs.FluidBasic").FluidAbsorb,
+        CopyBC = require ("App.BCs.FluidBasic").FluidCopy,
+        ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
         Species = require "App.Species.EulerSpecies",
       }
    end,

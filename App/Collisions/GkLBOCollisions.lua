@@ -130,13 +130,12 @@ function GkLBOCollisions:fullInit(speciesTbl)
    self.timers = {mom = 0.,   momcross = 0.,   advance = 0.,}
 end
 
-function GkLBOCollisions:setName(nm) self.name = self.speciesName.."_"..nm end
-function GkLBOCollisions:setSpeciesName(nm) self.speciesName = nm end
-function GkLBOCollisions:setCfl(cfl) self.cfl = cfl end
-function GkLBOCollisions:setConfBasis(basis) self.confBasis = basis end
-function GkLBOCollisions:setConfGrid(grid) self.confGrid = grid end
-function GkLBOCollisions:setPhaseBasis(basis) self.phaseBasis = basis end
-function GkLBOCollisions:setPhaseGrid(grid) self.phaseGrid = grid end
+function GkLBOCollisions:setSpeciesName(nm)   self.speciesName = nm end
+function GkLBOCollisions:setName(nm)          self.name        = self.speciesName.."_"..nm end
+function GkLBOCollisions:setConfBasis(basis)  self.confBasis   = basis end
+function GkLBOCollisions:setConfGrid(grid)    self.confGrid    = grid end
+function GkLBOCollisions:setPhaseBasis(basis) self.phaseBasis  = basis end
+function GkLBOCollisions:setPhaseGrid(grid)   self.phaseGrid   = grid end
 
 function GkLBOCollisions:createSolver(mySpecies, externalField)
    local vDim = self.phaseGrid:ndim() - self.confGrid:ndim()
