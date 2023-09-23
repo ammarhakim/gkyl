@@ -64,6 +64,7 @@ plasmaApp = Plasma.App {
    
    -- Decomposition for configuration space.
    decompCuts = {1},              -- Cuts in each configuration direction.
+   parallelizeSpecies = true,
 
    -- Boundary conditions for configuration space.
    periodicDirs = {1},            -- Periodic directions.
@@ -99,6 +100,7 @@ plasmaApp = Plasma.App {
       coll = Plasma.LBOCollisions {
          collideWith = { "elc", "ion" },
          frequencies = { nuElc, nuElcIon },
+--         normNu = { nuElc*((2.*vte^2)^(3/2))/n0, nuElcIon*((vte^2+vti^2)^(3/2))/n0 },
 --         collideWith = { "elc" },
 --         frequencies = { nuElc },
          -- Optional arguments:
@@ -137,6 +139,7 @@ plasmaApp = Plasma.App {
       coll = Plasma.LBOCollisions {
          collideWith = { "ion", "elc" },
          frequencies = { nuIon, nuIonElc },
+--         normNu = { nuIon*((2.*vti^2)^(3/2))/n0, nuIonElc*((vte^2+vti^2)^(3/2))/n0 },
 --         collideWith = { "ion" },
 --         frequencies = { nuIon },
          -- Optional arguments:

@@ -123,6 +123,10 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
    -- the fluxes through a boundary (e.g. neutral recycling).
    if self.saveFlux then
 
+      -- Part of global ghost range this rank owns.
+      self.myGlobalGhostRange = self.bcEdge=="lower" and distf:localGlobalGhostRangeIntersectLower()[self.bcDir]
+                                                      or distf:localGlobalGhostRangeIntersectUpper()[self.bcDir]
+
       -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
       self:createConfBoundaryGrid(globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
 
@@ -138,7 +142,8 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
       self.allocIntMoment = function(self, comp)
          local metaData = {charge = self.charge,  mass = self.mass,}
          local ncomp = comp or 1
-         local f = DataStruct.DynVector{numComponents = ncomp,     writeRank = self.confBoundaryGrid:commSet().writeRank,
+         local gridWriteRank = self.confBoundaryGrid:commSet().writeRank
+         local f = DataStruct.DynVector{numComponents = ncomp,     writeRank = gridWriteRank<0 and gridWriteRank or 0,
                                         metaData      = metaData,  comm      = self.confBoundaryGrid:commSet().comm,}
          return f
       end
@@ -152,10 +157,6 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
       self.boundaryFluxRate      = allocDistf()
       self.boundaryFluxFieldPrev = allocDistf()
 
-      -- Part of global ghost range this rank owns.
-      self.myGlobalGhostRange = self.bcEdge=="lower" and distf:localGlobalGhostRangeIntersectLower()[self.bcDir]
-                                                      or distf:localGlobalGhostRangeIntersectUpper()[self.bcDir]
-
       -- The following are needed to evaluate a conf-space CartField on the confBoundaryGrid.
       self.confBoundaryField = self:allocMoment()
       -- Range spanning ghost cells.
@@ -165,12 +166,12 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
       local jacobGeo = externalField.geo and externalField.geo.jacobGeo
       if jacobGeo then
          self.jacobGeo = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, jacobGeo:getMetaData())
-         self.jacobGeo:copy(self:evalOnConfBoundary(jacobGeo))
+         self.jacobGeo:copy(self:evalOnConfBoundary(jacobGeo, self.confBoundaryField))
       end
       local jacobGeoInv = externalField.geo and externalField.geo.jacobGeoInv
       if jacobGeoInv then
          self.jacobGeoInv = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, jacobGeoInv:getMetaData())
-         self.jacobGeoInv:copy(self:evalOnConfBoundary(jacobGeoInv))
+         self.jacobGeoInv:copy(self:evalOnConfBoundary(jacobGeoInv, self.confBoundaryField))
       end
 
       self.storeBoundaryFluxFunc = function(tCurr, rkIdx, qOut)

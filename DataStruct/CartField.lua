@@ -433,6 +433,9 @@ local function Field_meta_ctor(elct)
       copyRangeToRange = function(self, fIn, outRange, inRange)
          self._zeroForOps:copyRangeToRange(fIn._zeroForOps, outRange, inRange)
       end,
+      copyRange = function(self, fIn, inRange)
+         self._zeroForOps:copyRange(fIn._zeroForOps, inRange)
+      end,
       deviceDataPointer = function(self)
          return self._devAllocData
       end,

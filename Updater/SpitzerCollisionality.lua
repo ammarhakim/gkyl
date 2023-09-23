@@ -43,14 +43,16 @@ gkyl_spitzer_coll_freq* gkyl_spitzer_coll_freq_new(const struct gkyl_basis *basi
  * @param up Spizer collision frequency updater object.
  * @param range Config-space rang.e
  * @param vtSqSelf Thermal speed squared of this species.
+ * @param vtSqMinSelf Minimum vtSq of this species supported by the grid.
  * @param m0Other Thermal speed squared of the other species.
  * @param vtSqOther Thermal speed squared of the other species.
+ * @param vtSqMinOther Minimum vtSq of the other species supported by the grid.
  * @param normNu Normalized collision frequency to scale.
  * @param nuOut Output collision frequency.
  */
 void gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
-  const struct gkyl_range *range, const struct gkyl_array *vtSqSelf,
-  const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther,
+  const struct gkyl_range *range, const struct gkyl_array *vtSqSelf, double vtSqMinSelf,
+  const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther, double vtSqMinOther,
   double normNu, struct gkyl_array *nuOut);
 
 /**
@@ -64,16 +66,18 @@ void gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
  * @param mSelf Mass of this species.
  * @param m0Self Thermal speed squared of the other species.
  * @param vtSqSelf Thermal speed squared of this species.
+ * @param vtSqMinSelf Minimum vtSq of this species supported by the grid.
  * @param qOther Charge of this species.
  * @param mOther Mass of this species.
  * @param m0Other Thermal speed squared of the other species.
  * @param vtSqOther Thermal speed squared of the other species.
+ * @param vtSqMinOther Minimum vtSq of the other species supported by the grid.
  * @param nuOut Output collision frequency.
  */
 void gkyl_spitzer_coll_freq_advance(const gkyl_spitzer_coll_freq *up,
   const struct gkyl_range *range, const struct gkyl_array *bmag,
-  double qSelf, double mSelf, const struct gkyl_array *m0Self, const struct gkyl_array *vtSqSelf,
-  double qOther, double mOther, const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther,
+  double qSelf, double mSelf, const struct gkyl_array *m0Self, const struct gkyl_array *vtSqSelf, double vtSqMinSelf,
+  double qOther, double mOther, const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther, double vtSqMinOther,
   struct gkyl_array *nuOut);
 
 /**
@@ -129,65 +133,67 @@ end
 
 -- Advance methods.
 function SpitzerCollisionality:_advance_normNu(tCurr, inFld, outFld)
-   local chargeSelf, massSelf   = inFld[1], inFld[2]
-   local m0Self, vtSqSelf       = inFld[3], inFld[4]
-   local chargeOther, massOther = inFld[5], inFld[6]
-   local m0Other, vtSqOther     = inFld[7], inFld[8]
-   local normNu = inFld[9]*self._nuFrac
+   local chargeSelf, massSelf             = inFld[1], inFld[2]
+   local m0Self, vtSqSelf, vtSqMinSelf    = inFld[3], inFld[4], inFld[5]
+   local chargeOther, massOther           = inFld[6], inFld[7]
+   local m0Other, vtSqOther, vtSqMinOther = inFld[8], inFld[9], inFld[10]
+   local normNu = inFld[11]*self._nuFrac
 
    local nuOut = outFld[1]
 
    local range = self.onGhosts and nuOut:localExtRange() or nuOut:localRange()
 
    ffiC.gkyl_spitzer_coll_freq_advance_normnu(self._zero, range,
-      vtSqSelf._zero, m0Other._zero, vtSqOther._zero, normNu, nuOut._zero)
+      vtSqSelf._zero, vtSqMinSelf, m0Other._zero,
+      vtSqOther._zero, vtSqMinOther, normNu, nuOut._zero)
 end
 
 function SpitzerCollisionality:_advanceOnDevice_normNu(tCurr, inFld, outFld)
-   local chargeSelf, massSelf   = inFld[1], inFld[2]
-   local m0Self, vtSqSelf       = inFld[3], inFld[4]
-   local chargeOther, massOther = inFld[5], inFld[6]
-   local m0Other, vtSqOther     = inFld[7], inFld[8]
-   local normNu = inFld[9]*self._nuFrac
+   local chargeSelf, massSelf             = inFld[1], inFld[2]
+   local m0Self, vtSqSelf, vtSqMinSelf    = inFld[3], inFld[4], inFld[5]
+   local chargeOther, massOther           = inFld[6], inFld[7]
+   local m0Other, vtSqOther, vtSqMinOther = inFld[8], inFld[9], inFld[10]
+   local normNu = inFld[11]*self._nuFrac
 
    local nuOut = outFld[1]
 
    local range = self.onGhosts and nuOut:localExtRange() or nuOut:localRange()
 
    ffiC.gkyl_spitzer_coll_freq_advance_normnu(self._zero, range,
-      vtSqSelf._zeroDevice, m0Other._zeroDevice, vtSqOther._zeroDevice, normNu, nuOut._zeroDevice)
+      vtSqSelf._zeroDevice, vtSqMinSelf, m0Other._zeroDevice,
+      vtSqOther._zeroDevice, vtSqMinOther, normNu, nuOut._zeroDevice)
 end
 
 function SpitzerCollisionality:_advance_build(tCurr, inFld, outFld)
-   local chargeSelf, massSelf   = inFld[1], inFld[2]
-   local m0Self, vtSqSelf       = inFld[3], inFld[4]
-   local chargeOther, massOther = inFld[5], inFld[6]
-   local m0Other, vtSqOther     = inFld[7], inFld[8]
-   local Bmag = inFld[10]
+   local chargeSelf, massSelf             = inFld[1], inFld[2]
+   local m0Self, vtSqSelf, vtSqMinSelf    = inFld[3], inFld[4], inFld[5]
+   local chargeOther, massOther           = inFld[6], inFld[7]
+   local m0Other, vtSqOther, vtSqMinOther = inFld[8], inFld[9], inFld[10]
+   local Bmag = inFld[12]
 
    local nuOut = outFld[1]
 
    local range = self.onGhosts and nuOut:localExtRange() or nuOut:localRange()
 
    ffiC.gkyl_spitzer_coll_freq_advance(self._zero, range, Bmag._zero, 
-      chargeSelf, massSelf, m0Self._zero, vtSqSelf._zero,
-      chargeOther, massOther, m0Other._zero, vtSqOther._zero, nuOut._zero)
+      chargeSelf, massSelf, m0Self._zero, vtSqSelf._zero, vtSqMinSelf,
+      chargeOther, massOther, m0Other._zero, vtSqOther._zero, vtSqMinOther, nuOut._zero)
 end
 
 function SpitzerCollisionality:_advanceOnDevice_build(tCurr, inFld, outFld)
-   local chargeSelf, massSelf   = inFld[1], inFld[2]
-   local m0Self, vtSqSelf       = inFld[3], inFld[4]
-   local chargeOther, massOther = inFld[5], inFld[6]
-   local m0Other, vtSqOther     = inFld[7], inFld[8]
-   local Bmag = inFld[10]
+   local chargeSelf, massSelf             = inFld[1], inFld[2]
+   local m0Self, vtSqSelf, vtSqMinSelf    = inFld[3], inFld[4], inFld[5]
+   local chargeOther, massOther           = inFld[6], inFld[7]
+   local m0Other, vtSqOther, vtSqMinOther = inFld[8], inFld[9], inFld[10]
+   local Bmag = inFld[12]
 
    local nuOut = outFld[1]
 
    local range = self.onGhosts and nuOut:localExtRange() or nuOut:localRange()
 
    ffiC.gkyl_spitzer_coll_freq_advance(self._zero, range, Bmag._zeroDevice, 
-      chargeSelf, massSelf, m0Self._zeroDevice, vtSqSelf._zeroDevice,
-      chargeOther, massOther, m0Other._zeroDevice, vtSqOther._zeroDevice, nuOut._zeroDevice)
+      chargeSelf, massSelf, m0Self._zeroDevice, vtSqSelf._zeroDevice, vtSqMinSelf,
+      chargeOther, massOther, m0Other._zeroDevice, vtSqOther._zeroDevice, vtSqMinOther, nuOut._zeroDevice)
 end
 
 function SpitzerCollisionality:_advance(tCurr, inFld, outFld)

@@ -82,6 +82,22 @@ function FunctionProjection:fullInit(species)
    self.initFunc = func
 end
 
+function FunctionProjection:scaleDensity(distf, currentM0, targetM0)
+   local M0mod = self.species:allocMoment()
+
+   local weakDivision = Updater.CartFieldBinOp {
+      onGrid    = self.confGrid,
+      weakBasis = self.confBasis,
+      operation = "Divide",
+      onGhosts  = true,
+   }
+
+   -- Calculate M0mod = targetM0 / currentM0.
+   weakDivision:advance(0.0, {currentM0, targetM0}, {M0mod})
+   -- Calculate distff = M0mod * distf.
+   self.weakMultiplyConfPhase:advance(0.0, {M0mod, distf}, {distf})
+end
+
 function FunctionProjection:advance(t, inFlds, outFlds)
    local distf = outFlds[1]
    if self.fromFile then
