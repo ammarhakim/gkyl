@@ -242,7 +242,7 @@ local function buildApplication(self, tbl)
    end
 
    local function completeFieldSetup(fld, plasmaField)
-      fld:fullInit(tbl, field) -- Complete initialization.
+      fld:fullInit(tbl, plasmaField) -- Complete initialization.
       fld:setIoMethod(ioMethod)
       fld:setBasis(confBasis)
       fld:setGrid(confGrid)

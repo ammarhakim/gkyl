@@ -707,7 +707,11 @@ function ExternalMaxwellField:fullInit(appTbl, plasmaField)
    self.evolve = xsys.pickBool(tbl.evolve, true) -- By default evolve field.
 
    -- By default there is a plasma-generated magnetic field, unless running Vlasov-Poisson.
-   self.hasPlasmaMagField = xsys.pickBool(plasmaField and plasmaField.hasMagField or nil, true)
+   if plasmaField then
+      self.hasPlasmaMagField = xsys.pickBool(plasmaField.hasMagField, true)
+   else
+      self.hasPlasmaMagField = true -- Assumption
+   end
 
    self.hasMagField = xsys.pickBool(tbl.hasMagneticField, true) -- By default there is a magnetic field.
 
@@ -762,7 +766,7 @@ function ExternalMaxwellField:alloc(nField)
 end
 
 function ExternalMaxwellField:createSolver(population)
-   self.fieldSlvr = Updater.ProjectOnBasis {
+   self.fieldSlvr = Updater.EvalOnNodes {
       onGrid = self.grid,   evaluate = self.emFunc,
       basis  = self.basis,  onGhosts = false,
    }
