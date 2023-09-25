@@ -85,7 +85,6 @@ def build(bld):
 
     projectFluxOnGhostsData/ProjectFluxOnGhostsSer.cpp
 
-    EvalOnNodesImpl.cpp
     EvaluateBronoldFehskeBCImpl.cpp
     """
 
@@ -124,6 +123,7 @@ def build(bld):
 #    DiscontPoissonImpl.cpp  
 #    FemGyroaverageImpl.cpp
 #    MappedPoissonImpl.cpp
+#    EvalOnNodesImpl.cpp
 #
 #     binOpCalcData/CartFieldBinOpSer3x3vP2.cpp
 #    lagrangeFixData/lagrangeFix_gk_1x2v_ser_p2.cpp
