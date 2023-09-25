@@ -58,15 +58,15 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local Lin  = require "Lib.Linalg"
-local Mpi  = require "Comm.Mpi"
-local lume = require "Lib.lume"
-local math = require "sci.math"  -- For sign function.
-local root = require "sci.root"
+local Lin       = require "Lib.Linalg"
+local Mpi       = require "Comm.Mpi"
+local lume      = require "Lib.lume"
+local math      = require "sci.math"  -- For sign function.
+local root      = require "sci.root"
+local ZeroArray = require "DataStruct.ZeroArray"
 -- The following are needed for projecting onto the basis.
-local SerendipityNodes = require "Lib.SerendipityNodes"
-local ffi              = require "ffi"
-local xsys             = require "xsys"
+local ffi  = require "ffi"
+local xsys = require "xsys"
 
 local ffiC = ffi.C
 ffi.cdef [[
@@ -198,6 +198,10 @@ local _M = {}
 function _M.init(dir, do_dir, shift_dir, edge, localExtRange, localUpdateRange, num_ghosts, basis, grid, cdim, yshift, ndonors, cells_do, use_gpu)
    _M._zero = ffi.gc(ffiC.gkyl_bc_twistshift_new(dir, do_dir, shift_dir, edge, localExtRange, localUpdateRange, num_ghosts:data(), basis._zero, grid._zero, cdim, yshift, ndonors:data(), cells_do:data(), use_gpu),
                       ffiC.gkyl_bc_twistshift_release)
+
+   local numVal = 1 -- Assumes a scalar equation (not fluids).
+   _M._zero_eval_on_nodes = ffi.gc(ffiC.gkyl_eval_on_nodes_new(grid._zero, basis._zero, numVal, nil, nil),
+                                   ffiC.gkyl_eval_on_nodes_release)
 end
 
 function _M.copyMatsToDevice()
@@ -403,7 +407,6 @@ local projData = {
    xc        = Lin.Vec(1),   -- Cell center coordinate.
    dx        = Lin.Vec(1),   -- Cell length.
    pOrder    = 0,            -- Polynomial order used to project 1D shift function.
-   compNodes = {},           -- Node coordinates (computational space).
    numNodes  = 0,
    xPhys_i   = Lin.Vec(1),   -- Physical coordinates at node.
    func_i    = 0,            -- Function evaluated a physical nodes.
@@ -421,15 +424,14 @@ local projData = {
    etaUpUp_xi  = 0,            -- DG coefficients of logical space y-upper limit poly approx (upper).
 }
 
-function _M.set_projData(shiftPolyOrder)
+function _M.set_projData(shiftPolyOrder, basis)
    -- Create permanent data structures needed by the nodToModProj1D function that
    -- depend on other inputs.
-   local compNodes = SerendipityNodes["nodes1xp" .. shiftPolyOrder]
-   local numNodes  = #compNodes
+   local numNodes     = basis:numBasis()
+   local numVal       = 1  -- Assumes a kinetic equation (not fluids).
    projData.pOrder    = shiftPolyOrder   -- Polynomial order used to project 1D shift function.
-   projData.compNodes = compNodes        -- Node coordinates (computational space).
    projData.numNodes  = numNodes
-   projData.func_i    = Lin.Mat(numNodes, 1)   -- Function evaluated a physical nodes.
+   projData.func_i    = ZeroArray.Array(ZeroArray.double, 1, numNodes, 0)  -- Function evaluated a physical nodes.
    projData.xiLo_eta  = Lin.Vec(numNodes)      -- DG coefficients of logical space x-lower limit poly approx.
    projData.xiUp_eta  = Lin.Vec(numNodes)      -- DG coefficients of logical space x-upper limit poly approx.
    projData.xiLoL_eta = Lin.Vec(numNodes)      -- DG coefficients of logical space x-lower limit poly approx (left).
@@ -448,19 +450,19 @@ end
 local compToPhysTempl = xsys.template([[
    return function (eta, dx, xc, xOut)
    |for i = 1, NDIM do
-      xOut[${i}] = 0.5*dx[${i}]*eta[${i}] + xc[${i}]
+      xOut[${i}] = 0.5*dx[${i}]*eta[${i-1}] + xc[${i}]
    |end
    end
 ]])
 local evalFuncTempl = xsys.template([[
    return function (tCurr, xn, func, fout)
    |for i = 1, M-1 do
-      fout[${i}],
+      fout[${i-1}],
    |end
-      fout[${M}] = func(tCurr, xn)
+      fout[${M-1}] = func(tCurr, xn)
    end
 ]])
-ffi.cdef([[ void nodToMod(double* fN, int numNodes, int numVal, int ndim, int p, double* fM); ]])
+--ffi.cdef([[ void nodToMod(double* fN, int numNodes, int numVal, int ndim, int p, double* fM); ]])
 local evalFunc   = loadstring(evalFuncTempl { M = 1 } )()
 local compToPhys = loadstring(compToPhysTempl {NDIM = 1} )()
 
@@ -473,10 +475,10 @@ local nodToModProj1D = function(funcIn, limIn, fldOut)
 
    projData.dx[1], projData.xc[1] = dxAxc(limIn)
    for i = 1, projData.numNodes do
-      compToPhys(projData.compNodes[i], projData.dx, projData.xc, projData.xPhys_i)
-      evalFunc(0.0, projData.xPhys_i, funcIn, projData.func_i[i])
+      compToPhys(ffiC.gkyl_eval_on_nodes_fetch_node(_M._zero_eval_on_nodes,i-1), projData.dx, projData.xc, projData.xPhys_i)
+      evalFunc(0.0, projData.xPhys_i, funcIn, projData.func_i:fetch(i-1))
    end
-   ffi.C.nodToMod(projData.func_i:data(), projData.numNodes, 1, 1, projData.pOrder, fldOut:data())
+   ffiC.gkyl_eval_on_nodes_nod2mod(_M._zero_eval_on_nodes, projData.func_i, fldOut:data())
 end
 
 local subCellInt_xLimDG = function(xLimFuncs, yBounds, xIdxIn, offDoTar, yShPtrIn, jDo)

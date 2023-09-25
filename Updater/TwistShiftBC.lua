@@ -135,7 +135,7 @@ function TwistShiftBC:init(tbl)
    tsFun.set_yShiftF(yShFunc)
    tsFun.set_domLim(self.grid)
    tsFun.set_dx(self.grid)
-   tsFun.set_projData(yShPolyOrder)
+   tsFun.set_projData(yShPolyOrder, self.basis)
 
    -- Call function computing the donor cells.
    self.doCells = tsFun.getDonors(self.grid, self.yShFld, yShBasis)

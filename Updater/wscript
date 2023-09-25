@@ -83,8 +83,6 @@ def build(bld):
 
     CartFieldIntegratedQuantCalcImpl.cpp
 
-    FemMatrices.cpp
-
     projectFluxOnGhostsData/ProjectFluxOnGhostsSer.cpp
 
     EvalOnNodesImpl.cpp
