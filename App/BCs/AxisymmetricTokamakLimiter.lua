@@ -120,8 +120,10 @@ function AxiTokLimBC:createSolver(mySpecies, field, externalField)
       cells = xGridIngr.cells,
    }
    xGrid:findCell(coordLCFS, self.idxLCFS) 
-   self.myGlobalGhostRangeSOL = self.myGlobalGhostRange:shortenFromBelow(1, self.grid:numCells(1)-self.idxLCFS[1]+1)
-   self.myGlobalSkinRangeSOL  = self.myGlobalSkinRange:shortenFromBelow(1, self.grid:numCells(1)-self.idxLCFS[1]+1)
+   local myGlobalGhostRangeSOL = self.myGlobalGhostRange:shortenFromBelow(1, self.grid:numCells(1)-self.idxLCFS[1]+1)
+   self.myGlobalGhostRangeSOL  = distf:localExtRange():subRange(myGlobalGhostRange:lowerAsVec(),myGlobalGhostRange:upperAsVec())
+   local myGlobalSkinRangeSOL  = self.myGlobalSkinRange:shortenFromBelow(1, self.grid:numCells(1)-self.idxLCFS[1]+1)
+   self.myGlobalSkinRangeSOL   = distf:localExtRange():subRange(myGlobalSkinRange:lowerAsVec(),myGlobalSkinRange:upperAsVec())
 
    self.bcSolverSOL = Updater.GkSheathBc{
       onGrid  = self.grid,   edge    = self.bcEdge,  

@@ -29,8 +29,6 @@ local xsys             = require "xsys"
 
 local GkField = Proto(FieldBase.FieldBase)
 
-local EM_BC_OPEN = 1
-
 local checkBCs = function(dimIn, isDirPer, bcLoIn, bcUpIn, bcLoOut, bcUpOut, setLastDir)
    local periodicDomain = true
    for d=1,dimIn do periodicDomain = periodicDomain and isDirPer[d] end
@@ -107,45 +105,6 @@ function GkField:fullInit(appTbl)
       for d = 1, ndim do isDirPeriodic[d] = lume.find(self.periodicDirs,d) ~= nil end
       self.bcLowerPhi, self.bcUpperPhi   = {}, {}
       self.bcLowerApar, self.bcUpperApar = {}, {}
-   
-      -- ******* The following BC options are kept for backwards compatibility ******* --
-      if tbl.phiBcLeft or tbl.phiBcRight or tbl.phiBcBottom or tbl.phiBcTop or tbl.phiBcBack or tbl.phiBcFront then
-         if tbl.phiBcLeft and tbl.phiBcRight then
-            print("App.Field.GkField: warning... phiBcLeft/phiBcRight will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
-            self.bcLowerPhi[1], self.bcUpperPhi[1] = tbl.phiBcLeft, tbl.phiBcRight
-         elseif isDirPeriodic[1] then
-            self.bcLowerPhi[1], self.bcUpperPhi[1] = {T = "P"}, {T = "P"} 
-         end
-         if tbl.phiBcBottom and tbl.phiBcTop then
-            print("App.Field.GkField: warning... phiBcBottom/phiBcTop will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
-            self.bcLowerPhi[2], self.bcUpperPhi[2] = tbl.phiBcBottom, tbl.phiBcTop
-         elseif isDirPeriodic[2] then
-            self.bcLowerPhi[2], self.bcUpperPhi[2] = {T = "P"}, {T = "P"} 
-         end
-         if tbl.phiBcBack and tbl.phiBcFront then
-            print("App.Field.GkField: warning... phiBcBack/phiBcFront will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
-            self.bcLowerPhi[3], self.bcUpperPhi[3] = tbl.phiBcBack, tbl.phiBcFront
-         elseif isDirPeriodic[3] then
-            -- Set it to homogeneous Neumann since this is likely only used for smoothing in z.
-            self.bcLowerPhi[3], self.bcUpperPhi[3] = {T = "N", V = 0.0}, {T = "N", V = 0.0} 
-         end
-      end
-      if tbl.aparBcLeft or tbl.aparBcRight or tbl.aparBcBottom or tbl.aparBcTop then
-         if tbl.aparBcLeft and tbl.aparBcRight then
-            print("App.Field.GkField: warning... aparBcLeft/aparBcRight will be deprecated. Please use bcLowerApar/bcUpperApar.") 
-            self.bcLowerApar[1], self.bcUpperApar[1]= tbl.aparBcLeft, tbl.aparBcRight
-         elseif isDirPeriodic[1] then
-            self.bcLowerApar[1], self.bcUpperApar[1] = {T = "P"}, {T = "P"} 
-         end
-         if tbl.aparBcBottom and tbl.aparBcTop then
-            print("App.Field.GkField: warning... aparBcBottom/aparBcTop will be deprecated. Please use bcLowerApar/bcUpperApar.") 
-            self.bcLowerApar[2], self.bcUpperApar[2] = tbl.aparBcBottom, tbl.aparBcTop
-         elseif isDirPeriodic[2] then
-            self.bcLowerApar[2], self.bcUpperApar[2] = {T = "P"}, {T = "P"} 
-         end
-      end
-      -- ******* The above BC options are  kept for backwards compatibility ******* --
-   
    
       -- Allow unspecified BCs if domain is periodic. Or if domain is not periodic
       -- allow unspecified z-BCs, but do not allow unspecified xy-BCs for ndim>1.
