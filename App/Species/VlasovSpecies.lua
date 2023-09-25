@@ -550,11 +550,10 @@ function VlasovSpecies:createSolver(field, externalField)
       hasE, hasB = true, true
    end
 
-   if hasB then
-      self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
+   if plasmaB == false then
+      self.totalEmField = self:allocVectorMoment(4)  -- (phi,A) for Vlasov-Poisson.
    else
-      --self.totalEmField = self:allocVectorMoment(3)     -- Electric field only.
-      self.totalEmField = self:allocMoment()  -- Phi only (Vlasov-Poisson)
+      self.totalEmField = self:allocVectorMoment(8)  -- 8 components of EM field.
    end
 
    self.computePlasmaB = true and plasmaB or extHasB

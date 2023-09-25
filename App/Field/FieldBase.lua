@@ -11,6 +11,7 @@ local Proto = require "Lib.Proto"
 -- Empty shell field base classes.
 local FieldBase = Proto()
 function FieldBase:init(tbl) self.isElliptic = false end
+function FieldBase:fullInit(tbl, plasmaField) end
 function FieldBase:readRestart() end
 function FieldBase:hasEB() return nil, nil end
 function FieldBase:setCfl() end
@@ -34,6 +35,7 @@ function FieldBase:clearTimers() end
 
 local ExternalFieldBase = Proto()
 function ExternalFieldBase:init(tbl) self.isElliptic = false end
+function ExternalFieldBase:fullInit(tbl, plasmaField) end
 function ExternalFieldBase:hasEB() return nil, nil end
 function ExternalFieldBase:setCfl() end
 function ExternalFieldBase:setIoMethod(ioMethod) self.ioMethod = ioMethod end
@@ -58,7 +60,7 @@ local NoField = Proto(FieldBase)
 
 -- Methods for no field object.
 function NoField:init(tbl) NoField.super.init(tbl) end
-function NoField:fullInit(tbl) end
+function NoField:fullInit(tbl, plasmaField) end
 function NoField:hasEB() return nil, nil end
 function NoField:setCfl() end
 function NoField:setIoMethod(ioMethod) end
