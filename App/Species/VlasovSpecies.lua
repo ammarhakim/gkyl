@@ -113,7 +113,7 @@ end
 function VlasovSpecies:createBasis(nm, polyOrder)
    self.basis = createBasis(nm, self.cdim, self.vdim, polyOrder)
    self.velBasis = createVelBasis(nm, self.vdim, polyOrder)
-   for _, c in pairs(self.collisions) do c:setPhaseBasis(self.basis) end
+   for _, c in lume.orderedIter(self.collisions) do c:setPhaseBasis(self.basis) end
 
    -- Output of grid file is placed here because as the file name is associated
    -- with a species, we wish to save the basisID and polyOrder in it. But these
@@ -180,12 +180,6 @@ function VlasovSpecies:alloc(nRkDup)
    self.V_drift = self:allocVectorMoment(self.vdim)
    self.GammaV2 = self:allocMoment()
    self.GammaV_inv = self:allocMoment()
-
-   -- Allocate field for external forces if any.
-   if self.hasExtForce then 
-      self.vExtForce = self:allocVectorMoment(self.vdim)
-      self.vExtFptr, self.vExtFidxr = self.vExtForce:get(1), self.vExtForce:genIndexer()
-   end
 end
 
 -- Actual function for initialization. This indirection is needed as
@@ -320,7 +314,7 @@ function VlasovSpecies:fullInit(appTbl)
    -- If there is an external force, get the force function.
    self.hasExtForce = false
    if tbl.vlasovExtForceFunc then
-      self.vlasovExtForceFunc = tbl.vlasovExtForceFunc
+      self.vlasovExtForceIn = tbl.vlasovExtForceFunc
       self.hasExtForce = true
    end
 
@@ -342,22 +336,22 @@ end
 
 function VlasovSpecies:setCfl(cfl)
    self.cfl = cfl
-   for _, c in pairs(self.collisions) do c:setCfl(cfl) end
+   for _, c in lume.orderedIter(self.collisions) do c:setCfl(cfl) end
 end
 
 function VlasovSpecies:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 
 function VlasovSpecies:setConfBasis(basis)
    self.confBasis = basis
-   for _, c in pairs(self.collisions) do c:setConfBasis(basis) end
-   for _, src in pairs(self.sources) do src:setConfBasis(basis) end
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:setConfBasis(basis) end
+   for _, c in lume.orderedIter(self.collisions) do c:setConfBasis(basis) end
+   for _, src in lume.orderedIter(self.sources) do src:setConfBasis(basis) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:setConfBasis(basis) end
 end
 function VlasovSpecies:setConfGrid(grid)
    self.confGrid = grid
-   for _, c in pairs(self.collisions) do c:setConfGrid(grid) end
-   for _, src in pairs(self.sources) do src:setConfGrid(grid) end
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:setConfGrid(grid) end
+   for _, c in lume.orderedIter(self.collisions) do c:setConfGrid(grid) end
+   for _, src in lume.orderedIter(self.sources) do src:setConfGrid(grid) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:setConfGrid(grid) end
 end
 
 function VlasovSpecies:createGrid(confGridIn)
@@ -425,7 +419,7 @@ function VlasovSpecies:createGrid(confGridIn)
       messenger = confGrid:getMessenger(),
    }
 
-   for _, c in pairs(self.collisions) do c:setPhaseGrid(self.grid) end
+   for _, c in lume.orderedIter(self.collisions) do c:setPhaseGrid(self.grid) end
 
    -- Construct velocity space grid from phase space grid
    local dimsV = {}
@@ -497,6 +491,12 @@ function VlasovSpecies:allocIntMoment(comp)
    return f
 end
 
+local function vtSqMinCalc(mass,grid,cdim,vdim)
+   local TempMin = 0.
+   for d = 1, vdim do TempMin = TempMin + (1./3.)*(mass/6.)*grid:dx(cdim+d) end
+   return TempMin/mass	
+end
+
 function VlasovSpecies:createSolver(field, externalField)
    -- Set up weak multiplication and division operators.
    self.confWeakMultiply = Updater.CartFieldBinOp {
@@ -527,8 +527,11 @@ function VlasovSpecies:createSolver(field, externalField)
       end
    end
 
+   -- Minimum vtSq supported by the grid (for p=1 only for now):
+   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.confGrid,self.cdim,self.vdim)
+
    -- Create solvers for collisions.
-   for _, c in pairs(self.collisions) do c:createSolver(self, externalField) end
+   for _, c in lume.orderedIter(self.collisions) do c:createSolver(self, externalField) end
 
    -- Create BC solvers.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self, field, externalField) end
@@ -547,14 +550,10 @@ function VlasovSpecies:createSolver(field, externalField)
       hasE, hasB = true, true
    end
 
-   if hasB then
-      self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
+   if plasmaB == false then
+      self.totalEmField = self:allocVectorMoment(4)  -- (phi,A) for Vlasov-Poisson.
    else
-      --self.totalEmField = self:allocVectorMoment(3)     -- Electric field only.
-      self.totalEmField = self:allocMoment()  -- Phi only (Vlasov-Poisson)
-   end
-   if self.hasExtForce then
-      self.totEmFptr, self.totEmFidxr = self.totalEmField:get(1), self.totalEmField:genIndexer()
+      self.totalEmField = self:allocVectorMoment(8)  -- 8 components of EM field.
    end
 
    self.computePlasmaB = true and plasmaB or extHasB
@@ -563,10 +562,8 @@ function VlasovSpecies:createSolver(field, externalField)
       -- Initialize velocity-space arrays for relativistic Vlasov
       -- Only need to do this once, so we don't need to store the updater
       local initSRVarsCalc = Updater.CalcSRVars {
-         velGrid = self.velGrid, 
-         confBasis = self.confBasis, 
-         velBasis = self.velBasis, 
-         phaseBasis = self.basis, 
+         velGrid   = self.velGrid,    velBasis   = self.velBasis,  
+         confBasis = self.confBasis,  phaseBasis = self.basis,     
          operation = "init", 
       }
       initSRVarsCalc:advance(0.0, {}, {self.p_over_gamma, self.gamma, self.gamma_inv})
@@ -676,22 +673,50 @@ function VlasovSpecies:createSolver(field, externalField)
    end
 
    if self.hasExtForce then
-      self.evalVlasovExtForce = Updater.ProjectOnBasis {
-         onGrid = self.confGrid,   evaluate = self.vlasovExtForceFunc,
-         basis  = self.confBasis,  onGhosts = false
+      -- Options for the external force include:
+      --   a) Passing a single function, which gets projected in every time step.
+      --   b) Passing a table of tables. The outer table is for providing multiple forces.
+      --      Each table/force has a 2-element (functions) table (timeDependence and spatialDependence),
+      --      where one element is the time-dependent part (a function of time only) and the
+      --      other the time independent part.
+      self.projExtForce = Updater.ProjectOnBasis {
+         onGrid = self.confGrid,   onGhosts = false,
+         basis  = self.confBasis,
+         evaluate = function(t, xn)
+                       if self.vdim==1 then return 1.
+                       elseif self.vdim==2 then return 1., 1.
+                       elseif self.vdim==3 then return 1., 1., 1. end
+                    end,
       }
 
-      self.accumulateExtForce = function(tCurr, totalEmField)
-         local vExtForce  = self.vExtForce
-         local vItr, eItr = self.vExtFptr, self.totEmFptr
-         self.evalVlasovExtForce:advance(tCurr, {}, {vExtForce})
+      if type(self.vlasovExtForceIn) == 'function' then
+         self.projExtForce:setFunc(self.vlasovExtForceIn)
+         self.vExtForce = self:allocVectorMoment(self.vdim)
 
-         -- Analogous to the current, the external force only gets accumulated onto the electric field.
-         for idx in totalEmField:localRangeIter() do
-            vExtForce:fill(self.vExtFidxr(idx), vItr)
-            totalEmField:fill(self.totEmFidxr(idx), eItr)
-            for i = 1, vExtForce:numComponents() do eItr[i] = eItr[i]+vItr[i] end
+         self.accumulateExtForce = function(tCurr, totalEmField)
+            local vExtForce = self.vExtForce
+            self.projExtForce:advance(tCurr, {}, {vExtForce})
+
+            -- Analogous to the current, the external force only gets accumulated onto the electric field.
+            totalEmField:accumulateOffset(1., vExtForce, 0)
          end
+      elseif type(self.vlasovExtForceIn) == 'table' then
+         self.extForces = {}
+         for _, ef in ipairs(self.vlasovExtForceIn) do
+            table.insert(self.extForces, {timeDepFac = ef.timeDependence, spatialFac = self:allocVectorMoment(self.vdim)})
+            self.projExtForce:setFunc(function(t,xn) return ef.spatialDependence(xn) end)
+            self.projExtForce:advance(0., {}, {self.extForces[#self.extForces].spatialFac})
+         end
+         lume.setOrder(self.extForces)
+
+         self.accumulateExtForce = function(tCurr, totalEmField)
+            -- Analogous to the current, the external force only gets accumulated onto the electric field.
+            for i, ef in lume.orderedIter(self.extForces) do
+               totalEmField:accumulateOffset(ef["timeDepFac"](tCurr),ef["spatialFac"], 0)
+            end
+         end
+      else
+         assert(false, "App.Field.MaxwellField: vlasovExtForce should be a function or a table.")
       end
    else
       self.accumulateExtForce = function(tCurr, totalEmField) end
@@ -744,6 +769,11 @@ function VlasovSpecies:createCouplingSolver(population, field, externalField)
    -- needed for cross-species solves (e.g. cross-species collisions).
 
    local species = population:getSpecies()
+
+   -- Minimum vtSq supported by the grid (for p=1 only for now).
+   -- Recomputed here because we need it for all species (for species parallelization)
+   -- and createSolver is only called for the local species.
+   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.confGrid,self.cdim,self.vdim)
 
    -- Create cross collision solvers.
    for _, c in lume.orderedIter(self.collisions) do c:createCouplingSolver(population, field, externalField) end
@@ -799,25 +829,28 @@ function VlasovSpecies:initCrossSpeciesCoupling(population)
       self.fiveMoments = self:allocVectorMoment(self.vdim+2)
    end
 
+   local messenger = self.confGrid:getMessenger()
    -- Create list of ranks we need to send/recv local fiveMoments to/from.
    self.fiveMomentsXfer = {}
    self.fiveMomentsXfer.destRank, self.fiveMomentsXfer.srcRank  = {}, {}
-   self.fiveMomentsXfer.sendReqStat, self.fiveMomentsXfer.recvReqStat = nil, nil
+   self.fiveMomentsXfer.sendReqStat, self.fiveMomentsXfer.recvReqStat = {}, {}
    for sO, info in pairs(self.collPairs[self.name]) do
       local sOrank = population:getSpeciesOwner(sO)
       local selfRank = population:getSpeciesOwner(self.name)
       if sO~=self.name and info.on then
          if isThisSpeciesMine then
             -- Only species owned by this rank send fiveMoments to other ranks.
-            if #self.fiveMomentsXfer.destRank == 0 and (not population:isSpeciesMine(sO)) then
+            if (not lume.any(self.threeMomentsXfer.destRank, function(e) return e==sOrank end)) and
+               (not population:isSpeciesMine(sO)) then
                table.insert(self.fiveMomentsXfer.destRank, sOrank)
-               self.fiveMomentsXfer.sendReqStat = Mpi.RequestStatus()
+               table.insert(self.threeMomentsXfer.sendReqStat, messenger:newRequestStatus())
             end
          else
             -- Only species not owned by this rank receive fiveMoments from other ranks.
-            if #self.fiveMomentsXfer.srcRank == 0 and (not population:isSpeciesMine(self.name)) then
+            if (not lume.any(self.threeMomentsXfer.srcRank, function(e) return e==selfRank end)) and
+               (not population:isSpeciesMine(self.name)) then
                table.insert(self.fiveMomentsXfer.srcRank, selfRank)
-               self.fiveMomentsXfer.recvReqStat = Mpi.RequestStatus()
+               table.insert(self.threeMomentsXfer.recvReqStat, messenger:newRequestStatus())
             end
          end
       end
@@ -855,7 +888,7 @@ function VlasovSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
 
    -- Perform the collision update.
    self.timers.collisions = 0.
-   for _, c in pairs(self.collisions) do
+   for _, c in lume.orderedIter(self.collisions) do
       c:advance(tCurr, fIn, population, {fRhsOut, self.cflRateByCell})   -- 'population' needed for cross-species collisions.
       self.timers.collisions = self.timers.collisions + c:getTimer('advance')
    end
@@ -889,7 +922,7 @@ function VlasovSpecies:advanceCrossSpeciesCoupling(tCurr, population, emIn, inId
       coll:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
    end
 
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
 
    for _, src in lume.orderedIter(self.sources) do src:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
 
@@ -932,7 +965,7 @@ end
 function VlasovSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
 
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:copyBoundaryFluxField(aIdx, outIdx) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:copyBoundaryFluxField(aIdx, outIdx) end
 
    if self.positivity then
       self.fDelPos[outIdx]:copy(self.fDelPos[aIdx])
@@ -947,7 +980,7 @@ function VlasovSpecies:combineRk(outIdx, a, aIdx, ...)
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end
 
-   for _, bc in pairs(self.nonPeriodicBCs) do
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
       bc:combineBoundaryFluxField(outIdx, a, aIdx, ...)
    end
 
@@ -1045,6 +1078,8 @@ end
 
 function VlasovSpecies:fluidMoments() return self.fiveMoments end
 
+function VlasovSpecies:vtSqMin() return self.vtSqMinSupported end
+
 function VlasovSpecies:getNumDensity(rkIdx)
    -- If no rkIdx specified, assume numDensity has already been calculated.
    if rkIdx == nil then return self.numDensity end 
@@ -1098,7 +1133,7 @@ function VlasovSpecies:write(tm, field, force)
          dOb:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.
       end
 
-      for _, bc in pairs(self.nonPeriodicBCs) do
+      for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
          bc:computeBoundaryFluxRate(self.dtGlobal[0])
       end
 
@@ -1211,7 +1246,7 @@ end
 function VlasovSpecies:clearTimers()
    for nm, _ in pairs(self.timers) do self.timers[nm] = 0. end
    self.solver.totalTime = 0.
-   for _, c in pairs(self.collisions) do c:clearTimers() end
+   for _, c in lume.orderedIter(self.collisions) do c:clearTimers() end
    for _, src in lume.orderedIter(self.sources) do src:clearTimers() end
 end
 

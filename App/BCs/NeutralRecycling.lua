@@ -260,13 +260,13 @@ function NeutralRecyclingBC:createSolver(mySpecies, field, externalField)
       if jacobGeo then
          self.jacobGeo = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
                                              {jacobGeo:lowerGhost(),jacobGeo:upperGhost()}, jacobGeo:getMetaData())
-         self.jacobGeo:copy(self:evalOnConfBoundary(jacobGeo))
+         self.jacobGeo:copy(self:evalOnConfBoundary(jacobGeo, self.confBoundaryField))
       end
       local jacobGeoInv = externalField.geo and externalField.geo.jacobGeoInv
       if jacobGeoInv then
          self.jacobGeoInv = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
                                                 {jacobGeoInv:lowerGhost(),jacobGeoInv:upperGhost()}, jacobGeoInv:getMetaData())
-         self.jacobGeoInv:copy(self:evalOnConfBoundary(jacobGeoInv))
+         self.jacobGeoInv:copy(self:evalOnConfBoundary(jacobGeoInv, self.confBoundaryField))
       end
 
       self.storeBoundaryFluxFunc = function(tCurr, rkIdx, qOut)

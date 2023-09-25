@@ -105,11 +105,8 @@ end
 local function Field_meta_ctor(elct)
    -- ctor for component data
    local fcompct = new_field_comp_ct(elct)
-   -- ctor for creating vector of element types
-   local ElemVec = Lin.new_vec_ct(elct)   
 
    local elctSize = sizeof(elct)
-   local elctMinValue, elctMaxValue = 0, 0
    
    -- Meta-data for type
    local isNumberType = false   
@@ -117,32 +114,21 @@ local function Field_meta_ctor(elct)
    if ffi.istype(new(elct), new("double")) then
       elctCommType = Mpi.DOUBLE
       isNumberType = true
-      elctMinValue, elctMaxValue = GKYL_MIN_DOUBLE, GKYL_MAX_DOUBLE
    elseif ffi.istype(new(elct), new("float")) then
       elctCommType = Mpi.FLOAT
       isNumberType = true
-      elctMinValue, elctMaxValue = GKYL_MIN_FLOAT, GKYL_MAX_FLOAT
    elseif ffi.istype(new(elct), new("int")) then
       elctCommType = Mpi.INT
       isNumberType = true
-      elctMinValue, elctMaxValue = GKYL_MIN_INT, GKYL_MAX_INT
    elseif ffi.istype(new(elct), new("long")) then
       elctCommType = Mpi.LONG
       isNumberType = true
-      elctMinValue, elctMaxValue = GKYL_MIN_LONG, GKYL_MAX_LONG
    else
       elctCommType = Mpi.BYTE -- by default, send stuff as byte array
    end
 
    -- Binary operation functions and reduce MPI types (used in reduce method).
-   local binOpFuncs = {
-      max = function(a,b) return math.max(a,b) end,
-      min = function(a,b) return math.min(a,b) end,
-      sum = function(a,b) return a+b end
-   }
-   local binOpFlags = {min = 1, max = 2, sum = 3}
    local reduceOpsMPI = {max = Mpi.MAX, min = Mpi.MIN, sum = Mpi.SUM}
-   local reduceInitialVal = {max = elctMinValue, min = elctMaxValue , sum = 0.0}
    
    -- Make constructor for Field.
    local Field = {}
@@ -160,8 +146,6 @@ local function Field_meta_ctor(elct)
       -- Local and global ranges.
       local globalRange = grid:globalRange()
       local localRange  = grid:localRange()
-
-      local nodeComm = grid:commSet().nodeComm
 
       local sz = localRange:extend(ghost[1], ghost[2]):volume()*nc -- Amount of data in field.
       -- Setup object.
@@ -240,8 +224,7 @@ local function Field_meta_ctor(elct)
       self._localEdgeRange = self._localRange:extend(1, 0) -- Or (1, 0)?
 
       -- All cell-cell edges, including those of a ghost cell.
-      self._localExtEdgeRange = self._localRange:extend(
-	 self._lowerGhost-1, self._upperGhost)
+      self._localExtEdgeRange = self._localRange:extend(self._lowerGhost-1, self._upperGhost)
 
       -- Local and (MPI) global values of a reduction (reduce method).
       if self.useDevice then
@@ -432,6 +415,9 @@ local function Field_meta_ctor(elct)
       end,
       copyRangeToRange = function(self, fIn, outRange, inRange)
          self._zeroForOps:copyRangeToRange(fIn._zeroForOps, outRange, inRange)
+      end,
+      copyRange = function(self, fIn, inRange)
+         self._zeroForOps:copyRange(fIn._zeroForOps, inRange)
       end,
       deviceDataPointer = function(self)
          return self._devAllocData
@@ -824,13 +810,6 @@ local function Field_meta_ctor(elct)
           function(self, opIn)
              assert(false, "CartField:reduce: Reduce only works on numeric fields")
           end,
-      reduceByCell = function(self, opIn, comm, localFldIn)
-         -- Reduce the CartField 'localFldIn' across communicator 'comm',
-         -- and put the result in this CartField.
-         assert(field_compatible_ext(self, localFldIn))
-         Mpi.Allreduce(localFldIn:dataPointer(), self._data,
-            self:size(), elctCommType, reduceOpsMPI[opIn], comm)
-      end,
       copyRangeToBuffer = function(self, rgn, dataPointer)
          -- Copy the data in a range of this CartField to a buffer.
          self._zeroForOps:copy_to_buffer(dataPointer, rgn)

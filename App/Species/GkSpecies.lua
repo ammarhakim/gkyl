@@ -36,15 +36,11 @@ local GkSpecies = Proto(SpeciesBase)
 -- ............. Backwards compatible treatment of BCs .....................--
 -- Add constants to object indicate various supported boundary conditions.
 local SP_BC_ABSORB   = 1
-local SP_BC_OPEN     = 2
 local SP_BC_REFLECT  = 3
-local SP_BC_SHEATH   = 4
 local SP_BC_ZEROFLUX = 5
 local SP_BC_COPY     = 6
 GkSpecies.bcAbsorb   = SP_BC_ABSORB      -- Absorb all particles.
-GkSpecies.bcOpen     = SP_BC_OPEN        -- Zero gradient.
 GkSpecies.bcReflect  = SP_BC_REFLECT     -- Specular reflection.
-GkSpecies.bcSheath   = SP_BC_SHEATH      -- Sheath.
 GkSpecies.bcZeroFlux = SP_BC_ZEROFLUX    -- Zero flux.
 GkSpecies.bcCopy     = SP_BC_COPY        -- Copy stuff.
 
@@ -58,16 +54,9 @@ function GkSpecies:makeBcApp(bcIn, dir, edge)
    elseif bcIn == SP_BC_ABSORB then
       print("GkSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
       bcOut = BasicBC{kind="absorb", diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_OPEN then
-      print("GkSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
-      -- AHH: open seems unstable. So using plain copy.
-      bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
    elseif bcIn == SP_BC_REFLECT then
       print("GkSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
       bcOut = BasicBC{kind="reflect", diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_SHEATH then
-      print("GkSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
-      bcOut = BasicBC{kind="sheath", diagnostics={}, saveFlux=false}
    elseif bcIn == SP_BC_ZEROFLUX or bcIn.tbl.kind=="zeroFlux" then
       bcOut = "zeroFlux"
       table.insert(self.zeroFluxDirections, dir)
@@ -99,7 +88,7 @@ end
 
 function GkSpecies:createBasis(nm, polyOrder)
    self.basis = createBasis(nm, self.cdim, self.vdim, polyOrder)
-   for _, c in pairs(self.collisions) do c:setPhaseBasis(self.basis) end
+   for _, c in lume.orderedIter(self.collisions) do c:setPhaseBasis(self.basis) end
 
    -- Output of grid file is placed here because as the file name is associated
    -- with a species, we wish to save the basisID and polyOrder in it. But these
@@ -144,13 +133,10 @@ function GkSpecies:alloc(nRkDup)
 
    -- Allocate fields to store coupling moments (for use in coupling
    -- to field and collisions).
-   self.numDensity    = self:allocMoment()
-   self.numDensityAux = self:allocMoment()
-   self.momDensity    = self:allocMoment()
-   self.momDensityAux = self:allocMoment()
-   self.ptclEnergy    = self:allocMoment()
-   self.ptclEnergyAux = self:allocMoment()
-   self.threeMoments  = self:allocVectorMoment(3)
+   self.numDensity, self.numDensityAux = self:allocMoment(), self:allocMoment()
+   self.momDensity, self.momDensityAux = self:allocMoment(), self:allocMoment()
+   self.ptclEnergy, self.ptclEnergyAux = self:allocMoment(), self:allocMoment()
+   self.threeMoments = self:allocVectorMoment(3)
 			
    self.vDegFreedom = self.vdim == 1 and 1.0 or 3.0
 
@@ -319,22 +305,22 @@ end
 
 function GkSpecies:setCfl(cfl)
    self.cfl = cfl
-   for _, c in pairs(self.collisions) do c:setCfl(cfl) end
+   for _, c in lume.orderedIter(self.collisions) do c:setCfl(cfl) end
 end
 
 function GkSpecies:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 
 function GkSpecies:setConfBasis(basis)
    self.confBasis = basis
-   for _, c in pairs(self.collisions) do c:setConfBasis(basis) end
+   for _, c in lume.orderedIter(self.collisions) do c:setConfBasis(basis) end
    for _, src in pairs(self.sources) do src:setConfBasis(basis) end
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:setConfBasis(basis) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:setConfBasis(basis) end
 end
 function GkSpecies:setConfGrid(grid)
    self.confGrid = grid
-   for _, c in pairs(self.collisions) do c:setConfGrid(grid) end
+   for _, c in lume.orderedIter(self.collisions) do c:setConfGrid(grid) end
    for _, src in pairs(self.sources) do src:setConfGrid(grid) end
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:setConfGrid(grid) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:setConfGrid(grid) end
 end
 
 function GkSpecies:createGrid(confGridIn)
@@ -402,7 +388,7 @@ function GkSpecies:createGrid(confGridIn)
       messenger = confGrid:getMessenger(),
    }
 
-   for _, c in pairs(self.collisions) do c:setPhaseGrid(self.grid) end
+   for _, c in lume.orderedIter(self.collisions) do c:setPhaseGrid(self.grid) end
 end
 
 -- Field allocation in the species objects should be performed with one
@@ -444,6 +430,12 @@ function GkSpecies:allocIntMoment(comp)
    local f = DataStruct.DynVector {numComponents = ncomp,     writeRank = 0,
                                    metaData      = metaData,  comm      = self.confGrid:commSet().comm,}
    return f
+end
+
+local function vtSqMinCalc(mass,grid,cdim,vdim,bmagMid)
+   local TparMin  = (mass/6.)*grid:dx(cdim+1)
+   local TperpMin = vdim==1 and TparMin or (bmagMid/3.)*grid:dx(cdim+2)
+   return (TparMin + 2.*TperpMin)/(3.*mass)
 end
 
 function GkSpecies:createSolver(field, externalField)
@@ -506,12 +498,6 @@ function GkSpecies:createSolver(field, externalField)
       end
    end
 
-   -- Create solvers for collisions.
-   for _, c in pairs(self.collisions) do c:createSolver(self, externalField) end
-
-   -- Create BC solvers.
-   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self, field, externalField) end
-
    local hasE, hasB       = field:hasEB()
    local extHasE, extHasB = externalField:hasEB()
 
@@ -538,11 +524,21 @@ function GkSpecies:createSolver(field, externalField)
       local xMid = {}
       for d = 1,self.cdim do xMid[d]=self.confGrid:mid(d) end
       self.bmagMid = self.bmagFunc(0.0, xMid)
+
    end
+
+   -- Minimum vtSq supported by the grid (for p=1 only for now):
+   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.grid,self.cdim,self.vdim,self.bmagMid)
+
+   -- Create solvers for collisions.
+   for _, c in lume.orderedIter(self.collisions) do c:createSolver(self, externalField) end
+
+   -- Create BC solvers.
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self, field, externalField) end
 
    self.hasSheathBCs = false
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
-      self.hasSheathBCs = self.hasSheathBCs or (bc.bcKind=="sheath" and true or false)
+      self.hasSheathBCs = self.hasSheathBCs or (bc.phiWallFld and true or false)
    end
 
    -- Create updater to advance solution by one time-step.
@@ -739,6 +735,26 @@ function GkSpecies:createCouplingSolver(population, field, externalField)
 
    local species = population:getSpecies()
 
+   -- Minimum vtSq supported by the grid (for p=1 only for now).
+   -- Recomputed here because we need it for all species (for species parallelization)
+   -- and createSolver is only called for the local species.
+   local bmagMid
+   if externalField then
+      -- Magnetic field in the center of the domain.
+      local bmagFunc = externalField.bmagFunc
+      local xMid = {}
+      for d = 1,self.cdim do xMid[d]=self.confGrid:mid(d) end
+      bmagMid = bmagFunc(0.0, xMid)
+   end
+   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.grid,self.cdim,self.vdim,bmagMid)
+
+   -- For initial conditions where the ICs of one species depends on another species.
+   for nm, pr in lume.orderedIter(self.projections) do
+      if string.find(nm,"init") then
+         pr:createCouplingSolver(species, field, externalField)
+      end
+   end
+
    -- Create cross collision solvers.
    for _, c in lume.orderedIter(self.collisions) do c:createCouplingSolver(population, field, externalField) end
 
@@ -842,29 +858,32 @@ function GkSpecies:initCrossSpeciesCoupling(population)
       self.threeMoments = self:allocVectorMoment(3)
    end
 
+   local messenger = self.confGrid:getMessenger()
    -- Create list of ranks we need to send/recv local threeMoments to/from.
    self.threeMomentsXfer = {}
    self.threeMomentsXfer.destRank, self.threeMomentsXfer.srcRank  = {}, {}
-   self.threeMomentsXfer.sendReqStat, self.threeMomentsXfer.recvReqStat = nil, nil
+   self.threeMomentsXfer.sendReqStat, self.threeMomentsXfer.recvReqStat = {}, {}
    for sO, info in pairs(self.collPairs[self.name]) do
       local sOrank = population:getSpeciesOwner(sO)
       local selfRank = population:getSpeciesOwner(self.name)
       if sO~=self.name and info.on then
          if isThisSpeciesMine then
             -- Only species owned by this rank send threeMoments to other ranks.
-            if #self.threeMomentsXfer.destRank == 0 and (not population:isSpeciesMine(sO)) then
+            if (not lume.any(self.threeMomentsXfer.destRank, function(e) return e==sOrank end)) and
+               (not population:isSpeciesMine(sO)) then
                table.insert(self.threeMomentsXfer.destRank, sOrank)
-               self.threeMomentsXfer.sendReqStat = Mpi.RequestStatus()
+               table.insert(self.threeMomentsXfer.sendReqStat, messenger:newRequestStatus())
             end
          else
             -- Only species not owned by this rank receive threeMoments from other ranks.
-            if #self.threeMomentsXfer.srcRank == 0 and (not population:isSpeciesMine(self.name)) then
+            if (not lume.any(self.threeMomentsXfer.srcRank, function(e) return e==selfRank end)) and
+               (not population:isSpeciesMine(self.name)) then
                table.insert(self.threeMomentsXfer.srcRank, selfRank)
-               self.threeMomentsXfer.recvReqStat = Mpi.RequestStatus()
+               table.insert(self.threeMomentsXfer.recvReqStat, messenger:newRequestStatus())
             end
          end
-       end
-    end
+      end
+   end
 
    -- Initialize the BC cross-coupling interactions.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:initCrossSpeciesCoupling(species) end
@@ -889,7 +908,7 @@ function GkSpecies:advance(tCurr, population, emIn, inIdx, outIdx)
 
    -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
    self.timers.collisions = 0.
-   for _, c in pairs(self.collisions) do
+   for _, c in lume.orderedIter(self.collisions) do
       c:advance(tCurr, fIn, population, {fRhsOut, self.cflRateByCell})
       self.timers.collisions = self.timers.collisions + c:getTimer('advance')
    end
@@ -943,7 +962,7 @@ function GkSpecies:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, o
       coll:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
    end
 
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
    self.timers.advancecross = self.timers.advancecross + Time.clock() - tmStart
 end
 
@@ -1027,7 +1046,7 @@ function GkSpecies:getFlucF() return self.flucF end
 function GkSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
 
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:copyBoundaryFluxField(aIdx, outIdx) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:copyBoundaryFluxField(aIdx, outIdx) end
 end
 
 function GkSpecies:combineRk(outIdx, a, aIdx, ...)
@@ -1038,7 +1057,7 @@ function GkSpecies:combineRk(outIdx, a, aIdx, ...)
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end
 
-   for _, bc in pairs(self.nonPeriodicBCs) do
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
       bc:combineBoundaryFluxField(outIdx, a, aIdx, ...)
    end
 end
@@ -1102,6 +1121,8 @@ end
 
 function GkSpecies:fluidMoments() return self.threeMoments end
 
+function GkSpecies:vtSqMin() return self.vtSqMinSupported end
+
 function GkSpecies:getNumDensity(rkIdx)
    -- If no rkIdx specified, assume numDensity has already been calculated.
    if rkIdx == nil then return self.numDensity end 
@@ -1162,7 +1183,7 @@ function GkSpecies:write(tm, field, force)
          dOb:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.
       end
 
-      for _, bc in pairs(self.nonPeriodicBCs) do
+      for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
          bc:computeBoundaryFluxRate(self.dtGlobal[0])
       end
 
@@ -1281,7 +1302,7 @@ end
 function GkSpecies:clearTimers() 
    for nm, _ in pairs(self.timers) do self.timers[nm] = 0. end
    self.solver.totalTime = 0.
-   for _, c in pairs(self.collisions) do c:clearTimers() end
+   for _, c in lume.orderedIter(self.collisions) do c:clearTimers() end
    for _, src in lume.orderedIter(self.sources) do src:clearTimers() end
 end
 

@@ -11,7 +11,6 @@ def build(bld):
     aSheathPotentialData/asheath_potential_1x_p1_ser.cpp
     aSheathPotentialData/asheath_potential_1x_p2_ser.cpp
 
-
     momentCalcData/IntegratedDGMomentSer1x.cpp
     momentCalcData/IntegratedDGMomentSer2x.cpp
     momentCalcData/IntegratedDGMomentSer3x.cpp
@@ -54,35 +53,6 @@ def build(bld):
     momentCalcData/DistFuncGkMomentLBOCalcTensor1x2v.cpp
     momentCalcData/DistFuncGkMomentLBOCalcTensor2x2v.cpp
 
-    lagrangeFixData/lagrangeFix_vlasov_1x1v_ser_p1.cpp
-    lagrangeFixData/lagrangeFix_vlasov_1x1v_ser_p2.cpp
-    lagrangeFixData/lagrangeFix_vlasov_1x1v_ser_p3.cpp
-    lagrangeFixData/lagrangeFix_vlasov_1x1v_tensor_p1.cpp
-    lagrangeFixData/lagrangeFix_vlasov_1x1v_tensor_p2.cpp
-    lagrangeFixData/lagrangeFix_vlasov_1x2v_ser_p1.cpp
-    lagrangeFixData/lagrangeFix_vlasov_1x2v_ser_p2.cpp
-    lagrangeFixData/lagrangeFix_vlasov_1x2v_ser_p3.cpp
-    lagrangeFixData/lagrangeFix_vlasov_1x2v_tensor_p1.cpp
-    lagrangeFixData/lagrangeFix_vlasov_1x2v_tensor_p2.cpp
-    lagrangeFixData/lagrangeFix_vlasov_1x3v_ser_p1.cpp
-    lagrangeFixData/lagrangeFix_vlasov_1x3v_ser_p2.cpp
-    lagrangeFixData/lagrangeFix_vlasov_1x3v_ser_p3.cpp
-    lagrangeFixData/lagrangeFix_vlasov_2x2v_ser_p1.cpp
-    lagrangeFixData/lagrangeFix_vlasov_2x2v_ser_p2.cpp
-    lagrangeFixData/lagrangeFix_vlasov_2x2v_ser_p3.cpp
-    lagrangeFixData/lagrangeFix_vlasov_2x2v_tensor_p1.cpp
-    lagrangeFixData/lagrangeFix_vlasov_2x2v_tensor_p2.cpp
-    lagrangeFixData/lagrangeFix_vlasov_2x3v_ser_p1.cpp
-    lagrangeFixData/lagrangeFix_vlasov_2x3v_ser_p2.cpp
-    lagrangeFixData/lagrangeFix_vlasov_3x3v_ser_p1.cpp
-
-    lagrangeFixData/lagrangeFix_gk_1x1v_ser_p1.cpp
-    lagrangeFixData/lagrangeFix_gk_1x1v_ser_p2.cpp
-    lagrangeFixData/lagrangeFix_gk_1x1v_tensor_p1.cpp
-    lagrangeFixData/lagrangeFix_gk_1x1v_tensor_p2.cpp
-    lagrangeFixData/lagrangeFix_gk_1x2v_ser_p1.cpp
-    lagrangeFixData/lagrangeFix_gk_1x2v_tensor_p1.cpp
-
     momentCalcData/DistFuncMomentCalcSer1x1v.cpp
     momentCalcData/DistFuncMomentCalcSer1x2v.cpp
     momentCalcData/DistFuncMomentCalcSer1x3v.cpp
@@ -113,38 +83,8 @@ def build(bld):
 
     CartFieldIntegratedQuantCalcImpl.cpp
 
-    FemPerpPoissonImpl.cpp
-    FemParPoissonImpl.cpp
-    FemMatrices.cpp
-
-    confToPhaseData/ConfToPhaseSer1x1v.cpp
-    confToPhaseData/ConfToPhaseSer1x2v.cpp
-    confToPhaseData/ConfToPhaseSer1x3v.cpp
-    confToPhaseData/ConfToPhaseSer2x2v.cpp
-    confToPhaseData/ConfToPhaseSer2x3v.cpp
-    confToPhaseData/ConfToPhaseSer3x2v.cpp
-    confToPhaseData/ConfToPhaseSer3x3v.cpp
-
-    ionizationCalcData/IonizationVtSqSer1x.cpp
-    ionizationCalcData/IonizationVtSqSer2x.cpp
-    ionizationCalcData/IonizationVtSqSer3x.cpp
-    ionizationCalcData/VoronovSer1x.cpp
-    ionizationCalcData/VoronovSer2x.cpp
-    ionizationCalcData/VoronovSer3x.cpp
-
-    chargeExchangeCalcData/SigmaCXcellAvSer1x1v.cpp
-    chargeExchangeCalcData/SigmaCXcellAvSer1x2v.cpp
-    chargeExchangeCalcData/SigmaCXcellAvSer1x3v.cpp
-    chargeExchangeCalcData/SigmaCXcellAvSer2x2v.cpp
-    chargeExchangeCalcData/SigmaCXcellAvSer2x3v.cpp
-    chargeExchangeCalcData/SigmaCXcellAvSer3x3v.cpp
-
     projectFluxOnGhostsData/ProjectFluxOnGhostsSer.cpp
 
-    PositivityRescaleImpl.cpp
-
-    ProjectOnBasisImpl.cpp
-    EvalOnNodesImpl.cpp
     EvaluateBronoldFehskeBCImpl.cpp
     """
 
@@ -163,7 +103,7 @@ def build(bld):
 
     bld.shlib(source = sources,
 
-              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData twistShiftData projectFluxOnGhostsData aSheathPotentialData', 
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData momentCalcData twistShiftData projectFluxOnGhostsData aSheathPotentialData', 
 
               use='lib EIGEN MPI CUTOOLS gkylzero', target = 'updater', name = 'updater', vum = '1.0')
     
@@ -176,9 +116,14 @@ def build(bld):
 #    AxisymmetricPhMaxwellSrcImpl.cpp
 #    FiveMomentFrictionSrcImpl.cpp
 #
+#    FemMatrices.cpp
+#    FemPerpPoissonImpl.cpp
+#    FemParPoissonImpl.cpp
+#
 #    DiscontPoissonImpl.cpp  
 #    FemGyroaverageImpl.cpp
 #    MappedPoissonImpl.cpp
+#    EvalOnNodesImpl.cpp
 #
 #     binOpCalcData/CartFieldBinOpSer3x3vP2.cpp
 #    lagrangeFixData/lagrangeFix_gk_1x2v_ser_p2.cpp

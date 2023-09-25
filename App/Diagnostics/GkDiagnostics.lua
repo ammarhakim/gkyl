@@ -273,7 +273,7 @@ local implementation = function()
       self.field   = owner:allocMoment()
       self.updater = owner.confWeakMultiply or specIn.confWeakMultiply
       self.evalPhi = owner.evalOnConfBoundary
-         and function(phiIn) return owner:evalOnConfBoundary(phiIn) end
+         and function(phiIn) return owner:evalOnConfBoundary(phiIn, owner.confBoundaryField) end
          or function(phiIn) return phiIn end
       self.done    = false
    end
