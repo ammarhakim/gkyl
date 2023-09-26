@@ -8,21 +8,17 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local BCsBase      = require "App.BCs.BCsBase"
-local DataStruct   = require "DataStruct"
-local Updater      = require "Updater"
-local Proto        = require "Lib.Proto"
-local Range        = require "Lib.Range"
-local Grid         = require "Grid"
-local Lin          = require "Lib.Linalg"
-local LinearDecomp = require "Lib.LinearDecomp"
-local CartDecomp   = require "Lib.CartDecomp"
-local Grid         = require "Grid"
-local DiagsApp     = require "App.Diagnostics.SpeciesDiagnostics"
-local GkDiags      = require "App.Diagnostics.GkDiagnostics"
-local xsys         = require "xsys"
-local lume         = require "Lib.lume"
-local ffi          = require "ffi"
+local BCsBase    = require "App.BCs.BCsBase"
+local DataStruct = require "DataStruct"
+local Updater    = require "Updater"
+local Proto      = require "Lib.Proto"
+local Grid       = require "Grid"
+local BCtools    = require "App.BCs.GkBCtools"
+local DiagsApp   = require "App.Diagnostics.SpeciesDiagnostics"
+local GkDiags    = require "App.Diagnostics.GkDiagnostics"
+local xsys       = require "xsys"
+local lume       = require "Lib.lume"
+local ffi        = require "ffi"
 
 local AxiTokLimBC = Proto(BCsBase)
 
@@ -59,7 +55,7 @@ function AxiTokLimBC:createSolver(mySpecies, field, externalField)
    self.ndim, self.cdim, self.vdim = self.grid:ndim(), self.confGrid:ndim(), self.grid:ndim()-self.confGrid:ndim()
 
    local Ny = self.grid:numCells(2)
-   assert(self.ndim==3 and Ny==1, "AxiTokLimBC: this BC is currently for 3D simulations with 1 cell along y.") 
+   assert(self.cdim==3 and Ny==1, "AxiTokLimBC: this BC is currently for 3D simulations with 1 cell along y.") 
 
    -- Create the boundary grid and other boundary tools.
    BCtools.createBoundaryTools(mySpecies, field, externalField, self)
@@ -121,9 +117,9 @@ function AxiTokLimBC:createSolver(mySpecies, field, externalField)
    }
    xGrid:findCell(coordLCFS, self.idxLCFS) 
    local myGlobalGhostRangeSOL = self.myGlobalGhostRange:shortenFromBelow(1, self.grid:numCells(1)-self.idxLCFS[1]+1)
-   self.myGlobalGhostRangeSOL  = distf:localExtRange():subRange(myGlobalGhostRange:lowerAsVec(),myGlobalGhostRange:upperAsVec())
+   self.myGlobalGhostRangeSOL  = distf:localExtRange():subRange(myGlobalGhostRangeSOL:lowerAsVec(),myGlobalGhostRangeSOL:upperAsVec())
    local myGlobalSkinRangeSOL  = self.myGlobalSkinRange:shortenFromBelow(1, self.grid:numCells(1)-self.idxLCFS[1]+1)
-   self.myGlobalSkinRangeSOL   = distf:localExtRange():subRange(myGlobalSkinRange:lowerAsVec(),myGlobalSkinRange:upperAsVec())
+   self.myGlobalSkinRangeSOL   = distf:localExtRange():subRange(myGlobalSkinRangeSOL:lowerAsVec(),myGlobalSkinRangeSOL:upperAsVec())
 
    self.bcSolverSOL = Updater.GkSheathBc{
       onGrid  = self.grid,   edge    = self.bcEdge,  
@@ -131,7 +127,6 @@ function AxiTokLimBC:createSolver(mySpecies, field, externalField)
       dir     = self.bcDir,  phiWall = self.phiWallFld,
       charge  = charge,      mass    = mass,
       skinRange = self.myGlobalSkinRangeSOL,  ghostRange = self.myGlobalGhostRangeSOL,
-      
    }
    self.bcSolverAdvanceSOL = function(tm, inFlds, outFlds)
       self.bcSolverSOL:advance(tm, {inFlds[1]}, outFlds)

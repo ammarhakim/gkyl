@@ -67,7 +67,7 @@ function Diffusion:createSolver(mySpecies, externalField)
    local diffCoeffType = type(self.diffCoeff)
    if self.diffDirs then
       assert(#self.diffDirs<=cdim, "App.Diffusion: 'diffusiveDirs' cannot have more entries than the simulation's conf dimensions.")
-      for d = 1, cdim do assert(self.diffDirs[d]<=cdim, "App.Diffusion: cannot apply diffusion in velocity space.") end
+      for d = 1, #self.diffDirs do assert(self.diffDirs[d]<=cdim, "App.Diffusion: cannot apply diffusion in velocity space.") end
    else
       if diffCoeffType == "table" then
          assert(#self.diffCoeff==cdim, "App.Diffusion: 'coefficient' must have same number of entries as there are dimensions if not specifying 'diffusiveDirs'.")

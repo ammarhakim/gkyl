@@ -898,6 +898,7 @@ return {
 	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
          AdiabaticBasicBC = require "App.BCs.AdiabaticBasic",
 	 App = App,
+         AxisymmetricTokamakLimiterBC = require "App.BCs.AxisymmetricTokamakLimiter",
          BasicBC = require ("App.BCs.GkBasic").GkBasic,
          MaxwellianBC = require("App.BCs.GkMaxwellianBC"),
          AbsorbBC = require ("App.BCs.GkBasic").GkAbsorb,

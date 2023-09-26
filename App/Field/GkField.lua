@@ -29,15 +29,12 @@ local xsys             = require "xsys"
 
 local GkField = Proto(FieldBase.FieldBase)
 
-local checkBCs = function(dimIn, isDirPer, bcLoIn, bcUpIn, bcLoOut, bcUpOut, setLastDir)
+local checkBCs = function(dimIn, isDirPer, bcLoIn, bcUpIn, bcLoOut, bcUpOut)
    local periodicDomain = true
    for d=1,dimIn do periodicDomain = periodicDomain and isDirPer[d] end
    if bcLoIn==nil and bcUpIn==nil then
       if periodicDomain then
-         for d=1,dimIn do
-            bcLoOut[d] = d<3 and {T="P"} or {T="N", V=0.0} 
-            bcUpOut[d] = bcLoOut[d]
-         end
+         for d=1,dimIn do bcLoOut[d], bcUpOut[d] = {T="P"}, {T="P"} end
       else
          assert(dimIn==1, "App.Field.GkField: must specify 'bcLower' and 'bcUpper' if dimensions > 1.")
       end
@@ -52,10 +49,6 @@ local checkBCs = function(dimIn, isDirPer, bcLoIn, bcUpIn, bcLoOut, bcUpOut, set
                 string.format("App.Field.GkField: direction %d is periodic. Must use {T='P'} in bcLower/bcUpper.",d))
      
       end
-   end
-   if setLastDir and (bcLoOut[dimIn]==nil or bcUpOut[dimIn]==nil) then
-      -- Assume homogeneous Neumann since this would only be used in the z-smoothing.
-      bcLoOut[dimIn], bcUpOut[dimIn] = {T="N", V=0.0}, {T="N", V=0.0} 
    end
 end
 
@@ -111,13 +104,13 @@ function GkField:fullInit(appTbl)
       assert((tbl.bcLowerPhi and tbl.bcUpperPhi) or (tbl.bcLowerPhi==nil and tbl.bcUpperPhi==nil),
              "App.Field.GkField: must specify both 'bcLowerPhi' and 'bcUpperPhi' or none.")
       if #self.bcLowerPhi==0 and #self.bcUpperPhi==0 then  -- Needed to not override the backward compatible part above.
-         checkBCs(ndim, isDirPeriodic, tbl.bcLowerPhi, tbl.bcUpperPhi, self.bcLowerPhi, self.bcUpperPhi, true)
+         checkBCs(ndim, isDirPeriodic, tbl.bcLowerPhi, tbl.bcUpperPhi, self.bcLowerPhi, self.bcUpperPhi)
       end
       if self.isElectromagnetic then
          assert((tbl.bcLowerApar and tbl.bcUpperApar) or (tbl.bcLowerApar==nil and tbl.bcUpperApar==nil),
                 "App.Field.GkField: must specify both 'bcLowerApar' and 'bcUpperApar' or none.")
          if #self.bcLowerApar==0 and #self.bcUpperApar==0 then  -- Needed to not override the backward compatible part above.
-            checkBCs(ndim, isDirPeriodic, tbl.bcLowerApar, tbl.bcUpperApar, self.bcLowerApar, self.bcUpperApar, false)
+            checkBCs(ndim, isDirPeriodic, tbl.bcLowerApar, tbl.bcUpperApar, self.bcLowerApar, self.bcUpperApar)
          end
       end
 
@@ -407,11 +400,7 @@ function GkField:createSolver(population, externalField)
       assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")
 
       self.unitField = createField(self.grid,self.basis,{1,1})
-      local initUnit = Updater.ProjectOnBasis {
-         onGrid = self.grid,   evaluate = function (t,xn) return 1.0 end,
-         basis  = self.basis,  onGhosts = true,
-      }
-      initUnit:advance(0.,{},{self.unitField})
+      self.unitField:shiftc(1.*(math.sqrt(2.)^(self.ndim)), 0)
 
       -- Metric coefficients in the Poisson and Ampere equations for phi and Apar.
       local gxxPoisson, gxyPoisson, gyyPoisson
@@ -589,11 +578,57 @@ function GkField:createSolver(population, externalField)
 
          self.parSmooth = function(tCurr, fldIn, fldOut) fldOut:copy(fldIn) end
          if self.ndim == 3 and not self.discontinuousPhi then
-            self.parSmoother = Updater.FemParproj {
-               onGrid  = self.gridGlobalZ,  basis = self.basis,
-               onField = self.globalSolZ,
-               periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
-            }
+            if self.bcLowerPhi[3].T == "AxisymmetricLimitedTokamak" or self.bcUpperPhi[3].T == "AxisymmetricLimitedTokamak" then
+               assert(self.bcLowerPhi[3].T == self.bcUpperPhi[3].T, "App.Field.GkField: 'bcLowerPhi[3]' and 'bcUpperPhi[3]' must be equal.")
+               assert(self.bcLowerPhi[3].xLCFS == self.bcUpperPhi[3].xLCFS, "App.Field.GkField: 'bcLowerPhi[3]' and 'bcUpperPhi[3]' must be equal.")
+
+               -- Reduce range to the core part and SOL part.
+               -- Assume the split happens at a cell boundary and within the domain.
+               local xLCFS = self.bcLowerPhi[3].xLCFS 
+               assert(self.grid:lower(1)<xLCFS and xLCFS<self.grid:upper(1), "App.Field.GkField: 'xLCFS' coordinate must be within the x-domain.")
+               local needint = (xLCFS-self.grid:lower(1))/self.grid:dx(1)
+               assert(math.floor(math.abs(needint-math.floor(needint))) < 1., "App.Field.GkField: 'xLCFS' must fall on a cell boundary along x.")
+               -- Determine the index of the cell that abuts xLCFS from below.
+               local coordLCFS, idxLCFS = {xLCFS-1.e-7}, {-9}
+               local xGridIngr = self.grid:childGrid({1})
+               local xGrid = Grid.RectCart {
+                  lower = xGridIngr.lower,  periodicDirs  = xGridIngr.periodicDirs,
+                  upper = xGridIngr.upper,  decomposition = xGridIngr.decomposition,
+                  cells = xGridIngr.cells,
+               }
+               xGrid:findCell(coordLCFS, idxLCFS)
+               local solRange     = self.globalSolZ:localRange():shortenFromBelow(1, self.grid:numCells(1)-idxLCFS[1]+1)
+               local coreRange    = self.globalSolZ:localRange():shorten(1, idxLCFS[1]+1)
+               local solRangeExt  = self.globalSolZ:localExtRange():shortenFromBelow(1, self.grid:numCells(1)-idxLCFS[1]+1)
+               local coreRangeExt = self.globalSolZ:localExtRange():shorten(1, idxLCFS[1]+1)
+               self.solRange     = self.globalSolZ:localExtRange():subRange(    solRange:lowerAsVec(),    solRange:upperAsVec())
+               self.coreRange    = self.globalSolZ:localExtRange():subRange(   coreRange:lowerAsVec(),   coreRange:upperAsVec())
+               self.solRangeExt  = self.globalSolZ:localExtRange():subRange( solRangeExt:lowerAsVec(), solRangeExt:upperAsVec())
+               self.coreRangeExt = self.globalSolZ:localExtRange():subRange(coreRangeExt:lowerAsVec(),coreRangeExt:upperAsVec())
+
+               self.parSmootherCore = Updater.FemParproj {
+                  onGrid  = self.gridGlobalZ,  basis               = self.basis,
+                  onField = self.globalSolZ,   periodicParallelDir = true,
+                  onRange = self.coreRange,    onExtRange          = self.coreRangeExt,
+               }
+               self.parSmootherSOL = Updater.FemParproj {
+                  onGrid  = self.gridGlobalZ,  basis               = self.basis,
+                  onField = self.globalSolZ,   periodicParallelDir = false,
+                  onRange = self.solRange,     onExtRange          = self.solRangeExt,
+               }
+               self.partSmoother = {
+                  advance = function(self, tCurr, fldIn, fldOut)
+                     self.parSmootherCore:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
+                     self.parSmootherSOL:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
+                  end,
+               }
+            else
+               self.parSmoother = Updater.FemParproj {
+                  onGrid  = self.gridGlobalZ,  basis = self.basis,
+                  onField = self.globalSolZ,
+                  periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
+               }
+            end
             self.parSmooth = function(tCurr, fldIn, fldOut)
                -- Gather the discontinuous field onto a global field.
                self:AllgatherFieldZ(fldIn, self.globalSolZ)
@@ -1194,13 +1229,6 @@ function GkGeometry:createSolver(population)
       }
    end
 
-   self.unitWeight = createField(self.grid,self.basis,{1,1})
-   local initUnit = Updater.ProjectOnBasis {
-      onGrid = self.grid,   evaluate = function (t,xn) return 1.0 end,
-      basis  = self.basis,  onGhosts = true,
-   }
-   initUnit:advance(0.,{},{self.unitWeight})
-
    -- Updater to separate vector components packed into a single CartField.
    self.separateComponents = Updater.SeparateVectorComponents {
       onGrid = self.grid,  basis = self.basis,
@@ -1242,15 +1270,17 @@ function GkGeometry:initField(population)
 
    -- Compute 1/B and 1/(B^2). LBO collisions require that this is
    -- done via weak operations instead of projecting 1/B or 1/B^2.
+   local unitField = createField(self.grid,self.basis,{1,1})
+   unitField:shiftc(1.*(math.sqrt(2.)^(self.ndim)), 0)
    local confWeakMultiply = Updater.CartFieldBinOp {
       weakBasis = self.basis,  operation = "Multiply",
-      onGhosts  = true,
+      onGhosts  = false,
    }
    local confWeakDivide = Updater.CartFieldBinOp {
       weakBasis = self.basis,  operation = "Divide",
-      onRange   = self.unitWeight:localExtRange(),  onGhosts = true,
+      onRange   = unitField:localRange(),  onGhosts = false,
    }
-   confWeakDivide:advance(0., {self.geo.bmag, self.unitWeight}, {self.geo.bmagInv})
+   confWeakDivide:advance(0., {self.geo.bmag, unitField}, {self.geo.bmagInv})
    confWeakMultiply:advance(0., {self.geo.bmagInv, self.geo.bmagInv}, {self.geo.bmagInvSq})
 
    log("...Finished initializing the geometry\n")
