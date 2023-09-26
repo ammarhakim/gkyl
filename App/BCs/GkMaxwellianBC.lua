@@ -152,7 +152,7 @@ function GkMaxwellianBC:createSolver(mySpecies, field, externalField)
             end
          end
          local project = Updater.ProjectOnBasis {
-            onGrid = self.boundaryGrid,  evaluate = self.initFunc,
+            onGrid = self.boundaryGrid,  evaluate = initFunc,
             basis  = self.basis,         onGhosts = false
          }
          project:advance(time, {},{self.ghostFld})
