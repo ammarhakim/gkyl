@@ -9,8 +9,6 @@
 local AdiabaticBasic             = require "App.BCs.AdiabaticBasic"
 local AxisymmetricTokamakLimiter = require "App.BCs.AxisymmetricTokamakLimiter"
 local BCsBase                    = require "App.BCs.BCsBase"
-local BCsBaseGK                  = require "App.BCs.BCsBaseGK"
-local BCsBaseVlasov              = require "App.BCs.BCsBaseVlasov"
 local BronoldFehskeReflection    = require "App.BCs.BronoldFehskeReflection"
 local GkBasic                    = require "App.BCs.GkBasic"
 local GkSheath                   = require "App.BCs.GkSheath"
@@ -25,8 +23,6 @@ return {
    AdiabaticBasic             = AdiabaticBasic,
    AxisymmetricTokamakLimiter = AxisymmetricTokamakLimiter,
    BCsBase                    = BCsBase,
-   BCsBaseGK                  = BCsBaseGK,
-   BCsBaseVlasov              = BCsBaseVlasov,
    BronoldFehskeReflection    = BronoldFehskeReflection,
    FluidBasic                 = FluidBasic,
    GkBasic                    = GkBasic,
