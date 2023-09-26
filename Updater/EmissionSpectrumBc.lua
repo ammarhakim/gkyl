@@ -25,7 +25,8 @@ ffi.cdef [[
 // BC types in this updater.
 enum gkyl_bc_emission_spectrum_type {
   GKYL_BC_CHUNG_EVERHART = 0,
-  GKYL_BC_GAUSSIAN = 1};
+  GKYL_BC_GAUSSIAN = 1,
+  GKYL_BC_MAXWELLIAN = 2};
 
 enum gkyl_bc_emission_spectrum_gamma_type {
   GKYL_BC_FURMAN_PIVI = 0,
@@ -111,6 +112,7 @@ function EmissionSpectrumBc:init(tbl)
    local bctype -- Match gkyl_bc_emission_spectrum_type in gkylzero/zero/gkyl_bc_emission_spectrum.h
        if self._bcType == "chung-everhart" then bctype = 0
    elseif self._bcType == "gaussian" then bctype = 1
+   elseif self._bcType == "maxwellian" then bctype = 2
    end
    local gammatype -- Match gkyl_bc_emission_spectrum_gamma_type in gkylzero/zero/gkyl_bc_emission_spectrum.h
    if self._gammaType == "furman-pivi" then gammatype = 0 end

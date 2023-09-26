@@ -41,6 +41,14 @@ function VlasovEmissionBC:Gaussian(t, xn, E_0, tau)
    return math.exp(-math.log(E/E_0)^2/(2.0*tau^2))
 end
 
+function VlasovEmissionBC:Maxwellian(t, xn, vt)
+   local vSq = 0.0
+   for d = self.cdim+1, self.cdim+self.vdim do
+      vSq = vSq + xn[d]^2
+   end
+   return math.exp(-vSq/(2.0*vt^2))
+end
+
 -- Function initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
 function VlasovEmissionBC:fullInit(mySpecies)
@@ -68,7 +76,11 @@ function VlasovEmissionBC:fullInit(mySpecies)
          self.bcParam[otherNm]:data()[2] = assert(tbl.spectrumFit[ispec].E0, "VlasovEmissionBC: must specify fitting parameter 'E0'.")
          self.bcParam[otherNm]:data()[3] = assert(tbl.spectrumFit[ispec].tau, "VlasovEmissionBC: must specify fitting parameter 'tau'.")
 	 self.proj[otherNm] = Projection.KineticProjection.FunctionProjection
-            { func = function(t, zn) return self:Gaussian(t, zn, self.bcParam[otherNm]:data()[2], self.bcParam[otherNm]:data()[3]) end, }
+	    { func = function(t, zn) return self:Gaussian(t, zn, self.bcParam[otherNm]:data()[2], self.bcParam[otherNm]:data()[3]) end, }
+      elseif self.bcKind == "maxwellian" then
+	 self.bcParam[otherNm]:data()[2] = assert(tbl.spectrumFit[ispec].vt, "VlasovEmissionBC: must specify the material work function in 'vt'.")
+         self.proj[otherNm] = Projection.KineticProjection.FunctionProjection
+	    { func = function(t, zn) return self:Maxwellian(t, zn, self.bcParam[otherNm]:data()[2]) end, }
       else
          assert(false, "VlasovEmissionBC: Fitting model not recognized.")
       end
