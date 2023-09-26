@@ -25,7 +25,6 @@ local DiscontGenPoisson = require "Updater.DiscontGenPoisson"
 local DiscontPoisson = require "Updater.DiscontPoisson"
 local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
 local DistFuncMomentDG = require "Updater.DistFuncMomentDG"
-local EmissionBc = require "Updater.EmissionBc"
 local EmissionSpectrumBc = require "Updater.EmissionSpectrumBc"
 local EvalOnNodes = require "Updater.EvalOnNodes"
 local EvaluateBronoldFehskeBC = require "Updater.EvaluateBronoldFehskeBC"
@@ -94,7 +93,6 @@ return {
    DiscontPoisson = DiscontPoisson,
    DistFuncMomentCalc = DistFuncMomentCalc,
    DistFuncMomentDG = DistFuncMomentDG,
-   EmissionBc = EmissionBc,
    EmissionSpectrumBc = EmissionSpectrumBc,
    EvalOnNodes = EvalOnNodes,
    EvaluateBronoldFehskeBC = EvaluateBronoldFehskeBC,
