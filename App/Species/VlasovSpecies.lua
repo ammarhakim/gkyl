@@ -840,17 +840,17 @@ function VlasovSpecies:initCrossSpeciesCoupling(population)
       if sO~=self.name and info.on then
          if isThisSpeciesMine then
             -- Only species owned by this rank send fiveMoments to other ranks.
-            if (not lume.any(self.threeMomentsXfer.destRank, function(e) return e==sOrank end)) and
+            if (not lume.any(self.fiveMomentsXfer.destRank, function(e) return e==sOrank end)) and
                (not population:isSpeciesMine(sO)) then
                table.insert(self.fiveMomentsXfer.destRank, sOrank)
-               table.insert(self.threeMomentsXfer.sendReqStat, messenger:newRequestStatus())
+               table.insert(self.fiveMomentsXfer.sendReqStat, messenger:newRequestStatus())
             end
          else
             -- Only species not owned by this rank receive fiveMoments from other ranks.
-            if (not lume.any(self.threeMomentsXfer.srcRank, function(e) return e==selfRank end)) and
+            if (not lume.any(self.fiveMomentsXfer.srcRank, function(e) return e==selfRank end)) and
                (not population:isSpeciesMine(self.name)) then
                table.insert(self.fiveMomentsXfer.srcRank, selfRank)
-               table.insert(self.threeMomentsXfer.recvReqStat, messenger:newRequestStatus())
+               table.insert(self.fiveMomentsXfer.recvReqStat, messenger:newRequestStatus())
             end
          end
       end
