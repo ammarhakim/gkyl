@@ -49,6 +49,18 @@ function VlasovEmissionBC:Maxwellian(t, xn, vt)
    return math.exp(-vSq/(2.0*vt^2))
 end
 
+function VlasovEmissionBC:FurmanPiviElastic(t, xn, P1_inf, P1_hat, E_hat, W, p)
+   local E = 0.0
+   for d = self.cdim+1, self.cdim+self.vdim do
+      E = E + 0.5*self.mass*xn[d]^2/math.abs(self.charge)
+   end
+   return P1_inf + (P1_hat - P1_inf)*math.exp((-math.abs(E - E_hat)/W)^p/p)
+end
+
+function VlasovEmissionBC:ConstantElastic(t, xn, gain)
+   return gain
+end
+
 -- Function initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
 function VlasovEmissionBC:fullInit(mySpecies)
@@ -59,6 +71,7 @@ function VlasovEmissionBC:fullInit(mySpecies)
    self.bcKind = assert(tbl.spectrum, "VlasovEmissionBC: must specify the type of emission spectrum in 'bcKind'.")
    self.gammaKind = assert(tbl.yield, "VlasovEmissionBC: must specify the type of emission spectrum in 'bcKind'.")
    self.inSpecies = assert(tbl.inSpecies, "VlasovEmissionBC: must specify names of impacting species in 'inSpecies'.")
+   self.elasticKind = tbl.elastic or "none"
    self.bcParam = {}
    self.gammaParam = {}
    self.proj = {}
@@ -112,6 +125,23 @@ function VlasovEmissionBC:fullInit(mySpecies)
          assert(false, "VlasovEmissionBC: SEY model not recognized.")   
       end
    end
+
+   self.elasticParam = Lin.Vec(10)
+   if self.elasticKind == "furman-pivi" then
+      self.elastic = true
+      self.elasticParam:data()[0] = assert(tbl.elasticFit.P1_inf, "VlasovEmissionBC: must specify fitting parameter 'P1_int'.")
+      self.elasticParam:data()[1] = assert(tbl.elasticFit.P1_inf, "VlasovEmissionBC: must specify fitting parameter 'P1_int'.")
+      self.elasticParam:data()[2] = assert(tbl.elasticFit.P1_inf, "VlasovEmissionBC: must specify fitting parameter 'P1_int'.")
+      self.elasticParam:data()[3] = assert(tbl.elasticFit.P1_inf, "VlasovEmissionBC: must specify fitting parameter 'P1_int'.")
+      self.elasticParam:data()[4] = assert(tbl.elasticFit.P1_inf, "VlasovEmissionBC: must specify fitting parameter 'P1_int'.")
+      self.elasticProj = Projection.KineticProjection.FunctionProjection
+         { func = function(t, zn) return self:FurmanPiviElastic(t, zn, self.elasticParam:data()[0], self.elasticParam:data()[1], self.elasticParam:data()[2], self.elasticParam:data()[3], self.elasticParam:data()[4]) end, }
+   elseif self.elasticKind == "constant" then
+      self.elastic = true
+      self.elasticParam:data()[0] = assert(tbl.elasticFit.gain, "VlasovEmissionBC: must specify fitting parameter 'gain'.")
+      self.elasticProj = Projection.KineticProjection.FunctionProjection
+         { func = function(t, zn) return self:ConstantElastic(t, zn, self.elasticParam:data()[0]) end, }
+   end
  
    self.saveFlux = tbl.saveFlux or false
    self.anyDiagnostics = false
@@ -126,6 +156,9 @@ end
 function VlasovEmissionBC:setName(nm) self.name = self.speciesName.."_"..nm end
 
 function VlasovEmissionBC:initCrossSpeciesCoupling(species)
+   if self.elastic then
+      self.elasticProj:fullInit(species[self.speciesName])
+   end
    self.fluxBC = {}
    for _, otherNm in ipairs(self.inSpecies) do
       self.proj[otherNm]:fullInit(species[self.speciesName])
@@ -161,7 +194,22 @@ function VlasovEmissionBC:createSolver(mySpecies, field, externalField)
       return self:allocCartField(self.boundaryGrid, self.basis:numBasis(), {0,0}, distf:getMetaData())
    end
 
-   self.bcBuffer = allocDistf() -- Buffer used by BasicBc updater.
+   self.bcBuffer = allocDistf() -- Buffer used by EmissionSpectrumBc updater.
+
+   if self.elastic then
+      self.elasticBuffer1 = allocDistf() -- Buffer used by BasicBc updater.
+      self.elasticBuffer2 = allocDistf() -- Buffer used by CartFieldBinOp updater.
+      self.elasticSolver = Updater.BasicBc{
+         onGrid  = self.grid,   edge   = self.bcEdge,  
+         cdim    = self.cdim,   basis  = self.basis,
+         dir     = self.bcDir,  bcType = "reflect",
+         onField = mySpecies:rkStepperFields()[1],
+      }
+      self.weakMultiply = Updater.CartFieldBinOp {
+	 weakBasis = self.basis, operation = "Multiply",
+	 onGhosts = true,
+      }
+   end
    
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
    -- the fluxes through a boundary (e.g. neutral recycling).
@@ -345,6 +393,11 @@ function VlasovEmissionBC:createCouplingSolver(species, field, extField)
       return self:allocCartField(self.boundaryGrid, self.basis:numBasis(), {0,0}, self.bcBuffer:getMetaData())
    end
 
+   if self.elastic then
+      self.fElasticProj = allocDistf()
+      self.elasticProj:advance(0.0, {}, {self.fElasticProj})
+   end 
+
    local mySpecies = species[self.speciesName]
 
    local distf = mySpecies:getDistF()
@@ -401,6 +454,11 @@ end
 
 function VlasovEmissionBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
    local fIn = mySpecies:rkStepperFields()[outIdx]
+   if self.elastic then
+      self.elasticSolver:advance(tCurr, {self.elasticBuffer1}, {fIn})
+      self.weakMultiply:advance(tm, {self.elasticBuffer1, self.fElasticProj}, {self.elasticBuffer2})
+      self.bcBuffer:accumulateRange(1.0, self.elasticBuffer2, self.elasticBuffer2:localRange())
+   end
    fIn:copyRangeToRange(self.bcBuffer, self.globalGhostRange, self.bcBuffer:localRange())
 end
 
