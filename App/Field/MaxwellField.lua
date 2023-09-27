@@ -740,7 +740,7 @@ function ExternalMaxwellField:fullInit(appTbl, plasmaField)
    else
       if self.hasMagField then
          self.emFunc = function (t, xn)
-            local phi, ax, ay, az = tal.emFunc(t, xn)
+            local phi, ax, ay, az = tbl.emFunc(t, xn)
             return phi, ax, ay, az
          end
       else
