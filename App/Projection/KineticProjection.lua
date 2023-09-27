@@ -86,10 +86,8 @@ function FunctionProjection:scaleDensity(distf, currentM0, targetM0)
    local M0mod = self.species:allocMoment()
 
    local weakDivision = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "Divide",
-      onGhosts  = true,
+      weakBasis = self.confBasis,         operation = "Divide",
+      onRange   = M0mod:localExtRange(),  onGhosts  = true,
    }
 
    -- Calculate M0mod = targetM0 / currentM0.

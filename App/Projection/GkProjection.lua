@@ -7,6 +7,7 @@
 --------------------------------------------------------------------------------
 
 local Proto      = require "Lib.Proto"
+local lume       = require "Lib.lume"
 local Updater    = require "Updater"
 local xsys       = require "xsys"
 local DataStruct = require "DataStruct"
@@ -34,6 +35,7 @@ function FunctionProjection:advance(time, inFlds, outFlds)
    if self.fromFile then
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
+--      -- We will multiply by the jacobian in createCoupling solver.
 --      if self.species.jacobPhaseFunc and self.vdim > 1 then
 --         local initFuncWithoutJacobian = self.initFunc
 --         self.initFunc = function (t, xn)
@@ -54,7 +56,7 @@ function FunctionProjection:advance(time, inFlds, outFlds)
    end
 
    local jacobTot, jacobPhase = extField.geo.jacobTot, extField.geo.bmag
-   if jacobTot then self.weakMultiplyConfPhase:advance(0, {distf, jacobTot}, {distf})
+   if jacobTot       then self.weakMultiplyConfPhase:advance(0, {distf, jacobTot}, {distf})
    elseif jacobPhase then self.weakMultiplyConfPhase:advance(0, {distf, jacobPhase}, {distf}) end
 end
 
@@ -62,8 +64,7 @@ function FunctionProjection:createCouplingSolver(species,field, externalField)
    if not self.fromFile then
       if self.species.charge < 0.0 then
          -- Scale the electrons to have the same density as the ions.
-         local numDens = self:allocConfField()
-         local numDensScaleTo = self:allocConfField()
+         local numDens, numDensScaleTo = self:allocConfField(), self:allocConfField()
          local ionName = nil
          for nm, s in lume.orderedIter(species) do
             if 0.0 < s.charge then ionName = nm end
