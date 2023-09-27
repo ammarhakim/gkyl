@@ -421,12 +421,9 @@ function VlasovSpecies:createGrid(confGridIn)
 
    for _, c in lume.orderedIter(self.collisions) do c:setPhaseGrid(self.grid) end
 
-   -- Construct velocity space grid from phase space grid
+   -- Construct velocity space grid from phase space grid.
    local dimsV = {}
-   for d = 1, self.vdim do
-      table.insert(dimsV, self.cdim+d)
-   end
-   -- Get the ingredients of the velocity space grid from the phase space grid
+   for d = 1, self.vdim do table.insert(dimsV, self.cdim+d) end
    local velGridIngr = self.grid:childGrid(dimsV)
    self.velGrid = GridConstructor {
       lower = velGridIngr.lower,  periodicDirs  = velGridIngr.periodicDirs,
@@ -491,9 +488,9 @@ function VlasovSpecies:allocIntMoment(comp)
    return f
 end
 
-local function vtSqMinCalc(mass,grid,cdim,vdim)
+local function vtSqMinCalc(mass,phaseGrid,cdim,vdim)
    local TempMin = 0.
-   for d = 1, vdim do TempMin = TempMin + (1./3.)*(mass/6.)*grid:dx(cdim+d) end
+   for d = 1, vdim do TempMin = TempMin + (1./3.)*(mass/6.)*phaseGrid:dx(cdim+d) end
    return TempMin/mass	
 end
 
@@ -528,7 +525,7 @@ function VlasovSpecies:createSolver(field, externalField)
    end
 
    -- Minimum vtSq supported by the grid (for p=1 only for now):
-   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.confGrid,self.cdim,self.vdim)
+   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.grid,self.cdim,self.vdim)
 
    -- Create solvers for collisions.
    for _, c in lume.orderedIter(self.collisions) do c:createSolver(self, externalField) end
@@ -773,7 +770,7 @@ function VlasovSpecies:createCouplingSolver(population, field, externalField)
    -- Minimum vtSq supported by the grid (for p=1 only for now).
    -- Recomputed here because we need it for all species (for species parallelization)
    -- and createSolver is only called for the local species.
-   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.confGrid,self.cdim,self.vdim)
+   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.grid,self.cdim,self.vdim)
 
    -- Create cross collision solvers.
    for _, c in lume.orderedIter(self.collisions) do c:createCouplingSolver(population, field, externalField) end

@@ -432,9 +432,9 @@ function GkSpecies:allocIntMoment(comp)
    return f
 end
 
-local function vtSqMinCalc(mass,grid,cdim,vdim,bmagMid)
-   local TparMin  = (mass/6.)*grid:dx(cdim+1)
-   local TperpMin = vdim==1 and TparMin or (bmagMid/3.)*grid:dx(cdim+2)
+local function vtSqMinCalc(mass,phaseGrid,cdim,vdim,bmagMid)
+   local TparMin  = (mass/6.)*phaseGrid:dx(cdim+1)
+   local TperpMin = vdim==1 and TparMin or (bmagMid/3.)*phaseGrid:dx(cdim+2)
    return (TparMin + 2.*TperpMin)/(3.*mass)
 end
 
