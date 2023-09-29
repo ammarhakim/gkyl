@@ -213,7 +213,7 @@ function AxiTokLimBC:advance(tCurr, mySpecies, field, externalField, inIdx, outI
    -- .......... Sheath BCs in the SOL (open field-line region) ............... --
    self.setPhiWall:advance(tCurr, {}, {self.phiWallFld})  -- Compute wall potential if needed.
    local phi = field:rkStepperFields()[inIdx].phi         -- Get the current plasma potential.
-   self.bcSolverAdvanceSOL(tCurr, {self.phi}, {fIn})
+   self.bcSolverAdvanceSOL(tCurr, {phi}, {fIn})
 end
 
 function AxiTokLimBC:getBoundaryFluxFields() return self.boundaryFluxFields end

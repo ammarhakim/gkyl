@@ -39,7 +39,6 @@ function KineticProjection:fullInit(species)
    self.exactScaleM0    = xsys.pickBool(self.tbl.exactScaleM0, true)
    self.exactScaleM012  = xsys.pickBool(self.tbl.exactScaleM012, false)
    if self.exactScaleM012 then self.exactScaleM0 = false end
-   self.exactLagFixM012 = xsys.pickBool(self.tbl.exactLagFixM012, false)
 
    self.power = self.tbl.power
    self.scaleWithSourcePower = xsys.pickBool(self.tbl.scaleWithSourcePower, false)
@@ -57,11 +56,11 @@ local FunctionProjection = Proto(KineticProjection)
 function FunctionProjection:fullInit(species)
    FunctionProjection.super.fullInit(self, species)
 
-   local func = self.tbl.func
-   if not func then func = self.tbl[1] end
+   self.initFunc = self.tbl.func
+   if not self.initFunc then self.initFunc = self.tbl[1] end
 
-   assert(func, "FunctionProjection: Must specify the function")
-   assert(type(func) == "function", "The input must be a table containing function")
+   assert(self.initFunc, "FunctionProjection: Must specify the function")
+   assert(type(self.initFunc) == "function", "The input must be a table containing function")
 
    if self.fromFile then
       self.ioMethod  = "MPI"
@@ -75,11 +74,10 @@ function FunctionProjection:fullInit(species)
       }
    else
       self.project = Updater.ProjectOnBasis {
-         onGrid = self.phaseGrid,   evaluate = func,
+         onGrid = self.phaseGrid,   evaluate = self.initFunc,
          basis  = self.phaseBasis,  onGhosts = true
       }
    end
-   self.initFunc = func
 end
 
 function FunctionProjection:scaleDensity(distf, currentM0, targetM0)
@@ -196,7 +194,6 @@ function MaxwellianProjection:advance(t, inFlds, outFlds)
    if self.exactScaleM0 then
       self:scaleDensity(distf)
    end
-   assert(self.exactLagFixM012 == false, "MaxwellianProjection: Specialized version of 'MaxwellianProjection' is required. Use 'VlasovProjection.MaxwellianProjection' or 'GkProjection.MaxwellianProjection'")
 end
 
 

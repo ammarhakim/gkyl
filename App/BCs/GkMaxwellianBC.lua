@@ -11,6 +11,7 @@ local BCsBase    = require "App.BCs.BCsBase"
 local DataStruct = require "DataStruct"
 local Updater    = require "Updater"
 local Proto      = require "Lib.Proto"
+local lume       = require "Lib.lume"
 local BCtools    = require "App.BCs.GkBCtools"
 local DiagsApp   = require "App.Diagnostics.SpeciesDiagnostics"
 local GkDiags    = require "App.Diagnostics.GkDiagnostics"
@@ -143,7 +144,7 @@ function GkMaxwellianBC:createSolver(mySpecies, field, externalField)
          -- of profiles.
          local initFunc = self.profileIn
          if mySpecies.jacobPhaseFunc and self.vdim > 1 then
-            initFunc = function (t, xn)
+            initFunc = function(t, xn)
                local xconf = {}
                for d = 1, self.cdim do xconf[d] = xn[d] end
                local J = mySpecies.jacobPhaseFunc(t,xconf)
@@ -196,7 +197,7 @@ function GkMaxwellianBC:createCouplingSolver(species,field,externalField)
          end
 
          local numDens = self:allocMoment()
-         if self.species.charge < 0.0 then
+         if self.charge < 0.0 then
             -- Scale the electron Maxwellian to have the same density as the ions.
             local bcName = self.name:gsub(self.speciesName .. "_","")
             local numDensScaleTo = species[ionName]['nonPeriodicBCs'][bcName]:allocMoment()
@@ -249,7 +250,7 @@ function GkMaxwellianBC:getFlucF() return self.boundaryFluxRate end
 
 function GkMaxwellianBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
    local fIn = mySpecies:rkStepperFields()[outIdx]
-   fIn:copyRangeToRange(self.ghostFld, self.myGlobalGhostRange, self.ghostFld:localRange())
+   fIn:copyRangeToRange(self.ghostFld, self.ghostFld:localRange(), self.myGlobalGhostRange)
 end
 
 function GkMaxwellianBC:getBoundaryFluxFields() return self.boundaryFluxFields end

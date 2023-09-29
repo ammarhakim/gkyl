@@ -506,8 +506,7 @@ function GkSpecies:createSolver(field, externalField)
 
    -- Set up Jacobian.
    if externalField then
-      self.bmagFunc = externalField.bmagFunc
-      -- If vdim>1, get the phase-space Jacobian (=bmag) from geo.
+      self.bmagFunc       = externalField.bmagFunc
       self.jacobPhaseFunc = self.bmagFunc
       self.jacobGeoFunc   = externalField.jacobGeoFunc
 
@@ -524,7 +523,6 @@ function GkSpecies:createSolver(field, externalField)
       local xMid = {}
       for d = 1,self.cdim do xMid[d]=self.confGrid:mid(d) end
       self.bmagMid = self.bmagFunc(0.0, xMid)
-
    end
 
    -- Minimum vtSq supported by the grid (for p=1 only for now):

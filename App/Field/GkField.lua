@@ -616,24 +616,29 @@ function GkField:createSolver(population, externalField)
                   onField = self.globalSolZ,   periodicParallelDir = false,
                   onRange = self.solRange,     onExtRange          = self.solRangeExt,
                }
-               self.partSmoother = {
-                  advance = function(self, tCurr, fldIn, fldOut)
+               self.parSmoother = {
+                  advance = function(tCurr, fldIn, fldOut)
                      self.parSmootherCore:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
                      self.parSmootherSOL:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
                   end,
                }
             else
-               self.parSmoother = Updater.FemParproj {
+               self.parSmootherUpd = Updater.FemParproj {
                   onGrid  = self.gridGlobalZ,  basis = self.basis,
                   onField = self.globalSolZ,
                   periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
+               }
+               self.parSmoother = {
+                  advance = function(tCurr, fldIn, fldOut)
+                     self.parSmootherUpd:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
+                  end,
                }
             end
             self.parSmooth = function(tCurr, fldIn, fldOut)
                -- Gather the discontinuous field onto a global field.
                self:AllgatherFieldZ(fldIn, self.globalSolZ)
 
-               self.parSmoother:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
+               self.parSmoother.advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
 
                -- Copy portion of the global field belonging to this process.
                fldOut:copyRangeToRange(self.globalSolZ, fldOut:localRange(), self.zSrcRange)
