@@ -169,6 +169,24 @@ ncclResult_t  ncclSend(const void* sendbuff, size_t count, ncclDataType_t dataty
     ncclComm_t comm, cudaStream_t stream);
 
 /*
+ * Group Start
+ *
+ * Start a group call. All calls to NCCL until ncclGroupEnd will be fused into
+ * a single NCCL operation. Nothing will be started on the CUDA stream until
+ * ncclGroupEnd.
+ */
+ncclResult_t  ncclGroupStart();
+
+/*
+ * Group End
+ *
+ * End a group call. Start a fused NCCL operation consisting of all calls since
+ * ncclGroupStart. Operations on the CUDA stream depending on the NCCL operations
+ * need to be called after ncclGroupEnd.
+ */
+ncclResult_t  ncclGroupEnd();
+
+/*
    Gkyl functions to wrap other NCCL objects/functions.
 */
 void gkyl_NCCL_CONFIG_INITIALIZER(ncclConfig_t *nc);
@@ -258,6 +276,16 @@ end
 function _M.Send(sendbuff, count, datatype, peer, comm, stream)
    return ffiC.ncclSend(sendbuff, count, datatype, peer,
       getObj(comm, "ncclComm_t[1]"), getObj(stream, "cudaStream_t[1]"))
+end
+
+-- ncclGroupStart
+function _M.GroupStart()
+   return ffiC.ncclGroupStart()
+end
+
+-- ncclGroupEnd
+function _M.GroupEnd()
+   return ffiC.ncclGroupEnd()
 end
 
 -- ncclRecv

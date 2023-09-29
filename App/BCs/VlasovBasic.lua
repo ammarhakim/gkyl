@@ -166,12 +166,12 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
       local jacobGeo = externalField.geo and externalField.geo.jacobGeo
       if jacobGeo then
          self.jacobGeo = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, jacobGeo:getMetaData())
-         self.jacobGeo:copy(self:evalOnConfBoundary(jacobGeo))
+         self.jacobGeo:copy(self:evalOnConfBoundary(jacobGeo, self.confBoundaryField))
       end
       local jacobGeoInv = externalField.geo and externalField.geo.jacobGeoInv
       if jacobGeoInv then
          self.jacobGeoInv = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, jacobGeoInv:getMetaData())
-         self.jacobGeoInv:copy(self:evalOnConfBoundary(jacobGeoInv))
+         self.jacobGeoInv:copy(self:evalOnConfBoundary(jacobGeoInv, self.confBoundaryField))
       end
 
       self.storeBoundaryFluxFunc = function(tCurr, rkIdx, qOut)

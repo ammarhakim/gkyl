@@ -241,8 +241,8 @@ local function buildApplication(self, tbl)
       s:setCfl(cflMin)
    end
 
-   local function completeFieldSetup(fld)
-      fld:fullInit(tbl) -- Complete initialization.
+   local function completeFieldSetup(fld, plasmaField)
+      fld:fullInit(tbl, plasmaField) -- Complete initialization.
       fld:setIoMethod(ioMethod)
       fld:setBasis(confBasis)
       fld:setGrid(confGrid)
@@ -269,7 +269,7 @@ local function buildApplication(self, tbl)
    for _, val in pairs(tbl) do
       if FieldBase.is(val) then
          field = val
-         completeFieldSetup(field)
+         completeFieldSetup(field, field)
          nfields = nfields + 1
       end
    end
@@ -282,7 +282,7 @@ local function buildApplication(self, tbl)
    for _, val in pairs(tbl) do
       if ExternalFieldBase.is(val) then
          externalField = val
-         completeFieldSetup(externalField)
+         completeFieldSetup(externalField, field)
          nfields = nfields + 1
       end
    end
@@ -316,12 +316,14 @@ local function buildApplication(self, tbl)
    -- Initialize field (sometimes requires species to have been initialized).
    field:initField(population)
 
+   commManager:startCommGroup()  -- Needed by NCCL.
    for _, s in population.iterGlobal() do
       -- Compute/comunicate moments needed for cross-species interactions.
       -- Needs to happen after field:advance because we'll initiate (multi-GPU)
       -- communication here that needs to finish before starting other comms.
       s:calcCrossCouplingMoments(0., 1, population)
    end
+   commManager:endCommGroup()  -- Needed by NCCL.
 
    -- Initialize diagnostic objects.
    for _, s in population.iterLocal() do s:createDiagnostics(field) end
@@ -457,12 +459,14 @@ local function buildApplication(self, tbl)
       -- or a hyperbolic solve, which updates outIdx = RHS, or a combination of both.
       field:advance(tCurr, population, inIdx, outIdx)
 
+      commManager:startCommGroup()  -- Needed by NCCL.
       for _, s in population.iterGlobal() do
          -- Compute/comunicate moments needed for cross-species interactions.
 	 -- Needs to happen after field:advance because we'll initiate (multi-GPU)
 	 -- communication here that needs to finish before starting other comms.
          s:calcCrossCouplingMoments(tCurr, inIdx, population)
       end
+      commManager:endCommGroup()  -- Needed by NCCL.
 
       -- Update species.
       for _, s in population.iterLocal() do
@@ -897,12 +901,13 @@ return {
          AdiabaticBasicBC = require "App.BCs.AdiabaticBasic",
 	 App = App,
          BasicBC = require ("App.BCs.GkBasic").GkBasic,
+         MaxwellianBC = require("App.BCs.GkMaxwellianBC"),
          AbsorbBC = require ("App.BCs.GkBasic").GkAbsorb,
          CopyBC = require ("App.BCs.GkBasic").GkCopy,
          NeutralRecyclingBC = require "App.BCs.NeutralRecycling",
          OpenBC = require ("App.BCs.GkBasic").GkOpen,
          ReflectBC = require ("App.BCs.GkBasic").GkReflect,
-         SheathBC = require ("App.BCs.GkBasic").GkSheath,
+         SheathBC = require "App.BCs.GkSheath",
          ZeroFluxBC = require ("App.BCs.GkBasic").GkZeroFlux,
          TwistShiftBC = require "App.BCs.TwistShift",
 	 VmAbsorbBC = require ("App.BCs.VlasovBasic").VlasovAbsorb,

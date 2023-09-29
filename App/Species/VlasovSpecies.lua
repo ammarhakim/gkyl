@@ -491,6 +491,12 @@ function VlasovSpecies:allocIntMoment(comp)
    return f
 end
 
+local function vtSqMinCalc(mass,grid,cdim,vdim)
+   local TempMin = 0.
+   for d = 1, vdim do TempMin = TempMin + (1./3.)*(mass/6.)*grid:dx(cdim+d) end
+   return TempMin/mass	
+end
+
 function VlasovSpecies:createSolver(field, externalField)
    -- Set up weak multiplication and division operators.
    self.confWeakMultiply = Updater.CartFieldBinOp {
@@ -521,6 +527,9 @@ function VlasovSpecies:createSolver(field, externalField)
       end
    end
 
+   -- Minimum vtSq supported by the grid (for p=1 only for now):
+   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.confGrid,self.cdim,self.vdim)
+
    -- Create solvers for collisions.
    for _, c in lume.orderedIter(self.collisions) do c:createSolver(self, externalField) end
 
@@ -541,11 +550,10 @@ function VlasovSpecies:createSolver(field, externalField)
       hasE, hasB = true, true
    end
 
-   if hasB then
-      self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
+   if plasmaB == false then
+      self.totalEmField = self:allocVectorMoment(4)  -- (phi,A) for Vlasov-Poisson.
    else
-      --self.totalEmField = self:allocVectorMoment(3)     -- Electric field only.
-      self.totalEmField = self:allocMoment()  -- Phi only (Vlasov-Poisson)
+      self.totalEmField = self:allocVectorMoment(8)  -- 8 components of EM field.
    end
 
    self.computePlasmaB = true and plasmaB or extHasB
@@ -762,6 +770,11 @@ function VlasovSpecies:createCouplingSolver(population, field, externalField)
 
    local species = population:getSpecies()
 
+   -- Minimum vtSq supported by the grid (for p=1 only for now).
+   -- Recomputed here because we need it for all species (for species parallelization)
+   -- and createSolver is only called for the local species.
+   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.confGrid,self.cdim,self.vdim)
+
    -- Create cross collision solvers.
    for _, c in lume.orderedIter(self.collisions) do c:createCouplingSolver(population, field, externalField) end
 
@@ -816,25 +829,28 @@ function VlasovSpecies:initCrossSpeciesCoupling(population)
       self.fiveMoments = self:allocVectorMoment(self.vdim+2)
    end
 
+   local messenger = self.confGrid:getMessenger()
    -- Create list of ranks we need to send/recv local fiveMoments to/from.
    self.fiveMomentsXfer = {}
    self.fiveMomentsXfer.destRank, self.fiveMomentsXfer.srcRank  = {}, {}
-   self.fiveMomentsXfer.sendReqStat, self.fiveMomentsXfer.recvReqStat = nil, nil
+   self.fiveMomentsXfer.sendReqStat, self.fiveMomentsXfer.recvReqStat = {}, {}
    for sO, info in pairs(self.collPairs[self.name]) do
       local sOrank = population:getSpeciesOwner(sO)
       local selfRank = population:getSpeciesOwner(self.name)
       if sO~=self.name and info.on then
          if isThisSpeciesMine then
             -- Only species owned by this rank send fiveMoments to other ranks.
-            if #self.fiveMomentsXfer.destRank == 0 and (not population:isSpeciesMine(sO)) then
+            if (not lume.any(self.fiveMomentsXfer.destRank, function(e) return e==sOrank end)) and
+               (not population:isSpeciesMine(sO)) then
                table.insert(self.fiveMomentsXfer.destRank, sOrank)
-               self.fiveMomentsXfer.sendReqStat = Mpi.RequestStatus()
+               table.insert(self.fiveMomentsXfer.sendReqStat, messenger:newRequestStatus())
             end
          else
             -- Only species not owned by this rank receive fiveMoments from other ranks.
-            if #self.fiveMomentsXfer.srcRank == 0 and (not population:isSpeciesMine(self.name)) then
+            if (not lume.any(self.fiveMomentsXfer.srcRank, function(e) return e==selfRank end)) and
+               (not population:isSpeciesMine(self.name)) then
                table.insert(self.fiveMomentsXfer.srcRank, selfRank)
-               self.fiveMomentsXfer.recvReqStat = Mpi.RequestStatus()
+               table.insert(self.fiveMomentsXfer.recvReqStat, messenger:newRequestStatus())
             end
          end
       end
@@ -1061,6 +1077,8 @@ function VlasovSpecies:getDistF(rkIdx)
 end
 
 function VlasovSpecies:fluidMoments() return self.fiveMoments end
+
+function VlasovSpecies:vtSqMin() return self.vtSqMinSupported end
 
 function VlasovSpecies:getNumDensity(rkIdx)
    -- If no rkIdx specified, assume numDensity has already been calculated.

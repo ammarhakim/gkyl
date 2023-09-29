@@ -16,6 +16,18 @@ local MaxwellianProjectionParent = require ("App.Projection.KineticProjection").
 --------------------------------------------------------------------------------
 -- Gk-specific GkProjection.FunctionProjection includes Jacobian factors in initFunc.
 local FunctionProjection = Proto(FunctionProjectionParent)
+
+function FunctionProjection:allocConfField(metaData)
+   local m = DataStruct.Field {
+        onGrid        = self.confGrid,
+        numComponents = self.confBasis:numBasis(),
+        ghost         = {1, 1},
+        metaData      = {polyOrder = self.confBasis:polyOrder(),
+                         basisType = self.confBasis:id()},
+   }
+   m:clear(0.0)
+   return m
+end
 function FunctionProjection:advance(time, inFlds, outFlds)
    local extField = inFlds[1]
    local distf    = outFlds[1]
@@ -44,6 +56,24 @@ function FunctionProjection:advance(time, inFlds, outFlds)
    local jacobTot, jacobPhase = extField.geo.jacobTot, extField.geo.bmag
    if jacobTot then self.weakMultiplyConfPhase:advance(0, {distf, jacobTot}, {distf})
    elseif jacobPhase then self.weakMultiplyConfPhase:advance(0, {distf, jacobPhase}, {distf}) end
+end
+
+function FunctionProjection:createCouplingSolver(species,field, externalField)
+   if not self.fromFile then
+      if self.species.charge < 0.0 then
+         local numDens = self:allocConfField()
+         local numDensScaleTo = self:allocConfField()
+         local ionName = nil
+         for nm, s in lume.orderedIter(species) do
+            if 0.0 < s.charge then ionName = nm end
+         end
+         self.species.numDensityCalc:advance(0.0, {self.species:getDistF()}, {numDens})
+         species[ionName].numDensityCalc:advance(0.0, {species[ionName]:getDistF()}, {numDensScaleTo})
+         self:scaleDensity(self.species:getDistF(), numDens, numDensScaleTo)
+      end
+      local jacobGeo = externalField.geo.jacobGeo
+      if jacobGeo then self.weakMultiplyConfPhase:advance(0, {self.species:getDistF(), jacobGeo}, {self.species:getDistF()}) end
+   end
 end
 
 --------------------------------------------------------------------------------
