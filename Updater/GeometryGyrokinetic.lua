@@ -3,38 +3,20 @@ local xsys = require "xsys"
 
 -- Gkyl libraries.
 local Proto       = require "Lib.Proto"
+local Range = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
 local DataStruct  = require "DataStruct"
 local ffi         = require "ffi"
+local Lin          = require "Lib.Linalg"
 
 local ffiC = ffi.C
 require "Lib.ZeroUtil"
 
 -- Declaration of gkylzero objects and functions.
 ffi.cdef [[
-
 // Object type
 typedef struct gkyl_geo_gyrokinetic gkyl_geo_gyrokinetic;
-//
-//
-//struct gkyl_geo_gyrokinetic {
-//  struct gkyl_rect_grid rzgrid; // RZ grid on which psi(R,Z) is defined
-//  const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
-//  struct gkyl_range rzlocal; // local range over which psiRZ is defined
-//  int num_rzbasis; // number of basis functions in RZ
-//
-//  struct { int max_iter; double eps; } root_param;
-//  struct { int max_level; double eps; } quad_param;
-//
-//  // pointer to root finder (depends on polyorder)
-//  struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
-//    double xc[2], double dx[2]);
-//
-//  struct gkyl_geo_gyrokinetic_stat stat; 
-//  double B0;
-//  double R0;
-//};
-//
+
 // Type of flux surface
 enum gkyl_geo_gyrokinetic_type {
   GKYL_SOL_DN, // SOL of double-null configuration
@@ -69,6 +51,7 @@ struct gkyl_geo_gyrokinetic_inp {
 // Inputs to create geometry for a specific computational grid
 struct gkyl_geo_gyrokinetic_geo_inp {
   const struct gkyl_rect_grid *cgrid;
+  int* bcs;
   const struct gkyl_basis *cbasis;
 
   enum gkyl_geo_gyrokinetic_type ftype; // type of geometry
@@ -178,7 +161,7 @@ typedef struct bmag_ctx bmag_ctx;
  */
 gkyl_calc_bmag* 
 gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  struct gkyl_rect_grid *cgrid, struct gkyl_rect_grid *pgrid, const gkyl_geo_gyrokinetic *app, const struct gkyl_geo_gyrokinetic_geo_inp *ginp, bool use_gpu);
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_rect_grid *pgrid, const gkyl_geo_gyrokinetic *app, const struct gkyl_geo_gyrokinetic_geo_inp *ginp, bool use_gpu);
 
 
 /**
@@ -211,7 +194,7 @@ typedef struct gkyl_calc_metric gkyl_calc_metric;
  * @return New updater pointer.
  */
 gkyl_calc_metric* gkyl_calc_metric_new(const struct gkyl_basis *cbasis,
-  struct gkyl_rect_grid *grid, bool use_gpu);
+  const struct gkyl_rect_grid *grid, const int *bcs, bool use_gpu);
 
 /**
  * Advance calc_metric (compute the metric coefficients).
@@ -243,7 +226,7 @@ typedef struct gkyl_calc_derived_geo gkyl_calc_derived_geo;
  * @return New updater pointer.
  */
 gkyl_calc_derived_geo* gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis,
-  struct gkyl_rect_grid *grid, bool use_gpu);
+  const struct gkyl_rect_grid *grid, bool use_gpu);
 
 /**
  * Advance calc_derived_geo (compute the derived_geo coefficients).
@@ -301,6 +284,42 @@ function GeometryGyrokinetic:init(tbl)
    self.bmag = tbl.bmag
    self.B0 = tbl.B0
    self.R0 = tbl.R0
+
+
+   self.BCs = Lin.IntVec(self.grid:ndim())
+
+   for i = 1, self.grid:ndim() do
+      self.BCs[i] = 1
+   end
+   for _, dir in ipairs(self.grid._periodicDirs) do
+      self.BCs[dir] = 0
+   end
+
+   print("BCS:")
+   for i = 1, self.grid:ndim() do
+      print(self.BCs[i])
+   end
+
+   if self.BCs[1] == 1 then
+      local lower = self.localRangeExt:lowerAsVec()
+      local upper = self.localRangeExt:upperAsVec()
+      lower[1] = lower[1]+1
+      upper[1] = upper[1]-1
+      lower[3] = lower[3]+1
+      upper[3] = upper[3]-1
+      self.conversionRange = self.localRangeExt:subRange(lower, upper)
+   else 
+      --local lower = self.localRangeExt:lowerAsVec()
+      --local upper = self.localRangeExt:upperAsVec()
+      --lower[1] = lower[1]+1
+      --upper[1] = upper[1]-1
+      --lower[2] = lower[2]+1
+      --upper[2] = upper[2]-1
+      --lower[3] = lower[3]+1
+      --upper[3] = upper[3]-1
+      --self.conversionRange = self.localRangeExt:subRange(lower, upper)
+      self.conversionRange = self.localRange
+   end
    
 
    --self.GeoUpdater:advance(self.grid, self.basis, self.rzGrid, self.rzBasis, self.localRange, self.localRangeExt, self.rzLocalRange, self.rzLocalRangeExt, geo_updater, geo_inp, self.mapc2p_field, self.psiRZ, self.psibyrRZ, self.geo.psibyr2RZ, self.geo.bphiRZ, self.geo.gFld, self.geo.jacobGeo, self.geo.jacobGeoInv, self.jacobTot, self.JacobTotInv, self.geo.grFld, self.geo.b_i, self.geo.cmag)
@@ -324,10 +343,11 @@ function GeometryGyrokinetic:init(tbl)
    self.ginp.zmax = self.rzGrid:upper(2)
    self.ginp.write_node_coord_array = true
    self.ginp.node_file_nm = "g2nodes.gkyl"
+   self.ginp.bcs = self.BCs:data()
 
    self._zero_bmag = ffi.gc(ffiC.gkyl_calc_bmag_new(self.basis._zero, self.rzBasis._zero, self.grid._zero, self.rzGrid._zero, self.geo, self.ginp, false), ffiC.gkyl_calc_bmag_release)
 
-   self._zero_metric = ffi.gc(ffiC.gkyl_calc_metric_new(self.basis._zero, self.grid._zero, false), ffiC.gkyl_calc_metric_release)
+   self._zero_metric = ffi.gc(ffiC.gkyl_calc_metric_new(self.basis._zero, self.grid._zero, self.BCs:data(), false), ffiC.gkyl_calc_metric_release)
 
    self._zero_derived = ffi.gc(ffiC.gkyl_calc_derived_geo_new(self.basis._zero, self.grid._zero, false), ffiC.gkyl_calc_derived_geo_release)
 
@@ -338,7 +358,9 @@ end
 function GeometryGyrokinetic:advance()
 
    -- Fill mapc2p
-   ffiC.gkyl_geo_gyrokinetic_calcgeom(self._zero_geom, self.ginp, self.mapc2p_field._zero, self.localRangeExt)
+   ffiC.gkyl_geo_gyrokinetic_calcgeom(self._zero_geom, self.ginp, self.mapc2p_field._zero, self.conversionRange)
+
+   self.mapc2p_field:sync(true)
 
    -- Fill bmag
    print(self._zero_bmag, self.localRange, self.localRangeExt, self.rzLocalRange, self.rzLocalRangeExt, self.psiRZ._zero, self.psibyrRZ._zero, self.psibyr2RZ._zero, self.bphiRZ._zero,  self.bmag._zero, self.mapc2p_field._zero)
