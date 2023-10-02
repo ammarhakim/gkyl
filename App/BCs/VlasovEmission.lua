@@ -129,11 +129,11 @@ function VlasovEmissionBC:fullInit(mySpecies)
    self.elasticParam = Lin.Vec(10)
    if self.elasticKind == "furman-pivi" then
       self.elastic = true
-      self.elasticParam:data()[0] = assert(tbl.elasticFit.P1_inf, "VlasovEmissionBC: must specify fitting parameter 'P1_int'.")
-      self.elasticParam:data()[1] = assert(tbl.elasticFit.P1_inf, "VlasovEmissionBC: must specify fitting parameter 'P1_int'.")
-      self.elasticParam:data()[2] = assert(tbl.elasticFit.P1_inf, "VlasovEmissionBC: must specify fitting parameter 'P1_int'.")
-      self.elasticParam:data()[3] = assert(tbl.elasticFit.P1_inf, "VlasovEmissionBC: must specify fitting parameter 'P1_int'.")
-      self.elasticParam:data()[4] = assert(tbl.elasticFit.P1_inf, "VlasovEmissionBC: must specify fitting parameter 'P1_int'.")
+      self.elasticParam:data()[0] = assert(tbl.elasticFit.P1_inf, "VlasovEmissionBC: must specify fitting parameter 'P1_inf'.")
+      self.elasticParam:data()[1] = assert(tbl.elasticFit.P1_hat, "VlasovEmissionBC: must specify fitting parameter 'P1_hat'.")
+      self.elasticParam:data()[2] = assert(tbl.elasticFit.E_hat, "VlasovEmissionBC: must specify fitting parameter 'E_hat'.")
+      self.elasticParam:data()[3] = assert(tbl.elasticFit.W, "VlasovEmissionBC: must specify fitting parameter 'W'.")
+      self.elasticParam:data()[4] = assert(tbl.elasticFit.p, "VlasovEmissionBC: must specify fitting parameter 'p'.")
       self.elasticProj = Projection.KineticProjection.FunctionProjection
          { func = function(t, zn) return self:FurmanPiviElastic(t, zn, self.elasticParam:data()[0], self.elasticParam:data()[1], self.elasticParam:data()[2], self.elasticParam:data()[3], self.elasticParam:data()[4]) end, }
    elseif self.elasticKind == "constant" then
