@@ -29,7 +29,6 @@ ffi.cdef [[
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_vlasov_auxfields { 
   const struct gkyl_array *field; // q/m*(E,B) for Maxwell's, q/m*phi for Poisson's (gradient calculated in kernel)
-  const struct gkyl_array *ext_field; // constant q/m*A for Poisson's (curl calculated in kernel)
   const struct gkyl_array *cot_vec; // cotangent vectors (e^i) used in volume term if general geometry enabled
   const struct gkyl_array *alpha_geo; // alpha^i (e^i . alpha) used in surface term if general geometry enabled
 };

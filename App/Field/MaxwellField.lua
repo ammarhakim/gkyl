@@ -69,7 +69,7 @@ end
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
-function MaxwellField:fullInit(appTbl)
+function MaxwellField:fullInit(appTbl, plasmaField)
    local tbl = self.tbl -- Previously store table.
    
    self.epsilon0 = tbl.epsilon0
@@ -290,9 +290,9 @@ function MaxwellField:alloc(nRkDup)
       self.emEnergy = DataStruct.DynVector { numComponents = 8 }
 
    else   -- Poisson equation.
-      -- Electrostatic potential, phi.
-      local phiFld = createField(self.grid, self.basis, ghostNum, self.basis:numBasis())
-      for i = 1, nRkDup do self.em[i] = phiFld end
+      -- Electrostatic potential, phi, and external magnetic potential A_ext (computed by ExternalField).
+      local potentials = createField(self.grid, self.basis, ghostNum, 4*self.basis:numBasis())
+      for i = 1, nRkDup do self.em[i] = potentials end
 
       -- Extra fields needed for the distributed parallel field solve.
       self.localBuffer  = createField(self.grid, self.basis, {0,0}, self.basis:numBasis())
@@ -697,14 +697,6 @@ function MaxwellField:clearTimers()
    for nm, _ in pairs(self.timers) do self.timers[nm] = 0. end
 end
  
-MaxwellField.bcConst = function(Ex, Ey, Ez, Bx, By, Bz, phiE, phiB)
-   local bc = BoundaryCondition.Const {
-      components = {1, 2, 3, 4, 5, 6, 7, 8},
-      values = {Ex, Ey, Ez, Bx, By, Bz, phiE, phiB}
-   }
-   return { bc }
-end
-  
 -- ExternalMaxwellField ---------------------------------------------------------------------
 --
 -- A field object with external EM fields specified as a time-dependent function.
@@ -718,11 +710,18 @@ function ExternalMaxwellField:init(tbl)
    self.tbl = tbl
 end
 
-function ExternalMaxwellField:fullInit(appTbl)
+function ExternalMaxwellField:fullInit(appTbl, plasmaField)
    local tbl = self.tbl -- Previously store table.
 
    self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- By default evolve field.
+
+   -- By default there is a plasma-generated magnetic field, unless running Vlasov-Poisson.
+   if plasmaField then
+      self.hasPlasmaMagField = xsys.pickBool(plasmaField.hasMagField, true)
+   else
+      self.hasPlasmaMagField = true -- Assumption
+   end
 
    self.hasMagField = xsys.pickBool(tbl.hasMagneticField, true) -- By default there is a magnetic field.
 
@@ -735,16 +734,30 @@ function ExternalMaxwellField:fullInit(appTbl)
 
    self.ioFrame = 0 -- Frame number for IO.
    
-   -- Store function to compute EM field.
-   if self.hasMagField then
-      self.emFunc = function (t, xn)
-         local ex, ey, ez, bx, by, bz = tbl.emFunc(t, xn)
-         return ex, ey, ez, bx, by, bz, 0.0, 0.0
+   -- Store function to compute the external field.
+   if self.hasPlasmaMagField then
+      if self.hasMagField then
+         self.emFunc = function (t, xn)
+            local ex, ey, ez, bx, by, bz = tbl.emFunc(t, xn)
+            return ex, ey, ez, bx, by, bz, 0., 0.
+         end
+      else
+         self.emFunc = function (t, xn)
+            local ex, ey, ez = tbl.emFunc(t, xn)
+            return ex, ey, ez, 0., 0., 0., 0., 0.
+         end
       end
    else
-      self.emFunc = function (t, xn)
-         local ex, ey, ez = tbl.emFunc(t, xn)
-         return ex, ey, ez
+      if self.hasMagField then
+         self.emFunc = function (t, xn)
+            local phi, ax, ay, az = tbl.emFunc(t, xn)
+            return phi, ax, ay, az
+         end
+      else
+         self.emFunc = function(t, xn)
+            local phi = tbl.emFunc(t, xn)
+            return phi, 0., 0., 0.
+         end
       end
    end
 
@@ -758,15 +771,14 @@ function ExternalMaxwellField:alloc(nField)
    local ghostNum = {1,1}
 
    -- Allocate fields needed in RK update.
-   local emVecComp = 8
-   if not self.hasMagField then emVecComp = 1 end  -- Electric field only.
+   local emVecComp = self.hasPlasmaMagField and 8 or 4
    self.em = createField(self.grid, self.basis, ghostNum, emVecComp*self.basis:numBasis())
 end
 
 function ExternalMaxwellField:createSolver(population)
-   self.fieldSlvr = Updater.ProjectOnBasis {
+   self.fieldSlvr = Updater.EvalOnNodes {
       onGrid = self.grid,   evaluate = self.emFunc,
-      basis  = self.basis,  onGhosts = true,
+      basis  = self.basis,  onGhosts = false,
    }
       
    -- Create Adios object for field I/O.
@@ -784,7 +796,7 @@ end
 
 function ExternalMaxwellField:createDiagnostics() end
 
-function ExternalMaxwellField:initField()
+function ExternalMaxwellField:initField(population)
    self.fieldSlvr:advance(0.0, {}, {self.em})
    self:applyBc(0.0, self.em)
 end

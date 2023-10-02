@@ -421,12 +421,9 @@ function VlasovSpecies:createGrid(confGridIn)
 
    for _, c in lume.orderedIter(self.collisions) do c:setPhaseGrid(self.grid) end
 
-   -- Construct velocity space grid from phase space grid
+   -- Construct velocity space grid from phase space grid.
    local dimsV = {}
-   for d = 1, self.vdim do
-      table.insert(dimsV, self.cdim+d)
-   end
-   -- Get the ingredients of the velocity space grid from the phase space grid
+   for d = 1, self.vdim do table.insert(dimsV, self.cdim+d) end
    local velGridIngr = self.grid:childGrid(dimsV)
    self.velGrid = GridConstructor {
       lower = velGridIngr.lower,  periodicDirs  = velGridIngr.periodicDirs,
@@ -491,9 +488,9 @@ function VlasovSpecies:allocIntMoment(comp)
    return f
 end
 
-local function vtSqMinCalc(mass,grid,cdim,vdim)
+local function vtSqMinCalc(mass,phaseGrid,cdim,vdim)
    local TempMin = 0.
-   for d = 1, vdim do TempMin = TempMin + (1./3.)*(mass/6.)*grid:dx(cdim+d) end
+   for d = 1, vdim do TempMin = TempMin + (1./3.)*(mass/6.)*phaseGrid:dx(cdim+d) end
    return TempMin/mass	
 end
 
@@ -528,7 +525,7 @@ function VlasovSpecies:createSolver(field, externalField)
    end
 
    -- Minimum vtSq supported by the grid (for p=1 only for now):
-   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.confGrid,self.cdim,self.vdim)
+   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.grid,self.cdim,self.vdim)
 
    -- Create solvers for collisions.
    for _, c in lume.orderedIter(self.collisions) do c:createSolver(self, externalField) end
@@ -550,11 +547,10 @@ function VlasovSpecies:createSolver(field, externalField)
       hasE, hasB = true, true
    end
 
-   if hasB then
-      self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
+   if plasmaB == false then
+      self.totalEmField = self:allocVectorMoment(4)  -- (phi,A) for Vlasov-Poisson.
    else
-      --self.totalEmField = self:allocVectorMoment(3)     -- Electric field only.
-      self.totalEmField = self:allocMoment()  -- Phi only (Vlasov-Poisson)
+      self.totalEmField = self:allocVectorMoment(8)  -- 8 components of EM field.
    end
 
    self.computePlasmaB = true and plasmaB or extHasB
@@ -774,7 +770,7 @@ function VlasovSpecies:createCouplingSolver(population, field, externalField)
    -- Minimum vtSq supported by the grid (for p=1 only for now).
    -- Recomputed here because we need it for all species (for species parallelization)
    -- and createSolver is only called for the local species.
-   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.confGrid,self.cdim,self.vdim)
+   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.grid,self.cdim,self.vdim)
 
    -- Create cross collision solvers.
    for _, c in lume.orderedIter(self.collisions) do c:createCouplingSolver(population, field, externalField) end
@@ -841,17 +837,17 @@ function VlasovSpecies:initCrossSpeciesCoupling(population)
       if sO~=self.name and info.on then
          if isThisSpeciesMine then
             -- Only species owned by this rank send fiveMoments to other ranks.
-            if (not lume.any(self.threeMomentsXfer.destRank, function(e) return e==sOrank end)) and
+            if (not lume.any(self.fiveMomentsXfer.destRank, function(e) return e==sOrank end)) and
                (not population:isSpeciesMine(sO)) then
                table.insert(self.fiveMomentsXfer.destRank, sOrank)
-               table.insert(self.threeMomentsXfer.sendReqStat, messenger:newRequestStatus())
+               table.insert(self.fiveMomentsXfer.sendReqStat, messenger:newRequestStatus())
             end
          else
             -- Only species not owned by this rank receive fiveMoments from other ranks.
-            if (not lume.any(self.threeMomentsXfer.srcRank, function(e) return e==selfRank end)) and
+            if (not lume.any(self.fiveMomentsXfer.srcRank, function(e) return e==selfRank end)) and
                (not population:isSpeciesMine(self.name)) then
                table.insert(self.fiveMomentsXfer.srcRank, selfRank)
-               table.insert(self.threeMomentsXfer.recvReqStat, messenger:newRequestStatus())
+               table.insert(self.fiveMomentsXfer.recvReqStat, messenger:newRequestStatus())
             end
          end
       end
