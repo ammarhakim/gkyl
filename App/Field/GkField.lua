@@ -1377,6 +1377,7 @@ function GkGeometry:initField(population)
       rzLocalRangeExt = self.rzLocalRangeExt,
       B0 = self.B0,
       R0 = self.R0,
+      psiRZ = self.geo.psiRZ
 
       }
 
@@ -1391,7 +1392,7 @@ function GkGeometry:initField(population)
 
    -- Two lines below may unnecessary because  g0 will group bx by and bz
    local numB = self.basis:numBasis()
-   self.geo.b_i:combineOffset(1, self.geo.b_x, 0*numB, 1, self.geo.b_y, 1*numB, 1, self.geo.b_z, 2*numB)
+   --self.geo.b_i:combineOffset(1, self.geo.b_x, 0*numB, 1, self.geo.b_y, 1*numB, 1, self.geo.b_z, 2*numB)
 
    -- Compute 1/B and 1/(B^2). LBO collisions require that this is
    -- done via weak operations instead of projecting 1/B or 1/B^2.
