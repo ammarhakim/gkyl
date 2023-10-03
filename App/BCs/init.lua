@@ -8,8 +8,8 @@
 
 local AdiabaticBasic          = require "App.BCs.AdiabaticBasic"
 local BCsBase                 = require "App.BCs.BCsBase"
-local BCsBaseGK               = require "App.BCs.BCsBaseGK"
-local BCsBaseVlasov           = require "App.BCs.BCsBaseVlasov"
+--local BCsBaseGK               = require "App.BCs.BCsBaseGK"
+--local BCsBaseVlasov           = require "App.BCs.BCsBaseVlasov"
 local BronoldFehskeReflection = require "App.BCs.BronoldFehskeReflection"
 local GkBasic                 = require "App.BCs.GkBasic"
 local GkSheath                = require "App.BCs.GkSheath"
