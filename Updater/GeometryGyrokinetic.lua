@@ -277,9 +277,9 @@ function GeometryGyrokinetic:init(tbl)
    for i = 1, self.grid:ndim() do
       self.BCs[i] = 1
    end
-   for _, dir in ipairs(self.grid._periodicDirs) do
-      self.BCs[dir] = 0
-   end
+   --for _, dir in ipairs(self.grid._periodicDirs) do
+   --   self.BCs[dir] = 0
+   --end
    if self.BCs[1] == 1 then
       local lower = self.localRangeExt:lowerAsVec()
       local upper = self.localRangeExt:upperAsVec()
@@ -336,7 +336,7 @@ function GeometryGyrokinetic:_advance(tCurr, inFlds, outFlds)
    ffiC.gkyl_geo_gyrokinetic_calcgeom(self._zero_geom, self.ginp, mapc2p_field._zero, self.conversionRange)
 
    -- Sync periodic directions before calculating metric
-   mapc2p_field:sync(true)
+   --mapc2p_field:sync(true)
 
    -- Fill bmag
    ffiC.gkyl_calc_bmag_advance(self._zero_bmag, self.localRange, self.localRangeExt, self.rzLocalRange, self.rzLocalRangeExt, psiRZ._zero, psibyrRZ._zero, psibyr2RZ._zero, bphiRZ._zero,  bmag._zero, mapc2p_field._zero)
