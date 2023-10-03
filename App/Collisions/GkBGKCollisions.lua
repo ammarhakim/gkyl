@@ -129,8 +129,9 @@ function GkBGKCollisions:fullInit(speciesTbl)
 
    self.mass = speciesTbl.mass   -- Mass of this species.
 
-   -- MF 2022/11/20: Lagrange fix needs more work, e.g. it doesn't account for the total jacobian factor. 
-   self.exactLagFixM012 = xsys.pickBool(tbl.exactLagFixM012, false)
+   -- DL 2023/09/26: Replace the original Lagrange fix by the iteration fix. 
+   self.exactIterFixM012 = xsys.pickBool(tbl.exactIterFixM012, false)
+   --self.exactIterFixM012 = true 
 
    self.timers = {mom = 0.,   momcross = 0.,   advance = 0.,}
 end
@@ -196,7 +197,7 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
    self.bmag     = externalField.geo.bmag
    self.jacobTot = externalField.geo.jacobTot
 
-   if self.exactLagFixM012 then
+   if self.exactIterFixM012 then
       -- Intermediate moments used in Lagrange fixing.
       self.dmoms = mySpecies:allocVectorMoment(3)
       -- Create updater to compute M0, M1i, M2 moments sequentially.
@@ -205,11 +206,13 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
          phaseBasis = self.phaseBasis,   moment    = "GkThreeMoments",
          gkfacs     = {self.mass, self.bmag},
       }
-      self.lagFix = Updater.LagrangeFix {
+      self.iterFix = Updater.CorrectMaxwellian {
          onGrid     = self.phaseGrid,   confGrid  = self.confGrid,
-         phaseGrid  = self.phaseGrid,   confBasis = self.confBasis,
-         phaseBasis = self.phaseBasis,  mode      = 'gk',
+         phaseBasis = self.phaseBasis,  confBasis = self.confBasis,
          mass       = self.mass,
+         bmag       = self.bmag,        jacobTot   = self.jacobTot,
+         iter_max   = 100,              err_max    = 1e-14,
+         useDevice  = false,
       }
    end
 
@@ -309,17 +312,22 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
 
       self.m0Other = self.timeDepNu and mySpecies:allocMoment() or nil  -- M0, to be extracted from threeMoments.
 
-      if self.exactLagFixM012 then
-         -- Temp buffers.
-         self.numDensity = mySpecies:allocMoment()
-         self.uDrift = mySpecies:allocMoment()
-         self.vtSq   = mySpecies:allocMoment()
+      if self.exactIterFixM012 then
          -- Will need the 1st and 2nd moment of the cross-species Maxwellian.
-         self.crossMaxwellianM1 = mySpecies:allocMoment()
-         self.crossMaxwellianM2 = mySpecies:allocMoment()
-         self.crossMaxwellianMoms = mySpecies:allocVectorMoment(3)
          self.confMultiply = Updater.CartFieldBinOp {
-            weakBasis = self.confBasis,  operation = "Multiply",
+            onGrid    = self.confGrid,
+            weakBasis = self.confBasis,
+            operation = "Multiply",
+         }
+         self.confDivide = Updater.CartFieldBinOp {
+            onGrid    = self.confGrid,
+            weakBasis = self.confBasis,
+            operation = "Divide",
+         }
+         self.confDotProduct = Updater.CartFieldBinOp {
+            onGrid    = self.confGrid,
+            weakBasis = self.confBasis,
+            operation = "DotProduct",
          }
       end
    end
@@ -465,14 +473,14 @@ function GkBGKCollisions:advance(tCurr, fIn, population, out)
 
    -- Compute the Maxwellian.
    self.maxwellian:advance(tCurr, {momsSelf, self.primMomsSelf, self.bmag, self.jacobTot}, {self.nufMaxwellSum})
-   if self.exactLagFixM012 then
-      self.threeMomentsCalc:advance(tCurr, {self.nufMaxwellSum}, {self.dmoms})
-      self.dmoms:scale(-1)
-      self.dmoms:accumulate(1, momsSelf)
-      self.lagFix:advance(tCurr, {self.dmoms, self.bmag}, {self.nufMaxwellSum})
+   if self.exactIterFixM012 then
+      -- Barrier before manipulations to moments before passing them to Iteration Fix     updater
+      --Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
+      -- Call the IterGkMaxwellianFix updater.
+      self.iterFix:advance(tCurr, {self.nufMaxwellSum, momsSelf}, {self.nufMaxwellSum})
    end
    self.phaseMul:advance(tCurr, {self.nuSum, self.nufMaxwellSum}, {self.nufMaxwellSum})
-
+--[[
    if self.crossSpecies then
       for sInd, otherNm in ipairs(self.crossSpecies) do
 
@@ -500,7 +508,7 @@ function GkBGKCollisions:advance(tCurr, fIn, population, out)
                                           {self.primMomsCross})
 
 	 self.maxwellian:advance(tCurr, {momsSelf, self.primMomsCross, self.bmag, self.jacobTot}, {self.nufMaxwellCross})
-         if self.exactLagFixM012 then
+         if self.exactIterFixM012 then
             -- Need to compute the first and second moment of the cross-species Maxwellian (needed by Lagrange fix).
             self.numDensity:combineOffset(1., momsSelf, 0)
             self.uDrift:combineOffset(1., self.primMomsCross, 0)
@@ -516,7 +524,7 @@ function GkBGKCollisions:advance(tCurr, fIn, population, out)
             self.threeMomentsCalc:advance(tCurr, {self.nufMaxwellCross}, {self.dmoms})
             self.dmoms:scale(-1)
             self.dmoms:accumulate(1, self.crossMaxwellianMoms)
-            self.lagFix:advance(tCurr, {self.dmoms, self.bmag}, {self.nufMaxwellSum})
+            self.iterFix:advance(tCurr, {self.dmoms, self.bmag}, {self.nufMaxwellSum})
          end
          self.phaseMul:advance(tCurr, {nuCrossSelf, self.nufMaxwellCross}, {self.nufMaxwellCross})
 
@@ -524,7 +532,7 @@ function GkBGKCollisions:advance(tCurr, fIn, population, out)
          self.nufMaxwellSum:accumulate(1.0, self.nufMaxwellCross)
       end    -- end loop over other species that this species collides with
    end    -- end if self.crossCollisions
-
+--]]
    self.collisionSlvr:advance(tCurr, {self.nuSum, self.nufMaxwellSum, fIn}, {fRhsOut, cflRateByCell})
 
    self.timers.advance = self.timers.advance + Time.clock() - tmStart
