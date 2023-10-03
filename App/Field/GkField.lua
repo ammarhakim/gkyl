@@ -1375,29 +1375,12 @@ function GkGeometry:initField(population)
       localRangeExt = self.localRangeExt,
       rzLocalRange = self.rzLocalRange,
       rzLocalRangeExt = self.rzLocalRangeExt,
-      mapc2p_field = self.geo.mapc2p_field,
-      psiRZ = self.geo.psiRZ,
-      psibyrRZ = self.geo.psibyrRZ,
-      psibyr2RZ = self.geo.psibyr2RZ,
-      bphiRZ = self.geo.bphiRZ,
-      gFld = self.geo.gFld,
-      jacobGeo = self.geo.jacobGeo,
-      jacobGeoInv = self.geo.jacobGeoInv,
-      jacobTot = self.geo.jacobTot,
-      jacobTotInv = self.geo.jacobTotInv,
-      bmagInv = self.geo.bmagInv,
-      bmagInvSq = self.geo.bmagInvSq,
-      gxxJ = self.geo.gxxJ,
-      gxyJ = self.geo.gxyJ,
-      gyyJ = self.geo.gyyJ,
-      grFld = self.geo.grFld,
-      b_i = self.geo.b_i,
-      cmag = self.geo.cmag,
-      bmag = self.geo.bmag,
       B0 = self.B0,
-      R0 = self.R0
+      R0 = self.R0,
+
       }
-      self.GeoUpdater:advance()
+
+      self.GeoUpdater:advance(0.0, {self.geo.psiRZ, self.geo.psibyrRZ, self.geo.psibyr2RZ, self.geo.bphiRZ}, {self.geo.mapc2p_field, self.geo.gFld, self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv, self.geo.bmagInv, self.geo.bmagInvSq, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ, self.geo.grFld, self.geo.b_i, self.geo.cmag, self.geo.bmag})
 
       
       

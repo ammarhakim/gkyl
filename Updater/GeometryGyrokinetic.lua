@@ -263,43 +263,23 @@ function GeometryGyrokinetic:init(tbl)
    self.localRangeExt = tbl.localRangeExt
    self.rzLocalRange = tbl.rzLocalRange
    self.rzLocalRangeExt = tbl.rzLocalRangeExt
-   self.mapc2p_field = tbl.mapc2p_field
-   self.psiRZ = tbl.psiRZ
-   self.psibyrRZ = tbl.psibyrRZ
-   self.psibyr2RZ = tbl.psibyr2RZ
-   self.bphiRZ = tbl.bphiRZ
-   self.gFld = tbl.gFld
-   self.jacobGeo = tbl.jacobGeo
-   self.jacobGeoInv = tbl.jacobGeoInv
-   self.jacobTot = tbl.jacobTot
-   self.jacobTotInv = tbl.jacobTotInv
-   self.bmagInv = tbl.bmagInv
-   self.bmagInvSq = tbl.bmagInvSq
-   self.gxxJ = tbl.gxxJ
-   self.gxyJ = tbl.gxyJ
-   self.gyyJ = tbl.gyyJ
-   self.grFld = tbl.grFld
-   self.b_i = tbl.b_i
-   self.cmag = tbl.cmag
-   self.bmag = tbl.bmag
    self.B0 = tbl.B0
    self.R0 = tbl.R0
 
 
-   self.BCs = Lin.IntVec(self.grid:ndim())
+   
 
+
+   -- Set up BCs 0=periodic, 1=nonperiodic
+   -- BCs are used to set ranges for calculating geometry
+   -- and to choose stencils when calculating metrics
+   self.BCs = Lin.IntVec(self.grid:ndim())
    for i = 1, self.grid:ndim() do
       self.BCs[i] = 1
    end
    for _, dir in ipairs(self.grid._periodicDirs) do
       self.BCs[dir] = 0
    end
-
-   print("BCS:")
-   for i = 1, self.grid:ndim() do
-      print(self.BCs[i])
-   end
-
    if self.BCs[1] == 1 then
       local lower = self.localRangeExt:lowerAsVec()
       local upper = self.localRangeExt:upperAsVec()
@@ -309,23 +289,12 @@ function GeometryGyrokinetic:init(tbl)
       upper[3] = upper[3]-1
       self.conversionRange = self.localRangeExt:subRange(lower, upper)
    else 
-      --local lower = self.localRangeExt:lowerAsVec()
-      --local upper = self.localRangeExt:upperAsVec()
-      --lower[1] = lower[1]+1
-      --upper[1] = upper[1]-1
-      --lower[2] = lower[2]+1
-      --upper[2] = upper[2]-1
-      --lower[3] = lower[3]+1
-      --upper[3] = upper[3]-1
-      --self.conversionRange = self.localRangeExt:subRange(lower, upper)
       self.conversionRange = self.localRange
    end
    
 
-   --self.GeoUpdater:advance(self.grid, self.basis, self.rzGrid, self.rzBasis, self.localRange, self.localRangeExt, self.rzLocalRange, self.rzLocalRangeExt, geo_updater, geo_inp, self.mapc2p_field, self.psiRZ, self.psibyrRZ, self.geo.psibyr2RZ, self.geo.bphiRZ, self.geo.gFld, self.geo.jacobGeo, self.geo.jacobGeoInv, self.jacobTot, self.JacobTotInv, self.geo.grFld, self.geo.b_i, self.geo.cmag)
-
+   -- Create input struct
    self.inp = ffi.new("struct gkyl_geo_gyrokinetic_inp")
-
    self.inp.rzgrid = self.rzGrid._zero
    self.inp.rzbasis = self.rzBasis._zero
    self.inp.psiRZ = tbl.psiRZ._zero
@@ -333,7 +302,10 @@ function GeometryGyrokinetic:init(tbl)
    self.inp.B0 = self.B0
    self.inp.R0 = self.R0
 
+   -- Create mapc2p updater
    self._zero_geom = ffi.gc(ffiC.gkyl_geo_gyrokinetic_new(self.inp), ffiC.gkyl_geo_gyrokinetic_release)
+
+   -- Create geo input struct which will be used by mapc2p updater
    self.ginp = ffi.new("struct gkyl_geo_gyrokinetic_geo_inp")
    self.ginp.cgrid = self.grid._zero
    self.ginp.cbasis = self.basis._zero
@@ -345,32 +317,35 @@ function GeometryGyrokinetic:init(tbl)
    self.ginp.node_file_nm = "g2nodes.gkyl"
    self.ginp.bcs = self.BCs:data()
 
+
+   -- Create the three g0 updaters for calculating 
    self._zero_bmag = ffi.gc(ffiC.gkyl_calc_bmag_new(self.basis._zero, self.rzBasis._zero, self.grid._zero, self.rzGrid._zero, self.geo, self.ginp, false), ffiC.gkyl_calc_bmag_release)
-
    self._zero_metric = ffi.gc(ffiC.gkyl_calc_metric_new(self.basis._zero, self.grid._zero, self.BCs:data(), false), ffiC.gkyl_calc_metric_release)
-
    self._zero_derived = ffi.gc(ffiC.gkyl_calc_derived_geo_new(self.basis._zero, self.grid._zero, false), ffiC.gkyl_calc_derived_geo_release)
 
 
 
 end
 
-function GeometryGyrokinetic:advance()
+function GeometryGyrokinetic:_advance(tCurr, inFlds, outFlds)
+
+   local psiRZ, psibyrRZ, psibyr2RZ, bphiRZ = inFlds[1], inFlds[2], inFlds[3], inFlds[4]
+   local mapc2p_field, gFld, jacobGeo, jacobGeoInv, jacobTot, jacobTotInv, bmagInv, bmagInvSq, gxxJ, gxyJ, gyyJ, grFld, b_i, cmag, bmag = outFlds[1], outFlds[2], outFlds[3], outFlds[4], outFlds[5], outFlds[6], outFlds[7], outFlds[8], outFlds[9], outFlds[10], outFlds[11], outFlds[12], outFlds[13], outFlds[14], outFlds[15]
 
    -- Fill mapc2p
-   ffiC.gkyl_geo_gyrokinetic_calcgeom(self._zero_geom, self.ginp, self.mapc2p_field._zero, self.conversionRange)
+   ffiC.gkyl_geo_gyrokinetic_calcgeom(self._zero_geom, self.ginp, mapc2p_field._zero, self.conversionRange)
 
-   self.mapc2p_field:sync(true)
+   -- Sync periodic directions before calculating metric
+   mapc2p_field:sync(true)
 
    -- Fill bmag
-   print(self._zero_bmag, self.localRange, self.localRangeExt, self.rzLocalRange, self.rzLocalRangeExt, self.psiRZ._zero, self.psibyrRZ._zero, self.psibyr2RZ._zero, self.bphiRZ._zero,  self.bmag._zero, self.mapc2p_field._zero)
-   ffiC.gkyl_calc_bmag_advance(self._zero_bmag, self.localRange, self.localRangeExt, self.rzLocalRange, self.rzLocalRangeExt, self.psiRZ._zero, self.psibyrRZ._zero, self.psibyr2RZ._zero, self.bphiRZ._zero,  self.bmag._zero, self.mapc2p_field._zero)
+   ffiC.gkyl_calc_bmag_advance(self._zero_bmag, self.localRange, self.localRangeExt, self.rzLocalRange, self.rzLocalRangeExt, psiRZ._zero, psibyrRZ._zero, psibyr2RZ._zero, bphiRZ._zero,  bmag._zero, mapc2p_field._zero)
 
    -- Fill metrics
-   ffiC.gkyl_calc_metric_advance(self._zero_metric, self.localRange, self.mapc2p_field._zero, self.gFld._zero)
+   ffiC.gkyl_calc_metric_advance(self._zero_metric, self.localRange, mapc2p_field._zero, gFld._zero)
 
-   -- Fill derived geo
-   ffiC.gkyl_calc_derived_geo_advance(self._zero_derived, self.localRange, self.gFld._zero, self.bmag._zero, self.jacobGeo._zero, self.jacobGeoInv._zero, self.grFld._zero, self.b_i._zero , self.cmag._zero, self.jacobTot._zero, self.jacobTotInv._zero, self.bmagInv._zero, self.bmagInvSq._zero, self.gxxJ._zero, self.gxyJ._zero, self.gyyJ._zero)
+   -- Fill derived geo. Includes adjustment  of g_zz to preserve cmag = const.
+   ffiC.gkyl_calc_derived_geo_advance(self._zero_derived, self.localRange, gFld._zero, bmag._zero, jacobGeo._zero, jacobGeoInv._zero, grFld._zero, b_i._zero , cmag._zero, jacobTot._zero, jacobTotInv._zero, bmagInv._zero, bmagInvSq._zero, gxxJ._zero, gxyJ._zero, gyyJ._zero)
 
 end
 
