@@ -333,9 +333,9 @@ local function buildApplication(self, tbl)
       -- This is a dummy forwardEuler call because some BCs require 
       -- auxFields to be set, which is controlled by species solver.
       if s.charge == 0.0 then
-      	 s:advance(0, population, {NoField {}, NoField {}}, 1, 2)
+         s:advance(0, population, {NoField {}, NoField {}}, 1, 2)
       else
-	 s:advance(0, population, {field, externalField}, 1, 2)
+         s:advance(0, population, {field, externalField}, 1, 2)
       end
       s:applyBcInitial(0, field, externalField, 1, 1)
    end

@@ -79,7 +79,7 @@ function GkMaxwellianBC:createSolver(mySpecies, field, externalField)
       self.calcBoundaryFluxRateFunc     = function(dtIn) end
    end
 
-   self.ghostFld = self.allocDistf()
+   self.ghostFld = self:allocDistf()
 
    if not self.fromFile then
       if self.maxwellianKind == 'local' then
@@ -250,7 +250,8 @@ function GkMaxwellianBC:getFlucF() return self.boundaryFluxRate end
 
 function GkMaxwellianBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
    local fIn = mySpecies:rkStepperFields()[outIdx]
-   fIn:copyRangeToRange(self.ghostFld, self.ghostFld:localRange(), self.myGlobalGhostRange)
+--   fIn:copyRangeToRange(self.ghostFld, self.ghostFld:localRange(), self.myGlobalGhostRange)
+   fIn:copyRangeToRange(self.ghostFld, self.myGlobalGhostRange, self.ghostFld:localRange())
 end
 
 function GkMaxwellianBC:getBoundaryFluxFields() return self.boundaryFluxFields end

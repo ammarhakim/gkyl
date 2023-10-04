@@ -51,7 +51,7 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
    -- Create the boundary grid and other boundary tools.
    BCtools.createBoundaryTools(mySpecies, field, externalField, self)
 
-   self.bcBuffer = self.allocDistf() -- Buffer used by BasicBc updater.
+   self.bcBuffer = self:allocDistf() -- Buffer used by BasicBc updater.
 
    local bcFunc, skinType
    if self.bcKind == "copy" or self.bcKind == "absorb" or self.bcKind == "reflect" then

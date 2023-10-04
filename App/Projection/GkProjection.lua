@@ -53,7 +53,7 @@ function FunctionProjection:advance(time, inFlds, outFlds)
    end
 end
 
-function FunctionProjection:createCouplingSolver(species,field, externalField)
+function FunctionProjection:createCouplingSolver(species, field, externalField)
    if not self.fromFile then
       if self.species.charge < 0.0 then
          -- Scale the electrons to have the same density as the ions.
