@@ -130,8 +130,7 @@ function GkBGKCollisions:fullInit(speciesTbl)
    self.mass = speciesTbl.mass   -- Mass of this species.
 
    -- DL 2023/09/26: Replace the original Lagrange fix by the iteration fix. 
-   self.exactIterFixM012 = xsys.pickBool(tbl.exactIterFixM012, false)
-   --self.exactIterFixM012 = true 
+   self.conservativeMaxwellian = xsys.pickBool(tbl.conservativeMaxwellian, true)
 
    self.timers = {mom = 0.,   momcross = 0.,   advance = 0.,}
 end
@@ -197,7 +196,7 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
    self.bmag     = externalField.geo.bmag
    self.jacobTot = externalField.geo.jacobTot
 
-   if self.exactIterFixM012 then
+   if self.conservativeMaxwellian then
       -- Intermediate moments used in Lagrange fixing.
       self.dmoms = mySpecies:allocVectorMoment(3)
       -- Create updater to compute M0, M1i, M2 moments sequentially.
@@ -206,7 +205,7 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
          phaseBasis = self.phaseBasis,   moment    = "GkThreeMoments",
          gkfacs     = {self.mass, self.bmag},
       }
-      self.iterFix = Updater.CorrectMaxwellian {
+      self.correctMaxwellian = Updater.CorrectMaxwellian {
          onGrid     = self.phaseGrid,   confGrid  = self.confGrid,
          phaseBasis = self.phaseBasis,  confBasis = self.confBasis,
          mass       = self.mass,
@@ -265,7 +264,7 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
    -- Maxwellian projection.
    self.maxwellian = Updater.MaxwellianOnBasis {
       onGrid    = self.phaseGrid,  phaseBasis  = self.phaseBasis,
-      confBasis = self.confBasis,  usePrimMoms = true,
+      confBasis = self.confBasis,  --usePrimMoms = true,
       mass      = self.mass, 
    }
    -- BGK Collision solver itself.
@@ -312,7 +311,7 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
 
       self.m0Other = self.timeDepNu and mySpecies:allocMoment() or nil  -- M0, to be extracted from threeMoments.
 
-      if self.exactIterFixM012 then
+      if self.conservativeMaxwellian then
          -- Will need the 1st and 2nd moment of the cross-species Maxwellian.
          self.confMultiply = Updater.CartFieldBinOp {
             onGrid    = self.confGrid,
@@ -472,12 +471,13 @@ function GkBGKCollisions:advance(tCurr, fIn, population, out)
    self.calcSelfNu(momsSelf, self.nuSum) -- Compute the collision frequency (if needed).
 
    -- Compute the Maxwellian.
-   self.maxwellian:advance(tCurr, {momsSelf, self.primMomsSelf, self.bmag, self.jacobTot}, {self.nufMaxwellSum})
-   if self.exactIterFixM012 then
+   --self.maxwellian:advance(tCurr, {momsSelf, self.primMomsSelf, self.bmag, self.jacobTot}, {self.nufMaxwellSum})
+   self.maxwellian:advance(tCurr, {momsSelf, self.bmag, self.jacobTot}, {self.nufMaxwellSum})
+   if self.conservativeMaxwellian then
       -- Barrier before manipulations to moments before passing them to Iteration Fix     updater
       --Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
-      -- Call the IterGkMaxwellianFix updater.
-      self.iterFix:advance(tCurr, {self.nufMaxwellSum, momsSelf}, {self.nufMaxwellSum})
+      -- Call the CorrectMaxwellian updater.
+      self.correctMaxwellian:advance(tCurr, {self.nufMaxwellSum, momsSelf}, {self.nufMaxwellSum})
    end
    self.phaseMul:advance(tCurr, {self.nuSum, self.nufMaxwellSum}, {self.nufMaxwellSum})
 --[[
@@ -508,7 +508,7 @@ function GkBGKCollisions:advance(tCurr, fIn, population, out)
                                           {self.primMomsCross})
 
 	 self.maxwellian:advance(tCurr, {momsSelf, self.primMomsCross, self.bmag, self.jacobTot}, {self.nufMaxwellCross})
-         if self.exactIterFixM012 then
+         if self.conservativeMaxwellian then
             -- Need to compute the first and second moment of the cross-species Maxwellian (needed by Lagrange fix).
             self.numDensity:combineOffset(1., momsSelf, 0)
             self.uDrift:combineOffset(1., self.primMomsCross, 0)
@@ -524,7 +524,7 @@ function GkBGKCollisions:advance(tCurr, fIn, population, out)
             self.threeMomentsCalc:advance(tCurr, {self.nufMaxwellCross}, {self.dmoms})
             self.dmoms:scale(-1)
             self.dmoms:accumulate(1, self.crossMaxwellianMoms)
-            self.iterFix:advance(tCurr, {self.dmoms, self.bmag}, {self.nufMaxwellSum})
+            self.correctMaxwellian:advance(tCurr, {self.dmoms, self.bmag}, {self.nufMaxwellSum})
          end
          self.phaseMul:advance(tCurr, {nuCrossSelf, self.nufMaxwellCross}, {self.nufMaxwellCross})
 
