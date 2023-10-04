@@ -34,19 +34,27 @@ local function bumpMaxwell(x,vx,n,u,vth,bA,bU,bS,bVth)
    local Pi   = math.pi
    local vSq  = ((vx-u)/(math.sqrt(2.0)*vth))^2
    local vbSq = ((vx-u)/(math.sqrt(2.0)*bVth))^2
-
+   
    return (n/math.sqrt(2.0*Pi*vth))*math.exp(-vSq)
          +(n/math.sqrt(2.0*Pi*bVth))*math.exp(-vbSq)*(bA^2)/((vx-bU)^2+bS^2)
+end
+
+-- Sinusoidallly perturbed Maxwellian.
+local function sineMaxwell(x,vx,n,u,vth)
+   local Pi   = math.pi
+   local vSq  = ((vx-u)/(math.sqrt(2.0)*vth))^2
+   
+   return (n/math.sqrt(2.0*Pi*vth))*math.exp(-vSq)
 end
 
 plasmaApp = Plasma.App {
    logToFile = false,
 
-   tEnd        = 100,           -- End time.
-   nFrame      = 1,             -- Number of frames to write.
+   tEnd        = 0.1,           -- End time.
+   nFrame      = 14,             -- Number of frames to write.
    lower       = {0.0},         -- Configuration space lower coordinate.
    upper       = {1.0},         -- Configuration space upper coordinate.
-   cells       = {2},           -- Configuration space cells.
+   cells       = {8},           -- Configuration space cells.
    basis       = "serendipity", -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,             -- Polynomial order.
    timeStepper = "rk3",         -- One of "rk2", "rk3" or "rk3s4".
@@ -56,7 +64,7 @@ plasmaApp = Plasma.App {
 
    -- Boundary conditions for configuration space.
    periodicDirs = {1},          -- Periodic directions.
-
+--[[
    -- Neutral species with a rectangular/square IC.
    square = Plasma.Species {
       charge = 1.0, mass = 1.0,
@@ -67,8 +75,7 @@ plasmaApp = Plasma.App {
       -- Initial conditions.
       init = function (t, xn)
 	 local x, v = xn[1], xn[2]
-
-         return topHat(x, v, n0, u0, vt)
+         return topHat(x, v, n0, u0, vt)*(1.0+0.1*math.cos(2.*math.pi*x))
       end,
       evolve = true,
       diagnostics = { "M0", "M1", "M2" },
@@ -80,6 +87,27 @@ plasmaApp = Plasma.App {
    },
 
    -- Neutral species with a bump in the tail.
+   sine = Plasma.Species {
+      charge = 1.0, mass = 1.0,
+      -- Velocity space grid.
+      lower      = {-8.0*vt},
+      upper      = { 8.0*vt},
+      cells      = {32},
+      -- Initial conditions.
+      init = function (t, xn)
+	 local x, v = xn[1], xn[2]
+         return sineMaxwell(x,v,n0,u0,vt)*(1.0+0.1*math.cos(2.*math.pi*x))
+      end,
+      evolve            = true,
+      diagnostics = { "M0", "M1", "M2" },
+      coll = Plasma.BGKCollisions {
+         collideWith = {'sine'},
+         frequencies = {nu, },
+         exactIterFixM012 = true,
+      },
+   },
+--]]
+   -- Neutral species with a bump in the tail.
    bump = Plasma.Species {
       charge = 1.0, mass = 1.0,
       -- Velocity space grid.
@@ -89,7 +117,8 @@ plasmaApp = Plasma.App {
       -- Initial conditions.
       init = function (t, xn)
 	 local x, v = xn[1], xn[2]
-         return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
+         return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)*(1.0+0.1*math.cos(2.*math.pi*x))
+         --return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
       evolve            = true,
       diagnostics = { "M0", "M1", "M2" },
