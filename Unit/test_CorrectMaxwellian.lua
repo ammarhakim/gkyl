@@ -66,7 +66,7 @@ function testGK_1x1v()
 
    local lower = {-0.50, -6.0*vt0}
    local upper = {0.50,   6.0*vt0}
-   local numCells = {16, 16}
+   local numCells = {8, 8}
 
    for polyOrder = 1, 2 do
       local phaseGrid = createGrid(lower, upper, numCells)
@@ -77,6 +77,7 @@ function testGK_1x1v()
       local fM          = createField(phaseGrid, phaseBasis)
       local fOut        = createField(phaseGrid, phaseBasis)
       local moms_in     = createField(confGrid, confBasis, 3)
+      --local moms_temp   = createField(confGrid, confBasis, 3)
       local moms_out    = createField(confGrid, confBasis, 3)
       local jacobTot    = createField(confGrid, confBasis)
       local bmag        = createField(confGrid, confBasis)
@@ -111,6 +112,7 @@ function testGK_1x1v()
          evaluate = function (t, xn) return 1.0 end   -- Set later.
       }
       projMoms:advance(0.0, {}, {moms_in}) 
+      --projMoms:advance(0.0, {}, {moms_temp}) 
       projConfScalar:setFunc(function(t,xn) return bmagFunc(t,xn) end)
       projConfScalar:advance(0.0, {}, {bmag}) 
       projConfScalar:setFunc(function(t,xn) return jacobTotFunc(t,xn) end)
@@ -155,12 +157,16 @@ function testGK_1x1v()
       local indexer    = moms_in:genIndexer()
       local localRange = moms_in:localRange()
       local momsInPtr  = moms_in:get(1)
-      local momsOutPtr    = moms_out:get(1)
+      --local momsTempPtr = moms_temp:get(1)
+      local momsOutPtr = moms_out:get(1)
       for idx in localRange:rowMajorIter() do
          momsInPtr = moms_in:get(indexer(idx))
+         --momsTempPtr = moms_temp:get(indexer(idx))
          momsOutPtr = moms_out:get(indexer(idx))
          for k = 1, confBasis:numBasis()*3 do
             assert_close(momsInPtr[1], momsOutPtr[1], 1.e-14, "Checking mom CorrectMaxwellian 1x1v.")
+            --print(string.format("Input:%.13e\n", momsInPtr[1]-momsTempPtr[1]))  -- added for test
+            --print(string.format("Output:%.13e\n", momsOutPtr[1]-momsTempPtr[1]))  -- added for test
          end
       end
    end
