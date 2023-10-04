@@ -50,8 +50,8 @@ end
 plasmaApp = Plasma.App {
    logToFile = false,
 
-   tEnd        = 0.1,           -- End time.
-   nFrame      = 14,             -- Number of frames to write.
+   tEnd        = 100,           -- End time.
+   nFrame      = 1,             -- Number of frames to write.
    lower       = {0.0},         -- Configuration space lower coordinate.
    upper       = {1.0},         -- Configuration space upper coordinate.
    cells       = {8},           -- Configuration space cells.
@@ -121,11 +121,11 @@ plasmaApp = Plasma.App {
          --return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
       evolve            = true,
+      evolveCollisionless = false,
       diagnostics = { "M0", "M1", "M2" },
       coll = Plasma.BGKCollisions {
          collideWith = {'bump'},
          frequencies = {nu, },
-         exactIterFixM012 = true,
       },
    },
 
