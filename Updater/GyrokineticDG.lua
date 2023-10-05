@@ -9,6 +9,7 @@
 -- Gkyl libraries
 local Proto       = require "Lib.Proto"
 local UpdaterBase = require "Updater.Base"
+local Lin         = require "Lib.Linalg"
 local ffi         = require "ffi"
 local xsys        = require "xsys"
 
@@ -33,14 +34,14 @@ enum gkyl_gkeqn_id {
  * @param cbasis Configuration space basis functions
  * @param pbasis Phase-space basis function
  * @param conf_range Config space range
- * @param vel_range Velocity space range
- * @param field_id Enum identifier for field type (see gkyl_eqn_type.h)
+ * @param is_zero_flux_dir True in directions with (lower and upper) zero flux BCs.
+ * @param gkyl_gkeqn_id Enum identifier for gyrokinetic equation type.
  *
  * @return New gyrokinetic updater object
  */
 gkyl_dg_updater_gyrokinetic* gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
+  const struct gkyl_range *conf_range, const bool *is_zero_flux_dir,
   enum gkyl_gkeqn_id eqn_id, double charge, double mass, bool use_gpu);
 
 /**
@@ -100,8 +101,16 @@ function GyrokineticDG:init(tbl)
 
    local equationId = "GKYL_GK_DEFAULT"
 
+   local cdim, pdim = self._confBasis:ndim(), self._phaseBasis:ndim()
+   local is_zfd = Lin.BoolVec(pdim)
+   for d = 1, pdim do is_zfd[d] = d>cdim and true or false end
+   local zfd = tbl.zeroFluxDirs -- Directions in which to specify zero flux BCs.
+   if zfd then
+      for i = 1, #zfd do is_zfd[zfd[i]] = true end
+   end
+
    self._zero = ffi.gc(ffiC.gkyl_dg_updater_gyrokinetic_new(self._onGrid._zero, self._confBasis._zero,
-                       self._phaseBasis._zero, self._confRange, nil, equationId, charge, mass, self._useGPU),
+                       self._phaseBasis._zero, self._confRange, is_zfd:data(), equationId, charge, mass, self._useGPU),
                        ffiC.gkyl_dg_updater_gyrokinetic_release)
 
    return self

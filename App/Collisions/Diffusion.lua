@@ -154,17 +154,17 @@ function Diffusion:createSolver(mySpecies, externalField)
    -- Diffusion equation solver.
    if self.speciesKind == "vlasov" then
       self.collisionSlvr = Updater.VlasovDiffusion {
-         onGrid    = grid,            constDiff  = not isVarCoeff,
-         onBasis   = basis,           directions = self.diffDirs,
-         confBasis = self.confBasis,  order      = self.diffOrder,
-         confRange = diffConfRange,
+         onGrid    = grid,            constDiff    = not isVarCoeff,
+         onBasis   = basis,           directions   = self.diffDirs,
+         confBasis = self.confBasis,  order        = self.diffOrder,
+         confRange = diffConfRange,   zeroFluxDirs = mySpecies.zeroFluxDirections,
       }
    elseif self.speciesKind == "gyrokinetic" then
       self.collisionSlvr = Updater.GyrokineticDiffusion {
-         onGrid    = grid,            constDiff  = not isVarCoeff,
-         onBasis   = basis,           directions = self.diffDirs,
-         confBasis = self.confBasis,  order      = self.diffOrder,
-         confRange = diffConfRange,
+         onGrid    = grid,            constDiff    = not isVarCoeff,
+         onBasis   = basis,           directions   = self.diffDirs,
+         confBasis = self.confBasis,  order        = self.diffOrder,
+         confRange = diffConfRange,   zeroFluxDirs = mySpecies.zeroFluxDirections,
       }
    end
 end

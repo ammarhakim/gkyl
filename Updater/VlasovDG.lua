@@ -7,17 +7,9 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local Alloc       = require "Lib.Alloc"
-local Basis       = require "Basis.BasisCdef"
-local DataStruct  = require "DataStruct"
-local EqBase      = require "Eq.EqBase"
-local Grid        = require "Grid.RectCart"
-local CartField   = require "DataStruct.CartField"
-local Lin         = require "Lib.Linalg"
-local Mpi         = require "Comm.Mpi"
 local Proto       = require "Lib.Proto"
-local Range       = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
+local Lin         = require "Lib.Linalg"
 local ffi         = require "ffi"
 local xsys        = require "xsys"
 
@@ -53,17 +45,18 @@ typedef struct gkyl_dg_updater_vlasov gkyl_dg_updater_vlasov;
  * @param conf_range Config space range
  * @param vel_range Velocity space range
  * @param phase_range Phase space range
- * @param model_id Enum identifier for model type (e.g., SR, General Geometry, see gkyl_eqn_type.h)
+ * @param is_zero_flux_dir True in directions with (lower and upper) zero flux BCs.
+ * @param model_id Enum identifier for model type (e.g., SR, General Geometry, PKPM, see gkyl_eqn_type.h)
  * @param field_id Enum identifier for field type (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h)
  * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
  * @param use_gpu Boolean to determine whether struct objects are on host or device
- * 
+ *
  * @return New vlasov updater object
  */
-gkyl_dg_updater_vlasov* gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid, 
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
+gkyl_dg_updater_vlasov* gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
-  enum gkyl_model_id model_id, enum gkyl_field_id field_id, void *aux_inp, bool use_gpu);
+  const bool *is_zero_flux_dir, enum gkyl_model_id model_id, enum gkyl_field_id field_id, void *aux_inp, bool use_gpu);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -155,11 +148,19 @@ function VlasovDG:init(tbl)
       end
    end
 
+   local cdim, pdim = self._confBasis:ndim(), self._phaseBasis:ndim()
+   local is_zfd = Lin.BoolVec(pdim)
+   for d = 1, pdim do is_zfd[d] = d>cdim and true or false end
+   local zfd = tbl.zeroFluxDirs -- Directions in which to specify zero flux BCs.
+   if zfd then
+      for i = 1, #zfd do is_zfd[zfd[i]] = true end
+   end
+
    self._zero = ffi.gc(
       ffiC.gkyl_dg_updater_vlasov_new(self._onGrid._zero, 
         self._confBasis._zero, self._phaseBasis._zero, 
         self._confRange, self._velRange, self._phaseRange,
-        model_id, field_id, self._auxfields, self._useGPU),
+        is_zfd:data(), model_id, field_id, self._auxfields, self._useGPU),
       ffiC.gkyl_dg_updater_vlasov_release
    )
 
