@@ -218,12 +218,12 @@ function GkSpecies:fullInit(appTbl)
    -- It is possible to use the keywords 'init' and 'background'
    -- to specify a function directly without using a Projection object.
    if type(tbl.init) == "function" then
-      self.projections["init"] = Projection.GyrokineticProjection.FunctionProjection {
+      self.projections["init"] = Projection.GkProjection.FunctionProjection {
          func = function(t, zn) return tbl.init(t, zn, self) end,
       }
    end
    if type(tbl.background) == "function" then
-      self.projections["background"] = Projection.GyrokineticProjection.FunctionProjection {
+      self.projections["background"] = Projection.GkProjection.FunctionProjection {
          func = function(t, zn) return tbl.background(t, zn, self) end,
       }
    end
@@ -778,7 +778,7 @@ function GkSpecies:initDist(extField)
    local scaleInitWithSourcePower = false
    for nm, pr in lume.orderedIter(self.projections) do
       pr:fullInit(self)
-      pr:advance(0.0, {extField}, {self.distf[2]})
+      pr:advance(0.0, {self, extField}, {self.distf[2]})
       if string.find(nm,"init") then
          self.distf[1]:accumulate(1.0, self.distf[2])
          initCnt = initCnt + 1

@@ -749,7 +749,7 @@ function VlasovSpecies:initDist(extField)
    local initCnt = 0
    for nm, pr in lume.orderedIter(self.projections) do
       pr:fullInit(self)
-      pr:advance(0.0, {extField}, {self.distf[2]})
+      pr:advance(0.0, {self,extField}, {self.distf[2]})
       if string.find(nm,"init") then
          self.distf[1]:accumulate(1.0, self.distf[2])
          initCnt = initCnt + 1
@@ -1103,13 +1103,12 @@ function VlasovSpecies:getMomDensity(rkIdx)
    return self.momDensity
 end
 
--- Please test this for higher than 1x1v... (MF: JJ?).
 function VlasovSpecies:Maxwellian(xn, n0, vdnIn, T0)
    local vdn = vdnIn or {0, 0, 0}
    local vt2 = T0/self.mass
    local v2 = 0.0
    for d = self.cdim+1, self.cdim+self.vdim do
-      v2 = v2 + (xn[d] - vdnIn[d-self.cdim])^2
+      v2 = v2 + (xn[d] - vdn[d-self.cdim])^2
    end
    return n0 / math.sqrt(2*math.pi*vt2)^self.vdim * math.exp(-v2/(2*vt2))
 end

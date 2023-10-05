@@ -50,7 +50,7 @@ function VmSteadyStateSource:createSolver(mySpecies, extField)
    self.profile:fullInit(mySpecies)
    self.fSource = mySpecies:allocDistf()
    
-   self.profile:advance(0.0, {extField}, {self.fSource})
+   self.profile:advance(0.0, {mySpecies, extField}, {self.fSource})
 
    if self.positivityRescale then
       mySpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)

@@ -20,8 +20,6 @@ local VlasovProjection = Proto(ProjectionBase)
 function VlasovProjection:init(tbl) self.tbl = tbl end
 
 function VlasovProjection:fullInit(mySpecies)
-   self.mySpecies = mySpecies
-
    self.phaseBasis = mySpecies.basis
    self.phaseGrid  = mySpecies.grid
    self.confBasis  = mySpecies.confBasis
@@ -77,8 +75,8 @@ function FunctionProjection:fullInit(mySpecies)
    end
 end
 
-function FunctionProjection:scaleDensity(distf, currentM0, targetM0)
-   local M0mod = self.mySpecies:allocMoment()
+function FunctionProjection:scaleDensity(mySpecies, distf, currentM0, targetM0)
+   local M0mod = mySpecies:allocMoment()
 
    local weakDivision = Updater.CartFieldBinOp {
       weakBasis = self.confBasis,         operation = "Divide",
@@ -92,7 +90,8 @@ function FunctionProjection:scaleDensity(distf, currentM0, targetM0)
 end
 
 function FunctionProjection:advance(t, inFlds, outFlds)
-   local distf = outFlds[1]
+   local mySpecies = inFlds[1]
+   local distf     = outFlds[1]
    if self.fromFile then
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
@@ -122,16 +121,32 @@ function MaxwellianProjection:fullInit(mySpecies)
    if type(self.driftSpeed) == "number" then
       assert(self.vdim == 1, "MaxwellianProjection: driftSpeed must return vdim values.")
       self.driftSpeed = function (t, zn) return tbl.driftSpeed end
+   elseif type(self.driftSpeed) == "table" then
+      assert(#tbl.driftSpeed == self.vdim, "MaxwellianProjection: driftSpeed must return vdim values.")
+      self.driftSpeed =
+         self.vdim==1 and function (t, zn) return tbl.driftSpeed[1] end or (
+         self.vdim==2 and function (t, zn) return tbl.driftSpeed[1], tbl.driftSpeed[2] end or (
+         self.vdim==3 and function (t, zn) return tbl.driftSpeed[1], tbl.driftSpeed[2], tbl.driftSpeed[3] end or 
+         assert(false, "VlasovProjection.MaxwellianProjection: wrong vdim") ) )
    end
    if type(self.temperature) == "number" then
       self.temperature = function (t, zn) return tbl.temperature end
    end
 
-   self.initFunc = function (t, zn)
-      return mySpecies:Maxwellian(zn, self.density(t, zn),
-                                self.driftSpeed(t, zn),
-                                self.temperature(t, zn))
-   end
+   self.initFunc =
+      self.vdim==1 and function (t, zn)
+         local ux = self.driftSpeed(t, zn)
+         return mySpecies:Maxwellian(zn, self.density(t, zn), {ux}, self.temperature(t, zn))
+      end or (
+      self.vdim==2 and function (t, zn)
+         local ux, uy = self.driftSpeed(t, zn)
+         return mySpecies:Maxwellian(zn, self.density(t, zn), {ux,uy}, self.temperature(t, zn))
+      end or (
+      self.vdim==3 and function (t, zn)
+         local ux, uy, uz = self.driftSpeed(t, zn)
+         return mySpecies:Maxwellian(zn, self.density(t, zn), {ux,uy,uz}, self.temperature(t, zn))
+      end or assert(false, "VlasovProjection.MaxwellianProjection: wrong vdim")
+   ) )
 
    if self.fromFile then
       self.ioMethod  = "MPI"
@@ -153,11 +168,11 @@ function MaxwellianProjection:fullInit(mySpecies)
    end
 end
 
-function MaxwellianProjection:scaleDensity(distf)
-   local M0e, M0 = self.mySpecies:allocMoment(), self.mySpecies:allocMoment()
-   local M0mod   = self.mySpecies:allocMoment()
+function MaxwellianProjection:scaleDensity(mySpecies, distf)
+   local M0e, M0 = mySpecies:allocMoment(), mySpecies:allocMoment()
+   local M0mod   = mySpecies:allocMoment()
 
-   self.mySpecies.numDensityCalc:advance(0.0, {distf}, {M0})
+   mySpecies.numDensityCalc:advance(0.0, {distf}, {M0})
    local project = Updater.ProjectOnBasis {
       onGrid = self.confGrid,   evaluate = function (t, zn) return self.density(t, zn) end,
       basis  = self.confBasis,  onGhosts = true,
@@ -176,14 +191,15 @@ function MaxwellianProjection:scaleDensity(distf)
 end
 
 function MaxwellianProjection:advance(t, inFlds, outFlds)
-   local distf = outFlds[1]
+   local mySpecies = inFlds[1]
+   local distf     = outFlds[1]
    if self.fromFile then
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
       self.project:advance(t, {}, {distf})
    end
    if self.exactScaleM0 then
-      self:scaleDensity(distf)
+      self:scaleDensity(mySpecies, distf)
    end
 end
 

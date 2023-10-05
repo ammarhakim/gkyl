@@ -22,8 +22,6 @@ local GyrokineticProjection = Proto(ProjectionBase)
 function GyrokineticProjection:init(tbl) self.tbl = tbl end
 
 function GyrokineticProjection:fullInit(mySpecies)
-   self.mySpecies  = mySpecies
-
    self.phaseBasis = mySpecies.basis
    self.phaseGrid  = mySpecies.grid
    self.confBasis  = mySpecies.confBasis
@@ -33,8 +31,6 @@ function GyrokineticProjection:fullInit(mySpecies)
 
    self.cdim = self.confGrid:ndim()
    self.vdim = self.phaseGrid:ndim() - self.confGrid:ndim()
-
-   self.vDegFreedom = mySpecies.vDegFreedom
 
    self.fromFile = self.tbl.fromFile
 
@@ -94,8 +90,8 @@ function FunctionProjection:allocConfField(metaData)
 end
 
 function FunctionProjection:advance(time, inFlds, outFlds)
-   local extField = inFlds[1]
-   local distf    = outFlds[1]
+   local mySpecies, extField = inFlds[1], inFlds[2]
+   local distf = outFlds[1]
    if self.fromFile then
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
@@ -119,8 +115,8 @@ function FunctionProjection:advance(time, inFlds, outFlds)
    end
 end
 
-function FunctionProjection:scaleDensity(distf, currentM0, targetM0)
-   local M0mod = self:allocConfField()
+function FunctionProjection:scaleDensity(mySpecies, distf, currentM0, targetM0)
+   local M0mod = mySpecies:allocMoment()
 
    local weakDivision = Updater.CartFieldBinOp {
       weakBasis = self.confBasis,         operation = "Divide",
@@ -150,7 +146,7 @@ function FunctionProjection:createCouplingSolver(species, field, externalField)
          end
          species[elcName].numDensityCalc:advance(0.0, {species[elcName]:getDistF()}, {numDens})
          species[ionName].numDensityCalc:advance(0.0, {species[ionName]:getDistF()}, {numDensScaleTo})
-         self:scaleDensity(species[elcName]:getDistF(), numDens, numDensScaleTo)
+         self:scaleDensity(species[elcName], species[elcName]:getDistF(), numDens, numDensScaleTo)
       end
       local jacobGeo = externalField.geo.jacobGeo
       if jacobGeo then self.weakMultiplyConfPhase:advance(0, {mySpecies:getDistF(), jacobGeo}, {mySpecies:getDistF()}) end
@@ -219,11 +215,11 @@ function MaxwellianProjection:allocConfField(vComp)
    return m
 end
 
-function MaxwellianProjection:scaleDensity(distf)
-   local M0e, M0 = self.mySpecies:allocMoment(), self.mySpecies:allocMoment()
-   local M0mod   = self.mySpecies:allocMoment()
+function MaxwellianProjection:scaleDensity(mySpecies, distf)
+   local M0e, M0 = mySpecies:allocMoment(), mySpecies:allocMoment()
+   local M0mod   = mySpecies:allocMoment()
 
-   self.mySpecies.numDensityCalc:advance(0.0, {distf}, {M0})
+   mySpecies.numDensityCalc:advance(0.0, {distf}, {M0})
    local project = Updater.ProjectOnBasis {
       onGrid = self.confGrid,   evaluate = function (t, zn) return self.density(t, zn) end,
       basis  = self.confBasis,  onGhosts = true,
@@ -241,8 +237,8 @@ function MaxwellianProjection:scaleDensity(distf)
    self.weakMultiplyConfPhase:advance(0.0, {M0mod, distf}, {distf})
 end
 
-function MaxwellianProjection:scaleM012(distf)
-   local sp                                        = self.mySpecies
+function MaxwellianProjection:scaleM012(mySpecies, distf)
+   local sp                                        = mySpecies
    local M0, M2par, M2perp                         = sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
    local M0_e, M2_e                                = sp:allocMoment(), sp:allocMoment()
    local M0_mod, M2par_mod, M2perp_mod             = sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
@@ -362,8 +358,8 @@ function MaxwellianProjection:scaleM012(distf)
 end
 
 function MaxwellianProjection:advance(time, inFlds, outFlds)
-   local extField = inFlds[1]
-   local distf    = outFlds[1]
+   local mySpecies, extField = inFlds[1], inFlds[2]
+   local distf = outFlds[1]
    if self.fromFile then
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
@@ -399,9 +395,9 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
       projMaxwell:advance(time,{numDens,primMoms,bmag,bmag},{distf})
 
       if self.exactScaleM0 then
-         self:scaleDensity(distf)
+         self:scaleDensity(mySpecies, distf)
       elseif self.exactScaleM012 then
-         self:scaleM012(distf)
+         self:scaleM012(mySpecies, distf)
       end
 
       local jacobGeo = extField.geo.jacobGeo
