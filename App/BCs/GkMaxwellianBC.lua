@@ -80,6 +80,9 @@ function GkMaxwellianBC:createSolver(mySpecies, field, externalField)
    end
 
    self.ghostFld = self:allocDistf()
+   -- The following range is a bit of a hack to get the copyRangeToRange in :advance
+   -- to only take place in the MPI process that owns the ghost range.
+   self.ghostFldLocalGlobalGhostRange = self.myGlobalGhostRange:volume() < 1 and self.myGlobalGhostRange or self.ghostFld:localRange()
 
    if not self.fromFile then
       if self.maxwellianKind == 'local' then
@@ -250,8 +253,7 @@ function GkMaxwellianBC:getFlucF() return self.boundaryFluxRate end
 
 function GkMaxwellianBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
    local fIn = mySpecies:rkStepperFields()[outIdx]
---   fIn:copyRangeToRange(self.ghostFld, self.ghostFld:localRange(), self.myGlobalGhostRange)
-   fIn:copyRangeToRange(self.ghostFld, self.myGlobalGhostRange, self.ghostFld:localRange())
+   fIn:copyRangeToRange(self.ghostFld, self.myGlobalGhostRange, self.ghostFldLocalGlobalGhostRange)
 end
 
 function GkMaxwellianBC:getBoundaryFluxFields() return self.boundaryFluxFields end
