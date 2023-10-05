@@ -6,17 +6,80 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Proto      = require "Lib.Proto"
-local lume       = require "Lib.lume"
-local Updater    = require "Updater"
-local xsys       = require "xsys"
-local DataStruct = require "DataStruct"
-local FunctionProjectionParent   = require ("App.Projection.KineticProjection").FunctionProjection
-local MaxwellianProjectionParent = require ("App.Projection.KineticProjection").MaxwellianProjection
+local Proto            = require "Lib.Proto"
+local ProjectionBase   = require "App.Projection.ProjectionBase"
+local xsys             = require "xsys"
+local Updater          = require "Updater"
+local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
+local DataStruct       = require "DataStruct"
+local lume             = require "Lib.lume"
+
+-- Shell class for gyrokinetic projections.
+local GyrokineticProjection = Proto(ProjectionBase)
+
+-- This ctor simply stores what is passed to it and defers actual
+-- construction to the fullInit() method below.
+function GyrokineticProjection:init(tbl) self.tbl = tbl end
+
+function GyrokineticProjection:fullInit(mySpecies)
+   self.mySpecies  = mySpecies
+
+   self.phaseBasis = mySpecies.basis
+   self.phaseGrid  = mySpecies.grid
+   self.confBasis  = mySpecies.confBasis
+   self.confGrid   = mySpecies.confGrid
+   self.mass       = mySpecies:getMass()
+   self.charge     = mySpecies:getCharge()
+
+   self.cdim = self.confGrid:ndim()
+   self.vdim = self.phaseGrid:ndim() - self.confGrid:ndim()
+
+   self.vDegFreedom = mySpecies.vDegFreedom
+
+   self.fromFile = self.tbl.fromFile
+
+   self.exactScaleM0    = xsys.pickBool(self.tbl.exactScaleM0, true)
+   self.exactScaleM012  = xsys.pickBool(self.tbl.exactScaleM012, false)
+   if self.exactScaleM012 then self.exactScaleM0 = false end
+
+   self.power = self.tbl.power
+   self.scaleWithSourcePower = xsys.pickBool(self.tbl.scaleWithSourcePower, false)
+
+   self.weakMultiplyConfPhase = Updater.CartFieldBinOp {
+      weakBasis  = self.phaseBasis,  operation = "Multiply",
+      fieldBasis = self.confBasis,   onGhosts  = true,
+   }
+end
 
 --------------------------------------------------------------------------------
--- Gk-specific GkProjection.FunctionProjection includes Jacobian factors in initFunc.
-local FunctionProjection = Proto(FunctionProjectionParent)
+local FunctionProjection = Proto(GyrokineticProjection)
+
+function FunctionProjection:fullInit(mySpecies)
+   FunctionProjection.super.fullInit(self, mySpecies)
+
+   self.initFunc = self.tbl.func
+   if not self.initFunc then self.initFunc = self.tbl[1] end
+
+   assert(self.initFunc, "FunctionProjection: Must specify the function")
+   assert(type(self.initFunc) == "function", "The input must be a table containing function")
+
+   if self.fromFile then
+      self.ioMethod  = "MPI"
+      self.writeGhost = true
+      self.fieldIo = AdiosCartFieldIo {
+         elemType   = mySpecies.distf[1]:elemType(),
+         method     = self.ioMethod,
+         writeGhost = self.writeGhost,
+         metaData   = {polyOrder = self.phaseBasis:polyOrder(),
+                       basisType = self.phaseBasis:id()}
+      }
+   else
+      self.project = Updater.ProjectOnBasis {
+         onGrid = self.phaseGrid,   evaluate = self.initFunc,
+         basis  = self.phaseBasis,  onGhosts = true
+      }
+   end
+end
 
 function FunctionProjection:allocConfField(metaData)
    local m = DataStruct.Field {
@@ -29,6 +92,7 @@ function FunctionProjection:allocConfField(metaData)
    m:clear(0.0)
    return m
 end
+
 function FunctionProjection:advance(time, inFlds, outFlds)
    local extField = inFlds[1]
    local distf    = outFlds[1]
@@ -39,13 +103,15 @@ function FunctionProjection:advance(time, inFlds, outFlds)
       -- within the projection. We choose the latter for now (since that's what's also done
       -- in MaxwellianProjection/MaxwellianOnBasis.
       local initFunc = self.initFunc
-      if self.species.jacobPhaseFunc then
-         initFunc = function(t, xn)
-            local xconf = {}
-            for d = 1, self.cdim do xconf[d] = xn[d] end
-            local J = self.species.jacobPhaseFunc(t,xconf)
-            local f = self.initFunc(t,xn)
-            return J*f
+      if extField then
+	 if extField.bmagFunc then
+            initFunc = function(t, xn)
+               local xconf = {}
+               for d = 1, self.cdim do xconf[d] = xn[d] end
+               local J = extField.bmagFunc(t,xconf) -- Phase space Jacobian.
+               local f = self.initFunc(t,xn)
+               return J*f
+            end
          end
       end
       self.project:setFunc(initFunc)
@@ -53,28 +119,92 @@ function FunctionProjection:advance(time, inFlds, outFlds)
    end
 end
 
+function FunctionProjection:scaleDensity(distf, currentM0, targetM0)
+   local M0mod = self:allocConfField()
+
+   local weakDivision = Updater.CartFieldBinOp {
+      weakBasis = self.confBasis,         operation = "Divide",
+      onRange   = M0mod:localExtRange(),  onGhosts  = true,
+   }
+
+   -- Calculate M0mod = targetM0 / currentM0.
+   weakDivision:advance(0.0, {currentM0, targetM0}, {M0mod})
+   -- Calculate distff = M0mod * distf.
+   self.weakMultiplyConfPhase:advance(0.0, {M0mod, distf}, {distf})
+end
+
 function FunctionProjection:createCouplingSolver(species, field, externalField)
    if not self.fromFile then
-      if self.species.charge < 0.0 then
+      local mySpecies = nil
+      for _, s in lume.orderedIter(species) do
+         if s.charge == self.charge then mySpecies = s end
+      end
+
+      if self.charge < 0.0 then
          -- Scale the electrons to have the same density as the ions.
          local numDens, numDensScaleTo = self:allocConfField(), self:allocConfField()
-         local ionName = nil
-         for nm, s in lume.orderedIter(species) do
-            if 0.0 < s.charge then ionName = nm end
+         local ionName, elcName = nil, nil
+         for nm, _ in lume.orderedIter(species) do
+            if 0. < s.charge then ionName = nm end
+            if s.charge < 0. then elcName = nm end
          end
-         self.species.numDensityCalc:advance(0.0, {self.species:getDistF()}, {numDens})
+         species[elcName].numDensityCalc:advance(0.0, {species[elcName]:getDistF()}, {numDens})
          species[ionName].numDensityCalc:advance(0.0, {species[ionName]:getDistF()}, {numDensScaleTo})
-         self:scaleDensity(self.species:getDistF(), numDens, numDensScaleTo)
+         self:scaleDensity(species[elcName]:getDistF(), numDens, numDensScaleTo)
       end
       local jacobGeo = externalField.geo.jacobGeo
-      if jacobGeo then self.weakMultiplyConfPhase:advance(0, {self.species:getDistF(), jacobGeo}, {self.species:getDistF()}) end
+      if jacobGeo then self.weakMultiplyConfPhase:advance(0, {mySpecies:getDistF(), jacobGeo}, {mySpecies:getDistF()}) end
    end
 end
 
 --------------------------------------------------------------------------------
--- Gk-specific GkProjection.MaxwellianProjection extends MaxwellianProjection base class, including 
--- adding jacobian factors in initFunc.
-local MaxwellianProjection = Proto(MaxwellianProjectionParent)
+local MaxwellianProjection = Proto(GyrokineticProjection)
+
+function MaxwellianProjection:fullInit(mySpecies)
+   MaxwellianProjection.super.fullInit(self, mySpecies)
+
+   local tbl = self.tbl
+   self.density     = assert(tbl.density, "Maxwellian: must specify 'density'")
+   self.driftSpeed  = tbl.driftSpeed or function(t, zn) return 0. end
+   self.temperature = assert(tbl.temperature,
+                             "Maxwellian: must specify 'temperature'")
+
+   -- Check for constants instead of functions.
+   if type(self.density) == "number" then
+      self.density = function (t, zn) return tbl.density end
+   end
+   if type(self.driftSpeed) == "number" then
+      self.driftSpeed = function (t, zn) return tbl.driftSpeed end
+   end
+   if type(self.temperature) == "number" then
+      self.temperature = function (t, zn) return tbl.temperature end
+   end
+
+   self.initFunc = function (t, zn)
+      return mySpecies:Maxwellian(zn, self.density(t, zn),
+                                      self.driftSpeed(t, zn),
+                                      self.temperature(t, zn))
+   end
+
+   if self.fromFile then
+      self.ioMethod  = "MPI"
+      self.writeGhost = true
+      self.fieldIo = AdiosCartFieldIo {
+         elemType  = mySpecies.distf[1]:elemType(),
+         method    = self.ioMethod,
+         writeGhost = self.writeGhost,
+         metaData  = {polyOrder = self.phaseBasis:polyOrder(),
+                      basisType = self.phaseBasis:id(),
+                      charge    = self.charge,
+                      mass      = self.mass,},
+      }
+   else
+      self.project = Updater.ProjectOnBasis {
+         onGrid = self.phaseGrid,   evaluate = self.initFunc,
+         basis  = self.phaseBasis,  onGhosts = true
+      }
+   end
+end
 
 function MaxwellianProjection:allocConfField(vComp)
    local vComp = vComp or 1
@@ -89,8 +219,30 @@ function MaxwellianProjection:allocConfField(vComp)
    return m
 end
 
+function MaxwellianProjection:scaleDensity(distf)
+   local M0e, M0 = self.mySpecies:allocMoment(), self.mySpecies:allocMoment()
+   local M0mod   = self.mySpecies:allocMoment()
+
+   self.mySpecies.numDensityCalc:advance(0.0, {distf}, {M0})
+   local project = Updater.ProjectOnBasis {
+      onGrid = self.confGrid,   evaluate = function (t, zn) return self.density(t, zn) end,
+      basis  = self.confBasis,  onGhosts = true,
+   }
+   project:advance(0.0, {}, {M0e})
+
+   local weakDivision = Updater.CartFieldBinOp {
+      weakBasis = self.confBasis,  operation = "Divide",
+      onRange   = M0e:localExtRange(),  onGhosts  = true,
+   }
+
+   -- Calculate M0mod = M0e / M0.
+   weakDivision:advance(0.0, {M0, M0e}, {M0mod})
+   -- Calculate distff = M0mod * distf.
+   self.weakMultiplyConfPhase:advance(0.0, {M0mod, distf}, {distf})
+end
+
 function MaxwellianProjection:scaleM012(distf)
-   local sp                                        = self.species
+   local sp                                        = self.mySpecies
    local M0, M2par, M2perp                         = sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
    local M0_e, M2_e                                = sp:allocMoment(), sp:allocMoment()
    local M0_mod, M2par_mod, M2perp_mod             = sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
@@ -141,13 +293,13 @@ function MaxwellianProjection:scaleM012(distf)
       onGhosts = true,
    }
    local M0func = function (t, zn)
-      return self.density(t, zn, sp)
+      return self.density(t, zn)
    end
    confProject:setFunc(M0func)
    confProject:advance(0.0, {}, {M0_e})
 
    local M2func = function (t, zn)
-      return self.density(t, zn, sp)*self.temperature(t, zn, sp)/sp.mass
+      return self.density(t, zn)*self.temperature(t, zn, sp)/sp.mass
    end
    confProject:setFunc(M2func)
    confProject:advance(0.0, {}, {M2_e})

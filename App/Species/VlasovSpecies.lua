@@ -248,10 +248,10 @@ function VlasovSpecies:fullInit(appTbl)
          self.projections[nm] = val
       end
    end
-   -- It is possible to use the keywords 'init' and 'background'
-   -- to specify a function directly without using a Projection object.
+   -- It is possible to use the keywords 'init' to specify a
+   -- function directly without using a Projection object.
    if type(tbl.init) == "function" then
-      self.projections["init"] = Projection.KineticProjection.FunctionProjection {
+      self.projections["init"] = Projection.VlasovProjection.FunctionProjection {
          func = function(t, zn) return tbl.init(t, zn, self) end,
       }
    end

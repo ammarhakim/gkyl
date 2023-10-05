@@ -218,12 +218,12 @@ function GkSpecies:fullInit(appTbl)
    -- It is possible to use the keywords 'init' and 'background'
    -- to specify a function directly without using a Projection object.
    if type(tbl.init) == "function" then
-      self.projections["init"] = Projection.KineticProjection.FunctionProjection {
+      self.projections["init"] = Projection.GyrokineticProjection.FunctionProjection {
          func = function(t, zn) return tbl.init(t, zn, self) end,
       }
    end
    if type(tbl.background) == "function" then
-      self.projections["background"] = Projection.KineticProjection.FunctionProjection {
+      self.projections["background"] = Projection.GyrokineticProjection.FunctionProjection {
          func = function(t, zn) return tbl.background(t, zn, self) end,
       }
    end
