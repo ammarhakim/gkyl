@@ -99,7 +99,7 @@ function GyrokineticDiffusion:init(tbl)
 
    local useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
 
-   local cdim = self._confBasis:ndim()
+   local cdim = confBasis:ndim()
    local indirs, indirsPtr
    if diffDirs then
       indirs = Lin.BoolVec(cdim)
@@ -111,7 +111,7 @@ function GyrokineticDiffusion:init(tbl)
       indirsPtr = indirs:data()
    end
 
-   local pdim = self._phaseBasis:ndim()
+   local pdim = onBasis:ndim()
    local is_zfd = Lin.BoolVec(pdim)
    for d = 1, pdim do is_zfd[d] = false end 
    local zfd = tbl.zeroFluxDirs -- Directions in which to specify zero flux BCs.

@@ -176,10 +176,10 @@ end
 function GkMaxwellianBC:createCouplingSolver(species,field,externalField)
    if not self.fromFile then
       local phaseFieldIo = AdiosCartFieldIo {
-         elemType   = mySpecies:getDistF():elemType(),
+         elemType   = self.ghostFld:elemType(),
          method     = "MPI",  writeGhost = false,
-         metaData   = {polyOrder = mySpecies.basis:polyOrder(),  basisType = mySpecies.basis:id(),
-                       charge    = mySpecies.charge,             mass      = mySpecies.mass,},
+         metaData   = {polyOrder = self.basis:polyOrder(),  basisType = self.basis:id(),
+                       charge    = self.charge,             mass      = self.mass,},
       }
 
       -- The following are needed to evaluate a conf-space CartField on the confBoundaryGrid.
