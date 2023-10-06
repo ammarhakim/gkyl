@@ -149,7 +149,7 @@ function GkCopyBC:fullInit(mySpecies)
    GkCopyBC.super.fullInit(self, mySpecies)
 end
 
-local GkZeroFluxBC = Proto()
+local GkZeroFluxBC = Proto(BCsBase)
 function GkZeroFluxBC:init(tbl)
    self.tbl      = tbl
    self.tbl.kind = "zeroFlux"
