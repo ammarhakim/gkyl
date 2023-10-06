@@ -49,6 +49,7 @@ local LagrangeFix = require "Updater.LagrangeFix"
 local MGpoisson = require "Updater.MGpoisson"
 local MappedPoisson = require "Updater.MappedPoisson"
 local MaxwellianOnBasis = require "Updater.MaxwellianOnBasis"
+local MomCrossBGK = require "Updater.MomCrossBGK"
 local PositivityCheck = require "Updater.PositivityCheck"
 local PositivityRescale = require "Updater.PositivityRescale"
 local ProjectFluxFunc = require "Updater.ProjectFluxFunc"
@@ -116,6 +117,7 @@ return {
    MGpoisson = MGpoisson,
    MappedPoisson = MappedPoisson,
    MaxwellianOnBasis = MaxwellianOnBasis,
+   MomCrossBGK = MomCrossBGK,
    PositivityCheck = PositivityCheck,
    PositivityRescale = PositivityRescale,
    ProjectFluxFunc = ProjectFluxFunc,
