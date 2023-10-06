@@ -132,7 +132,7 @@ function AmbipolarSheathField:createSolver(population, externalField)
    self.ionBC = {}
    local hasNonPeriodic = false 
    for _, bc in lume.orderedIter(ionSpec.nonPeriodicBCs) do
-      if bc.bcKind=="sheath" or bc.bcKind=="absorb" then
+      if ionSpec.hasSheathBCs or bc.bcKind == "absorb" then
          if (ndim==3 and bc:getDir()==3) or ndim==1 then
             self.ionBC[bc:getEdge()] = bc
             self.ionBC[bc:getEdge()]:setSaveFlux(true)
@@ -157,8 +157,8 @@ function AmbipolarSheathField:createSolver(population, externalField)
                         upper=self.ionBC["upper"].confBoundaryGrid},
    }
    self.phiZSmoother = Updater.FemParproj {
-      onGrid = self.grid,  basis = self.basis, 
-      periodicParallelDir = false,
+      onGrid              = self.grid,  basis   = self.basis, 
+      periodicParallelDir = false,      onField = self:rkStepperFields()[1].phi,
    }
 
    -- We will need the reciprocal of the conf-space Jacobian (1/J) later.

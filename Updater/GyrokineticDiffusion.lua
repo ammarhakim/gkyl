@@ -36,13 +36,13 @@ struct gkyl_dg_updater_diffusion_gyrokinetic_tm {
  * @param diff_in_dir Whether to apply diffusion in each direction.
  * @param diff_order Diffusion order.
  * @param diff_range Range object to index the diffusion coefficient.
+ * @param is_zero_flux_dir True in directions with (lower and upper) zero flux BCs.
  * @param use_gpu Whether to run on host or device.
  * @return New diff updater object
  */
 struct gkyl_dg_updater_diffusion_gyrokinetic* gkyl_dg_updater_diffusion_gyrokinetic_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  bool is_diff_constant, bool *diff_in_dir, int diff_order,
-  const struct gkyl_range *diff_range, bool use_gpu);
+  const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, bool is_diff_const, const bool *diff_in_dir,
+  int diff_order, const struct gkyl_range *diff_range, const bool *is_zero_flux_dir, bool use_gpu);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -99,7 +99,7 @@ function GyrokineticDiffusion:init(tbl)
 
    local useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
 
-   local cdim = confBasis:ndim()
+   local cdim = self._confBasis:ndim()
    local indirs, indirsPtr
    if diffDirs then
       indirs = Lin.BoolVec(cdim)
@@ -111,8 +111,16 @@ function GyrokineticDiffusion:init(tbl)
       indirsPtr = indirs:data()
    end
 
+   local pdim = self._phaseBasis:ndim()
+   local is_zfd = Lin.BoolVec(pdim)
+   for d = 1, pdim do is_zfd[d] = false end 
+   local zfd = tbl.zeroFluxDirs -- Directions in which to specify zero flux BCs.
+   if zfd then
+      for i = 1, #zfd do is_zfd[zfd[i]] = true end
+   end
+
    self._zero = ffi.gc(ffiC.gkyl_dg_updater_diffusion_gyrokinetic_new(onGrid._zero, onBasis._zero,
-                       confBasis._zero, constDiff, indirsPtr, diffOrder, confRange, useGPU),
+                       confBasis._zero, constDiff, indirsPtr, diffOrder, confRange, is_zfd:data(), useGPU),
                        ffiC.gkyl_dg_updater_diffusion_gyrokinetic_release)
 
    return self
