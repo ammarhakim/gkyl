@@ -256,6 +256,9 @@ function VlasovSpecies:fullInit(appTbl)
       }
    end
    lume.setOrder(self.projections)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
+   for _, pr in lume.orderedIter(self.projections) do
+      pr:fullInit(self)
+   end
 
    self.zeroFluxDirections = {}
 
@@ -748,7 +751,7 @@ function VlasovSpecies:initDist(extField)
 
    local initCnt = 0
    for nm, pr in lume.orderedIter(self.projections) do
-      pr:fullInit(self)
+      pr:createSolver(self)
       pr:advance(0.0, {self,extField}, {self.distf[2]})
       if string.find(nm,"init") then
          self.distf[1]:accumulate(1.0, self.distf[2])
@@ -804,13 +807,15 @@ function VlasovSpecies:initCrossSpeciesCoupling(population)
          self.collPairs[sN][sO] = {}
          -- Need next below because species[].collisions is created as an empty table. 
          if species[sN].collisions and next(species[sN].collisions) then 
-            for collNm, _ in pairs(species[sN].collisions) do
-               -- This species collides with someone.
-               self.collPairs[sN][sO].on = lume.any(species[sN].collisions[collNm].collidingSpecies,
-                                                    function(e) return e==sO end)
-               if self.collPairs[sN][sO].on then
-                  self.collPairs[sN][sO].kind = species[sN].collisions[collNm].collKind
-                  self.needFiveMoments = true  -- MF 2022/09/16: currently all collision models need M0, M1, M2.
+            for collNm, collOp in pairs(species[sN].collisions) do
+               if collOp.collidingSpecies then  -- MF 2023/10/05: Needed to support diffusion+collisions.
+                  -- This species collides with someone.
+                  self.collPairs[sN][sO].on = lume.any(collOp.collidingSpecies,
+                                                       function(e) return e==sO end)
+                  if self.collPairs[sN][sO].on then
+                     self.collPairs[sN][sO].kind = collOp.collKind
+                     self.needFiveMoments = true  -- MF 2022/09/16: currently all collision models need M0, M1, M2.
+                  end
                end
             end
          else

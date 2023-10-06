@@ -20,15 +20,8 @@ local VlasovProjection = Proto(ProjectionBase)
 function VlasovProjection:init(tbl) self.tbl = tbl end
 
 function VlasovProjection:fullInit(mySpecies)
-   self.phaseBasis = mySpecies.basis
-   self.phaseGrid  = mySpecies.grid
-   self.confBasis  = mySpecies.confBasis
-   self.confGrid   = mySpecies.confGrid
-   self.mass       = mySpecies:getMass()
-   self.charge     = mySpecies:getCharge()
-
-   self.cdim = self.confGrid:ndim()
-   self.vdim = self.phaseGrid:ndim() - self.confGrid:ndim()
+   self.mass   = mySpecies:getMass()
+   self.charge = mySpecies:getCharge()
 
    self.fromFile = self.tbl.fromFile
 
@@ -38,6 +31,16 @@ function VlasovProjection:fullInit(mySpecies)
 
    self.power = self.tbl.power
    self.scaleWithSourcePower = xsys.pickBool(self.tbl.scaleWithSourcePower, false)
+end
+
+function VlasovProjection:fullInit(mySpecies)
+   self.phaseBasis = mySpecies.basis
+   self.phaseGrid  = mySpecies.grid
+   self.confBasis  = mySpecies.confBasis
+   self.confGrid   = mySpecies.confGrid
+
+   self.cdim = self.confGrid:ndim()
+   self.vdim = self.phaseGrid:ndim() - self.confGrid:ndim()
 
    self.weakMultiplyConfPhase = Updater.CartFieldBinOp {
       weakBasis  = self.phaseBasis,  operation = "Multiply",
@@ -48,8 +51,8 @@ end
 ----------------------------------------------------------------------
 local FunctionProjection = Proto(VlasovProjection)
 
-function FunctionProjection:fullInit(mySpecies)
-   FunctionProjection.super.fullInit(self, mySpecies)
+function FunctionProjection:createSolver(mySpecies)
+   FunctionProjection.super.createSolver(self, mySpecies)
 
    self.initFunc = self.tbl.func
    if not self.initFunc then self.initFunc = self.tbl[1] end
@@ -102,8 +105,8 @@ end
 ----------------------------------------------------------------------
 local MaxwellianProjection = Proto(VlasovProjection)
 
-function MaxwellianProjection:fullInit(mySpecies)
-   MaxwellianProjection.super.fullInit(self, mySpecies)
+function MaxwellianProjection:createSolver(mySpecies)
+   MaxwellianProjection.super.createSolver(self, mySpecies)
 
    local tbl = self.tbl
    self.density     = assert(tbl.density, "MaxwellianProjection: must specify 'density'")

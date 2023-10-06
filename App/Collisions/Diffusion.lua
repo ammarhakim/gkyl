@@ -48,10 +48,6 @@ function Diffusion:fullInit(speciesTbl)
    self.diffDirs  = tbl.diffusiveDirs         -- Directions in which to apply diffusion.
    self.diffOrder = tbl.order                 -- Read the diffusion operator order.
 
-   -- Set these values to be consistent with other collision apps.
-   self.collidingSpecies = {self.speciesName}
-   self.collKind = "Diffusion"    -- Type of collisions model. Useful at the species app level.
-
    self.timers = {advance = 0.,}
 end
 

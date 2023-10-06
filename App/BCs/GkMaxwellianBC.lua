@@ -84,7 +84,16 @@ function GkMaxwellianBC:createSolver(mySpecies, field, externalField)
    -- to only take place in the MPI process that owns the ghost range.
    self.ghostFldLocalGlobalGhostRange = self.myGlobalGhostRange:volume() < 1 and self.myGlobalGhostRange or self.ghostFld:localRange()
 
-   if not self.fromFile then
+   if self.fromFile then
+      local phaseFieldIo = AdiosCartFieldIo {
+         elemType   = mySpecies:getDistF():elemType(),
+         method     = "MPI",  writeGhost = false,
+         metaData   = {polyOrder = mySpecies.basis:polyOrder(),  basisType = mySpecies.basis:id(),
+                       charge    = mySpecies.charge,             mass      = mySpecies.mass,},
+      }
+
+      local tm, fr = phaseFieldIo:read(self.ghostFld, self.fromFile)
+   else
       if self.maxwellianKind == 'local' then
          local projMaxwell = Updater.MaxwellianOnBasis{
             onGrid      = self.boundaryGrid,      confBasis = self.confBasis,
@@ -165,17 +174,14 @@ function GkMaxwellianBC:createSolver(mySpecies, field, externalField)
 end
 
 function GkMaxwellianBC:createCouplingSolver(species,field,externalField)
-   local phaseFieldIo = AdiosCartFieldIo {
-      elemType   = self.ghostFld:elemType(),
-      method     = "MPI",
-      writeGhost = false,
-      metaData   = {polyOrder = self.basis:polyOrder(),  basisType = self.basis:id(),
-                    charge    = self.charge,             mass      = self.mass,},
-   }
+   if not self.fromFile then
+      local phaseFieldIo = AdiosCartFieldIo {
+         elemType   = mySpecies:getDistF():elemType(),
+         method     = "MPI",  writeGhost = false,
+         metaData   = {polyOrder = mySpecies.basis:polyOrder(),  basisType = mySpecies.basis:id(),
+                       charge    = mySpecies.charge,             mass      = mySpecies.mass,},
+      }
 
-   if self.fromFile then
-      local tm, fr = phaseFieldIo:read(self.ghostFld, self.fromFile)
-   else
       -- The following are needed to evaluate a conf-space CartField on the confBoundaryGrid.
       local confBoundaryField = self.confBoundaryField or self:allocMoment()
       local numDensityCalc = self.numDensityCalc or Updater.DistFuncMomentCalc {
