@@ -73,17 +73,13 @@ function GkSource:setConfGrid(grid) self.confGrid = grid end
 
 function GkSource:createSolver(mySpecies, extField)
 
-   self.writeGhost = mySpecies.writeGhost   
+   local writeGhost = mySpecies.writeGhost   
 
    self.profile:fullInit(mySpecies)
 
    self.fSource = mySpecies:allocDistf()
 
    self.profile:advance(0.0, {mySpecies,extField}, {self.fSource})
-
-   if self.positivityRescale then
-      mySpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
-   end
 
    if self.power then
       local calcInt = Updater.CartFieldIntegratedQuantCalc {
@@ -106,7 +102,7 @@ function GkSource:createSolver(mySpecies, extField)
    }
    threeMomentsCalc:advance(0.0, {self.fSource}, {momsSrc})
 
-   self.fSource:write(string.format("%s_0.bp", self.name), 0., 0, self.writeGhost)
+   self.fSource:write(string.format("%s_0.bp", self.name), 0., 0, writeGhost)
    momsSrc:write(string.format("%s_Moms_0.bp", self.name), 0., 0)
 
    -- Need to define methods to allocate fields (used by diagnostics).

@@ -925,10 +925,6 @@ function VlasovSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
 
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:copyBoundaryFluxField(aIdx, outIdx) end
-
-   if self.positivity then
-      self.fDelPos[outIdx]:copy(self.fDelPos[aIdx])
-   end
 end
 
 function VlasovSpecies:combineRk(outIdx, a, aIdx, ...)
@@ -941,13 +937,6 @@ function VlasovSpecies:combineRk(outIdx, a, aIdx, ...)
 
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
       bc:combineBoundaryFluxField(outIdx, a, aIdx, ...)
-   end
-
-   if self.positivity then
-      self.fDelPos[outIdx]:combine(a, self.fDelPos[aIdx])
-      for i = 1, nFlds do -- Accumulate rest of the fields.
-         self.fDelPos[outIdx]:accumulate(args[2*i-1], self.fDelPos[args[2*i]])
-      end
    end
 end
 
