@@ -33,7 +33,7 @@ function VmSteadyStateSource:fullInit(speciesTbl)
    self.sourceLength = assert(tbl.sourceLength, "App.VmSteadyStateSource: must specify names of species to in 'sourceLength'.")
    assert(tbl.profile, "App.VmSteadyStateSource: must specify source profile in 'profile'")
    assert(type(tbl.profile) == "function", "App.VmSteadyStateSource: 'profile' must be a function")
-   self.profile = Projection.KineticProjection.FunctionProjection { func = function(t, zn) return tbl.profile(t, zn, self) end, }
+   self.profile = Projection.VlasovProjection.FunctionProjection { func = function(t, zn) return tbl.profile(t, zn, self) end, }
 
    self.tmEvalSrc = 0.0
 end
@@ -50,7 +50,7 @@ function VmSteadyStateSource:createSolver(mySpecies, extField)
    self.profile:fullInit(mySpecies)
    self.fSource = mySpecies:allocDistf()
    
-   self.profile:advance(0.0, {extField}, {self.fSource})
+   self.profile:advance(0.0, {mySpecies, extField}, {self.fSource})
 
    if self.positivityRescale then
       mySpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)

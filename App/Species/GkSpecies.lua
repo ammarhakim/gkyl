@@ -185,16 +185,19 @@ function GkSpecies:fullInit(appTbl)
    -- It is possible to use the keywords 'init' and 'background'
    -- to specify a function directly without using a Projection object.
    if type(tbl.init) == "function" then
-      self.projections["init"] = Projection.KineticProjection.FunctionProjection {
+      self.projections["init"] = Projection.GkProjection.FunctionProjection {
          func = function(t, zn) return tbl.init(t, zn, self) end,
       }
    end
    if type(tbl.background) == "function" then
-      self.projections["background"] = Projection.KineticProjection.FunctionProjection {
+      self.projections["background"] = Projection.GkProjection.FunctionProjection {
          func = function(t, zn) return tbl.background(t, zn, self) end,
       }
    end
    lume.setOrder(self.projections)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
+   for _, pr in lume.orderedIter(self.projections) do
+      pr:fullInit(self)
+   end
 
    self.deltaF         = xsys.pickBool(appTbl.deltaF, false)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
@@ -473,8 +476,7 @@ function GkSpecies:createSolver(field, externalField)
 
    -- Set up Jacobian.
    if externalField then
-      self.bmagFunc = externalField.bmagFunc
-      -- If vdim>1, get the phase-space Jacobian (=bmag) from geo.
+      self.bmagFunc       = externalField.bmagFunc
       self.jacobPhaseFunc = self.bmagFunc
       self.jacobGeoFunc   = externalField.jacobGeoFunc
 
@@ -491,7 +493,6 @@ function GkSpecies:createSolver(field, externalField)
       local xMid = {}
       for d = 1,self.cdim do xMid[d]=self.confGrid:mid(d) end
       self.bmagMid = self.bmagFunc(0.0, xMid)
-
    end
 
    -- Minimum vtSq supported by the grid (for p=1 only for now):
@@ -747,8 +748,8 @@ function GkSpecies:initDist(extField)
    local initCnt, backgroundCnt = 0, 0
    local scaleInitWithSourcePower = false
    for nm, pr in lume.orderedIter(self.projections) do
-      pr:fullInit(self)
-      pr:advance(0.0, {extField}, {self.distf[2]})
+      pr:createSolver(self)
+      pr:advance(0.0, {self, extField}, {self.distf[2]})
       if string.find(nm,"init") then
          self.distf[1]:accumulate(1.0, self.distf[2])
          initCnt = initCnt + 1
@@ -804,13 +805,15 @@ function GkSpecies:initCrossSpeciesCoupling(population)
          self.collPairs[sN][sO] = {}
          -- Need next below because species[].collisions is created as an empty table.
          if species[sN].collisions and next(species[sN].collisions) then
-            for collNm, _ in pairs(species[sN].collisions) do
+            for collNm, collOp in pairs(species[sN].collisions) do
+	       if collOp.collidingSpecies then  -- MF 2023/10/05: Needed to support diffusion+collisions.
                -- This species collides with someone.
-               self.collPairs[sN][sO].on = lume.any(species[sN].collisions[collNm].collidingSpecies,
-                                                    function(e) return e==sO end)
-               if self.collPairs[sN][sO].on then
-                  self.collPairs[sN][sO].kind = species[sN].collisions[collNm].collKind
-                  self.needThreeMoments = true  -- MF 2022/09/16: currently all collision models need M0, M1, M2.
+                  self.collPairs[sN][sO].on = lume.any(collOp.collidingSpecies,
+                                                       function(e) return e==sO end)
+                  if self.collPairs[sN][sO].on then
+                     self.collPairs[sN][sO].kind = collOp.collKind
+                     self.needThreeMoments = true  -- MF 2022/09/16: currently all collision models need M0, M1, M2.
+                  end
                end
             end
          else

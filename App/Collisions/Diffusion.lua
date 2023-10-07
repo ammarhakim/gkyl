@@ -48,9 +48,6 @@ function Diffusion:fullInit(speciesTbl)
    self.diffDirs  = tbl.diffusiveDirs         -- Directions in which to apply diffusion.
    self.diffOrder = tbl.order                 -- Read the diffusion operator order.
 
-   -- Set these values to be consistent with other collision apps.
-   self.collidingSpecies = {self.name}
-
    self.timers = {advance = 0.,}
 end
 
@@ -67,7 +64,7 @@ function Diffusion:createSolver(mySpecies, externalField)
    local diffCoeffType = type(self.diffCoeff)
    if self.diffDirs then
       assert(#self.diffDirs<=cdim, "App.Diffusion: 'diffusiveDirs' cannot have more entries than the simulation's conf dimensions.")
-      for d = 1, cdim do assert(self.diffDirs[d]<=cdim, "App.Diffusion: cannot apply diffusion in velocity space.") end
+      for d = 1, #self.diffDirs do assert(self.diffDirs[d]<=cdim, "App.Diffusion: cannot apply diffusion in velocity space.") end
    else
       if diffCoeffType == "table" then
          assert(#self.diffCoeff==cdim, "App.Diffusion: 'coefficient' must have same number of entries as there are dimensions if not specifying 'diffusiveDirs'.")
@@ -148,6 +145,30 @@ function Diffusion:createSolver(mySpecies, externalField)
       end
    end
 
+   -- When using mapped coordinates (default for gyrokinetics), scale the distribution
+   -- function by the reciprocal of the configuration-space Jacobian.
+   self.fNoJacobGeo = nil
+   self.divByJacobGeo = function(tm, fIn, fOut) fOut = fIn end
+   if externalField.geo then
+      if externalField.geo.jacobGeo and externalField.geo.jacobGeoInv then
+         assert(isVarCoeff, "App.Diffusion: diffusion coefficient must be a function if using mapped coordinates.") 
+         self.fNoJacobGeo = mySpecies:allocDistf()
+         self.jacobGeoInv = externalField.geo.jacobGeoInv
+         self.confPhaseWeakMultiply = Updater.CartFieldBinOp {
+            weakBasis  = self.phaseBasis,  operation = "Multiply",
+            fieldBasis = self.confBasis,   onGhosts = true,
+         }
+         -- Multiply the diffusion coefficient by the jacobian.
+         local confWeakMultiply = mySpecies.confWeakMultiply
+         confWeakMultiply:advance(0., {self.coefficient, externalField.geo.jacobGeo}, {self.coefficient})
+         self.coefficient:sync()
+
+         self.divByJacobGeo = function(tm, fIn, fOut)
+            self.confPhaseWeakMultiply:advance(tm, {fIn, self.jacobGeoInv}, {fOut})
+         end
+      end
+   end
+
    local grid  = self.phaseGrid and self.phaseGrid  or self.confGrid
    local basis = self.phaseGrid and self.phaseBasis or self.confBasis
 
@@ -174,7 +195,8 @@ function Diffusion:advance(tCurr, fIn, population, outFlds)
 
    local fRhsOut, cflRateByCell = outFlds[1], outFlds[2]
 
-   self.collisionSlvr:advance(tCurr, {fIn, self.coefficient}, {fRhsOut, cflRateByCell})
+   self.divByJacobGeo(tm, fIn, self.fNoJacobGeo)
+   self.collisionSlvr:advance(tCurr, {self.fNoJacobGeo, self.coefficient}, {fRhsOut, cflRateByCell})
 
    self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end

@@ -262,4 +262,3 @@ plasmaApp = Plasma.App {
 }
 -- Run application.
 plasmaApp:run()
-

@@ -39,9 +39,6 @@ function GkSource:fullInit(thisSpecies)
 	 }
       elseif type(tbl.profile) == "string" then
          self.profile = Projection.GkProjection.FunctionProjection{fromFile = tbl.profile,}
-	 -- self.profile = Projection.ReadInput {
-	 --    inputFile = tbl.profile,
-	 -- }
       end
    elseif tbl.kind then
       self.density     = assert(tbl.density, "App.GkSource: must specify density profile of source in 'density'.")
@@ -82,7 +79,7 @@ function GkSource:createSolver(mySpecies, extField)
 
    self.fSource = mySpecies:allocDistf()
 
-   self.profile:advance(0.0, {extField}, {self.fSource})
+   self.profile:advance(0.0, {mySpecies,extField}, {self.fSource})
 
    if self.positivityRescale then
       mySpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)

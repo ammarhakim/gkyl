@@ -203,14 +203,17 @@ function VlasovSpecies:fullInit(appTbl)
          self.projections[nm] = val
       end
    end
-   -- It is possible to use the keywords 'init' and 'background'
-   -- to specify a function directly without using a Projection object.
+   -- It is possible to use the keywords 'init' to specify a
+   -- function directly without using a Projection object.
    if type(tbl.init) == "function" then
-      self.projections["init"] = Projection.KineticProjection.FunctionProjection {
+      self.projections["init"] = Projection.VlasovProjection.FunctionProjection {
          func = function(t, zn) return tbl.init(t, zn, self) end,
       }
    end
    lume.setOrder(self.projections)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
+   for _, pr in lume.orderedIter(self.projections) do
+      pr:fullInit(self)
+   end
 
    self.zeroFluxDirections = {}
 
@@ -705,8 +708,8 @@ function VlasovSpecies:initDist(extField)
 
    local initCnt = 0
    for nm, pr in lume.orderedIter(self.projections) do
-      pr:fullInit(self)
-      pr:advance(0.0, {extField}, {self.distf[2]})
+      pr:createSolver(self)
+      pr:advance(0.0, {self,extField}, {self.distf[2]})
       if string.find(nm,"init") then
          self.distf[1]:accumulate(1.0, self.distf[2])
          initCnt = initCnt + 1
@@ -761,13 +764,15 @@ function VlasovSpecies:initCrossSpeciesCoupling(population)
          self.collPairs[sN][sO] = {}
          -- Need next below because species[].collisions is created as an empty table. 
          if species[sN].collisions and next(species[sN].collisions) then 
-            for collNm, _ in pairs(species[sN].collisions) do
-               -- This species collides with someone.
-               self.collPairs[sN][sO].on = lume.any(species[sN].collisions[collNm].collidingSpecies,
-                                                    function(e) return e==sO end)
-               if self.collPairs[sN][sO].on then
-                  self.collPairs[sN][sO].kind = species[sN].collisions[collNm].collKind
-                  self.needFiveMoments = true  -- MF 2022/09/16: currently all collision models need M0, M1, M2.
+            for collNm, collOp in pairs(species[sN].collisions) do
+               if collOp.collidingSpecies then  -- MF 2023/10/05: Needed to support diffusion+collisions.
+                  -- This species collides with someone.
+                  self.collPairs[sN][sO].on = lume.any(collOp.collidingSpecies,
+                                                       function(e) return e==sO end)
+                  if self.collPairs[sN][sO].on then
+                     self.collPairs[sN][sO].kind = collOp.collKind
+                     self.needFiveMoments = true  -- MF 2022/09/16: currently all collision models need M0, M1, M2.
+                  end
                end
             end
          else
@@ -1060,13 +1065,12 @@ function VlasovSpecies:getMomDensity(rkIdx)
    return self.momDensity
 end
 
--- Please test this for higher than 1x1v... (MF: JJ?).
 function VlasovSpecies:Maxwellian(xn, n0, vdnIn, T0)
    local vdn = vdnIn or {0, 0, 0}
    local vt2 = T0/self.mass
    local v2 = 0.0
    for d = self.cdim+1, self.cdim+self.vdim do
-      v2 = v2 + (xn[d] - vdnIn[d-self.cdim])^2
+      v2 = v2 + (xn[d] - vdn[d-self.cdim])^2
    end
    return n0 / math.sqrt(2*math.pi*vt2)^self.vdim * math.exp(-v2/(2*vt2))
 end
