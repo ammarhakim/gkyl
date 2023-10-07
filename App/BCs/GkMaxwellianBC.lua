@@ -38,6 +38,8 @@ function GkMaxwellianBC:fullInit(mySpecies)
    assert((self.densityGhost and self.tempGhost) or self.fromFile or self.profileIn, "GkMaxwellianBC: must specify the density and temperature of the Maxwellian, or the 'fromFile' option to read the Maxwellian from a file, or the phase-space profile with 'profile'.")
    assert(self.maxwellianKind=='local' or self.maxwellianKind=='canonical', "GkMaxwellianBC: 'kind' must be local or canonical.")
 
+   self.mass, self.charge = mySpecies.mass, mySpecies.charge
+
    self.saveFlux = tbl.saveFlux or false
    self.anyDiagnostics = false
    if tbl.diagnostics then
@@ -51,8 +53,6 @@ end
 function GkMaxwellianBC:setName(nm) self.name = self.speciesName.."_"..nm end
 
 function GkMaxwellianBC:createSolver(mySpecies, field, externalField)
-   self.mass, self.charge = mySpecies.mass, mySpecies.charge
-
    self.basis, self.grid = mySpecies.basis, mySpecies.grid
    self.ndim, self.cdim, self.vdim = self.grid:ndim(), self.confGrid:ndim(), self.grid:ndim()-self.confGrid:ndim()
 
@@ -175,31 +175,33 @@ end
 
 function GkMaxwellianBC:createCouplingSolver(species,field,externalField)
    if not self.fromFile then
+      local mySpecies = species[self.speciesName]
+      local basis, confBasis = mySpecies.basis, mySpecies.confBasis
       local phaseFieldIo = AdiosCartFieldIo {
-         elemType   = self.ghostFld:elemType(),
+         elemType   = field:rkStepperFields()[1].phi:elemType(),
          method     = "MPI",  writeGhost = false,
-         metaData   = {polyOrder = self.basis:polyOrder(),  basisType = self.basis:id(),
+         metaData   = {polyOrder = basis:polyOrder(),  basisType = basis:id(),
                        charge    = self.charge,             mass      = self.mass,},
       }
 
-      -- The following are needed to evaluate a conf-space CartField on the confBoundaryGrid.
-      local confBoundaryField = self.confBoundaryField or self:allocMoment()
-      local numDensityCalc = self.numDensityCalc or Updater.DistFuncMomentCalc {
-         onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
-         phaseBasis = self.basis,         gkfacs    = {self.mass, self.bmag},
-         moment     = "GkM0", -- GkM0 = < f >
-      }
-      local confWeakDivide = self.confWeakDivide or Updater.CartFieldBinOp {
-         weakBasis = self.confBasis,  operation = "Divide",
-         onRange   = confBoundaryField:localRange(),  onGhosts = false,
-      }
       local phaseWeakMultiply = self.phaseWeakMultiply or Updater.CartFieldBinOp {
          onGrid    = self.boundaryGrid,  operation  = "Multiply",
-         weakBasis = self.basis,         fieldBasis = self.confBasis,
+         weakBasis = basis,         fieldBasis = confBasis,
          onGhosts  = true,
       }
 
       if self.maxwellianKind == 'canonical' then
+         local confBoundaryField = self.confBoundaryField or self:allocMoment()
+         local numDensityCalc = self.numDensityCalc or Updater.DistFuncMomentCalc {
+            onGrid     = self.boundaryGrid,  confBasis = confBasis,
+            phaseBasis = basis,         gkfacs    = {self.mass, self.bmag},
+            moment     = "GkM0", -- GkM0 = < f >
+         }
+         local confWeakDivide = self.confWeakDivide or Updater.CartFieldBinOp {
+            weakBasis = confBasis,  operation = "Divide",
+            onRange   = confBoundaryField:localRange(),  onGhosts = false,
+         }
+
          local ionName = nil
          for nm, s in lume.orderedIter(species) do
             if 0.0 < s.charge then ionName = nm end
@@ -219,9 +221,11 @@ function GkMaxwellianBC:createCouplingSolver(species,field,externalField)
             phaseWeakMultiply:advance(0.0, {M0mod,self.ghostFld}, {self.ghostFld})
          end
       end
-      -- Multiply by conf space Jacobiano.
-      phaseWeakMultiply:advance(0, {self.ghostFld, self.jacobGeo}, {self.ghostFld})
-      phaseFieldIo:write(self.ghostFld, string.format("%s_Maxwellian_%d.bp", self.name, 0), 0., 0, false)
+      -- Multiply by conf space Jacobian.
+      if self.ghostFld then  -- If parallelizeSpecies, only species owned by this MPI process has self.ghostFld.
+         phaseWeakMultiply:advance(0, {self.ghostFld, self.jacobGeo}, {self.ghostFld})
+         phaseFieldIo:write(self.ghostFld, string.format("%s_Maxwellian_%d.bp", self.name, 0), 0., 0, false)
+      end
    end
 end
 

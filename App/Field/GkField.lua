@@ -578,50 +578,52 @@ function GkField:createSolver(population, externalField)
 
          self.parSmooth = function(tCurr, fldIn, fldOut) fldOut:copy(fldIn) end
          if self.ndim == 3 and not self.discontinuousPhi then
-            if self.bcLowerPhi[3].T == "AxisymmetricLimitedTokamak" or self.bcUpperPhi[3].T == "AxisymmetricLimitedTokamak" then
-               assert(self.bcLowerPhi[3].T == self.bcUpperPhi[3].T, "App.Field.GkField: 'bcLowerPhi[3]' and 'bcUpperPhi[3]' must be equal.")
-               assert(self.bcLowerPhi[3].xLCFS == self.bcUpperPhi[3].xLCFS, "App.Field.GkField: 'bcLowerPhi[3]' and 'bcUpperPhi[3]' must be equal.")
+            if (self.bcLowerPhi[3] and self.bcUpperPhi[3]) then
+               if self.bcLowerPhi[3].T == "AxisymmetricLimitedTokamak" or self.bcUpperPhi[3].T == "AxisymmetricLimitedTokamak" then
+                  assert(self.bcLowerPhi[3].T == self.bcUpperPhi[3].T, "App.Field.GkField: 'bcLowerPhi[3]' and 'bcUpperPhi[3]' must be equal.")
+                  assert(self.bcLowerPhi[3].xLCFS == self.bcUpperPhi[3].xLCFS, "App.Field.GkField: 'bcLowerPhi[3]' and 'bcUpperPhi[3]' must be equal.")
 
-               -- Reduce range to the core part and SOL part.
-               -- Assume the split happens at a cell boundary and within the domain.
-               local xLCFS = self.bcLowerPhi[3].xLCFS 
-               assert(self.grid:lower(1)<xLCFS and xLCFS<self.grid:upper(1), "App.Field.GkField: 'xLCFS' coordinate must be within the x-domain.")
-               local needint = (xLCFS-self.grid:lower(1))/self.grid:dx(1)
-               assert(math.floor(math.abs(needint-math.floor(needint))) < 1., "App.Field.GkField: 'xLCFS' must fall on a cell boundary along x.")
-               -- Determine the index of the cell that abuts xLCFS from below.
-               local coordLCFS, idxLCFS = {xLCFS-1.e-7}, {-9}
-               local xGridIngr = self.grid:childGrid({1})
-               local xGrid = Grid.RectCart {
-                  lower = xGridIngr.lower,  periodicDirs  = xGridIngr.periodicDirs,
-                  upper = xGridIngr.upper,  decomposition = xGridIngr.decomposition,
-                  cells = xGridIngr.cells,
-               }
-               xGrid:findCell(coordLCFS, idxLCFS)
-               local solRange     = self.globalSolZ:localRange():shortenFromBelow(1, self.grid:numCells(1)-idxLCFS[1]+1)
-               local coreRange    = self.globalSolZ:localRange():shorten(1, idxLCFS[1]+1)
-               local solRangeExt  = self.globalSolZ:localExtRange():shortenFromBelow(1, self.grid:numCells(1)-idxLCFS[1]+1)
-               local coreRangeExt = self.globalSolZ:localExtRange():shorten(1, idxLCFS[1]+1)
-               self.solRange     = self.globalSolZ:localExtRange():subRange(    solRange:lowerAsVec(),    solRange:upperAsVec())
-               self.coreRange    = self.globalSolZ:localExtRange():subRange(   coreRange:lowerAsVec(),   coreRange:upperAsVec())
-               self.solRangeExt  = self.globalSolZ:localExtRange():subRange( solRangeExt:lowerAsVec(), solRangeExt:upperAsVec())
-               self.coreRangeExt = self.globalSolZ:localExtRange():subRange(coreRangeExt:lowerAsVec(),coreRangeExt:upperAsVec())
+                  -- Reduce range to the core part and SOL part.
+                  -- Assume the split happens at a cell boundary and within the domain.
+                  local xLCFS = self.bcLowerPhi[3].xLCFS 
+                  assert(self.grid:lower(1)<xLCFS and xLCFS<self.grid:upper(1), "App.Field.GkField: 'xLCFS' coordinate must be within the x-domain.")
+                  local needint = (xLCFS-self.grid:lower(1))/self.grid:dx(1)
+                  assert(math.floor(math.abs(needint-math.floor(needint))) < 1., "App.Field.GkField: 'xLCFS' must fall on a cell boundary along x.")
+                  -- Determine the index of the cell that abuts xLCFS from below.
+                  local coordLCFS, idxLCFS = {xLCFS-1.e-7}, {-9}
+                  local xGridIngr = self.grid:childGrid({1})
+                  local xGrid = Grid.RectCart {
+                     lower = xGridIngr.lower,  periodicDirs  = xGridIngr.periodicDirs,
+                     upper = xGridIngr.upper,  decomposition = xGridIngr.decomposition,
+                     cells = xGridIngr.cells,
+                  }
+                  xGrid:findCell(coordLCFS, idxLCFS)
+                  local solRange     = self.globalSolZ:localRange():shortenFromBelow(1, self.grid:numCells(1)-idxLCFS[1]+1)
+                  local coreRange    = self.globalSolZ:localRange():shorten(1, idxLCFS[1]+1)
+                  local solRangeExt  = self.globalSolZ:localExtRange():shortenFromBelow(1, self.grid:numCells(1)-idxLCFS[1]+1)
+                  local coreRangeExt = self.globalSolZ:localExtRange():shorten(1, idxLCFS[1]+1)
+                  self.solRange     = self.globalSolZ:localExtRange():subRange(    solRange:lowerAsVec(),    solRange:upperAsVec())
+                  self.coreRange    = self.globalSolZ:localExtRange():subRange(   coreRange:lowerAsVec(),   coreRange:upperAsVec())
+                  self.solRangeExt  = self.globalSolZ:localExtRange():subRange( solRangeExt:lowerAsVec(), solRangeExt:upperAsVec())
+                  self.coreRangeExt = self.globalSolZ:localExtRange():subRange(coreRangeExt:lowerAsVec(),coreRangeExt:upperAsVec())
 
-               self.parSmootherCore = Updater.FemParproj {
-                  onGrid  = self.gridGlobalZ,  basis               = self.basis,
-                  onField = self.globalSolZ,   periodicParallelDir = true,
-                  onRange = self.coreRange,    onExtRange          = self.coreRangeExt,
-               }
-               self.parSmootherSOL = Updater.FemParproj {
-                  onGrid  = self.gridGlobalZ,  basis               = self.basis,
-                  onField = self.globalSolZ,   periodicParallelDir = false,
-                  onRange = self.solRange,     onExtRange          = self.solRangeExt,
-               }
-               self.parSmoother = {
-                  advance = function(tCurr, fldIn, fldOut)
-                     self.parSmootherCore:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
-                     self.parSmootherSOL:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
-                  end,
-               }
+                  self.parSmootherCore = Updater.FemParproj {
+                     onGrid  = self.gridGlobalZ,  basis               = self.basis,
+                     onField = self.globalSolZ,   periodicParallelDir = true,
+                     onRange = self.coreRange,    onExtRange          = self.coreRangeExt,
+                  }
+                  self.parSmootherSOL = Updater.FemParproj {
+                     onGrid  = self.gridGlobalZ,  basis               = self.basis,
+                     onField = self.globalSolZ,   periodicParallelDir = false,
+                     onRange = self.solRange,     onExtRange          = self.solRangeExt,
+                  }
+                  self.parSmoother = {
+                     advance = function(tCurr, fldIn, fldOut)
+                        self.parSmootherCore:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
+                        self.parSmootherSOL:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
+                     end,
+                  }
+               end
             else
                self.parSmootherUpd = Updater.FemParproj {
                   onGrid  = self.gridGlobalZ,  basis = self.basis,
