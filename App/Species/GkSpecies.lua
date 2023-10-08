@@ -171,7 +171,7 @@ function GkSpecies:fullInit(appTbl)
          self.sources[nm] = val
          val:setSpeciesName(self.name)
          val:setName(nm)   -- Do :setName after :setSpeciesName for sources.
-         val:fullInit(tbl) -- Initialize sources
+         val:fullInit(self) -- Initialize sources
       end
    end
    lume.setOrder(self.sources)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).

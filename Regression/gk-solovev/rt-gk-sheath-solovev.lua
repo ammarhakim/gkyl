@@ -401,8 +401,8 @@ plasmaApp = Plasma.App {
 
    -- Field solver.
    field = Plasma.Field {
-      bcLowerPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T = "N", V = 0.0}}, 
-      bcUpperPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T = "N", V = 0.0}},
+      bcLowerPhi  = {{T = "D", V = 0.0}, {T = "P"}}, 
+      bcUpperPhi  = {{T = "D", V = 0.0}, {T = "P"}},
       bcLowerApar = {{T = "D", V = 0.0}, {T = "P"}},
       bcUpperApar = {{T = "D", V = 0.0}, {T = "P"}},
       evolve = true, -- Evolve fields?
