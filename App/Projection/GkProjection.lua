@@ -143,7 +143,7 @@ function FunctionProjection:createCouplingSolver(species, field, externalField)
          -- Scale the electrons to have the same density as the ions.
          local numDens, numDensScaleTo = self:allocConfField(), self:allocConfField()
          local ionName, elcName = nil, nil
-         for nm, _ in lume.orderedIter(species) do
+         for nm, s in lume.orderedIter(species) do
             if 0. < s.charge then ionName = nm end
             if s.charge < 0. then elcName = nm end
          end
