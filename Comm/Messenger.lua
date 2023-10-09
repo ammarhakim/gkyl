@@ -486,9 +486,9 @@ function Messenger:syncPeriodicCartFieldMPI(fld, comm, dirs)
    local dataType = self:getCommDataType(fld:elemType())
    local tag      = 32 -- Communicator tag for periodic messages.
    local syncDirs = dirs or fld:grid():getPeriodicDirs()
-   local onPerBoundary = fld._onPerBound
+   local onBoundary = fld._onBoundary
    for _, dir in ipairs(syncDirs) do
-      if onPerBoundary[dir] then
+      if onBoundary[dir] then
          if fld:grid():cuts(dir) == 1 then
             fld:periodicCopyInDir(dir)
          else
@@ -525,9 +525,9 @@ function Messenger:syncPeriodicCartFieldNCCL(fld, comm, dirs)
    local dataType = self:getCommDataType(fld:elemType())
    local syncDirs = dirs or fld:grid():getPeriodicDirs()
    local myId     = fld:grid():subGridId() -- Grid ID on this processor.
-   local onPerBoundary = fld._onPerBound
+   local onBoundary = fld._onBoundary
    for _, dir in ipairs(syncDirs) do
-      if onPerBoundary[dir] then
+      if onBoundary[dir] then
          if fld:grid():cuts(dir) == 1 then
             fld:periodicCopyInDir(dir)
          else

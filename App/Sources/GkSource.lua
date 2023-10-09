@@ -25,7 +25,7 @@ function GkSource:init(tbl) self.tbl = tbl end
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
-function GkSource:fullInit(thisSpecies)
+function GkSource:fullInit(mySpecies)
    local tbl = self.tbl -- Previously stored table.
 
    self.timeDependence = tbl.timeDependence or function (t) return 1. end
@@ -39,9 +39,6 @@ function GkSource:fullInit(thisSpecies)
 	 }
       elseif type(tbl.profile) == "string" then
          self.profile = Projection.GkProjection.FunctionProjection{fromFile = tbl.profile,}
-	 -- self.profile = Projection.ReadInput {
-	 --    inputFile = tbl.profile,
-	 -- }
       end
    elseif tbl.kind then
       self.density     = assert(tbl.density, "App.GkSource: must specify density profile of source in 'density'.")
@@ -66,6 +63,8 @@ function GkSource:fullInit(thisSpecies)
       }
    end
 
+   self.profile:fullInit(mySpecies)
+
    self.timers = {advance = 0.}
 end
 
@@ -76,17 +75,12 @@ function GkSource:setConfGrid(grid) self.confGrid = grid end
 
 function GkSource:createSolver(mySpecies, extField)
 
-   self.writeGhost = mySpecies.writeGhost   
-
-   self.profile:fullInit(mySpecies)
+   local writeGhost = mySpecies.writeGhost   
 
    self.fSource = mySpecies:allocDistf()
 
-   self.profile:advance(0.0, {extField}, {self.fSource})
-
-   if self.positivityRescale then
-      mySpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
-   end
+   self.profile:createSolver(mySpecies)
+   self.profile:advance(0.0, {mySpecies,extField}, {self.fSource})
 
    if self.power then
       local calcInt = Updater.CartFieldIntegratedQuantCalc {
@@ -109,7 +103,7 @@ function GkSource:createSolver(mySpecies, extField)
    }
    threeMomentsCalc:advance(0.0, {self.fSource}, {momsSrc})
 
-   self.fSource:write(string.format("%s_0.bp", self.name), 0., 0, self.writeGhost)
+   self.fSource:write(string.format("%s_0.bp", self.name), 0., 0, writeGhost)
    momsSrc:write(string.format("%s_Moms_0.bp", self.name), 0., 0)
 
    -- Need to define methods to allocate fields (used by diagnostics).

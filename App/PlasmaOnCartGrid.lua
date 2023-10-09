@@ -270,8 +270,8 @@ local function buildApplication(self, tbl)
       s:setCfl(cflMin)
    end
 
-   local function completeExtFieldSetup(fld)
-      fld:fullInit(tbl) -- Complete initialization.
+   local function completeExtFieldSetup(fld, plasmaField)
+      fld:fullInit(tbl, plasmaField) -- Complete initialization.
       fld:setIoMethod(ioMethod)
       fld:setBasis(confBasis, rzBasis)
       fld:setGrid(confGrid, rzGrid)
@@ -291,8 +291,8 @@ local function buildApplication(self, tbl)
       fld:createDiagnostics()
    end
 
-   local function completeFieldSetup(fld)
-      fld:fullInit(tbl) -- Complete initialization.
+   local function completeFieldSetup(fld, plasmaField)
+      fld:fullInit(tbl, plasmaField) -- Complete initialization.
       fld:setIoMethod(ioMethod)
       fld:setBasis(confBasis)
       fld:setGrid(confGrid)
@@ -319,7 +319,7 @@ local function buildApplication(self, tbl)
    for _, val in pairs(tbl) do
       if FieldBase.is(val) then
          field = val
-         completeFieldSetup(field)
+         completeFieldSetup(field, field)
          nfields = nfields + 1
       end
    end
@@ -332,7 +332,7 @@ local function buildApplication(self, tbl)
    for _, val in pairs(tbl) do
       if ExternalFieldBase.is(val) then
          externalField = val
-         completeExtFieldSetup(externalField)
+         completeExtFieldSetup(externalField, field)
          nfields = nfields + 1
       end
    end
@@ -383,9 +383,9 @@ local function buildApplication(self, tbl)
       -- This is a dummy forwardEuler call because some BCs require 
       -- auxFields to be set, which is controlled by species solver.
       if s.charge == 0.0 then
-      	 s:advance(0, population, {NoField {}, NoField {}}, 1, 2)
+         s:advance(0, population, {NoField {}, NoField {}}, 1, 2)
       else
-	 s:advance(0, population, {field, externalField}, 1, 2)
+         s:advance(0, population, {field, externalField}, 1, 2)
       end
       s:applyBcInitial(0, field, externalField, 1, 1)
    end
@@ -948,6 +948,7 @@ return {
 	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
          AdiabaticBasicBC = require "App.BCs.AdiabaticBasic",
 	 App = App,
+         AxisymmetricTokamakLimiterBC = require "App.BCs.AxisymmetricTokamakLimiter",
          BasicBC = require ("App.BCs.GkBasic").GkBasic,
          MaxwellianBC = require("App.BCs.GkMaxwellianBC"),
          AbsorbBC = require ("App.BCs.GkBasic").GkAbsorb,
