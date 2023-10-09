@@ -78,7 +78,7 @@ plasmaApp = Plasma.App {
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
             local x, vpar, mu = xn[1], xn[2], xn[3]
-            return n0
+            return n0*0.5*(1.+0.5*math.cos(2.*math.pi*x/Lx))
          end,
          driftSpeed = function (t, xn)
             local x, vpar, mu = xn[1], xn[2], xn[3]
@@ -91,6 +91,7 @@ plasmaApp = Plasma.App {
       },
       -- Evolve species?
       evolve = true,
+      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
@@ -115,7 +116,7 @@ plasmaApp = Plasma.App {
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
             local x, vpar, mu = xn[1], xn[2], xn[3]
-            return n0
+            return n0*0.5*(1.+0.5*math.cos(2.*math.pi*x/Lx))
          end,
          driftSpeed = function (t, xn)
             local x, vpar, mu = xn[1], xn[2], xn[3]
@@ -128,6 +129,7 @@ plasmaApp = Plasma.App {
       },
       -- Evolve species?
       evolve = true,
+      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.

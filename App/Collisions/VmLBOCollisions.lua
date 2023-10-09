@@ -227,7 +227,7 @@ function VmLBOCollisions:createSolver(mySpecies, extField)
       self.m0s_deltas_den = mySpecies:allocMoment()
       -- Weak division to compute the pre-factor in cross collision primitive moments.
       self.confDiv = Updater.CartFieldBinOp {
-         weakBasis = self.confBasis,           operation = "Divide",
+         weakBasis = self.confBasis,            operation = "Divide",
          onRange   = self.nuSelf:localRange(),  onGhosts  = false,
       }
       -- Updater to compute cross-species primitive moments.

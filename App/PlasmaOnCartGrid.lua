@@ -117,7 +117,7 @@ local function buildApplication(self, tbl)
    local timeIntegrator
    if lume.find(goodStepperNames, timeStepperNm) then
       if timeStepperNm == "rk1" then
-         timeIntegrator = require "App.TimeSteppers.SSP_RK1"
+         timeIntegrator = require "App.TimeSteppers.RK1"
       elseif timeStepperNm == "rk2" then
          timeIntegrator = require "App.TimeSteppers.SSP_RK2"
       elseif timeStepperNm == "rk3" then

@@ -16,7 +16,7 @@ vMin      = -2.0                            -- Min velocity in grid.
 vMax      =  2.0                            -- Max velocity in grid.
 muMin     = 0.0 
 muMax     = mass*(vMax^2)/(2*B0)
-Nx        = {2}                             -- Number of cells in configuration space.
+Nx        = {3}                             -- Number of cells in configuration space.
 Nv        = {16,16}                         -- Number of cells in velocity space.
 -- Large bump on tail of Maxwellian:
 vt   = math.sqrt(1.0/12.0)                  -- Thermal speed of Maxwellian in bump.
@@ -44,8 +44,8 @@ local function bumpMaxwell(x,vpar,mu,n,u,vth,bA,bU,bS,bVth)
    local vSq  = ((vpar-u)^2+2*B0*math.abs(mu)/mass)/((math.sqrt(2.0)*vth)^2)
    local vbSq = ((vpar-u)^2+2*B0*math.abs(mu)/mass)/((math.sqrt(2.0)*bVth)^2)
 
-   return (n/math.sqrt(2.0*Pi*(vth^2))^(3/2))*math.exp(-vSq)
-      +(n/math.sqrt(2.0*Pi*(bVth^2))^(3/2))*math.exp(-vbSq)*(bA^2)/((vpar-bU)^2+bS^2)
+   return (n*0.5*(1.+0.5*math.cos(2.*math.pi*x))/math.sqrt(2.0*Pi*(vth^2))^(3/2))*math.exp(-vSq)
+         +(n*0.5*(1.+0.5*math.cos(2.*math.pi*x))/math.sqrt(2.0*Pi*(bVth^2))^(3/2))*math.exp(-vbSq)*(bA^2)/((vpar-bU)^2+bS^2)
 end
 
 plasmaApp = Plasma.App {
@@ -89,7 +89,7 @@ plasmaApp = Plasma.App {
       -- Evolve species?
       evolve              = true,
       evolveCollisionless = false,
-      diagnostics         = { "M0", "M1", "M2" },
+      diagnostics         = { "M0", "M1", "M2", "intM0", "intM1", "intM2" },
    },
 
    -- Neutral species with a bump in the tail.
@@ -107,6 +107,7 @@ plasmaApp = Plasma.App {
             return bumpMaxwell(x,vpar,mu,n0,u0,vt,ab,ub,sb,vtb)
          end,
       },
+      -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
          frequencies = {nu},
@@ -114,8 +115,7 @@ plasmaApp = Plasma.App {
       -- Evolve species?
       evolve              = true,
       evolveCollisionless = false,
-      diagnostics         = { "M0", "M1", "M2" },
-      -- Collisions.
+      diagnostics         = { "M0", "M1", "M2", "intM0", "intM1", "intM2" },
    },
 
    -- Magnetic geometry. 

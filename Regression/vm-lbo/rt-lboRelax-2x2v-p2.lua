@@ -12,7 +12,7 @@ n0        = 1.0                             -- Density.
 u0        = {0.0,0.0}                       -- Flow speed.
 vMin      = -2.0                            -- Min velocity in grid.
 vMax      =  2.0                            -- Max velocity in grid.
-Nx        = {2,2}                           -- Number of cells in configuration space.
+Nx        = {3,3}                           -- Number of cells in configuration space.
 Nv        = {16,16}                         -- Number of cells in velocity space.
 -- Large bump on tail of Maxwellian:
 vt   = math.sqrt(1.0/24.0)                  -- Thermal speed of Maxwellian in bump.
@@ -39,8 +39,8 @@ local function bumpMaxwell(x,y,vx,vy,n,ux,uy,vth,bA,bUx,bUy,bS,bVth)
    local vSq  = ((vx-ux)^2+(vy-uy)^2)/((math.sqrt(2.0)*vth)^2)
    local vbSq = ((vx-ux)^2+(vy-uy)^2)/((math.sqrt(2.0)*bVth)^2)
 
-   return (n/(2.0*Pi*(vth^2)))*math.exp(-vSq)
-         +(n/(2.0*Pi*(bVth^2)))*math.exp(-vbSq)*(bA^2)/((vx-bUx)^2+(vy-bUy)^2+bS^2)
+   return (n*0.5*(1.+0.5*math.cos(2.*math.pi*x))/(2.0*Pi*(vth^2)))*math.exp(-vSq)
+         +(n*0.5*(1.+0.5*math.cos(2.*math.pi*x))/(2.0*Pi*(bVth^2)))*math.exp(-vbSq)*(bA^2)/((vx-bUx)^2+(vy-bUy)^2+bS^2)
 end
 
 plasmaApp = Plasma.App {
@@ -76,8 +76,9 @@ plasmaApp = Plasma.App {
       end,
       -- Evolve species?
       evolve = true,
+      evolveCollisionless = false,
       -- Diagnostic moments.
-      diagnostics = { "M0", "M1i", "M2" },
+      diagnostics = { "M0", "M1i", "M2", "intM0", "intM1i", "intM2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
@@ -100,8 +101,9 @@ plasmaApp = Plasma.App {
       end,
       -- Evolve species?
       evolve = true,
+      evolveCollisionless = false,
       -- Diagnostic moments.
-      diagnostics = { "M0", "M1i", "M2" },
+      diagnostics = { "M0", "M1i", "M2", "intM0", "intM1i", "intM2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
