@@ -563,19 +563,6 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       coll:calcCouplingMoments(tCurr, rkIdx, species)
    end
 
-   -- For ionization.
-   if self.calcReactRate then
-      local neuts = species[self.neutNmIz]
-      -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments.
-      neuts:calcCouplingMoments(tCurr, rkIdx, species)
-      local neutM0   = neuts:fluidMoments()[1]
-      local neutVtSq = neuts:selfPrimitiveMoments()[2]
-     
-      species[self.name].collisions[self.collNmIoniz].calcReactRate(tCurr, 
-         {neutM0, neutVtSq, self.vtSqSelf}, 
-         {species[self.name].collisions[self.collNmIoniz].reactRate, self.cflRateByCell})
-   end
-
    if self.calcCXSrc then
       -- Calculate Vcx*SigmaCX.
       local neuts = species[self.neutNmCX]

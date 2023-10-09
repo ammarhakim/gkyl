@@ -198,13 +198,6 @@ def build(bld):
     confToPhaseData/ConfToPhaseSer3x2v.cpp
     confToPhaseData/ConfToPhaseSer3x3v.cpp
 
-    ionizationCalcData/IonizationVtSqSer1x.cpp
-    ionizationCalcData/IonizationVtSqSer2x.cpp
-    ionizationCalcData/IonizationVtSqSer3x.cpp
-    ionizationCalcData/VoronovSer1x.cpp
-    ionizationCalcData/VoronovSer2x.cpp
-    ionizationCalcData/VoronovSer3x.cpp
-
     chargeExchangeCalcData/SigmaCXcellAvSer1x1v.cpp
     chargeExchangeCalcData/SigmaCXcellAvSer1x2v.cpp
     chargeExchangeCalcData/SigmaCXcellAvSer1x3v.cpp

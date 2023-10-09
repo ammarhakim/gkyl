@@ -118,12 +118,16 @@ function GkIonization:fullInit(speciesTbl)
    self.collFreqs       = {1}
    
    self.collideNm = tbl.collideWith[1]
-   
-   self.elcNm  = assert(tbl.electrons, "App.GkIonization: Must specify electron species name in 'electrons'.")
-   self.neutNm = assert(tbl.neutrals, "App.GkIonization: Must specify electron species name in 'neutrals'.")
+
+   -- Intake for these values needs to be optimized
+   self.elcNm  = assert(tbl.elcName, "App.GkIonization: Must specify electron species name in 'elcName'.")
+   self.donorNm = assert(tbl.donorName, "App.GkIonization: Must specify donor species name in 'donorName'.")
+   self.elemCharge = Constants.ELEMENTARY_CHARGE
+   self.elcMass = Constants.ELECTRON_MASS
+   self.ionMass = tbl.ionMass
    self.plasma = tbl.plasma
-   self.mass   = tbl.elcMass
-   self.charge = tbl.elemCharge
+   self.chargeState = tbl.chargeState
+   self.selfSpecies = tbl.selfSpecies
 
    self.timers = {nonSlvr = 0.}
 end
@@ -150,84 +154,23 @@ function GkIonization:setPhaseBasis(basis) self.phaseBasis = basis end
 function GkIonization:setPhaseGrid(grid) self.phaseGrid = grid end
 
 function GkIonization:createSolver(funcField)
+   -- Geometry fields
+   self.bmag = externalField.geo.bmag
+   self.jacobTot = externalField.geo.jacobTot
+   self.b_i = externalField.geo.b_i
+   
    self.collisionSlvr = Updater.Ionization {
-      confBasis  = self.confBasis,
-      elcMass    = self.mass,
-      elemCharge = self.charge,
-      ionType    = self.plasma,
+      onGrid = self.phaseGrid,
+      confBasis = self.confBasis,     phaseBasis = self.phaseBasis,
+      confRange = self.confRange,     phaseRange = self.phaseRange,
+      elemCharge = self.elemCharge,   elcMass = self.elcMass,
+      ionMass = self.ionMass,         plasma = self.plasma,
+      chargeState = self.chargeState, selfSpecies = self.selfSpecies,
    }
    -- Reaction rate computed by each species for ease of species parallelization
    self.reactRate = DataStruct.Field {
       onGrid        = self.confGrid,
       numComponents = self.confBasis:numBasis(),
-      ghost         = {1, 1},
-      metaData      = { polyOrder = self.confBasis:polyOrder(),
-                        basisType = self.confBasis:id() },
-   }
-   self.calcReactRate = function(tCurr, inFlds, outFlds)
-      self.collisionSlvr:reactRateCoef(tCurr, inFlds, outFlds)
-   end
-
-   if (self.speciesName == self.elcNm) then
-      -- Electrons need to calculate the ionization temperature
-      self.vtSqIz =  DataStruct.Field {
-         onGrid        = self.confGrid,
-         numComponents = self.confBasis:numBasis(),
-         ghost         = {1, 1},
-         metaData      = { polyOrder = self.confBasis:polyOrder(),
-                           basisType = self.confBasis:id() },
-      }
-      self.calcIonizationTemp = function(tCurr, inFlds, outFlds)
-         self.collisionSlvr:ionizationTemp(tCurr, inFlds, outFlds)
-      end
-
-      self.m0fMax =  DataStruct.Field {
-         onGrid        = self.confGrid,
-         numComponents = self.confBasis:numBasis(),
-         ghost         = {1, 1},
-         metaData      = { polyOrder = self.confBasis:polyOrder(),
-                           basisType = self.confBasis:id() },
-      }
-      self.m0mod =  DataStruct.Field {
-         onGrid        = self.confGrid,
-         numComponents = self.confBasis:numBasis(),
-         ghost         = {1, 1},
-         metaData      = { polyOrder = self.confBasis:polyOrder(),
-                           basisType = self.confBasis:id() },
-      }
-      self.fMaxElc = DataStruct.Field {
-         onGrid        = self.phaseGrid,
-         numComponents = self.phaseBasis:numBasis(),
-         ghost         = {1, 1},
-         metaData      = { polyOrder = self.confBasis:polyOrder(),
-                           basisType = self.confBasis:id() },
-      }
-      self.sumDistF =  DataStruct.Field {
-         onGrid        = self.phaseGrid,
-         numComponents = self.phaseBasis:numBasis(),
-         ghost         = {1, 1},
-         metaData      = { polyOrder = self.confBasis:polyOrder(),
-                           basisType = self.confBasis:id() },
-      }
-   end
-
-   self.m0elc = DataStruct.Field {
-      onGrid        = self.confGrid,
-      numComponents = self.confBasis:numBasis(),
-      ghost         = {1, 1},
-      metaData      = { polyOrder = self.confBasis:polyOrder(),
-                        basisType = self.confBasis:id() },
-   }
-   self.coefM0 = DataStruct.Field {
-      onGrid        = self.confGrid,
-      numComponents = self.confBasis:numBasis(),
-      ghost         = {1, 1},
-      metaData      = { polyOrder = self.confBasis:polyOrder(),
-                        basisType = self.confBasis:id() },
-   }
-   self.fMaxNeut = DataStruct.Field {
-      onGrid        = self.phaseGrid,
-      numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
       metaData      = { polyOrder = self.confBasis:polyOrder(),
                         basisType = self.confBasis:id() },
@@ -241,59 +184,20 @@ function GkIonization:createSolver(funcField)
    }
 end
 
-function GkIonization:advance(tCurr, fIn, species, fRhsOut)
+function GkIonization:advance(tCurr, fIn, population, out)
    local tmNonSlvrStart = Time.clock()
-   local reactRate = species[self.elcNm].collisions[self.collNm].reactRate
-   local elcM0  = species[self.elcNm]:fluidMoments()[1]
+   local species = population:getSpecies()
+   local momsElc = species[self.elcNm]:fluidMoments()
+   local momsDonor = species[self.donorNm]:fluidMoments()
 
-   -- Check whether particle is electron, neutral or ion species.
-   if (self.speciesName == self.elcNm) then
-      -- Electrons.
-      self.m0elc:copy(elcM0)
-      local neutM0     = species[self.neutNm]:fluidMoments()[1]
-      local neutU      = species[self.neutNm]:selfPrimitiveMoments()[1]
-      local elcVtSq    = species[self.elcNm]:selfPrimitiveMoments()[2]
-      local elcDistF   = species[self.elcNm]:getDistF()
+   local fRhsOut = out[1]
+   local clfRateByCell = out[2]
 
-      -- Calculate ioniz fMax
-      self.calcIonizationTemp(tCurr, {elcVtSq}, {self.vtSqIz})
-      species[self.speciesName].calcMaxwell:advance(tCurr, {self.m0elc, neutU, self.vtSqIz, species[self.speciesName].bmag}, {self.fMaxElc})
-      species[self.speciesName].numDensityCalc:advance(tCurr, {self.fMaxElc}, {self.m0fMax})
-      species[self.speciesName].confWeakDivide:advance(tCurr, {self.m0fMax, self.m0elc}, {self.m0mod})
-      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {self.m0mod, self.fMaxElc}, {self.fMaxElc})
-      
-      self.sumDistF:combine(2.0,self.fMaxElc,-1.0,elcDistF)      
-      species[self.speciesName].confWeakMultiply:advance(tCurr, {reactRate, neutM0}, {self.coefM0})
-      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {self.coefM0, self.sumDistF}, {self.ionizSrc})
-      -- Uncomment to test without fMaxwellian(Tiz)
-      --self.confPhaseMult:advance(tCurr, {self.coefM0, elcDistF}, {self.ionizSrc})      
+   self.collisionSlvr:advance(tCurr, {momsElc, momsDonor, self.bmag, self.jacobTot, self.b_i, fIn},
+			      {self.ionizSrc, cflRateByCell})
 
-      fRhsOut:accumulate(1.0,self.ionizSrc)
-   elseif (species[self.speciesName].charge == 0) then
-      -- Neutrals, on Vlasov grid.
-      local neutDistF = species[self.neutNm]:getDistF()
-      self.m0elc:copy(elcM0)
-     
-      species[self.speciesName].confWeakMultiply:advance(tCurr, {reactRate, self.m0elc}, {self.coefM0})
-      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {self.coefM0, neutDistF}, {self.ionizSrc})
-      self.ionizSrc:scale(-1.0)
+   fRhsOut:accumulate(1.0,self.ionizSrc)
 
-      fRhsOut:accumulate(1.0,self.ionizSrc)  
-   else
-      -- Ions. 
-      self.m0elc:copy(elcM0)
-      local neutM0   = species[self.neutNm]:fluidMoments()[1]
-      local neutU    = species[self.neutNm]:selfPrimitiveMoments()[1] 
-      local neutVtSq = species[self.neutNm]:selfPrimitiveMoments()[2]
-      -- Include only z-component of neutU.
-
-      species[self.speciesName].confWeakMultiply:advance(tCurr, {reactRate, self.m0elc}, {self.coefM0})
-      species[self.speciesName].calcMaxwell:advance(tCurr,
-         {neutM0, neutU, neutVtSq, species[self.speciesName].bmag}, {self.fMaxNeut})
-      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {self.coefM0, self.fMaxNeut}, {self.ionizSrc})
-
-      fRhsOut:accumulate(1.0,self.ionizSrc)
-   end
    self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 end
    
@@ -311,11 +215,7 @@ function GkIonization:nonSlvrTime()
    return self.timers.nonSlvr
 end
 
-function GkIonization:projectMaxwellTime()
-   local time = self.confMult.projectMaxwellTime()
-   time = time + self.confPhaseMult.projectMaxwellTime
-   return time
-end
+
 
 return GkIonization
 
