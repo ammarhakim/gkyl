@@ -28,7 +28,7 @@ local new, sizeof, typeof, metatype = xsys.from(ffi,
 ffi.cdef [[ 
 
 // Object type
-typedef struct gkyl_dg_updater_lbo_vlasov gkyl_dg_updater_lbo_vlasov;
+typedef struct gkyl_dg_updater_collisions gkyl_dg_updater_collisions;
 
 /**
  * Create new updater to update lbo equations using hyper dg.
@@ -37,10 +37,14 @@ typedef struct gkyl_dg_updater_lbo_vlasov gkyl_dg_updater_lbo_vlasov;
  * @param cbasis Configuration space basis functions
  * @param pbasis Phase-space basis function
  * @param conf_range Config space range
+ * @param model_id Enum for type of LBO (e.g., Vlasov vs. PKPM model)
+ * @param use_gpu Bool for whether updater is on host or device
  * @return New LBO updater object
  */
-gkyl_dg_updater_lbo_vlasov* gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, bool use_gpu);
+struct gkyl_dg_updater_collisions* 
+gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
+  const struct gkyl_range *conf_range, enum gkyl_model_id model_id, bool use_gpu);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -56,13 +60,13 @@ gkyl_dg_updater_lbo_vlasov* gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rec
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_dg_updater_lbo_vlasov_advance(gkyl_dg_updater_lbo_vlasov *lbo,
+void gkyl_dg_updater_lbo_vlasov_advance(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
   const struct gkyl_array* fIn,
   struct gkyl_array* cflrate, struct gkyl_array* rhs);
 
-void gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo,
+void gkyl_dg_updater_lbo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
   const struct gkyl_array* fIn,
@@ -73,7 +77,7 @@ void gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo,
  *
  * @param lbo Updater to delete.
  */
-void gkyl_dg_updater_lbo_vlasov_release(gkyl_dg_updater_lbo_vlasov *lbo);
+void gkyl_dg_updater_lbo_vlasov_release(struct gkyl_dg_updater_collisions *lbo);
 ]]
 
 -- VlasovLBO DG solver updater object
@@ -89,7 +93,10 @@ function VlasovLBO:init(tbl)
 
    self._confRange = assert(tbl.confRange, "Updater.VlasovLBO: Must specify conf-space range using 'confRange'")
 
-   self._zero = ffi.gc(ffiC.gkyl_dg_updater_lbo_vlasov_new(self._onGrid._zero, self._confBasis._zero, self._phaseBasis._zero, self._confRange, GKYL_USE_GPU or 0),
+   self._modelId = "GKYL_MODEL_DEFAULT"
+
+   self._zero = ffi.gc(ffiC.gkyl_dg_updater_lbo_vlasov_new(self._onGrid._zero, self._confBasis._zero, self._phaseBasis._zero, 
+                       self._confRange, self._modelId, GKYL_USE_GPU or 0),
                        ffiC.gkyl_dg_updater_lbo_vlasov_release)
 
    return self

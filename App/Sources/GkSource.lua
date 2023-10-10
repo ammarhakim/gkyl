@@ -25,7 +25,7 @@ function GkSource:init(tbl) self.tbl = tbl end
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
-function GkSource:fullInit(thisSpecies)
+function GkSource:fullInit(mySpecies)
    local tbl = self.tbl -- Previously stored table.
 
    self.timeDependence = tbl.timeDependence or function (t) return 1. end
@@ -39,9 +39,6 @@ function GkSource:fullInit(thisSpecies)
 	 }
       elseif type(tbl.profile) == "string" then
          self.profile = Projection.GkProjection.FunctionProjection{fromFile = tbl.profile,}
-	 -- self.profile = Projection.ReadInput {
-	 --    inputFile = tbl.profile,
-	 -- }
       end
    elseif tbl.kind then
       self.density     = assert(tbl.density, "App.GkSource: must specify density profile of source in 'density'.")
@@ -65,7 +62,10 @@ function GkSource:fullInit(thisSpecies)
          power       = self.power,
       }
    end
-   self.tmEvalSrc = 0.0
+
+   self.profile:fullInit(mySpecies)
+
+   self.timers = {advance = 0.}
 end
 
 function GkSource:setName(nm) self.name = self.speciesName.."_"..nm end
@@ -75,17 +75,12 @@ function GkSource:setConfGrid(grid) self.confGrid = grid end
 
 function GkSource:createSolver(mySpecies, extField)
 
-   self.writeGhost = mySpecies.writeGhost   
-
-   self.profile:fullInit(mySpecies)
+   local writeGhost = mySpecies.writeGhost   
 
    self.fSource = mySpecies:allocDistf()
 
-   self.profile:advance(0.0, {extField}, {self.fSource})
-
-   if self.positivityRescale then
-      mySpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
-   end
+   self.profile:createSolver(mySpecies)
+   self.profile:advance(0.0, {mySpecies,extField}, {self.fSource})
 
    if self.power then
       local calcInt = Updater.CartFieldIntegratedQuantCalc {
@@ -108,11 +103,12 @@ function GkSource:createSolver(mySpecies, extField)
    }
    threeMomentsCalc:advance(0.0, {self.fSource}, {momsSrc})
 
-   self.fSource:write(string.format("%s_0.bp", self.name), 0., 0, self.writeGhost)
+   self.fSource:write(string.format("%s_0.bp", self.name), 0., 0, writeGhost)
    momsSrc:write(string.format("%s_Moms_0.bp", self.name), 0., 0)
 
    -- Need to define methods to allocate fields (used by diagnostics).
    self.allocMoment = function() return mySpecies:allocMoment() end
+   self.allocIntMoment = function(self, comp) return mySpecies:allocIntMoment() end
 end
 
 function GkSource:createDiagnostics(mySpecies, field)
@@ -126,9 +122,11 @@ function GkSource:createDiagnostics(mySpecies, field)
 end
 
 function GkSource:advance(tCurr, fIn, species, fRhsOut)
-   local tm = Time.clock()
+   local tmStart = Time.clock()
+
    fRhsOut:accumulate(self.timeDependence(tCurr), self.fSource)
-   self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
+
+   self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end
 
 -- These are needed to recycle the GkDiagnostics with GkSource.
@@ -136,7 +134,5 @@ function GkSource:rkStepperFields() return {self.fSource, self.fSource, self.fSo
 function GkSource:getFlucF() return self.fSource end
 
 function GkSource:write(tm, frame) end
-
-function GkSource:srcTime() return self.tmEvalSrc end
 
 return GkSource

@@ -1,10 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 -- 5-moment modeling of dean flow in the 2d axisymmetric (r, z) plane
--- r -> x, theta -> y, z -> z; One cell along theta (y)
 
 local Moments = require("App.PlasmaOnCartGrid").Moments()
-local Euler = require "Eq.Euler"
-local BoundaryCondition = require "Updater.BoundaryCondition"
 local Logger = require "Lib.Logger"
 
 local logger = Logger { logToFile = True }
@@ -98,23 +95,23 @@ log("%30s = %g", "Bz0", Bz0)
 log("%30s = %g", "Er0", Er0)
 
 momentApp = Moments.App {
-   logToFile = true,
-
    tEnd = tEnd,
    nFrame = nFrame,
-   lower = {r_inn, -1, 0},
-   upper = {r_out, 1, Lz},
-   cells = {Nr, 1, Nz},
-   timeStepper = "fvDimSplit",
+   lower = {r_inn, -math.pi/180, 0},
+   upper = {r_out, math.pi/180, Lz},
+   cells = {Nr, 3, Nz},
 
-   periodicDirs = {2, 3},
+   periodicDirs = {3},
    decompCuts = decompCuts,
+
+   mapc2p = function(t, xn)
+      local r, th, z = xn[1], xn[2], xn[3]
+      return r*math.cos(th), r*math.sin(th), z
+   end,
 
    elc = Moments.Species {
       charge = qe, mass = me,
-      equation = Euler { gasGamma = gasGamma },
-      equationInv = Euler { gasGamma = gasGamma, numericalFlux = "lax" },
-      forceInv = false,
+      equation = Moments.Euler { gasGamma = gasGamma },
       init = function (t, xn)
          local r, theta, z = xn[1], xn[2], xn[3]
          local rho = rhoe0
@@ -126,13 +123,12 @@ momentApp = Moments.App {
          return rho, rho*vr, rho*vt, rho*vz, er
       end,
       bcx = { Moments.Species.bcWall, Moments.Species.bcWall },
+      bcy = { Moments.Field.bcWedge, Moments.Field.bcWedge },
    },
 
    ion = Moments.Species {
       charge = qi, mass = mi,
-      equation = Euler { gasGamma = gasGamma },
-      equationInv = Euler { gasGamma = gasGamma, numericalFlux = "lax" },
-      forceInv = false,
+      equation = Moments.Euler { gasGamma = gasGamma },
       init = function (t, xn)
          local r, theta, z = xn[1], xn[2], xn[3]
          local rho = rhoi0
@@ -144,6 +140,7 @@ momentApp = Moments.App {
          return rho, rho*vr, rho*vt, rho*vz, er
       end,
       bcx = { Moments.Species.bcWall, Moments.Species.bcWall },
+      bcy = { Moments.Field.bcWedge, Moments.Field.bcWedge },
    },
 
    field = Moments.Field {
@@ -158,30 +155,14 @@ momentApp = Moments.App {
          local Bz = 0
          return Er, Et, Ez, Br, Bt, Bz
       end,
-      bcx = { Moments.Field.bcReflect, Moments.Field.bcReflect },
-   },
- 
-   axisymmetricFluidSource = Moments.AxisymmetricMomentSource {
-      species = {"elc", "ion"},
-      timeStepper = "forwardEuler",
-      gasGamma = gasGamma,
-   },   
-
-   axisymmetricMaxwellSource = Moments.AxisymmetricPhMaxwellSource {
-      timeStepper = "forwardEuler",
-   },   
-
-   emSource = Moments.CollisionlessEmSource {
-      species = {"elc", "ion"},
-      timeStepper = "time-centered",
-      gravity = gravity,
-      gravityDir = 1,
-      hasStaticField = true,
-      staticEmFunction = function(t, xn)
+      is_ext_em_static = true,
+      ext_em_func = function (t,xn)
          return 0, 0, 0.0, 0.0, 0.0, Bz0
-      end
-
-   },   
+      end,
+      bcx = { Moments.Field.bcReflect, Moments.Field.bcReflect },
+      bcy = { Moments.Field.bcWedge, Moments.Field.bcWedge },
+   },
 }
+
 -- run application
 momentApp:run()

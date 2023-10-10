@@ -273,16 +273,16 @@ local implementation = function()
       self.field   = owner:allocMoment()
       self.updater = owner.confWeakMultiply or specIn.confWeakMultiply
       self.evalPhi = owner.evalOnConfBoundary
-         and function(phiIn) return owner:evalOnConfBoundary(phiIn) end
+         and function(phiIn) return owner:evalOnConfBoundary(phiIn, owner.confBoundaryField) end
          or function(phiIn) return phiIn end
       self.done    = false
    end
    function _Energy:getType() return "grid" end
    function _Energy:getDependencies() return {"M0","M2"} end
    function _Energy:advance(tm, inFlds, outFlds)
-      local specIn, diags = inFlds[1], inFlds[2]
-      local M0, M2        = diags["M0"].field, diags["M2"].field
-      local phi           = self.evalPhi(specIn.equation.phi)
+      local specIn, diags, field = inFlds[1], inFlds[2], inFlds[3]
+      local M0, M2 = diags["M0"].field, diags["M2"].field
+      local phi    = self.evalPhi(field:rkStepperFields()[1].phi)
       self.updater:advance(tm, {M0, phi}, {self.field})
       self.field:scale(specIn.charge)
       self.field:accumulate(0.5*specIn.mass, M2)
@@ -291,7 +291,7 @@ local implementation = function()
    -- ~~~~ Integrated number density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM0 = Proto(DiagsImplBase)
    function _intM0:fullInit(diagApp, specIn, fieldIn, owner)
-      self.field   = DataStruct.DynVector { numComponents = 1, comm = owner.confGrid:commSet().comm }
+      self.field   = owner:allocIntMoment()
       self.updater = owner.volIntegral and owner.volIntegral.scalar or specIn.volIntegral.scalar
       self.done    = false
    end
@@ -306,7 +306,7 @@ local implementation = function()
    -- ~~~~ Integrated momentum density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM1 = Proto(DiagsImplBase)
    function _intM1:fullInit(diagApp, specIn, fieldIn, owner)
-      self.field   = DataStruct.DynVector { numComponents = 1, comm = owner.confGrid:commSet().comm }
+      self.field   = owner:allocIntMoment()
       self.updater = owner.volIntegral and owner.volIntegral.scalar or specIn.volIntegral.scalar
       self.done    = false
    end
@@ -321,7 +321,7 @@ local implementation = function()
    -- ~~~~ Integrated particle kinetic energy density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM2 = Proto(DiagsImplBase)
    function _intM2:fullInit(diagApp, specIn, fieldIn, owner)
-      self.field   = DataStruct.DynVector { numComponents = 1, comm = owner.confGrid:commSet().comm }
+      self.field   = owner:allocIntMoment()
       self.updater = owner.volIntegral and owner.volIntegral.scalar or specIn.volIntegral.scalar
       self.done    = false
    end
@@ -336,7 +336,7 @@ local implementation = function()
    -- ~~~~ Integrated particle kinetic energy density (with mass/2 factor) ~~~~~~~~~~~~~~~~~~~~~~
    local _intKE = Proto(DiagsImplBase)
    function _intKE:fullInit(diagApp, specIn, fieldIn, owner)
-      self.field   = DataStruct.DynVector { numComponents = 1, comm = owner.confGrid:commSet().comm }
+      self.field   = owner:allocIntMoment()
       self.updater = owner.volIntegral and owner.volIntegral.scalar or specIn.volIntegral.scalar
       self.done    = false
    end
@@ -351,7 +351,7 @@ local implementation = function()
    -- ~~~~ Integrated particle energy density (including potential) ~~~~~~~~~~~~~~~~~~~~~~
    local _intEnergy = Proto(DiagsImplBase)
    function _intEnergy:fullInit(diagApp, specIn, fieldIn, owner)
-      self.field              = DataStruct.DynVector { numComponents = 1, comm = owner.confGrid:commSet().comm }
+      self.field              = owner:allocIntMoment()
       self.fieldAux           = owner:allocMoment()
       self.updater            = owner.volIntegral and owner.volIntegral.scalar or specIn.volIntegral.scalar
       self.multiplyByJacobGeo = owner.multiplyByJacobGeo and owner.multiplyByJacobGeo or specIn.multiplyByJacobGeo
@@ -369,7 +369,7 @@ local implementation = function()
    -- ~~~~ Integrated mean flow energy density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM2Flow = Proto(DiagsImplBase)
    function _intM2Flow:fullInit(diagApp, specIn, fieldIn, owner)
-      self.field   = DataStruct.DynVector { numComponents = 1, comm = owner.confGrid:commSet().comm }
+      self.field   = owner:allocIntMoment()
       self.updater = owner.volIntegral and owner.volIntegral.scalar or specIn.volIntegral.scalar
       self.done    = false
    end
@@ -384,7 +384,7 @@ local implementation = function()
    -- ~~~~ Integrated thermal energy density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM2Thermal = Proto(DiagsImplBase)
    function _intM2Thermal:fullInit(diagApp, specIn, fieldIn, owner)
-      self.field   = DataStruct.DynVector { numComponents = 1, comm = owner.confGrid:commSet().comm }
+      self.field   = owner:allocIntMoment()
       self.updater = owner.volIntegral and owner.volIntegral.scalar or specIn.volIntegral.scalar
       self.done    = false
    end
@@ -399,7 +399,7 @@ local implementation = function()
    -- ~~~~ L1 norm (absolute value) of the distribution function ~~~~~~~~~~~~~~~~~~~~~~
    local _intL1 = Proto(DiagsImplBase)
    function _intL1:fullInit(diagApp, specIn, fieldIn, owner)
-      self.field   = DataStruct.DynVector { numComponents = 1, comm = owner.confGrid:commSet().comm }
+      self.field   = owner:allocIntMoment()
       self.updater = Updater.CartFieldIntegratedQuantCalc {
          onGrid = specIn.grid,   numComponents = 1,
          basis  = specIn.basis,  quantity      = "AbsV",
@@ -416,7 +416,7 @@ local implementation = function()
    -- ~~~~ L2 norm of the distribution function ~~~~~~~~~~~~~~~~~~~~~~
    local _intL2 = Proto(DiagsImplBase)
    function _intL2:fullInit(diagApp, specIn, fieldIn, owner)
-      self.field   = DataStruct.DynVector { numComponents = 1, comm = owner.confGrid:commSet().comm }
+      self.field   = owner:allocIntMoment()
       self.updater = Updater.CartFieldIntegratedQuantCalc {
          onGrid = specIn.grid,   numComponents = 1,
          basis  = specIn.basis,  quantity      = "V2",

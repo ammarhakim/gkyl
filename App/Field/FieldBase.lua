@@ -11,6 +11,7 @@ local Proto = require "Lib.Proto"
 -- Empty shell field base classes.
 local FieldBase = Proto()
 function FieldBase:init(tbl) self.isElliptic = false end
+function FieldBase:fullInit(tbl, plasmaField) end
 function FieldBase:readRestart() end
 function FieldBase:hasEB() return nil, nil end
 function FieldBase:setCfl() end
@@ -22,16 +23,33 @@ function FieldBase:applyBcIdx(tCurr, idx) end
 function FieldBase:useBoundaryFlux(tCurr, outIdx) end
 function FieldBase:suggestDt() return GKYL_MAX_DOUBLE end
 function FieldBase:clearCFL() end
+function FieldBase:getTimer(timerNm)
+   if self.timers then
+      if self.timers[timerNm] == nil then return 0. end
+      return self.timers[timerNm]
+   end
+   return 0.
+end
+function FieldBase:clearTimers() end
 
 
 local ExternalFieldBase = Proto()
 function ExternalFieldBase:init(tbl) self.isElliptic = false end
+function ExternalFieldBase:fullInit(tbl, plasmaField) end
 function ExternalFieldBase:hasEB() return nil, nil end
 function ExternalFieldBase:setCfl() end
 function ExternalFieldBase:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 function ExternalFieldBase:setBasis(basis) self.basis = basis end
 function ExternalFieldBase:readRestart() end
 function ExternalFieldBase:printDevDiagnostics() end
+function ExternalFieldBase:getTimer(timerNm)
+   if self.timers then
+      if self.timers[timerNm] == nil then return 0. end
+      return self.timers[timerNm]
+   end
+   return 0.
+end
+function ExternalFieldBase:clearTimers() end
 
 -- NoField ---------------------------------------------------------------------
 --
@@ -42,7 +60,7 @@ local NoField = Proto(FieldBase)
 
 -- Methods for no field object.
 function NoField:init(tbl) NoField.super.init(tbl) end
-function NoField:fullInit(tbl) end
+function NoField:fullInit(tbl, plasmaField) end
 function NoField:hasEB() return nil, nil end
 function NoField:setCfl() end
 function NoField:setIoMethod(ioMethod) end
@@ -70,6 +88,14 @@ function NoField:energyCalcTime() return 0.0 end
 function NoField:copyRk() end
 function NoField:combineRk() end
 function NoField:printDevDiagnostics() end
+function NoField:getTimer(timerNm)
+   if self.timers then
+      if self.timers[timerNm] == nil then return 0. end
+      return self.timers[timerNm]
+   end
+   return 0.
+end
+function NoField:clearTimers() end
 
 return {
    FieldBase         = FieldBase,

@@ -375,7 +375,7 @@ plasmaApp = Plasma.App {
       charge = qi, mass = mi,
       lower = {-3.75*vti, 0},
       upper = { 3.75*vti, mi*((3.*vti)^2)/(2*B_p)},
-      cells = {64, 8},
+      cells = {48, 8},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
 --         fromFile = "ionIC.bp",

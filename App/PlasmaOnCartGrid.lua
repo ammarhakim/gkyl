@@ -17,26 +17,26 @@ local Grid             = require "Grid"
 local Lin              = require "Lib.Linalg"
 local LinearTrigger    = require "Lib.LinearTrigger"
 local Messenger        = require "Comm.Messenger"
-local Logger = require "Lib.Logger"
-local Mpi    = require "Comm.Mpi"
-local Proto  = require "Lib.Proto"
-local Time   = require "Lib.Time"
-local date   = require "xsys.date"
-local lfs    = require "lfs"
-local lume   = require "Lib.lume"
-local xsys   = require "xsys"
-local ffi    = require "ffi"
+local Logger           = require "Lib.Logger"
+local Mpi              = require "Comm.Mpi"
+local Proto            = require "Lib.Proto"
+local Time             = require "Lib.Time"
+local date             = require "xsys.date"
+local lfs              = require "lfs"
+local lume             = require "Lib.lume"
+local xsys             = require "xsys"
+local ffi              = require "ffi"
 
 math = require("sci.math").generic -- this is global so that it affects input file
 
 -- App loads (do not load specific app objects here, but only things
 -- needed to run the App itself. Specific objects should be loaded in
 -- the  methods defined at the bottom of this file)
-local SpeciesBase       = require "App.Species.SpeciesBase"
-local FieldBase         = require ("App.Field.FieldBase").FieldBase
+local SpeciesBase = require "App.Species.SpeciesBase"
+local FieldBase = require ("App.Field.FieldBase").FieldBase
 local ExternalFieldBase = require ("App.Field.FieldBase").ExternalFieldBase
-local NoField           = require ("App.Field.FieldBase").NoField
-local PopApp            = require "App.Species.Population"
+local NoField = require ("App.Field.FieldBase").NoField
+local PopApp = require "App.Species.Population"
 
 -- Function to create basis functions.
 local function createBasis(nm, ndim, polyOrder)
@@ -83,8 +83,18 @@ local function buildApplication(self, tbl)
       return default
    end
 
+   local timers = {
+      total = 0.,   init = 0.,   timeloop = 0.,   unaccounted = 0.,
+      diagnostics = 0.,   restart = 0.,   dydt = 0.,   fwdEuler = 0.,
+      combine = 0.,   copy = 0.,   combineFwdEuler = 0.,   dtCalc = 0.,
+      bc = 0.,   timeloop_unaccounted = 0.,   dydt_unaccounted = 0.,   fwdEuler_unaccounted = 0.,
+      dydt_extfield = 0.,   dydt_mom = 0.,   dydt_momcross = 0.,   dydt_field = 0.,
+      dydt_speciesadv = 0.,   dydt_speciesadvcross = 0.,   dydt_collisionless = 0.,   dydt_collisions = 0.,
+      dydt_boundflux = 0.,   dydt_sources = 0.,   dydt_speciesadv_unaccounted = 0.,
+   }
+   timers.total = Time.clock()
+   timers.init  = timers.total
    log(string.format("Initializing %s simulation ...\n", self.label))
-   local tmStart = Time.clock()
 
    local cdim = #tbl.lower -- Configuration space dimensions.
    assert(tbl.cells, "Must specify the number of cells in 'cells'.")
@@ -137,8 +147,8 @@ local function buildApplication(self, tbl)
    local cflFrac = tbl.cflFrac or timeStepper.cflFrac   -- CFL fraction.
 
    -- Tracker for timestep
-   local dtTracker   = DataStruct.DynVector { numComponents = 1, }
-   local dtPtr       = Lin.Vec(1)
+   local dtTracker = DataStruct.DynVector { numComponents = 1, }
+   local dtPtr = Lin.Vec(1)
 
    -- Used in reducing time step across species communicator.
    local dtMinLocal, dtMinGlobal = Lin.Vec(1), Lin.Vec(1)
@@ -154,11 +164,6 @@ local function buildApplication(self, tbl)
       cells      = tbl.cells,   decompCutsConf     = tbl.decompCuts,
       numSpecies = numSpecies,  parallelizeSpecies = tbl.parallelizeSpecies,
    }
-
-   -- Some timers.
-   local fwdEulerCombineTime = 0.
-   local writeDataTime       = 0.
-   local writeRestartTime    = 0.
 
    -- Extract periodic directions.
    local periodicDirs = {}
@@ -180,18 +185,12 @@ local function buildApplication(self, tbl)
    end
    -- Setup configuration space grid.
    local confGrid = GridConstructor {
-      lower = tbl.lower,            decomposition = commManager:getConfDecomp(),
-      upper = tbl.upper,            mappings      = tbl.coordinateMap,
-      cells = tbl.cells,            mapc2p        = tbl.mapc2p,
-      periodicDirs = periodicDirs,  world         = tbl.world,
+      lower = tbl.lower,  decomposition = commManager:getConfDecomp(),
+      upper = tbl.upper,  mappings = tbl.coordinateMap,
+      cells = tbl.cells,  mapc2p = tbl.mapc2p,
+      periodicDirs = periodicDirs,  world = tbl.world, 
+      messenger = commManager,
    }
-   if tbl.coordinateMap or tbl.mapc2p then 
-      local metaData = {polyOrder = confBasis:polyOrder(),
-                        basisType = confBasis:id(),
-                        grid      = GKYL_OUT_PREFIX .. "_grid.bp"}
-      confGrid:write("grid.bp", 0.0, metaData)
-   end
-
    -- Read in information about each species.
    local population = PopApp{ messenger = commManager }
    for nm, val in pairs(tbl) do
@@ -205,6 +204,14 @@ local function buildApplication(self, tbl)
 
    -- Distribute species across MPI ranks in species communicator.
    population:decompose()
+
+   -- Create other subcommunicators.
+   commManager:createSubComms(confGrid)
+
+   if tbl.coordinateMap or tbl.mapc2p then 
+      -- Placing this writing step after population:decompose so that only one species rank writes.
+      confGrid:write(confBasis, {0, population:getComm_host(),})
+   end
 
    for _, s in population.iterGlobal() do
       s:fullInit(tbl) -- Initialize species.
@@ -234,8 +241,8 @@ local function buildApplication(self, tbl)
       s:setCfl(cflMin)
    end
 
-   local function completeFieldSetup(fld)
-      fld:fullInit(tbl) -- Complete initialization.
+   local function completeFieldSetup(fld, plasmaField)
+      fld:fullInit(tbl, plasmaField) -- Complete initialization.
       fld:setIoMethod(ioMethod)
       fld:setBasis(confBasis)
       fld:setGrid(confGrid)
@@ -262,7 +269,7 @@ local function buildApplication(self, tbl)
    for _, val in pairs(tbl) do
       if FieldBase.is(val) then
          field = val
-         completeFieldSetup(field)
+         completeFieldSetup(field, field)
          nfields = nfields + 1
       end
    end
@@ -275,7 +282,7 @@ local function buildApplication(self, tbl)
    for _, val in pairs(tbl) do
       if ExternalFieldBase.is(val) then
          externalField = val
-         completeFieldSetup(externalField)
+         completeFieldSetup(externalField, field)
          nfields = nfields + 1
       end
    end
@@ -302,15 +309,21 @@ local function buildApplication(self, tbl)
    end
 
    for _, s in population.iterLocal() do
-      -- Compute the coupling moments.
+      -- Compute moments needed in coupling with fields and collisions.
       s:calcCouplingMoments(0.0, 1, population:getSpecies())
-   end
-   for _, s in population.iterGlobal() do
-      s:calcCrossCouplingMoments(0., 1, population)
    end
 
    -- Initialize field (sometimes requires species to have been initialized).
    field:initField(population)
+
+   commManager:startCommGroup()  -- Needed by NCCL.
+   for _, s in population.iterGlobal() do
+      -- Compute/comunicate moments needed for cross-species interactions.
+      -- Needs to happen after field:advance because we'll initiate (multi-GPU)
+      -- communication here that needs to finish before starting other comms.
+      s:calcCrossCouplingMoments(0., 1, population)
+   end
+   commManager:endCommGroup()  -- Needed by NCCL.
 
    -- Initialize diagnostic objects.
    for _, s in population.iterLocal() do s:createDiagnostics(field) end
@@ -320,9 +333,9 @@ local function buildApplication(self, tbl)
       -- This is a dummy forwardEuler call because some BCs require 
       -- auxFields to be set, which is controlled by species solver.
       if s.charge == 0.0 then
-      	 s:advance(0, population, {NoField {}, NoField {}}, 1, 2)
+         s:advance(0, population, {NoField {}, NoField {}}, 1, 2)
       else
-	 s:advance(0, population, {field, externalField}, 1, 2)
+         s:advance(0, population, {field, externalField}, 1, 2)
       end
       s:applyBcInitial(0, field, externalField, 1, 1)
    end
@@ -332,7 +345,7 @@ local function buildApplication(self, tbl)
 
    -- Function to write data to file.
    local function writeData(tCurr, force)
-      for _, s in population.iterLocal() do s:write(tCurr, force) end
+      for _, s in population.iterLocal() do s:write(tCurr, field, force) end
       field:write(tCurr, force)
       externalField:write(tCurr, force)
    end
@@ -355,13 +368,13 @@ local function buildApplication(self, tbl)
       for _, s in population.iterLocal() do
          -- This is a dummy forwardEuler call because some BCs require 
          -- auxFields to be set, which is controlled by species solver.
-	 if s.charge == 0 then
-	    s:advance(0, population, {NoField {}, NoField {}}, 1, 2)
-	 else
-	    s:advance(0, population, {field, externalField}, 1, 2)
-	 end
+         if s.charge == 0 then
+            s:advance(0, population, {NoField {}, NoField {}}, 1, 2)
+         else
+            s:advance(0, population, {field, externalField}, 1, 2)
+         end
          s:setDtGlobal(dtLast[1])
-	 rTime = s:readRestart(field, externalField)
+         rTime = s:readRestart(field, externalField)
       end
       for _, s in population.iterGlobal() do
          s:advanceCrossSpeciesCoupling(0, population, {field, externalField}, 1, 2)
@@ -385,51 +398,73 @@ local function buildApplication(self, tbl)
 
    -- Various functions to copy/increment fields.
    local function copy(outIdx, aIdx)
+      local tmCopy = Time.clock()
       for _, s in population.iterLocal() do s:copyRk(outIdx, aIdx) end
       field:copyRk(outIdx, aIdx)
+      timers.copy = timers.copy + Time.clock() - tmCopy
    end
-   local function combine(outIdx, a, aIdx, ...)
+   local function combineFunc(outIdx, a, aIdx, ...)
       for _, s in population.iterLocal() do s:combineRk(outIdx, a, aIdx, ...) end
       field:combineRk(outIdx, a, aIdx, ...)
    end
+   local function combine(outIdx, a, aIdx, ...)
+      local tmCombine = Time.clock()
+      combineFunc(outIdx, a, aIdx, ...)
+      timers.combine = timers.combine + Time.clock() - tmCombine
+   end
+   local function combineFwdEuler(outIdx, a, aIdx, ...)
+      local tmCombineFwdEuler = Time.clock()
+      combineFunc(outIdx, a, aIdx, ...)
+      timers.combineFwdEuler = timers.combineFwdEuler + Time.clock() - tmCombineFwdEuler
+   end
    local function applyBc(tCurr, inIdx, outIdx, ...)
+      local tmBc = Time.clock()
       for _, s in population.iterLocal() do s:applyBcIdx(tCurr, field, externalField, inIdx, outIdx, ...) end
       field:applyBcIdx(tCurr, outIdx)
+      timers.bc = timers.bc + Time.clock() - tmBc
    end
 
-   -- Store some flags and info about the state and work done by the app.
    local appStatus = {
-      success      = true,
-      step         = 0,
+      -- Store some flags and info about the state and work done by the app.
+      success = true,
+      step = 0,
       -- For diagnostics:
-      nFwdEuler    = 0,
+      nFwdEuler = 0,
       -- Below: an entry per stage (max 4 stages + 2 for operator splitting).
-      nFail        = {0, 0, 0, 0, 0, 0},
-      dtDiff       = {{GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.},
-                      {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.},
-                      {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.}},
+      nFail = {0, 0, 0, 0, 0, 0},
+      dtDiff = {{GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.},
+                {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.},
+                {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.}},
    }
 
-   -- Compute the time rate of change (dy/dt).
    local function dydt(tCurr, inIdx, outIdx)
+      -- Compute the time rate of change (dy/dt).
+      local tmDydt = Time.clock()
+
       field:clearCFL()
       for _, s in population.iterLocal() do s:clearCFL() end
+
       -- Compute functional field (if any).
       externalField:advance(tCurr)
       
       for _, s in population.iterLocal() do
-         -- Compute moments needed in coupling with fields and
-         -- collisions (the species should update internal datastructures). 
+         -- Compute moments needed in coupling with fields and collisions.
          s:calcCouplingMoments(tCurr, inIdx, population:getSpecies())
-      end
-      for _, s in population.iterGlobal() do
-         s:calcCrossCouplingMoments(tCurr, inIdx, population)
       end
 
       -- Update EM field.
       -- Note that this can be either an elliptic solve, which updates inIdx
       -- or a hyperbolic solve, which updates outIdx = RHS, or a combination of both.
       field:advance(tCurr, population, inIdx, outIdx)
+
+      commManager:startCommGroup()  -- Needed by NCCL.
+      for _, s in population.iterGlobal() do
+         -- Compute/comunicate moments needed for cross-species interactions.
+	 -- Needs to happen after field:advance because we'll initiate (multi-GPU)
+	 -- communication here that needs to finish before starting other comms.
+         s:calcCrossCouplingMoments(tCurr, inIdx, population)
+      end
+      commManager:endCommGroup()  -- Needed by NCCL.
 
       -- Update species.
       for _, s in population.iterLocal() do
@@ -457,12 +492,16 @@ local function buildApplication(self, tbl)
             s[advanceString](s, tCurr, population, {field, externalField}, inIdx, outIdx)
          end
       end
+      timers.dydt = timers.dydt + Time.clock() - tmDydt
    end
 
    -- Function to take a single forward-euler time-step.
    local function forwardEuler(tCurr, dt, inIdx, outIdx, stat)
+      local tmFwdEuler = Time.clock()
+
       appStatus.nFwdEuler = appStatus.nFwdEuler + 1
 
+      local tmDtCalc = Time.clock()
       -- Get suggested dt from each field and species.
       -- Species dt:
       dtMinLocal[1], dtMinGlobal[1] = GKYL_MAX_DOUBLE, GKYL_MAX_DOUBLE
@@ -482,17 +521,21 @@ local function buildApplication(self, tbl)
       --if (dt_relDiff > 0 and dt_relDiff < dt_maxRelDiff) then dtMin = dt end
 
       -- Don't take a time-step larger that input dt.
-      stat.dt_actual    = dt < dtMin and dt or dtMin
+      stat.dt_actual = dt < dtMin and dt or dtMin
       stat.dt_suggested = dtMin
 
       stat.dt_actual = math.min(math.min(stat.dt_actual, tbl.tEnd - tCurr + 1e-20), maxDt)
       
       -- After deciding global dt, tell species.
       for _, s in population.iterLocal() do s:setDtGlobal(stat.dt_actual) end
+      timers.dtCalc = timers.dtCalc + Time.clock() - tmDtCalc
+
       -- Take forward Euler step in fields and species
       -- NOTE: order of these arguments matters... outIdx must come before inIdx.
-      combine(outIdx, stat.dt_actual, outIdx, 1.0, inIdx)
+      combineFwdEuler(outIdx, stat.dt_actual, outIdx, 1.0, inIdx)
       applyBc(tCurr, inIdx, outIdx, calcCflFlag)
+
+      timers.fwdEuler = timers.fwdEuler + Time.clock() - tmFwdEuler
    end
 
    -- Set functions in time stepper object.
@@ -504,12 +547,17 @@ local function buildApplication(self, tbl)
       field:printDevDiagnostics()
    end
 
-   local tmEnd = Time.clock()
-   log(string.format("Initialization completed in %g sec\n\n", tmEnd-tmStart))
+   timers.init = Time.clock()-timers.init
+   log(string.format("Initialization completed in %g sec\n\n", timers.init))
 
    -- Read some info about restarts (default is to write restarts 1/20 (5%) of sim, 
    -- but no need to write restarts more frequently than regular diagnostic output).
    local restartFrameEvery = tbl.restartFrameEvery and tbl.restartFrameEvery or math.max(1/20.0, 1/tbl.nFrame)
+
+   -- Zero out species, field and extField timers (so they don't contain init times).
+   for _, s in population.iterLocal() do s:clearTimers() end
+   field:clearTimers()
+   externalField:clearTimers()
 
    -- Return function that runs main simulation loop.
    return function(self)
@@ -519,9 +567,9 @@ local function buildApplication(self, tbl)
       -- Sanity check: don't run if not needed.
       if tStart >= tEnd then return end
 
-      local dt_max  = tbl.maximumDt and tbl.maximumDt or tEnd-tStart -- max time-step
+      local dt_max = tbl.maximumDt and tbl.maximumDt or tEnd-tStart -- max time-step
       local dt_init = tbl.suggestedDt and tbl.suggestedDt or dt_max -- initial time-step
-      local tCurr   = tStart
+      local tCurr = tStart
       local dt_next = dt_init
       appStatus.step = 1
 
@@ -569,7 +617,6 @@ local function buildApplication(self, tbl)
 	 end
       end
 
-      local tmSimStart = Time.clock()
       local first = true
       local failcount = 0
       local irestart = 0
@@ -577,15 +624,20 @@ local function buildApplication(self, tbl)
       local timesUp = ffi.new("bool [?]", 1)
 
       -- Main simulation loop.
+      timers.timeloop = Time.clock()
       while true do
 	 -- Call time-stepper.
 	 local stepStatus = timeStepper:advance(tCurr, dt_next)
     
          -- If stopfile exists, break.
-         if file_exists(stopfile) or out_of_walltime(tmStart, maxWallTime, timesUp) then
+         if file_exists(stopfile) or out_of_walltime(timers.total, maxWallTime, timesUp) then
             local tlatest = tCurr+stepStatus.dt_actual
+            local tmDiags = Time.clock()
             writeData(tlatest, true)
+            timers.diagnostics = timers.diagnostics + Time.clock() - tmDiags
+            local tmRestart = Time.clock()
             writeRestart(tlatest)
+            timers.restart = timers.restart + Time.clock() - tmRestart
             dtPtr:data()[0] = stepStatus.dt_actual
             dtTracker:appendData(tlatest, dtPtr)
             dtTracker:write(string.format("dt.bp"), tlatest, irestart)
@@ -612,15 +664,15 @@ local function buildApplication(self, tbl)
 	    writeLogMessage(tCurr)
 	    -- We must write data first before calling writeRestart in
 	    -- order not to mess up numbering of frames on a restart.
-            local tmWrite = Time.clock()
+            local tmDiags = Time.clock()
 	    writeData(tCurr)
-            writeDataTime = writeDataTime + Time.clock() - tmWrite
+            timers.diagnostics = timers.diagnostics + Time.clock() - tmDiags
 	    if checkWriteRestart(tCurr) then
                local tmRestart = Time.clock()
 	       writeRestart(tCurr)
                dtTracker:write(string.format("dt.bp"), tCurr, irestart)
                irestart = irestart + 1
-               writeRestartTime = writeRestartTime + Time.clock() - tmRestart
+               timers.restart = timers.restart + Time.clock() - tmRestart
 	    end	    
 	    
 	    dt_next = math.min(stepStatus.dt_suggested, dt_max)
@@ -635,8 +687,10 @@ local function buildApplication(self, tbl)
             failcount = failcount + 1
             log(string.format("WARNING: Timestep dt = %g is below 1e-4*dt_init. Fail counter = %d...\n", dt_next, failcount))
             if failcount > 20 then
+               local tmDiags = Time.clock()
                writeData(tCurr+stepStatus.dt_actual, true)
                dtTracker:write(string.format("dt.bp"), tCurr+stepStatus.dt_actual)
+               timers.diagnostics = timers.diagnostics + Time.clock() - tmDiags
                log(string.format("ERROR: Timestep below 1e-4*dt_init for 20 consecutive steps. Exiting...\n"))
                break
             end
@@ -644,32 +698,15 @@ local function buildApplication(self, tbl)
             failcount = 0
          end
       end
-      local tmSimEnd = Time.clock()
+      local tmEnd = Time.clock()
+      timers.timeloop = tmEnd - timers.timeloop
+      timers.total = tmEnd - timers.total
 
       -- Compute time spent in various parts of code.
       local tmSlvr = 0.0
       local tmMom, tmIntMom, tmBc, tmColl = 0.0, 0.0, 0.0, 0.0
       local tmSrc, tmCollNonSlvr = 0.0, 0.0
-      for _, s in population.iterLocal() do
-	 tmSlvr   = tmSlvr+s:totalSolverTime()
-         tmMom    = tmMom + s:momCalcTime()
-         tmIntMom = tmIntMom + s:intMomCalcTime()
-         tmBc     = tmBc + s:totalBcTime()
-         if s.collisions then
-	    for _, c in pairs(s.collisions) do
-	       tmColl        = tmColl + c:slvrTime()
-               tmCollNonSlvr = tmCollNonSlvr + c:nonSlvrTime()
-	    end
-         end
-         if s.sources then
-	    for _, src in pairs(s.sources) do
-               tmSrc = tmSrc + src:srcTime()
-	    end
-	 end
-      end
 
-      local tmTotal = tmSimEnd-tmSimStart
-      local tmAccounted = 0.0
       log(string.format("\n\nTotal number of time-steps %s\n", appStatus.step))
       log(string.format("   Number of forward-Euler calls %s\n", appStatus.nFwdEuler))
       for stI = 2, 3 do
@@ -679,98 +716,131 @@ local function buildApplication(self, tbl)
             log(string.format("     Max rel dt diff for RK stage-"..stI.." failures %s\n", appStatus.dtDiff[stI][2]))
          end
       end
-      log("")
-      --log(string.format(
-	--     "Number of barriers %d barriers (%g barriers/step)\n\n",
-	--     Mpi.getNumBarriers(), Mpi.getNumBarriers()/appStatus.step))
-      
+
+      -- Compute the time spent inside of dydt components.
+      timers.dydt_extfield = externalField:getTimer('advance')
+      timers.dydt_field = field:getTimer('advance')
+      for _, s in population.iterLocal() do
+         timers.dydt_mom             = timers.dydt_mom             + s:getTimer('mom')
+         timers.dydt_momcross        = timers.dydt_momcross        + s:getTimer('momcross')
+         timers.dydt_speciesadv      = timers.dydt_speciesadv      + s:getTimer('advance')
+         timers.dydt_speciesadvcross = timers.dydt_speciesadvcross + s:getTimer('advancecross')
+         timers.dydt_collisionless   = timers.dydt_collisionless   + s:getTimer('collisionless')
+         timers.dydt_collisions      = timers.dydt_collisions      + s:getTimer('collisions')
+         timers.dydt_boundflux       = timers.dydt_boundflux       + s:getTimer('boundflux')
+         timers.dydt_sources         = timers.dydt_sources         + s:getTimer('sources')
+      end
+      log("\n")
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-	     "Solver took", tmSlvr, tmSlvr/appStatus.step, 100*tmSlvr/tmTotal))
-      tmAccounted = tmAccounted + tmSlvr
+	     "Initialization took", timers.init, 0., 100*timers.init/timers.total))
+      timers.unaccounted = timers.unaccounted + timers.init
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-	     "Solver BCs took", tmBc, tmBc/appStatus.step, 100*tmBc/tmTotal))
-      tmAccounted = tmAccounted + tmBc
+	     "Time loop took", timers.timeloop, timers.timeloop/appStatus.step, 100*timers.timeloop/timers.total))
+      timers.unaccounted = timers.unaccounted + timers.timeloop
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-	     "Field solver took",
-	     field:totalSolverTime(), field:totalSolverTime()/appStatus.step, 100*field:totalSolverTime()/tmTotal))
-      tmAccounted = tmAccounted + field:totalSolverTime()
+	     "  - dydt took", timers.dydt, timers.dydt/appStatus.step, 100*timers.dydt/timers.total))
+      timers.timeloop_unaccounted = timers.timeloop_unaccounted + timers.dydt
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-	     "Field solver BCs",
-	     field:totalBcTime(), field:totalBcTime()/appStatus.step, 100*field:totalBcTime()/tmTotal))
-      tmAccounted = tmAccounted + field:totalBcTime()
+	     "    * moments:", timers.dydt_mom, timers.dydt_mom/appStatus.step, 100*timers.dydt_mom/timers.total))
+      timers.dydt_unaccounted = timers.dydt_unaccounted + timers.dydt_mom
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-	     "Function field solver took",
-	     externalField:totalSolverTime(), externalField:totalSolverTime()/appStatus.step, 100*externalField:totalSolverTime()/tmTotal))
-      tmAccounted = tmAccounted + externalField:totalSolverTime()
+	     "    * cross moments:", timers.dydt_momcross, timers.dydt_momcross/appStatus.step, 100*timers.dydt_momcross/timers.total))
+      timers.dydt_unaccounted = timers.dydt_unaccounted + timers.dydt_momcross
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-	     "Moment calculations took",
-	     tmMom, tmMom/appStatus.step, 100*tmMom/tmTotal))
-      tmAccounted = tmAccounted + tmMom
+	     "    * field solver:", timers.dydt_field, timers.dydt_field/appStatus.step, 100*timers.dydt_field/timers.total))
+      timers.dydt_unaccounted = timers.dydt_unaccounted + timers.dydt_field
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-	     "Integrated moment calculations took",
-	     tmIntMom, tmIntMom/appStatus.step, 100*tmIntMom/tmTotal))
-      tmAccounted = tmAccounted + tmIntMom
+	     "    * external field solver:", timers.dydt_extfield, timers.dydt_extfield/appStatus.step, 100*timers.dydt_extfield/timers.total))
+      timers.dydt_unaccounted = timers.dydt_unaccounted + timers.dydt_extfield
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-	     "Field energy calculations took",
-	     field:energyCalcTime(), field:energyCalcTime()/appStatus.step, 100*field:energyCalcTime()/tmTotal))
-      tmAccounted = tmAccounted + field:energyCalcTime()
+	     "    * species advance:", timers.dydt_speciesadv, timers.dydt_speciesadv/appStatus.step, 100*timers.dydt_speciesadv/timers.total))
+      timers.dydt_unaccounted = timers.dydt_unaccounted + timers.dydt_speciesadv
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-	     "Collision solver(s) took",
-	     tmColl, tmColl/appStatus.step, 100*tmColl/tmTotal))
-      tmAccounted = tmAccounted + tmColl
+	     "      > collisionless:", timers.dydt_collisionless, timers.dydt_collisionless/appStatus.step, 100*timers.dydt_collisionless/timers.total))
+      timers.dydt_speciesadv_unaccounted = timers.dydt_speciesadv_unaccounted + timers.dydt_collisionless
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-	     "Collision (other) took",
-	     tmCollNonSlvr, tmCollNonSlvr/appStatus.step, 100*tmCollNonSlvr/tmTotal))
-      tmAccounted = tmAccounted + tmCollNonSlvr
+	     "      > collisions:", timers.dydt_collisions, timers.dydt_collisions/appStatus.step, 100*timers.dydt_collisions/timers.total))
+      timers.dydt_speciesadv_unaccounted = timers.dydt_speciesadv_unaccounted + timers.dydt_collisions
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-	     "Source updaters took",
-	     tmSrc, tmSrc/appStatus.step, 100*tmSrc/tmTotal))
-      tmAccounted = tmAccounted + tmSrc
+	     "      > boundary flux:", timers.dydt_boundflux, timers.dydt_boundflux/appStatus.step, 100*timers.dydt_boundflux/timers.total))
+      timers.dydt_speciesadv_unaccounted = timers.dydt_speciesadv_unaccounted + timers.dydt_boundflux
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-	     "Stepper combine/copy took",
-	     timeStepper.stepperTime, timeStepper.stepperTime/appStatus.step, 100*timeStepper.stepperTime/tmTotal))
-      tmAccounted = tmAccounted + timeStepper.stepperTime
+	     "      > sources:", timers.dydt_sources, timers.dydt_sources/appStatus.step, 100*timers.dydt_sources/timers.total))
+      timers.dydt_speciesadv_unaccounted = timers.dydt_speciesadv_unaccounted + timers.dydt_sources
+      timers.dydt_speciesadv_unaccounted = timers.dydt_speciesadv - timers.dydt_speciesadv_unaccounted
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-	     "Forward Euler combine took",
-	     fwdEulerCombineTime, fwdEulerCombineTime/appStatus.step, 100*fwdEulerCombineTime/tmTotal))
-      tmAccounted = tmAccounted + fwdEulerCombineTime
+	     "      > [Unaccounted]", timers.dydt_speciesadv_unaccounted, timers.dydt_speciesadv_unaccounted/appStatus.step, 100*timers.dydt_speciesadv_unaccounted/timers.dydt_speciesadv))
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-      	     "Time spent in barrier function",
-      	     Mpi.getTimeBarriers(), Mpi.getTimeBarriers()/appStatus.step, 100*Mpi.getTimeBarriers()/tmTotal))      
-      tmUnaccounted = tmTotal - tmAccounted
+	     "    * species advanceCross:", timers.dydt_speciesadvcross, timers.dydt_speciesadvcross/appStatus.step, 100*timers.dydt_speciesadvcross/timers.total))
+      timers.dydt_unaccounted = timers.dydt_unaccounted + timers.dydt_speciesadvcross
+      timers.dydt_unaccounted = timers.dydt - timers.dydt_unaccounted
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-	     "Data write took",
-	     writeDataTime, writeDataTime/appStatus.step, 100*writeDataTime/tmTotal))
-      tmAccounted = tmAccounted + writeDataTime
+	     "    * [Unaccounted]", timers.dydt_unaccounted, timers.dydt_unaccounted/appStatus.step, 100*timers.dydt_unaccounted/timers.dydt))
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-	     "Write restart took",
-	     writeRestartTime, writeRestartTime/appStatus.step, 100*writeRestartTime/tmTotal))
-      tmAccounted = tmAccounted + writeRestartTime
+	     "  - forward Euler took", timers.fwdEuler, timers.fwdEuler/appStatus.step, 100*timers.fwdEuler/timers.total))
+      timers.timeloop_unaccounted = timers.timeloop_unaccounted + timers.fwdEuler
       log(string.format(
-	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n\n",
-	     "[Unaccounted for]",
-	     tmUnaccounted, tmUnaccounted/appStatus.step, 100*tmUnaccounted/tmTotal))
-      
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "    * dt calc took", timers.dtCalc, timers.dtCalc/appStatus.step, 100*timers.dtCalc/timers.total))
+      timers.fwdEuler_unaccounted = timers.fwdEuler_unaccounted + timers.dtCalc
       log(string.format(
-	     "%-40s %13.5f s   (%9.6f s/step)   (%6.f%%)\n\n",
-	     "Main loop completed in",
-	     tmTotal, tmTotal/appStatus.step, 100*tmTotal/tmTotal))      
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "    * combine took", timers.combineFwdEuler, timers.combineFwdEuler/appStatus.step, 100*timers.combineFwdEuler/timers.total))
+      timers.fwdEuler_unaccounted = timers.fwdEuler_unaccounted + timers.combineFwdEuler
+      log(string.format(
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "    * BCs took", timers.bc, timers.bc/appStatus.step, 100*timers.bc/timers.total))
+      timers.fwdEuler_unaccounted = timers.fwdEuler_unaccounted + timers.bc
+      timers.fwdEuler_unaccounted = timers.fwdEuler - timers.fwdEuler_unaccounted
+      log(string.format(
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "    * [Unaccounted]", timers.fwdEuler_unaccounted, timers.fwdEuler_unaccounted/appStatus.step, 100*timers.fwdEuler_unaccounted/timers.fwdEuler))
+      log(string.format(
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "  - copy took", timers.copy, timers.copy/appStatus.step, 100*timers.copy/timers.total))
+      timers.timeloop_unaccounted = timers.timeloop_unaccounted + timers.copy
+      log(string.format(
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "  - combine took", timers.combine, timers.combine/appStatus.step, 100*timers.combine/timers.total))
+      timers.timeloop_unaccounted = timers.timeloop_unaccounted + timers.combine
+      log(string.format(
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "  - diagnostic write took", timers.diagnostics, timers.diagnostics/appStatus.step, 100*timers.diagnostics/timers.total))
+      timers.timeloop_unaccounted = timers.timeloop_unaccounted + timers.diagnostics
+      log(string.format(
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "  - restart write took", timers.restart, timers.restart/appStatus.step, 100*timers.restart/timers.total))
+      timers.timeloop_unaccounted = timers.timeloop_unaccounted + timers.restart
+      timers.timeloop_unaccounted = timers.timeloop - timers.timeloop_unaccounted
+      log(string.format(
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "  - [Unaccounted]", timers.timeloop_unaccounted, timers.timeloop_unaccounted/appStatus.step, 100*timers.timeloop_unaccounted/timers.timeloop))
+
+      log(string.format(
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "Whole simulation took", timers.total, timers.total/appStatus.step, 100*timers.total/timers.total))
+      timers.unaccounted = timers.total - timers.unaccounted
+      log(string.format(
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "[Unaccounted]", timers.unaccounted, timers.unaccounted/appStatus.step, 100*timers.unaccounted/timers.total))
+
+      log("\n")
       log(date(false):fmt()); log("\n") -- Time-stamp for sim end.
 
       -- Perform other numerical/performance diagnostics.
@@ -803,22 +873,22 @@ return {
    Gyrofluid = function ()
       App.label = "Gyrofluid"
       return  {
-	 AdiabaticSpecies    = require ("App.Species.AdiabaticSpecies"),
-         AdiabaticBasicBC    = require "App.BCs.AdiabaticBasic",
-	 App                 = App,
-         BasicBC             = require ("App.BCs.GyrofluidBasic").GyrofluidBasic,
-         AbsorbBC            = require ("App.BCs.GyrofluidBasic").GyrofluidAbsorb,
-         CopyBC              = require ("App.BCs.GyrofluidBasic").GyrofluidCopy,
-         SheathBC            = require ("App.BCs.GyrofluidBasic").GyrofluidSheath,
-         ZeroFluxBC          = require ("App.BCs.GyrofluidBasic").GyrofluidZeroFlux,
-	 Field               = require ("App.Field.GkField").GkField,
-	 FunctionProjection  = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
-	 Geometry            = require ("App.Field.GkField").GkGeometry,
+	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
+         AdiabaticBasicBC = require "App.BCs.AdiabaticBasic",
+	 App = App,
+         BasicBC = require ("App.BCs.GyrofluidBasic").GyrofluidBasic,
+         AbsorbBC = require ("App.BCs.GyrofluidBasic").GyrofluidAbsorb,
+         CopyBC = require ("App.BCs.GyrofluidBasic").GyrofluidCopy,
+         SheathBC = require ("App.BCs.GyrofluidBasic").GyrofluidSheath,
+         ZeroFluxBC = require ("App.BCs.GyrofluidBasic").GyrofluidZeroFlux,
+	 Field = require ("App.Field.GkField").GkField,
+	 FunctionProjection = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
+	 Geometry = require ("App.Field.GkField").GkGeometry,
 	 GyrofluidProjection = require ("App.Projection.GyrofluidProjection").GyrofluidProjection, 
-         HeatFlux            = require "App.Collisions.GfHeatFlux",
-         PASCollisions       = require "App.Collisions.GfPitchAngleScattering",
-         Source              = require "App.Sources.GyrofluidSource",
-	 Species             = require "App.Species.GyrofluidSpecies",
+         HeatFlux = require "App.Collisions.GfHeatFlux",
+         PASCollisions = require "App.Collisions.GfPitchAngleScattering",
+         Source = require "App.Sources.GyrofluidSource",
+	 Species = require "App.Species.GyrofluidSpecies",
       }
    end,
 
@@ -828,104 +898,143 @@ return {
 	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
          AdiabaticBasicBC = require "App.BCs.AdiabaticBasic",
 	 App = App,
-         BasicBC    = require ("App.BCs.GkBasic").GkBasic,
-         AbsorbBC   = require ("App.BCs.GkBasic").GkAbsorb,
-         CopyBC     = require ("App.BCs.GkBasic").GkCopy,
+         AxisymmetricTokamakLimiterBC = require "App.BCs.AxisymmetricTokamakLimiter",
+         BasicBC = require ("App.BCs.GkBasic").GkBasic,
+         MaxwellianBC = require("App.BCs.GkMaxwellianBC"),
+         AbsorbBC = require ("App.BCs.GkBasic").GkAbsorb,
+         CopyBC = require ("App.BCs.GkBasic").GkCopy,
          NeutralRecyclingBC = require "App.BCs.NeutralRecycling",
-         OpenBC     = require ("App.BCs.GkBasic").GkOpen,
-         ReflectBC  = require ("App.BCs.GkBasic").GkReflect,
-         SheathBC   = require ("App.BCs.GkBasic").GkSheath,
+         OpenBC = require ("App.BCs.GkBasic").GkOpen,
+         ReflectBC = require ("App.BCs.GkBasic").GkReflect,
+         SheathBC = require "App.BCs.GkSheath",
          ZeroFluxBC = require ("App.BCs.GkBasic").GkZeroFlux,
          TwistShiftBC = require "App.BCs.TwistShift",
-	 VmAbsorbBC   = require ("App.BCs.VlasovBasic").VlasovAbsorb,
-	 VmReflectBC  = require ("App.BCs.VlasovBasic").VlasovReflect,
-	 BGKCollisions   = require "App.Collisions.GkBGKCollisions",
-	 BgkCollisions   = require "App.Collisions.GkBGKCollisions",
-	 ChargeExchange  = require "App.Collisions.GkChargeExchange",
-	 Field           = require ("App.Field.GkField").GkField,
-	 AmbipolarSheathField   = require "App.Field.AmbipolarSheathField",
-	 FunctionProjection     = require ("App.Projection.GkProjection").FunctionProjection, 
-	 Geometry               = require ("App.Field.GkField").GkGeometry,
-	 Ionization             = require "App.Collisions.GkIonization",
-	 LBOCollisions          = require "App.Collisions.GkLBOCollisions",
-	 LboCollisions          = require "App.Collisions.GkLBOCollisions",
-	 MaxwellianProjection   = require ("App.Projection.GkProjection").MaxwellianProjection,
-	 Species                = require "App.Species.GkSpecies",
-	 Source                 = require "App.Sources.GkSource",
-	 Vlasov                 = require ("App.Species.VlasovSpecies"),
+	 VmAbsorbBC = require ("App.BCs.VlasovBasic").VlasovAbsorb,
+	 VmReflectBC = require ("App.BCs.VlasovBasic").VlasovReflect,
+	 BGKCollisions = require "App.Collisions.GkBGKCollisions",
+	 BgkCollisions = require "App.Collisions.GkBGKCollisions",
+	 Diffusion = require ("App.Collisions.Diffusion").DiffusionGyrokinetic,
+	 ChargeExchange = require "App.Collisions.GkChargeExchange",
+	 Field = require ("App.Field.GkField").GkField,
+	 AmbipolarSheathField = require "App.Field.AmbipolarSheathField",
+	 FunctionProjection = require ("App.Projection.GkProjection").FunctionProjection, 
+	 Geometry = require ("App.Field.GkField").GkGeometry,
+	 Ionization = require "App.Collisions.GkIonization",
+	 LBOCollisions = require "App.Collisions.GkLBOCollisions",
+	 LboCollisions = require "App.Collisions.GkLBOCollisions",
+	 MaxwellianProjection = require ("App.Projection.GkProjection").MaxwellianProjection,
+	 Species = require "App.Species.GkSpecies",
+	 Source = require "App.Sources.GkSource",
+	 Vlasov = require ("App.Species.VlasovSpecies"),
 	 VmMaxwellianProjection = require ("App.Projection.VlasovProjection").MaxwellianProjection,
-	 VmSource               = require "App.Sources.VmSource",
+	 VmSource = require "App.Sources.VmSource",
       }
    end,
 
    IncompEuler = function ()
       App.label = "Incompressible Euler"
       return {
-	 App        = App,
-         BasicBC    = require ("App.BCs.FluidBasic").FluidBasic,
-         AbsorbBC   = require ("App.BCs.FluidBasic").FluidAbsorb,
-         CopyBC     = require ("App.BCs.FluidBasic").FluidCopy,
+	 App = App,
+         BasicBC = require ("App.BCs.FluidBasic").FluidBasic,
+         AbsorbBC = require ("App.BCs.FluidBasic").FluidAbsorb,
+         CopyBC = require ("App.BCs.FluidBasic").FluidCopy,
          ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
-	 Diffusion  = require "App.Collisions.Diffusion",
-	 Field      = require ("App.Field.GkField").GkField,
-         Source     = require "App.Sources.FluidSource",
-	 Species    = require "App.Species.IncompEulerSpecies",
+	 Diffusion = require "App.Collisions.Diffusion",
+	 Field = require ("App.Field.GkField").GkField,
+         Source = require "App.Sources.FluidSource",
+	 Species = require "App.Species.IncompEulerSpecies",
       }
    end,
 
    HasegawaWakatani = function ()
       App.label = "Hasegawa-Wakatani"
       return {
-	 App       = App,
-	 Field     = require ("App.Field.GkField").GkField,
-	 Species   = require "App.Species.HasegawaWakataniSpecies",
+	 App = App,
+	 Field = require ("App.Field.GkField").GkField,
+	 Species = require "App.Species.HasegawaWakataniSpecies",
 	 Diffusion = require "App.Collisions.Diffusion",
       }
    end,
 
    VlasovMaxwell = function ()
       App.label = "Vlasov-Maxwell"
+      GenSpecies = {
+         -- Non-relativistic Vlasov flavors
+         Vlasov = require ("App.Species.VlasovSpecies").VlasovMaxwell,
+         VlasovPoisson = require ("App.Species.VlasovSpecies").VlasovPoisson,
+         VlasovPoissonA = require ("App.Species.VlasovSpecies").VlasovPoissonA,
+         VlasovNeutral = require ("App.Species.VlasovSpecies").VlasovNeutral,
+         VlasovGenGeoNeutral = require ("App.Species.VlasovSpecies").VlasovGenGeoNeutral,
+         -- Relativistic Vlasov flavors
+         VlasovSR = require ("App.Species.VlasovSpecies").VlasovSRMaxwell,
+         VlasovSRNeutral = require ("App.Species.VlasovSpecies").VlasovSRNeutral,
+      }
+      GenField = {
+         Maxwell = require ("App.Field.MaxwellField").MaxwellField,
+      }
       return {
-	 App = App,
-         BasicBC    = require ("App.BCs.VlasovBasic").VlasovBasic,
-         AbsorbBC   = require ("App.BCs.VlasovBasic").VlasovAbsorb,
-         CopyBC     = require ("App.BCs.VlasovBasic").VlasovCopy,
+         App = App,
+         BasicBC = require ("App.BCs.VlasovBasic").VlasovBasic,
+         AbsorbBC = require ("App.BCs.VlasovBasic").VlasovAbsorb,
+         CopyBC = require ("App.BCs.VlasovBasic").VlasovCopy,
          NeutralRecyclingBC = require "App.BCs.NeutralRecycling",
-         OpenBC     = require ("App.BCs.VlasovBasic").VlasovOpen,
-         ReflectBC  = require ("App.BCs.VlasovBasic").VlasovReflect,
+         OpenBC = require ("App.BCs.VlasovBasic").VlasovOpen,
+         ReflectBC = require ("App.BCs.VlasovBasic").VlasovReflect,
          ZeroFluxBC = require ("App.BCs.VlasovBasic").VlasovZeroFlux,
          BronoldFehskeBC = require "App.BCs.BronoldFehskeReflection",
-	 Species         = require "App.Species.VlasovSpecies",
-	 FuncSpecies     = require "App.Species.FuncVlasovSpecies",
-	 Field           = require ("App.Field.MaxwellField").MaxwellField,
-	 ExternalField   = require ("App.Field.MaxwellField").ExternalMaxwellField,
-	 FuncField       = require ("App.Field.MaxwellField").ExternalMaxwellField, -- for backwards compat
-	 FunctionProjection   = require ("App.Projection.VlasovProjection").FunctionProjection,
-	 MaxwellianProjection = require ("App.Projection.VlasovProjection").MaxwellianProjection,
-	 BGKCollisions  = require "App.Collisions.VmBGKCollisions",
-	 LBOCollisions  = require "App.Collisions.VmLBOCollisions",
-	 BgkCollisions  = require "App.Collisions.VmBGKCollisions",
-	 LboCollisions  = require "App.Collisions.VmLBOCollisions",
-	 ChargeExchange = require "App.Collisions.VmChargeExchange",
-	 Ionization     = require "App.Collisions.VmIonization",
-	 Diffusion      = require "App.Collisions.Diffusion",
-	 SteadySource   = require "App.Sources.VmSteadyStateSource",
-	 Source         = require "App.Sources.VmSource",
+         -- Backwards compatible species and field objects
+         Species = require ("App.Species.VlasovSpecies").VlasovMaxwell,
+         FuncSpecies = require "App.Species.FuncVlasovSpecies",
+         Field = require ("App.Field.MaxwellField").MaxwellField,
+         ExternalField = require ("App.Field.MaxwellField").ExternalMaxwellField,
+         -- Flexible species and field objects
+         GenSpecies = GenSpecies,
+         GenField = GenField,
+         FunctionProjection = require ("App.Projection.VlasovProjection").FunctionProjection,
+         MaxwellianProjection = require ("App.Projection.VlasovProjection").MaxwellianProjection,
+         BGKCollisions = require "App.Collisions.VmBGKCollisions",
+         LBOCollisions = require "App.Collisions.VmLBOCollisions",
+         BgkCollisions = require "App.Collisions.VmBGKCollisions",
+         LboCollisions = require "App.Collisions.VmLBOCollisions",
+         ChargeExchange = require "App.Collisions.VmChargeExchange",
+         Ionization = require "App.Collisions.VmIonization",
+	 Diffusion = require ("App.Collisions.Diffusion").DiffusionVlasov,
+         SteadySource = require "App.Sources.VmSteadyStateSource",
+         Source = require "App.Sources.VmSource",
       }
    end,
    
    PassiveAdvection = function ()
       App.label = "Passively-advected scalar fluid"
       return {
-	 App        = App,
-         BasicBC    = require ("App.BCs.FluidBasic").FluidBasic,
-         AbsorbBC   = require ("App.BCs.FluidBasic").FluidAbsorb,
-         CopyBC     = require ("App.BCs.FluidBasic").FluidCopy,
+	 App = App,
+         BasicBC = require ("App.BCs.FluidBasic").FluidBasic,
+         AbsorbBC = require ("App.BCs.FluidBasic").FluidAbsorb,
+         CopyBC = require ("App.BCs.FluidBasic").FluidCopy,
          ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
          TwistShiftBC = require "App.BCs.TwistShift",
-	 Diffusion  = require "App.Collisions.Diffusion",
-         Source     = require "App.Sources.FluidSource",
-	 Species    = require "App.Species.PassiveAdvectionSpecies",
+	 Diffusion = require "App.Collisions.Diffusion",
+         Source = require "App.Sources.FluidSource",
+	 Species = require "App.Species.PassiveAdvectionSpecies",
       }
+   end,
+   
+   EulerIso = function ()
+      App.label = "Isothermal Euler"
+      return {
+        App = App,
+        BasicBC = require ("App.BCs.FluidBasic").FluidBasic,
+        AbsorbBC = require ("App.BCs.FluidBasic").FluidAbsorb,
+        CopyBC = require ("App.BCs.FluidBasic").FluidCopy,
+        ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
+        Species = require "App.Species.EulerSpecies",
+      }
+   end,
+
+   Moments = function ()
+      -- this is a mere redirection to the stand-alone Moments App
+      -- that wraps the G0 Moments App
+      local App = require("App.Moments.Moments")
+      return App
    end,
 }

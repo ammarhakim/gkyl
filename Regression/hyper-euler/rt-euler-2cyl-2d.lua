@@ -1,6 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
 local Moments = require("App.PlasmaOnCartGrid").Moments()
-local Euler = require "Eq.Euler"
 
 gasGamma = 1.4 -- gas adiabatic constant
 
@@ -10,15 +9,12 @@ end
 
 -- create app
 eulerApp = Moments.App {
-   logToFile = true,
-
    tEnd = 0.16, -- end time
    nFrame = 5, -- number of output frame
    lower = {0.0, 0.0}, -- lower left corner
    upper = {1.0, 1.0}, -- upper right corner
    cells = {300, 300}, -- number of cells
    cflFrac = 0.9, -- CFL fraction
-   timeStepper = "fvDimSplit",
    
    -- decomposition stuff
    decompCuts = {1, 1}, -- cuts in each direction
@@ -27,8 +23,8 @@ eulerApp = Moments.App {
    fluid = Moments.Species {
       charge = 0.0, mass = 1.0,
 
-      equation = Euler { gasGamma = gasGamma },
-      equationInv = Euler { gasGamma = gasGamma, numericalFlux="lax" },
+      equation = Moments.Euler { gasGamma = gasGamma },
+      equationInv = Moments.Euler { gasGamma = gasGamma, numericalFlux="lax" },
       forceInv = false,
 
       -- initial conditions

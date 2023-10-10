@@ -84,29 +84,29 @@ plasmaApp = Plasma.App {
    },
 
    -- Neutral species with a bump in the tail.
-   bump = Plasma.Species {
-      charge = 0.0, mass = 1.0,
-      -- Velocity space grid.
-      lower = {-8.0*vt},
-      upper = { 8.0*vt},
-      cells = {48},
-      -- Initial conditions.
-      init = function (t, xn)
-	 local x, v = xn[1], xn[2]
-
-         return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
-      end,
-      -- Evolve species?
-      evolve = true,
-      evolveCollisionless = false,
-      -- Diagnostic moments.
-      diagnostics = { "M0", "M1i", "M2", "intM0", "intM1i", "intM2" },
-      -- Collisions.
-      coll = Plasma.LBOCollisions {
-         collideWith = {'bump'},
-         frequencies = {nu},
-      },
-   },
+--   bump = Plasma.Species {
+--      charge = 0.0, mass = 1.0,
+--      -- Velocity space grid.
+--      lower = {-8.0*vt},
+--      upper = { 8.0*vt},
+--      cells = {48},
+--      -- Initial conditions.
+--      init = function (t, xn)
+--	 local x, v = xn[1], xn[2]
+--
+--         return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
+--      end,
+--      -- Evolve species?
+--      evolve = true,
+--      evolveCollisionless = false,
+--      -- Diagnostic moments.
+--      diagnostics = { "M0", "M1i", "M2", "intM0", "intM1i", "intM2" },
+--      -- Collisions.
+--      coll = Plasma.LBOCollisions {
+--         collideWith = {'bump'},
+--         frequencies = {nu},
+--      },
+--   },
 
 }
 -- Run application.

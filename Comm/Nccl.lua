@@ -46,13 +46,18 @@ typedef enum { ncclSuccess                 =  0,
 
 /* Communicator configuration. Users can assign value to attributes to specify the
  * behavior of a communicator. */
-typedef struct ncclConfig_v21400 {
+typedef struct ncclConfig_v21700 {
   /* attributes that users should never touch. */
   size_t size;
   unsigned int magic;
   unsigned int version;
   /* attributes that users are able to customize. */
   int blocking;
+  int cgaClusterSize;
+  int minCTAs;
+  int maxCTAs;
+  const char *netName;
+  int splitShare;
 } ncclConfig_t;
 
 /* Data types */
@@ -65,6 +70,7 @@ typedef enum { ncclInt8       = 0, ncclChar       = 0,
                ncclFloat16    = 6, ncclHalf       = 6,
                ncclFloat32    = 7, ncclFloat      = 7,
                ncclFloat64    = 8, ncclDouble     = 8,
+// MF Commented these out presumably because LuaJIT can't handle preprocessor instructions.
 // #if defined(__CUDA_BF16_TYPES_EXIST__)
 //                ncclBfloat16   = 9,
 //                ncclNumTypes   = 10
@@ -111,6 +117,18 @@ ncclResult_t  ncclCommDestroy(ncclComm_t comm);
 ncclResult_t  ncclCommGetAsyncError(ncclComm_t comm, ncclResult_t *asyncError);
 
 /**
+* AllGather
+* Gather sendcount values from all GPUs into recvbuff, receiving data from rank i at offset i*sendcount.
+*
+* Note: This assumes the receive count is equal to nranks*sendcount, which means that
+* recvbuff should have a size of at least nranks*sendcount elements.
+*
+* In-place operation will happen if sendbuff == recvbuff + rank * sendcount.
+*/
+ncclResult_t ncclAllGather(const void* sendbuff, void* recvbuff, size_t count, ncclDataType_t datatype, ncclComm_t comm, cudaStream_t stream);
+
+
+/**
  * Allreduce
  *
  * Reduce data arrays of length count in sendbuff using op operation
@@ -119,6 +137,21 @@ ncclResult_t  ncclCommGetAsyncError(ncclComm_t comm, ncclResult_t *asyncError);
  * In-place operation will happen if sendbuff == recvbuff.
  */
 ncclResult_t ncclAllReduce(const void* sendbuff, void* recvbuff, size_t count, ncclDataType_t datatype, ncclRedOp_t op, ncclComm_t comm, cudaStream_t stream);
+
+/*
+ * Receive
+ *
+ * Receive data from rank peer into recvbuff.
+ *
+ * Rank peer needs to call ncclSend with the same datatype and the same count to this
+ * rank.
+ *
+ * This operation is blocking for the GPU. If multiple ncclSend and ncclRecv operations
+ * need to progress concurrently to complete, they must be fused within a ncclGroupStart/
+ * ncclGroupEnd section.
+ */
+ ncclResult_t  ncclRecv(void* recvbuff, size_t count, ncclDataType_t datatype, int peer,
+ ncclComm_t comm, cudaStream_t stream);
 
 /*
  * Send
@@ -136,19 +169,22 @@ ncclResult_t  ncclSend(const void* sendbuff, size_t count, ncclDataType_t dataty
     ncclComm_t comm, cudaStream_t stream);
 
 /*
- * Receive
+ * Group Start
  *
- * Receive data from rank peer into recvbuff.
- *
- * Rank peer needs to call ncclSend with the same datatype and the same count to this
- * rank.
- *
- * This operation is blocking for the GPU. If multiple ncclSend and ncclRecv operations
- * need to progress concurrently to complete, they must be fused within a ncclGroupStart/
- * ncclGroupEnd section.
+ * Start a group call. All calls to NCCL until ncclGroupEnd will be fused into
+ * a single NCCL operation. Nothing will be started on the CUDA stream until
+ * ncclGroupEnd.
  */
-ncclResult_t  ncclRecv(void* recvbuff, size_t count, ncclDataType_t datatype, int peer,
-    ncclComm_t comm, cudaStream_t stream);
+ncclResult_t  ncclGroupStart();
+
+/*
+ * Group End
+ *
+ * End a group call. Start a fused NCCL operation consisting of all calls since
+ * ncclGroupStart. Operations on the CUDA stream depending on the NCCL operations
+ * need to be called after ncclGroupEnd.
+ */
+ncclResult_t  ncclGroupEnd();
 
 /*
    Gkyl functions to wrap other NCCL objects/functions.
@@ -224,6 +260,12 @@ function _M.CommInitRankConfig(comm, nranks, commId, rank, config)
    return ffiC.ncclCommInitRankConfig(comm, nranks, commId, rank, config)
 end
 
+-- ncclAllGather
+function _M.AllGather(sendbuff, recvbuff, count, datatype, comm, stream)
+   return ffiC.ncclAllGather(sendbuff, recvbuff, count, datatype,
+      getObj(comm, "ncclComm_t[1]"), getObj(stream, "cudaStream_t[1]"))
+end
+
 -- ncclAllReduce.
 function _M.AllReduce(sendbuff, recvbuff, count, datatype, op, comm, stream)
    return ffiC.ncclAllReduce(sendbuff, recvbuff, count, datatype, op,
@@ -234,6 +276,16 @@ end
 function _M.Send(sendbuff, count, datatype, peer, comm, stream)
    return ffiC.ncclSend(sendbuff, count, datatype, peer,
       getObj(comm, "ncclComm_t[1]"), getObj(stream, "cudaStream_t[1]"))
+end
+
+-- ncclGroupStart
+function _M.GroupStart()
+   return ffiC.ncclGroupStart()
+end
+
+-- ncclGroupEnd
+function _M.GroupEnd()
+   return ffiC.ncclGroupEnd()
 end
 
 -- ncclRecv

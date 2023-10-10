@@ -9,22 +9,22 @@
 
 -- Gkyl libraries.
 local Alloc            = require "Lib.Alloc"
-local SerendipityNodes = require "Lib.SerendipityNodes"
 local Lin              = require "Lib.Linalg"
 local Proto            = require "Proto"
-local Range            = require "Lib.Range"
 local UpdaterBase      = require "Updater.Base"
+local ZeroArray        = require "DataStruct.ZeroArray"
 
 -- System libraries.
 local ffi  = require "ffi"
 local ffiC = ffi.C
 local xsys = require "xsys"
+require "Lib.ZeroUtil"
 
 -- Template for function to map computional space -> physical space.
 local compToPhysTempl = xsys.template([[
 return function (eta, dx, xc, xOut)
 |for i = 1, NDIM do
-   xOut[${i}] = 0.5*dx[${i}]*eta[${i}] + xc[${i}]
+   xOut[${i}] = 0.5*dx[${i}]*eta[${i-1}] + xc[${i}]
 |end
 end
 ]])
@@ -33,14 +33,71 @@ end
 local evalFuncTempl = xsys.template([[
 return function (tCurr, xn, func, fout)
 |for i = 1, M-1 do
-   fout[${i}], 
+   fout[${i-1}], 
 |end
-   fout[${M}] = func(tCurr, xn)
+   fout[${M-1}] = func(tCurr, xn)
 end
 ]])
 
 ffi.cdef[[
-  void nodToMod(double* fN, int numNodes, int numVal, int ndim, int p, double* fM);
+// Object type
+typedef struct gkyl_eval_on_nodes gkyl_eval_on_nodes;
+
+/**
+ * Create new updater to compute function on nodes and calculate its
+ * expansion on basis functions. Free using gkyl_eval_on_nodes_release
+ * method.
+ *
+ * @param grid Grid object
+ * @param basis Basis functions to project on
+ * @param num_ret_vals Number of values 'eval' sets
+ * @param eval Function to project.
+ * @param ctx Context for function evaluation. Can be NULL.
+ * @return New updater pointer.
+ */
+gkyl_eval_on_nodes* gkyl_eval_on_nodes_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
+  int num_ret_vals, evalf_t eval, void *ctx);
+
+/**
+ * Compute evaluation on nodes and corresponding expansion
+ * coefficients. The update_rng MUST be a sub-range of the range on
+ * which the array is defined. That is, it must be either the same
+ * range as the array range, or one created using the
+ * gkyl_sub_range_init method.
+ *
+ * @param up Eval on nodes updater to run
+ * @param tm Time at which eval must be computed
+ * @param update_rng Range on which to run eval.
+ * @param out Output array
+ */
+void gkyl_eval_on_nodes_advance(const gkyl_eval_on_nodes *up,
+  double tm, const struct gkyl_range *update_rng, struct gkyl_array *out);
+
+/**
+ * Perform the nodal to modal transformation.
+ *
+ * @param up Project on basis updater.
+ * @param fun_at_nodes Function evaluated at nodes in one cell.
+ * @param f Modal coefficients of the function in one cell.
+ */
+void gkyl_eval_on_nodes_nod2mod(const gkyl_eval_on_nodes *up, const struct gkyl_array *fun_at_nodes, double *f);
+
+/**
+ * Get the coordinates of a given node.
+ *
+ * @param up Project on basis updater.
+ * @param node Index indicate the desired node.
+ * @return Node coordinates.
+ */
+double* gkyl_eval_on_nodes_fetch_node(const gkyl_eval_on_nodes *up, long node);
+
+/**
+ * Delete updater.
+ *
+ * @param up Updater to delete.
+ */
+void gkyl_eval_on_nodes_release(gkyl_eval_on_nodes *up);
 ]]
 
 -- Projection updater object.
@@ -62,14 +119,14 @@ function EvalOnNodes:init(tbl)
 
    self._onGhosts = xsys.pickBool(tbl.onGhosts, false)
 
-   local ndim      = self._basis:ndim()
-   local polyOrder = self._basis:polyOrder()
-
-   self.nodes    = SerendipityNodes["nodes"..ndim.."xp"..polyOrder]
-   self.numNodes = #self.nodes
+   local ndim = self._basis:ndim()
 
    -- Construct various functions from template representations.
    self._compToPhys = loadstring(compToPhysTempl {NDIM = ndim} )()
+
+   self.dx  = Lin.Vec(ndim) -- Cell shape.
+   self.xc  = Lin.Vec(ndim) -- Cell center.
+   self.xmu = Lin.Vec(ndim) -- Coordinate at ordinate.
 end
 
 -- Advance method.
@@ -77,23 +134,19 @@ function EvalOnNodes:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
    local qOut = assert(outFld[1], "EvalOnNodes.advance: Must specify an output field")
 
-   local ndim      = grid:ndim()
-   local numBasis  = self._basis:numBasis()
-   local polyOrder = self._basis:polyOrder()
-   local numVal    = qOut:numComponents()/numBasis
+   local numBasis = self._basis:numBasis()
+   local numVal   = qOut:numComponents()/numBasis
 
    if self._isFirst then
       -- Construct function to evaluate function at specified coordinate.
       self._evalFunc = loadstring(evalFuncTempl { M = numVal } )()
+      self.numVal    = self.numVal and self.numVal or numVal
+      self._zero     = ffi.gc(ffiC.gkyl_eval_on_nodes_new(self._onGrid._zero, self._basis._zero, self.numVal, nil, nil),
+                              ffiC.gkyl_eval_on_nodes_release)
+      self.numNodes  = self._basis:numBasis()
+      self.fv        = ZeroArray.Array(ZeroArray.double, numVal, self.numNodes, 0)
    end
-
-   -- Sanity check: ensure number of variables, components and basis functions are consistent.
-   assert(qOut:numComponents() % numBasis == 0, "EvalOnNodes:advance: Incompatible input field")
-
-   local dx = Lin.Vec(ndim)                  -- Cell shape.
-   local xc = Lin.Vec(ndim)                  -- Cell center.
-   local fv = Lin.Mat(self.numNodes, numVal) -- Function values at ordinates.
-   local xi = Lin.Vec(ndim)                  -- Coordinates at node.
+   assert(numVal == self.numVal, "EvalOnNodes: created for a scalar/vector field, not a vector/scalar field.")
 
    local localRangeOut = self._onGhosts and qOut:localExtRange() or qOut:localRange()
 
@@ -103,17 +156,17 @@ function EvalOnNodes:_advance(tCurr, inFld, outFld)
    -- Loop, computing projections in each cell.
    for idx in localRangeOut:colMajorIter() do
       grid:setIndex(idx)
-      for d = 1, ndim do dx[d] = grid:dx(d) end
-      grid:cellCenter(xc)
+      grid:getDx(self.dx)
+      grid:cellCenter(self.xc)
 
       -- Precompute value of function at each node.
       for i = 1, self.numNodes do
-	 self._compToPhys(self.nodes[i], dx, xc, xi)      -- Compute physical coordinate xi.
-	 self._evalFunc(tCurr, xi, self._evaluate, fv[i]) -- Compute function value fv at xi.
+	 self._compToPhys(ffiC.gkyl_eval_on_nodes_fetch_node(self._zero,i-1), self.dx, self.xc, self.xmu)      -- Compute physical coordinate xmu.
+	 self._evalFunc(tCurr, self.xmu, self._evaluate, self.fv:fetch(i-1)) -- Compute function value fv at xmu.
       end
 
       qOut:fill(indexer(idx), fItr)
-      ffiC.nodToMod(fv:data(), self.numNodes, numVal, ndim, polyOrder, fItr:data())
+      ffiC.gkyl_eval_on_nodes_nod2mod(self._zero, self.fv, fItr:data())
    end
 
    -- Set id of output to id of projection basis.

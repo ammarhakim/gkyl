@@ -17,6 +17,7 @@ local Time           = require "Lib.Time"
 local Updater        = require "Updater"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
+local lume             = require "Lib.lume"
 
 local VmSteadyStateSource = Proto(SourceBase)
 
@@ -32,7 +33,7 @@ function VmSteadyStateSource:fullInit(speciesTbl)
    self.sourceLength = assert(tbl.sourceLength, "App.VmSteadyStateSource: must specify names of species to in 'sourceLength'.")
    assert(tbl.profile, "App.VmSteadyStateSource: must specify source profile in 'profile'")
    assert(type(tbl.profile) == "function", "App.VmSteadyStateSource: 'profile' must be a function")
-   self.profile = Projection.KineticProjection.FunctionProjection { func = function(t, zn) return tbl.profile(t, zn, self) end, }
+   self.profile = Projection.VlasovProjection.FunctionProjection { func = function(t, zn) return tbl.profile(t, zn, self) end, }
 
    self.tmEvalSrc = 0.0
 end
@@ -43,14 +44,13 @@ function VmSteadyStateSource:setConfBasis(basis) self.confBasis = basis end
 function VmSteadyStateSource:setConfGrid(grid) self.confGrid = grid end
 
 function VmSteadyStateSource:createSolver(mySpecies, extField)
-
-   self.writeGhost = mySpecies.writeGhost   
-
+   
+   self.writeGhost = mySpecies.writeGhost
+   
    self.profile:fullInit(mySpecies)
-
    self.fSource = mySpecies:allocDistf()
-
-   self.profile:advance(0.0, {extField}, {self.fSource})
+   
+   self.profile:advance(0.0, {mySpecies, extField}, {self.fSource})
 
    if self.positivityRescale then
       mySpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
@@ -58,75 +58,86 @@ function VmSteadyStateSource:createSolver(mySpecies, extField)
 
    if self.power then
       local calcInt = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.confGrid,
-         basis = self.confBasis,
+         onGrid        = self.confGrid,
+         basis         = self.confBasis,
          numComponents = 1,
-         quantity = "V",
+         quantity      = "V",
       }
       local intKE = DataStruct.DynVector{numComponents = 1}
       mySpecies.ptclEnergyCalc:advance(0.0, {self.fSource}, {mySpecies.ptclEnergyAux})
       calcInt:advance(0.0, {mySpecies.ptclEnergyAux, mySpecies.mass/2}, {intKE})
-      local _, intKE_data = intKE:lastData()
+      local _, intKE_data  = intKE:lastData()
       self.powerScalingFac = self.power/intKE_data[1]
       self.fSource:scale(self.powerScalingFac)
    end
 
-   local numDensitySrc = mySpecies:allocMoment()
-   local momDensitySrc = mySpecies:allocVectorMoment(mySpecies.vdim)
-   local ptclEnergySrc = mySpecies:allocMoment()
-   mySpecies.fiveMomentsCalc:advance(0.0, {self.fSource}, {numDensitySrc, momDensitySrc, ptclEnergySrc})
+   local momsSrc = mySpecies:allocVectorMoment(mySpecies.vdim+2)
+   local fiveMomentsCalc = Updater.DistFuncMomentCalc {
+      onGrid     = mySpecies.grid,   confBasis  = mySpecies.confBasis,
+      phaseBasis = mySpecies.basis,  moment     = "FiveMoments",
+   }
+   fiveMomentsCalc:advance(0.0, {self.fSource}, {momsSrc})
 
    self.fSource:write(string.format("%s_0.bp", self.name), 0., 0, self.writeGhost)
-   numDensitySrc:write(string.format("%s_M0_0.bp", self.name), 0., 0)
-   momDensitySrc:write(string.format("%s_M1_0.bp", self.name), 0., 0)
-   ptclEnergySrc:write(string.format("%s_M2_0.bp", self.name), 0., 0)
+   momsSrc:write(string.format("%s_Moms_0.bp", self.name), 0., 0)
 
-   self.momDensityBuf = mySpecies:allocVectorMoment(mySpecies.vdim)
-
-   local numConfDims  = self.confBasis:ndim()
-   local numConfBasis = self.confBasis:numBasis()
-   assert(numConfDims==1, "VlasovSpecies: The steady state source is available only for 1X.")
-
-   local blowerV, bupperV = Lin.Vec(numConfDims), Lin.Vec(numConfDims)
-   blowerV[1], bupperV[1] = -1.0, 1.0
-   self.basisUpper, self.basisLower = Lin.Vec(numConfBasis),  Lin.Vec(numConfBasis)
-   self.confBasis:evalBasis(bupperV:data(), self.basisUpper:data())
-   self.confBasis:evalBasis(blowerV:data(), self.basisLower:data())
-
-   self.localEdgeFlux = ffi.new("double[1]")
-   self.globalEdgeFlux = ffi.new("double[1]")
+   -- Need to define methods to allocate fields (used by diagnostics).
+   self.allocMoment = function() return mySpecies:allocMoment() end
 end
 
-function VmSteadyStateSource:advance(tCurr, fIn, species, fRhsOut)
-   local tm = Time.clock()
-   self.localEdgeFlux[0] = 0.0
-   local numConfBasis = self.confBasis:numBasis()
-   for _, otherNm in ipairs(self.sourceSpecies) do
+function VmSteadyStateSource:initCrossSpeciesCoupling(population)
+   local species = population:getSpecies()
 
-      local moms = species[otherNm]:fluidMoments()
-      local flux = self.momDensityBuf
-      flux:combineOffset(1., moms, 1*numConfBasis)
+   self.srcBC = {}
+   local hasNonPeriodic = false 
+   for _, otherNm in ipairs(self.sourceSpecies) do
+      for _, bc in lume.orderedIter(species[otherNm].nonPeriodicBCs) do
+         self.srcBC[bc:getEdge()] = bc
+         self.srcBC[bc:getEdge()]:setSaveFlux(true)
+         hasNonPeriodic = true
+      end
+   end
+   assert(hasNonPeriodic, "App.Sources.VmSteadyStateSource: has to have a non-periodic BC.")
+   lume.setOrder(self.srcBC)
+end
+
+function VmSteadyStateSource:createCouplingSolver(population, field, extField)
+   self.localEdgeFlux = Lin.Vec(1)
+   self.globalEdgeFlux = Lin.Vec(1)
+   
+   self.bcSrcFlux = {}
+   for _, bc in lume.orderedIter(self.srcBC) do
+      self.bcSrcFlux[bc:getEdge()] = bc:allocIntThreeMoments()
+   end
+end
+
+function VmSteadyStateSource:advanceCrossSpeciesCoupling(tCurr, species, outIdx)
+   local tm = Time.clock()
+
+   local mySpecies = species[self.speciesName]
+
+   local fRhsOut = mySpecies:rkStepperFields()[outIdx]
+
+   for _, bc in lume.orderedIter(self.srcBC) do
+      bc.integNumDensityCalc:advance(tCurr, {bc:getBoundaryFluxFields()[outIdx]}, {self.bcSrcFlux[bc:getEdge()]})
+
+      local flux = self.bcSrcFlux[bc:getEdge()]
+      self.localEdgeFlux:data()[0] = 0.0
 
       if GKYL_USE_GPU then flux:copyDeviceToHost() end
 
-      local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(1)
-      for idx in flux:localRangeIter() do
-         if idx[1] == self.confGrid:numCells(1) then
-            flux:fill(fluxIndexer(idx), fluxItr)
-            for k = 1, numConfBasis do
-               self.localEdgeFlux[0] = self.localEdgeFlux[0] + fluxItr[k]*self.basisUpper[k]
-            end
-         elseif idx[1] == 1 then
-            flux:fill(fluxIndexer(idx), fluxItr)
-            for k = 1, numConfBasis do
-               self.localEdgeFlux[0] = self.localEdgeFlux[0] - fluxItr[k]*self.basisLower[k]
-            end
-         end
+      local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(0)
+      for idx in flux:localExtRangeIter() do
+         flux:fill(fluxIndexer(idx), fluxItr)
+         self.localEdgeFlux:data()[0] = self.localEdgeFlux:data()[0] + fluxItr[1]
       end
+      Mpi.Allreduce(self.localEdgeFlux:data(), self.globalEdgeFlux:data(), 1, Mpi.DOUBLE, Mpi.SUM, bc.confBoundaryGrid:commSet().comm)
    end
-   Mpi.Allreduce(self.localEdgeFlux, self.globalEdgeFlux, 1, Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
-   local densFactor = self.globalEdgeFlux[0]/self.sourceLength
+   
+   local densFactor = self.globalEdgeFlux:data()[0]/self.sourceLength
+
    fRhsOut:accumulate(densFactor, self.fSource)
+   
    self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
 end
 

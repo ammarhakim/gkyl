@@ -338,13 +338,14 @@ plasmaApp = Plasma.App {
          density     = sourceDensity,      diagnostics = {"intKE"},
          temperature = sourceTemperature,
       },
+      polarizationDensityFactor = n0,
       evolve = true, -- Evolve species?
       --applyPositivity = true,
       diagnostics = {"M0", "Upar", "Temp", "Beta", "intM0", "intM1", "intEnergy" }, 
       randomseed = randomseed,
       bcx = {Plasma.ZeroFluxBC{}, Plasma.ZeroFluxBC{}},
-      bcz = {Plasma.SheathBC{diagnostics={"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}},
-             Plasma.SheathBC{diagnostics={"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}}},
+      bcz = {Plasma.SheathBC{diagnostics={"M0","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics={"M0","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Gyrokinetic ions
@@ -388,19 +389,20 @@ plasmaApp = Plasma.App {
          density     = sourceDensity,      power       = P_src/2,
          temperature = sourceTemperature,  isSource    = true,
       },
+      polarizationDensityFactor = n0,
       evolve = true, -- Evolve species?
       --applyPositivity = true,
       diagnostics = {"M0", "Upar", "Temp", "intM0", "intM1", "intKE", "intEnergy"}, 
       randomseed = randomseed,
       bcx = {Plasma.ZeroFluxBC{}, Plasma.ZeroFluxBC{}},
-      bcz = {Plasma.SheathBC{diagnostics={"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}},
-             Plasma.SheathBC{diagnostics={"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}}},
+      bcz = {Plasma.SheathBC{diagnostics={"M0","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics={"M0","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Field solver.
    field = Plasma.Field {
-      bcLowerPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T = "N", V = 0.0}}, 
-      bcUpperPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T = "N", V = 0.0}},
+      bcLowerPhi  = {{T = "D", V = 0.0}, {T = "P"}}, 
+      bcUpperPhi  = {{T = "D", V = 0.0}, {T = "P"}},
       bcLowerApar = {{T = "D", V = 0.0}, {T = "P"}},
       bcUpperApar = {{T = "D", V = 0.0}, {T = "P"}},
       evolve = true, -- Evolve fields?

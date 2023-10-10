@@ -96,6 +96,7 @@ plasmaApp = Plasma.App {
       },
       -- Evolve species?
       evolve = true,
+      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
@@ -131,6 +132,7 @@ plasmaApp = Plasma.App {
       },
       -- Evolve species?
       evolve = true,
+      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.

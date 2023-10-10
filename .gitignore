@@ -1,4 +1,6 @@
 *~
+*.gkyl
+*.json
 *#
 build/*
 build-*/*

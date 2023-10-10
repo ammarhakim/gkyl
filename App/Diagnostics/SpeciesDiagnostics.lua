@@ -210,7 +210,7 @@ function SpeciesDiagnostics:resetState(tm)
    end
 end
 
-function SpeciesDiagnostics:calcDiagDependencies(tm, mySpecies, diagNm)
+function SpeciesDiagnostics:calcDiagDependencies(tm, mySpecies, diagNm, field)
    -- Given a diagnostic, compute the other diagnostics it may depend on.
    local spec    = mySpecies
    local depends = self.diags[diagNm]:getDependencies()
@@ -218,14 +218,14 @@ function SpeciesDiagnostics:calcDiagDependencies(tm, mySpecies, diagNm)
    for _, depNm in ipairs(depends) do
       local depDiag = self.diags[depNm]
       if not depDiag.done then
-         self:calcDiagDependencies(tm, spec, depNm)
-         depDiag:advance(tm, {spec, self.diags}, {})
+         self:calcDiagDependencies(tm, spec, depNm, field)
+         depDiag:advance(tm, {spec, self.diags, field}, {})
          depDiag.done = true
       end
    end
 end
 
-function SpeciesDiagnostics:calcIntegratedDiagnostics(tm, mySpecies)
+function SpeciesDiagnostics:calcIntegratedDiagnostics(tm, mySpecies, field)
    -- Compute integrated diagnostics.
    local tmStart = Time.clock()
 
@@ -233,8 +233,8 @@ function SpeciesDiagnostics:calcIntegratedDiagnostics(tm, mySpecies)
    for _, diagNm in ipairs(self.diagGroups["integrated"]) do 
       local diag = self.diags[diagNm]
       if not diag.done then
-         self:calcDiagDependencies(tm, spec, diagNm)
-         diag:advance(tm, {spec, self.diags}, {})
+         self:calcDiagDependencies(tm, spec, diagNm, field)
+         diag:advance(tm, {spec, self.diags, field}, {})
          diag.done = true
       end
    end
@@ -242,7 +242,7 @@ function SpeciesDiagnostics:calcIntegratedDiagnostics(tm, mySpecies)
    self.spentTime.intDiags = self.spentTime.intDiags + Time.clock() - tmStart
 end
 
-function SpeciesDiagnostics:calcGridDiagnostics(tm, mySpecies)
+function SpeciesDiagnostics:calcGridDiagnostics(tm, mySpecies, field)
    -- Compute grid diagnostics.
    local tmStart = Time.clock()
 
@@ -250,8 +250,8 @@ function SpeciesDiagnostics:calcGridDiagnostics(tm, mySpecies)
    for _, diagNm in ipairs(self.diagGroups["grid"]) do 
       local diag = self.diags[diagNm]
       if not diag.done then
-         self:calcDiagDependencies(tm, spec, diagNm)
-         diag:advance(tm, {spec, self.diags}, {})
+         self:calcDiagDependencies(tm, spec, diagNm, field)
+         diag:advance(tm, {spec, self.diags, field}, {})
          diag.done = true
       end
    end
@@ -336,10 +336,10 @@ function SpeciesDiagnostics:readRestartGridDiagnostics_oneFile()
 end
 
 function SpeciesDiagnostics:readRestartIntegratedDiagnostics_separateFiles()
-   for _, diagNm in ipairs(self.diagGroups["integrated"]) do 
-      local diag = self.diags[diagNm]
-      diag.field:read(string.format("%s_%s_restart.bp", self.name, diagNm))
-   end
+--   for _, diagNm in ipairs(self.diagGroups["integrated"]) do 
+--      local diag = self.diags[diagNm]
+--      diag.field:read(string.format("%s_%s_restart.bp", self.name, diagNm))
+--   end
 end
 function SpeciesDiagnostics:readRestartIntegratedDiagnostics_oneFile()
    -- Read from a single restart file for all integrated diagnostics.

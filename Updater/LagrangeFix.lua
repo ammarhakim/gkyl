@@ -38,16 +38,17 @@ function LagrangeFix:init(tbl)
    assert(self.mode == 'vlasov' or self.mode == 'gk',
 	  "Updater.LagrangeFix: Supported options of 'mode' are: 'vlasov' and 'gk' for gyrokinetics")
 
-   self.isGK = false
-   if self.mode == 'gk' then
-      self.isGK = true
-      self.mass = assert(tbl.mass, "Updater.LagrangeFix: Must provide 'mass' when in 'gk' mode")
-   end
-
    -- Dimension of spaces.
    self._pDim = self.phaseBasis:ndim() 
    self._cDim = self.confBasis:ndim()
    self._vDim = self._pDim - self._cDim
+
+   self._uDim = self._vDim
+   self.isGK = false
+   if self.mode == 'gk' then
+      self.isGK, self._uDim = true, 1
+      self.mass = assert(tbl.mass, "Updater.LagrangeFix: Must provide 'mass' when in 'gk' mode")
+   end
 
    self.basisID   = self.confBasis:id()
    self.polyOrder = self.confBasis:polyOrder()
@@ -80,12 +81,7 @@ end
 -- Updater Advance ---------------------------------------------------
 function LagrangeFix:_advance(tCurr, inFld, outFld)
    -- Get the inputs and outputs
-   local dm0 = assert(inFld[1],
-		      "LagrangeFix.advance: Must specify dm0 as 'inFld[1]'")
-   local dm1 = assert(inFld[2],
-		      "LagrangeFix.advance: Must specify dm1 as 'inFld[2]'")
-   local dm2 = assert(inFld[3],
-		      "LagrangeFix.advance: Must specify dm2 as 'inFld[3]'")
+   local dmoms = assert(inFld[1], "LagrangeFix.advance: Must specify dmoms as 'inFld[1]'")
    local B = nil
    if self.isGK then
       B = assert(inFld[4],
@@ -95,16 +91,14 @@ function LagrangeFix:_advance(tCurr, inFld, outFld)
 
    local cDim, vDim = self._cDim, self._vDim
 
-   local dm0Itr = dm0:get(1)
-   local dm1Itr = dm1:get(1)
-   local dm2Itr = dm2:get(1)
+   local dmomsItr = dmoms:get(1)
    local BItr = nil
    if self.isGK then BItr = B:get(1) end
    local fItr = f:get(1)
 
    -- Get the Ranges to loop over the domain
-   local confRange    = dm0:localRange()
-   local confIndexer  = dm0:genIndexer()
+   local confRange    = dmoms:localRange()
+   local confIndexer  = dmoms:genIndexer()
    local phaseRange   = f:localRange()
    local phaseIndexer = f:genIndexer()
 
@@ -118,9 +112,10 @@ function LagrangeFix:_advance(tCurr, inFld, outFld)
 
    -- The configuration space loop.
    for cIdx in confRange:rowMajorIter() do
-      dm0:fill(confIndexer(cIdx), dm0Itr)
-      dm1:fill(confIndexer(cIdx), dm1Itr)
-      dm2:fill(confIndexer(cIdx), dm2Itr)
+      dmoms:fill(confIndexer(cIdx), dmomsItr)
+      dm0Itr = dmomsItr:data()+0
+      dm1Itr = dmomsItr:data()+self.confBasis:numBasis()
+      dm2Itr = dmomsItr:data()+(self._uDim+1)*self.confBasis:numBasis()
       if self.isGK then B:fill(confIndexer(cIdx), BItr) end
 
       -- The velocity space loop.
@@ -131,16 +126,14 @@ function LagrangeFix:_advance(tCurr, inFld, outFld)
 	 f:fill(phaseIndexer(self.idxP), fItr)
 	 self.phaseGrid:setIndex(self.idxP)
 	 self.phaseGrid:cellCenter(self.xcP)
-	 for d = 1, vDim do
-	    self.vcP[d-1] = self.xcP[d + cDim]
-	 end
+	 for d = 1, vDim do self.vcP[d-1] = self.xcP[d + cDim] end
 
 	 if self.isGK then
-	    self.lagrangeFixFn(dm0Itr:data(), dm1Itr:data(), dm2Itr:data(),
-			       BItr:data(), self.mass, self.lo, self.L, self.Nv, self.vcP,
+	    self.lagrangeFixFn(dm0Itr, dm1Itr, dm2Itr, BItr:data(), self.mass,
+			       self.lo, self.L, self.Nv, self.vcP,
 			       fItr:data())
 	 else
-	    self.lagrangeFixFn(dm0Itr:data(), dm1Itr:data(), dm2Itr:data(),
+	    self.lagrangeFixFn(dm0Itr, dm1Itr, dm2Itr,
 			       self.lo, self.L, self.Nv, self.vcP,
 			       fItr:data())
 	 end

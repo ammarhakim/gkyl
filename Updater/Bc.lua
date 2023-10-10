@@ -139,57 +139,52 @@ function Bc:init(tbl)
 
    if self._doDiagnostics or self._evaluateFn then 
        -- Create reduced boundary grid with 1 cell in dimension of self._dir.
-      if self._grid:isShared() then 
-         -- Shared memory implementation needs more work...
-         self._boundaryGrid = self._grid
-      else
-         local reducedLower, reducedUpper, reducedNumCells, reducedCuts = {}, {}, {}, {}
-         for d = 1, self._grid:ndim() do
-            if d==self._dir then
-               table.insert(reducedLower, -self._grid:dx(d)/2)
-               table.insert(reducedUpper, self._grid:dx(d)/2)
-               table.insert(reducedNumCells, 1)
-               table.insert(reducedCuts, 1)
-            else
-               table.insert(reducedLower, self._grid:lower(d))
-               table.insert(reducedUpper, self._grid:upper(d))
-               table.insert(reducedNumCells, self._grid:numCells(d))
-               table.insert(reducedCuts, self._grid:cuts(d))
-            end
+      local reducedLower, reducedUpper, reducedNumCells, reducedCuts = {}, {}, {}, {}
+      for d = 1, self._grid:ndim() do
+         if d==self._dir then
+            table.insert(reducedLower, -self._grid:dx(d)/2)
+            table.insert(reducedUpper, self._grid:dx(d)/2)
+            table.insert(reducedNumCells, 1)
+            table.insert(reducedCuts, 1)
+         else
+            table.insert(reducedLower, self._grid:lower(d))
+            table.insert(reducedUpper, self._grid:upper(d))
+            table.insert(reducedNumCells, self._grid:numCells(d))
+            table.insert(reducedCuts, self._grid:cuts(d))
          end
-         local commSet   = self._grid:commSet()
-         local worldComm = commSet.comm
-         local nodeComm  = commSet.nodeComm
-         local nodeRank  = Mpi.Comm_rank(nodeComm)
-         local dirRank   = nodeRank
-         local cuts      = {}
-         for d=1,3 do cuts[d] = self._grid:cuts(d) or 1 end
-         local writeRank = -1
-         if self._dir == 1 then 
-            dirRank = nodeRank % (cuts[1]*cuts[2]) % cuts[1]
-         elseif self._dir == 2 then 
-            dirRank = math.floor(nodeRank/cuts[1]) % cuts[2]
-         elseif self._dir == 3 then
-            dirRank = math.floor(nodeRank/cuts[1]/cuts[2])
-         end
-         self._splitComm = Mpi.Comm_split(worldComm, dirRank, nodeRank)
-         -- Set up which ranks to write from.
-         if self._edge == "lower" and dirRank == 0 then 
-            writeRank = nodeRank
-         elseif self._edge == "upper" and dirRank == self._grid:cuts(self._dir)-1 then
-            writeRank = nodeRank
-         end
-         self.writeRank = writeRank
-         
-         local reducedDecomp = CartDecomp.CartProd {
-            comm      = self._splitComm,  cuts = reducedCuts,
-            writeRank = writeRank,
-         }
-         self._boundaryGrid = Grid.RectCart {
-            lower = reducedLower,  cells = reducedNumCells,
-            upper = reducedUpper,  decomposition = reducedDecomp,
-         }
       end
+      local commSet   = self._grid:commSet()
+      local worldComm = commSet.comm
+      local nodeComm  = commSet.nodeComm
+      local nodeRank  = Mpi.Comm_rank(nodeComm)
+      local dirRank   = nodeRank
+      local cuts      = {}
+      for d=1,3 do cuts[d] = self._grid:cuts(d) or 1 end
+      local writeRank = -1
+      if self._dir == 1 then 
+         dirRank = nodeRank % (cuts[1]*cuts[2]) % cuts[1]
+      elseif self._dir == 2 then 
+         dirRank = math.floor(nodeRank/cuts[1]) % cuts[2]
+      elseif self._dir == 3 then
+         dirRank = math.floor(nodeRank/cuts[1]/cuts[2])
+      end
+      self._splitComm = Mpi.Comm_split(worldComm, dirRank, nodeRank)
+      -- Set up which ranks to write from.
+      if self._edge == "lower" and dirRank == 0 then 
+         writeRank = nodeRank
+      elseif self._edge == "upper" and dirRank == self._grid:cuts(self._dir)-1 then
+         writeRank = nodeRank
+      end
+      self.writeRank = writeRank
+      
+      local reducedDecomp = CartDecomp.CartProd {
+         comm      = self._splitComm,  cuts = reducedCuts,
+         writeRank = writeRank,
+      }
+      self._boundaryGrid = Grid.RectCart {
+         lower = reducedLower,  cells = reducedNumCells,
+         upper = reducedUpper,  decomposition = reducedDecomp,
+      }
 
       if self._doDiagnostics then
          if self._cDim == self._grid:ndim() then

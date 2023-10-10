@@ -8,6 +8,7 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
+local DecompRegionCalc = require "Lib.CartDecomp"
 local DataStruct = require "DataStruct"
 local Lin        = require "Lib.Linalg"
 local Proto      = require "Lib.Proto"
@@ -16,6 +17,8 @@ local diff       = require "sci.diff-recursive"
 local diff1      = require "sci.diff"
 local math       = require("sci.math").generic
 local lume       = require "Lib.lume"
+local evOnNodes        = require "Updater.EvalOnNodes"
+local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 
 -- MappedCartGrid --------------------------------------------------------------
 --
@@ -33,6 +36,15 @@ function MappedCart:init(tbl)
    -- cartesian coordinates of the form 
    -- X, Y, Z = f({xcomp1, xcomp2, xcomp3})
    self._mapc2p = tbl.mapc2p
+   if type(self._mapc2p) == "table" then
+      -- The user may specify a table with any of:
+      --   mapc2p function,
+      --   mapc2p file containing the DG representation of the function (MF 2023/03/09 NOT READY YET),
+      --   grid   file.
+      assert(self._mapc2p.mapc2p and type(self._mapc2p.mapc2p)=="function", "Grid.MappedCart: need to specify mapc2p function")
+      self._mapc2p     = tbl.mapc2p.mapc2p
+      self._gridFileNm = tbl.mapc2p.grid
+   end
 
    -- Domain of the higher dimensional world this simulation lives in.
    -- These optional parameters are used to call mapc2p with more computational
@@ -40,6 +52,8 @@ function MappedCart:init(tbl)
    self._useWorld   = false
    self._worldCoord = nil
    if tbl.world then
+      self._useWorld = true
+      self._world      = tbl.world
       self._worldDim   = tbl.world["dim"]
       local extraCoord = tbl.world["evaluateAt"]
       assert(self._worldDim > self:ndim(), "MappedCart: 'dim' in 'world' must be larger than dimensionality of simulation.")
@@ -48,7 +62,6 @@ function MappedCart:init(tbl)
       for nm, _ in pairs(extraCoord) do self._addDim=self._addDim+1 end
       assert(self._addDim < self._worldDim,
              "MappedCart: evaluateAt entries must be fewer than dim.")
-      self._useWorld = true
 
       -- Create a way to complement computational coordinates
       -- with additional coordinates
@@ -75,7 +88,9 @@ function MappedCart:init(tbl)
       for d = 1, self:ndim() do self._worldCoord[self._compIdx[d]] = self._lower[d] end
       for d = 1, self._addDim do self._worldCoord[self._addIdx[d]] = self._addCoord[d] end
       self._inDim = self._worldDim                        -- Dimensionality of the input to mapc2p.
-      self._rdim  = #{ self._mapc2p(self._worldCoord) }   -- Number of values mapc2p returns.
+      -- MF 2023/09/13: getting rdim from mapc2p seems more general, but in most cases currently of
+      -- interest it is the same as worldDim, and mapc2p could take a while to call.
+      self._rdim  = self._worldDim --#{ self._mapc2p(self._worldCoord) }   -- Number of values mapc2p returns.
    else
       self._inDim = self:ndim()                      -- Dimensionality of the input to mapc2p.
       self._rdim  = #{ self._mapc2p(self._lower) }   -- Number of values mapc2p returns.
@@ -305,10 +320,76 @@ function MappedCart:getNodalCoords()
    return nodalCoords
 end
 
-function MappedCart:write(fName)
-   -- Write a file containing the grid node coordinates.
-   local nodalCoords = self:getNodalCoords()
-   nodalCoords:write(fName)
+function MappedCart:write(basis, rankInComm)
+   -- Write a file containing the grid node coordinates,
+   -- and a file with the DG representation of mapc2p.
+   if not self._gridFileNm then
+      local metaData = {polyOrder = basis:polyOrder(),  basisType = basis:id(),}
+      local mapc2pDG = DataStruct.Field {
+         onGrid        = self,                          ghost    = {0,0},
+         numComponents = self:rdim()*basis:numBasis(),  metaData = metaData,
+      }
+      local gridIo = AdiosCartFieldIo {
+         elemType = mapc2pDG:elemType(),  writeGhost      = false,
+         method   = "MPI",                writeRankInComm = rankInComm,
+      }
+   
+      gridIo:write(self:getNodalCoords(), "grid.bp", 0., 0)
+   
+      local mapc2pWorld = function(t, xn) return self:mapc2p(xn) end
+      if self._useWorld then
+         -- Complement the computational coordinates xc w/ dimensions not simulated.
+         mapc2pWorld = function(t, xn)
+            for d = 1, self:ndim() do self._worldCoord[self._compIdx[d]] = xn[d] end
+            return self:mapc2p(self._worldCoord)
+         end
+      end
+      local projUpd = evOnNodes {
+         onGrid = self,   evaluate = mapc2pWorld,
+         basis  = basis,  onGhosts = false,
+      }
+      projUpd:advance(0., {}, {mapc2pDG})
+      gridIo:write(mapc2pDG, "mapc2p.bp", 0., 0)
+   end
+end
+
+function MappedCart:childGrid(keepDims)
+   -- Collect the ingredients needed for a child grid: a grid with a subset of the
+   -- directions of the original (parent) grid.
+   -- Cannot output a childGrid itself because that would require a recursive RectCart updater.
+   local childDim = #keepDims
+   assert(childDim>0 and childDim<=self._ndim, "RectCart:childGrid cannot have dimensions < 1 or greater than parent grid.")
+
+   local childLower, childUpper, childCells, childPeriodicDirs = {}, {}, {}, {}
+   local dI, pIdx = 0, 0
+   for _, d in ipairs(lume.sort(keepDims)) do
+      dI = dI+1
+      childLower[dI] = self:lower(d)
+      childUpper[dI] = self:upper(d)
+      childCells[dI] = self:numCells(d)
+      if self:isDirPeriodic(d) then
+         pIdx = pIdx+1
+         childPeriodicDirs[pIdx] = dI
+      end
+   end
+
+   local childDecomp = nil
+   if self.decomp then
+      local childComm, childWriteRank, childCuts = self.decomp:childDecomp(keepDims)
+      childDecomp = DecompRegionCalc.CartProd {
+         comm         = childComm,       cuts = childCuts,
+         writeRank    = childWriteRank,
+         __serTesting = true,
+      }
+   end
+
+   local childGridIngredients = {
+      lower  = childLower,    periodicDirs  = childPeriodicDirs,
+      upper  = childUpper,    decomposition = childDecomp,
+      cells  = childCells,    world         = self._world,
+      mapc2p = self._mapc2p,  messenger     = self._messenger,
+   }
+   return childGridIngredients
 end
 
 return MappedCart

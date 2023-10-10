@@ -13,12 +13,11 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local UpdaterBase     = require "Updater.Base"
-local Lin             = require "Lib.Linalg"
-local Proto           = require "Lib.Proto"
-local PrimMomentsDecl = require "Updater.primMomentsCalcData.PrimMomentsModDecl"
-local xsys            = require "xsys"
-local ffi             = require "ffi"
+local UpdaterBase = require "Updater.Base"
+local Lin         = require "Lib.Linalg"
+local Proto       = require "Lib.Proto"
+local xsys        = require "xsys"
+local ffi         = require "ffi"
 
 local ffiC = ffi.C
 ffi.cdef [[
@@ -32,7 +31,6 @@ typedef struct gkyl_prim_lbo_cross_calc gkyl_prim_lbo_cross_calc;
  * on_dev-consistently constructed.
  *
  * @param calc Primitive moment calculator updater to run
- * @param cbasis_rng Config-space basis functions
  * @param conf_rng Config-space range
  * @param greene Greene's factor
  * @param self_m Mass of the species
@@ -45,7 +43,7 @@ typedef struct gkyl_prim_lbo_cross_calc gkyl_prim_lbo_cross_calc;
  * @param prim_moms_out Output drift velocity and thermal speed squared
  */
 void gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
-  struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
+  const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
   double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
@@ -53,7 +51,7 @@ void gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
   struct gkyl_array *prim_moms_out);
 
 void gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
-  struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
+  const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
   double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
@@ -69,16 +67,90 @@ void gkyl_prim_lbo_cross_calc_release(gkyl_prim_lbo_cross_calc* calc);
 
 // "derived" class constructors
 gkyl_prim_lbo_cross_calc*
-gkyl_prim_lbo_vlasov_cross_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+gkyl_prim_lbo_vlasov_cross_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng, bool use_gpu);
 
 gkyl_prim_lbo_cross_calc*
-gkyl_prim_lbo_gyrokinetic_cross_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+gkyl_prim_lbo_gyrokinetic_cross_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng, bool use_gpu);
 
-gkyl_prim_lbo_cross_calc*
-gkyl_prim_lbo_vlasov_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
 
-gkyl_prim_lbo_cross_calc*
-gkyl_prim_lbo_gyrokinetic_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+// Object type
+typedef struct gkyl_prim_cross_m0deltas gkyl_prim_cross_m0deltas;
+
+/**
+ * Create a new updater that computes the m0_s*delta_s*(beta+1) prefactor
+ * in the calculation of cross-primitive moments for LBO and BGK
+ * collisions. That is:
+ *   m0_s*delta_s*(beta+1) = m0_s*2*m_r*m0_r*nu_rs*(beta+1)/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs)
+ *
+ * @param basis Basis object (configuration space).
+ * @param range Range in which we'll compute m0_s*delta_s.
+ * @param betap1 beta+1 parameter in Greene's formulism.
+ * @param use_gpu boolean indicating whether to use the GPU.
+ * @return New updater pointer.
+ */
+gkyl_prim_cross_m0deltas* gkyl_prim_cross_m0deltas_new(
+  const struct gkyl_basis *basis, const struct gkyl_range *range,
+  double betap1, bool use_gpu);
+
+/**
+ * Compute m0_s*delta_s.
+ *
+ * @param up Struct defining this updater..
+ * @param basis Basis object (configuration space).
+ * @param massself Mass of this species, m_s.
+ * @param m0self Number density of this species, m0_s.
+ * @param nuself Cross collision frequency of this species, nu_sr.
+ * @param massother Mass of the other species, m_r.
+ * @param m0other Number density of the other species, m0_r.
+ * @param nuother Cross collision frequency of the other species, nu_rs.
+ * @param prem0s Prefactor, M_0s for LBO, 1 for BGK.
+ * @param range Range in which we'll compute m0_s*delta_s.
+ * @param out Output array.
+ * @return New updater pointer.
+ */
+void gkyl_prim_cross_m0deltas_advance(gkyl_prim_cross_m0deltas *up, struct gkyl_basis basis,
+  double massself, const struct gkyl_array* m0self, const struct gkyl_array* nuself,
+  double massother, const struct gkyl_array* m0other, const struct gkyl_array* nuother,
+  const struct gkyl_array* prem0s, const struct gkyl_range *range, struct gkyl_array* out);
+
+/**
+ * Delete updater.
+ *
+ * @param pob Updater to delete.
+ */
+void gkyl_prim_cross_m0deltas_release(gkyl_prim_cross_m0deltas* up);
+
+/**
+ * Calculate the cross primitive moments, u_{sr,i} and v_{tsr}^2,
+ * for cross-species collisions with the BGK operator.
+ *
+ *   u_sr = u_si-0.5*delta_s*(beta+1)*(u_si - u_ri)
+ *
+ *   v_tsr^2 = v_ts^2-(u_sri-u_ri).(u_sri-u_si)/vdim_phys
+ *     -(delta_s*(beta+1)/(m_s+m_r))*
+ *      (m_s*v_ts^2-m_r*v_tr^2+((m_s-m_r)/(2*vdim_phys))*(u_si-u_ri)^2)
+ *
+ * @param basis Basis object (configuration space).
+ * @param vdim_phys Physical number of velocity dimensions represented.
+ * @param m0sdeltas Prefactor m_0s*delta_s*(beta+1) (and m_0s should be 1 here).
+ * @param massself Mass of this species.
+ * @param primsself Primitive moments of this species, u_s and v_ts^2.
+ * @param massother Mass of the other species.
+ * @param primsother Primitive moments of the other species, u_r and v_tr^2.
+ * @param range Range in which we'll compute m0_s*delta_s.
+ * @return crossprims Cross primitive moments, u_sri and v_tsr^2.
+ */
+void gkyl_prim_bgk_cross_calc_advance(struct gkyl_basis basis,
+  int vdim_phys, const struct gkyl_array* m0sdeltas,
+  double massself, const struct gkyl_array* primsself,
+  double massother, const struct gkyl_array* primsother,
+  const struct gkyl_range *range, struct gkyl_array* crossprims);
+
+void gkyl_prim_bgk_cross_calc_advance_cu(struct gkyl_basis basis,
+  int vdim_phys, const struct gkyl_array* m0sdeltas,
+  double massself, const struct gkyl_array* primsself,
+  double massother, const struct gkyl_array* primsother,
+  const struct gkyl_range *range, struct gkyl_array* crossprims);
 ]]
 
 -- Function to check if operator option is correct.
@@ -95,7 +167,7 @@ local CrossPrimMoments = Proto(UpdaterBase)
 function CrossPrimMoments:init(tbl)
    CrossPrimMoments.super.init(self, tbl) -- Setup base object.
 
-   self._onGrid = assert(
+   local onGrid = assert(
       tbl.onGrid, "Updater.CrossPrimMoments: Must provide grid object using 'onGrid'.")
 
    local phaseBasis = assert(
@@ -104,317 +176,69 @@ function CrossPrimMoments:init(tbl)
    self.confBasis = assert(
       tbl.confBasis, "Updater.CrossPrimMoments: Must provide the configuration basis object using 'confBasis'.")
 
-   self._operator = assert(
+   local operator = assert(
       tbl.operator, "Updater.CrossPrimMoments: Must specify the collision operator (VmLBO, GkLBO, VmBGK or GkBGK) using 'operator'.")
-   assert(isOperatorGood(self._operator), string.format("CrossPrimMoments: Operator option must be 'VmLBO', 'GkLBO', 'VmBGK' or 'GkBGK'. Requested %s instead.", self._operator))
+   assert(isOperatorGood(operator), string.format("CrossPrimMoments: Operator option must be 'VmLBO', 'GkLBO', 'VmBGK' or 'GkBGK'. Requested %s instead.", operator))
 
-   -- Indicate if collisionality is spatially varying and if it is cell-wise constant.
-   self._varNu       = tbl.varyingNu
-   self._cellConstNu = tbl.useCellAverageNu 
+   self.m0deltas = assert(tbl.m0s_deltas, "Updater.CrossPrimMoments: Must provide the film to hold m0_s*delta_s in 'm0s_deltas'.")
 
    -- Free-parameter in John Greene's equations.
-   self._beta   = tbl.betaGreene
-   self._betaP1 = self._beta+1
+   local beta   = tbl.betaGreene
+   self._betaP1 = beta+1
 
-   -- Dimension of spaces.
-   self._pDim = phaseBasis:ndim()
+   self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
+
+   self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
+
    -- Ensure sanity.
    assert(phaseBasis:polyOrder() == self.confBasis:polyOrder(),
           "Updater.CrossPrimMoments: Polynomial orders of phase and conf basis must match.")
    assert((phaseBasis:id() == self.confBasis:id()) or
          ((phaseBasis:id()=="hybrid" or phaseBasis:id()=="gkhybrid") and self.confBasis:id()=="serendipity"),
           "Updater.CrossPrimMoments: Type of phase and conf basis must match.")
+
+   local isLBO, isGK = true, false
+   if operator == "VmBGK" or operator=="GkBGK" then isLBO = false end
+   if operator == "GkLBO" or operator=="GkBGK"  then isGK = true end
+
    -- Determine configuration and velocity space dims.
-   self._cDim = self.confBasis:ndim()
-   self._vDim = self._pDim - self._cDim
+   local cDim = self.confBasis:ndim()
+   local vDim = phaseBasis:ndim() - cDim
+   self._vDimPhys = isGK and 2*vDim-1 or vDim
 
-   self._numBasisC = self.confBasis:numBasis()
+   local onRange = self.onGhosts and self.m0deltas:localExtRange() or self.m0deltas:localRange()
 
-   self._basisID, self._polyOrder = self.confBasis:id(), self.confBasis:polyOrder()
-
-   local uDim = self._vDim
-   if self._operator=="GkLBO" or self._operator=="GkBGK" then uDim = 1 end
-
-   self._isLBO = false
-   if self._operator=="VmLBO" or self._operator=="GkLBO" then self._isLBO = true end
-
-   -- Need two Eigen matrices: one to divide by (ms*nusr*m0s+mr*nurs*m0r)
-   -- and one to compute cross-primitive moments.
-   self._binOpData    = ffiC.new_binOpData_t(self._numBasisC*2*(uDim+1), 0)
-   self._binOpDataDiv = ffiC.new_binOpData_t(self._numBasisC, 0)
-
-   -- Select C kernel to be used.
-   if self._operator=="VmBGK"or self._operator=="GkBGK" then
-      self._crossPrimMomentsCalc = PrimMomentsDecl.selectCrossPrimMomentsCalc(self._operator, self._basisID, self._cDim, self._vDim, self._polyOrder)
+   if operator=="GkLBO" then
+      self._zero = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_cross_calc_new(
+                             onGrid._zero, self.confBasis._zero, phaseBasis._zero,
+                             onRange, self._useGPU),
+                          ffiC.gkyl_prim_lbo_cross_calc_release)
+   elseif operator=="VmLBO" then
+      self._zero = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_cross_calc_new(
+                             onGrid._zero, self.confBasis._zero, phaseBasis._zero,
+                             onRange, self._useGPU),
+                          ffiC.gkyl_prim_lbo_cross_calc_release)
    end
+   
+   self._zero_m0deltas = ffi.gc(ffiC.gkyl_prim_cross_m0deltas_new(
+                                   self.confBasis._zero, onRange, self._betaP1, self._useGPU),
+                                ffiC.gkyl_prim_cross_m0deltas_release)
 
-   -- To obtain the cell average, multiply the zeroth coefficient by this factor.
-   self._cellAvFac = 1.0/math.sqrt(2.0^self._cDim)
-
-   self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
-
-   if GKYL_USE_GPU then
-      if self._operator=="GkLBO" then
-         self._zero = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_cross_calc_cu_dev_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
-                             ffiC.gkyl_prim_lbo_cross_calc_release)
-      elseif self._operator=="VmLBO" then
-         self._zero = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_cross_calc_cu_dev_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
-                             ffiC.gkyl_prim_lbo_cross_calc_release)
-      end
+   if isLBO then
+      self.advanceFunc = function(tCurr, inFld, outFld)
+         CrossPrimMoments["_advanceLBO"](self, tCurr, inFld, outFld) end
+      self.advanceOnDeviceFunc = function(tCurr, inFld, outFld)
+         CrossPrimMoments["_advanceOnDeviceLBO"](self, tCurr, inFld, outFld) end
    else
-      if self._operator=="GkLBO" then
-         self._zero = ffi.gc(ffiC.gkyl_prim_lbo_gyrokinetic_cross_calc_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
-                             ffiC.gkyl_prim_lbo_cross_calc_release)
-      elseif self._operator=="VmLBO" then
-         self._zero = ffi.gc(ffiC.gkyl_prim_lbo_vlasov_cross_calc_new(self._onGrid._zero, self.confBasis._zero, phaseBasis._zero),
-                             ffiC.gkyl_prim_lbo_cross_calc_release)
-      end
+      self.advanceFunc = function(tCurr, inFld, outFld)
+         CrossPrimMoments["_advanceBGK"](self, tCurr, inFld, outFld) end
+      self.advanceOnDeviceFunc = function(tCurr, inFld, outFld)
+         CrossPrimMoments["_advanceOnDeviceBGK"](self, tCurr, inFld, outFld) end
    end
 end
 
 -- Advance method.
-function CrossPrimMoments:_advance(tCurr, inFld, outFld)
-
-   if self._zero then
-
-      local mSelf, nuSelf = inFld[1], inFld[2]
-      local momsSelf      = inFld[3]
-      local primMomsSelf  = inFld[4]
-      local bCorrsSelf    = inFld[5]
-
-      local mOther, nuOther = inFld[6], inFld[7]
-      local momsOther       = inFld[8]
-      local primMomsOther   = inFld[9]
-
-      local m0sdeltas = inFld[10]
-
-      local primMomsCrossSelf = outFld[1]
-
-      -- Compose the pre-factor:
-      --   m0_s*delta_s*(1+beta)
-      --     = m0_s*(2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs))*(1+beta)
-      m0sdeltas:scale(self._betaP1)
-
-      -- Compute u and vtsq.
-      ffiC.gkyl_prim_lbo_cross_calc_advance(self._zero, self.confBasis._zero, primMomsSelf:localRange(), m0sdeltas._zero,
-         mSelf, momsSelf._zero, primMomsSelf._zero, mOther, momsOther._zero, primMomsOther._zero, 
-         bCorrsSelf._zero, primMomsCrossSelf._zero)
-
-      return
-   end
-
-   local grid = self._onGrid
-
-   local mSelf, nuSelfIn, m0Self, uSelf, vtSqSelf
-   local mOther, nuOtherIn, m0Other, uOther, vtSqOther
-   mSelf, nuSelfIn   = inFld[1], inFld[2]
-   m0Self            = inFld[3][1]
-   uSelf, vtSqSelf   = inFld[4][1], inFld[4][2]
-
-   mOther, nuOtherIn = inFld[5], inFld[6]
-   m0Other           = inFld[7][1]
-   uOther, vtSqOther = inFld[8][1], inFld[8][2]
-
-   local uCrossSelf     = outFld[1]
-   local vtSqCrossSelf  = outFld[2]
-   local uCrossOther    = outFld[3]
-   local vtSqCrossOther = outFld[4]
-
-   local confRange = uSelf:localRange()
-   if self.onGhosts then confRange = uSelf:localExtRange() end
-
-   local confIndexer   = m0Self:genIndexer()
-
-   local m0SelfItr   = m0Self:get(1)
-   local uSelfItr    = uSelf:get(1)
-   local vtSqSelfItr = vtSqSelf:get(1)
-
-   local m0OtherItr   = m0Other:get(1)
-   local uOtherItr    = uOther:get(1)
-   local vtSqOtherItr = vtSqOther:get(1)
-
-   local uCrossSelfItr     = uCrossSelf:get(1)
-   local vtSqCrossSelfItr  = vtSqCrossSelf:get(1)
-   local uCrossOtherItr    = uCrossOther:get(1)
-   local vtSqCrossOtherItr = vtSqCrossOther:get(1)
-
-
-   -- For LBO need a few more inputs. Also, in order to avoid evaluation
-   -- of if-statements in the spatial loop, we have separate loops for each
-   -- operator, and for each of cellConstNu. Makes the code longer but slightly more efficient.
-   local m1Self, m2Self, m1CorrectionSelf, m2CorrectionSelf
-   local m1Other, m2Other, m1CorrectionOther, m2CorrectionOther
-   local m0StarSelf, m1StarSelf, m2StarSelf
-   local m0StarOther, m1StarOther, m2StarOther
-   local m0StarSelfItr, m1StarSelfItr, m2StarSelfItr
-   local m0StarOtherItr, m1StarOtherItr, m2StarOtherItr
-   local m1SelfItr, m2SelfItr, m1CorrectionSelfItr, m2CorrectionSelfItr
-   local m1OtherItr, m2OtherItr, m1CorrectionOtherItr, m2CorrectionOtherItr
-   local nuSelf, nuSelfItr
-   local nuOther, nuOtherItr
-   if self._cellConstNu then
-
-      if self._varNu then
-         nuSelfItr  = nuSelfIn:get(1) 
-         nuOtherItr = nuOtherIn:get(1)
-      end
-
-      if self._isLBO then
-         m1Self, m2Self                       = inFld[3][2], inFld[3][3]
-         m1Other, m2Other                     = inFld[7][2], inFld[7][3]
-         m1CorrectionSelf, m2CorrectionSelf   = inFld[9][1], inFld[9][2]
-         m1CorrectionOther, m2CorrectionOther = inFld[11][1], inFld[11][2]
-
-         if self._polyOrder == 1 then
-            m0StarSelf, m1StarSelf, m2StarSelf = inFld[10][1], inFld[10][2], inFld[10][3]
-            m0StarSelfItr = m0StarSelf:get(1)
-            m1StarSelfItr = m1StarSelf:get(1)
-            m2StarSelfItr = m2StarSelf:get(1)
-
-            m0StarOther, m1StarOther, m2StarOther = inFld[12][1], inFld[12][2], inFld[12][3]
-            m0StarOtherItr = m0StarOther:get(1)
-            m1StarOtherItr = m1StarOther:get(1)
-            m2StarOtherItr = m2StarOther:get(1)
-         end
-
-         m1SelfItr            = m1Self:get(1)
-         m2SelfItr            = m2Self:get(1)
-         m1CorrectionSelfItr  = m1CorrectionSelf:get(1)
-         m2CorrectionSelfItr  = m2CorrectionSelf:get(1)
-         m1OtherItr           = m1Other:get(1)
-         m2OtherItr           = m2Other:get(1)
-         m1CorrectionOtherItr = m1CorrectionOther:get(1)
-         m2CorrectionOtherItr = m2CorrectionOther:get(1)
-
-         -- polyOrder=1 and >1 each use separate velocity grid loops to
-         -- avoid evaluating (if polyOrder==1) at each cell.
-         if self._polyOrder > 1 then
-
-            for cIdx in confRange:rowMajorIter() do
-               grid:setIndex(cIdx)
-         
-               m0Self:fill(confIndexer(cIdx), m0SelfItr)
-               m1Self:fill(confIndexer(cIdx), m1SelfItr)
-               m2Self:fill(confIndexer(cIdx), m2SelfItr)
-               uSelf:fill(confIndexer(cIdx), uSelfItr)
-               vtSqSelf:fill(confIndexer(cIdx), vtSqSelfItr)
-               m1CorrectionSelf:fill(confIndexer(cIdx), m1CorrectionSelfItr)
-               m2CorrectionSelf:fill(confIndexer(cIdx), m2CorrectionSelfItr)
-         
-               m0Other:fill(confIndexer(cIdx), m0OtherItr)
-               m1Other:fill(confIndexer(cIdx), m1OtherItr)
-               m2Other:fill(confIndexer(cIdx), m2OtherItr)
-               uOther:fill(confIndexer(cIdx), uOtherItr)
-               vtSqOther:fill(confIndexer(cIdx), vtSqOtherItr)
-               m1CorrectionOther:fill(confIndexer(cIdx), m1CorrectionOtherItr)
-               m2CorrectionOther:fill(confIndexer(cIdx), m2CorrectionOtherItr)
-         
-               uCrossSelf:fill(confIndexer(cIdx), uCrossSelfItr)
-               vtSqCrossSelf:fill(confIndexer(cIdx), vtSqCrossSelfItr)
-               uCrossOther:fill(confIndexer(cIdx), uCrossOtherItr)
-               vtSqCrossOther:fill(confIndexer(cIdx), vtSqCrossOtherItr)
-
-               if self._varNu then
-                  nuSelfIn:fill(confIndexer(cIdx), nuSelfItr)
-                  nuOtherIn:fill(confIndexer(cIdx), nuOtherItr)
-
-                  nuSelf  = nuSelfItr[1]*self._cellAvFac 
-                  nuOther = nuOtherItr[1]*self._cellAvFac 
-               else
-                  nuSelf  = nuSelfIn
-                  nuOther = nuOtherIn
-               end
-         
-               self._crossPrimMomentsCalc(self._binOpData, self._binOpDataDiv, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), m1SelfItr:data(), m2SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), m1CorrectionSelfItr:data(), m2CorrectionSelfItr:data(), mOther, nuOther, m0OtherItr:data(), m1OtherItr:data(), m2OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), m1CorrectionOtherItr:data(), m2CorrectionOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
-            end
-
-         else    -- Piecewise linear polynomial basis below.
-
-            for cIdx in confRange:rowMajorIter() do
-               grid:setIndex(cIdx)
-         
-               m0Self:fill(confIndexer(cIdx), m0SelfItr)
-               m1Self:fill(confIndexer(cIdx), m1SelfItr)
-               m2Self:fill(confIndexer(cIdx), m2SelfItr)
-               uSelf:fill(confIndexer(cIdx), uSelfItr)
-               vtSqSelf:fill(confIndexer(cIdx), vtSqSelfItr)
-               m1CorrectionSelf:fill(confIndexer(cIdx), m1CorrectionSelfItr)
-               m2CorrectionSelf:fill(confIndexer(cIdx), m2CorrectionSelfItr)
-               m0StarSelf:fill(confIndexer(cIdx), m0StarSelfItr)
-               m1StarSelf:fill(confIndexer(cIdx), m1StarSelfItr)
-               m2StarSelf:fill(confIndexer(cIdx), m2StarSelfItr)
-         
-               m0Other:fill(confIndexer(cIdx), m0OtherItr)
-               m1Other:fill(confIndexer(cIdx), m1OtherItr)
-               m2Other:fill(confIndexer(cIdx), m2OtherItr)
-               uOther:fill(confIndexer(cIdx), uOtherItr)
-               vtSqOther:fill(confIndexer(cIdx), vtSqOtherItr)
-               m1CorrectionOther:fill(confIndexer(cIdx), m1CorrectionOtherItr)
-               m2CorrectionOther:fill(confIndexer(cIdx), m2CorrectionOtherItr)
-               m0StarOther:fill(confIndexer(cIdx), m0StarOtherItr)
-               m1StarOther:fill(confIndexer(cIdx), m1StarOtherItr)
-               m2StarOther:fill(confIndexer(cIdx), m2StarOtherItr)
-         
-               uCrossSelf:fill(confIndexer(cIdx), uCrossSelfItr)
-               vtSqCrossSelf:fill(confIndexer(cIdx), vtSqCrossSelfItr)
-               uCrossOther:fill(confIndexer(cIdx), uCrossOtherItr)
-               vtSqCrossOther:fill(confIndexer(cIdx), vtSqCrossOtherItr)
-         
-               if self._varNu then
-                  nuSelfIn:fill(confIndexer(cIdx), nuSelfItr)
-                  nuOtherIn:fill(confIndexer(cIdx), nuOtherItr)
-
-                  nuSelf  = nuSelfItr[1]*self._cellAvFac 
-                  nuOther = nuOtherItr[1]*self._cellAvFac 
-               else
-                  nuSelf  = nuSelfIn
-                  nuOther = nuOtherIn
-               end
-         
-               self._crossPrimMomentsCalc(self._binOpData, self._binOpDataDiv, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), m1SelfItr:data(), m2SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), m1CorrectionSelfItr:data(), m2CorrectionSelfItr:data(), m0StarSelfItr:data(), m1StarSelfItr:data(), m2StarSelfItr:data(), mOther, nuOther, m0OtherItr:data(), m1OtherItr:data(), m2OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), m1CorrectionOtherItr:data(), m2CorrectionOtherItr:data(), m0StarOtherItr:data(), m1StarOtherItr:data(), m2StarOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
-            end
-
-         end    -- end if polyOrder>1.
-      else    -- BGK operator below (needs fewer inputs).
-
-         for cIdx in confRange:rowMajorIter() do
-            grid:setIndex(cIdx)
-         
-            m0Self:fill(confIndexer(cIdx), m0SelfItr)
-            uSelf:fill(confIndexer(cIdx), uSelfItr)
-            vtSqSelf:fill(confIndexer(cIdx), vtSqSelfItr)
-         
-            m0Other:fill(confIndexer(cIdx), m0OtherItr)
-            uOther:fill(confIndexer(cIdx), uOtherItr)
-            vtSqOther:fill(confIndexer(cIdx), vtSqOtherItr)
-         
-            uCrossSelf:fill(confIndexer(cIdx), uCrossSelfItr)
-            vtSqCrossSelf:fill(confIndexer(cIdx), vtSqCrossSelfItr)
-            uCrossOther:fill(confIndexer(cIdx), uCrossOtherItr)
-            vtSqCrossOther:fill(confIndexer(cIdx), vtSqCrossOtherItr)
-         
-            if self._varNu then
-               nuSelfIn:fill(confIndexer(cIdx), nuSelfItr)
-               nuOtherIn:fill(confIndexer(cIdx), nuOtherItr)
-
-               nuSelf  = nuSelfItr[1]*self._cellAvFac 
-               nuOther = nuOtherItr[1]*self._cellAvFac 
-            else
-               nuSelf  = nuSelfIn
-               nuOther = nuOtherIn
-            end
-         
-            self._crossPrimMomentsCalc(self._binOpDataDiv, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), mOther, nuOther, m0OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
-         end
-
-      end    -- end if self._isLBO.
-   else    -- Below: collisionality is not cell-wise constant.
-   end
-
-end
-
-function CrossPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
-
+function CrossPrimMoments:_advanceLBO(tCurr, inFld, outFld)
    local mSelf, nuSelf = inFld[1], inFld[2]
    local momsSelf      = inFld[3]
    local primMomsSelf  = inFld[4]
@@ -424,21 +248,110 @@ function CrossPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
    local momsOther       = inFld[8]
    local primMomsOther   = inFld[9]
 
-   local m0sdeltas = inFld[10]
+   local m0sPreFac = inFld[10]
+
+   local primMomsCrossSelf = outFld[1]
+
+
+   -- Compose the pre-factor:
+   --   m0_s*delta_s*(1+beta)
+   --     = m0_s*(2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs))*(1+beta)
+   ffiC.gkyl_prim_cross_m0deltas_advance(self._zero_m0deltas, self.confBasis._zero,
+      mSelf, momsSelf._zero, nuSelf._zero, mOther, momsOther._zero, nuOther._zero,
+      m0sPreFac._zero, momsSelf:localRange(), self.m0deltas._zero)
+
+   -- Compute u and vtsq.
+   ffiC.gkyl_prim_lbo_cross_calc_advance(self._zero, primMomsSelf:localRange(), self.m0deltas._zero,
+      mSelf, momsSelf._zero, primMomsSelf._zero, mOther, momsOther._zero, primMomsOther._zero, 
+      bCorrsSelf._zero, primMomsCrossSelf._zero)
+end
+
+function CrossPrimMoments:_advanceBGK(tCurr, inFld, outFld)
+   local mSelf, nuSelf = inFld[1], inFld[2]
+   local momsSelf      = inFld[3]
+   local primMomsSelf  = inFld[4]
+
+   local mOther, nuOther = inFld[5], inFld[6]
+   local momsOther       = inFld[7]
+   local primMomsOther   = inFld[8]
+
+   local m0sPreFac = inFld[9]
 
    local primMomsCrossSelf = outFld[1]
 
    -- Compose the pre-factor:
    --   m0_s*delta_s*(1+beta)
    --     = m0_s*(2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs))*(1+beta)
-   m0sdeltas:scale(self._betaP1)
+   ffiC.gkyl_prim_cross_m0deltas_advance(self._zero_m0deltas, self.confBasis._zero,
+      mSelf, momsSelf._zero, nuSelf._zero, mOther, momsOther._zero, nuOther._zero,
+      m0sPreFac._zero, momsSelf:localRange(), self.m0deltas._zero)
 
    -- Compute u and vtsq.
-   ffiC.gkyl_prim_lbo_cross_calc_advance_cu(self._zero, self.confBasis._zero, primMomsSelf:localRange(), m0sdeltas._zeroDevice,
+   ffiC.gkyl_prim_bgk_cross_calc_advance(self.confBasis._zero, self._vDimPhys,
+      self.m0deltas._zero, mSelf, primMomsSelf._zero, mOther, primMomsOther._zero,
+      primMomsSelf:localRange(), primMomsCrossSelf._zero)
+end
+
+function CrossPrimMoments:_advance(tCurr, inFld, outFld)
+   self.advanceFunc(tCurr, inFld, outFld)
+end
+
+function CrossPrimMoments:_advanceOnDeviceLBO(tCurr, inFld, outFld)
+   local mSelf, nuSelf = inFld[1], inFld[2]
+   local momsSelf      = inFld[3]
+   local primMomsSelf  = inFld[4]
+   local bCorrsSelf    = inFld[5]
+
+   local mOther, nuOther = inFld[6], inFld[7]
+   local momsOther       = inFld[8]
+   local primMomsOther   = inFld[9]
+
+   local m0sPreFac = inFld[10]
+
+   local primMomsCrossSelf = outFld[1]
+
+   -- Compose the pre-factor:
+   --   m0_s*delta_s*(1+beta)
+   --     = m0_s*(2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs))*(1+beta)
+   ffiC.gkyl_prim_cross_m0deltas_advance(self._zero_m0deltas, self.confBasis._zero,
+      mSelf, momsSelf._zeroDevice, nuSelf._zeroDevice, mOther, momsOther._zeroDevice, nuOther._zeroDevice,
+      m0sPreFac._zeroDevice, momsSelf:localRange(), self.m0deltas._zeroDevice)
+
+   -- Compute u and vtsq.
+   ffiC.gkyl_prim_lbo_cross_calc_advance_cu(self._zero, primMomsSelf:localRange(), self.m0deltas._zeroDevice,
       mSelf, momsSelf._zeroDevice, primMomsSelf._zeroDevice,
       mOther, momsOther._zeroDevice, primMomsOther._zeroDevice, 
       bCorrsSelf._zeroDevice, primMomsCrossSelf._zeroDevice)
+end
 
+function CrossPrimMoments:_advanceOnDeviceBGK(tCurr, inFld, outFld)
+   local mSelf, nuSelf = inFld[1], inFld[2]
+   local momsSelf      = inFld[3]
+   local primMomsSelf  = inFld[4]
+
+   local mOther, nuOther = inFld[5], inFld[6]
+   local momsOther       = inFld[7]
+   local primMomsOther   = inFld[8]
+
+   local m0sPreFac = inFld[9]
+
+   local primMomsCrossSelf = outFld[1]
+
+   -- Compose the pre-factor:
+   --   m0_s*delta_s*(1+beta)
+   --     = m0_s*(2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs))*(1+beta)
+   ffiC.gkyl_prim_cross_m0deltas_advance(self._zero_m0deltas, self.confBasis._zero,
+      mSelf, momsSelf._zeroDevice, nuSelf._zeroDevice, mOther, momsOther._zeroDevice, nuOther._zeroDevice,
+      m0sPreFac._zeroDevice, momsSelf:localRange(), self.m0deltas._zeroDevice)
+
+   -- Compute u and vtsq.
+   ffiC.gkyl_prim_bgk_cross_calc_advance_cu(self.confBasis._zero, self._vDimPhys,
+      self.m0deltas._zeroDevice, mSelf, primMomsSelf._zeroDevice, mOther, primMomsOther._zeroDevice,
+      primMomsSelf:localRange(), primMomsCrossSelf._zeroDevice)
+end
+
+function CrossPrimMoments:_advanceOnDevice(tCurr, inFld, outFld)
+   self.advanceOnDeviceFunc(tCurr, inFld, outFld)
 end
 
 return CrossPrimMoments

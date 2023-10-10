@@ -20,180 +20,12 @@ def build(bld):
     incompEulerData/IncompEulerSurfSer2xP2.cpp
     incompEulerData/IncompEulerSurfPositivitySer2xP1.cpp
 
-    constDiffusionData/ConstDiffusionSer1xP1.cpp
-    constDiffusionData/ConstDiffusionSer2xP1.cpp
-    constDiffusionData/ConstDiffusionSer3xP1.cpp
-    constDiffusionData/ConstDiffusionSer4xP1.cpp
-    constDiffusionData/ConstDiffusionSurfSer1xP1.cpp
-    constDiffusionData/ConstDiffusionSurfSer2xP1.cpp
-    constDiffusionData/ConstDiffusionSurfSer3xP1.cpp
-    constDiffusionData/ConstDiffusionSurfSer4xP1.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer1xP1.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer2xP1.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer3xP1.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer4xP1.cpp
-    constDiffusionData/ConstDiffusionSer1xP2.cpp
-    constDiffusionData/ConstDiffusionSer2xP2.cpp
-    constDiffusionData/ConstDiffusionSer3xP2.cpp
-    constDiffusionData/ConstDiffusionSer4xP2.cpp
-    constDiffusionData/ConstDiffusionSurfSer1xP2.cpp
-    constDiffusionData/ConstDiffusionSurfSer2xP2.cpp
-    constDiffusionData/ConstDiffusionSurfSer3xP2.cpp
-    constDiffusionData/ConstDiffusionSurfSer4xP2.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer1xP2.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer2xP2.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer3xP2.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer4xP2.cpp
-    constDiffusionData/ConstDiffusionSer1xP3.cpp
-    constDiffusionData/ConstDiffusionSer2xP3.cpp
-    constDiffusionData/ConstDiffusionSurfSer1xP3.cpp
-    constDiffusionData/ConstDiffusionSurfSer2xP3.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer1xP3.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer2xP3.cpp
-    constDiffusionData/ConstDiffusionSurfPositivitySer1xP1.cpp
-    constDiffusionData/ConstDiffusionSurfPositivitySer2xP1.cpp
-    constDiffusionData/ConstDiffusionSurfPositivitySer3xP1.cpp
-    constDiffusionData/ConstDiffusionSurfPositivitySer4xP1.cpp
-    constDiffusionData/ConstDiffusionBCsSer.cpp
-
-    constDiffusionData/ConstDiffusionTensor2xP2.cpp
-    constDiffusionData/ConstDiffusionSurfTensor2xP2.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfTensor2xP2.cpp
-    constDiffusionData/ConstDiffusionTensor2xP3.cpp
-    constDiffusionData/ConstDiffusionSurfTensor2xP3.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfTensor2xP3.cpp
-    constDiffusionData/ConstDiffusionTensor3xP2.cpp
-    constDiffusionData/ConstDiffusionSurfTensor3xP2.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfTensor3xP2.cpp
-    constDiffusionData/ConstDiffusionTensor4xP2.cpp
-    constDiffusionData/ConstDiffusionSurfTensor4xP2.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfTensor4xP2.cpp
-
     pbData/CanonicalSer1x1v.cpp
     pbData/CanonicalSer2x2v.cpp
     pbData/CanonicalSurfSer1x1v.cpp
     pbData/CanonicalSurfSer2x2v.cpp
     pbData/CanonicalDisContSurfSer1x1v.cpp
     pbData/CanonicalSurfPositivitySer1x1v.cpp
-
-    gkData/GyrokineticSimpleHelicalSer1x1vP1.cpp
-    gkData/GyrokineticSimpleHelicalSer1x2vP1.cpp
-    gkData/GyrokineticSimpleHelicalSer2x0vP1.cpp
-    gkData/GyrokineticSimpleHelicalSer2x2vP1.cpp
-    gkData/GyrokineticSimpleHelicalSer3x2vP1.cpp
-    gkData/GyrokineticSimpleHelicalSer1x1vP2.cpp
-    gkData/GyrokineticSimpleHelicalSer1x2vP2.cpp
-    gkData/GyrokineticSimpleHelicalSer2x0vP2.cpp
-    gkData/GyrokineticSimpleHelicalSer2x2vP2.cpp
-    gkData/GyrokineticSimpleHelicalSer3x2vP2.cpp
-    gkData/GyrokineticSimpleHelicalSurfSer1x1vP1.cpp
-    gkData/GyrokineticSimpleHelicalSurfSer1x2vP1.cpp
-    gkData/GyrokineticSimpleHelicalSurfSer2x0vP1.cpp
-    gkData/GyrokineticSimpleHelicalSurfSer2x2vP1.cpp
-    gkData/GyrokineticSimpleHelicalSurfSer3x2vP1.cpp
-    gkData/GyrokineticSimpleHelicalSurfSer1x1vP2.cpp
-    gkData/GyrokineticSimpleHelicalSurfSer1x2vP2.cpp
-    gkData/GyrokineticSimpleHelicalSurfSer2x0vP2.cpp
-    gkData/GyrokineticSimpleHelicalSurfSer2x2vP2.cpp
-    gkData/GyrokineticSimpleHelicalSurfSer3x2vP2.cpp
-    gkData/GyrokineticSimpleHelicalSurfPositivitySer1x1vP1.cpp
-    gkData/GyrokineticSimpleHelicalSurfPositivitySer1x2vP1.cpp
-    gkData/GyrokineticSimpleHelicalSurfPositivitySer2x0vP1.cpp
-    gkData/GyrokineticSimpleHelicalSurfPositivitySer2x2vP1.cpp
-    gkData/GyrokineticSimpleHelicalSurfPositivitySer3x2vP1.cpp
-
-    gkData/GyrokineticSimpleHelicalTensor1x1vP2.cpp
-    gkData/GyrokineticSimpleHelicalTensor1x2vP2.cpp
-    gkData/GyrokineticSimpleHelicalSurfTensor1x1vP2.cpp
-    gkData/GyrokineticSimpleHelicalSurfTensor1x2vP2.cpp
-
-    gkData/EmGyrokineticSimpleHelicalSer1x1vP1.cpp
-    gkData/EmGyrokineticSimpleHelicalSer1x2vP1.cpp
-    gkData/EmGyrokineticSimpleHelicalSer2x2vP1.cpp
-    gkData/EmGyrokineticSimpleHelicalSer3x2vP1.cpp
-    gkData/EmGyrokineticSimpleHelicalSer1x1vP2.cpp
-    gkData/EmGyrokineticSimpleHelicalSer1x2vP2.cpp
-    gkData/EmGyrokineticSimpleHelicalSer2x2vP2.cpp
-    gkData/EmGyrokineticSimpleHelicalSer3x2vP2.cpp
-    gkData/EmGyrokineticSimpleHelicalSurfSer1x1vP1.cpp
-    gkData/EmGyrokineticSimpleHelicalSurfSer1x2vP1.cpp
-    gkData/EmGyrokineticSimpleHelicalSurfSer2x2vP1.cpp
-    gkData/EmGyrokineticSimpleHelicalSurfSer3x2vP1.cpp
-    gkData/EmGyrokineticSimpleHelicalSurfSer1x1vP2.cpp
-    gkData/EmGyrokineticSimpleHelicalSurfSer1x2vP2.cpp
-    gkData/EmGyrokineticSimpleHelicalSurfSer2x2vP2.cpp
-    gkData/EmGyrokineticSimpleHelicalSurfSer3x2vP2.cpp
-    gkData/EmGyrokineticSimpleHelicalSurfPositivitySer1x1vP1.cpp
-    gkData/EmGyrokineticSimpleHelicalSurfPositivitySer1x2vP1.cpp
-    gkData/EmGyrokineticSimpleHelicalSurfPositivitySer2x2vP1.cpp
-    gkData/EmGyrokineticSimpleHelicalSurfPositivitySer3x2vP1.cpp
-
-    gkData/EmGyrokineticSimpleHelicalTensor1x1vP2.cpp
-    gkData/EmGyrokineticSimpleHelicalTensor1x2vP2.cpp
-    gkData/EmGyrokineticSimpleHelicalSurfTensor1x1vP2.cpp
-    gkData/EmGyrokineticSimpleHelicalSurfTensor1x2vP2.cpp
-
-    gkData/GyrokineticGenGeoSer1x1vP1.cpp
-    gkData/GyrokineticGenGeoSer1x2vP1.cpp
-    gkData/GyrokineticGenGeoSer2x0vP1.cpp
-    gkData/GyrokineticGenGeoSer2x2vP1.cpp
-    gkData/GyrokineticGenGeoSer3x2vP1.cpp
-    gkData/GyrokineticGenGeoSer1x1vP2.cpp
-    gkData/GyrokineticGenGeoSer1x2vP2.cpp
-    gkData/GyrokineticGenGeoSer2x0vP2.cpp
-    gkData/GyrokineticGenGeoSer2x2vP2.cpp
-    gkData/GyrokineticGenGeoSer3x2vP2.cpp
-    gkData/GyrokineticGenGeoSurfSer1x1vP1.cpp
-    gkData/GyrokineticGenGeoSurfSer1x2vP1.cpp
-    gkData/GyrokineticGenGeoSurfSer2x0vP1.cpp
-    gkData/GyrokineticGenGeoSurfSer2x2vP1.cpp
-    gkData/GyrokineticGenGeoSurfSer3x2vP1.cpp
-    gkData/GyrokineticGenGeoSurfSer1x1vP2.cpp
-    gkData/GyrokineticGenGeoSurfSer1x2vP2.cpp
-    gkData/GyrokineticGenGeoSurfSer2x0vP2.cpp
-    gkData/GyrokineticGenGeoSurfSer2x2vP2.cpp
-    gkData/GyrokineticGenGeoSurfSer3x2vP2.cpp
-    gkData/GyrokineticGenGeoSurfPositivitySer1x1vP1.cpp
-    gkData/GyrokineticGenGeoSurfPositivitySer1x2vP1.cpp
-    gkData/GyrokineticGenGeoSurfPositivitySer2x0vP1.cpp
-    gkData/GyrokineticGenGeoSurfPositivitySer2x2vP1.cpp
-    gkData/GyrokineticGenGeoSurfPositivitySer3x2vP1.cpp
-
-    gkData/GyrokineticGenGeoTensor1x1vP2.cpp
-    gkData/GyrokineticGenGeoTensor1x2vP2.cpp
-    gkData/GyrokineticGenGeoSurfTensor1x1vP2.cpp
-    gkData/GyrokineticGenGeoSurfTensor1x2vP2.cpp
-
-    gkData/EmGyrokineticGenGeoSer1x1vP1.cpp
-    gkData/EmGyrokineticGenGeoSer1x2vP1.cpp
-    gkData/EmGyrokineticGenGeoSer2x2vP1.cpp
-    gkData/EmGyrokineticGenGeoSer3x2vP1.cpp
-    gkData/EmGyrokineticGenGeoSer1x1vP2.cpp
-    gkData/EmGyrokineticGenGeoSer1x2vP2.cpp
-    gkData/EmGyrokineticGenGeoSer2x2vP2.cpp
-    gkData/EmGyrokineticGenGeoSer3x2vP2.cpp
-    gkData/EmGyrokineticGenGeoSurfSer1x1vP1.cpp
-    gkData/EmGyrokineticGenGeoSurfSer1x2vP1.cpp
-    gkData/EmGyrokineticGenGeoSurfSer2x2vP1.cpp
-    gkData/EmGyrokineticGenGeoSurfSer3x2vP1.cpp
-    gkData/EmGyrokineticGenGeoSurfSer1x1vP2.cpp
-    gkData/EmGyrokineticGenGeoSurfSer1x2vP2.cpp
-    gkData/EmGyrokineticGenGeoSurfSer2x2vP2.cpp
-    gkData/EmGyrokineticGenGeoSurfSer3x2vP2.cpp
-    gkData/EmGyrokineticGenGeoSurfPositivitySer1x1vP1.cpp
-    gkData/EmGyrokineticGenGeoSurfPositivitySer1x2vP1.cpp
-    gkData/EmGyrokineticGenGeoSurfPositivitySer2x2vP1.cpp
-    gkData/EmGyrokineticGenGeoSurfPositivitySer3x2vP1.cpp
-
-    gkData/EmGyrokineticGenGeoTensor1x1vP2.cpp
-    gkData/EmGyrokineticGenGeoTensor1x2vP2.cpp
-    gkData/EmGyrokineticGenGeoSurfTensor1x1vP2.cpp
-    gkData/EmGyrokineticGenGeoSurfTensor1x2vP2.cpp
-
-    gkData/GkSheathFuncsSerP1.cpp
-    gkData/GkSheathFuncsSerP2.cpp
-
-    gkData/GkSheathFuncsTensorP2.cpp
 
     gyrofluidData/gyrofluid_surf_1x_p0_ser.cpp
     gyrofluidData/gyrofluid_surf_1x_p1_ser.cpp
@@ -230,8 +62,12 @@ def build(bld):
 
     """,
               name = 'eq',
-              target = 'eq', use='EIGEN CUTOOLS', includes = '. hasegawaWakataniData incompEulerData constDiffusionData pbData gkData gyrofluidData gfHeatFluxData passiveAdvectionData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct',
+              target = 'eq', use='EIGEN CUTOOLS', includes = '. hasegawaWakataniData incompEulerData pbData gyrofluidData gfHeatFluxData passiveAdvectionData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct',
               vnum = '1.0',
               
     )
+
+## Removed the following files from the build for now
+#    gkData/EmGyrokineticGenGeoTensor1x2vP2.cpp
+
 

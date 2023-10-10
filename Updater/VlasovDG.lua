@@ -7,17 +7,9 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local Alloc       = require "Lib.Alloc"
-local Basis       = require "Basis.BasisCdef"
-local DataStruct  = require "DataStruct"
-local EqBase      = require "Eq.EqBase"
-local Grid        = require "Grid.RectCart"
-local CartField   = require "DataStruct.CartField"
-local Lin         = require "Lib.Linalg"
-local Mpi         = require "Comm.Mpi"
 local Proto       = require "Lib.Proto"
-local Range       = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
+local Lin         = require "Lib.Linalg"
 local ffi         = require "ffi"
 local xsys        = require "xsys"
 
@@ -26,39 +18,68 @@ local new, sizeof, typeof, metatype = xsys.from(ffi,
      "new, sizeof, typeof, metatype")
 
 ffi.cdef [[ 
-// Identifiers for specific field object types
-enum gkyl_field_id {
-  GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
-  GKYL_FIELD_SR_E_B, // Maxwell (E, B) with special relativity
-  GKYL_FIELD_PHI, // Poisson (only phi)
-  GKYL_FIELD_PHI_A, // Poisson with static B = curl(A) (phi, A)
-  GKYL_FIELD_NULL, // no field is present
-  GKYL_FIELD_SR_NULL // no field is present, special relativistic Vlasov
+// Struct containing the pointers to auxiliary fields.
+struct gkyl_dg_vlasov_auxfields { 
+  const struct gkyl_array *field; // q/m*(E,B) for Maxwell's, q/m*phi for Poisson's (gradient calculated in kernel)
+  const struct gkyl_array *cot_vec; // cotangent vectors (e^i) used in volume term if general geometry enabled
+  const struct gkyl_array *alpha_geo; // alpha^i (e^i . alpha) used in surface term if general geometry enabled
 };
 
+// Struct containing the pointers to auxiliary fields.
+struct gkyl_dg_vlasov_sr_auxfields { 
+  const struct gkyl_array *qmem; // q/m * EM
+  const struct gkyl_array *p_over_gamma; // p/gamma (velocity)
+};
+
+// Object type
 typedef struct gkyl_dg_updater_vlasov gkyl_dg_updater_vlasov;
 
-gkyl_dg_updater_vlasov*
-gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
+/**
+ * Create new updater to update Vlasov equations using hyper dg.
+ * Supports Vlasov-Maxwell, Vlasov-Poisson (with and without vector potential A)
+ * and special relativistic Vlasov-Maxwell
+ *
+ * @param grid Grid object
+ * @param cbasis Configuration space basis functions
+ * @param pbasis Phase-space basis function
+ * @param conf_range Config space range
+ * @param vel_range Velocity space range
+ * @param phase_range Phase space range
+ * @param is_zero_flux_dir True in directions with (lower and upper) zero flux BCs.
+ * @param model_id Enum identifier for model type (e.g., SR, General Geometry, PKPM, see gkyl_eqn_type.h)
+ * @param field_id Enum identifier for field type (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h)
+ * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
+ * @param use_gpu Boolean to determine whether struct objects are on host or device
+ *
+ * @return New vlasov updater object
+ */
+gkyl_dg_updater_vlasov* gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
-  enum gkyl_field_id field_id, bool use_gpu);
+  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
+  const bool *is_zero_flux_dir, enum gkyl_model_id model_id, enum gkyl_field_id field_id, void *aux_inp, bool use_gpu);
 
-void
-gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
-  enum gkyl_field_id field_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *aux1, const struct gkyl_array *aux2,
-  const struct gkyl_array* fIn,
+/**
+ * Compute RHS of DG update. The update_rng MUST be a sub-range of the
+ * range on which the array is defined. That is, it must be either the
+ * same range as the array range, or one created using the
+ * gkyl_sub_range_init method.
+ *
+ * @param vlasov vlasov updater object
+ * @param update_rng Range on which to compute.
+ * @param fIn Input to updater
+ * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
+ * @param rhs RHS output
+ */
+void gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
+  const struct gkyl_range *update_rng, const struct gkyl_array* fIn,
   struct gkyl_array* cflrate, struct gkyl_array* rhs);
 
-void
-gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
-  enum gkyl_field_id field_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *aux1, const struct gkyl_array *aux2,
-  const struct gkyl_array* fIn,
-  struct gkyl_array* cflrate, struct gkyl_array* rhs);
-
-void gkyl_dg_updater_vlasov_release(gkyl_dg_updater_vlasov *vlasov);
+/**
+ * Delete updater.
+ *
+ * @param vlasov Updater to delete.
+ */
+void gkyl_dg_updater_vlasov_release(gkyl_dg_updater_vlasov* vlasov);
 
 ]]
 
@@ -70,30 +91,78 @@ function VlasovDG:init(tbl)
 
    -- Read data from input file.
    self._onGrid = assert(tbl.onGrid, "Updater.VlasovDG: Must provide grid object using 'onGrid'")
-   self._phaseBasis = assert(tbl.phaseBasis, "Updater.VlasovDG: Must specify phase-space basis functions to use using 'phaseBasis'")
-   self._confBasis = assert(tbl.confBasis, "Updater.VlasovDG: Must specify conf-space basis functions to use using 'confBasis'")
+   self._phaseBasis = assert(
+     tbl.phaseBasis, "Updater.VlasovDG: Must specify phase-space basis functions to use using 'phaseBasis'")
+   self._confBasis = assert(
+     tbl.confBasis, "Updater.VlasovDG: Must specify conf-space basis functions to use using 'confBasis'")
 
-   self._confRange = assert(tbl.confRange, "Updater.VlasovDG: Must specify conf-space range using 'confRange'")
-   assert(self._confRange:isSubRange()==1, "Eq.Vlasov: confRange must be a sub-range") 
+   self._confRange = assert(
+     tbl.confRange, "Updater.VlasovDG: Must specify conf-space range using 'confRange'")
+   assert(self._confRange:isSubRange()==1, "Updater.VlasovDG: confRange must be a sub-range") 
 
-   -- Check if we have an electric and magnetic field.
-   local hasElcField    = xsys.pickBool(tbl.hasElectricField, false)
-   local hasMagField    = xsys.pickBool(tbl.hasMagneticField, false)
-   local hasExtForce    = xsys.pickBool(tbl.hasExtForce, false)
-   self._plasmaMagField = xsys.pickBool(tbl.plasmaMagField, false)
+   self._velRange = assert(
+     tbl.velRange, "Updater.VlasovDG: Must specify velocity-space range using 'velRange'")
+   assert(self._velRange:isSubRange()==1, "Updater.VlasovDG: velRange must be a sub-range") 
 
-   if hasElcField and self._plasmaMagField then 
-      self._fieldId = "GKYL_FIELD_E_B"
-   elseif hasElcField then
-      self._fieldId = "GKYL_FIELD_PHI"
+   self._phaseRange = assert(
+     tbl.phaseRange, "Updater.VlasovDG: Must specify phase-space range using 'phaseRange'")
+   assert(self._phaseRange:isSubRange()==1, "Updater.VlasovDG: phaseRange must be a sub-range") 
+
+   self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
+
+   self._modelId = assert(tbl.model_id, "Updater.VlasovDG: Must provide model ID using 'model_id'")
+   self._fieldId = assert(tbl.field_id, "Updater.VlasovDG: Must provide field ID using 'field_id'")
+
+   local model_id
+   if self._modelId == "GKYL_MODEL_DEFAULT" then model_id = 0
+   elseif self._modelId == "GKYL_MODEL_SR"  then model_id = 1
+   elseif self._modelId == "GKYL_MODEL_GEN_GEO"  then model_id = 2 
+   elseif self._modelId == "GKYL_MODEL_PKPM"  then model_id = 3
+   elseif self._modelId == "GKYL_MODEL_SR_PKPM"  then model_id = 4
+   end   
+
+   local field_id
+   if self._fieldId == "GKYL_FIELD_E_B" then field_id = 0
+   elseif self._fieldId == "GKYL_FIELD_PHI"  then field_id = 1
+   elseif self._fieldId == "GKYL_FIELD_PHI_A"  then field_id = 2
+   elseif self._fieldId == "GKYL_FIELD_NULL"  then field_id = 3
+   end 
+
+   -- Create aux fields struct for Vlasov and set pointers based on input fields
+   -- Only supports Vlasov-Maxwell, Vlasov-Poisson (no external B), and SR Vlasov for now
+   if model_id == 1 then 
+      self._auxfields = ffi.new("struct gkyl_dg_vlasov_sr_auxfields")
+      if self._useGPU then
+         self._auxfields.qmem = tbl.fldPtrs[1]._zeroDevice
+         self._auxfields.p_over_gamma = tbl.fldPtrs[2]._zeroDevice
+      else
+         self._auxfields.qmem = tbl.fldPtrs[1]._zero
+         self._auxfields.p_over_gamma = tbl.fldPtrs[2]._zero
+      end
    else
-      self._fieldId = "GKYL_FIELD_NULL"
+      self._auxfields = ffi.new("struct gkyl_dg_vlasov_auxfields")
+      if self._useGPU then
+         self._auxfields.field = tbl.fldPtrs[1]._zeroDevice
+      else
+         self._auxfields.field = tbl.fldPtrs[1]._zero
+      end
+   end
+
+   local cdim, pdim = self._confBasis:ndim(), self._phaseBasis:ndim()
+   local is_zfd = Lin.BoolVec(pdim)
+   for d = 1, pdim do is_zfd[d] = d>cdim and true or false end
+   local zfd = tbl.zeroFluxDirs -- Directions in which to specify zero flux BCs.
+   if zfd then
+      for i = 1, #zfd do is_zfd[zfd[i]] = true end
    end
 
    self._zero = ffi.gc(
-                  ffiC.gkyl_dg_updater_vlasov_new(self._onGrid._zero, self._confBasis._zero, self._phaseBasis._zero, self._confRange, nil, self._fieldId, GKYL_USE_GPU or 0),
-                  ffiC.gkyl_dg_updater_vlasov_release
-                )
+      ffiC.gkyl_dg_updater_vlasov_new(self._onGrid._zero, 
+        self._confBasis._zero, self._phaseBasis._zero, 
+        self._confRange, self._velRange, self._phaseRange,
+        is_zfd:data(), model_id, field_id, self._auxfields, self._useGPU),
+      ffiC.gkyl_dg_updater_vlasov_release
+   )
 
    return self
 end
@@ -102,40 +171,33 @@ end
 function VlasovDG:_advance(tCurr, inFld, outFld)
 
    local qIn = assert(inFld[1], "VlasovDG.advance: Must specify an input field")
-   local aux1, aux2
-   if self._fieldId == "GKYL_FIELD_PHI" then
-      aux1 = inFld[2]._zero
-      aux2 = nil
-   elseif self._fieldId == "GKYL_FIELD_E_B" then
-      aux1 = inFld[2]._zero
-      aux2 = inFld[3]._zero
-   end
+   
    local qRhsOut = assert(outFld[1], "VlasovDG.advance: Must specify an output field")
-   local cflRateByCell = assert(outFld[2], "VlasovDG.advance: Must pass cflRate field in output table")
+   local cflRateByCell = assert(outFld[2],
+     "VlasovDG.advance: Must pass cflRate field in output table")
 
    local localRange = qRhsOut:localRange()
-   ffiC.gkyl_dg_updater_vlasov_advance(self._zero, self._fieldId, localRange, aux1, aux2, qIn._zero, cflRateByCell._zero, qRhsOut._zero)
+   ffiC.gkyl_dg_updater_vlasov_advance(self._zero, localRange,
+     qIn._zero, cflRateByCell._zero, qRhsOut._zero)
 
 end
 
 function VlasovDG:_advanceOnDevice(tCurr, inFld, outFld)
 
    local qIn = assert(inFld[1], "VlasovDG.advance: Must specify an input field")
-   local aux1, aux2
-   if self._fieldId == "GKYL_FIELD_PHI" then
-      aux1 = inFld[2]._zeroDevice
-      aux2 = inFld[2]._zeroDevice
-   elseif self._fieldId == "GKYL_FIELD_E_B" then
-      aux1 = inFld[2]._zeroDevice
-      aux2 = inFld[3]._zeroDevice
-   end
+   
    local qRhsOut = assert(outFld[1], "VlasovDG.advance: Must specify an output field")
-   local cflRateByCell = assert(outFld[2], "VlasovDG.advance: Must pass cflRate field in output table")
+   local cflRateByCell = assert(outFld[2],
+     "VlasovDG.advance: Must pass cflRate field in output table")
 
    local localRange = qRhsOut:localRange()
-   ffiC.gkyl_dg_updater_vlasov_advance_cu(self._zero, self._fieldId, localRange, aux1, aux2, qIn._zeroDevice, cflRateByCell._zeroDevice, qRhsOut._zeroDevice)
+   ffiC.gkyl_dg_updater_vlasov_advance(self._zero, localRange,
+     qIn._zeroDevice, cflRateByCell._zeroDevice, qRhsOut._zeroDevice)
 
 end
+
+-- Fetch equation updater.
+function VlasovDG:getEquation() return self._zero end
 
 -- set up pointers to dt and cflRateByCell
 function VlasovDG:setDtAndCflRate(dt, cflRateByCell)

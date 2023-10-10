@@ -197,9 +197,9 @@ function FluidSpecies:fullInit(appTbl)
    self.diagIoFrame        = 0 -- Frame number for diagnostics.
    self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
    self.cfl      = 0.1
-   self.nMoments = 1   -- Default to a single moment.
-   self.nGhost   = 1   -- Default is 1 ghost-cell in each direction.
-
+   if (not self.nMoments) then self.nMoments = 1 end -- Default to a single moment.
+   if (not self.nGhost) then self.nGhost   = 1 end  -- Default is 1 ghost-cell in each direction.
+   
    self.integratedMomentsTime = 0.0 -- Timer for integrated moments.
    self.bcTime = 0.0   -- Timer for BCs.
 end
@@ -286,7 +286,7 @@ function FluidSpecies:createSolver(field, externalField)
    end
 
    -- Operators needed for time-dependent calculation and diagnostics.
-   if self.ndim <= 3 then
+   if self.ndim <= 3 and self.jacob then
       self.weakMultiply = Updater.CartFieldBinOp {
          operation = "Multiply",  weakBasis = self.basis,
          onGhosts  = true,
@@ -400,6 +400,7 @@ function FluidSpecies:createSolver(field, externalField)
 end
 
 function FluidSpecies:alloc(nRkDup)
+  
    -- Allocate fields needed in RK update.
    self.moments = {}
    for i = 1, nRkDup do
@@ -635,7 +636,7 @@ end
 
 function FluidSpecies:getNoJacMoments() return self.noJacMom end
 
-function FluidSpecies:write(tm, force)
+function FluidSpecies:write(tm, field, force)
    if self.evolve or force then
 
       -- Calculate fluctuations (if perturbed diagnostics are requested) and put them in self.flucMom.
@@ -664,7 +665,7 @@ function FluidSpecies:write(tm, force)
       if self.diagIoTrigger(tm) or force then
          local momIn = self:rkStepperFields()[1]
 
-	 self.momIo:write(momIn, string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
+         self.momIo:write(momIn, string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
          self.writeFluctuation(tm, self.diagIoFrame, momIn)
 
          for _, src in lume.orderedIter(self.sources) do

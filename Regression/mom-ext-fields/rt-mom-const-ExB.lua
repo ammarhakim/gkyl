@@ -1,6 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
 local Moments = require("App.PlasmaOnCartGrid").Moments()
-local Euler = require "Eq.Euler"
 
 local gasGamma = 5.0/3.0
 local lower = -10.0
@@ -38,15 +37,12 @@ local function pulse2D(n, x, y, x0, y0, sigma)
 end
 
 momentApp = Moments.App {
-   logToFile = false,
-
    tEnd   = tEnd,
    nFrame = nFrame,
    lower  = {lower, lower},
    upper  = {upper, upper},
    cells  = {cells, cells},
    cfl    = cfl,
-   timeStepper = "fvDimSplit",
 
    -- Decomposition for configuration space.
    decompCuts = {1, 1},    -- Cuts in each configuration direction.
@@ -58,9 +54,7 @@ momentApp = Moments.App {
    elc = Moments.Species {
       charge = chargeElc, mass = massElc,
 
-      equation    = Euler { gasGamma = gasGamma },
-      equationInv = Euler { gasGamma = gasGamma, numericalFlux = "lax" },
-      forceInv    = false,
+      equation    = Moments.Euler { gasGamma = gasGamma },
       -- Initial conditions.
       init = function (t, xn)
          local x, y = xn[1], xn[2]
@@ -71,16 +65,13 @@ momentApp = Moments.App {
          local u_e = rhoe*elcTemp/(gasGamma - 1) + 0.5*(rhovx_e*rhovx_e + rhovy_e*rhovy_e + rhovz_e*rhovz_e)/rhoe
          return rhoe, rhovx_e, rhovy_e, rhovz_e, u_e
       end,
-      evolve = true,   -- Evolve species?
    },
 
    -- Ions.
    ion = Moments.Species {
       charge = chargeIon, mass = massIon,
 
-      equation    = Euler { gasGamma = gasGamma },
-      equationInv = Euler { gasGamma = gasGamma, numericalFlux = "lax" },
-      forceInv    = false,
+      equation    = Moments.Euler { gasGamma = gasGamma },
       -- Initial conditions.
       init = function (t, xn)
          local x, y = xn[1], xn[2]
@@ -91,7 +82,6 @@ momentApp = Moments.App {
          local u_i = rhoi*ionTemp/(gasGamma - 1) + 0.5*(rhovx_i*rhovx_i + rhovy_i*rhovy_i + rhovz_i*rhovz_i)/rhoi
          return rhoi, rhovx_i, rhovy_i, rhovz_i, u_i
       end,
-      evolve = true,   -- Evolve species?
    },
 
    field = Moments.Field {
@@ -100,19 +90,13 @@ momentApp = Moments.App {
          local x, y = xn[1], xn[2]
          return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
       end,
-      evolve = true,    -- Evolve field?
-   },
-
-   emSource = Moments.CollisionlessEmSource {
-      species = {"elc", "ion"},
-      timeStepper = "time-centered",
-      hasStaticField = true,
-      staticEmFunction = function(t, xn)
+      is_ext_em_static = true,
+      ext_em_func = function (t, xn)
          local x, y = xn[1], xn[2]
          return E0, E0, 0.0, 0.0, 0.0, B0
       end
-   },   
-
+   },
 }
+
 -- Run application.
 momentApp:run()
