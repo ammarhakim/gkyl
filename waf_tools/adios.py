@@ -36,6 +36,7 @@ def check_adios(conf):
     if conf.options.enable_mpi:
         conf.env.STLIB_ADIOS = ["adios2_c"]
         conf.env.append_value('CFLAGS', '-DADIOS2_USE_MPI -isystem')
+        conf.env.append_value('CXXFLAGS', '-DADIOS2_USE_MPI')
     else:
         conf.env.append_value('CXXFLAGS', '-D_NOMPI')
         conf.env.append_value('CFLAGS', '-D_NOMPI')

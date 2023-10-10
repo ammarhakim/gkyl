@@ -167,12 +167,12 @@ main(int argc, char **argv) {
     {
       case 'h':
           showUsage();
-          return finish(0);
+          return finish(0, ad_ctx);
           break;
 
       case 'v':
           showVersion();
-          return finish(0);
+          return finish(0, ad_ctx);
 
       case 't':
           optShowToolList = true;
@@ -187,7 +187,7 @@ main(int argc, char **argv) {
 	  break;
 
       case '?':
-          return finish(0);
+          return finish(0, ad_ctx);
     }
 
   std::list<std::string> argRest;
