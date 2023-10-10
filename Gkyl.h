@@ -27,9 +27,8 @@
 # include <GkylMpiFuncs.h>
 #endif
 
-#ifdef HAVE_ADIOS_H
-# include <adios.h>
-# include <adios_read.h>
+#ifdef HAVE_ADIOS2_C_H
+#include <adios2_c.h>
 #endif
 
 #ifdef HAVE_EIGEN_CORE
@@ -275,7 +274,7 @@ std::string Gkyl::createTopLevelDefs() const {
   varDefs << "GKYL_HAVE_MPI = false" << std::endl;
 #endif
 
-#ifdef HAVE_ADIOS_H
+#ifdef HAVE_ADIOS2_C_H
   varDefs << "GKYL_HAVE_ADIOS = true" << std::endl;
 #else
   varDefs << "GKYL_HAVE_ADIOS = false" << std::endl;

@@ -3,8 +3,8 @@
 # Build directory
 OUT=build
 # Install location
-PREFIX=$HOME/gkylsoft/gkyl
-GKYLSOFT=$HOME/gkylsoft
+GKYLSOFT=$HOME/Documents/gkeyll/code/g2adios/gkylsoft
+PREFIX=$GKYLSOFT/gkyl
 
 # Compile flags (set optimization/debug flags here)
 CC=clang
@@ -26,8 +26,8 @@ MPI_LINK_LIBS="mpi"
 
 # ADIOS options
 ENABLE_ADIOS="--enable-adios" # set to blank to disable ADIOS
-ADIOS_INC_DIR=$GKYLSOFT/adios/include
-ADIOS_LIB_DIR=$GKYLSOFT/adios/lib
+ADIOS_INC_DIR=$GKYLSOFT/adios2/include
+ADIOS_LIB_DIR=$GKYLSOFT/adios2/lib
 
 # EIGEN options
 EIGEN_INC_DIR=$GKYLSOFT/eigen3/include/eigen3

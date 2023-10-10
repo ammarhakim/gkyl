@@ -25,27 +25,28 @@ def check_adios(conf):
     if conf.options.adiosIncDir:
         conf.env.INCLUDES_ADIOS = conf.options.adiosIncDir
     else:
-        conf.env.INCLUDES_ADIOS = conf.options.gkylDepsDir+'/adios/include'
+        conf.env.INCLUDES_ADIOS = conf.options.gkylDepsDir+'/adios2/include'
 
     if conf.options.adiosLibDir:
         #conf.env.STLIBPATH_ADIOS = conf.options.adiosLibDir
         conf.env.STLIBPATH_ADIOS = conf.options.adiosLibDir.split(',')
     else:
-        conf.env.STLIBPATH_ADIOS = conf.options.gkylDepsDir+'/adios/lib'
+        conf.env.STLIBPATH_ADIOS = conf.options.gkylDepsDir+'/adios2/lib'
 
     if conf.options.enable_mpi:
-        conf.env.STLIB_ADIOS = ["adios", "adiosread"]
+        conf.env.STLIB_ADIOS = ["adios2_c"]
+        conf.env.append_value('CFLAGS', '-DADIOS2_USE_MPI -isystem')
     else:
         conf.env.append_value('CXXFLAGS', '-D_NOMPI')
         conf.env.append_value('CFLAGS', '-D_NOMPI')
-        conf.env.STLIB_ADIOS = ["adios_nompi", "adiosread_nompi"]
+        conf.env.STLIB_ADIOS = ["adios_nompi"]
 
     if conf.options.adiosLinkLibs:
         libList = conf.options.adiosLinkLibs
         conf.env.append_value('STLIB_ADIOS', libList.split(','))
          
     conf.start_msg('Checking for ADIOS')
-    conf.check(header_name='adios.h', features='cxx cxxprogram', use="ADIOS MPI", mandatory=True)
+    conf.check(header_name='adios2_c.h', features='cxx cxxprogram', use="ADIOS MPI", mandatory=True)
     conf.end_msg("Found ADIOS")
     conf.env['ADIOS_FOUND'] = True
     return 1

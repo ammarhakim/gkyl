@@ -53,17 +53,24 @@
 
 // These dummy calls are a hack to force the linker to pull in symbols
 // from static libraries. There must be a better way to do this ...
-#ifdef HAVE_ADIOS_H
-int _adios_init(const char *cf, MPI_Comm comm) { return adios_init(cf, comm); }
-ADIOS_FILE*
-_adios_read_open_file(const char *fname, enum ADIOS_READ_METHOD method, MPI_Comm comm)
-{ return adios_read_open_file(fname, method, comm); }
+#ifdef HAVE_ADIOS2_C_H
+void _adios_init(const char *cf, MPI_Comm comm)
+{
+  adios2_adios *ad_ctx = adios2_init_mpi(comm);
+}
+adios2_engine*
+_adios_read_open_file(const char *fname, adios2_adios *ad_ctx, MPI_Comm comm)
+{
+  adios2_io *ad_io = adios2_declare_io(ad_ctx, "hackWrite");
+  adios2_engine *ad_eng_hack = adios2_open(ad_io, fname, adios2_mode_write);
+  return ad_eng_hack;
+}
 #endif
 
 // Finish simulation
-int finish(int err) {
+int finish(int err, adios2_adios *ad_ctx) {
   int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  adios_finalize(rank);
+  adios2_error ioerr = adios2_finalize(ad_ctx);
   MPI_Finalize();
   return err;
 }
@@ -99,7 +106,7 @@ void showVersion() {
 #ifdef HAVE_MPI_H
   std::cout << " MPI";
 #endif      
-#ifdef HAVE_ADIOS_H
+#ifdef HAVE_ADIOS2_C_H
   std::cout << " Adios";
 #endif    
 #ifdef HAVE_EIGEN_CORE
@@ -146,7 +153,7 @@ main(int argc, char **argv) {
 #endif
 
   MPI_Init(&argc, &argv);
-  adios_init_noxml(MPI_COMM_WORLD);
+  adios2_adios *ad_ctx = adios2_init_mpi(MPI_COMM_WORLD);
 
   bool optShowToolList = false;
   std::string luaExpr;
@@ -207,5 +214,5 @@ main(int argc, char **argv) {
     status = 1;
     std::cout << e.what() << std::endl;
   }
-  return finish(status);
+  return finish(status, ad_ctx);
 }

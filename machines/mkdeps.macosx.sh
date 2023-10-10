@@ -3,10 +3,10 @@ if [ `dirname "$0"` == "." ]
   then
     cd ..
 fi
-export GKYLSOFT='~/gkylsoft'
+export GKYLSOFT=$HOME/Documents/gkeyll/code/g2adios/gkylsoft/
 cd install-deps
 # first build OpenMPI
-./mkdeps.sh CC=clang CXX=clang++ --build-openmpi=yes
+./mkdeps.sh CC=clang CXX=clang++ --build-openmpi=yes --prefix=$GKYLSOFT
 # get OSX version (XX.XX.X)
 vers=`sw_vers -productVersion`   
 # remove patch version, so that only XX.XX
