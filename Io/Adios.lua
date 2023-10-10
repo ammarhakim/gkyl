@@ -15,186 +15,50 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
 require "Io._AdiosCdef"     -- Load FFI binding.
-require "Io._AdiosReadCdef" -- Load FFI binding for read API.
+
+-- de-reference if object is a pointer
+local function getObj(obj, ptyp)
+   return ffi.istype(typeof(ptyp), obj) and obj[0] or obj
+end
 
 local _M = {}
 
--- Constants from enum ADIOS_FLAG.
-_M.flag_yes = ffiC.adios_flag_yes
-_M.flag_no  = ffiC.adios_flag_no
--- Constants from enum ADIOS_DATATYPES.
-_M.unknown          = ffiC.adios_unknown
-_M.byte             = ffiC.adios_byte
-_M.short            = ffiC.adios_short
-_M.integer          = ffiC.adios_integer
-_M.long             = ffiC.adios_long
-_M.unsigned_byte    = ffiC.adios_unsigned_byte
-_M.unsigned_short   = ffiC.adios_unsigned_short
-_M.unsigned_integer = ffiC.adios_unsigned_integer
-_M.unsigned_long    = ffiC.adios_unsigned_long
-_M.real             = ffiC.adios_real
-_M.double           = ffiC.adios_double
-_M.long_double      = ffiC.adios_long_double
-_M.string           = ffiC.adios_string
-_M.complex          = ffiC.adios_complex
-_M.double_complex   = ffiC.adios_double_complex
-_M.string_array     = ffiC.adios_string_array
+-- adios2_type
+_M.unknown = -1
 
--- ADIOS read methods from adios_read.
-_M.read_method_bp = ffiC.ADIOS_READ_METHOD_BP
+_M.string = 0
+_M.float = 1
+_M.double = 2
+_M.float_complex = 3
+_M.double_complex = 4
 
--- ADIOS contiguous block selection.
-_M.selBoundingbox = ffiC.ADIOS_SELECTION_BOUNDINGBOX
+_M.int8_t = 5
+_M.int16_t = 6
+_M.int32_t = 7
+_M.int64_t = 8
 
--- adios_init_noxml.
-function _M.init_noxml(comm)
-   local err = ffiC.adios_init_noxml(comm)
-end
--- adios_set_max_buffer_size
-function _M.set_max_buffer_size(szMB)
-   local err = ffiC.adios_set_max_buffer_size(szMB)
+_M.uint8_t = 9
+_M.uint16_t = 10
+_M.uint32_t = 11
+_M.uint64_t = 12
+_M.long_double = 13
+
+-- adios2_init_mpi
+function _M.init_mpi(comm)
+   ad_handler = ffi.new("adios2_adios")
+   ad_handler = ffiC.adios2_init_mpi(getObj(comm, "MPI_Comm[1]"))
+   return ad_handler
 end
 
--- adios_declare_group
-function _M.declare_group(name, time_index, stats)
-   local id  = new("int64_t[1]")
-   local err = ffiC.adios_declare_group(id, name, time_index, stats)
-   return id
-end
--- adios_select_method
-function _M.select_method(group, method, parameters, base_path)
-   local err = ffiC.adios_select_method(group[0], method, parameters, base_path)
-end
--- adios_define_var
-function _M.define_var(group_id, name, path, typ, dimensions, global_dimensions, local_offsets)
-   local varId = ffiC.adios_define_var(
-      group_id[0], name, path, typ, dimensions, global_dimensions, local_offsets)
-   return varId
+-- adios2_declare_io
+function _M.declare_io(ad_handler, io_name)
+   io_handler = ffi.new("adios2_io")
+   io_handler = ffiC.adios2_declare_io(handler, io_name)
+   return io_handler
 end
 
-function _M.delete_vardefs(group_id)
-   return ffiC.adios_delete_vardefs(group_id[0])
+function _M.finalize(ad_handler)
+   ad_error = ffiC.adios2_finalize(ad_handler)
 end
-
-function _M.define_var_mesh(group_id, varname, meshname)
-   return ffiC.adios_define_var_mesh(group_id[0], varname, meshname)
-end
-
-function _M.define_mesh_timevarying(flag, group_id, meshname)
-   return ffiC.adios_define_mesh_timevarying(flag, group_id[0], meshname)
-end
-
-function _M.set_time_aggregation(group_id, buff_size, flush_group_id)
-   if flush_group_id then
-      ffiC.adios_set_time_aggregation(group_id[0], buff_size, flush_group_id[0])
-   else
-      ffiC.adios_set_time_aggregation(group_id[0], buff_size, 0)
-   end
-end
-
--- adios_define_attribute
-function _M.define_attribute(group, name, path, typ, value, var)
-   local err = ffiC.adios_define_attribute(group[0], name, path, typ, value, var)
-end
--- adios_define_attribute_byvalue
-function _M.define_attribute_byvalue(group, name, path, typ, nelems, values)
-   local err = ffiC.adios_define_attribute_byvalue(
-      group[0], name, path, typ, nelems, values)
-end
-
--- adios_open
-function _M.open(group_name, name, mode, comm)
-   local id  = new("int64_t[1]")
-   local err = ffiC.adios_open(id, group_name, name, mode, comm)
-   return id
-end
--- adios_group_size
-function _M.group_size(fd, data_size)
-   local tsz = new("uint64_t[1]")
-   ffiC.adios_group_size(fd[0], data_size, tsz)
-   return tsz[0]
-end
-
--- adios_write
-function _M.write(fd, name, var)
-   local err = ffiC.adios_write(fd[0], name, var)
-   return err
-end
-
-function _M.write_byid(fd, id, var)
-   local err = ffiC.adios_write_byid(fd[0], id, var)
-   return err
-end
-
--- adios_read
-function _M.read(fd, name, buff, buffSz)
-   local err = ffiC.adios_read(fd[0], name, buff, buffSz)
-   return err
-end
-
--- adios_close
-function _M.close(fd)
-   local err = ffiC.adios_close(fd[0])
-end
--- adios_finalize
-function _M.finalize(rank)
-   local err = ffiC.adios_finalize(rank)
-end
-
--- ADIOS v2 read API wrappers
-
--- adios_read_open_file
-function _M.read_open_file(name, comm)
-   return ffiC.adios_read_open_file(name, _M.read_method_bp, comm)
-end
-
--- adios_read_close
-function _M.read_close(fd)
-   return ffiC.adios_read_close(fd)
-end
-
--- adios_inq_var_byid
-function _M.inq_var_byid(fd, i)
-   return ffiC.adios_inq_var_byid(fd, i)
-end
-
--- adios_type_size
-function _M.type_size(vtype, vvalue)
-   return ffiC.adios_type_size(vtype, vvalue)
-end
-
--- adios_type_to_string
-function _M.type_to_string(vtype)
-   return ffi.string(ffiC.adios_type_to_string(vtype))
-end
-
--- adios_selection_boundingbox
-function _M.selection_boundingbox(ndim, start, count)
-   return ffiC.adios_selection_boundingbox(ndim, start:data(), count:data())
-end
-
--- adios_schedule_read
-function _M.schedule_read(fp, sel, name, from_steps, nsteps, data)
-   return ffiC.adios_schedule_read(fp, sel, name, from_steps, nsteps, data)
-end
-
--- adios_schedule_read_byid
-function _M.schedule_read_byid(fp, sel, varid, from_steps, nsteps, data)
-   return ffiC.adios_schedule_read_byid(fp, sel, varid, from_steps, nsteps, data:data())
-end
-
--- adios_perform_reads
-function _M.perform_reads(fp, blocking)
-   return ffiC.adios_perform_reads(fp, blocking)
-end
-
--- adios_get_attr_byid
-function _M.get_attr_byid(fp, attrid) --> type, size, void* to data
-   local typePtr, sizePtr = ffi.new("int[1]"), ffi.new("int[1]")
-   local voidPtr          = ffi.new(typeof("void *[1]"))
-   ffiC.adios_get_attr_byid(fp, attrid, typePtr, sizePtr, voidPtr)
-   return typePtr[0], sizePtr[0], voidPtr[0]
-end
-
 
 return _M
