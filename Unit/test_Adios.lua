@@ -28,10 +28,10 @@ end
 function test_0(comm)
    local nproc, rank = Mpi.Comm_size(comm), Mpi.Comm_rank(comm)
 
-   local adh = Adios.init_mpi(comm)
-   local adioh = Adios.declare_io(adiosh, "gkylad")
+   local ad = Adios.init_mpi(comm)
+   local ad_io = Adios.declare_io(ad, "gkylad")
 
-   Adios.finalize(adh)
+   Adios.finalize(ad)
 end
 
 --function test_1w(comm)
