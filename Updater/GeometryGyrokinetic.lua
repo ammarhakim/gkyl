@@ -265,6 +265,8 @@ function GeometryGyrokinetic:init(tbl)
    self.rzLocalRangeExt = tbl.rzLocalRangeExt
    self.B0 = tbl.B0
    self.R0 = tbl.R0
+   self.calcGeom = tbl.calcGeom
+   self.calcBmag = tbl.calcBmag
 
 
    
@@ -293,33 +295,34 @@ function GeometryGyrokinetic:init(tbl)
    end
    
 
-   -- Create input struct
-   self.inp = ffi.new("struct gkyl_geo_gyrokinetic_inp")
-   self.inp.rzgrid = self.rzGrid._zero
-   self.inp.rzbasis = self.rzBasis._zero
-   self.inp.psiRZ = tbl.psiRZ._zero
-   self.inp.rzlocal = self.rzLocalRange
-   self.inp.B0 = self.B0
-   self.inp.R0 = self.R0
+   if self.calcGeom then
+      -- Create input struct
+      self.inp = ffi.new("struct gkyl_geo_gyrokinetic_inp")
+      self.inp.rzgrid = self.rzGrid._zero
+      self.inp.rzbasis = self.rzBasis._zero
+      self.inp.psiRZ = tbl.psiRZ._zero
+      self.inp.rzlocal = self.rzLocalRange
+      self.inp.B0 = self.B0
+      self.inp.R0 = self.R0
 
-   -- Create mapc2p updater
-   self._zero_geom = ffi.gc(ffiC.gkyl_geo_gyrokinetic_new(self.inp), ffiC.gkyl_geo_gyrokinetic_release)
+      -- Create mapc2p updater
+      self._zero_geom = ffi.gc(ffiC.gkyl_geo_gyrokinetic_new(self.inp), ffiC.gkyl_geo_gyrokinetic_release)
 
-   -- Create geo input struct which will be used by mapc2p updater
-   self.ginp = ffi.new("struct gkyl_geo_gyrokinetic_geo_inp")
-   self.ginp.cgrid = self.grid._zero
-   self.ginp.cbasis = self.basis._zero
-   --self.ginp.ftype = GKYL_SOL_DN
-   self.ginp.rclose = self.rzGrid:upper(1)
-   self.ginp.zmin = self.rzGrid:lower(2)
-   self.ginp.zmax = self.rzGrid:upper(2)
-   self.ginp.write_node_coord_array = true
-   self.ginp.node_file_nm = "g2nodes.gkyl"
-   self.ginp.bcs = self.BCs:data()
+      -- Create geo input struct which will be used by mapc2p updater
+      self.ginp = ffi.new("struct gkyl_geo_gyrokinetic_geo_inp")
+      self.ginp.cgrid = self.grid._zero
+      self.ginp.cbasis = self.basis._zero
+      --self.ginp.ftype = GKYL_SOL_DN
+      self.ginp.rclose = self.rzGrid:upper(1)
+      self.ginp.zmin = self.rzGrid:lower(2)
+      self.ginp.zmax = self.rzGrid:upper(2)
+      self.ginp.write_node_coord_array = true
+      self.ginp.node_file_nm = "g2nodes.gkyl"
+      self.ginp.bcs = self.BCs:data()
+      self._zero_bmag = ffi.gc(ffiC.gkyl_calc_bmag_new(self.basis._zero, self.rzBasis._zero, self.grid._zero, self.rzGrid._zero, self.geo, self.ginp, false), ffiC.gkyl_calc_bmag_release)
+   end
 
 
-   -- Create the three g0 updaters for calculating 
-   self._zero_bmag = ffi.gc(ffiC.gkyl_calc_bmag_new(self.basis._zero, self.rzBasis._zero, self.grid._zero, self.rzGrid._zero, self.geo, self.ginp, false), ffiC.gkyl_calc_bmag_release)
    self._zero_metric = ffi.gc(ffiC.gkyl_calc_metric_new(self.basis._zero, self.grid._zero, self.BCs:data(), false), ffiC.gkyl_calc_metric_release)
    self._zero_derived = ffi.gc(ffiC.gkyl_calc_derived_geo_new(self.basis._zero, self.grid._zero, false), ffiC.gkyl_calc_derived_geo_release)
 
@@ -333,18 +336,23 @@ function GeometryGyrokinetic:_advance(tCurr, inFlds, outFlds)
    local mapc2p_field, gFld, jacobGeo, jacobGeoInv, jacobTot, jacobTotInv, bmagInv, bmagInvSq, gxxJ, gxyJ, gyyJ, grFld, b_i, cmag, bmag = outFlds[1], outFlds[2], outFlds[3], outFlds[4], outFlds[5], outFlds[6], outFlds[7], outFlds[8], outFlds[9], outFlds[10], outFlds[11], outFlds[12], outFlds[13], outFlds[14], outFlds[15]
 
    -- Fill mapc2p
-   ffiC.gkyl_geo_gyrokinetic_calcgeom(self._zero_geom, self.ginp, mapc2p_field._zero, self.conversionRange)
+   if self.calcGeom then 
+      ffiC.gkyl_geo_gyrokinetic_calcgeom(self._zero_geom, self.ginp, mapc2p_field._zero, self.conversionRange)
+   end
 
-   -- Sync periodic directions before calculating metric
-   --mapc2p_field:sync(true)
+   -- Sync before calculating metric - need to put some logic for periodic dirs
+   mapc2p_field:sync(false)
 
    -- Fill bmag
-   ffiC.gkyl_calc_bmag_advance(self._zero_bmag, self.localRange, self.localRangeExt, self.rzLocalRange, self.rzLocalRangeExt, psiRZ._zero, psibyrRZ._zero, psibyr2RZ._zero, bphiRZ._zero,  bmag._zero, mapc2p_field._zero)
+   if self.calcBmag then
+      ffiC.gkyl_calc_bmag_advance(self._zero_bmag, self.localRange, self.localRangeExt, self.rzLocalRange, self.rzLocalRangeExt, psiRZ._zero, psibyrRZ._zero, psibyr2RZ._zero, bphiRZ._zero,  bmag._zero, mapc2p_field._zero)
+   end
 
    -- Fill metrics
    ffiC.gkyl_calc_metric_advance(self._zero_metric, self.localRange, mapc2p_field._zero, gFld._zero)
 
    -- Fill derived geo. Includes adjustment  of g_zz to preserve cmag = const.
+   -- Need to add argument about whether or not to do the adjustment
    ffiC.gkyl_calc_derived_geo_advance(self._zero_derived, self.localRange, gFld._zero, bmag._zero, jacobGeo._zero, jacobGeoInv._zero, grFld._zero, b_i._zero , cmag._zero, jacobTot._zero, jacobTotInv._zero, bmagInv._zero, bmagInvSq._zero, gxxJ._zero, gxyJ._zero, gyyJ._zero)
 
 end

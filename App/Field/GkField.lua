@@ -1159,15 +1159,15 @@ function GkGeometry:alloc()
 
 
    -- Extra fields needed for g0 implementation
-   print("Creating extra fields")
-   self.geo.psiRZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
-   self.geo.psibyrRZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
-   self.geo.psibyr2RZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
-   self.geo.bphiRZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
+   if self.rzGrid then
+      self.geo.psiRZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
+      self.geo.psibyrRZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
+      self.geo.psibyr2RZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
+      self.geo.bphiRZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
+   end
    self.geo.mapc2p_field = createField(self.grid, self.basis, ghostNum, 3, true)
    self.geo.gFld = createField(self.grid,self.basis,ghostNum,6,syncPeriodic)
    self.geo.grFld = createField(self.grid,self.basis,ghostNum,6,syncPeriodic)
-   print("Created extra fields")
 
  
    -- Functions for laplacian, including Jacobian factor.
@@ -1185,103 +1185,6 @@ function GkGeometry:createSolver(population)
    -- Get configuration-space Jacobian from grid (used by App/Projection/GkProjection, via GkSpecies).
    self.jacobGeoFunc = function (t, xn) return self.grid:calcJacobian(xn) end
 
-   -- Calculate all geometry quantities at once to avoid repeated metric calculations.
-   if self.ndim == 1 then
-      self.calcAllGeo = function(t, xn)
-         local g = {}
-         self.grid:calcMetric(xn, g)
-         local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz
-         if self.grid._inDim==1 then
-            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = 1.0, 0.0, 0.0, 1.0, 0.0, g[1]
-         elseif self.grid._inDim==2 then
-            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], 0.0, g[3], 0.0, 1.0
-         elseif self.grid._inDim==3 then
-            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
-         elseif self.grid._inDim == nil then -- Input file doesn't have mapc2p.
-            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = 1.0, 0.0, 0.0, 1.0, 0.0, 1.0
-         end
-         local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
-         local b_x      = g_xz/math.sqrt(g_zz)
-         local b_y      = g_yz/math.sqrt(g_zz)
-         local b_z      = math.sqrt(g_zz)
-
-         local det = jacobian^2
-         local gxx = (g_yy*g_zz-g_yz^2)/det
-         local gxy = (g_xz*g_yz-g_xy*g_zz)/det
-         local gxz = (g_xy*g_yz-g_xz*g_yy)/det
-         local gyy = (g_xx*g_zz-g_xz^2)/det
-         local gyz = (g_xy*g_xz-g_xx*g_yz)/det
-         local gzz = (g_xx*g_yy-g_xy^2)/det
-
-         local bmag = self.bmagFunc(t, xn)
-         local cmag = jacobian*bmag/math.sqrt(g_zz)
-
-         return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, cmag, 
-                b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
-      end
-   elseif self.ndim == 2 then
-      self.calcAllGeo = function(t, xn)
-         local g = {}
-         self.grid:calcMetric(xn, g)
-         local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz
-         if self.grid._inDim==2 then
-            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], 0.0, g[3], 0.0, 1.0
-         elseif self.grid._inDim==3 then
-            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
-         elseif self.grid._inDim == nil then -- Input file doesn't have mapc2p.
-            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = 1.0, 0.0, 0.0, 1.0, 0.0, 1.0
-         end
-         local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
-         local b_x      = g_xz/math.sqrt(g_zz)
-         local b_y      = g_yz/math.sqrt(g_zz)
-         local b_z      = math.sqrt(g_zz)
-
-         local det = jacobian^2
-         local gxx = (g_yy*g_zz-g_yz^2)/det
-         local gxy = (g_xz*g_yz-g_xy*g_zz)/det
-         local gxz = (g_xy*g_yz-g_xz*g_yy)/det
-         local gyy = (g_xx*g_zz-g_xz^2)/det
-         local gyz = (g_xy*g_xz-g_xx*g_yz)/det
-         local gzz = (g_xx*g_yy-g_xy^2)/det
-
-         local bmag = self.bmagFunc(t, xn)
-         local cmag = jacobian*bmag/math.sqrt(g_zz)
-
-         return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, cmag, 
-                b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
-       end
-   else
-      self.calcAllGeo = function(t, xn)
-         local g = {}
-         self.grid:calcMetric(xn, g)
-         local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
-         local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
-         local b_x      = g_xz/math.sqrt(g_zz)
-         local b_y      = g_yz/math.sqrt(g_zz)
-         local b_z      = math.sqrt(g_zz)
-
-         local det = jacobian^2
-         local gxx = (g_yy*g_zz-g_yz^2)/det
-         local gxy = (g_xz*g_yz-g_xy*g_zz)/det
-         local gxz = (g_xy*g_yz-g_xz*g_yy)/det
-         local gyy = (g_xx*g_zz-g_xz^2)/det
-         local gyz = (g_xy*g_xz-g_xx*g_yz)/det
-         local gzz = (g_xx*g_yy-g_xy^2)/det
-
-         local bmag = self.bmagFunc(t, xn)
-         local cmag = jacobian*bmag/math.sqrt(g_zz)
-
-         return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, cmag, 
-                b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
-       end
-   end
-
-   if self.fromFile == nil then
-      self.setAllGeo = Updater.EvalOnNodes {
-         onGrid = self.grid,   evaluate = self.calcAllGeo,
-         basis  = self.basis,  onGhosts = true,
-      }
-   end
 
    -- Updater to separate vector components packed into a single CartField.
    self.separateComponents = Updater.SeparateVectorComponents {
@@ -1321,58 +1224,86 @@ function GkGeometry:initField(population)
       --    self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
 
 
-      -- fill psi and bphi
-      local psieval = Updater.EvalOnNodes {
-         onGrid = self.rzGrid,   evaluate = self.psifunc,
-         basis  = self.rzBasis,  onGhosts = true,
-      }
 
-      local psibyreval = Updater.EvalOnNodes {
-         onGrid = self.rzGrid,   evaluate = self.psibyrfunc,
-         basis  = self.rzBasis,  onGhosts = true,
-      }
-      local psibyr2eval = Updater.EvalOnNodes {
-         onGrid = self.rzGrid,   evaluate = self.psibyr2func,
-         basis  = self.rzBasis,  onGhosts = true,
-      }
-      local bphieval = Updater.EvalOnNodes {
-         onGrid = self.rzGrid,   evaluate = self.bphifunc,
-         basis  = self.rzBasis,  onGhosts = true,
-      }
-      psieval:advance(0.0, {}, {self.geo.psiRZ})
-      psibyreval:advance(0.0, {}, {self.geo.psibyrRZ})
-      psibyr2eval:advance(0.0, {}, {self.geo.psibyr2RZ})
-      bphieval:advance(0.0, {}, {self.geo.bphiRZ})
-
-
-
-      local numB = self.basis:numBasis()
-      --self.geo.grFld:combineOffset(1, self.geo.gxx, 0*numB, 1, self.geo.gxy, 1*numB, 1, self.geo.gxz, 2*numB, 1, self.geo.gyy, 3*numB, 1, self.geo.gyz, 4*numB, 1, self.geo.gzz, 5*numB)
-      --print("combined grFld")
-
+      -- Set ranges
       self.localRange = self.geo.jacobGeo:localRange()
-
       self.localRangeExt = self.geo.jacobGeo:localExtRange()
-      self.rzLocalRange = self.geo.psiRZ:localRange()
-      self.rzLocalRangeExt = self.geo.psiRZ:localExtRange()
+      self.globalRange = self.geo.jacobGeo:globalRange()
+      self.globalRangeExt = self.geo.jacobGeo:globalExtRange()
+      -- modify in y
+      local lower = self.geo.mapc2p_field:globalExtRange():lowerAsVec()
+      local upper = self.geo.mapc2p_field:globalExtRange():upperAsVec()
+      lower[1] = lower[1]+1
+      upper[1] = upper[1]-1
+      lower[3] = lower[3]+1
+      upper[3] = upper[3]-1
+      self.globalMapc2pRange = self.geo.mapc2p_field:globalExtRange():subRange(lower, upper)
 
 
-      --self.GeoUpdater:advance(self.grid, self.basis, self.rzGrid, self.rzBasis, self.localRange, self.localRangeExt, self.rzLocalRange, self.rzLocalRangeExt, geo_updater, geo_inp, self.mapc2p_field, self.psiRZ, self.psibyrRZ, self.geo.psibyr2RZ, self.geo.bphiRZ, self.geo.gFld, self.geo.jacobGeo, self.geo.jacobGeoInv, self.jacobTot, self.JacobTotInv, self.geo.grFld, self.geo.b_i, self.geo.cmag, self.geo.bmag)
-      -- Need to add definition of updater and geo inp. Need to change g0 kernels to calculate jacobTot and jacobTotInv as well.
+      if self.rzGrid then
+         self.rzLocalRange = self.geo.psiRZ:localRange()
+         self.rzLocalRangeExt = self.geo.psiRZ:localExtRange()
+         local psieval = Updater.EvalOnNodes {
+            onGrid = self.rzGrid,   evaluate = self.psifunc,
+            basis  = self.rzBasis,  onGhosts = true,
+         }
+
+         local psibyreval = Updater.EvalOnNodes {
+            onGrid = self.rzGrid,   evaluate = self.psibyrfunc,
+            basis  = self.rzBasis,  onGhosts = true,
+         }
+         local psibyr2eval = Updater.EvalOnNodes {
+            onGrid = self.rzGrid,   evaluate = self.psibyr2func,
+            basis  = self.rzBasis,  onGhosts = true,
+         }
+         local bphieval = Updater.EvalOnNodes {
+            onGrid = self.rzGrid,   evaluate = self.bphifunc,
+            basis  = self.rzBasis,  onGhosts = true,
+         }
+         psieval:advance(0.0, {}, {self.geo.psiRZ})
+         psibyreval:advance(0.0, {}, {self.geo.psibyrRZ})
+         psibyr2eval:advance(0.0, {}, {self.geo.psibyr2RZ})
+         bphieval:advance(0.0, {}, {self.geo.bphiRZ})
+      else
+         print("trying to project mapc2p and bmag")
+         -- project mapc2p and bmag
+         local projMapc2p = Updater.EvalOnNodes{
+            onGrid = self.grid,   evaluate = function(t, xn) return self.grid:mapc2p(xn) end,
+            basis  = self.basis,  onGhosts = false,
+            globalUpdateRange = self.globalMapc2pRange
+         }
+         projMapc2p:advance(0., {}, {self.geo.mapc2p_field})
+         print("projected mapc2p")
+
+
+         local projBmag = Updater.EvalOnNodes{
+            onGrid = self.grid,   evaluate = function(t, xn) return self.bmagFunc(t,xn) end,
+            basis  = self.basis,  onGhosts = false,
+         }
+         projBmag:advance(0., {}, {self.geo.bmag})
+
+         self.geo.bmag:sync(false)
+         self.geo.mapc2p_field:sync(false)
+
+         self.fieldIo:write(self.geo.mapc2p_field, "mapc2p.bp", 0., 0)
+      end
+
+
 
       self.GeoUpdater = Updater.GeometryGyrokinetic{
-      grid = self.grid,
-      rzGrid = self.rzGrid,
-      basis = self.basis,
-      rzBasis = self.rzBasis,
-      localRange = self.localRange,
-      localRangeExt = self.localRangeExt,
-      rzLocalRange = self.rzLocalRange,
-      rzLocalRangeExt = self.rzLocalRangeExt,
-      B0 = self.B0,
-      R0 = self.R0,
-      psiRZ = self.geo.psiRZ
-
+         grid = self.grid,
+         rzGrid = self.rzGrid,
+         basis = self.basis,
+         rzBasis = self.rzBasis,
+         localRange = self.localRange,
+         localRangeExt = self.localRangeExt,
+         rzLocalRange = self.rzLocalRange,
+         rzLocalRangeExt = self.rzLocalRangeExt,
+         B0 = self.B0,
+         R0 = self.R0,
+         psiRZ = self.geo.psiRZ,
+         calcGeom = self.rzGrid,
+         calcBmag = self.rzGrid,
       }
 
       self.GeoUpdater:advance(0.0, {self.geo.psiRZ, self.geo.psibyrRZ, self.geo.psibyr2RZ, self.geo.bphiRZ}, {self.geo.mapc2p_field, self.geo.gFld, self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv, self.geo.bmagInv, self.geo.bmagInvSq, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ, self.geo.grFld, self.geo.b_i, self.geo.cmag, self.geo.bmag})
@@ -1383,27 +1314,6 @@ function GkGeometry:initField(population)
       self.separateComponents:advance(0, {self.geo.grFld}, {self.geo.gxx, self.geo.gxy, self.geo.gxz, self.geo.gyy, self.geo.gyz, self.geo.gzz })
       self.separateComponents:advance(0, {self.geo.gFld}, {self.geo.g_xx, self.geo.g_xy, self.geo.g_xz, self.geo.g_yy, self.geo.g_yz, self.geo.g_zz })
    end
-
-   -- Two lines below may unnecessary because  g0 will group bx by and bz
-   local numB = self.basis:numBasis()
-   --self.geo.b_i:combineOffset(1, self.geo.b_x, 0*numB, 1, self.geo.b_y, 1*numB, 1, self.geo.b_z, 2*numB)
-
-   -- Compute 1/B and 1/(B^2). LBO collisions require that this is
-   -- done via weak operations instead of projecting 1/B or 1/B^2.
-   local unitField = createField(self.grid,self.basis,{1,1})
-   unitField:shiftc(1.*(math.sqrt(2.)^(self.ndim)), 0)
-   local confWeakMultiply = Updater.CartFieldBinOp {
-      weakBasis = self.basis,  operation = "Multiply",
-      onGhosts  = false,
-   }
-   local confWeakDivide = Updater.CartFieldBinOp {
-      weakBasis = self.basis,  operation = "Divide",
-      onRange   = unitField:localRange(),  onGhosts = false,
-   }
-
-   -- Calculate bmagInv and bmagInvSq in g0 at nodes instead
-   --confWeakDivide:advance(0., {self.geo.bmag, self.unitWeight}, {self.geo.bmagInv})
-   --confWeakMultiply:advance(0., {self.geo.bmagInv, self.geo.bmagInv}, {self.geo.bmagInvSq})
 
    log("...Finished initializing the geometry\n")
 

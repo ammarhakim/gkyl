@@ -118,6 +118,8 @@ function EvalOnNodes:init(tbl)
    assert(self._onGrid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
 
    self._onGhosts = xsys.pickBool(tbl.onGhosts, false)
+   self.globalUpdateRange = tbl.globalUpdateRange
+
 
    local ndim = self._basis:ndim()
 
@@ -148,7 +150,14 @@ function EvalOnNodes:_advance(tCurr, inFld, outFld)
    end
    assert(numVal == self.numVal, "EvalOnNodes: created for a scalar/vector field, not a vector/scalar field.")
 
-   local localRangeOut = self._onGhosts and qOut:localExtRange() or qOut:localRange()
+
+   local localRangeOut
+   if self.globalUpdateRange then
+      localRangeOut = qOut:localExtRange():intersect(self.globalUpdateRange)
+   else
+      localRangeOut = self._onGhosts and qOut:localExtRange() or qOut:localRange()
+   end
+
 
    local indexer = qOut:genIndexer()
    local fItr    = qOut:get(1)
