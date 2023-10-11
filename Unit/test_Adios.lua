@@ -31,6 +31,18 @@ function test_0(comm)
    local ad = Adios.init_mpi(comm)
    local ad_io = Adios.declare_io(ad, "gkylad")
 
+   local nx = 10
+   local myFloats = Lin.Vec(nx)
+   for i = 1, nx do myFloats[i] = i*1.1 end
+
+   local ad_var = Adios.define_variable(ad_io, "myfloats", Adios.type_double, 1, {nx}, {0}, {nx}, true)
+
+   local ad_engine = Adios.open(ad_io, "myVector.bp", Adios.mode_write)
+
+   local ad_err = Adios.put(ad_engine, ad_var, myFloats, Adios.mode_deferred)
+
+   local _ = Adios.close(ad_engine)
+
    Adios.finalize(ad)
 end
 
