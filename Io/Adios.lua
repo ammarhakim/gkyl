@@ -26,17 +26,6 @@ typedef struct adios2_attribute *adios2_attribute;
 typedef struct adios2_engine *adios2_engine;
 typedef struct adios2_operator *adios2_operator;
 
-// Size of opaque objects.
-int sizeof_adios2_adios();
-int sizeof_adios2_io();
-int sizeof_adios2_variable();
-int sizeof_adios2_attribute();
-int sizeof_adios2_engine();
-int sizeof_adios2_operator();
-
-adios2_adios get_adios2_adios();
-adios2_io get_adios2_io();
-
 /**
  * @brief adios2_error return types for all ADIOS2 C API functions
  * Based on the library C++ standardized exceptions
@@ -321,6 +310,14 @@ adios2_define_variable(adios2_io *io, const char *name, const adios2_type type,
                        const adios2_constant_dims constant_dims);
 
 /**
+ * @brief Retrieve a variable handler within current io handler
+ * @param io handler to variable io owner
+ * @param name unique variable identifier within io handler
+ * @return found: handler, not found: NULL
+ */
+adios2_variable *adios2_inquire_variable(adios2_io *io, const char *name);
+
+/**
  * @brief Define an attribute value inside io
  * @param io handler that owns the attribute
  * @param name unique attribute name inside IO handler
@@ -357,6 +354,17 @@ adios2_attribute *adios2_define_attribute_array(adios2_io *io, const char *name,
  */
 adios2_engine *adios2_open(adios2_io *io, const char *name,
                            const adios2_mode mode);
+
+/**
+ * Set new start and count dimensions
+ * @param variable handler for which new selection will be applied to
+ * @param ndims number of dimensions for start and count
+ * @param start new start dimensions array
+ * @param count new count dimensions array
+ * @return adios2_error 0: success, see enum adios2_error for errors
+ */
+adios2_error adios2_set_selection(adios2_variable *variable, const size_t ndims,
+                                  const size_t *start, const size_t *count);
 ]]
 -- de-reference if object is a pointer
 local function getObj(obj, ptyp)
@@ -365,19 +373,20 @@ end
 
 local _M = {}
 
---_M.adios = ffiC.get_adios2_adios()
---_M.io = ffiC.get_adios2_io()
-
 local function new_adios2_adios() return new("adios2_adios[1]") end
 local function new_adios2_io() return new("adios2_io[1]") end
 local function new_adios2_variable() return new("adios2_variable[1]") end
+local function new_adios2_attribute() return new("adios2_attribute[1]") end
 local function new_adios2_engine() return new("adios2_engine[1]") end
+local function new_adios2_step_status() return new("adios2_step_status[1]") end
 
 -- Extract object from (potentially) a pointer
 function _M.get_adios(obj) return getObj(obj, "adios2_adios[1]") end
 function _M.get_io(obj) return getObj(obj, "adios2_io[1]") end
 function _M.get_variable(obj) return getObj(obj, "adios2_variable[1]") end
+function _M.get_attribute(obj) return getObj(obj, "adios2_attribute[1]") end
 function _M.get_engine(obj) return getObj(obj, "adios2_engine[1]") end
+function _M.get_step_status(obj) return getObj(obj, "adios2_step_status[1]") end
 
 -- adios2_type
 _M.type_unknown = -1
@@ -405,6 +414,20 @@ _M.mode_readRandomAccess = 6
 _M.mode_deferred = 4
 _M.mode_sync = 5
 
+-- adios2_step_mode
+_M.step_mode_append = 0
+_M.step_mode_update = 1
+_M.step_mode_read = 2
+
+-- adios2_step_status
+_M.step_status_other_error = -1
+_M.step_status_ok = 0
+_M.step_status_not_ready = 1
+_M.step_status_end_of_stream = 2
+
+-- Create a new step_status.
+function _M.new_step_status() return new_adios2_step_status() end
+
 -- adios2_init_mpi
 function _M.init_mpi(comm)
    local ad_h = new_adios2_adios()
@@ -427,9 +450,9 @@ end
 -- adios2_define_variable
 function _M.define_variable(io_h, varName, varType, ndims, shape, start, count, are_dims_constant)
    local vecsIn = {shape = shape, start = start, count = count}
-   local vecs   = {shape = type(shape)=='table' and Lin.UInt64Vec(ndims) or shape,
-                   start = type(start)=='table' and Lin.UInt64Vec(ndims) or start,
-                   count = type(count)=='table' and Lin.UInt64Vec(ndims) or count,}
+   local vecs   = {shape = type(shape)=='table' and Lin.UInt64Vec(ndims) or {data=function(self) return shape end},
+                   start = type(start)=='table' and Lin.UInt64Vec(ndims) or {data=function(self) return start end},
+                   count = type(count)=='table' and Lin.UInt64Vec(ndims) or {data=function(self) return count end},}
    for k, v in pairs(vecsIn) do 
       if type(v) == 'table' then
          for d = 1, ndims do vecs[k][d] = v[d] end
@@ -443,6 +466,40 @@ function _M.define_variable(io_h, varName, varType, ndims, shape, start, count, 
    return var
 end
 
+
+-- adios2_inquire_variable
+-- MF 2023/10/10: doesn't seem to work.
+function _M.inquire_variable(io_h, varName)
+   local var = new_adios2_variable()
+   var = ffiC.adios2_inquire_variable(_M.get_io(io_h), varName)
+   return var
+end
+
+-- adios2_define_attribute
+function _M.define_attribute(io_h, attrName, attrType, dataPointer)
+   local attr = new_adios2_attribute()
+   attr = ffiC.adios2_define_attribute(_M.get_io(io_h), attrName, attrType, dataPointer)
+   return attr
+end
+
+-- adios2_define_attribute_array
+function _M.define_attribute_array(io_h, attrName, attrType, data, size)
+   local dataVec
+   if type(data) == 'table' then
+      if     attrType == _M.type_float   then dataVec = Lin.Vec(size)
+      elseif attrType == _M.type_double  then dataVec = Lin.Vec(size)
+      elseif attrType == _M.type_int32_t then dataVec = Lin.IntVec(size)
+      end
+
+      for i = 1, size do dataVec[i] = data[i] end
+   else
+      dataVec = {data = function(self) return data end}
+   end
+   local attr = new_adios2_attribute()
+   attr = ffiC.adios2_define_attribute_array(_M.get_io(io_h), attrName, attrType, dataVec:data(), size)
+   return attr
+end
+
 -- adios2_open
 function _M.open(io_h, fileName, access_mode) 
    local engine_h = new_adios2_engine()
@@ -450,16 +507,49 @@ function _M.open(io_h, fileName, access_mode)
    return engine_h
 end
 
+-- adios2_set_selection
+function _M.set_selection(variable_h, ndims, start, count)
+   local vecsIn = {shape = shape, start = start, count = count}
+   local vecs   = {start = type(start)=='table' and Lin.UInt64Vec(ndims) or {data=function(self) return start end},
+                   count = type(count)=='table' and Lin.UInt64Vec(ndims) or {data=function(self) return count end},}
+   for k, v in pairs(vecsIn) do 
+      if type(v) == 'table' then
+         for d = 1, ndims do vecs[k][d] = v[d] end
+      end
+   end
+   local err = ffiC.adios2_set_selection(variable_h, ndims, vecs.start:data(), vecs.count:data())
+   return err
+end
+
 -- adios2_put
-function _M.put(engine_h, variable_h, data, launch_mode)
+function _M.put(engine_h, variable_h, dataPointer, launch_mode)
    local err = ffiC.adios2_put(_M.get_engine(engine_h), _M.get_variable(variable_h),
-                               data, launch_mode)
+                               dataPointer, launch_mode)
+   return err
+end
+
+-- adios2_get
+function _M.get(engine_h, variable_h, dataPointer, launch_mode)
+   local err = ffiC.adios2_get(_M.get_engine(engine_h), _M.get_variable(variable_h),
+                               dataPointer, launch_mode)
    return err
 end
 
 -- adios2_close
 function _M.close(engine_h)
    local err = ffiC.adios2_close(_M.get_engine(engine_h))
+   return err
+end
+
+-- adios2_begin_step
+function _M.begin_step(engine_h, step_mode, timeout, step_stat)
+   local err = ffiC.adios2_begin_step(_M.get_engine(engine_h), step_mode, timeout, step_stat)
+   return err
+end
+
+-- adios2_end_step
+function _M.end_step(engine_h)
+   local err = ffiC.adios2_end_step(_M.get_engine(engine_h))
    return err
 end
 
