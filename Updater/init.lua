@@ -71,6 +71,7 @@ local BraginskiiHeatConduction = require "Updater.BraginskiiHeatConduction"
 local BraginskiiViscosityDiffusion = require "Updater.BraginskiiViscosityDiffusion"
 local AnisotropicDiffusion = require "Updater.AnisotropicDiffusion"
 local GeometryGyrokinetic = require "Updater.GeometryGyrokinetic"
+local GeometryDeflate = require "Updater.GeometryDeflate"
 
 return {
    ASheathPotential = ASheathPotential,
@@ -138,4 +139,5 @@ return {
    BraginskiiViscosityDiffusion = BraginskiiViscosityDiffusion,
    AnisotropicDiffusion = AnisotropicDiffusion,
    GeometryGyrokinetic = GeometryGyrokinetic,
+   GeometryDeflate = GeometryDeflate,
 }

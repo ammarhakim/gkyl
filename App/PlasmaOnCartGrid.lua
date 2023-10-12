@@ -273,8 +273,8 @@ local function buildApplication(self, tbl)
    local function completeExtFieldSetup(fld, plasmaField)
       fld:fullInit(tbl, plasmaField) -- Complete initialization.
       fld:setIoMethod(ioMethod)
-      fld:setBasis(confBasis, rzBasis)
       fld:setGrid(confGrid, rzGrid)
+      fld:setBasis(confBasis, rzBasis)
       do
 	 local myCfl = tbl.cfl and tbl.cfl or cflFrac
 	 if fld.isElliptic then
