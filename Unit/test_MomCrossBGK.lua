@@ -61,8 +61,6 @@ function testGK_1x1v()
    local ms = 1.0
    local mr = 2.0
    local beta = 0.0
-   local nu_sr = 10.0
-   local nu_rs = 5.0
 
    local ns = 10.0
    local nr = 10.0
@@ -81,10 +79,15 @@ function testGK_1x1v()
    local confGrid = createGrid({lower[1]}, {upper[1]}, {numCells[1]})
    local confBasis = createBasis(confGrid:ndim(), polyOrder)
 
+   local nu_sr = createField(confGrid, confBasis, 1)
+   local nu_rs = createField(confGrid, confBasis, 1)
    local moms_s = createField(confGrid, confBasis, 3)
    local moms_r = createField(confGrid, confBasis, 3)
    local moms_tar = createField(confGrid, confBasis, 6)
    local moms_cross = createField(confGrid, confBasis, 6)
+   
+   local nu_srFunc = function (t, xn) return 10.0 end
+   local nu_rsFunc = function (t, xn) return 5.0 end
    
    local eps_n = 0.2
    local eps_u = 0.2
@@ -109,10 +112,12 @@ function testGK_1x1v()
    end
 
    local alphaFunc = function (t, xn)
+      local nu_sr, nu_rs = nu_srFunc(t,xn), nu_rsFunc(t, xn)
       local m0s, m0r = m0sFunc(t,xn), m0rFunc(t,xn)
       return (1+beta)/(ms+mr)*2*(ms*nu_sr*m0s*mr*nu_rs*m0r)/(ms*nu_sr*m0s+mr*nu_rs*m0r)
    end
    local moms_tarFunc = function (t, xn)
+      local nu_sr, nu_rs = nu_srFunc(t,xn), nu_rsFunc(t, xn)
       local alpha = alphaFunc(t,xn)
       local m0s, udrifts, vtsqs = m0sFunc(t,xn), usFunc(t,xn), vtSqsFunc(t,xn)
       local m0r, udriftr, vtsqr = m0rFunc(t,xn), urFunc(t,xn), vtSqrFunc(t,xn)
@@ -129,6 +134,11 @@ function testGK_1x1v()
       return m0sr, m0rs, m1sr, m1rs, m2sr, m2rs
    end
    
+   local projConfScalar = Updater.ProjectOnBasis {
+      onGrid = confGrid,
+      basis = confBasis,
+      evaluate = function (t, xn) return 1.0 end   -- Set later.
+   }
    local projMomsSingle = Updater.ProjectOnBasis {
       onGrid = confGrid,
       basis = confBasis,
@@ -139,24 +149,23 @@ function testGK_1x1v()
       basis = confBasis,
       evaluate = function (t, xn) return 1.0 end   -- Set later.
    }
+   projConfScalar:setFunc(function(t,xn) return nu_srFunc(t,xn) end)
+   projConfScalar:advance(0.0, {}, {nu_sr})  
+   projConfScalar:setFunc(function(t,xn) return nu_rsFunc(t,xn) end)
+   projConfScalar:advance(0.0, {}, {nu_rs})  
    projMomsSingle:setFunc(function(t,xn) return moms_sFunc(t,xn) end)
    projMomsSingle:advance(0.0, {}, {moms_s})  
    projMomsSingle:setFunc(function(t,xn) return moms_rFunc(t,xn) end)
    projMomsSingle:advance(0.0, {}, {moms_r})  
    projMomsDouble:setFunc(function(t,xn) return moms_tarFunc(t,xn) end)
    projMomsDouble:advance(0.0, {}, {moms_tar})  
- 
+   
    local MomCrossBGK = Updater.MomCrossBGK {
       phaseBasis = phaseBasis,
       confBasis = confBasis,
-      beta = beta,
-      mass_s = ms,
-      mass_r = mr,
-      nu_sr = nu_sr,
-      nu_rs = nu_rs,
       --useDevice = GKYL_USE_GPU,
    }
-   MomCrossBGK:advance(0.0, {moms_s, moms_r}, {moms_cross})
+   MomCrossBGK:advance(0.0, {beta, ms, moms_s, mr, moms_r, nu_sr, nu_rs}, {moms_cross})
  
    if GKYL_USE_GPU then
       moms_cross:copyDeviceToHost()
