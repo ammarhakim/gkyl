@@ -143,53 +143,6 @@ function GkBGKCollisions:setConfGrid(grid) self.confGrid = grid end
 function GkBGKCollisions:setPhaseBasis(basis) self.phaseBasis = basis end
 function GkBGKCollisions:setPhaseGrid(grid) self.phaseGrid = grid end
 
--- It appears that BGK collisions are not conservative if we don't fix
--- the moments of the distribution function, because the moments of what
--- MaxwellianOnBasis outputs are not exactly the input moments. We could
--- do this with LagrangeFix. Another alternative is to use a series of
--- rescalings, as done below.
---function GkBGKCollisions:scaleM012(jacobPhaseFuncIn,fMIn)
---
---   local m0, m2Par, m2Perp                         = self:createConfField(), self:createConfField(), self:createConfField()
---   local m0_e, m2_e                                = self:createConfField(), self:createConfField()
---   local m0_mod, m2Par_mod, m2Perp_mod             = self:createConfField(), self:createConfField(), self:createConfField()
---   local m0Par_mod, m0Perp_mod                     = self:createConfField(), self:createConfField()
---   local m0Par_mod2, m0Perp_mod2                   = self:createConfField(), self:createConfField()
---   local m02Par_mod, m02Perp_mod                   = self:createConfField(), self:createConfField()
---   local distf0_mod, distf2Par_mod, distf2Perp_mod = self:createConfField(), self:createConfField(), self:createConfField()
---
---
---   local cdim = self.confGrid:ndim()
---   local vdim = self.phaseGrid:ndim() - cdim
---
---   -- Initialize Maxwellian distribution distf0 = FM, along with
---   -- distf2Par = 0.5*(vpar^2)*FM and distf2Perp = (mu*B/mass)*FM.
---   local distf0, distf2Par, distf2Perp = self:createPhaseField(), self:createPhaseField(), self:createPhaseField()
---   distf0:copy(fMIn)
---   local phaseProject = Updater.ProjectOnBasis {
---      onGrid   = self.phaseGrid,
---      basis    = self.phaseBasis,
---      evaluate = function(t,xn) return 0. end,   -- Set below.
---   }
---   local distf2ParFunc = function (t, zn)
---      local vpar = zn[cdim+1]
---      return 0.5*(vpar^2)*jacobPhaseFuncIn(t,zn)*self.initFunc(t,zn)
---   end
---   phaseProject:setFunc(distf2parFunc)
---   phaseProject:advance(0.0, {}, {distf2par})
---   if vdim > 1 then
---      local distf2perpFunc = function (t, zn)
---         local xconf = {}
---         for d = 1, cdim do xconf[d] = zn[d] end
---         local mu = zn[cdim+2]
---         return mu*sp.bmagFunc(t,zn)/sp.mass*sp.jacobPhaseFunc(t,xconf)*self.initFunc(t,zn)
---      end
---      phaseProject:setFunc(distf2perpFunc)
---      phaseProject:advance(0.0, {}, {distf2perp})
---   end
---
---end
-
 function GkBGKCollisions:createSolver(mySpecies, externalField)
    -- Background magnetic field. Needed for spatially varying nu
    -- or to project Maxwellians with vdim>1.
@@ -199,7 +152,7 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
    if self.conservativeMaxwellian then
       -- Intermediate moments used in Lagrange fixing.
       self.dmoms = mySpecies:allocVectorMoment(3)
-      -- Create updater to compute M0, M1i, M2 moments sequentially.
+      -- Create updater to compute M0, M1, M2 moments sequentially.
       self.threeMomentsCalc = Updater.DistFuncMomentCalc {
          onGrid     = self.phaseGrid,    confBasis = self.confBasis,
          phaseBasis = self.phaseBasis,   moment    = "GkThreeMoments",
@@ -283,11 +236,9 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
          weakBasis = self.confBasis,            operation = "Divide",
          onRange   = self.nuSelf:localRange(),  onGhosts  = false,
       }
-      -- Updater to compute cross-species primitive moments.
-      self.primMomCross = Updater.CrossPrimMoments {
-         onGrid     = self.confGrid,    betaGreene = self.betaGreene,
-         phaseBasis = self.phaseBasis,  operator   = "GkBGK",
-         confBasis  = self.confBasis,   m0s_deltas = self.m0s_deltas,
+      -- Updater to compute cross-species moments.
+      self.MomCrossBGK = Updater.MomCrossBGK {
+         phaseBasis = self.phaseBasis,   confBasis  = self.confBasis,
       }
       self.unitFld = mySpecies:allocMoment()
       local projectUnit = Updater.ProjectOnBasis {
@@ -297,7 +248,7 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
       projectUnit:advance(0.0, {}, {self.unitFld})
 
       -- Allocate (and assign if needed) cross-species collision frequencies,
-      -- and cross primitive moments.
+      -- and cross moments.
       self.nuCross = {}
       for ispec, otherNm in ipairs(self.crossSpecies) do
          self.nuCross[otherNm] = mySpecies:allocMoment()
@@ -307,27 +258,12 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
 --            self.nuCross[otherNm]:write(string.format("%s_nu-%s_%d.bp",self.speciesName,otherNm,0),0.0,0)
          end
       end
-      self.primMomsCross = mySpecies:allocVectorMoment(2)
+      self.momsCross = mySpecies:allocVectorMoment(6)   
 
       self.m0Other = self.timeDepNu and mySpecies:allocMoment() or nil  -- M0, to be extracted from threeMoments.
 
       if self.conservativeMaxwellian then
-         -- Will need the 1st and 2nd moment of the cross-species Maxwellian.
-         self.confMultiply = Updater.CartFieldBinOp {
-            onGrid    = self.confGrid,
-            weakBasis = self.confBasis,
-            operation = "Multiply",
-         }
-         self.confDivide = Updater.CartFieldBinOp {
-            onGrid    = self.confGrid,
-            weakBasis = self.confBasis,
-            operation = "Divide",
-         }
-         self.confDotProduct = Updater.CartFieldBinOp {
-            onGrid    = self.confGrid,
-            weakBasis = self.confBasis,
-            operation = "DotProduct",
-         }
+         self.momsCrossSelf = mySpecies:allocVectorMoment(3)   
       end
    end
 
@@ -464,7 +400,7 @@ function GkBGKCollisions:advance(tCurr, fIn, population, out)
 
    local fRhsOut, cflRateByCell = out[1], out[2]
    local species = population:getSpecies()
-
+   
    -- Fetch coupling moments of this species
    local momsSelf = species[self.speciesName]:fluidMoments()
 
@@ -480,7 +416,7 @@ function GkBGKCollisions:advance(tCurr, fIn, population, out)
       self.correctMaxwellian:advance(tCurr, {self.nufMaxwellSum, momsSelf}, {self.nufMaxwellSum})
    end
    self.phaseMul:advance(tCurr, {self.nuSum, self.nufMaxwellSum}, {self.nufMaxwellSum})
---[[
+   
    if self.crossSpecies then
       for sInd, otherNm in ipairs(self.crossSpecies) do
 
@@ -502,45 +438,31 @@ function GkBGKCollisions:advance(tCurr, fIn, population, out)
          self.calcCrossNu(otherNm, chargeOther, mOther, momsOther, primMomsOther,
                           nuCrossSelf, nuCrossOther)
 
-         -- Compute cross primitive moments.
-         self.primMomCross:advance(tCurr, {self.mass, nuCrossSelf, momsSelf, self.primMomsSelf,
-                                           mOther, nuCrossOther, momsOther, primMomsOther, self.unitFld},
-                                          {self.primMomsCross})
+         -- Compute cross moments.
+         self.MomCrossBGK:advance(tCurr, {self.betaGreene, self.mass, momsSelf, mOther, momsOther, nuCrossSelf, nuCrossOther}, {self.momsCross})
 
-	 self.maxwellian:advance(tCurr, {momsSelf, self.primMomsCross, self.bmag, self.jacobTot}, {self.nufMaxwellCross})
+	 self.maxwellian:advance(tCurr, {momsSelf, self.bmag, self.jacobTot}, {self.nufMaxwellCross})
          if self.conservativeMaxwellian then
-            -- Need to compute the first and second moment of the cross-species Maxwellian (needed by Lagrange fix).
-            self.numDensity:combineOffset(1., momsSelf, 0)
-            self.uDrift:combineOffset(1., self.primMomsCross, 0)
-            self.vtSq:combineOffset(1., self.primMomsCross, self.confBasis:numBasis())
-            self.confMultiply:advance(tCurr, {self.uDrift, self.numDensity}, {self.crossMaxwellianM1})
-            self.confMultiply:advance(tCurr, {self.uDrift, self.uDrift}, {self.crossMaxwellianM2})
-            self.crossMaxwellianM2:accumulate(1.0, self.vtSq)
-            self.confMultiply:advance(tCurr, {self.numDensity,self.crossMaxwellianM2}, {self.crossMaxwellianM2})
-            self.crossMaxwellianMoms:combineOffset(1., self.numDensity, 0,
-                                                   1., self.crossMaxwellianM1, self.confBasis:numBasis(),
-                                                   1., self.crossMaxwellianM2, 2*self.confBasis:numBasis())
-            -- Now compute current moments of Maxwellians and perform Lagrange fix. 
-            self.threeMomentsCalc:advance(tCurr, {self.nufMaxwellCross}, {self.dmoms})
-            self.dmoms:scale(-1)
-            self.dmoms:accumulate(1, self.crossMaxwellianMoms)
-            self.correctMaxwellian:advance(tCurr, {self.dmoms, self.bmag}, {self.nufMaxwellSum})
+            self.momsCrossSelf:combineOffset(1., self.momsCross, 0, 1., self.momsCross, self.confBasis:numBasis(), 1., self.momsCross, 2*self.confBasis:numBasis())
+            self.correctMaxwellian:advance(tCurr, {self.nufMaxwellCross, self.momsCrossSelf}, {self.nufMaxwellCross})
          end
          self.phaseMul:advance(tCurr, {nuCrossSelf, self.nufMaxwellCross}, {self.nufMaxwellCross})
-
+        
          self.nuSum:accumulate(1.0, nuCrossSelf)
          self.nufMaxwellSum:accumulate(1.0, self.nufMaxwellCross)
       end    -- end loop over other species that this species collides with
    end    -- end if self.crossCollisions
---]]
+   
    self.collisionSlvr:advance(tCurr, {self.nuSum, self.nufMaxwellSum, fIn}, {fRhsOut, cflRateByCell})
-
    self.timers.advance = self.timers.advance + Time.clock() - tmStart
+   print("Stepped forward!")
 end
 
 function GkBGKCollisions:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
    -- Wait to finish sending selfPrimMoms if needed.
+   print("flag 0")
    population:speciesXferField_waitSend(self.primMomsSelfXfer)
+   print("flag 1")
 end
 
 function GkBGKCollisions:write(tm, frame) end
