@@ -1075,12 +1075,15 @@ function GkGeometry:fullInit(appTbl)
    self.timers = {advance = 0.,   bc = 0.}
 
    -- functions and params needed for new g0 implementation
-   self.psifunc = assert(tbl.psifunc, "must provide psi")
-   self.psibyrfunc = tbl.psibyrfunc
-   self.psibyr2func = tbl.psibyr2func
-   self.bphifunc = tbl.bphifunc
-   self.B0 = tbl.B0
-   self.R0 = tbl.R0
+   self.hasRZ = tbl.hasRZ
+   if tbl.hasRZ then
+      self.psifunc = assert(tbl.psifunc, "must provide psi")
+      self.psibyrfunc = tbl.psibyrfunc
+      self.psibyr2func = tbl.psibyr2func
+      self.bphifunc = tbl.bphifunc
+      self.B0 = tbl.B0
+      self.R0 = tbl.R0
+   end
 
 end
 
