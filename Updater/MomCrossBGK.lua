@@ -46,7 +46,8 @@ void gkyl_mom_cross_bgk_gyrokinetic_advance(
   const struct gkyl_range *conf_rng, const double beta,
   const double m_self, const struct gkyl_array *moms_self,
   const double m_other, const struct gkyl_array *moms_other,
-  const double nu_sr, const double nu_rs, struct gkyl_array *moms_cross);
+  const struct gkyl_array *nu_sr, const struct gkyl_array *nu_rs,
+  struct gkyl_array *moms_cross);
 /*
 void gkyl_mom_cross_bgk_gyrokinetic_advance_cu(
   gkyl_mom_cross_bgk_gyrokinetic *up,
@@ -73,23 +74,29 @@ function MomCrossBGK:init(tbl)
    
    self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
   
-   self.beta   = tbl.beta
-   self.mass_s = tbl.mass_s
-   self.mass_r = tbl.mass_r
-   self.nu_sr  = tbl.nu_sr
-   self.nu_rs  = tbl.nu_rs
+   --self.beta   = tbl.beta
+   --self.mass_s = tbl.mass_s
+   --self.mass_r = tbl.mass_r
+   --self.nu_sr  = tbl.nu_sr
+   --self.nu_rs  = tbl.nu_rs
  
    self._zero = ffi.gc(ffiC.gkyl_mom_cross_bgk_gyrokinetic_new(phaseBasis._zero, confBasis._zero, self._useGPU), ffiC.gkyl_mom_cross_bgk_gyrokinetic_release)
 end
 
 function MomCrossBGK:_advance(tCurr, inFld, outFld)
-   local moms_s = assert(inFld[1], "MomCrossBGK.advance: Must specify moments of the self species in 'inFld[1]'")
-   local moms_r = assert(inFld[2], "MomCrossBGK.advance: Must specify moments of the other species in 'inFld[2]'")
-   local moms_cross =  assert(outFld[1], "MomCrossBGK.advance: Must specify an output field in 'outFld[1]'")
+   local beta = assert(inFld[1], "MomCrossBGK.advance: Must specify the Greene free parameter.")
+   local mass_s = assert(inFld[2], "MomCrossBGK.advance: Must specify mass of the self species in 'inFld[2]'")
+   local moms_s = assert(inFld[3], "MomCrossBGK.advance: Must specify moments of the self species in 'inFld[3]'")
+   local mass_r = assert(inFld[4], "MomCrossBGK.advance: Must specify mass of the other species in 'inFld[4]'")
+   local moms_r = assert(inFld[5], "MomCrossBGK.advance: Must specify moments of the other species in 'inFld[5]'")
+   local nu_sr = assert(inFld[6], "MomCrossBGK.advance: Must specify frequency of the self species colliding with the other species in 'inFld[6]'")
+   local nu_rs = assert(inFld[7], "MomCrossBGK.advance: Must specify frequency of the other species colliding with the self species in 'inFld[7]'")
+   local moms_cross = assert(outFld[1], "MomCrossBGK.advance: Must specify an output field in 'outFld[8]'")
 
    local confRange = moms_cross:localRange() 
 
-   ffiC.gkyl_mom_cross_bgk_gyrokinetic_advance(self._zero, confRange, self.beta, self.mass_s, moms_s._zero, self.mass_r, moms_r._zero, self.nu_sr, self.nu_rs, moms_cross._zero)
+   --ffiC.gkyl_mom_cross_bgk_gyrokinetic_advance(self._zero, confRange, self.beta, self.mass_s, moms_s._zero, self.mass_r, moms_r._zero, self.nu_sr, self.nu_rs, moms_cross._zero)
+   ffiC.gkyl_mom_cross_bgk_gyrokinetic_advance(self._zero, confRange, beta, mass_s, moms_s._zero, mass_r, moms_r._zero, nu_sr._zero, nu_rs._zero, moms_cross._zero)
 end
 --[[
 function MomCrossBGK:_advanceOnDevice(tCurr, inFld, outFld)
