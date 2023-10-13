@@ -698,8 +698,10 @@ function _M.define_attribute_array(io_h, attrName, attrType, data, size)
       end
 
       for i = 1, size do dataVec[i] = data[i] end
-   else
+   elseif type(data) == 'number' then
       dataVec = {data = function(self) return data end}
+   else
+      dataVec = data
    end
    local attr = new_adios2_attribute()
    attr = ffiC.adios2_define_attribute_array(_M.get_io(io_h), attrName, attrType, dataVec:data(), size)

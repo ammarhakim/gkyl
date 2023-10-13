@@ -14,7 +14,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 
 -- Gkyl libraries.
 local Adios       = require "Io.Adios"
-local AdiosReader = require "Io.AdiosReader"
+--local AdiosReader = require "Io.AdiosReader"
 local Alloc       = require "Lib.Alloc"
 local Lin         = require "Lib.Linalg"
 local Mpi         = require "Comm.Mpi"
