@@ -56,6 +56,12 @@ typedef enum
 
 typedef enum
 {
+    adios2_false = 0,
+    adios2_true = 1,
+} adios2_bool;
+
+typedef enum
+{
     adios2_constant_dims_false = 0,
     adios2_constant_dims_true = 1,
 } adios2_constant_dims;
@@ -108,6 +114,16 @@ typedef enum
     adios2_step_status_not_ready = 1,
     adios2_step_status_end_of_stream = 2
 } adios2_step_status;
+
+typedef enum
+{
+    adios2_shapeid_unknown = -1,
+    adios2_shapeid_global_value = 0,
+    adios2_shapeid_global_array = 1,
+    adios2_shapeid_joined_array = 2,
+    adios2_shapeid_local_value = 3,
+    adios2_shapeid_local_array = 4
+} adios2_shapeid;
 
 /**
  * Starting point for MPI apps. Creates an ADIOS handler.
@@ -342,6 +358,45 @@ adios2_attribute *adios2_define_attribute_array(adios2_io *io, const char *name,
                                                 const adios2_type type,
                                                 const void *data,
                                                 const size_t size);
+
+/**
+ * Returns a handler to a previously defined attribute by name
+ * @param io handler to attribute io owner
+ * @param name unique attribute identifier within io handler
+ * @return found: handler, not found: NULL
+ */
+adios2_attribute *adios2_inquire_attribute(adios2_io *io, const char *name);
+
+/**
+ * Returns an array of attribute handlers for all attribute present in the io
+ * group
+ * @param attributes output array of attribute pointers (pointer to an
+ * adios2_attribute**)
+ * @param size output number of attributes
+ * @param io handler to attributes io owner
+ * @return adios2_error 0: success, see enum adios2_error for errors
+ */
+adios2_error adios2_inquire_all_attributes(adios2_attribute ***attributes,
+                                           size_t *size, adios2_io *io);
+
+/**
+ * @brief returns an array or c strings for names of available variables
+ * Might create dangling pointers
+ * @param io handler variables io owner
+ * @param length of array of strings
+ * @return names of variables as an array of strings
+ */
+char **adios2_available_variables(adios2_io *io, size_t *size);
+
+/**
+ * @brief returns an array or c strings for names of available attributes
+ * Might create dangling pointers
+ * @param io handler variables io owner
+ * @param length of array of strings
+ * @return names of variables as an array of strings
+ */
+char **adios2_available_attributes(adios2_io *io, size_t *size);
+
 /**
  * Open an Engine to start heavy-weight input/output operations.
  * In MPI version reuses the communicator from adios2_init or adios2_init_config
@@ -365,6 +420,136 @@ adios2_engine *adios2_open(adios2_io *io, const char *name,
  */
 adios2_error adios2_set_selection(adios2_variable *variable, const size_t ndims,
                                   const size_t *start, const size_t *count);
+
+/**
+ * Retrieve attribute name
+ * For safe use, call this function first with NULL name parameter
+ * to get the size, then preallocate the buffer (with room for '\0'
+ * if desired), then call the function again with the buffer.
+ * Then '\0' terminate it if desired.
+ * @param name output, string without trailing '\0', NULL or preallocated buffer
+ * @param size output, name size without '\0'
+ * @param attribute handler
+ * @return adios2_error 0: success, see enum adios2_error for errors
+ */
+adios2_error adios2_attribute_name(char *name, size_t *size,
+                                   const adios2_attribute *attribute);
+
+/**
+ * Retrieve attribute type
+ * @param type
+ * @param attribute handler
+ * @return adios2_error 0: success, see enum adios2_error for errors
+ */
+adios2_error adios2_attribute_type(adios2_type *type,
+                                   const adios2_attribute *attribute);
+
+/**
+ * Retrieve attribute type in string form "char", "unsigned long", etc.
+ * For safe use, call this function first with NULL name parameter
+ * to get the size, then preallocate the buffer (with room for '\0'
+ * if desired), then call the function again with the buffer.
+ * Then '\0' terminate it if desired.
+ * @param type output, string without trailing '\0', NULL or preallocated buffer
+ * @param size output, type size without '\0'
+ * @param attribute handler
+ * @return adios2_error 0: success, see enum adios2_error for errors
+ */
+adios2_error adios2_attribute_type_string(char *type, size_t *size,
+                                          const adios2_attribute *attribute);
+
+/**
+ * Checks if attribute is a single value or an array
+ * @param result output, adios2_true: single value, adios2_false: array
+ * @param attribute handler
+ * @return adios2_error 0: success, see enum adios2_error for errors
+ */
+adios2_error adios2_attribute_is_value(adios2_bool *result,
+                                       const adios2_attribute *attribute);
+
+/**
+ * Returns the number of elements (as in C++ STL size() function) if attribute
+ * is a 1D array. If single value returns 1
+ * @param size output, number of elements in attribute
+ * @param attribute handler
+ * @return adios2_error 0: success, see enum adios2_error for errors
+ */
+adios2_error adios2_attribute_size(size_t *size,
+                                   const adios2_attribute *attribute);
+
+/**
+ * Retrieve attribute data pointer (read-only)
+ * @param data output attribute values, must be pre-allocated
+ * @param size data size
+ * @param attribute handler
+ * @return adios2_error 0: success, see enum adios2_error for errors
+ */
+adios2_error adios2_attribute_data(void *data, size_t *size,
+                                   const adios2_attribute *attribute);
+
+/**
+ * Retrieve variable name
+ * For safe use, call this function first with NULL name parameter
+ * to get the size, then preallocate the buffer (with room for '\0'
+ * if desired), then call the function again with the buffer.
+ * Then '\0' terminate it if desired.
+ * @param name output, string without trailing '\0', NULL or preallocated buffer
+ * @param size output, name size without '\0'
+ * @param variable handler
+ * @return adios2_error 0: success, see enum adios2_error for errors
+ */
+adios2_error adios2_variable_name(char *name, size_t *size,
+                                  const adios2_variable *variable);
+
+/**
+ * Retrieve variable type
+ * @param type output, from enum adios2_type
+ * @param variable handler
+ * @return adios2_error 0: success, see enum adios2_error for errors
+ */
+adios2_error adios2_variable_type(adios2_type *type,
+                                  const adios2_variable *variable);
+
+/**
+ * Retrieve variable type in string form "char", "unsigned long", etc.
+ * For safe use, call this function first with NULL name parameter
+ * to get the size, then preallocate the buffer (with room for '\0'
+ * if desired), then call the function again with the buffer.
+ * Then '\0' terminate it if desired.
+ * @param type output, string without trailing '\0', NULL or preallocated buffer
+ * @param size output, type size without '\0'
+ * @param variable handler
+ * @return adios2_error 0: success, see enum adios2_error for errors
+ */
+adios2_error adios2_variable_type_string(char *type, size_t *size,
+                                         const adios2_variable *variable);
+
+/**
+ * Retrieve variable shapeid
+ * @param shapeid output, from enum adios2_shapeid
+ * @param variable handler
+ * @return adios2_error 0: success, see enum adios2_error for errors
+ */
+adios2_error adios2_variable_shapeid(adios2_shapeid *shapeid,
+                                     const adios2_variable *variable);
+
+/**
+ * Retrieve current variable number of dimensions
+ * @param ndims output
+ * @param variable handler
+ * @return adios2_error 0: success, see enum adios2_error for errors
+ */
+adios2_error adios2_variable_ndims(size_t *ndims,
+                                   const adios2_variable *variable);
+
+/**
+ * Retrieve current variable shape
+ * @param shape output, must be pre-allocated with ndims
+ * @param variable handler
+ * @return adios2_error 0: success, see enum adios2_error for errors
+ */
+adios2_error adios2_variable_shape(size_t *shape,
+                                   const adios2_variable *variable);
 ]]
 -- de-reference if object is a pointer
 local function getObj(obj, ptyp)
@@ -373,12 +558,20 @@ end
 
 local _M = {}
 
+-- Maximum number of characters in attribute/variable name,
+-- and maximum number of attributes/variables.
+_M.name_char_num_max = 20
+_M.varattr_num_max   = 20
+
 local function new_adios2_adios() return new("adios2_adios[1]") end
 local function new_adios2_io() return new("adios2_io[1]") end
 local function new_adios2_variable() return new("adios2_variable[1]") end
 local function new_adios2_attribute() return new("adios2_attribute[1]") end
 local function new_adios2_engine() return new("adios2_engine[1]") end
+local function new_adios2_bool() return new("adios2_bool[1]") end
+local function new_adios2_type() return new("adios2_type[1]") end
 local function new_adios2_step_status() return new("adios2_step_status[1]") end
+local function new_adios2_shapeid() return new("adios2_shapeid[1]") end
 
 -- Extract object from (potentially) a pointer
 function _M.get_adios(obj) return getObj(obj, "adios2_adios[1]") end
@@ -386,7 +579,6 @@ function _M.get_io(obj) return getObj(obj, "adios2_io[1]") end
 function _M.get_variable(obj) return getObj(obj, "adios2_variable[1]") end
 function _M.get_attribute(obj) return getObj(obj, "adios2_attribute[1]") end
 function _M.get_engine(obj) return getObj(obj, "adios2_engine[1]") end
-function _M.get_step_status(obj) return getObj(obj, "adios2_step_status[1]") end
 
 -- adios2_type
 _M.type_unknown = -1
@@ -444,7 +636,8 @@ end
 
 -- adios2_finalize
 function _M.finalize(ad_h)
-   ad_error = ffiC.adios2_finalize(_M.get_adios(ad_h))
+   local err = ffiC.adios2_finalize(_M.get_adios(ad_h))
+   assert(err == 0, "Io.Adios: error in finalize.")
 end
 
 -- adios2_define_variable
@@ -518,39 +711,198 @@ function _M.set_selection(variable_h, ndims, start, count)
       end
    end
    local err = ffiC.adios2_set_selection(variable_h, ndims, vecs.start:data(), vecs.count:data())
-   return err
+   assert(err == 0, "Io.Adios: error in set_selection.")
 end
 
 -- adios2_put
 function _M.put(engine_h, variable_h, dataPointer, launch_mode)
    local err = ffiC.adios2_put(_M.get_engine(engine_h), _M.get_variable(variable_h),
                                dataPointer, launch_mode)
-   return err
+   assert(err == 0, "Io.Adios: error in put.")
 end
 
 -- adios2_get
 function _M.get(engine_h, variable_h, dataPointer, launch_mode)
    local err = ffiC.adios2_get(_M.get_engine(engine_h), _M.get_variable(variable_h),
                                dataPointer, launch_mode)
-   return err
+   assert(err == 0, "Io.Adios: error in get.")
 end
 
 -- adios2_close
 function _M.close(engine_h)
    local err = ffiC.adios2_close(_M.get_engine(engine_h))
-   return err
+   assert(err == 0, "Io.Adios: error in close.")
 end
 
 -- adios2_begin_step
 function _M.begin_step(engine_h, step_mode, timeout, step_stat)
    local err = ffiC.adios2_begin_step(_M.get_engine(engine_h), step_mode, timeout, step_stat)
-   return err
+   assert(err == 0, "Io.Adios: error in begin_step.")
 end
 
 -- adios2_end_step
 function _M.end_step(engine_h)
    local err = ffiC.adios2_end_step(_M.get_engine(engine_h))
-   return err
+   assert(err == 0, "Io.Adios: error in end_step.")
 end
+
+-- adios2_inquire_attribute
+function _M.inquire_attribute(io_h, attrName)
+   local attr = new_adios2_attribute()
+   attr = ffiC.adios2_inquire_attribute(_M.get_io(io_h), attrName)
+   return attr
+end
+
+---- adios2_inquire_all_attributes
+----adios2_error adios2_inquire_all_attributes(adios2_attribute ***attributes,
+----                                           size_t *size, adios2_io *io);
+--function _M.inquire_all_attributes(io_h)
+--   local attrs, size = new("adios2_attribute[1]"), Lin.UInt64Vec(1)
+--   local err = ffiC.adios2_inquire_all_attributes(attrs, size:data(), _M.get_io(io_h))
+--   assert(err == 0, "Io.Adios: error in inquire_all_attributes.")
+--   return attrs, size[1]
+--end
+
+-- adios2_available_variables
+-- char **adios2_available_variables(adios2_io *io, size_t *size);
+function _M.available_variables(io_h)
+   local size = Lin.UInt64Vec(1)
+   local strs = new("char[?]", _M.name_char_num_max*_M.varattr_num_max)
+   strs = ffiC.adios2_available_variables(_M.get_io(io_h), size:data())
+   local strsOut = {}
+   for i = 1, tonumber(size[1]) do strsOut[i] = ffi.string(strs[i-1]) end
+   return strsOut
+end
+
+-- adios2_available_attributes
+function _M.available_attributes(io_h)
+   local size = Lin.UInt64Vec(1)
+   local strs = new("char[?]", _M.name_char_num_max*_M.varattr_num_max)
+   strs = ffiC.adios2_available_attributes(_M.get_io(io_h), size:data())
+   local strsOut = {}
+   for i = 1, tonumber(size[1]) do strsOut[i] = ffi.string(strs[i-1]) end
+   return strsOut
+end
+
+-- adios2_attribute_name
+function _M.attribute_name(attr_h)
+   local size = Lin.UInt64Vec(1)
+   local nameC = new("char [?]", _M.name_char_num_max)
+   local err = ffiC.adios2_attribute_name(nameC, size:data(), _M.get_attribute(attr_h))
+   assert(err == 0, "Io.Adios: error in attribute_name.")
+   local nameOut = ffi.string(nameC)
+   return nameOut
+end
+
+-- adios2_attribute_type
+function _M.attribute_type(attr_h)
+   local attrType = new_adios2_type()
+   local err = ffiC.adios2_attribute_type(attrType, _M.get_attribute(attr_h))
+   assert(err == 0, "Io.Adios: error in attribute_type.")
+   return attrType[0]
+end
+
+-- adios2_attribute_type_string
+function _M.attribute_type_string(attr_h)
+   local size = Lin.UInt64Vec(1)
+   local typeStrC = new("char [?]", _M.name_char_num_max)
+   local err = ffiC.adios2_attribute_type_string(typeStrC, size:data(), _M.get_attribute(attr_h))
+   assert(err == 0, "Io.Adios: error in attribute_type_string.")
+   local typeStrOut = ffi.string(typeStrC)
+   return typeStrOut
+end
+
+-- adios2_attribute_is_value
+function _M.attribute_is_value(attr_h)
+   local is_value = new_adios2_bool()
+   local err = ffiC.adios2_attribute_is_value(is_value, _M.get_attribute(attr_h))
+   assert(err == 0, "Io.Adios: error in attribute_is_value.")
+   return is_value[0]
+end
+
+-- adios2_attribute_size
+function _M.attribute_size(attr_h)
+   local sizeOut = Lin.UInt64Vec(1)
+   local err = ffiC.adios2_attribute_size(sizeOut:data(), _M.get_attribute(attr_h))
+   assert(err == 0, "Io.Adios: error in attribute_size.")
+   return tonumber(sizeOut[1])
+end
+
+-- adios2_attribute_data
+function _M.attribute_data(attr_h)
+   local typ, sz = _M.attribute_type(attr_h), _M.attribute_size(attr_h)
+   local dataOut
+   if typ == _M.type_string then
+      dataOut = ""
+   elseif typ == _M.type_float then
+      dataOut = Lin.FloatVec(sz)
+   elseif typ == _M.type_double then
+      dataOut = Lin.Vec(sz)
+   elseif typ == _M.type_int32_t then
+      dataOut = Lin.IntVec(sz)
+   elseif typ == _M.type_uint64_t then
+      dataOut = Lin.UInt64Vec(sz)
+   end
+   local sizeOut = Lin.UInt64Vec(1)
+   local err = ffiC.adios2_attribute_data(dataOut:data(), sizeOut:data(), _M.get_attribute(attr_h))
+   assert(err == 0, "Io.Adios: error in attribute_data.")
+   return dataOut, tonumber(sizeOut[1])
+end
+
+-- adios2_variable_name
+function _M.variable_name(var_h)
+   local size = Lin.UInt64Vec(1)
+   local nameC = new("char [?]", _M.name_char_num_max)
+   local err = ffiC.adios2_variable_name(nameC, size:data(), _M.get_variable(var_h))
+   assert(err == 0, "Io.Adios: error in variable_name.")
+   local nameOut = ffi.string(nameC)
+   return nameOut
+end
+
+-- adios2_variable_type
+function _M.variable_type(var_h)
+   local varType = new_adios2_type()
+   local err = ffiC.adios2_variable_type(varType, _M.get_variable(var_h))
+   assert(err == 0, "Io.Adios: error in variable_type.")
+   return varType[0]
+end
+
+-- adios2_variable_type_string
+function _M.variable_type_string(var_h)
+   local size = Lin.UInt64Vec(1)
+   local typeStrC = new("char [?]", _M.name_char_num_max)
+   local err = ffiC.adios2_attribute_type_string(typeStrC, size:data(), _M.get_variable(var_h))
+   assert(err == 0, "Io.Adios: error in variable_type_string.")
+   local typeStrOut = ffi.string(typeStrC)
+   return typeStrOut
+end
+
+-- adios2_variable_shapeid
+function _M.variable_shapeid(var_h)
+   local shapeid = new_adios2_shapeid()
+   local err = ffiC.adios2_variable_shapeid(shapeid, _M.get_variable(var_h))
+   assert(err == 0, "Io.Adios: error in variable_shapeid.")
+   return shapeid[0]
+end
+
+-- adios2_variable_ndims
+function _M.variable_ndims(var_h)
+   local ndims = Lin.UInt64Vec(1)
+   local err = ffiC.adios2_variable_ndims(ndims:data(), _M.get_variable(var_h))
+   assert(err == 0, "Io.Adios: error in variable_ndims.")
+   return tonumber(ndims[1])
+end
+
+-- adios2_variable_shape
+function _M.variable_shape(var_h)
+   local ndims = _M.variable_ndims(var_h)
+   local shape = Lin.UInt64Vec(ndims)
+   local err = ffiC.adios2_variable_shape(shape:data(), _M.get_variable(var_h))
+   assert(err == 0, "Io.Adios: error in variable_shape.")
+   local shapeOut = Lin.IntVec(ndims)
+   for d = 1, ndims do shapeOut[d] = tonumber(shape[d]) end
+   return shapeOut
+end
+
 
 return _M
