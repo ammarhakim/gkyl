@@ -411,6 +411,19 @@ adios2_engine *adios2_open(adios2_io *io, const char *name,
                            const adios2_mode mode);
 
 /**
+ * Open an Engine to start heavy-weight input/output operations.
+ * MPI Collective function as it calls MPI_Comm_dup
+ * @param io engine owner
+ * @param name unique engine identifier
+ * @param mode adios2_mode_write, adios2_mode_read, adios2_mode_append, and
+ * adios2_mode_readRandomAccess
+ * @param comm communicator other than adios' handler comm. MPI only.
+ * @return success: handler, failure: NULL
+ */
+adios2_engine *adios2_open_new_comm(adios2_io *io, const char *name,
+                                    const adios2_mode mode, MPI_Comm comm);
+
+/**
  * Set new start and count dimensions
  * @param variable handler for which new selection will be applied to
  * @param ndims number of dimensions for start and count
@@ -637,7 +650,7 @@ end
 -- adios2_finalize
 function _M.finalize(ad_h)
    local err = ffiC.adios2_finalize(_M.get_adios(ad_h))
-   assert(err == 0, "Io.Adios: error in finalize.")
+   assert(err == 0, string.format("Io.Adios: error in finalize. Error code: %d.",tonumber(err)))
 end
 
 -- adios2_define_variable
@@ -700,6 +713,13 @@ function _M.open(io_h, fileName, access_mode)
    return engine_h
 end
 
+-- adios2_open_new_comm
+function _M.open_new_comm(io_h, fileName, access_mode, comm) 
+   local engine_h = new_adios2_engine()
+   engine_h = ffiC.adios2_open_new_comm(_M.get_io(io_h), fileName, access_mode, getObj(comm, "MPI_Comm[1]"))
+   return engine_h
+end
+
 -- adios2_set_selection
 function _M.set_selection(variable_h, ndims, start, count)
    local vecsIn = {shape = shape, start = start, count = count}
@@ -711,39 +731,39 @@ function _M.set_selection(variable_h, ndims, start, count)
       end
    end
    local err = ffiC.adios2_set_selection(variable_h, ndims, vecs.start:data(), vecs.count:data())
-   assert(err == 0, "Io.Adios: error in set_selection.")
+   assert(err == 0, string.format("Io.Adios: error in set_selection. Error code: %d.",tonumber(err)))
 end
 
 -- adios2_put
 function _M.put(engine_h, variable_h, dataPointer, launch_mode)
    local err = ffiC.adios2_put(_M.get_engine(engine_h), _M.get_variable(variable_h),
                                dataPointer, launch_mode)
-   assert(err == 0, "Io.Adios: error in put.")
+   assert(err == 0, string.format("Io.Adios: error in put. Error code: %d.",tonumber(err)))
 end
 
 -- adios2_get
 function _M.get(engine_h, variable_h, dataPointer, launch_mode)
    local err = ffiC.adios2_get(_M.get_engine(engine_h), _M.get_variable(variable_h),
                                dataPointer, launch_mode)
-   assert(err == 0, "Io.Adios: error in get.")
+   assert(err == 0, string.format("Io.Adios: error in get. Error code: %d.",tonumber(err)))
 end
 
 -- adios2_close
 function _M.close(engine_h)
    local err = ffiC.adios2_close(_M.get_engine(engine_h))
-   assert(err == 0, "Io.Adios: error in close.")
+   assert(err == 0, string.format("Io.Adios: error in close. Error code: %d.",tonumber(err)))
 end
 
 -- adios2_begin_step
 function _M.begin_step(engine_h, step_mode, timeout, step_stat)
    local err = ffiC.adios2_begin_step(_M.get_engine(engine_h), step_mode, timeout, step_stat)
-   assert(err == 0, "Io.Adios: error in begin_step.")
+   assert(err == 0, string.format("Io.Adios: error in begin_step. Error code: %d.",tonumber(err)))
 end
 
 -- adios2_end_step
 function _M.end_step(engine_h)
    local err = ffiC.adios2_end_step(_M.get_engine(engine_h))
-   assert(err == 0, "Io.Adios: error in end_step.")
+   assert(err == 0, string.format("Io.Adios: error in end_step. Error code: %d.",tonumber(err)))
 end
 
 -- adios2_inquire_attribute
@@ -753,13 +773,14 @@ function _M.inquire_attribute(io_h, attrName)
    return attr
 end
 
+-- MF 2023/10/14: commenting this out because I don't know of an easy way to allocate adios2_attribute ***).
 ---- adios2_inquire_all_attributes
 ----adios2_error adios2_inquire_all_attributes(adios2_attribute ***attributes,
 ----                                           size_t *size, adios2_io *io);
 --function _M.inquire_all_attributes(io_h)
 --   local attrs, size = new("adios2_attribute[1]"), Lin.UInt64Vec(1)
 --   local err = ffiC.adios2_inquire_all_attributes(attrs, size:data(), _M.get_io(io_h))
---   assert(err == 0, "Io.Adios: error in inquire_all_attributes.")
+--   assert(err == 0, string.format("Io.Adios: error in inquire_all_attributes. Error code: %d.",tonumber(err)))
 --   return attrs, size[1]
 --end
 
@@ -789,7 +810,7 @@ function _M.attribute_name(attr_h)
    local size = Lin.UInt64Vec(1)
    local nameC = new("char [?]", _M.name_char_num_max)
    local err = ffiC.adios2_attribute_name(nameC, size:data(), _M.get_attribute(attr_h))
-   assert(err == 0, "Io.Adios: error in attribute_name.")
+   assert(err == 0, string.format("Io.Adios: error in attribute_name. Error code: %d.",tonumber(err)))
    local nameOut = ffi.string(nameC)
    return nameOut
 end
@@ -798,7 +819,7 @@ end
 function _M.attribute_type(attr_h)
    local attrType = new_adios2_type()
    local err = ffiC.adios2_attribute_type(attrType, _M.get_attribute(attr_h))
-   assert(err == 0, "Io.Adios: error in attribute_type.")
+   assert(err == 0, string.format("Io.Adios: error in attribute_type. Error code: %d.",tonumber(err)))
    return attrType[0]
 end
 
@@ -807,7 +828,7 @@ function _M.attribute_type_string(attr_h)
    local size = Lin.UInt64Vec(1)
    local typeStrC = new("char [?]", _M.name_char_num_max)
    local err = ffiC.adios2_attribute_type_string(typeStrC, size:data(), _M.get_attribute(attr_h))
-   assert(err == 0, "Io.Adios: error in attribute_type_string.")
+   assert(err == 0, string.format("Io.Adios: error in attribute_type_string. Error code: %d.",tonumber(err)))
    local typeStrOut = ffi.string(typeStrC)
    return typeStrOut
 end
@@ -816,7 +837,7 @@ end
 function _M.attribute_is_value(attr_h)
    local is_value = new_adios2_bool()
    local err = ffiC.adios2_attribute_is_value(is_value, _M.get_attribute(attr_h))
-   assert(err == 0, "Io.Adios: error in attribute_is_value.")
+   assert(err == 0, string.format("Io.Adios: error in attribute_is_value. Error code: %d.",tonumber(err)))
    return is_value[0]
 end
 
@@ -824,7 +845,7 @@ end
 function _M.attribute_size(attr_h)
    local sizeOut = Lin.UInt64Vec(1)
    local err = ffiC.adios2_attribute_size(sizeOut:data(), _M.get_attribute(attr_h))
-   assert(err == 0, "Io.Adios: error in attribute_size.")
+   assert(err == 0, string.format("Io.Adios: error in attribute_size. Error code: %d.",tonumber(err)))
    return tonumber(sizeOut[1])
 end
 
@@ -845,7 +866,7 @@ function _M.attribute_data(attr_h)
    end
    local sizeOut = Lin.UInt64Vec(1)
    local err = ffiC.adios2_attribute_data(dataOut:data(), sizeOut:data(), _M.get_attribute(attr_h))
-   assert(err == 0, "Io.Adios: error in attribute_data.")
+   assert(err == 0, string.format("Io.Adios: error in attribute_data. Error code: %d.",tonumber(err)))
    return dataOut, tonumber(sizeOut[1])
 end
 
@@ -854,7 +875,7 @@ function _M.variable_name(var_h)
    local size = Lin.UInt64Vec(1)
    local nameC = new("char [?]", _M.name_char_num_max)
    local err = ffiC.adios2_variable_name(nameC, size:data(), _M.get_variable(var_h))
-   assert(err == 0, "Io.Adios: error in variable_name.")
+   assert(err == 0, string.format("Io.Adios: error in variable_name. Error code: %d.",tonumber(err)))
    local nameOut = ffi.string(nameC)
    return nameOut
 end
@@ -863,7 +884,7 @@ end
 function _M.variable_type(var_h)
    local varType = new_adios2_type()
    local err = ffiC.adios2_variable_type(varType, _M.get_variable(var_h))
-   assert(err == 0, "Io.Adios: error in variable_type.")
+   assert(err == 0, string.format("Io.Adios: error in variable_type. Error code: %d.",tonumber(err)))
    return varType[0]
 end
 
@@ -872,7 +893,7 @@ function _M.variable_type_string(var_h)
    local size = Lin.UInt64Vec(1)
    local typeStrC = new("char [?]", _M.name_char_num_max)
    local err = ffiC.adios2_attribute_type_string(typeStrC, size:data(), _M.get_variable(var_h))
-   assert(err == 0, "Io.Adios: error in variable_type_string.")
+   assert(err == 0, string.format("Io.Adios: error in variable_type_string. Error code: %d.",tonumber(err)))
    local typeStrOut = ffi.string(typeStrC)
    return typeStrOut
 end
@@ -881,7 +902,7 @@ end
 function _M.variable_shapeid(var_h)
    local shapeid = new_adios2_shapeid()
    local err = ffiC.adios2_variable_shapeid(shapeid, _M.get_variable(var_h))
-   assert(err == 0, "Io.Adios: error in variable_shapeid.")
+   assert(err == 0, string.format("Io.Adios: error in variable_shapeid. Error code: %d.",tonumber(err)))
    return shapeid[0]
 end
 
@@ -889,7 +910,7 @@ end
 function _M.variable_ndims(var_h)
    local ndims = Lin.UInt64Vec(1)
    local err = ffiC.adios2_variable_ndims(ndims:data(), _M.get_variable(var_h))
-   assert(err == 0, "Io.Adios: error in variable_ndims.")
+   assert(err == 0, string.format("Io.Adios: error in variable_ndims. Error code: %d.",tonumber(err)))
    return tonumber(ndims[1])
 end
 
@@ -898,7 +919,7 @@ function _M.variable_shape(var_h)
    local ndims = _M.variable_ndims(var_h)
    local shape = Lin.UInt64Vec(ndims)
    local err = ffiC.adios2_variable_shape(shape:data(), _M.get_variable(var_h))
-   assert(err == 0, "Io.Adios: error in variable_shape.")
+   assert(err == 0, string.format("Io.Adios: error in variable_shape. Error code: %d.",tonumber(err)))
    local shapeOut = Lin.IntVec(ndims)
    for d = 1, ndims do shapeOut[d] = tonumber(shape[d]) end
    return shapeOut

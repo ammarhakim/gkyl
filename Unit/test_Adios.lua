@@ -281,6 +281,118 @@ function test_2rA(comm)
    Adios.finalize(ad)
 end
 
+function test_3w(comm)
+   -- Test writing using 2 different communicators.
+   -- Simulate 2 species, distributing a (velocity) moment across 2 configuration space ranks and 2 species ranks.
+   local defaultCommSize = 4
+   local worldSize, worldRank = Mpi.Comm_size(comm), Mpi.Comm_rank(comm)
+   if worldSize ~= defaultCommSize then
+      log(string.format("Not running test_3w as comm size not exactly %d", defaultCommSize))
+      return
+   end
+
+   local ad = Adios.init_mpi(comm)
+   local ad_io = Adios.declare_io(ad, "gkylio")
+
+   local numCutsConf  = 2
+
+   local confColor    = math.floor(worldRank / numCutsConf)
+   local confComm     = Mpi.Comm_split(Mpi.COMM_WORLD, confColor, worldRank)
+   local speciesColor = worldRank % numCutsConf
+   local speciesComm  = Mpi.Comm_split(Mpi.COMM_WORLD, speciesColor, worldRank)
+   local confSize, confRank       = Mpi.Comm_size(confComm),    Mpi.Comm_rank(confComm)
+   local speciesSize, speciesRank = Mpi.Comm_size(speciesComm), Mpi.Comm_rank(speciesComm)
+
+   local dim = 1
+   local cells = {12}
+   local lower = {-math.pi}
+   local upper = { math.pi}
+
+   -- Allocate data distributed across different comms.
+   local cellsLocal = cells[1]/confSize
+   local moms = {}
+   for s = 1, speciesSize do
+      moms[s] = Lin.Vec(cellsLocal)
+      for i = 1, cellsLocal do moms[s][i] = 1.1*(confRank*cellsLocal+i-1)+(s-1)*10. end
+   end
+
+   -- These definitions can also go inside of the for loop and if-statement below.
+   -- Define attributes.
+   local cells_attr = Adios.define_attribute_array(ad_io, "numCells", Adios.type_int32_t, cells, dim)
+   local lower_attr = Adios.define_attribute_array(ad_io, "lowerBounds", Adios.type_double, lower, dim)
+   local upper_attr = Adios.define_attribute_array(ad_io, "upperBounds", Adios.type_double, upper, dim)
+
+   -- Define variables.
+   local ad_var_mom = Adios.define_variable(ad_io, "mom", Adios.type_double, 1, cells, {confRank*cellsLocal}, {cellsLocal}, true)
+
+   for s = 1, speciesSize do
+      if speciesRank == s-1 then
+         local ad_engine = Adios.open_new_comm(ad_io, "test_Adios_mom_"..tostring(s-1)..".bp", Adios.mode_write, confComm)
+   
+         local ad_err = Adios.put(ad_engine, ad_var_mom, moms[s]:data(), Adios.mode_deferred)
+   
+         local _ = Adios.close(ad_engine)
+      end
+   end
+
+   Adios.finalize(ad)
+end
+
+function test_3r(comm)
+   -- Test reading using 2 different communicators.
+   -- Simulate 2 species, distributing a (velocity) moment across 2 configuration space ranks and 2 species ranks.
+   local defaultCommSize = 4
+   local worldSize, worldRank = Mpi.Comm_size(comm), Mpi.Comm_rank(comm)
+   if worldSize ~= defaultCommSize then
+      log(string.format("Not running test_3r as comm size not exactly %d", defaultCommSize))
+      return
+   end
+
+   local ad = Adios.init_mpi(comm)
+   local ad_io = Adios.declare_io(ad, "gkylio")
+
+   local numCutsConf  = 2
+
+   local confColor    = math.floor(worldRank / numCutsConf)
+   local confComm     = Mpi.Comm_split(Mpi.COMM_WORLD, confColor, worldRank)
+   local speciesColor = worldRank % numCutsConf
+   local speciesComm  = Mpi.Comm_split(Mpi.COMM_WORLD, speciesColor, worldRank)
+   local confSize, confRank       = Mpi.Comm_size(confComm),    Mpi.Comm_rank(confComm)
+   local speciesSize, speciesRank = Mpi.Comm_size(speciesComm), Mpi.Comm_rank(speciesComm)
+
+   local dim = 1
+   local cells = {12}
+   local lower = {-math.pi}
+   local upper = { math.pi}
+
+   -- Allocate data distributed across different comms.
+   local cellsLocal = cells[1]/confSize
+   local moms, momsRef = {}, {}
+   for s = 1, speciesSize do
+      moms[s], momsRef[s] = Lin.Vec(cellsLocal), Lin.Vec(cellsLocal)
+      for i = 1, cellsLocal do momsRef[s][i] = 1.1*(confRank*cellsLocal+i-1)+(s-1)*10. end
+   end
+
+   for s = 1, speciesSize do
+      if speciesRank == s-1 then
+         local ad_engine = Adios.open_new_comm(ad_io, "test_Adios_mom_"..tostring(s-1)..".bp", Adios.mode_readRandomAccess, confComm)
+         local ad_var_mom = Adios.inquire_variable(ad_io, "mom")
+         local ad_err = Adios.set_selection(ad_var_mom, 1, {confRank*cellsLocal}, {cellsLocal})
+   
+         local ad_err = Adios.get(ad_engine, ad_var_mom, moms[s]:data(), Adios.mode_deferred)
+   
+         local _ = Adios.close(ad_engine)
+
+         -- Check data read.
+         for i = 1, cellsLocal do 
+            assert_equal(momsRef[s][i], moms[s][i], "test_3r: checking data read.")
+         end
+      end
+   end
+
+   Adios.finalize(ad)
+end
+
 -- Run tests
 test_0(Mpi.COMM_WORLD)
 test_1w(Mpi.COMM_WORLD)
@@ -288,6 +400,8 @@ test_1rA(Mpi.COMM_WORLD)
 test_1rB(Mpi.COMM_WORLD)
 test_2w(Mpi.COMM_WORLD)
 test_2rA(Mpi.COMM_WORLD)
+test_3w(Mpi.COMM_WORLD)
+test_3r(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
