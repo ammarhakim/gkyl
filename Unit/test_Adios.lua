@@ -321,7 +321,6 @@ function test_3w(comm)
    local cells_attr = Adios.define_attribute_array(ad_io, "numCells", Adios.type_int32_t, cells, dim)
    local lower_attr = Adios.define_attribute_array(ad_io, "lowerBounds", Adios.type_double, lower, dim)
    local upper_attr = Adios.define_attribute_array(ad_io, "upperBounds", Adios.type_double, upper, dim)
-
    -- Define variables.
    local ad_var_mom = Adios.define_variable(ad_io, "mom", Adios.type_double, 1, cells, {confRank*cellsLocal}, {cellsLocal}, true)
 
@@ -333,6 +332,18 @@ function test_3w(comm)
    
          local _ = Adios.close(ad_engine)
       end
+   end
+
+   -- Test the case in which only one species rank writes a file.
+   field = Lin.Vec(cellsLocal)
+   for i = 1, cellsLocal do field[i] = 3.*(confRank*cellsLocal+i-1) end
+
+   if speciesRank == 0 then
+      -- Define variables.
+      local ad_var_field = Adios.define_variable(ad_io, "field", Adios.type_double, 1, cells, {confRank*cellsLocal}, {cellsLocal}, true)
+      local ad_engine = Adios.open_new_comm(ad_io, "test_Adios_field.bp", Adios.mode_write, confComm)
+      local ad_err = Adios.put(ad_engine, ad_var_field, field:data(), Adios.mode_deferred)
+      local _ = Adios.close(ad_engine)
    end
 
    Adios.finalize(ad)
@@ -385,10 +396,26 @@ function test_3r(comm)
 
          -- Check data read.
          for i = 1, cellsLocal do 
-            assert_equal(momsRef[s][i], moms[s][i], "test_3r: checking data read.")
+            assert_equal(momsRef[s][i], moms[s][i], "test_3r: checking mom data read.")
          end
       end
    end
+
+   -- Read the field from all species ranks.
+   field, fieldRef = Lin.Vec(cellsLocal), Lin.Vec(cellsLocal)
+   for i = 1, cellsLocal do fieldRef[i] = 3.*(confRank*cellsLocal+i-1) end
+
+   local ad_engine = Adios.open_new_comm(ad_io, "test_Adios_field.bp", Adios.mode_readRandomAccess, confComm)
+   local ad_var_field = Adios.inquire_variable(ad_io, "field")
+   local ad_err = Adios.set_selection(ad_var_field, 1, {confRank*cellsLocal}, {cellsLocal})
+   local ad_err = Adios.get(ad_engine, ad_var_field, field:data(), Adios.mode_deferred)
+   local _ = Adios.close(ad_engine)
+
+   -- Check data read.
+   for i = 1, cellsLocal do 
+      assert_equal(fieldRef[i], field[i], "test_3r: checking field data read.")
+   end
+
 
    Adios.finalize(ad)
 end
