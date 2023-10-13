@@ -275,13 +275,11 @@ function GeometryGyrokinetic:init(tbl)
    -- Set up BCs 0=periodic, 1=nonperiodic
    -- BCs are used to set ranges for calculating geometry
    -- and to choose stencils when calculating metrics
+   -- Currently we have not thought of a case where we need to calculate geometry with periodic bcs
    self.BCs = Lin.IntVec(self.grid:ndim())
    for i = 1, self.grid:ndim() do
       self.BCs[i] = 1
    end
-   --for _, dir in ipairs(self.grid._periodicDirs) do
-   --   self.BCs[dir] = 0
-   --end
    if self.BCs[1] == 1 then
       local lower = self.localRangeExt:lowerAsVec()
       local upper = self.localRangeExt:upperAsVec()
@@ -317,7 +315,7 @@ function GeometryGyrokinetic:init(tbl)
       self.ginp.zmin = self.rzGrid:lower(2)
       self.ginp.zmax = self.rzGrid:upper(2)
       self.ginp.write_node_coord_array = true
-      self.ginp.node_file_nm = "g2nodes.gkyl"
+      self.ginp.node_file_nm = "grid.gkyl"
       self.ginp.bcs = self.BCs:data()
       self._zero_bmag = ffi.gc(ffiC.gkyl_calc_bmag_new(self.basis._zero, self.rzBasis._zero, self.grid._zero, self.rzGrid._zero, self.geo, self.ginp, false), ffiC.gkyl_calc_bmag_release)
    end
@@ -340,7 +338,7 @@ function GeometryGyrokinetic:_advance(tCurr, inFlds, outFlds)
       ffiC.gkyl_geo_gyrokinetic_calcgeom(self._zero_geom, self.ginp, mapc2p_field._zero, self.conversionRange)
    end
 
-   -- Sync before calculating metric - need to put some logic for periodic dirs
+   -- Sync before calculating metric
    mapc2p_field:sync(false)
 
    -- Fill bmag

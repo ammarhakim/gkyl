@@ -27,6 +27,7 @@ local Time             = require "Lib.Time"
 local Updater          = require "Updater"
 local xsys             = require "xsys"
 local Basis            = require "Basis"
+local Lin              = require "Lib.Linalg"
 
 local GkField = Proto(FieldBase.FieldBase)
 
@@ -321,7 +322,6 @@ function GkField:createSolver(population, externalField)
    -- Need to set this flag so that field calculated self-consistently at end of full RK timestep.
    self.isElliptic = true
 
-   print("in GKField:createSolver")
    if self.externalPhi then
       local evalOnNodes = Updater.EvalOnNodes {
          onGrid = self.grid,   evaluate = self.externalPhi,
@@ -1062,7 +1062,6 @@ function GkGeometry:init(tbl)
 end
 
 function GkGeometry:fullInit(appTbl)
-   print("GkGeom: full init")
    local tbl = self.tbl -- previously store table.
 
    self.ioMethod = "MPI"
@@ -1106,31 +1105,36 @@ function GkGeometry:setGrid(grid, rzGrid)
    
    -- Need to augment grid for geometry calculation
    if self.ndim < 3 then
-      print("augmenting grid")
       self.augmented = true
+      self.remDirs = Lin.IntVec(3)
+      for i = 1,3 do
+         self.remDirs[i] = 0
+      end
+      for _, dir in ipairs(grid._addIdx) do
+         self.remDirs[dir] = 1
+      end
+
+
+
       local lower    = {}
       local upper    = {}
       local cells    = {}
-      count = 1
+
+      keepCount = 1
+      remCount = 1
       for i = 1, 3 do
-         print("i = ", i)
-         if grid._addIdx[i] then
-            print("adding, grid.addcoord[i] = ", grid._addCoord[i])
-            lower[i] = grid._addCoord[i] - 1e-10
-            upper[i] = grid._addCoord[i] + 1e-10
+         if self.remDirs[i] == 1 then
+            lower[i] = grid._addCoord[remCount] - 1e-10
+            upper[i] = grid._addCoord[remCount] + 1e-10
             cells[i] = 3
+            remCount = remCount+1
          else
-            print("not adding")
-            lower[i] = grid:lower(count)
-            upper[i] = grid:upper(count)
-            cells[i] = grid:numCells(count)
-            count = count + 1
+            lower[i] = grid:lower(keepCount)
+            upper[i] = grid:upper(keepCount)
+            cells[i] = grid:numCells(keepCount)
+            keepCount = keepCount + 1
          end
       end
-      print("did the setup for grid")
-      print("lower = ", lower[1], lower[2], lower[3])
-      print("upper = ", upper[1], upper[2], upper[3])
-      print("cells = ", cells[1], cells[2], cells[3])
       self.augmentedGrid = Grid.MappedCart{
          lower = lower,  
          upper = upper,
@@ -1144,7 +1148,6 @@ function GkGeometry:setGrid(grid, rzGrid)
       self.augmented = false
       self.augmentedGrid = self.grid
    end
-   print("exiting set grid")
 end
 
 function GkGeometry:setBasis(basis, rzBasis)
@@ -1219,14 +1222,14 @@ function GkGeometry:alloc()
    self.geo.b_i = createField(self.grid,self.basis,ghostNum,3,syncPeriodic)
 
 
-   -- Extra fields needed for g0 implementation
+   -- Extra fields needed for g0 implementation of mapc2p
    if self.rzGrid then
       self.geo.psiRZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
       self.geo.psibyrRZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
       self.geo.psibyr2RZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
       self.geo.bphiRZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
    end
-   self.geo.mapc2p_field = createField(self.grid, self.basis, ghostNum, 3, true)
+   self.geo.mapc2pField = createField(self.grid, self.basis, ghostNum, 3, true)
    self.geo.gFld = createField(self.grid,self.basis,ghostNum,6,syncPeriodic)
    self.geo.grFld = createField(self.grid,self.basis,ghostNum,6,syncPeriodic)
 
@@ -1236,12 +1239,8 @@ function GkGeometry:alloc()
    self.geo.gxyJ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
    self.geo.gyyJ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
    
-   if self.fromFile == nil then
-      self.geo.allGeo = createField(self.grid,self.basis,ghostNum,15,syncPeriodic)
-   end
-
    if self.augmented then
-      -- Allocate fields.
+      -- Allocate augmented fields if needed.
       self.augmentedGeo = {}
 
       local ghostNum     = {1,1}
@@ -1302,7 +1301,7 @@ function GkGeometry:alloc()
 
       self.augmentedGeo.b_i = createField(self.augmentedGrid,self.augmentedBasis,ghostNum,3,syncPeriodic)
 
-      self.augmentedGeo.mapc2p_field = createField(self.augmentedGrid, self.augmentedBasis, ghostNum, 3, true)
+      self.augmentedGeo.mapc2pField = createField(self.augmentedGrid, self.augmentedBasis, ghostNum, 3, true)
       self.augmentedGeo.gFld = createField(self.augmentedGrid,self.augmentedBasis,ghostNum,6,syncPeriodic)
       self.augmentedGeo.grFld = createField(self.augmentedGrid,self.augmentedBasis,ghostNum,6,syncPeriodic)
 
@@ -1312,9 +1311,6 @@ function GkGeometry:alloc()
       self.augmentedGeo.gxyJ = createField(self.augmentedGrid,self.augmentedBasis,ghostNum,1,syncPeriodic)
       self.augmentedGeo.gyyJ = createField(self.augmentedGrid,self.augmentedBasis,ghostNum,1,syncPeriodic)
       
-      if self.fromFile == nil then
-         self.augmentedGeo.allGeo = createField(self.augmentedGrid,self.augmentedBasis,ghostNum,15,syncPeriodic)
-      end
    else
       self.augmentedGeo = self.geo
    end
@@ -1358,29 +1354,20 @@ function GkGeometry:initField(population)
          gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
          self.fromFile, true)
    else
-      -- Here is where we can do g0 instead of two lines below
-      --self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
-      --self.separateComponents:advance(0, {self.geo.allGeo},
-      --   {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
-      --    self.geo.bmag, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
-      --    self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
-
-
 
       -- Set ranges
       self.augmentedLocalRange = self.augmentedGeo.jacobGeo:localRange()
       self.augmentedLocalRangeExt = self.augmentedGeo.jacobGeo:localExtRange()
       self.augmentedGlobalRange = self.augmentedGeo.jacobGeo:globalRange()
       self.augmentedGlobalRangeExt = self.augmentedGeo.jacobGeo:globalExtRange()
-      print("augmented range ndi = ", self.augmentedLocalRange:ndim())
       -- modify in y
-      local lower = self.augmentedGeo.mapc2p_field:globalExtRange():lowerAsVec()
-      local upper = self.augmentedGeo.mapc2p_field:globalExtRange():upperAsVec()
+      local lower = self.augmentedGeo.mapc2pField:globalExtRange():lowerAsVec()
+      local upper = self.augmentedGeo.mapc2pField:globalExtRange():upperAsVec()
       lower[1] = lower[1]+1
       upper[1] = upper[1]-1
       lower[3] = lower[3]+1
       upper[3] = upper[3]-1
-      self.globalMapc2pRange = self.augmentedGeo.mapc2p_field:globalExtRange():subRange(lower, upper)
+      self.globalMapc2pRange = self.augmentedGeo.mapc2pField:globalExtRange():subRange(lower, upper)
 
 
       if self.rzGrid then
@@ -1408,34 +1395,41 @@ function GkGeometry:initField(population)
          psibyr2eval:advance(0.0, {}, {self.geo.psibyr2RZ})
          bphieval:advance(0.0, {}, {self.geo.bphiRZ})
       else
-         print("trying to project mapc2p and bmag")
          -- project mapc2p and bmag
          local projMapc2p = Updater.EvalOnNodes{
             onGrid = self.augmentedGrid,   evaluate = function(t, xn) return self.augmentedGrid:mapc2p(xn) end,
             basis  = self.augmentedBasis,  onGhosts = false,
             globalUpdateRange = self.globalMapc2pRange
          }
-         projMapc2p:advance(0., {}, {self.augmentedGeo.mapc2p_field})
-         print("projected mapc2p")
-
+         projMapc2p:advance(0., {}, {self.augmentedGeo.mapc2pField})
 
          local projBmag = Updater.EvalOnNodes{
-            onGrid = self.augmentedGrid,   evaluate = function(t, xn) return self.bmagFunc(t,xn) end,
+            onGrid = self.augmentedGrid,   
+            evaluate = function(t, xn)
+               if self.augmented then
+                  local xnReduced = {}
+                  for i = 1,3 do
+                     if self.remDirs[i]==0 then
+                        table.insert(xnReduced,xn[i])
+                     end
+                  end
+
+                  return self.bmagFunc(t,xnReduced) 
+               else
+                  return self.bmagFunc(t,xn)
+               end
+            end,
             basis  = self.augmentedBasis,  onGhosts = false,
          }
          projBmag:advance(0., {}, {self.augmentedGeo.bmag})
 
-         print("projected bmag")
-
          self.augmentedGeo.bmag:sync(false)
-         self.augmentedGeo.mapc2p_field:sync(false)
+         self.augmentedGeo.mapc2pField:sync(false)
 
-         self.fieldIo:write(self.augmentedGeo.mapc2p_field, "mapc2p.bp", 0., 0)
       end
 
 
 
-      print("making the geo updater")
       self.GeoUpdater = Updater.GeometryGyrokinetic{
          grid = self.augmentedGrid,
          rzGrid = self.rzGrid,
@@ -1451,15 +1445,11 @@ function GkGeometry:initField(population)
          calcGeom = self.rzGrid,
          calcBmag = self.rzGrid,
       }
-      print("made the geo updater")
 
-      self.augmentedGeo.gFld:write("gFld.bp", 0,0,false)
-      self.GeoUpdater:advance(0.0, {self.geo.psiRZ, self.geo.psibyrRZ, self.geo.psibyr2RZ, self.geo.bphiRZ}, {self.augmentedGeo.mapc2p_field, self.augmentedGeo.gFld, self.augmentedGeo.jacobGeo, self.augmentedGeo.jacobGeoInv, self.augmentedGeo.jacobTot, self.augmentedGeo.jacobTotInv, self.augmentedGeo.bmagInv, self.augmentedGeo.bmagInvSq, self.augmentedGeo.gxxJ, self.augmentedGeo.gxyJ, self.augmentedGeo.gyyJ, self.augmentedGeo.grFld, self.augmentedGeo.b_i, self.augmentedGeo.cmag, self.augmentedGeo.bmag})
-      print("advanced geo updater")
+      self.GeoUpdater:advance(0.0, {self.geo.psiRZ, self.geo.psibyrRZ, self.geo.psibyr2RZ, self.geo.bphiRZ}, {self.augmentedGeo.mapc2pField, self.augmentedGeo.gFld, self.augmentedGeo.jacobGeo, self.augmentedGeo.jacobGeoInv, self.augmentedGeo.jacobTot, self.augmentedGeo.jacobTotInv, self.augmentedGeo.bmagInv, self.augmentedGeo.bmagInvSq, self.augmentedGeo.gxxJ, self.augmentedGeo.gxyJ, self.augmentedGeo.gyyJ, self.augmentedGeo.grFld, self.augmentedGeo.b_i, self.augmentedGeo.cmag, self.augmentedGeo.bmag})
 
 
       if self.augmented then
-         print("was augmented")
          self.localRange = self.geo.jacobGeo:localRange()
          self.localRangeExt = self.geo.jacobGeo:localExtRange()
          self.GeoDeflator = Updater.GeometryDeflate{
@@ -1471,11 +1461,14 @@ function GkGeometry:initField(population)
             localRangeExt = self.augmentedLocalRangeExt,
             deflatedLocalRange = self.localRange,
             deflatedLocalRangeExt = self.localRangeExt,
+            remDirs = self.remDirs,
          }
-         print("creted the deflator")
 
-         self.GeoDeflator:advance(0.0, {self.augmentedGeo.bmag, self.augmentedGeo.bmagInv, self.augmentedGeo.cmag, self.augmentedGeo.gFld, self.augmentedGeo.grFld, self.augmentedGeo.gxxJ, self.augmentedGeo.gxyJ, self.augmentedGeo.gyyJ, self.augmentedGeo.jacobGeo, self.augmentedGeo.jacobGeoInv, self.augmentedGeo.jacobTot, self.augmentedGeo.jacobTotInv, self.augmentedGeo.b_i}, {self.geo.bmag, self.geo.bmagInv, self.geo.cmag, self.geo.gFld, self.geo.grFld, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ, self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv, self.geo.b_i})
+         self.GeoDeflator:advance(0.0, {self.augmentedGeo.bmag, self.augmentedGeo.bmagInv, self.augmentedGeo.cmag, self.augmentedGeo.gFld, self.augmentedGeo.grFld, self.augmentedGeo.gxxJ, self.augmentedGeo.gxyJ, self.augmentedGeo.gyyJ, self.augmentedGeo.jacobGeo, self.augmentedGeo.jacobGeoInv, self.augmentedGeo.jacobTot, self.augmentedGeo.jacobTotInv, self.augmentedGeo.b_i, self.augmentedGeo.mapc2pField}, {self.geo.bmag, self.geo.bmagInv, self.geo.cmag, self.geo.gFld, self.geo.grFld, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ, self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv, self.geo.b_i, self.geo.mapc2pField})
       end
+
+      self.geo.mapc2pField:sync(false)
+      self.fieldIo:write(self.geo.mapc2pField, "mapc2p.bp", 0., 0)
 
       
       
@@ -1507,12 +1500,10 @@ function GkGeometry:initField(population)
    self.geo.b_y:sync(false)
    self.geo.b_z:sync(false)
    self.geo.b_i:sync(false)
-   print("synced the fields")
    
    -- Apply BCs.
    self:applyBc(0, self.geo)
    self:write(0)
-   print("did the early write")
 end
 
 function GkGeometry:write(tm)
