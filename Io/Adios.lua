@@ -655,10 +655,19 @@ end
 
 -- adios2_define_variable
 function _M.define_variable(io_h, varName, varType, ndims, shape, start, count, are_dims_constant)
+   -- Two options:
+   --   1. pass only the first 3 arguments, or pass ndims=0 and shape=start=count=nil, to define a scalar.
+   --   2. pass all arguments to define an array. In this case shape/start/count can be tables,
+   --      a number (for ndim=1) or a Lin.UInt64Vec.
    local vecsIn = {shape = shape, start = start, count = count}
-   local vecs   = {shape = type(shape)=='table' and Lin.UInt64Vec(ndims) or {data=function(self) return shape end},
-                   start = type(start)=='table' and Lin.UInt64Vec(ndims) or {data=function(self) return start end},
-                   count = type(count)=='table' and Lin.UInt64Vec(ndims) or {data=function(self) return count end},}
+   local vecs   = {
+      shape = type(shape)=='table' and Lin.UInt64Vec(ndims) or
+             ((type(shape)=='number' or type(shape)=='nil') and {data=function(self) return shape end} or shape),
+      start = type(start)=='table' and Lin.UInt64Vec(ndims) or
+             ((type(start)=='number' or type(start)=='nil') and {data=function(self) return start end} or start),
+      count = type(count)=='table' and Lin.UInt64Vec(ndims) or
+             ((type(count)=='number' or type(count)=='nil') and {data=function(self) return count end} or count),
+   }
    for k, v in pairs(vecsIn) do 
       if type(v) == 'table' then
          for d = 1, ndims do vecs[k][d] = v[d] end
@@ -667,7 +676,7 @@ function _M.define_variable(io_h, varName, varType, ndims, shape, start, count, 
    local constDims = are_dims_constant and 1 or 0
 
    local var = new_adios2_variable()
-   var = ffiC.adios2_define_variable(_M.get_io(io_h), varName, varType, ndims, vecs.shape:data(),
+   var = ffiC.adios2_define_variable(_M.get_io(io_h), varName, varType, ndims or 0, vecs.shape:data(),
                        vecs.start:data(), vecs.count:data(), constDims)
    return var
 end

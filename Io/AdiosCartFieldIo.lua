@@ -202,8 +202,8 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
       end
       
       -- Define data to write.
-      self.ad_var_time  = Adios.define_variable(ad_io, "time", Adios.type_double, 1, {1}, {0}, {1}, true)
-      self.ad_var_frame = Adios.define_variable(ad_io, "frame", Adios.type_int32_t, 1, {1}, {0}, {1}, true)
+      self.ad_var_time  = Adios.define_variable(ad_io, "time", Adios.type_double)
+      self.ad_var_frame = Adios.define_variable(ad_io, "frame", Adios.type_int32_t)
 
       self.ad_var_fld = {}
       self.localSz, self.globalSz, self.offset = {}, {}, {}
@@ -323,8 +323,6 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
 
       local ad_var_time  = Adios.inquire_variable(ad_io, "time")
       local ad_var_frame = Adios.inquire_variable(ad_io, "frame")
-      local ad_err = Adios.set_selection(ad_var_time, 1, {0}, {1})
-      local ad_err = Adios.set_selection(ad_var_frame, 1, {0}, {1})
       local ad_err = Adios.get(ad_engine, ad_var_time, self.tmStampBuff:data(), Adios.mode_deferred)
       local ad_err = Adios.get(ad_engine, ad_var_frame, self.frNumBuff:data(), Adios.mode_deferred)
 
