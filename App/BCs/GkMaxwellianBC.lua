@@ -95,11 +95,17 @@ function GkMaxwellianBC:createSolver(mySpecies, field, externalField)
       local tm, fr = phaseFieldIo:read(self.ghostFld, self.fromFile)
    else
       -- The following are needed to evaluate a conf-space CartField on the confBoundaryGrid.
-      local confBoundaryField = self.confBoundaryField or self:allocMoment()
+      self.confBoundaryField = self.confBoundaryField or self:allocMoment()
       local bmag = externalField.geo.bmag
       self.bmag = self.bmag or self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, bmag:getMetaData())
-      confBoundaryField = self:evalOnConfBoundary(bmag, confBoundaryField)
-      self.bmag:copy(self:evalOnConfBoundary(bmag, confBoundaryField))
+      self.bmag:copy(self:evalOnConfBoundary(bmag, self.confBoundaryField))
+
+      -- The following are needed to evaluate a conf-space CartField on the confBoundaryGrid.
+      local jacobGeo = externalField.geo.jacobGeo
+      if jacobGeo then
+         self.jacobGeo = self.jacobGeo or self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, jacobGeo:getMetaData())
+         self.jacobGeo:copy(self:evalOnConfBoundary(jacobGeo, self.confBoundaryField))
+      end
 
       self.numDensityCalc = self.numDensityCalc or Updater.DistFuncMomentCalc {
          onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
@@ -127,7 +133,7 @@ function GkMaxwellianBC:createSolver(mySpecies, field, externalField)
          local jacobGeo = externalField.geo.jacobGeo
          if jacobGeo then
             self.jacobGeo = self.jacobGeo or self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, jacobGeo:getMetaData())
-            self.jacobGeo:copy(self:evalOnConfBoundary(jacobGeo, confBoundaryField))
+            self.jacobGeo:copy(self:evalOnConfBoundary(jacobGeo, self.confBoundaryField))
          end
    
          confProject:setFunc(function(t, xn) return 1. end)
@@ -139,7 +145,7 @@ function GkMaxwellianBC:createSolver(mySpecies, field, externalField)
          local M0e, M0, M0mod = self:allocMoment(), self:allocMoment(), self:allocMoment()
          local confWeakDivide = self.confWeakDivide or Updater.CartFieldBinOp {
             weakBasis = self.confBasis,  operation = "Divide",
-            onRange   = confBoundaryField:localRange(),  onGhosts = false,
+            onRange   = self.confBoundaryField:localRange(),  onGhosts = false,
          }
          local phaseWeakMultiply = self.phaseWeakMultiply or Updater.CartFieldBinOp {
             onGrid    = self.boundaryGrid,  operation  = "Multiply",
@@ -183,32 +189,19 @@ function GkMaxwellianBC:createCouplingSolver(species,field,externalField)
          elemType   = field:rkStepperFields()[1].phi:elemType(),
          method     = "MPI",  writeGhost = false,
          metaData   = {polyOrder = basis:polyOrder(),  basisType = basis:id(),
-                       charge    = self.charge,             mass      = self.mass,},
+                       charge    = self.charge,        mass      = self.mass,},
       }
 
       local phaseWeakMultiply = self.phaseWeakMultiply or Updater.CartFieldBinOp {
          onGrid    = self.boundaryGrid,  operation  = "Multiply",
-         weakBasis = basis,         fieldBasis = confBasis,
+         weakBasis = basis,              fieldBasis = confBasis,
          onGhosts  = true,
       }
 
-      -- The following are needed to evaluate a conf-space CartField on the confBoundaryGrid.
-      local confBoundaryField = self.confBoundaryField or self:allocMoment()
-      local bmag = externalField.geo.bmag
-      self.bmag = self.bmag or self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, bmag:getMetaData())
-      confBoundaryField = self:evalOnConfBoundary(bmag, confBoundaryField)
-      self.bmag:copy(self:evalOnConfBoundary(bmag, confBoundaryField))
-      local jacobGeo = externalField.geo.jacobGeo
-      if jacobGeo then
-         self.jacobGeo = self.jacobGeo or self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, jacobGeo:getMetaData())
-         self.jacobGeo:copy(self:evalOnConfBoundary(jacobGeo, confBoundaryField))
-      end
-
       if self.maxwellianKind == 'canonical' then
-         local confBoundaryField = self.confBoundaryField or self:allocMoment()
          local confWeakDivide = self.confWeakDivide or Updater.CartFieldBinOp {
             weakBasis = confBasis,  operation = "Divide",
-            onRange   = confBoundaryField:localRange(),  onGhosts = false,
+            onRange   = self.confBoundaryField:localRange(),  onGhosts = false,
          }
 
          local ionName = nil
