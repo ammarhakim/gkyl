@@ -20,7 +20,6 @@ local Mpi   = require "Comm.Mpi"
 
 local AdiosCartFieldIo = Proto()
 
--- Constructor to make a new uniform grid.
 function AdiosCartFieldIo:init(tbl)
    -- By default, write out doubles.
    local elct     = tbl.elemType and tbl.elemType or typeof("double")
@@ -140,8 +139,8 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
    -- No need to do anything if communicator is not valid.
    if not Mpi.Is_comm_valid(dataComm) then return end
 
-   if not frNum then frNum = -1 end        -- Default frame-number.
-   if not tmStamp then tmStamp = -1.0 end  -- Default time-stamp.
+   frNum = frNum or -1        -- Default frame-number.
+   tmStamp = tmStamp or -1.0  -- Default time-stamp.
 
    local ndim = field:ndim()
    local localRange, globalRange = field:localRange(), field:globalRange()
@@ -227,7 +226,7 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
 
    local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- Concatenate prefix.
 
-   -- Open file to write out group.
+   -- Open file to write.
    local ad_engine = Adios.open_new_comm(ad_io, fullNm, Adios.mode_write, dataComm)
 
    self.tmStampBuff[1], self.frNumBuff[1] = tmStamp, frNum

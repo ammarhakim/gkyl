@@ -734,8 +734,12 @@ end
 -- adios2_set_selection
 function _M.set_selection(variable_h, ndims, start, count)
    local vecsIn = {shape = shape, start = start, count = count}
-   local vecs   = {start = type(start)=='table' and Lin.UInt64Vec(ndims) or {data=function(self) return start end},
-                   count = type(count)=='table' and Lin.UInt64Vec(ndims) or {data=function(self) return count end},}
+   local vecs   = {
+      start = type(start)=='table' and Lin.UInt64Vec(ndims) or
+             (type(start)=='number' and {data=function(self) return start end} or start),
+      count = type(count)=='table' and Lin.UInt64Vec(ndims) or
+             (type(count)=='number' and {data=function(self) return count end} or count),
+   }
    for k, v in pairs(vecsIn) do 
       if type(v) == 'table' then
          for d = 1, ndims do vecs[k][d] = v[d] end

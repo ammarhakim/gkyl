@@ -13,31 +13,11 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
 -- Gkyl libraries.
-local Adios       = require "Io.Adios"
---local AdiosReader = require "Io.AdiosReader"
-local Alloc       = require "Lib.Alloc"
-local Lin         = require "Lib.Linalg"
-local Mpi         = require "Comm.Mpi"
-local Proto       = require "Lib.Proto"
-
--- Code from Lua wiki to convert table to comma-seperated-values string.
--- Used to escape "'s by toCSV.
-local function escapeCSV (s)
-  if string.find(s, '[,"]') then
-    s = '"' .. string.gsub(s, '"', '""') .. '"'
-  end
-  return s
-end
--- Convert from table to CSV string.
-local function toCSV (tt)
-  local s = ""
-  -- ChM 23.02.2014: changed pairs to ipairs assumption is that
-  -- fromCSV and toCSV maintain data as ordered array.
-  for _,p in ipairs(tt) do  
-    s = s .. "," .. escapeCSV(p)
-  end
-  return string.sub(s, 2)      -- Remove first comma.
-end
+local Proto = require "Lib.Proto"
+local Alloc = require "Lib.Alloc"
+local Lin   = require "Lib.Linalg"
+local Mpi   = require "Comm.Mpi"
+local AdiosDynVectorIo = require "Io.AdiosDynVectorIo"
 
 -- Template to copy from table/vector.
 local copyTempl = xsys.template [[
@@ -73,64 +53,17 @@ function DynVector:init(tbl)
    -- Construct various functions from template representations.
    self._copyToTempData = loadstring( copyTempl {NCOMP=self._numComponents} )()
 
-   -- Write only from one rank of the specified communicator. Use world comm
-   -- and rank 0 if user doesn't specify them.
-   self._parentComm = tbl.comm or Mpi.COMM_WORLD
-   self.writeRank   = tbl.writeRank or 0
-   if self.writeRank ~= Mpi.PROC_NULL then
-      local ranks  = Lin.IntVec(1);  ranks[1] = self.writeRank
-      self._ioComm = Mpi.Split_comm(self._parentComm, ranks)
-   end
-
-   -- Allocate space for IO buffer.
-   self._ioBuff = Alloc.Double()
-   self.frNum = -1
-
-   -- If we have meta-data to write out, store it.
-   if GKYL_EMBED_INP then
-      self._metaData = {
-         -- Write out input file contents (encoded as base64 string).
-         ["inputfile"] = {
-            value = GKYL_INP_FILE_CONTENTS, vType = "string"
-         }
-      }
-   else
-      -- Write some dummy text otherwise.
-      self._metaData = { ["inputfile"] = { value = "inputfile", vType = "string" } }
-   end
-   if tbl.metaData then
-      -- Store value and its type for each piece of data.
-      for k,v in pairs(tbl.metaData) do
-         if type(v) == "number" then
-            -- Check if this is an integer or float.
-            if math.floor(math.abs(v)) == math.abs(v) then
-               self._metaData[k] = { value = new("int[1]", v), vType = "integer", }
-            else
-               self._metaData[k] = { value = new("double[1]", v), vType = "double", }
-            end
-         elseif type(v) == "string" then
-            self._metaData[k] = { value = v, vType = "string" }
-         elseif type(v) == "table" then
-            assert(type(v[1])=="number", "Io.AdiosCartFieldIo: Metadata table must have elements must be numbers.")
-            isInt = (math.floor(math.abs(v[1])) == math.abs(v[1]))
-            for _, val in pairs(v) do
-               assert(isInt == (math.floor(math.abs(val)) == math.abs(val)), "Io.AdiosCartFieldIo: Metadata table must have elements of the same type (int or double).")
-            end
-            if isInt then
-               self._metaData[k] = { value = new("int[?]", #v), vType = "table", numElements = #v, elementType = Adios.integer }
-            else
-               self._metaData[k] = { value = new("double[?]", #v), vType = "table", numElements = #v, elementType = Adios.double }
-            end
-            for i = 1, #v do self._metaData[k].value[i-1] = v[i] end
-         end
-      end
-   end
-
    -- Used to save the last data, in case we need it later.
    self.tLast, self.dLast = -1., Lin.Vec(self._numComponents)
    self.flushed = false
 
-   self._isFirst = true
+   -- Adios object for I/O.
+   self.adiosIo = AdiosDynVectorIo {
+     ioSystem = tbl.ioSystem,  adiosSystem = tbl.adiosSystem,
+     comm     = tbl.comm,      writeRank   = tbl.writeRank,
+     metaData = tbl.metaData,      
+   }
+
 end
 
 function DynVector:appendData(t, v)
@@ -262,39 +195,7 @@ function DynVector:numComponents() return self._numComponents end
 
 -- Returns time-stamp and frame number.
 function DynVector:read(fName)
-   local comm = self._parentComm
-
-   local fullNm = GKYL_OUT_PREFIX .. "_" .. fName
-   local reader = AdiosReader.Reader(fullNm, comm)
-
-   local timeMesh, data
-   if reader:hasVar("TimeMesh") then
-      timeMesh = reader:getVar("TimeMesh"):read()
-      data     = reader:getVar("Data"):read()
-   elseif reader:hasVar("TimeMesh0") then
-      timeMesh = reader:getVar("TimeMesh0"):read()
-      data     = reader:getVar("Data0"):read()
-      varCnt   = 1
-      while reader:hasVar("TimeMesh"..varCnt) do
-         local timeMeshN = reader:getVar("TimeMesh"..varCnt):read()
-         local dataN     = reader:getVar("Data"..varCnt):read()
-         for i = 1, timeMeshN:size() do timeMesh:push(timeMeshN[i]) end
-         for i = 1, dataN:size() do data:push(dataN[i]) end
-         varCnt = varCnt + 1
-      end
-   end
-
-   -- Copy over time-mesh and data.
-   local nVal = data:size()/self._numComponents
-   self._timeMesh:expand(nVal)
-   for i = 1, self._timeMesh:size() do
-      self._timeMesh[i] = timeMesh[i]
-   end
-
-   self._data:expand(nVal)   
-   self:_copy_to_dynvector(data)
-
-   reader:close()
+   self.adiosIo:read(self, fName)
 end
 
 function DynVector:removeLast()
@@ -319,71 +220,15 @@ end
 function DynVector:timeMesh() return self._timeMesh end
 
 function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
-   local rank = Mpi.Comm_rank(self._parentComm)
-
-   local flushData  = xsys.pickBool(flushData, true)  -- Default flush data on write.
-   local appendData = xsys.pickBool(appendData, true) -- Default append data to single file.
+   local flushData = xsys.pickBool(flushData, true)  -- Default flush data on write.
 
    if appendData and (frNum and frNum>=0) then 
-      self.frNum = frNum 
+      frNum = frNum 
    else 
-      self.frNum = "" 
-      frNum      = frNum or 0
+      frNum = frNum or 0
    end
 
-   -- Create group and set I/O method.
-   -- MF 2022/10/06: Had to place this before some ranks return (below) because
-   -- after parallelizing over species and giving DynVector a comm input this
-   -- method caused hangs. It may mean that select_method is collective.
-   local grpNm = "DynVector"..frNum..outNm
-   local grpId = Adios.declare_group(grpNm, "", Adios.flag_no)
-   Adios.select_method(grpId, "MPI", "", "")
-   
-   if rank ~= self.writeRank then  -- Only run on rank that writes ...
-      self:clear()                 -- ... but clear data on all ranks.
-      return
-   end
-
-   -- ADIOS expects CSV string to specify data shape
-   local localTmSz  = toCSV( {self._data:size()} )
-   local localDatSz = toCSV( {self._data:size(), self._numComponents} )
-   
-   -- Define data to write.
-   Adios.define_var(
-      grpId, "TimeMesh"..self.frNum, "", Adios.double, localTmSz, "", "")
-   Adios.define_var(
-      grpId, "Data"..self.frNum, "", Adios.double, localDatSz, "", "")
-
-   if self._isFirst then
-      -- Write meta-data for this file.
-      for attrNm, v in pairs(self._metaData) do
-         if v.vType == "integer" then
-            Adios.define_attribute_byvalue(grpId, attrNm, "", Adios.integer, 1, v.value)
-         elseif v.vType == "double" then
-            Adios.define_attribute_byvalue(grpId, attrNm, "", Adios.double, 1, v.value)
-         elseif v.vType == "string" then
-            Adios.define_attribute_byvalue(grpId, attrNm, "", Adios.string, 1, v.value)
-         elseif v.vType == "table" then
-            Adios.define_attribute_byvalue(grpId, attrNm, "", v.elementType, v.numElements, v.value)
-         end
-      end
-      self._isFirst = false
-   end
-
-   local fullNm = GKYL_OUT_PREFIX .. "_" .. outNm
-   if frNum == 0 or not appendData then
-      fd = Adios.open(grpNm, fullNm, "w", self._ioComm[0])
-   else
-      fd = Adios.open(grpNm, fullNm, "u", self._ioComm[0])
-   end
-
-   Adios.write(fd, "TimeMesh"..self.frNum, self._timeMesh:data())
-   -- Copy data to IO buffer.
-   self._ioBuff:expand(self._data:size()*self._numComponents)
-   self:_copy_from_dynvector(self._ioBuff)
-   Adios.write(fd, "Data"..self.frNum, self._ioBuff:data())
-   
-   Adios.close(fd)
+   self.adiosIo:write(self, outNm, tmStamp, frNum, appendData) 
 
    -- Clear data for next round of IO.
    if flushData then 
