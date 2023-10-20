@@ -48,7 +48,7 @@ sim = Plasma.App {
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
 	 density     = 0.5,--0.5*(nl+nr),
-	 driftSpeed  = {0.5*(nl+nr)},
+	 driftSpeed  = 0.5*(nl+nr),
 	 temperature = 0.5*(vthl^2+vthr^2),
       },
       -- reservoir = Plasma.MaxwellianProjection {
@@ -56,7 +56,7 @@ sim = Plasma.App {
       --       if math.abs(z[1]) < 0.5 then return nl else return nr end
       --    end,
       --    driftSpeed = function (t, z)
-      --       if math.abs(z[1]) < 0.5 then return {ul} else return {ur} end
+      --       if math.abs(z[1]) < 0.5 then return ul else return ur end
       --    end,
       --    temperature = function (t, z)
       --       if math.abs(z[1]) < 0.5 then return vthl^2 else return vthr^2 end

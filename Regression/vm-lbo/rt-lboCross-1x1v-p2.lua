@@ -55,7 +55,7 @@ vlasovApp = Plasma.App {
          end,
          driftSpeed = function (t, zn)
             local x, vpar = zn[1], zn[2]
-            return {u1}
+            return u1
          end,
          temperature = function (t, zn)
             local x, vpar = zn[1], zn[2]
@@ -95,7 +95,7 @@ vlasovApp = Plasma.App {
          end,
          driftSpeed = function (t, zn)
             local x, vpar = zn[1], zn[2]
-            return {u2}
+            return u2
          end,
          temperature = function (t, zn)
             local x, vpar = zn[1], zn[2]
