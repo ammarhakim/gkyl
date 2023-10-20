@@ -7,47 +7,8 @@
 
 local Mpi   = require "Comm.Mpi"
 local Adios = require "Io.Adios"
-local ffi   = require "ffi"
 local Proto = require "Lib.Proto"
-local Alloc = require "Lib.Alloc"
 local Lin   = require "Lib.Linalg"
-
--- Table of type-strings and cast-strings for use in LuaJIT.
-local typeStringMap = { 
-   [Adios.unsigned_byte] = {
-      "unsigned_byte", "uint8_t*", Alloc.createAllocator("uint8_t")
-   },
-   [Adios.byte] = {
-      "byte", "int8_t*", Alloc.createAllocator("int8_t")
-   },
-   [Adios.short] = {
-      "short", "int16_t*"
-   },
-   [Adios.unsigned_short] = {
-      "unsigned_short", "uint16_t*", Alloc.createAllocator("uint16_t")
-   },
-   [Adios.integer] = {
-      "integer", "int32_t*", Alloc.createAllocator("int32_t")
-   },
-   [Adios.unsigned_integer] = {
-      "unsigned_integer", "uint32_t*", Alloc.createAllocator("uint32_t")
-   },
-   [Adios.real] = {
-      "real", "float*", Alloc.createAllocator("float")
-   },
-   [Adios.double] = {
-      "double", "double*", Alloc.createAllocator("double")
-   },
-   [Adios.long_double] = {
-      "long_double", "long double*", Alloc.createAllocator("long double")
-   },
-   [Adios.string] = {
-      "string", "char*", Alloc.createAllocator("char *")
-   },
-}
-
--- Wrapper function to convert enum to integer before indexing table.
-local function getTypeStringMap(ty) return typeStringMap[tonumber(ty)] end
 
 -- AdiosVar --------------------------------------------------------------------
 --
@@ -57,45 +18,50 @@ local function getTypeStringMap(ty) return typeStringMap[tonumber(ty)] end
 
 local AdiosVar = Proto()
 
-function AdiosVar:init(fd, vName, vid)
-   self._fd, self.name  = fd, vName
-   self._obj            = Adios.inq_var_byid(fd, vid)
+function AdiosVar:init(ad_io, ad_engine, vName)
+   self._ad_engine, self.name = ad_engine, vName
+   self._ad_var = Adios.inquire_variable(ad_io, vName)
 
-   self.shape, self.size = { }, 1
-   for j = 0, self._obj.ndim-1 do
-      self.shape[j+1] = tonumber(self._obj.dims[j])
-      self.size       = self.size*tonumber(self._obj.dims[j])
-   end
+   self.ndim  = Adios.variable_ndims(self._ad_var)
+   self.shape = Adios.variable_shape(self._ad_var)
 
-   local t   = getTypeStringMap(self._obj.type)
-   self.type = t and t[1] or nil
+   self.size = 1
+   for j = 1, self.ndim do self.size = self.size*self.shape[j] end
+
+   self.type = Adios.variable_type(self._ad_var)
 end
 
 -- Returned data is the value if var is a scalar or is the data
 -- stored as a flat array otherwise.
 function AdiosVar:read()
-   local tmap = getTypeStringMap(self._obj.type)
+   local ndim = self.ndim
+   local data
+   if self.type == Adios.type_string then
+      data = Lin.CharVec(Adios.name_char_num_max)
+   elseif self.type == Adios.type_float then
+      data = Lin.FloatVec(self.size)
+   elseif self.type == Adios.type_double then
+      data = Lin.Vec(self.size)
+   elseif self.type == Adios.type_int32_t then
+      data = Lin.IntVec(self.size)
+   elseif self.type == Adios.type_uint64_t then
+      data = Lin.UInt64Vec(self.size)
+   end
 
-   local ndim = self._obj.ndim
    if ndim == 0 then
-      return ffi.cast(tmap[2], self._obj.value)[0]
+      local _ = Adios.get(self._ad_engine, self._ad_var, data:data(), Adios.mode_sync)
+   else
+      local start, count = {}, {}
+      for d = 1, ndim do
+         start[d] = 0
+         count[d] = self.shape[d]
+      end
+      local _ = Adios.set_selection(self._ad_var, ndim, start, count)
+      local _ = Adios.get(self._ad_engine, self._ad_var, data:data(), Adios.mode_sync)
    end
-   
-   local allocator = tmap[3]
-   local data      = allocator(self.size)
-   
-   -- (ADIOS expects input to be const uint64_t* objects, hence vector
-   -- types below).
-   local start, count = Lin.UInt64Vec(ndim), Lin.UInt64Vec(ndim)
-   for d = 1, ndim do
-      start[d] = 0
-      count[d] = self._obj.dims[d-1] -- dims is 0-indexed
-   end
-   local sel = Adios.selection_boundingbox(ndim, start, count)
 
-   Adios.schedule_read_byid(self._fd, sel, self._obj.varid, 0, 1, data)
-   Adios.perform_reads(self._fd, 1)
-
+   if self.type == Adios.type_string then data = {ffi.string(data:data())} end
+   if ndim == 0 then data = data[1] end
    return data
 end
 
@@ -107,25 +73,10 @@ end
 
 local AdiosAttr = Proto()
 
-function AdiosAttr:init(fd, aName, aid)
-   self.name                 = aName
-   local atype, asize, adata = Adios.get_attr_byid(fd, aid)
-   local type_size           = Adios.type_size(atype, adata)
-   self._values              = { }
-
-   local tmap = getTypeStringMap(atype)
-
-   if tmap[1] ~= "string" then
-      local v = ffi.cast(tmap[2], adata) -- Cast to proper type.
-      for i = 1, asize/type_size do
-	 self._values[i] = v[i-1]
-      end
-   else
-      -- For string attribute we need to cast it to Lua string object.
-      self._values[1] = ffi.string(adata)
-   end
-   
-   ffi.C.free(adata)
+function AdiosAttr:init(ad_io, aName)
+   self.name    = aName
+   ad_attr      = Adios.inquire_attribute(ad_io, aName)
+   self._values = Adios.attribute_data(ad_attr)
 end
 
 function AdiosAttr:read() return self._values end
@@ -139,20 +90,21 @@ local Reader = Proto()
 function Reader:init(fName, comm)
    if not comm then comm = Mpi.COMM_WORLD end
 
-   self._fd = Adios.read_open_file(fName, Mpi.getComm(comm))
-   assert(not (self._fd == nil), string.format(
-	     "Unable to open ADIOS file %s for reading", fName))
+   self._ad = Adios.init_mpi(comm)
+   self._ad_io = Adios.declare_io(self._ad, fName)
 
+   self._ad_engine = Adios.open(self._ad_io, fName, Adios.mode_readRandomAccess)
+
+   local var_names = Adios.available_variables(self._ad_io)
    self.varList = { }
-   for i = 0, self._fd.nvars-1 do
-      local nm         = ffi.string(self._fd.var_namelist[i])
-      self.varList[nm] = AdiosVar(self._fd, nm, i)
+   for i, nm in ipairs(var_names) do
+      self.varList[nm] = AdiosVar(self._ad_io, self._ad_engine, nm)
    end
 
+   local attr_names = Adios.available_attributes(self._ad_io)
    self.attrList =  { }
-   for i = 0, self._fd.nattrs-1 do
-      local nm          = ffi.string(self._fd.attr_namelist[i])
-      self.attrList[nm] = AdiosAttr(self._fd, nm, i)
+   for i, nm in ipairs(attr_names) do
+      self.attrList[nm] = AdiosAttr(self._ad_io, nm)
    end
 end
 
@@ -172,6 +124,9 @@ function Reader:getAttr(nm)
    return self.attrList[nm]
 end
 
-function Reader:close() Adios.read_close(self._fd) end
+function Reader:close()
+   Adios.close(self._ad_engine)
+   Adios.finalize(self._ad)
+end
 
 return { Reader = Reader }

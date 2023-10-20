@@ -8,6 +8,7 @@
 -- Don't bother if ADIOS is not built in.
 assert(GKYL_HAVE_ADIOS, "Gkyl was not built with ADIOS!")
 
+local Mpi  = require "Comm.Mpi"
 local Lin  = require "Lib.Linalg"
 local ffi  = require "ffi"
 local ffiC = ffi.C
@@ -869,7 +870,7 @@ function _M.attribute_data(attr_h)
    local typ, sz = _M.attribute_type(attr_h), _M.attribute_size(attr_h)
    local dataOut
    if typ == _M.type_string then
-      dataOut = ""
+      dataOut = Lin.CharVec(_M.name_char_num_max)
    elseif typ == _M.type_float then
       dataOut = Lin.FloatVec(sz)
    elseif typ == _M.type_double then
@@ -882,6 +883,8 @@ function _M.attribute_data(attr_h)
    local sizeOut = Lin.UInt64Vec(1)
    local err = ffiC.adios2_attribute_data(dataOut:data(), sizeOut:data(), _M.get_attribute(attr_h))
    assert(err == 0, string.format("Io.Adios: error in attribute_data. Error code: %d.",tonumber(err)))
+
+   if typ == _M.type_string then dataOut = {ffi.string(dataOut:data())} end
    return dataOut, tonumber(sizeOut[1])
 end
 
