@@ -12,9 +12,10 @@ local DataStruct     = require "DataStruct"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
-local Mpi            = require "Comm.Mpi"
-local lume           = require "Lib.lume"
 local xsys           = require "xsys"
+local lume           = require "Lib.lume"
+local ffi            = require "ffi"
+local Mpi            = require "Comm.Mpi"
 
 
 -- GkBGKCollisions ---------------------------------------------------------------
@@ -95,7 +96,6 @@ function GkBGKCollisions:fullInit(speciesTbl)
          end
          or nil
 
-      self.mass   = speciesTbl.mass      -- Mass of this species.
       self.charge = speciesTbl.charge    -- Charge of this species.
       -- If no time-constant collision frequencies provided ('frequencies'), user can specify
       -- 'normNu' list of collisionalities normalized by T_0^(3/2)/n_0 evaluated somewhere in the
@@ -119,15 +119,14 @@ function GkBGKCollisions:fullInit(speciesTbl)
    end
 
    if self.crossCollisions then
-      self.mass       = speciesTbl.mass      -- Mass of this species.
       self.charge     = speciesTbl.charge    -- Charge of this species.
       -- Can specify 'betaGreene' free parameter in Grene cross-species collisions.
       self.betaGreene = tbl.betaGreene and tbl.betaGreene or 0.0
    end
 
-   self.nuFrac = tbl.nuFrac and tbl.nuFrac or 1.0
-
    self.mass = speciesTbl.mass   -- Mass of this species.
+
+   self.nuFrac = tbl.nuFrac and tbl.nuFrac or 1.0
 
    -- DL 2023/09/26: Replace the original Lagrange fix by the iteration fix. 
    self.conservativeMaxwellian = xsys.pickBool(tbl.conservativeMaxwellian, true)
@@ -150,8 +149,6 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
    self.jacobTot = externalField.geo.jacobTot
 
    if self.conservativeMaxwellian then
-      -- Intermediate moments used in Lagrange fixing.
-      self.dmoms = mySpecies:allocVectorMoment(3)
       -- Create updater to compute M0, M1, M2 moments sequentially.
       self.threeMomentsCalc = Updater.DistFuncMomentCalc {
          onGrid     = self.phaseGrid,    confBasis = self.confBasis,
@@ -163,7 +160,7 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
          phaseBasis = self.phaseBasis,  confBasis = self.confBasis,
          mass       = self.mass,
          bmag       = self.bmag,        jacobTot   = self.jacobTot,
-         iter_max   = 100,              err_max    = 1e-14,
+         iter_max   = 100,               err_max    = 1e-14,
          useDevice  = false,
       }
    end
@@ -204,10 +201,6 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
       projectUserNu:advance(0.0, {}, {self.nuSelf})
    end
 
-   -- Weak multiplication in conf space.
-   self.confMul = Updater.CartFieldBinOp {
-      weakBasis = self.confBasis,  operation = "Multiply",
-   }
    -- Weak multiplication to multiply nu(x) with fMaxwell.
    self.phaseMul = Updater.CartFieldBinOp {
       weakBasis  = self.phaseBasis,  operation = "Multiply",
@@ -229,23 +222,10 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
    if self.crossCollisions then
       -- Cross-collision Maxwellian multiplied by collisionality.
       self.nufMaxwellCross = mySpecies:allocDistf()
-      -- Prefactor m_0s*delta_s in cross primitive moment calculation.
-      self.m0s_deltas = mySpecies:allocMoment()
-      -- Weak division to compute the pre-factor in cross collision primitive moments.
-      self.confDiv = Updater.CartFieldBinOp {
-         weakBasis = self.confBasis,            operation = "Divide",
-         onRange   = self.nuSelf:localRange(),  onGhosts  = false,
-      }
       -- Updater to compute cross-species moments.
-      self.MomCrossBGK = Updater.MomCrossBGK {
+      self.momCross = Updater.MomCrossBGK {
          phaseBasis = self.phaseBasis,   confBasis  = self.confBasis,
       }
-      self.unitFld = mySpecies:allocMoment()
-      local projectUnit = Updater.ProjectOnBasis {
-         onGrid = self.confGrid,   evaluate = function(t,xn) return 1. end,
-         basis  = self.confBasis,  onGhosts = false
-      }
-      projectUnit:advance(0.0, {}, {self.unitFld})
 
       -- Allocate (and assign if needed) cross-species collision frequencies,
       -- and cross moments.
@@ -258,13 +238,9 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
 --            self.nuCross[otherNm]:write(string.format("%s_nu-%s_%d.bp",self.speciesName,otherNm,0),0.0,0)
          end
       end
-      self.momsCross = mySpecies:allocVectorMoment(6)   
+      self.momsCross = mySpecies:allocVectorMoment(3)   
 
       self.m0Other = self.timeDepNu and mySpecies:allocMoment() or nil  -- M0, to be extracted from threeMoments.
-
-      if self.conservativeMaxwellian then
-         self.momsCrossSelf = mySpecies:allocVectorMoment(3)   
-      end
    end
 
    -- Collisionality, nu, summed over all species pairs.
@@ -400,7 +376,7 @@ function GkBGKCollisions:advance(tCurr, fIn, population, out)
 
    local fRhsOut, cflRateByCell = out[1], out[2]
    local species = population:getSpecies()
-   
+
    -- Fetch coupling moments of this species
    local momsSelf = species[self.speciesName]:fluidMoments()
 
@@ -414,12 +390,12 @@ function GkBGKCollisions:advance(tCurr, fIn, population, out)
       --Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
       -- Call the CorrectMaxwellian updater.
       self.correctMaxwellian:advance(tCurr, {self.nufMaxwellSum, momsSelf}, {self.nufMaxwellSum})
+      print("Maxwellian is corrected for the self collisions!")
    end
    self.phaseMul:advance(tCurr, {self.nuSum, self.nufMaxwellSum}, {self.nufMaxwellSum})
    
    if self.crossSpecies then
       for sInd, otherNm in ipairs(self.crossSpecies) do
-
          -- If we don't own the other species wait for its moments to be transferred.
          if not population:isSpeciesMine(otherNm) then
             population:speciesXferField_waitRecv(population:getSpecies()[otherNm].threeMomentsXfer)
@@ -439,12 +415,11 @@ function GkBGKCollisions:advance(tCurr, fIn, population, out)
                           nuCrossSelf, nuCrossOther)
 
          -- Compute cross moments.
-         self.MomCrossBGK:advance(tCurr, {self.betaGreene, self.mass, momsSelf, mOther, momsOther, nuCrossSelf, nuCrossOther}, {self.momsCross})
+         self.momCross:advance(tCurr, {self.betaGreene, self.mass, momsSelf, mOther, momsOther, nuCrossSelf, nuCrossOther}, {self.momsCross})
 
-	 self.maxwellian:advance(tCurr, {momsSelf, self.bmag, self.jacobTot}, {self.nufMaxwellCross})
+	 self.maxwellian:advance(tCurr, {self.momsCross, self.bmag, self.jacobTot}, {self.nufMaxwellCross})
          if self.conservativeMaxwellian then
-            self.momsCrossSelf:combineOffset(1., self.momsCross, 0, 1., self.momsCross, self.confBasis:numBasis(), 1., self.momsCross, 2*self.confBasis:numBasis())
-            self.correctMaxwellian:advance(tCurr, {self.nufMaxwellCross, self.momsCrossSelf}, {self.nufMaxwellCross})
+            self.correctMaxwellian:advance(tCurr, {self.nufMaxwellCross, self.momsCross}, {self.nufMaxwellCross})
          end
          self.phaseMul:advance(tCurr, {nuCrossSelf, self.nufMaxwellCross}, {self.nufMaxwellCross})
         
@@ -455,14 +430,11 @@ function GkBGKCollisions:advance(tCurr, fIn, population, out)
    
    self.collisionSlvr:advance(tCurr, {self.nuSum, self.nufMaxwellSum, fIn}, {fRhsOut, cflRateByCell})
    self.timers.advance = self.timers.advance + Time.clock() - tmStart
-   print("Stepped forward!")
 end
 
 function GkBGKCollisions:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
    -- Wait to finish sending selfPrimMoms if needed.
-   print("flag 0")
    population:speciesXferField_waitSend(self.primMomsSelfXfer)
-   print("flag 1")
 end
 
 function GkBGKCollisions:write(tm, frame) end
