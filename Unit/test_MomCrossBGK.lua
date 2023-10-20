@@ -83,8 +83,8 @@ function testGK_1x1v()
    local nu_rs = createField(confGrid, confBasis, 1)
    local moms_s = createField(confGrid, confBasis, 3)
    local moms_r = createField(confGrid, confBasis, 3)
-   local moms_tar = createField(confGrid, confBasis, 6)
-   local moms_cross = createField(confGrid, confBasis, 6)
+   local moms_tar = createField(confGrid, confBasis, 3)
+   local moms_cross = createField(confGrid, confBasis, 3)
    
    local nu_srFunc = function (t, xn) return 10.0 end
    local nu_rsFunc = function (t, xn) return 5.0 end
@@ -126,12 +126,14 @@ function testGK_1x1v()
       local m1r = m0r*udriftr
       local m2r = udriftr*m1r + m0r*vtsqr
 
-      local m0sr, m0rs = m0s, m0r
+      local m0sr = m0s
+      --local m0sr, m0rs = m0s, m0r
       local m1sr = m1s + alpha*(ms+mr)/(2*ms*nu_sr*m0s*m0r)*(m0s*m1r-m0r*m1s)
-      local m1rs = m1r - alpha*(ms+mr)/(2*mr*nu_rs*m0s*m0r)*(m0s*m1r-m0r*m1s)
+      --local m1rs = m1r - alpha*(ms+mr)/(2*mr*nu_rs*m0s*m0r)*(m0s*m1r-m0r*m1s)
       local m2sr = m2s + alpha/(ms*nu_sr*m0s*m0r)*(mr*m0s*m2r-ms*m0r*m2s+(ms-mr)*m1s*m1r)
-      local m2rs = m2r - alpha/(mr*nu_rs*m0s*m0r)*(mr*m0s*m2r-ms*m0r*m2s+(ms-mr)*m1s*m1r)
-      return m0sr, m0rs, m1sr, m1rs, m2sr, m2rs
+      --local m2rs = m2r - alpha/(mr*nu_rs*m0s*m0r)*(mr*m0s*m2r-ms*m0r*m2s+(ms-mr)*m1s*m1r)
+      --return m0sr, m0rs, m1sr, m1rs, m2sr, m2rs
+      return m0sr, m1sr, m2sr
    end
    
    local projConfScalar = Updater.ProjectOnBasis {
@@ -178,7 +180,7 @@ function testGK_1x1v()
    for idx in localRange:rowMajorIter() do
       momsTarPtr = moms_tar:get(indexer(idx))
       momsCrossPtr = moms_cross:get(indexer(idx))
-      for k = 1, confBasis:numBasis()*6 do
+      for k = 1, confBasis:numBasis()*3 do
          assert_close(momsTarPtr[1], momsCrossPtr[1], 1.e-14, "Checking cross moments 1x1v.")
       end
    end
