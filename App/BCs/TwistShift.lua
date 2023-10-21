@@ -65,10 +65,15 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
       confBasis = self.confBasis,  edge            = self.bcEdge,
    }
 
-   -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
-   self:createBoundaryGrid()
-
    local distf = mySpecies["getDistF"] and mySpecies:getDistF() or mySpecies:getMoments()
+
+   -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
+   local localGhostRange = self.bcEdge=="lower" and distf:localGhostRangeLower()[self.bcDir]
+                                                 or distf:localGhostRangeUpper()[self.bcDir]
+   -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
+   self:createBoundaryGrid(localGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec(),
+                           mySpecies.myadios, "boundGridIOgk_" .. string.gsub(self.name,self.speciesName.."_",""))
+
    -- Define methods to allocate fields defined on boundary grid (used by e.g. diagnostics).
    self.allocCartField = function(self, grid, nComp, ghosts, metaData)
       local f = DataStruct.Field {
@@ -96,8 +101,11 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
    -- the fluxes through a boundary (e.g. neutral recycling).
    if self.saveFlux then
+      local localGhostRange = self.bcEdge=="lower" and distf:localGhostRangeLower()[self.bcDir]
+                                                    or distf:localGhostRangeUpper()[self.bcDir]
       -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
-      self:createConfBoundaryGrid()
+      self:createConfBoundaryGrid(localGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec(),
+                                  mySpecies.myadios, "confBoundGridIOgk_" .. string.gsub(self.name,self.speciesName.."_",""))
 
       local numDensity = mySpecies:getNumDensity()
       self.allocMoment = function(self)

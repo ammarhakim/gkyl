@@ -145,7 +145,6 @@ function SpeciesDiagnostics:fullInit(mySpecies, field, diagOwner)
    -- MF 2021/06/06: Writing all integrated diagnostics to a single file is currently not available.
    if self.inTwoFiles then
       self.gridDiagsToWrite, self.gridDiagsToRead = {}, {}
-      self.ioMethod = "MPI"
       local elemType
       for _, diagNm in ipairs(self.diagGroups["grid"]) do
          local diag = self.diags[diagNm]
@@ -157,7 +156,6 @@ function SpeciesDiagnostics:fullInit(mySpecies, field, diagOwner)
          and "serendipity" or mySpecies.basis:id()
       self.diagIo = AdiosCartFieldIo {
          elemType   = elemType,
-         method     = self.ioMethod,
          writeGhost = self.writeGhost,
          metaData   = {polyOrder = mySpecies.basis:polyOrder(),
                        basisType = basisID,},

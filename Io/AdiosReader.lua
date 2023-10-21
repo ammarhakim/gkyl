@@ -65,6 +65,8 @@ function AdiosVar:read()
    return data
 end
 
+function AdiosVar:get_size() return self.size end
+
 -- AdiosAttr -------------------------------------------------------------------
 --
 -- Object to represent an attribute in an ADIOS file (used internally
@@ -74,9 +76,9 @@ end
 local AdiosAttr = Proto()
 
 function AdiosAttr:init(ad_io, aName)
-   self.name    = aName
-   ad_attr      = Adios.inquire_attribute(ad_io, aName)
-   self._values = Adios.attribute_data(ad_attr)
+   self.name     = aName
+   local ad_attr = Adios.inquire_attribute(ad_io, aName)
+   self._values  = Adios.attribute_data(ad_attr)
 end
 
 function AdiosAttr:read() return self._values end

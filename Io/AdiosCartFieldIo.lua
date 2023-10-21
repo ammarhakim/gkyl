@@ -17,6 +17,7 @@ local Lin   = require "Lib.Linalg"
 local Adios = require "Io.Adios"
 local Alloc = require "Lib.Alloc"
 local Mpi   = require "Comm.Mpi"
+local lume  = require "Lib.lume"
 
 local AdiosCartFieldIo = Proto()
 
@@ -102,7 +103,8 @@ function AdiosCartFieldIo:init(tbl)
    -- Time stamp and frame number arrays.
    self.tmStampBuff, self.frNumBuff = Lin.Vec(1), Lin.IntVec(1)
 
-   self.defineAttrVars = true
+   self.ad_var_fld = {}
+   self.localSz, self.globalSz, self.offset = {}, {}, {}
 end
 
 -- Writes field(s) to file.
@@ -160,8 +162,12 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
       globalRange = field:globalExtRange()  -- Extend globalRange to include ghost cells.
    end
          
+   local attr_names = Adios.available_attributes(ad_io)
+   local var_names = Adios.available_variables(ad_io)
+
    -- Only need to define attributes and other things once for each adios2_io object.
-   if self.defineAttrVars then 
+   if (not lume.any(var_names, function(e) return e=="time" end)) and
+      (not lume.any(attr_names, function(e) return e=="numCells" end)) then 
       
       -- Global attributes for Gkyl build.
       if GKYL_GIT_CHANGESET ~= "" then
@@ -203,17 +209,16 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
       -- Define data to write.
       self.ad_var_time  = Adios.define_variable(ad_io, "time", Adios.type_double)
       self.ad_var_frame = Adios.define_variable(ad_io, "frame", Adios.type_int32_t)
+   else
+      self.ad_var_time  = Adios.inquire_variable(ad_io, "time")
+      self.ad_var_frame = Adios.inquire_variable(ad_io, "frame")
+   end
 
-      self.ad_var_fld = {}
-      self.localSz, self.globalSz, self.offset = {}, {}, {}
-      -- Get local (to this MPI rank) and global shape of dataset. Offset is 0 for now.
-      for d = 1, ndim do
-         self.localSz[d]  = localRange:shape(d)
-         self.globalSz[d] = globalRange:shape(d)
-         self.offset[d]   = _writeGhost and localRange:lower(d) or localRange:lower(d)-field:globalRange():lower(d)
-      end
-
-      self.defineAttrVars = false
+   -- Get local (to this MPI rank) and global shape of dataset. Offset is 0 for now.
+   for d = 1, ndim do
+      self.localSz[d]  = localRange:shape(d)
+      self.globalSz[d] = globalRange:shape(d)
+      self.offset[d]   = _writeGhost and localRange:lower(d) or localRange:lower(d)-field:globalRange():lower(d)
    end
 
    local writeRank = self._writeRank or grid:commSet().writeRank
@@ -247,7 +252,9 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
       fld._zero:copy_to_buffer(self._outBuff[fldNm]:data(), localRange)
 
       self.ad_var_fld[fldNm] = self.ad_var_fld[fldNm] or
-         Adios.define_variable(ad_io, fldNm, self._elctIoType, ndim+1, self.globalSz, self.offset, self.localSz, true)
+         (lume.any(var_names, function(e) return e==fldNm end) and
+            Adios.inquire_variable(ad_io, fldNm) or
+            Adios.define_variable(ad_io, fldNm, self._elctIoType, ndim+1, self.globalSz, self.offset, self.localSz, true))
       local _ = Adios.put(ad_engine, self.ad_var_fld[fldNm], self._outBuff[fldNm]:data(), Adios.mode_sync)
    end
    local _ = Adios.close(ad_engine)
@@ -301,18 +308,11 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
          globalRange = field:globalExtRange() 
       end
             
-      -- Only need to define attributes and other things once for each adios2_io object.
-      if self.defineAttrVars then
-         
-         self.localSz, self.globalSz, self.offset = {}, {}, {}
-         -- Get local (to this MPI rank) and global shape of dataset. Offset is 0 for now.
-         for d = 1, ndim do
-            self.localSz[d]  = localRange:shape(d)
-            self.globalSz[d] = globalRange:shape(d)
-            self.offset[d]   = _readGhost and localRange:lower(d) or localRange:lower(d)-field:globalRange():lower(d)
-         end
-
-         self.defineAttrVars = false
+      -- Get local (to this MPI rank) and global shape of dataset. Offset is 0 for now.
+      for d = 1, ndim do
+         self.localSz[d]  = localRange:shape(d)
+         self.globalSz[d] = globalRange:shape(d)
+         self.offset[d]   = _readGhost and localRange:lower(d) or localRange:lower(d)-field:globalRange():lower(d)
       end
 
       local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- Concatenate prefix.

@@ -143,6 +143,14 @@ adios2_adios *adios2_init_mpi(MPI_Comm comm);
 adios2_io *adios2_declare_io(adios2_adios *adios, const char *name);
 
 /**
+ * Retrieves a previously declared io handler by name
+ * @param adios owner the io handler
+ * @param name unique name for the previously declared io handler
+ * @return success: handler, failure: NULL
+ */
+adios2_io *adios2_at_io(adios2_adios *adios, const char *name);
+
+/**
  * Final point for adios handler. Deallocates adios pointer. Required to avoid
  * memory leaks.
  * MPI collective and it calls MPI_Comm_free
@@ -576,6 +584,7 @@ local _M = {}
 -- and maximum number of attributes/variables.
 _M.name_char_num_max = 20
 _M.varattr_num_max   = 20
+_M.string_num_max    = 100
 
 local function new_adios2_adios() return new("adios2_adios[1]") end
 local function new_adios2_io() return new("adios2_io[1]") end
@@ -645,6 +654,13 @@ end
 function _M.declare_io(ad_h, io_name)
    local io_h = new_adios2_io()
    io_h = ffiC.adios2_declare_io(_M.get_adios(ad_h), io_name)
+   return io_h
+end
+
+-- adios2_at_io
+function _M.at_io(ad_h, io_name)
+   local io_h = new_adios2_io()
+   io_h = ffiC.adios2_at_io(_M.get_adios(ad_h), io_name)
    return io_h
 end
 
@@ -870,7 +886,7 @@ function _M.attribute_data(attr_h)
    local typ, sz = _M.attribute_type(attr_h), _M.attribute_size(attr_h)
    local dataOut
    if typ == _M.type_string then
-      dataOut = Lin.CharVec(_M.name_char_num_max)
+      dataOut = Lin.CharVec(_M.string_num_max)
    elseif typ == _M.type_float then
       dataOut = Lin.FloatVec(sz)
    elseif typ == _M.type_double then

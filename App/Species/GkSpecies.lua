@@ -25,6 +25,7 @@ local LinearTrigger    = require "Lib.LinearTrigger"
 local Mpi              = require "Comm.Mpi"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
+local Adios            = require "Io.Adios"
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local xsys             = require "xsys"
 local lume             = require "Lib.lume"
@@ -82,7 +83,6 @@ function GkSpecies:alloc(nRkDup)
    -- Create Adios object for field I/O.
    self.distIo = AdiosCartFieldIo {
       elemType   = self.distf[1]:elemType(),
-      method     = self.ioMethod,
       writeGhost = self.writeGhost,
       metaData   = {polyOrder = self.basis:polyOrder(),
                     basisType = self.basis:id(),
@@ -257,7 +257,6 @@ function GkSpecies:fullInit(appTbl)
    end
    lume.setOrder(self.collisions)
 
-   self.ioMethod           = "MPI"
    self.distIoFrame        = 0 -- Frame number for distribution function.
    self.diagIoFrame        = 0 -- Frame number for diagnostics.
    self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
@@ -278,16 +277,15 @@ function GkSpecies:setCfl(cfl)
    for _, c in lume.orderedIter(self.collisions) do c:setCfl(cfl) end
 end
 
-function GkSpecies:setIoMethod(ioMethod) self.ioMethod = ioMethod end
-
 function GkSpecies:setConfBasis(basis)
    self.confBasis = basis
    for _, c in lume.orderedIter(self.collisions) do c:setConfBasis(basis) end
    for _, src in pairs(self.sources) do src:setConfBasis(basis) end
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:setConfBasis(basis) end
 end
-function GkSpecies:setConfGrid(grid)
+function GkSpecies:setConfGrid(grid, myadios)
    self.confGrid = grid
+   self.myadios  = myadios
    for _, c in lume.orderedIter(self.collisions) do c:setConfGrid(grid) end
    for _, src in pairs(self.sources) do src:setConfGrid(grid) end
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:setConfGrid(grid) end
@@ -356,6 +354,7 @@ function GkSpecies:createGrid(confGridIn)
       upper     = upper,  decomposition = self.decomp,
       cells     = cells,  mappings      = coordinateMap,
       messenger = confGrid:getMessenger(),
+      ioSystem  = Adios.declare_io(self.myadios, "phaseGridIOgk_"..self.name),
    }
 
    for _, c in lume.orderedIter(self.collisions) do c:setPhaseGrid(self.grid) end
@@ -397,7 +396,7 @@ function GkSpecies:allocIntMoment(comp)
    local metaData = {charge = self.charge,
                      mass   = self.mass,}
    local ncomp = comp or 1
-   local f = DataStruct.DynVector {numComponents = ncomp,     writeRank = 0,
+   local f = DataStruct.DynVector {numComponents = ncomp,     writeRank = 0,  adiosSystem = self.myadios,
                                    metaData      = metaData,  comm      = self.confGrid:commSet().comm,}
    return f
 end
@@ -1186,7 +1185,7 @@ function GkSpecies:write(tm, field, force)
             dOb:calcGridDiagnostics(tm, self, field)
          end
 
-         for _, dOb in lume.orderedIter(self.diagnostics) do   -- Write grid and integrated diagnostics.
+         for nm, dOb in lume.orderedIter(self.diagnostics) do   -- Write grid and integrated diagnostics.
             dOb:write(tm, self.diagIoFrame)
          end
 

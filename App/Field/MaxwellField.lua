@@ -74,7 +74,6 @@ function MaxwellField:fullInit(appTbl, plasmaField)
    
    self.epsilon0 = tbl.epsilon0
    self.mu0      = tbl.mu0
-   self.ioMethod = "MPI"
    self.evolve   = xsys.pickBool(tbl.evolve, true) -- By default evolve field.
 
    -- By default, do not write data if evolve is false.
@@ -189,8 +188,10 @@ end
 function MaxwellField:hasEB() return true, self.hasMagField end
 function MaxwellField:setCfl(cfl) self.cfl = cfl end
 function MaxwellField:getCfl() return self.cfl end
-function MaxwellField:setGrid(grid)
-   self.grid = grid
+function MaxwellField:setGrid(grid, myadios)
+   self.grid    = grid
+   self.myadios = myadios
+
    self.ndim = self.grid:ndim()
 
    local keepDims = {};  for i = 1, self.ndim do keepDims[i] = i end
@@ -297,7 +298,7 @@ function MaxwellField:alloc(nRkDup)
       self.dtGlobal    = ffi.new("double[2]")
       
       -- For storing integrated energy components.
-      self.emEnergy = DataStruct.DynVector { numComponents = 8 }
+      self.emEnergy = DataStruct.DynVector { numComponents = 8, adiosSystem = self.myadios, }
 
    else   -- Poisson equation.
       -- Electrostatic potential, phi, and external magnetic potential A_ext (computed by ExternalField).
@@ -310,7 +311,7 @@ function MaxwellField:alloc(nRkDup)
       self.globalSol    = createField(self.gridGlobal, self.basis, {1,1}, self.basis:numBasis())
    
       -- For storing integrated energy components.
-      self.emEnergy = DataStruct.DynVector { numComponents = self.grid:ndim() }
+      self.emEnergy = DataStruct.DynVector { numComponents = self.grid:ndim(), adiosSystem = self.myadios, }
    end
 end
 
@@ -319,7 +320,6 @@ function MaxwellField:createSolver(population)
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.em[1]:elemType(),
-      method   = self.ioMethod,
       metaData = {polyOrder = self.basis:polyOrder(),
                   basisType = self.basis:id(),
                   epsilon0  = self.epsilon0,
@@ -703,7 +703,6 @@ end
 function ExternalMaxwellField:fullInit(appTbl, plasmaField)
    local tbl = self.tbl -- Previously store table.
 
-   self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- By default evolve field.
 
    -- By default there is a plasma-generated magnetic field, unless running Vlasov-Poisson.
@@ -755,7 +754,10 @@ function ExternalMaxwellField:fullInit(appTbl, plasmaField)
 end
 
 function ExternalMaxwellField:hasEB() return true, self.hasMagField end
-function ExternalMaxwellField:setGrid(grid) self.grid = grid end
+function ExternalMaxwellField:setGrid(grid, myadios)
+   self.grid    = grid
+   self.myadios = myadios
+end
 
 function ExternalMaxwellField:alloc(nField)
    local ghostNum = {1,1}
@@ -774,7 +776,6 @@ function ExternalMaxwellField:createSolver(population)
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.em:elemType(),
-      method   = self.ioMethod,
       metaData = {polyOrder = self.basis:polyOrder(),
                   basisType = self.basis:id(),
                   epsilon0  = self.epsilon0,

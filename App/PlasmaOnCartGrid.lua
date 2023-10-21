@@ -9,6 +9,7 @@
 --------------------------------------------------------------------------------
 
 -- Infrastructure loads
+local Adios            = require "Io.Adios"
 local Alloc            = require "Alloc"
 local Basis            = require "Basis"
 local DataStruct       = require "DataStruct"
@@ -112,11 +113,8 @@ local function buildApplication(self, tbl)
    -- Create basis function for configuration space.
    local confBasis = createBasis(basisNm, cdim, polyOrder)
 
-   -- I/O method
-   local ioMethod = tbl.ioMethod and tbl.ioMethod or "MPI"
-   if ioMethod ~= "POSIX" and ioMethod ~= "MPI" then
-      assert(false, "ioMethod must be one of 'MPI' or 'POSIX'. Provided '" .. ioMethod .. "' instead")
-   end
+   -- Adios object for I/O
+   local myadios = Adios.init_mpi(Mpi.COMM_WORLD)
 
    -- Optional wallclock time allotted for this simulation.
    local maxWallTime = tbl.maxWallTime and tbl.maxWallTime or GKYL_MAX_DOUBLE
@@ -147,7 +145,7 @@ local function buildApplication(self, tbl)
    local cflFrac = tbl.cflFrac or timeStepper.cflFrac   -- CFL fraction.
 
    -- Tracker for timestep
-   local dtTracker = DataStruct.DynVector { numComponents = 1, }
+   local dtTracker = DataStruct.DynVector { numComponents = 1, adiosSystem = myadios}
    local dtPtr = Lin.Vec(1)
 
    -- Used in reducing time step across species communicator.
@@ -186,10 +184,10 @@ local function buildApplication(self, tbl)
    -- Setup configuration space grid.
    local confGrid = GridConstructor {
       lower = tbl.lower,  decomposition = commManager:getConfDecomp(),
-      upper = tbl.upper,  mappings = tbl.coordinateMap,
-      cells = tbl.cells,  mapc2p = tbl.mapc2p,
+      upper = tbl.upper,  mappings      = tbl.coordinateMap,
+      cells = tbl.cells,  mapc2p        = tbl.mapc2p,
       periodicDirs = periodicDirs,  world = tbl.world, 
-      messenger = commManager,
+      messenger    = commManager,   ioSystem = Adios.declare_io(myadios, "confGridIO"),
    }
    -- Read in information about each species.
    local population = PopApp{ messenger = commManager }
@@ -197,7 +195,6 @@ local function buildApplication(self, tbl)
       if SpeciesBase.is(val) then
 	 population.species[nm] = val
 	 population.species[nm]:setName(nm)
-	 population.species[nm]:setIoMethod(ioMethod)
       end
    end
    lume.setOrder(population:getSpecies())  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
@@ -220,7 +217,7 @@ local function buildApplication(self, tbl)
    -- Setup each species.
    for _, s in population.iterGlobal() do
       -- Set up conf grid and basis.
-      s:setConfGrid(confGrid)
+      s:setConfGrid(confGrid, myadios)
       s:setConfBasis(confBasis)
       -- Set up phase grid and basis.
       s:createGrid(confGrid)
@@ -243,9 +240,8 @@ local function buildApplication(self, tbl)
 
    local function completeFieldSetup(fld, plasmaField)
       fld:fullInit(tbl, plasmaField) -- Complete initialization.
-      fld:setIoMethod(ioMethod)
       fld:setBasis(confBasis)
-      fld:setGrid(confGrid)
+      fld:setGrid(confGrid, myadios)
       do
 	 local myCfl = tbl.cfl and tbl.cfl or cflFrac
 	 if fld.isElliptic then
@@ -845,6 +841,8 @@ local function buildApplication(self, tbl)
 
       -- Perform other numerical/performance diagnostics.
       devDiagnose()
+
+      Adios.finalize(myadios)
 
       if file_exists(stopfile) then os.remove(stopfile) end -- Clean up.
    end

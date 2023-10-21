@@ -65,7 +65,6 @@ end
 function GkField:fullInit(appTbl)
    local tbl = self.tbl -- Previously store table.
    
-   self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- By default evolve field.
 
    self.isElectromagnetic = xsys.pickBool(tbl.isElectromagnetic, false) -- Electrostatic by default.
@@ -133,14 +132,6 @@ function GkField:fullInit(appTbl)
 
    end
 
-   -- For storing integrated energies.
-   self.intPhiSq          = DataStruct.DynVector { numComponents = 1 }
-   self.esEnergyAdiabatic = DataStruct.DynVector { numComponents = 1 }
-   self.gradPerpPhiSq     = DataStruct.DynVector { numComponents = 1 }
-   self.aparSq            = DataStruct.DynVector { numComponents = 1 }
-   self.esEnergy          = DataStruct.DynVector { numComponents = 1 }
-   self.emEnergy          = DataStruct.DynVector { numComponents = 1 }
-
    -- Create trigger for how frequently to compute field energy.
    -- Do not compute the integrated diagnostics less frequently than we output data.
    if appTbl.calcIntQuantEvery then
@@ -154,9 +145,10 @@ end
 
 -- Methods for EM field object.
 function GkField:hasEB() return true, self.isElectromagnetic end
-function GkField:setGrid(grid)
-   self.grid = grid
-   self.ndim = self.grid:ndim()
+function GkField:setGrid(grid, myadios)
+   self.grid    = grid
+   self.myadios = myadios
+   self.ndim    = self.grid:ndim()
 
    local keepDims = {};  for i = 1, self.ndim do keepDims[i] = i end
    local gridInfo = grid:childGrid(keepDims)
@@ -256,6 +248,14 @@ function GkField:alloc(nRkDup)
    -- For diagnostics:
    self.phiSq = createField(self.grid,self.basis,{1,1})
    self.esEnergyFac = createField(self.grid,self.basis,{1,1})
+
+   -- For storing integrated energies.
+   self.intPhiSq          = DataStruct.DynVector { numComponents = 1, adiosSystem = self.myadios, }
+   self.esEnergyAdiabatic = DataStruct.DynVector { numComponents = 1, adiosSystem = self.myadios, }
+   self.gradPerpPhiSq     = DataStruct.DynVector { numComponents = 1, adiosSystem = self.myadios, }
+   self.aparSq            = DataStruct.DynVector { numComponents = 1, adiosSystem = self.myadios, }
+   self.esEnergy          = DataStruct.DynVector { numComponents = 1, adiosSystem = self.myadios, }
+   self.emEnergy          = DataStruct.DynVector { numComponents = 1, adiosSystem = self.myadios, }
 end
 
 -- Solve for initial fields self-consistently 
@@ -746,7 +746,6 @@ function GkField:createSolver(population, externalField)
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
       elemType   = self.potentials[1].phi:elemType(),
-      method     = self.ioMethod,
       writeGhost = self.writeGhost,
       metaData   = {polyOrder = self.basis:polyOrder(),
                     basisType = self.basis:id(),},
@@ -1050,7 +1049,6 @@ end
 function GkGeometry:fullInit(appTbl)
    local tbl = self.tbl -- previously store table.
 
-   self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, false) -- by default these fields are not time-dependent.
 
    -- Create triggers to write fields.
@@ -1072,7 +1070,11 @@ function GkGeometry:fullInit(appTbl)
    self.timers = {advance = 0.,   bc = 0.}
 end
 
-function GkGeometry:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
+function GkGeometry:setGrid(grid, myadios)
+   self.grid    = grid
+   self.myadios = myadios
+   self.ndim    = self.grid:ndim()
+end
 
 function GkGeometry:alloc()
    -- Allocate fields.
@@ -1244,7 +1246,6 @@ function GkGeometry:createSolver(population)
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
       elemType   = self.geo.bmag:elemType(),
-      method     = self.ioMethod,
       writeGhost = self.writeGhost,
       metaData   = { polyOrder = self.basis:polyOrder(),
 	             basisType = self.basis:id(),

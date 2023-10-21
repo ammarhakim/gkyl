@@ -62,11 +62,9 @@ function GyrofluidProjection:fullInit(mySpecies)
    self.charge, self.mass = mySpecies.charge, mySpecies.mass
 
    if self.fromFile then
-      self.ioMethod  = "MPI"
       self.writeSkin = true
       self.fieldIo = AdiosCartFieldIo {
          elemType   = mySpecies.moments[1]:elemType(),
-         method     = self.ioMethod,
          writeGhost = self.writeGhost,
          metaData   = {polyOrder = self.basis:polyOrder(),
                        basisType = self.basis:id(),

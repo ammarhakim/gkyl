@@ -242,49 +242,4 @@ function AdiosDynVectorIo:read(dynVecIn, fName)
    local _ = Adios.close(ad_engine)
 end
 
---function AdiosDynVectorIo:read(dynVecIn, fName)
---
---   local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- Concatenate prefix.
---
---   -- Create an adios2_object if needed.
---   self.ad_io = self.ad_io or Adios.declare_io(self.adios, fName)
---
---   -- Open file to read.
---   local ad_engine = Adios.open_new_comm(self.ad_io, fullNm, Adios.mode_readRandomAccess, self._parentComm)
---
---   local ad_var_timeMesh  = Adios.inquire_variable(self.ad_io, "TimeMesh")
---   local ad_var_timeMesh0 = Adios.inquire_variable(self.ad_io, "TimeMesh0")
---
---   -- Read data into IO buffer. This buffer should be unnecessary, but presently it is needed
---   -- because of the extra component in the dynvector used to support base-1 indexing.
---   local inBuff = self._allocator(1)
---   if ad_var_timeMesh then
---      local varShape1d = Adios.variable_shape(ad_var_timeMesh)
---      self.shape1d[1] = varShape1d[1]
---      dynVecIn:timeMesh():expand(varShape1d[1])
---      local ad_err = Adios.set_selection(ad_var_timeMesh, 1, self.start1d, self.shape1d)
---      local ad_err = Adios.get(ad_engine, ad_var_timeMesh, dynVecIn:timeMesh():data(), Adios.mode_deferred)
---
---      local ad_var_data = Adios.inquire_variable(self.ad_io, "Data")
---      local varShape2d = Adios.variable_shape(ad_var_data)
---      for d=1,2 do self.shape2d[d] = varShape2d[d] end
---      local ad_err = Adios.set_selection(ad_var_data, 2, self.start2d, self.shape2d)
---      inBuff:expand(varShape2d[1]*varShape2d[2])
---      dynVecIn:data():expand(varShape2d[1])
---      local ad_err = Adios.get(ad_engine, ad_var_data, inBuff:data(), Adios.mode_sync)
---      dynVecIn:_copy_to_dynvector(inBuff)
---   elseif ad_var_timeMesh0 then
-----      ad_var_data = Adios.inquire_variable(self.ad_io, "Data0")
-----      local varShape = Adios.variable_shape(ad_var_data)
-----      for d=1,2 do self.shape2d[d] = varShape[d] end
-----      local ad_err = Adios.set_selection(ad_var_data, 2, self.start2d, self.shape2d)
-----      local ad_err = Adios.get(ad_engine, ad_var_data, self._outBuff[fldNm]:data(), Adios.mode_deferred)
-----      while reader:hasVar("TimeMesh"..varCnt) do
-----      end
---      assert(false, "not ready")
---   end
---
---   local _ = Adios.close(ad_engine)
---end
-
 return AdiosDynVectorIo

@@ -53,11 +53,9 @@ function FunctionProjection:fullInit(species)
    assert(type(func) == "function", "The input must be a table containing function")
 
    if self.fromFile then
-      self.ioMethod  = "MPI"
       self.writeSkin = true
       self.fieldIo = AdiosCartFieldIo {
          elemType  = species.moments[1]:elemType(),
-         method    = self.ioMethod,
          writeSkin = self.writeSkin,
          metaData  = {polyOrder = self.basis:polyOrder(),
                       basisType = self.basis:id()}

@@ -12,6 +12,7 @@ local CartDecomp = require "Lib.CartDecomp"
 local Grid       = require "Grid"
 local Range      = require "Lib.Range"
 local Lin        = require "Lib.Linalg"
+local Adios      = require "Io.Adios"
 
 -- Empty shell source base class.
 local BCsBase = Proto()
@@ -39,7 +40,7 @@ end
 function BCsBase:initCrossSpeciesCoupling(species) end
 function BCsBase:createSolver(thisSpecies, extField) end
 function BCsBase:createCouplingSolver(species, field, externalField) end
-function BCsBase:createBoundaryGrid(ghostRange, ghostVec)
+function BCsBase:createBoundaryGrid(ghostRange, ghostVec, myadios, ioName)
    -- Create a ghost boundary grid with only one cell in the direction of the BC.
    local reducedLower, reducedUpper, reducedNumCells, reducedCuts = {}, {}, {}, {}
    local reducedLowerRng, reducedUpperRng = {}, {}
@@ -93,9 +94,10 @@ function BCsBase:createBoundaryGrid(ghostRange, ghostVec)
       lower      = reducedLower,     cells         = reducedNumCells,
       upper      = reducedUpper,     decomposition = reducedDecomp,
       rangeLower = reducedLowerRng,  rangeUpper    = reducedUpperRng, 
+      ioSystem   = Adios.declare_io(myadios, ioName),
    }
 end
-function BCsBase:createConfBoundaryGrid(ghostRange, ghostVec)
+function BCsBase:createConfBoundaryGrid(ghostRange, ghostVec, myadios, ioName)
    -- Create reduced boundary config-space grid with 1 cell in dimension of self._dir.
    if self.cdim == self.grid:ndim() then
       self.confBoundaryGrid = self.boundaryGrid
@@ -129,6 +131,7 @@ function BCsBase:createConfBoundaryGrid(ghostRange, ghostVec)
          lower      = reducedLower,     cells         = reducedNumCells,
          upper      = reducedUpper,     decomposition = reducedDecomp,
          rangeLower = reducedLowerRng,  rangeUpper    = reducedUpperRng, 
+         ioSystem   = Adios.declare_io(myadios, ioName),
       }
    end
 end
