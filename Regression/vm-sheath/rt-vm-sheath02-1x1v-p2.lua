@@ -74,7 +74,7 @@ sim = Plasma.App {
             return T_e
          end,
          driftSpeed = function (t, xn)
-            return {vd_e}
+            return vd_e
          end
       },
 --      coll = Plasma.LBOCollisions {
@@ -102,7 +102,7 @@ sim = Plasma.App {
             return T_i
          end,
          driftSpeed = function (t, xn)
-            return {vd_i}
+            return vd_i
          end
       },
 --      coll = Plasma.LBOCollisions {
