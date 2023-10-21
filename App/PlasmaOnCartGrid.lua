@@ -145,7 +145,7 @@ local function buildApplication(self, tbl)
    local cflFrac = tbl.cflFrac or timeStepper.cflFrac   -- CFL fraction.
 
    -- Tracker for timestep
-   local dtTracker = DataStruct.DynVector { numComponents = 1, adiosSystem = myadios}
+   local dtTracker = DataStruct.DynVector { numComponents = 1, ioSystem = myadios}
    local dtPtr = Lin.Vec(1)
 
    -- Used in reducing time step across species communicator.
@@ -186,8 +186,8 @@ local function buildApplication(self, tbl)
       lower = tbl.lower,  decomposition = commManager:getConfDecomp(),
       upper = tbl.upper,  mappings      = tbl.coordinateMap,
       cells = tbl.cells,  mapc2p        = tbl.mapc2p,
-      periodicDirs = periodicDirs,  world = tbl.world, 
-      messenger    = commManager,   ioSystem = Adios.declare_io(myadios, "confGridIO"),
+      periodicDirs = periodicDirs,  world    = tbl.world, 
+      messenger    = commManager,   ioSystem = myadios,
    }
    -- Read in information about each species.
    local population = PopApp{ messenger = commManager }

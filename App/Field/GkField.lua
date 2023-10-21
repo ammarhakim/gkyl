@@ -250,12 +250,12 @@ function GkField:alloc(nRkDup)
    self.esEnergyFac = createField(self.grid,self.basis,{1,1})
 
    -- For storing integrated energies.
-   self.intPhiSq          = DataStruct.DynVector { numComponents = 1, adiosSystem = self.myadios, }
-   self.esEnergyAdiabatic = DataStruct.DynVector { numComponents = 1, adiosSystem = self.myadios, }
-   self.gradPerpPhiSq     = DataStruct.DynVector { numComponents = 1, adiosSystem = self.myadios, }
-   self.aparSq            = DataStruct.DynVector { numComponents = 1, adiosSystem = self.myadios, }
-   self.esEnergy          = DataStruct.DynVector { numComponents = 1, adiosSystem = self.myadios, }
-   self.emEnergy          = DataStruct.DynVector { numComponents = 1, adiosSystem = self.myadios, }
+   self.intPhiSq          = DataStruct.DynVector { numComponents = 1, ioSystem = self.myadios, }
+   self.esEnergyAdiabatic = DataStruct.DynVector { numComponents = 1, ioSystem = self.myadios, }
+   self.gradPerpPhiSq     = DataStruct.DynVector { numComponents = 1, ioSystem = self.myadios, }
+   self.aparSq            = DataStruct.DynVector { numComponents = 1, ioSystem = self.myadios, }
+   self.esEnergy          = DataStruct.DynVector { numComponents = 1, ioSystem = self.myadios, }
+   self.emEnergy          = DataStruct.DynVector { numComponents = 1, ioSystem = self.myadios, }
 end
 
 -- Solve for initial fields self-consistently 

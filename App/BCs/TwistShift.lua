@@ -72,7 +72,7 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
                                                  or distf:localGhostRangeUpper()[self.bcDir]
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
    self:createBoundaryGrid(localGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec(),
-                           mySpecies.myadios, "boundGridIOgk_" .. string.gsub(self.name,self.speciesName.."_",""))
+                           mySpecies.myadios)
 
    -- Define methods to allocate fields defined on boundary grid (used by e.g. diagnostics).
    self.allocCartField = function(self, grid, nComp, ghosts, metaData)
@@ -105,7 +105,7 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
                                                     or distf:localGhostRangeUpper()[self.bcDir]
       -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
       self:createConfBoundaryGrid(localGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec(),
-                                  mySpecies.myadios, "confBoundGridIOgk_" .. string.gsub(self.name,self.speciesName.."_",""))
+                                  mySpecies.myadios)
 
       local numDensity = mySpecies:getNumDensity()
       self.allocMoment = function(self)

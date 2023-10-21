@@ -373,7 +373,7 @@ function VlasovSpecies:createGrid(confGridIn)
       lower     = lower,  periodicDirs  = confGrid:getPeriodicDirs(),
       upper     = upper,  decomposition = self.decomp,
       cells     = cells,  mappings      = coordinateMap,
-      messenger = confGrid:getMessenger(), ioSystem = Adios.declare_io(self.myadios, "phaseGridIOvm_"..self.name),
+      messenger = confGrid:getMessenger(),  ioSystem = self.myadios,
    }
 
    for _, c in lume.orderedIter(self.collisions) do c:setPhaseGrid(self.grid) end
@@ -439,7 +439,7 @@ end
 function VlasovSpecies:allocIntMoment(comp)
    local metaData = {charge = self.charge,  mass = self.mass,}
    local ncomp = comp or 1
-   local f = DataStruct.DynVector {numComponents = ncomp,     writeRank = 0,  adiosSystem = self.myadios,
+   local f = DataStruct.DynVector {numComponents = ncomp,     writeRank = 0,  ioSystem = self.myadios,
                                    metaData      = metaData,  comm      = self.confGrid:commSet().comm,}
    return f
 end

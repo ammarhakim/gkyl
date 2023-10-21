@@ -58,11 +58,10 @@ function DynVector:init(tbl)
    self.flushed = false
 
    -- Adios object for I/O.
-   if tbl.adiosSystem or tbl.adiosSystem then
+   if tbl.ioSystem then
       self.adiosIo = AdiosDynVectorIo {
-        ioSystem = tbl.ioSystem,  adiosSystem = tbl.adiosSystem,
-        comm     = tbl.comm,      writeRank   = tbl.writeRank,
-        metaData = tbl.metaData,      
+        ioSystem  = tbl.ioSystem,   comm     = tbl.comm,
+        writeRank = tbl.writeRank,  metaData = tbl.metaData,      
       }
    end
 

@@ -38,10 +38,9 @@ function test_1w(comm)
    local ad = Adios.init_mpi(comm)
 
    -- Different grids need a different Adios IO object.
-   local ad_io = Adios.declare_io(ad, "gridio")
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},  cells = {10, 10},
-      upper = {1.0, 1.0},  ioSystem = ad_io,
+      upper = {1.0, 1.0},  ioSystem = ad,
    }
    local field = DataStruct.Field {
       onGrid = grid,  numComponents = 1,
@@ -81,10 +80,9 @@ function test_1r(comm)
    local ad = Adios.init_mpi(comm)
 
    -- Different grids need a different Adios IO object.
-   local ad_io = Adios.declare_io(ad, "gridio")
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},  cells = {10, 10},
-      upper = {1.0, 1.0},  ioSystem = ad_io,
+      upper = {1.0, 1.0},  ioSystem = ad,
    }
    local field = DataStruct.Field {
       onGrid = grid,  numComponents = 1,
@@ -147,12 +145,11 @@ function test_2w(comm)
 
    local ad = Adios.init_mpi(comm)
 
-   local ad_io = Adios.declare_io(ad, "gridio")
    local decomp = DecompRegionCalc.CartProd { cuts = { nproc } }
    local grid = Grid.RectCart {
       lower = lower,  cells = cells,
       upper = upper,  decomposition = decomp,
-      ioSystem = ad_io,
+      ioSystem = ad,
    }
    local field = DataStruct.Field {
       onGrid = grid,  numComponents = 3,  ghost = { 1, 1 },
@@ -191,11 +188,10 @@ function test_2r(comm)
 
    local ad = Adios.init_mpi(comm)
 
-   local ad_io = Adios.declare_io(ad, "gridio")
    local decomp = DecompRegionCalc.CartProd { cuts = { nproc } }
    local grid = Grid.RectCart {
       lower = lower,  cells = cells,
-      upper = upper,  decomposition = decomp,  ioSystem = ad_io,
+      upper = upper,  decomposition = decomp,  ioSystem = ad,
    }
    local field = DataStruct.Field {
       onGrid = grid,  numComponents = 3,  ghost = { 1, 1 },

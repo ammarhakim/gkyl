@@ -23,9 +23,9 @@ local AdiosDynVectorIo = Proto()
 function AdiosDynVectorIo:init(tbl)
 
    -- adios2_io object.
-   self.ad_io = tbl.ioSystem
+   self.ad_io = tbl.adios_io
    if self.ad_io == nil then
-      self.adios = assert(tbl.adiosSystem, "AdiosDynVectorIo: must specify the adios object in 'adiosSystem', or the adios io object in 'ioSystem'.")
+      self.ad = assert(tbl.ioSystem, "AdiosDynVectorIo: must specify the adios object in 'ioSystem', or the adios io object in 'adios_io'.")
    end
 
    -- Write only from one rank of the specified communicator. Use world comm
@@ -109,7 +109,7 @@ function AdiosDynVectorIo:write(dynVecIn, fName, tmStamp, frNum, appendData)
    tmStamp = tmStamp or -1.0  -- Default time-stamp.
 
    -- Create an adios2_object if needed.
-   self.ad_io = self.ad_io or Adios.declare_io(self.adios, fName)
+   self.ad_io = self.ad_io or Adios.declare_io(self.ad, fName)
 
    local rank = Mpi.Comm_rank(self._parentComm)
    if rank ~= self.writeRank then  -- Only run on rank that writes ...
@@ -181,7 +181,7 @@ function AdiosDynVectorIo:read(dynVecIn, fName)
    local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- Concatenate prefix.
 
    -- Create an adios2_object if needed.
-   self.ad_io = self.ad_io or Adios.declare_io(self.adios, fName)
+   self.ad_io = self.ad_io or Adios.declare_io(self.ad, fName)
 
    -- Open file to read.
    local ad_engine = Adios.open_new_comm(self.ad_io, fullNm, Adios.mode_readRandomAccess, self._parentComm)

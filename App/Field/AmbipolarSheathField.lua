@@ -97,7 +97,7 @@ function AmbipolarSheathField:alloc(nRkDup)
    end
 
    -- For storing integrated energies.
-   self.intPhiSq = DataStruct.DynVector { numComponents = 1, adiosSystem = self.myadios, }
+   self.intPhiSq = DataStruct.DynVector { numComponents = 1, ioSystem = self.myadios, }
 end
 
 -- Solve for initial fields self-consistently

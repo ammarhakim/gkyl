@@ -298,7 +298,7 @@ function MaxwellField:alloc(nRkDup)
       self.dtGlobal    = ffi.new("double[2]")
       
       -- For storing integrated energy components.
-      self.emEnergy = DataStruct.DynVector { numComponents = 8, adiosSystem = self.myadios, }
+      self.emEnergy = DataStruct.DynVector { numComponents = 8, ioSystem = self.myadios, }
 
    else   -- Poisson equation.
       -- Electrostatic potential, phi, and external magnetic potential A_ext (computed by ExternalField).
@@ -311,7 +311,7 @@ function MaxwellField:alloc(nRkDup)
       self.globalSol    = createField(self.gridGlobal, self.basis, {1,1}, self.basis:numBasis())
    
       -- For storing integrated energy components.
-      self.emEnergy = DataStruct.DynVector { numComponents = self.grid:ndim(), adiosSystem = self.myadios, }
+      self.emEnergy = DataStruct.DynVector { numComponents = self.grid:ndim(), ioSystem = self.myadios, }
    end
 end
 

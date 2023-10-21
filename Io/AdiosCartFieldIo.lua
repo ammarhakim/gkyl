@@ -135,8 +135,10 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
    end
 
    local grid     = field:grid()
-   local ad_io    = grid:ioSystem()
+   local ad       = grid:ioSystem()
    local dataComm = grid:commSet().comm
+
+   self.ad_io = self.ad_io or Adios.declare_io(ad, fName)
 
    -- No need to do anything if communicator is not valid.
    if not Mpi.Is_comm_valid(dataComm) then return end
@@ -162,8 +164,8 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
       globalRange = field:globalExtRange()  -- Extend globalRange to include ghost cells.
    end
          
-   local attr_names = Adios.available_attributes(ad_io)
-   local var_names = Adios.available_variables(ad_io)
+   local attr_names = Adios.available_attributes(self.ad_io)
+   local var_names = Adios.available_variables(self.ad_io)
 
    -- Only need to define attributes and other things once for each adios2_io object.
    if (not lume.any(var_names, function(e) return e=="time" end)) and
@@ -171,15 +173,15 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
       
       -- Global attributes for Gkyl build.
       if GKYL_GIT_CHANGESET ~= "" then
-         Adios.define_attribute(ad_io, "changeset", Adios.type_string, GKYL_GIT_CHANGESET)
-         Adios.define_attribute(ad_io, "builddate", Adios.type_string, GKYL_BUILD_DATE)
+         Adios.define_attribute(self.ad_io, "changeset", Adios.type_string, GKYL_GIT_CHANGESET)
+         Adios.define_attribute(self.ad_io, "builddate", Adios.type_string, GKYL_BUILD_DATE)
       end
       
       -- Field attributes.
-      Adios.define_attribute(ad_io, "type", Adios.type_string, grid:id())
+      Adios.define_attribute(self.ad_io, "type", Adios.type_string, grid:id())
       if self._metaData["grid"] == nil then   -- Otherwise it gets written below with other meta data.
          local gridFullNm = GKYL_OUT_PREFIX .. "_grid.bp"
-         Adios.define_attribute(ad_io, "grid", Adios.type_string, gridFullNm)
+         Adios.define_attribute(self.ad_io, "grid", Adios.type_string, gridFullNm)
       end
       
       local cells, lower, upper = globalRange:shape(), grid:lower(), grid:upper()
@@ -189,29 +191,29 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
             upper[d] = upper[d] + field:upperGhost()*grid:dx(d)
          end
       end
-      Adios.define_attribute_array(ad_io, "numCells", Adios.type_int32_t, cells, ndim)
-      Adios.define_attribute_array(ad_io, "lowerBounds", Adios.type_double, lower, ndim)
-      Adios.define_attribute_array(ad_io, "upperBounds", Adios.type_double, upper, ndim)
+      Adios.define_attribute_array(self.ad_io, "numCells", Adios.type_int32_t, cells, ndim)
+      Adios.define_attribute_array(self.ad_io, "lowerBounds", Adios.type_double, lower, ndim)
+      Adios.define_attribute_array(self.ad_io, "upperBounds", Adios.type_double, upper, ndim)
       
       -- Write meta-data for this file.
       for attrNm, v in pairs(self._metaData) do
          if v.vType == "integer" then
-            Adios.define_attribute(ad_io, attrNm, Adios.type_int32_t, v.value:data())
+            Adios.define_attribute(self.ad_io, attrNm, Adios.type_int32_t, v.value:data())
          elseif v.vType == "double" then
-            Adios.define_attribute(ad_io, attrNm, Adios.type_double, v.value:data())
+            Adios.define_attribute(self.ad_io, attrNm, Adios.type_double, v.value:data())
          elseif v.vType == "string" then
-            Adios.define_attribute(ad_io, attrNm, Adios.type_string, v.value:data())
+            Adios.define_attribute(self.ad_io, attrNm, Adios.type_string, v.value:data())
          elseif v.vType == "table" then
-            Adios.define_attribute_array(ad_io, attrNm, v.elementType, v.numElements, v.value:data())
+            Adios.define_attribute_array(self.ad_io, attrNm, v.elementType, v.numElements, v.value:data())
          end
       end
       
       -- Define data to write.
-      self.ad_var_time  = Adios.define_variable(ad_io, "time", Adios.type_double)
-      self.ad_var_frame = Adios.define_variable(ad_io, "frame", Adios.type_int32_t)
+      self.ad_var_time  = Adios.define_variable(self.ad_io, "time", Adios.type_double)
+      self.ad_var_frame = Adios.define_variable(self.ad_io, "frame", Adios.type_int32_t)
    else
-      self.ad_var_time  = Adios.inquire_variable(ad_io, "time")
-      self.ad_var_frame = Adios.inquire_variable(ad_io, "frame")
+      self.ad_var_time  = Adios.inquire_variable(self.ad_io, "time")
+      self.ad_var_frame = Adios.inquire_variable(self.ad_io, "frame")
    end
 
    -- Get local (to this MPI rank) and global shape of dataset. Offset is 0 for now.
@@ -232,7 +234,7 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
    local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- Concatenate prefix.
 
    -- Open file to write.
-   local ad_engine = Adios.open_new_comm(ad_io, fullNm, Adios.mode_write, dataComm)
+   local ad_engine = Adios.open_new_comm(self.ad_io, fullNm, Adios.mode_write, dataComm)
 
    self.tmStampBuff[1], self.frNumBuff[1] = tmStamp, frNum
    local _ = Adios.put(ad_engine, self.ad_var_time, self.tmStampBuff:data(), Adios.mode_deferred)
@@ -253,8 +255,8 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
 
       self.ad_var_fld[fldNm] = self.ad_var_fld[fldNm] or
          (lume.any(var_names, function(e) return e==fldNm end) and
-            Adios.inquire_variable(ad_io, fldNm) or
-            Adios.define_variable(ad_io, fldNm, self._elctIoType, ndim+1, self.globalSz, self.offset, self.localSz, true))
+            Adios.inquire_variable(self.ad_io, fldNm) or
+            Adios.define_variable(self.ad_io, fldNm, self._elctIoType, ndim+1, self.globalSz, self.offset, self.localSz, true))
       local _ = Adios.put(ad_engine, self.ad_var_fld[fldNm], self._outBuff[fldNm]:data(), Adios.mode_sync)
    end
    local _ = Adios.close(ad_engine)
@@ -282,9 +284,11 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
       break
    end
 
-   local grid  = field:grid()
-   local ad_io = grid:ioSystem()
-   local comm  = grid:commSet().comm
+   local grid = field:grid()
+   local ad   = grid:ioSystem()
+   local comm = grid:commSet().comm
+
+   self.ad_io = self.ad_io or Adios.declare_io(ad, fName)
 
    -- Only read in data if communicator is valid.
    if Mpi.Is_comm_valid(comm) then
@@ -318,10 +322,10 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
       local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- Concatenate prefix.
 
       -- Open file to read.
-      local ad_engine = Adios.open_new_comm(ad_io, fullNm, Adios.mode_readRandomAccess, comm)
+      local ad_engine = Adios.open_new_comm(self.ad_io, fullNm, Adios.mode_readRandomAccess, comm)
 
-      local ad_var_time  = Adios.inquire_variable(ad_io, "time")
-      local ad_var_frame = Adios.inquire_variable(ad_io, "frame")
+      local ad_var_time  = Adios.inquire_variable(self.ad_io, "time")
+      local ad_var_frame = Adios.inquire_variable(self.ad_io, "frame")
       local ad_err = Adios.get(ad_engine, ad_var_time, self.tmStampBuff:data(), Adios.mode_deferred)
       local ad_err = Adios.get(ad_engine, ad_var_frame, self.frNumBuff:data(), Adios.mode_deferred)
 
@@ -333,7 +337,7 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
          self.globalSz[ndim+1] = fld:numComponents()
          self.offset[ndim+1]   = 0
 
-         local ad_var_fld = Adios.inquire_variable(ad_io, fldNm)
+         local ad_var_fld = Adios.inquire_variable(self.ad_io, fldNm)
          local ad_err = Adios.set_selection(ad_var_fld, ndim+1, self.offset, self.localSz)
          local ad_err = Adios.get(ad_engine, ad_var_fld, self._outBuff[fldNm]:data(), Adios.mode_deferred)
       end
