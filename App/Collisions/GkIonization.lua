@@ -153,21 +153,13 @@ function GkIonization:setConfGrid(grid) self.confGrid = grid end
 function GkIonization:setPhaseBasis(basis) self.phaseBasis = basis end
 function GkIonization:setPhaseGrid(grid) self.phaseGrid = grid end
 
-function GkIonization:createSolver(funcField)
+function GkIonization:createSolver(mySpecies, externalField)
    -- Geometry fields
    self.bmag = externalField.geo.bmag
    self.jacobTot = externalField.geo.jacobTot
    self.b_i = externalField.geo.b_i
-   
-   self.collisionSlvr = Updater.Ionization {
-      onGrid = self.phaseGrid,
-      confBasis = self.confBasis,     phaseBasis = self.phaseBasis,
-      confRange = self.confRange,     phaseRange = self.phaseRange,
-      elemCharge = self.elemCharge,   elcMass = self.elcMass,
-      ionMass = self.ionMass,         plasma = self.plasma,
-      chargeState = self.chargeState, selfSpecies = self.selfSpecies,
-   }
-   -- Reaction rate computed by each species for ease of species parallelization
+
+   -- Reaction rate to be used for diagnostics
    self.reactRate = DataStruct.Field {
       onGrid        = self.confGrid,
       numComponents = self.confBasis:numBasis(),
@@ -182,6 +174,19 @@ function GkIonization:createSolver(funcField)
       metaData      = { polyOrder = self.phaseBasis:polyOrder(),
                         basisType = self.phaseBasis:id() },
    }
+
+   -- Get conf and phase range
+   self.confRange = self.bmag:localRange()
+   self.phaseRange = self.ionizSrc:localRange()
+   
+   self.collisionSlvr = Updater.Ionization {
+      onGrid = self.phaseGrid,
+      confBasis = self.confBasis,     phaseBasis = self.phaseBasis,
+      confRange = self.confRange,     phaseRange = self.phaseRange,
+      elemCharge = self.elemCharge,   elcMass = self.elcMass,
+      ionMass = self.ionMass,         plasma = self.plasma,
+      chargeState = self.chargeState, selfSpecies = self.selfSpecies,
+   }
 end
 
 function GkIonization:advance(tCurr, fIn, population, out)
@@ -191,10 +196,10 @@ function GkIonization:advance(tCurr, fIn, population, out)
    local momsDonor = species[self.donorNm]:fluidMoments()
 
    local fRhsOut = out[1]
-   local clfRateByCell = out[2]
+   local cflRateByCell = out[2]
 
    self.collisionSlvr:advance(tCurr, {momsElc, momsDonor, self.bmag, self.jacobTot, self.b_i, fIn},
-			      {self.ionizSrc, cflRateByCell})
+   			      {self.ionizSrc, cflRateByCell})
 
    fRhsOut:accumulate(1.0,self.ionizSrc)
 
