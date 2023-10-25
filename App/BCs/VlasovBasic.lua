@@ -332,7 +332,7 @@ function VlasovOpenBC:fullInit(mySpecies)
    VlasovOpenBC.super.fullInit(self, mySpecies)
 end
 
-local VlasovZeroFluxBC = Proto()
+local VlasovZeroFluxBC = Proto(BCsBase)
 function VlasovZeroFluxBC:init(tbl)
    self.tbl      = tbl
    self.tbl.kind = "zeroFlux"

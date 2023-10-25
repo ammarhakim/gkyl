@@ -97,11 +97,13 @@ function FemParproj:init(tbl)
 
    local weightFld = tbl.weight and tbl.weight._zero or nil
 
-   local localRange, localExtRange = onField:localRange(), onField:localExtRange()
+   assert((not (tbl.onRange and tbl.onExtRange)) or (tbl.onRange and tbl.onExtRange), "Updater.FemParproj: must specify both 'onRange' and 'onExtRange' or neither.")
+   local solveRange    = tbl.onRange or onField:localRange()
+   local solveExtRange = tbl.onExtRange or onField:localExtRange()
 
    local parBC = isParPeriodic and 0 or 2  -- MF 2023/08/01: Dirichlet not yet implemented.
 
-   self._zero = ffi.gc(ffiC.gkyl_fem_parproj_new(localRange, localExtRange, self._basis._zero, parBC, weightFld, self._useGPU),
+   self._zero = ffi.gc(ffiC.gkyl_fem_parproj_new(solveRange, solveExtRange, self._basis._zero, parBC, weightFld, self._useGPU),
                        ffiC.gkyl_fem_parproj_release)
 end
 

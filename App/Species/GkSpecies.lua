@@ -33,39 +33,6 @@ local Constants        = require "Lib.Constants"
 
 local GkSpecies = Proto(SpeciesBase)
 
--- ............. Backwards compatible treatment of BCs .....................--
--- Add constants to object indicate various supported boundary conditions.
-local SP_BC_ABSORB   = 1
-local SP_BC_REFLECT  = 3
-local SP_BC_ZEROFLUX = 5
-local SP_BC_COPY     = 6
-GkSpecies.bcAbsorb   = SP_BC_ABSORB      -- Absorb all particles.
-GkSpecies.bcReflect  = SP_BC_REFLECT     -- Specular reflection.
-GkSpecies.bcZeroFlux = SP_BC_ZEROFLUX    -- Zero flux.
-GkSpecies.bcCopy     = SP_BC_COPY        -- Copy stuff.
-
-function GkSpecies:makeBcApp(bcIn, dir, edge)
-   local bcOut
-   if type(bcIn) == "function" then
-      bcOut = BasicBC{kind="function", bcFunction=bcIn, diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_COPY then
-      print("GkSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
-      bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_ABSORB then
-      print("GkSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
-      bcOut = BasicBC{kind="absorb", diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_REFLECT then
-      print("GkSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
-      bcOut = BasicBC{kind="reflect", diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_ZEROFLUX or bcIn.tbl.kind=="zeroFlux" then
-      bcOut = "zeroFlux"
-      table.insert(self.zeroFluxDirections, dir)
-   end
-   return bcOut
-end
-
--- ............. End of backwards compatibility for BCs .....................--
-
 -- This ctor stores what is passed to it and defers most of the
 -- construction to the fullInit() method below.
 -- We also place here the things we want every species to know about
@@ -204,7 +171,7 @@ function GkSpecies:fullInit(appTbl)
          self.sources[nm] = val
          val:setSpeciesName(self.name)
          val:setName(nm)   -- Do :setName after :setSpeciesName for sources.
-         val:fullInit(tbl) -- Initialize sources
+         val:fullInit(self) -- Initialize sources
       end
    end
    lume.setOrder(self.sources)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
@@ -218,16 +185,19 @@ function GkSpecies:fullInit(appTbl)
    -- It is possible to use the keywords 'init' and 'background'
    -- to specify a function directly without using a Projection object.
    if type(tbl.init) == "function" then
-      self.projections["init"] = Projection.KineticProjection.FunctionProjection {
+      self.projections["init"] = Projection.GkProjection.FunctionProjection {
          func = function(t, zn) return tbl.init(t, zn, self) end,
       }
    end
    if type(tbl.background) == "function" then
-      self.projections["background"] = Projection.KineticProjection.FunctionProjection {
+      self.projections["background"] = Projection.GkProjection.FunctionProjection {
          func = function(t, zn) return tbl.background(t, zn, self) end,
       }
    end
    lume.setOrder(self.projections)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
+   for _, pr in lume.orderedIter(self.projections) do
+      pr:fullInit(self)
+   end
 
    self.deltaF         = xsys.pickBool(appTbl.deltaF, false)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
@@ -253,24 +223,24 @@ function GkSpecies:fullInit(appTbl)
    self.nonPeriodicBCs = {}
    local dirLabel  = {'X','Y','Z'}
    local edgeLabel = {'lower','upper'}
-   for d, bcsTbl in ipairs(self.bcInDir) do
+   for dir, bcsTbl in ipairs(self.bcInDir) do
       for e, bcOb in ipairs(bcsTbl) do
-         local goodBC = false
-         local val    = bcOb
-         if not BCsBase.is(val) then val = self:makeBcApp(bcOb, d, e) end
+         local val  = bcOb
          if BCsBase.is(val) then
-            local nm = 'bc'..dirLabel[d]..edgeLabel[e]
+            local nm = 'bc'..dirLabel[dir]..edgeLabel[e]
             self.nonPeriodicBCs[nm] = val
             val:setSpeciesName(self.name)
             val:setName(nm)   -- Do :setName after :setSpeciesName for BCs.
-            val:setDir(d)
+            val:setDir(dir)
             val:setEdge(edgeLabel[e])
             val:fullInit(tbl)
-            goodBC = true
-         elseif val=="zeroFlux" then
-            goodBC = true
+         else
+            assert(false, "GkSpecies: bc not recognized.")
          end
-         assert(goodBC, "GkSpecies: bc not recognized.")
+      end
+      if #bcsTbl > 0 and bcsTbl[1].tbl.kind == "zeroFlux" then
+         assert(bcsTbl[2].tbl.kind == "zeroFlux", "GkSpecies: ZeroFlux direction only supported for both lower and upper boundaries.")
+         table.insert(self.zeroFluxDirections, dir)
       end
    end
    lume.setOrder(self.nonPeriodicBCs)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
@@ -506,8 +476,7 @@ function GkSpecies:createSolver(field, externalField)
 
    -- Set up Jacobian.
    if externalField then
-      self.bmagFunc = externalField.bmagFunc
-      -- If vdim>1, get the phase-space Jacobian (=bmag) from geo.
+      self.bmagFunc       = externalField.bmagFunc
       self.jacobPhaseFunc = self.bmagFunc
       self.jacobGeoFunc   = externalField.jacobGeoFunc
 
@@ -524,7 +493,6 @@ function GkSpecies:createSolver(field, externalField)
       local xMid = {}
       for d = 1,self.cdim do xMid[d]=self.confGrid:mid(d) end
       self.bmagMid = self.bmagFunc(0.0, xMid)
-
    end
 
    -- Minimum vtSq supported by the grid (for p=1 only for now):
@@ -544,9 +512,10 @@ function GkSpecies:createSolver(field, externalField)
    -- Create updater to advance solution by one time-step.
    if self.evolveCollisionless then
       self.solver = Updater.GyrokineticDG {
-         onGrid     = self.grid,       confRange = self.bmag:localRange(), 
-         confBasis  = self.confBasis,  charge    = self.charge,
-         phaseBasis = self.basis,      mass      = self.mass,
+         onGrid       = self.grid,       confRange = self.bmag:localRange(), 
+         confBasis    = self.confBasis,  charge    = self.charge,
+         phaseBasis   = self.basis,      mass      = self.mass,
+         zeroFluxDirs = self.zeroFluxDirections,
       }
       self.collisionlessAdvance = function(tCurr, inFlds, outFlds)
          self.solver:advance(tCurr, inFlds, outFlds)
@@ -779,8 +748,8 @@ function GkSpecies:initDist(extField)
    local initCnt, backgroundCnt = 0, 0
    local scaleInitWithSourcePower = false
    for nm, pr in lume.orderedIter(self.projections) do
-      pr:fullInit(self)
-      pr:advance(0.0, {extField}, {self.distf[2]})
+      pr:createSolver(self)
+      pr:advance(0.0, {self, extField}, {self.distf[2]})
       if string.find(nm,"init") then
          self.distf[1]:accumulate(1.0, self.distf[2])
          initCnt = initCnt + 1
@@ -836,13 +805,15 @@ function GkSpecies:initCrossSpeciesCoupling(population)
          self.collPairs[sN][sO] = {}
          -- Need next below because species[].collisions is created as an empty table.
          if species[sN].collisions and next(species[sN].collisions) then
-            for collNm, _ in pairs(species[sN].collisions) do
+            for collNm, collOp in pairs(species[sN].collisions) do
+	       if collOp.collidingSpecies then  -- MF 2023/10/05: Needed to support diffusion+collisions.
                -- This species collides with someone.
-               self.collPairs[sN][sO].on = lume.any(species[sN].collisions[collNm].collidingSpecies,
-                                                    function(e) return e==sO end)
-               if self.collPairs[sN][sO].on then
-                  self.collPairs[sN][sO].kind = species[sN].collisions[collNm].collKind
-                  self.needThreeMoments = true  -- MF 2022/09/16: currently all collision models need M0, M1, M2.
+                  self.collPairs[sN][sO].on = lume.any(collOp.collidingSpecies,
+                                                       function(e) return e==sO end)
+                  if self.collPairs[sN][sO].on then
+                     self.collPairs[sN][sO].kind = collOp.collKind
+                     self.needThreeMoments = true  -- MF 2022/09/16: currently all collision models need M0, M1, M2.
+                  end
                end
             end
          else

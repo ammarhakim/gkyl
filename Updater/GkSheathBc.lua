@@ -75,10 +75,13 @@ function GkSheathBc:init(tbl)
    self._basis   = assert(tbl.basis, "Updater.GkSheathBc: Must specify the basis in 'basis'.")
    self._phiWall = assert(tbl.phiWall, "Updater.GkSheathBc: Must specify the wall potential in 'phiWall'.")
    local cDim    = assert(tbl.cdim, "Updater.GkSheathBc: Must specify configuration space dimensions with 'cdim'.")
-   local onField = assert(tbl.onField, "Updater.GkSheathBc: Must specify the field we'll apply BCs to in 'onField'.")
    local mass    = assert(tbl.mass, "Updater.GkSheathBc: Must specify the species mass with 'mass'.")
    local charge  = assert(tbl.charge, "Updater.GkSheathBc: Must specify the species charge with 'charge'.")
    local useGPU  = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or 0)
+   local onField = tbl.onField, "Updater.GkSheathBc: Must specify the field we'll apply BCs to in 'onField'."
+   local onSkinRange, onGhostRange = tbl.skinRange, tbl.ghostRange
+   assert((onSkinRange and onGhostRange) or (onSkinRange==nil and onGhostRange==nil), "Updater.GkSheathBc: Either specify 'skinRange' and 'ghostRange' or neither.")
+   assert(onField or (onSkinRange and onGhostRange),"Updater.GkSheathBc: Must specify 'onField' or 'skinRange' and 'ghostRange'.")
 
    assert(self._edge == "lower" or self._edge == "upper", "Updater.GkSheathBc: 'edge' must be 'lower' or 'upper'.")
 
@@ -89,11 +92,11 @@ function GkSheathBc:init(tbl)
 
    local skinRange, ghostRange
    if self._edge == 'lower' then
-      skinRange  = onField:localGlobalSkinRangeIntersectLower()[self._dir]
-      ghostRange = onField:localGlobalGhostRangeIntersectLower()[self._dir]
+      skinRange  = onSkinRange or onField:localGlobalSkinRangeIntersectLower()[self._dir]
+      ghostRange = onGhostRange or onField:localGlobalGhostRangeIntersectLower()[self._dir]
    else
-      skinRange  = onField:localGlobalSkinRangeIntersectUpper()[self._dir]
-      ghostRange = onField:localGlobalGhostRangeIntersectUpper()[self._dir]
+      skinRange  = onSkinRange or onField:localGlobalSkinRangeIntersectUpper()[self._dir]
+      ghostRange = onGhostRange or onField:localGlobalGhostRangeIntersectUpper()[self._dir]
    end
 
    self._zero = ffi.gc(ffiC.gkyl_bc_sheath_gyrokinetic_new(self._dir-1, edge, basis, skinRange, ghostRange,

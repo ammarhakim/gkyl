@@ -16,13 +16,13 @@ function _M.createBoundaryTools(mySpecies, field, externalField, bcApp)
 
    local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
 
-   local globalGhostRange = self.bcEdge=="lower" and distf:localGhostRangeLower()[self.bcDir]
+   local localGhostRange = self.bcEdge=="lower" and distf:localGhostRangeLower()[self.bcDir]
                                                   or distf:localGhostRangeUpper()[self.bcDir]
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
-   self:createBoundaryGrid(globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
+   self:createBoundaryGrid(localGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
 
    -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
-   self:createConfBoundaryGrid(globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
+   self:createConfBoundaryGrid(localGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
 
    -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
    self.allocCartField = function(self, grid, nComp, ghosts, metaData, syncPeriodic)
@@ -34,7 +34,7 @@ function _M.createBoundaryTools(mySpecies, field, externalField, bcApp)
       f:clear(0.0)
       return f
    end
-   self.allocDistf = function()
+   self.allocDistf = function(self)
       return self:allocCartField(self.boundaryGrid, self.basis:numBasis(), {0,0},
                                  {polyOrder = self.basis:polyOrder(), basisType = self.basis:id()})
    end
@@ -71,10 +71,10 @@ function _M.createFluxTools(mySpecies, field, externalField, bcApp)
    self.boundaryFluxFields = {}  -- Fluxes through the boundary, into ghost region, from each RK stage.
    self.distfInIdxr        = distf:genIndexer()
    for i = 1, #mySpecies:rkStepperFields() do
-      self.boundaryFluxFields[i] = self.allocDistf()
+      self.boundaryFluxFields[i] = self:allocDistf()
    end
-   self.boundaryFluxRate      = self.allocDistf()
-   self.boundaryFluxFieldPrev = self.allocDistf()
+   self.boundaryFluxRate      = self:allocDistf()
+   self.boundaryFluxFieldPrev = self:allocDistf()
 
    -- The following are needed to evaluate a conf-space CartField on the confBoundaryGrid.
    self.confBoundaryField = self:allocMoment()

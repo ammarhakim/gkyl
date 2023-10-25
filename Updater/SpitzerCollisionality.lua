@@ -109,7 +109,10 @@ function SpitzerCollisionality:init(tbl)
 
    self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
 
-   local numQuad = confBasis:polyOrder()+1
+   -- MF 2023/10/8: Hardcoding to 1 which should essentially make nu constant within a cell.
+   -- This may be a temporary measure, not sure, but it is needed because the calculation of primitive moments
+   -- essentially implicitly assumes nu is constant, either everywhere or within a cell.
+   local numQuad = 1 --confBasis:polyOrder()+1
    self._zero = ffi.gc(ffiC.gkyl_spitzer_coll_freq_new(confBasis._zero, numQuad, self._nuFrac, epsilon0, hBar, self._useGPU),
                        ffiC.gkyl_spitzer_coll_freq_release)
 

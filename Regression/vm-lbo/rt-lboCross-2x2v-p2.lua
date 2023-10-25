@@ -74,7 +74,7 @@ plasmaApp = Plasma.App {
          end,
          driftSpeed = function (t, zn)
             local x, y, vx, vy = zn[1], zn[2], zn[3], zn[4]
-            return {0.0, 0.0}
+            return 0.0, 0.0
          end,
          temperature = function (t, zn)
             local x, y, vx, vy = zn[1], zn[2], zn[3], zn[4]
@@ -116,7 +116,7 @@ plasmaApp = Plasma.App {
          end,
          driftSpeed = function (t, zn)
             local x, y, vx, vy = zn[1], zn[2], zn[3], zn[4]
-            return {vtIon, 0.0}
+            return vtIon, 0.0
          end,
          temperature = function (t, zn)
             local x, y, vx, vy = zn[1], zn[2], zn[3], zn[4]

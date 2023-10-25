@@ -80,10 +80,6 @@ function VmSource:createSolver(mySpecies, extField)
 
    self.profile:advance(0.0, {extField}, {self.fSource})
 
-   if self.positivityRescale then
-      mySpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
-   end
-
    if self.power then
       local calcInt = Updater.CartFieldIntegratedQuantCalc {
          onGrid        = self.confGrid,
