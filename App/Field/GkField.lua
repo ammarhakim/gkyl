@@ -1087,21 +1087,40 @@ function GkGeometry:fullInit(appTbl)
 
    -- functions and params needed for new g0 implementation
    self.hasRZ = tbl.hasRZ
+   self.efitFile = tbl.efitFile
    if tbl.hasRZ then
-      self.psifunc = assert(tbl.psifunc, "must provide psi")
-      self.psibyrfunc = tbl.psibyrfunc
-      self.psibyr2func = tbl.psibyr2func
-      self.bphifunc = tbl.bphifunc
-      self.B0 = tbl.B0
-      self.R0 = tbl.R0
+      if not self.efitFile then
+         self.psifunc = assert(tbl.psifunc, "must provide psi")
+         self.psibyrfunc = tbl.psibyrfunc
+         self.psibyr2func = tbl.psibyr2func
+         self.bphifunc = tbl.bphifunc
+         self.B0 = tbl.B0
+         self.R0 = tbl.R0
+      else
+         self.bphifunc = function(R,Z) return self.EfitUpdater:bphifunc(R,Z) end
+      end
    end
 
 end
 
-function GkGeometry:setGrid(grid, rzGrid) 
+function GkGeometry:setGrid(grid, rzGrid, efitFile) 
    self.grid = grid
    self.ndim = self.grid:ndim() 
-   self.rzGrid = rzGrid
+
+   if rzGrid then
+         self.rzGrid = rzGrid
+   end
+   if efitFile then 
+      -- do grid and stuff from efit
+      self.EfitUpdater = Updater.Efit{
+         efitFile = efitFile,
+         rzBasis = self.rzBasis,
+      }
+      self.rzGrid = self.EfitUpdater:getRZGrid()
+      local lower = self.rzGrid._lower
+      local upper = self.rzGrid._upper
+
+   end
    
    -- Need to augment grid for geometry calculation
    if self.ndim < 3 then
@@ -1223,7 +1242,7 @@ function GkGeometry:alloc()
 
 
    -- Extra fields needed for g0 implementation of mapc2p
-   if self.rzGrid then
+   if self.rzGrid  or self.efitFile then
       self.geo.psiRZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
       self.geo.psibyrRZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
       self.geo.psibyr2RZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
@@ -1371,29 +1390,37 @@ function GkGeometry:initField(population)
 
 
       if self.rzGrid then
+         if not self.efitFile then
+            self.rzLocalRange = self.geo.psiRZ:localRange()
+            self.rzLocalRangeExt = self.geo.psiRZ:localExtRange()
+            local psieval = Updater.EvalOnNodes {
+               onGrid = self.rzGrid,   evaluate = self.psifunc,
+               basis  = self.rzBasis,  onGhosts = true,
+            }
+
+            local psibyreval = Updater.EvalOnNodes {
+               onGrid = self.rzGrid,   evaluate = self.psibyrfunc,
+               basis  = self.rzBasis,  onGhosts = true,
+            }
+            local psibyr2eval = Updater.EvalOnNodes {
+               onGrid = self.rzGrid,   evaluate = self.psibyr2func,
+               basis  = self.rzBasis,  onGhosts = true,
+            }
+            psieval:advance(0.0, {}, {self.geo.psiRZ})
+            psibyreval:advance(0.0, {}, {self.geo.psibyrRZ})
+            psibyr2eval:advance(0.0, {}, {self.geo.psibyr2RZ})
+         else
+
+         self.EfitUpdater:advance(0, {}, {self.geo.psiRZ, self.geo.psibyrRZ, self.geo.psibyr2RZ})
          self.rzLocalRange = self.geo.psiRZ:localRange()
          self.rzLocalRangeExt = self.geo.psiRZ:localExtRange()
-         local psieval = Updater.EvalOnNodes {
-            onGrid = self.rzGrid,   evaluate = self.psifunc,
-            basis  = self.rzBasis,  onGhosts = true,
-         }
-
-         local psibyreval = Updater.EvalOnNodes {
-            onGrid = self.rzGrid,   evaluate = self.psibyrfunc,
-            basis  = self.rzBasis,  onGhosts = true,
-         }
-         local psibyr2eval = Updater.EvalOnNodes {
-            onGrid = self.rzGrid,   evaluate = self.psibyr2func,
-            basis  = self.rzBasis,  onGhosts = true,
-         }
          local bphieval = Updater.EvalOnNodes {
             onGrid = self.rzGrid,   evaluate = self.bphifunc,
             basis  = self.rzBasis,  onGhosts = true,
          }
-         psieval:advance(0.0, {}, {self.geo.psiRZ})
-         psibyreval:advance(0.0, {}, {self.geo.psibyrRZ})
-         psibyr2eval:advance(0.0, {}, {self.geo.psibyr2RZ})
+         self.geo.psiRZ:write("psiRZ.bp", 0, 0, false)
          bphieval:advance(0.0, {}, {self.geo.bphiRZ})
+         end
       else
          -- project mapc2p and bmag
          local projMapc2p = Updater.EvalOnNodes{
@@ -1439,8 +1466,8 @@ function GkGeometry:initField(population)
          localRangeExt = self.augmentedLocalRangeExt,
          rzLocalRange = self.rzLocalRange,
          rzLocalRangeExt = self.rzLocalRangeExt,
-         B0 = self.B0,
-         R0 = self.R0,
+         B0 = self.B0 or self.EfitUpdater.B0,
+         R0 = self.R0 or self.EfitUpdater.R0,
          psiRZ = self.geo.psiRZ,
          calcGeom = self.rzGrid,
          calcBmag = self.rzGrid,

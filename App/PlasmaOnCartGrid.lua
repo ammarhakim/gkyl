@@ -208,14 +208,14 @@ local function buildApplication(self, tbl)
 
    -- Setup RZ grid.
    local rzGrid
-   if tbl.hasRZ then
+   if tbl.hasRZ and not tbl.efitFile then
          rzGrid = Grid.RectCart{
-         lower = tbl.rzlower,  --decomposition = commManager:getConfDecomp(),
-         upper = tbl.rzupper,  --mappings = tbl.coordinateMap,
-         cells = tbl.rzcells,  --mapc2p = tbl.mapc2p,
-         --periodicDirs = periodicDirs,  world = tbl.world, 
-         --messenger = commManager,
-      }
+            lower = tbl.rzlower,  --decomposition = commManager:getConfDecomp(),
+            upper = tbl.rzupper,  --mappings = tbl.coordinateMap,
+            cells = tbl.rzcells,  --mapc2p = tbl.mapc2p,
+            --periodicDirs = periodicDirs,  world = tbl.world, 
+            --messenger = commManager,
+         }
    end
 
    -- Read in information about each species.
@@ -273,8 +273,8 @@ local function buildApplication(self, tbl)
    local function completeExtFieldSetup(fld, plasmaField)
       fld:fullInit(tbl, plasmaField) -- Complete initialization.
       fld:setIoMethod(ioMethod)
-      fld:setGrid(confGrid, rzGrid)
       fld:setBasis(confBasis, rzBasis)
+      fld:setGrid(confGrid, rzGrid, tbl.efitFile)
       do
 	 local myCfl = tbl.cfl and tbl.cfl or cflFrac
 	 if fld.isElliptic then
