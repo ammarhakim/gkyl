@@ -1089,6 +1089,8 @@ function GkGeometry:fullInit(appTbl)
    self.hasRZ = tbl.hasRZ
    self.efitFile = tbl.efitFile
    if tbl.hasRZ then
+      self.zmin = tbl.zmin
+      self.zmax = tbl.zmax
       if not self.efitFile then
          self.psifunc = assert(tbl.psifunc, "must provide psi")
          self.psibyrfunc = tbl.psibyrfunc
@@ -1471,6 +1473,8 @@ function GkGeometry:initField(population)
          psiRZ = self.geo.psiRZ,
          calcGeom = self.rzGrid,
          calcBmag = self.rzGrid,
+         zmin = self.zmin,
+         zmax = self.zmax,
       }
 
       self.GeoUpdater:advance(0.0, {self.geo.psiRZ, self.geo.psibyrRZ, self.geo.psibyr2RZ, self.geo.bphiRZ}, {self.augmentedGeo.mapc2pField, self.augmentedGeo.gFld, self.augmentedGeo.jacobGeo, self.augmentedGeo.jacobGeoInv, self.augmentedGeo.jacobTot, self.augmentedGeo.jacobTotInv, self.augmentedGeo.bmagInv, self.augmentedGeo.bmagInvSq, self.augmentedGeo.gxxJ, self.augmentedGeo.gxyJ, self.augmentedGeo.gyyJ, self.augmentedGeo.grFld, self.augmentedGeo.b_i, self.augmentedGeo.cmag, self.augmentedGeo.bmag})

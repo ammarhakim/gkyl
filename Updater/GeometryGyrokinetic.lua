@@ -267,6 +267,8 @@ function GeometryGyrokinetic:init(tbl)
    self.R0 = tbl.R0
    self.calcGeom = tbl.calcGeom
    self.calcBmag = tbl.calcBmag
+   self.zmin = tbl.zmin
+   self.zmax = tbl.zmax
 
 
    
@@ -312,8 +314,8 @@ function GeometryGyrokinetic:init(tbl)
       self.ginp.cbasis = self.basis._zero
       --self.ginp.ftype = GKYL_SOL_DN
       self.ginp.rclose = self.rzGrid:upper(1)
-      self.ginp.zmin = self.rzGrid:lower(2)
-      self.ginp.zmax = self.rzGrid:upper(2)
+      self.ginp.zmin = self.zmin or self.rzGrid:lower(2)
+      self.ginp.zmax = self.zmax or self.rzGrid:upper(2)
       self.ginp.write_node_coord_array = true
       self.ginp.node_file_nm = "grid.gkyl"
       self.ginp.bcs = self.BCs:data()
@@ -332,6 +334,7 @@ function GeometryGyrokinetic:_advance(tCurr, inFlds, outFlds)
 
    local psiRZ, psibyrRZ, psibyr2RZ, bphiRZ = inFlds[1], inFlds[2], inFlds[3], inFlds[4]
    local mapc2p_field, gFld, jacobGeo, jacobGeoInv, jacobTot, jacobTotInv, bmagInv, bmagInvSq, gxxJ, gxyJ, gyyJ, grFld, b_i, cmag, bmag = outFlds[1], outFlds[2], outFlds[3], outFlds[4], outFlds[5], outFlds[6], outFlds[7], outFlds[8], outFlds[9], outFlds[10], outFlds[11], outFlds[12], outFlds[13], outFlds[14], outFlds[15]
+
 
    -- Fill mapc2p
    if self.calcGeom then 
@@ -352,7 +355,6 @@ function GeometryGyrokinetic:_advance(tCurr, inFlds, outFlds)
    -- Fill derived geo. Includes adjustment  of g_zz to preserve cmag = const.
    -- Need to add argument about whether or not to do the adjustment
    ffiC.gkyl_calc_derived_geo_advance(self._zero_derived, self.localRange, gFld._zero, bmag._zero, jacobGeo._zero, jacobGeoInv._zero, grFld._zero, b_i._zero , cmag._zero, jacobTot._zero, jacobTotInv._zero, bmagInv._zero, bmagInvSq._zero, gxxJ._zero, gxyJ._zero, gyyJ._zero)
-
 end
 
 return GeometryGyrokinetic
