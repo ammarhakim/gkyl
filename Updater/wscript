@@ -81,8 +81,6 @@ def build(bld):
     momentCalcData/DistFuncIntegratedMomentCalcSer2x3v.cpp
     momentCalcData/DistFuncIntegratedMomentCalcSer3x3v.cpp
 
-    CartFieldIntegratedQuantCalcImpl.cpp
-
     projectFluxOnGhostsData/ProjectFluxOnGhostsSer.cpp
 
     EvaluateBronoldFehskeBCImpl.cpp

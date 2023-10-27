@@ -103,6 +103,16 @@ function Messenger:init(tbl)
          local ncclErr = Nccl.GroupEnd()
       end
 
+      self.AllreduceFunc = function(dataIn, dataOut, numValuesOut, ncclDataType, ncclOp, comm)
+         Nccl.AllReduce(dataIn, dataOut, numValuesOut, ncclDataType, ncclOp, comm, self.ncclStream)
+         local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
+         while (self.ncclResult[0] == Nccl.InProgress) do
+            local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
+         end
+         -- Completing NCCL operation by synchronizing on the CUDA stream.
+         local _ = cuda.StreamSynchronize(self.ncclStream)
+      end
+      
       self.AllreduceByCellFunc = function(fldIn, fldOut, ncclOp, comm)
          Nccl.AllReduce(fldIn:deviceDataPointer(), fldOut:deviceDataPointer(), fldIn:size(),
             self:getCommDataType(fldIn:elemType()), ncclOp, comm, self.ncclStream)
@@ -215,6 +225,9 @@ function Messenger:init(tbl)
       self.AllgatherFunc = function(fldIn, fldOut, comm)
          Mpi.Allgather(fldIn:dataPointer(), fldIn:size(), fldIn:elemCommType(),
                        fldOut:dataPointer(), fldIn:size(), fldOut:elemCommType(), comm)
+      end
+      self.AllreduceFunc = function(dataIn, dataOut, numValuesOut, mpiDataType, mpiOp, comm)
+         Mpi.Allreduce(dataIn, dataOut, numValuesOut, mpiDataType, mpiOp, comm)
       end
       self.AllreduceByCellFunc = function(fldIn, fldOut, mpiOp, comm)
          Mpi.Allreduce(fldIn:dataPointer(), fldOut:dataPointer(),
@@ -601,6 +614,10 @@ end
 
 function Messenger:endCommGroup()
    return self.endCommGroupFunc()
+end
+
+function Messenger:Allreduce(dataIn, dataOut, numValuesOut, dataType, op, comm)
+   self.AllreduceFunc(dataIn, dataOut, numValuesOut, self.commTypes[dataType], self.reduceOps[op], comm)
 end
 
 function Messenger:AllreduceByCell(fieldIn, fieldOut, op, comm)
