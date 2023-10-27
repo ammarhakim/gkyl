@@ -95,7 +95,7 @@ function CartFieldIntegrate:init(tbl)
 
    if useGPU then
       self.elmSz = ffi.sizeof("double")
-      self.localVals, self.globalVals = cuda.Malloc(self.elmSz*self.numComponents), cudaMalloc(self.elmSz*self.numComponents)
+      self.localVals, self.globalVals = cuda.Malloc(self.elmSz*self.numComponents), cuda.Malloc(self.elmSz*self.numComponents)
       self.globalVals_ho = Lin.Vec(self.numComponents)
    else
       self.localVals, self.globalVals = Lin.Vec(self.numComponents), Lin.Vec(self.numComponents)
@@ -134,7 +134,8 @@ function CartFieldIntegrate:_advanceOnDevice(tCurr, inFld, outFld)
 
    ffiC.gkyl_array_integrate_advance(self._zero, field._zeroDevice, multfac or 1., onRange, self.localVals)
 
-   local _ = cuda.Memset(self.globalVals, 0, self.numComponents*self.elmSz)
+   local nvals = self.numComponents
+   local _ = cuda.Memset(self.globalVals, 0, nvals*self.elmSz)
 
    -- All-reduce across processors.
    local messenger = self.onGrid:getMessenger()
@@ -145,8 +146,7 @@ function CartFieldIntegrate:_advanceOnDevice(tCurr, inFld, outFld)
    end
 
    -- Copy result to host.
-   local err = cuda.Memcpy(self.globalVals_ho:data(), self.globalVals, nvals*self.elmSz, cuda.MemcpyDeviceToHost)
-   assert_equal(cuda.Success, err, "CartFieldIntegrate: Memcpy failed.")
+   local _ = cuda.Memcpy(self.globalVals_ho:data(), self.globalVals, nvals*self.elmSz, cuda.MemcpyDeviceToHost)
 
    -- Push result into DynVector.
    dynVecOut:appendData(tCurr, self.globalVals_ho)
