@@ -173,7 +173,7 @@ function test_femparproj_1x(nx, polyOrder)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
       onGrid = grid,   numComponents = 1,
-      basis  = basis,  quantity      = "V2",
+      basis  = basis,  operator      = "sq",
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -284,7 +284,7 @@ function test_femparproj_3x(nx, ny, nz, polyOrder)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
       onGrid = grid,   numComponents = 1,
-      basis  = basis,  quantity      = "V2",
+      basis  = basis,  operator      = "sq",
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -430,7 +430,7 @@ function test_femparproj_3x_zglobalOnly(nx, ny, nz, polyOrder)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
       onGrid = grid,   numComponents = 1,
-      basis  = basis,  quantity      = "V2",
+      basis  = basis,  operator      = "sq",
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})

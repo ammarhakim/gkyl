@@ -178,7 +178,7 @@ end
 function AmbipolarSheathField:createDiagnostics()
    -- Updaters for computing integrated quantities.
    self.intSqCalc = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = self.grid,   quantity = "V2",
+      onGrid = self.grid,   operator = "sq",
       basis  = self.basis,
    }
 end

@@ -123,7 +123,7 @@ function test_solve2d(nx, ny, p, writeMatrix)
       onGrid        = grid,
       basis         = basis,
       numComponents = 1,
-      quantity      = "V2",
+      operator      = "sq",
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -236,7 +236,7 @@ function test_solve2d_periodic(nx, ny, p)
       onGrid        = grid,
       basis         = basis,
       numComponents = 1,
-      quantity      = "V2",
+      operator      = "sq",
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -342,7 +342,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
       onGrid        = grid,
       basis         = basis,
       numComponents = 1,
-      quantity      = "V2",
+      operator      = "sq",
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -457,7 +457,7 @@ function test_solve3d_periodic(nx, ny, nz, p)
       onGrid        = grid,
       basis         = basis,
       numComponents = 1,
-      quantity      = "V2",
+      operator      = "sq",
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})

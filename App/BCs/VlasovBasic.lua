@@ -228,11 +228,11 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
          self.volIntegral = {
             scalar = Updater.CartFieldIntegratedQuantCalc {
                onGrid = self.confBoundaryGrid,  numComponents = 1,
-               basis  = self.confBasis,         quantity      = "V",
+               basis  = self.confBasis,
             },
             vector = Updater.CartFieldIntegratedQuantCalc {
                onGrid = self.confBoundaryGrid,  numComponents = self.vdim,
-               basis  = self.confBasis,         quantity      = "V",
+               basis  = self.confBasis,
             },
          }
          -- Moment calculators (for diagnostics).

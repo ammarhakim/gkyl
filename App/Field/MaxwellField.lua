@@ -342,7 +342,7 @@ function MaxwellField:createSolver(population)
       }
 
       self.emEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.grid,   quantity      = "V2",
+         onGrid = self.grid,   operator      = "sq",
          basis  = self.basis,  numComponents = 8,
       }
       self.emEnergyCalc = function(tCurr, inFld, outDynV) self.emEnergyUpd:advance(tCurr, inFld, outDynV) end
@@ -377,7 +377,7 @@ function MaxwellField:createSolver(population)
          epsilon = self.epsilon0,
       }
       self.esEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.grid,   quantity = "V2",
+         onGrid = self.grid,   operator = "sq",
          basis  = self.basis,
       }
       self.emEnergyCalc = function(tCurr, inFld, outDynV) self:esEnergy(tCurr, inFld, outDynV) end

@@ -100,7 +100,7 @@ function test_solve1d(nz, p, writeMatrix)
       onGrid        = grid,
       basis         = basis,
       numComponents = 1,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -171,7 +171,7 @@ function test_smooth1d(nz, p, writeMatrix)
    --err:write("error-1d.bp", 0.0)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
-      onGrid        = grid,  quantity = "V2",
+      onGrid        = grid,  operator = "sq",
       numComponents = 1,     basis    = basis,
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
@@ -263,7 +263,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
       onGrid = grid,   numComponents = 1,
-      basis  = basis,  quantity      = "V2",
+      basis  = basis,  operator      = "sq",
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -338,7 +338,7 @@ function test_smooth3d(nx, ny, nz, p, writeMatrix)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
       onGrid = grid,   numComponents = 1,
-      basis  = basis,  quantity      = "V2",
+      basis  = basis,  operator      = "sq",
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})

@@ -683,11 +683,11 @@ function VlasovSpecies:createSolver(field, externalField)
    self.volIntegral = {
       scalar = Updater.CartFieldIntegratedQuantCalc {
          onGrid = self.confGrid,   numComponents = 1,
-         basis  = self.confBasis,  quantity      = "V",
+         basis  = self.confBasis,
       },
       vector = Updater.CartFieldIntegratedQuantCalc {
          onGrid = self.confGrid,   numComponents = self.vdim,
-         basis  = self.confBasis,  quantity      = "V",
+         basis  = self.confBasis,
       },
    }
 

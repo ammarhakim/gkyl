@@ -622,7 +622,7 @@ function GkSpecies:createSolver(field, externalField)
    self.volIntegral = {
       scalar = Updater.CartFieldIntegratedQuantCalc {
          onGrid = self.confGrid,   numComponents = 1,
-         basis  = self.confBasis,  quantity      = "V",
+         basis  = self.confBasis,
       }
    }
 

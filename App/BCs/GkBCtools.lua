@@ -144,7 +144,7 @@ function _M.createDiagnosticTools(mySpecies, field, externalField, bcApp)
    self.volIntegral = {
       scalar = Updater.CartFieldIntegratedQuantCalc {
          onGrid = self.confBoundaryGrid,  numComponents = 1,
-         basis  = self.confBasis,         quantity      = "V",
+         basis  = self.confBasis,
       }
    }
    -- Moment calculators (for diagnostics).

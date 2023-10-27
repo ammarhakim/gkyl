@@ -402,7 +402,7 @@ local implementation = function()
       self.field   = owner:allocIntMoment()
       self.updater = Updater.CartFieldIntegratedQuantCalc {
          onGrid = specIn.grid,   numComponents = 1,
-         basis  = specIn.basis,  quantity      = "AbsV",
+         basis  = specIn.basis,  operator      = "abs",
       }
       self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
       self.done = false
@@ -419,7 +419,7 @@ local implementation = function()
       self.field   = owner:allocIntMoment()
       self.updater = Updater.CartFieldIntegratedQuantCalc {
          onGrid = specIn.grid,   numComponents = 1,
-         basis  = specIn.basis,  quantity      = "V2",
+         basis  = specIn.basis,  operator      = "sq",
       }
       self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
       self.done = false

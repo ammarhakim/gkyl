@@ -792,12 +792,11 @@ end
 function GkField:createDiagnostics()
    -- Updaters for computing integrated quantities.
    self.int2Calc = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = self.grid,   quantity = "V2",
+      onGrid = self.grid,   operator = "sq",
       basis  = self.basis,
    }
    self.intCalc = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = self.grid,   quantity = "V",
-      basis  = self.basis,
+      onGrid = self.grid,  basis = self.basis,
    }
    if self.ndim == 1 then
       self.energyCalc = self.intCalc

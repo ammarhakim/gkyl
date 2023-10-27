@@ -206,7 +206,7 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
          self.volIntegral = {
             scalar = Updater.CartFieldIntegratedQuantCalc {
                onGrid = self.confBoundaryGrid,  numComponents = 1,
-               basis  = self.confBasis,         quantity      = "V",
+               basis  = self.confBasis,
             }
          }
          -- Moment calculators (for diagnostics).
