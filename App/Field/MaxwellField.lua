@@ -341,7 +341,7 @@ function MaxwellField:createSolver(population)
          basis  = self.basis,  equation = self.equation,
       }
 
-      self.emEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
+      self.emEnergyUpd = Updater.CartFieldIntegrate {
          onGrid = self.grid,   operator      = "sq",
          basis  = self.basis,  numComponents = 8,
       }
@@ -376,7 +376,7 @@ function MaxwellField:createSolver(population)
          basis   = self.basis,       bcUpper = self.bcUpperPhi,
          epsilon = self.epsilon0,
       }
-      self.esEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
+      self.esEnergyUpd = Updater.CartFieldIntegrate {
          onGrid = self.grid,   operator = "sq",
          basis  = self.basis,
       }

@@ -681,11 +681,11 @@ function VlasovSpecies:createSolver(field, externalField)
 
    -- Create an updater for volume integrals. Used by diagnostics.
    self.volIntegral = {
-      scalar = Updater.CartFieldIntegratedQuantCalc {
+      scalar = Updater.CartFieldIntegrate {
          onGrid = self.confGrid,   numComponents = 1,
          basis  = self.confBasis,
       },
-      vector = Updater.CartFieldIntegratedQuantCalc {
+      vector = Updater.CartFieldIntegrate {
          onGrid = self.confGrid,   numComponents = self.vdim,
          basis  = self.confBasis,
       },

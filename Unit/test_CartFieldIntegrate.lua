@@ -77,11 +77,11 @@ local function test_ser_op_none()
    -- Compute integrated f and integrated moment.
    local intF = DataStruct.DynVector { numComponents = 1, }
    local intM0 = DataStruct.DynVector { numComponents = 1, }
-   local intQuantP = Updater.CartFieldIntegratedQuantCalc {
+   local intQuantP = Updater.CartFieldIntegrate {
       onGrid = phaseGrid,   numComponents = 1,
       basis  = phaseBasis,
    }
-   local intQuantC = Updater.CartFieldIntegratedQuantCalc {
+   local intQuantC = Updater.CartFieldIntegrate {
       onGrid = confGrid,   numComponents = 1,
       basis  = confBasis,
    }
@@ -131,7 +131,7 @@ local function test_ser_op_sq()
 
    -- Compute integrated f and integrated moment.
    local fL2 = DataStruct.DynVector { numComponents = 1, }
-   local intQuantP = Updater.CartFieldIntegratedQuantCalc {
+   local intQuantP = Updater.CartFieldIntegrate {
       onGrid = phaseGrid,   numComponents = 1,
       basis  = phaseBasis,  operator      = 'sq',
    }
@@ -178,7 +178,7 @@ local function test_ser_op_abs()
 
    -- Compute integrated f and integrated moment.
    local absF = DataStruct.DynVector { numComponents = 1, }
-   local intQuantP = Updater.CartFieldIntegratedQuantCalc {
+   local intQuantP = Updater.CartFieldIntegrate {
       onGrid = phaseGrid,   numComponents = 1,
       basis  = phaseBasis,  operator      = 'abs',
    }
@@ -258,11 +258,11 @@ local function test_ser_op_none_par()
    -- Compute integrated f and integrated moment.
    local intF = DataStruct.DynVector { numComponents = 1, }
    local intM0 = DataStruct.DynVector { numComponents = 1, }
-   local intQuantP = Updater.CartFieldIntegratedQuantCalc {
+   local intQuantP = Updater.CartFieldIntegrate {
       onGrid = phaseGrid,   numComponents = 1,
       basis  = phaseBasis,
    }
-   local intQuantC = Updater.CartFieldIntegratedQuantCalc {
+   local intQuantC = Updater.CartFieldIntegrate {
       onGrid = confGrid,   numComponents = 1,
       basis  = confBasis,
    }

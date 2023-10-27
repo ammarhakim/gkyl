@@ -167,9 +167,8 @@ for gI, numCells in ipairs(cells) do
    local intFldDo  = intFldDos[gI]
    local intFldTar = intFldTars[gI] 
 
-   intQuants[gI]  = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = grid,   numComponents = 1,
-      basis  = basis,  quantity      = "V",
+   intQuants[gI]  = Updater.CartFieldIntegrate {
+      onGrid = grid,  basis = basis,
    }
    local intQuant = intQuants[gI]
 

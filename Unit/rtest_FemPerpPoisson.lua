@@ -203,7 +203,7 @@ function test_solve2d(nx, ny, p, writeMatrix)
    --exactSolModal:write("exact-solution-2d.bp", 0.0)
    --err:write("error-2d.bp", 0.0)
 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt = Updater.CartFieldIntegrate {
       onGrid        = grid,
       basis         = basis,
       numComponents = 1,
@@ -285,7 +285,7 @@ function test_smooth2d(nx, ny, p, writeMatrix)
    --srcModal:write("exact-solution-2d.bp", 0.0)
    --err:write("error-2d.bp", 0.0)
 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt = Updater.CartFieldIntegrate {
       onGrid        = grid,
       basis         = basis,
       numComponents = 1,
@@ -398,7 +398,7 @@ function test_solve2d_periodic(nx, ny, p)
    --exactSolModal:write("periodic-exact-solution-2d.bp", 0.0)
    --err:write("periodic-error-2d.bp", 0.0)
 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt = Updater.CartFieldIntegrate {
       onGrid        = grid,
       basis         = basis,
       numComponents = 1,
@@ -486,7 +486,7 @@ function test_smooth2d_periodic(nx, ny, p, writeMatrix)
    --srcModal:write("periodic-exact-solution-2d.bp", 0.0)
    --err:write("periodic-error-2d.bp", 0.0)
 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt = Updater.CartFieldIntegrate {
       onGrid        = grid,
       basis         = basis,
       numComponents = 1,
@@ -597,7 +597,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    --exactSolModal:write("exact-solution-3d.bp", 0.0)
    --err:write("error-3d.bp", 0.0)
   
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt = Updater.CartFieldIntegrate {
       onGrid        = grid,
       basis         = basis,
       numComponents = 1,
@@ -712,7 +712,7 @@ function test_solve3d_periodic(nx, ny, nz, p)
    --exactSolModal:write("periodic-exact-solution-3d.bp", 0.0)
    --err:write("periodic-error-3d.bp", 0.0)
 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt = Updater.CartFieldIntegrate {
       onGrid        = grid,
       basis         = basis,
       numComponents = 1,
@@ -871,7 +871,7 @@ function test_solve3d_periodic_metric(nx, ny, nz, p)
    --exactSolModal:write("periodic-exact-solution-3d.bp", 0.0)
    --err:write("periodic-error-3d.bp", 0.0)
 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt = Updater.CartFieldIntegrate {
       onGrid        = grid,
       basis         = basis,
       numComponents = 1,

@@ -186,9 +186,8 @@ local ptclEnergyCalcOnGhosts = Updater.DistFuncMomentCalc {
    phaseBasis = basis,      gkfacs   = {mass, bmag},
    confBasis  = confBasis,  onGhosts = true,
 }
-local intQuantOnGhosts = Updater.CartFieldIntegratedQuantCalc {
-   onGrid   = confGrid,   numComponents = 1,
-   basis    = confBasis,  quantity      = "V",
+local intQuantOnGhosts = Updater.CartFieldIntegrate {
+   onGrid   = confGrid,  basis = confBasis,
    onGhosts = true,
 }
 
@@ -204,7 +203,7 @@ local intM0Tar, intM1Tar, intM2Tar = {}, {}, {}
 local intFldDo  = {}
 local intFldTar = {}
 
-local intQuantPhase = Updater.CartFieldIntegratedQuantCalc {
+local intQuantPhase = Updater.CartFieldIntegrate {
    onGrid   = grid,   numComponents = 1,
    basis    = basis,  quantity      = "V",
    onGhosts = true,

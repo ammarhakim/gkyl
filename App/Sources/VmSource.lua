@@ -81,7 +81,7 @@ function VmSource:createSolver(mySpecies, extField)
    self.profile:advance(0.0, {extField}, {self.fSource})
 
    if self.power then
-      local calcInt = Updater.CartFieldIntegratedQuantCalc {
+      local calcInt = Updater.CartFieldIntegrate {
          onGrid = self.confGrid,  basis = self.confBasis,
       }
       local intKE = DataStruct.DynVector{numComponents = 1}

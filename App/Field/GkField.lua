@@ -791,17 +791,17 @@ end
 
 function GkField:createDiagnostics()
    -- Updaters for computing integrated quantities.
-   self.int2Calc = Updater.CartFieldIntegratedQuantCalc {
+   self.int2Calc = Updater.CartFieldIntegrate {
       onGrid = self.grid,   operator = "sq",
       basis  = self.basis,
    }
-   self.intCalc = Updater.CartFieldIntegratedQuantCalc {
+   self.intCalc = Updater.CartFieldIntegrate {
       onGrid = self.grid,  basis = self.basis,
    }
    if self.ndim == 1 then
       self.energyCalc = self.intCalc
    elseif self.basis:polyOrder()==1 then -- GradPerpV2 only implemented for p=1 currently.
-      self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
+      self.energyCalc = Updater.CartFieldIntegrate {
          onGrid = self.grid,   quantity = "GradPerpV2",
          basis  = self.basis,
       }

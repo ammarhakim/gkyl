@@ -400,7 +400,7 @@ local implementation = function()
    local _intL1 = Proto(DiagsImplBase)
    function _intL1:fullInit(diagApp, specIn, fieldIn, owner)
       self.field   = owner:allocIntMoment()
-      self.updater = Updater.CartFieldIntegratedQuantCalc {
+      self.updater = Updater.CartFieldIntegrate {
          onGrid = specIn.grid,   numComponents = 1,
          basis  = specIn.basis,  operator      = "abs",
       }
@@ -417,7 +417,7 @@ local implementation = function()
    local _intL2 = Proto(DiagsImplBase)
    function _intL2:fullInit(diagApp, specIn, fieldIn, owner)
       self.field   = owner:allocIntMoment()
-      self.updater = Updater.CartFieldIntegratedQuantCalc {
+      self.updater = Updater.CartFieldIntegrate {
          onGrid = specIn.grid,   numComponents = 1,
          basis  = specIn.basis,  operator      = "sq",
       }

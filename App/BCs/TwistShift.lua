@@ -204,7 +204,7 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
          }
          -- Volume integral operator (for diagnostics).
          self.volIntegral = {
-            scalar = Updater.CartFieldIntegratedQuantCalc {
+            scalar = Updater.CartFieldIntegrate {
                onGrid = self.confBoundaryGrid,  numComponents = 1,
                basis  = self.confBasis,
             }
