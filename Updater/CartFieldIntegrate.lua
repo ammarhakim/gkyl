@@ -23,9 +23,12 @@ ffi.cdef [[
 typedef struct gkyl_array_integrate gkyl_array_integrate;
 
 enum gkyl_array_integrate_op {
-  GKYL_ARRAY_INTEGRATE_OP_NONE = 0,
-  GKYL_ARRAY_INTEGRATE_OP_ABS,
-  GKYL_ARRAY_INTEGRATE_OP_SQ,
+  GKYL_ARRAY_INTEGRATE_OP_NONE = 0,  // int dx f
+  GKYL_ARRAY_INTEGRATE_OP_ABS,  // int dx |f|
+  GKYL_ARRAY_INTEGRATE_OP_SQ,  // int dx f^2
+  GKYL_ARRAY_INTEGRATE_OP_GRAD_SQ,  // int dx |nabla f|^2
+  GKYL_ARRAY_INTEGRATE_OP_GRADPERP_SQ,  // int dx |nabla_perp f|^2
+  GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ,  // int dx epsilon*|nabla_perp f|^2
 };
 
 /**
@@ -46,13 +49,14 @@ gkyl_array_integrate_new(const struct gkyl_rect_grid* grid, const struct gkyl_ba
  * Compute the array integral.
  *
  * @param up array_integrate updater.
- * @param arr Input gkyl_array.
- * @param weight Factor to multiply by.
+ * @param fin Input gkyl_array.
+ * @param factor Factor to multiply by.
+ * @param weight Weight field we multiply by inside the integral.
  * @param range Range we'll integrate over.
  * @return out Output integral result(s). On device memory if use_gpu=true.
  */
-void gkyl_array_integrate_advance(gkyl_array_integrate *up, const struct gkyl_array *arr,
-  double weight, const struct gkyl_range *range, double *out);
+void gkyl_array_integrate_advance(gkyl_array_integrate *up, const struct gkyl_array *fin,
+  double factor, const struct gkyl_array *weight, const struct gkyl_range *range, double *out);
 
 /**
  * Release memory associated with this updater.
@@ -82,9 +86,12 @@ function CartFieldIntegrate:init(tbl)
    local opIn = tbl.operator or "none"
    local integ_op = nil
    -- These must match the definitions in the gkyl_array_integrate header file.
-   if     opIn == "none" then integ_op = 0
-   elseif opIn == "abs"  then integ_op = 1
-   elseif opIn == "sq"   then integ_op = 2
+   if     opIn == "none"            then integ_op = 0
+   elseif opIn == "abs"             then integ_op = 1
+   elseif opIn == "sq"              then integ_op = 2
+   elseif opIn == "grad_sq"         then integ_op = 3
+   elseif opIn == "gradperp_sq"     then integ_op = 4
+   elseif opIn == "eps_gradperp_sq" then integ_op = 5
    end
    assert(integ_op, "CartFieldIntegrate: operator not implemented. See available options.")
 
@@ -104,12 +111,16 @@ end
 
 -- Advance method.
 function CartFieldIntegrate:_advance(tCurr, inFld, outFld)
-   local field, multfac = inFld[1], inFld[2]
-   local dynVecOut      = outFld[1]
+   local field     = inFld[1]
+   local dynVecOut = outFld[1]
+
+   local multfac = inFld[2] or 1.
+   local weight  = inFld[3] 
+   if weight then weight = weight._zero end
 
    local onRange = self.onGhosts and field:localExtRange() or field:localRange()
 
-   ffiC.gkyl_array_integrate_advance(self._zero, field._zero, multfac or 1., onRange, self.localVals:data())
+   ffiC.gkyl_array_integrate_advance(self._zero, field._zero, multfac, weight, onRange, self.localVals:data())
 
    local nvals = self.numComponents
    for i = 1, nvals do self.globalVals[i] = 0. end
@@ -130,9 +141,13 @@ function CartFieldIntegrate:_advanceOnDevice(tCurr, inFld, outFld)
    local field, multfac = inFld[1], inFld[2]
    local dynVecOut      = outFld[1]
 
+   local multfac = inFld[2] or 1.
+   local weight  = inFld[3] 
+   if weight then weight = weight._zero end
+
    local onRange = self.onGhosts and field:localExtRange() or field:localRange()
 
-   ffiC.gkyl_array_integrate_advance(self._zero, field._zeroDevice, multfac or 1., onRange, self.localVals)
+   ffiC.gkyl_array_integrate_advance(self._zero, field._zeroDevice, multfac, weight, onRange, self.localVals)
 
    local nvals = self.numComponents
    local _ = cuda.Memset(self.globalVals, 0, nvals*self.elmSz)
