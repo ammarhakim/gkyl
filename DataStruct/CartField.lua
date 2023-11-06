@@ -800,7 +800,7 @@ local function Field_meta_ctor(elct)
              local grid = self._grid
              local localVal = {}
              Mpi.Allreduce(self.localReductionVal_h:data(), self.globalReductionVal:data(),
-                self._numComponents, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
+                self._numComponents, elctCommType, reduceOpsMPI[opIn], grid:commSet().host)
 
              --self.localReductionVal:copy(self.globalReductionVal)
              for k = 1, self._numComponents do localVal[k] = self.globalReductionVal:data()[k - 1] end
@@ -819,7 +819,7 @@ local function Field_meta_ctor(elct)
          self._zeroForOps:copy_from_buffer(dataPointer, rgn)
       end,
       _field_periodic_sync = function(self, dataPtr)
-         local comm = self._grid:commSet().nodeComm -- Communicator to use.
+         local comm = self._grid:commSet().host -- Communicator to use.
          if not Mpi.Is_comm_valid(comm) then
             return                                  -- No need to do anything if communicator is not valid
          end

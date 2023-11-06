@@ -26,7 +26,6 @@ local xsys              = require "xsys"
 local ffi               = require "ffi"
 local lume              = require "Lib.lume"
 local Lin               = require "Lib.Linalg"
-local MGpoissonDecl     = require "Updater.mgPoissonCalcData.MGpoissonModDecl"
 local LinearDecomp      = require "Lib.LinearDecomp"
 
 -- MaxwellField ---------------------------------------------------------------------
@@ -141,8 +140,6 @@ function MaxwellField:fullInit(appTbl, plasmaField)
          end
       end
 
-      self.esEnergyFirst = true
-
    end
 
    -- Create triggers to write fields.
@@ -225,48 +222,6 @@ function MaxwellField:getMu0() return self.mu0 end
 function MaxwellField:getElcErrorSpeedFactor() return self.ce end
 function MaxwellField:getMgnErrorSpeedFactor() return self.cb end
 
-function MaxwellField:esEnergy(tCurr, fldIn, outDynV)
-   -- Compute the electrostatic field energy given the potential. Here outDynV must
-   -- be a DynVector with the same number of components as there are dimensions.
-   local phiIn, esE = fldIn[1], outDynV[1]
-   if GKYL_USE_GPU then
-      phiIn:copyDeviceToHost()
-   end
-
-   local grid, dim = phiIn:grid(), phiIn:grid():ndim()
-
-   if self.esEnergyFirst then
-      -- Kernels and buffers used in computing electrostatic field energy.
-      self.localEnergy, self.globalEnergy = Lin.Vec(dim), Lin.Vec(dim)
-      self.dxBuf = Lin.Vec(dim)
-      self._esEnergyCalc = MGpoissonDecl.selectESenergy(self.basis:id(), dim, self.basis:polyOrder(), nil)
-   end
-
-   local indexer, phiItr = phiIn:genIndexer(), phiIn:get(1)
-
-   -- Clear local values.
-   for d = 1, dim do self.localEnergy[d] = 0.0 end
-
-   local phiRange = phiIn:localRange()
-
-   for idx in phiRange:rowMajorIter() do
-      grid:setIndex(idx)
-      grid:getDx(self.dxBuf)
-
-      phiIn:fill(indexer(idx), phiItr)
-
-      self._esEnergyCalc(self.dxBuf:data(), phiItr:data(), self.localEnergy:data())
-   end
-
-   -- All-reduce across processors and push result into dyn-vector.
-   Mpi.Allreduce(
-      self.localEnergy:data(), self.globalEnergy:data(), dim, Mpi.DOUBLE, Mpi.SUM, grid:commSet().comm)
-
-   esE:appendData(tCurr, self.globalEnergy)
-
-   if self.esEnergyFirst then self.esEnergyFirst = false end
-end
-
 local function createField(grid, basis, ghostCells, ncomp, periodicSync, useDevice)
    local metadata = basis and {polyOrder = basis:polyOrder(), basisType = basis:id()} or nil
    local fld = DataStruct.Field {
@@ -341,8 +296,8 @@ function MaxwellField:createSolver(population)
          basis  = self.basis,  equation = self.equation,
       }
 
-      self.emEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.grid,   quantity      = "V2",
+      self.emEnergyUpd = Updater.CartFieldIntegrate {
+         onGrid = self.grid,   operator      = "sq",
          basis  = self.basis,  numComponents = 8,
       }
       self.emEnergyCalc = function(tCurr, inFld, outDynV) self.emEnergyUpd:advance(tCurr, inFld, outDynV) end
@@ -376,11 +331,11 @@ function MaxwellField:createSolver(population)
          basis   = self.basis,       bcUpper = self.bcUpperPhi,
          epsilon = self.epsilon0,
       }
-      self.esEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.grid,   quantity = "V2",
+      self.esEnergyUpd = Updater.CartFieldIntegrate {
+         onGrid = self.grid,   operator = "grad_sq",
          basis  = self.basis,
       }
-      self.emEnergyCalc = function(tCurr, inFld, outDynV) self:esEnergy(tCurr, inFld, outDynV) end
+      self.emEnergyCalc = function(tCurr, inFld, outDynV) self.esEnergyUpd:advance(tCurr, inFld, outDynV) end
    end
 
    -- Function to construct a BC updater.

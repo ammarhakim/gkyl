@@ -8,9 +8,6 @@ from waflib import Utils
 
 def build(bld):
     sources = r"""
-    aSheathPotentialData/asheath_potential_1x_p1_ser.cpp
-    aSheathPotentialData/asheath_potential_1x_p2_ser.cpp
-
     momentCalcData/IntegratedDGMomentSer1x.cpp
     momentCalcData/IntegratedDGMomentSer2x.cpp
     momentCalcData/IntegratedDGMomentSer3x.cpp
@@ -23,9 +20,6 @@ def build(bld):
     momentCalcData/IntegratedDGMomentSer2x2v.cpp
     momentCalcData/IntegratedDGMomentSer2x3v.cpp
     momentCalcData/IntegratedDGMomentSer3x3v.cpp
-
-    interpolateCalcData/CartFieldInterpSer1x.cpp
-    interpolateCalcData/CartFieldInterpSer2x.cpp
 
     mgPoissonCalcData/MGpoissonDGSer1x.cpp
     mgPoissonCalcData/MGpoissonDGSer2x.cpp
@@ -81,11 +75,6 @@ def build(bld):
     momentCalcData/DistFuncIntegratedMomentCalcSer2x3v.cpp
     momentCalcData/DistFuncIntegratedMomentCalcSer3x3v.cpp
 
-    CartFieldIntegratedQuantCalcImpl.cpp
-
-    projectFluxOnGhostsData/ProjectFluxOnGhostsSer.cpp
-
-    EvaluateBronoldFehskeBCImpl.cpp
     """
 
     ## HyperDisContDeviceShared.cu
@@ -108,6 +97,13 @@ def build(bld):
               use='lib EIGEN MPI CUTOOLS gkylzero', target = 'updater', name = 'updater', vum = '1.0')
     
 ## Removed the following files from the build for now
+#    interpolateCalcData/CartFieldInterpSer1x.cpp
+#    interpolateCalcData/CartFieldInterpSer2x.cpp
+#
+#    projectFluxOnGhostsData/ProjectFluxOnGhostsSer.cpp
+#
+#    EvaluateBronoldFehskeBCImpl.cpp
+
 #    MomentSrcCommon.cpp
 #    FiveMomentSrcImpl.cpp
 #    TenMomentSrcImpl.cpp

@@ -11,13 +11,13 @@ if GKYL_HAVE_CUDA == false then
    return 0
 end
 
-local Unit = require "Unit"
-local Alloc = require "Lib.Alloc"
-local ffi = require "ffi"
-local cuda = require "Cuda.RunTime"
+local Unit    = require "Unit"
+local Alloc   = require "Lib.Alloc"
+local ffi     = require "ffi"
+local cuda    = require "Cuda.RunTime"
 local cuAlloc = require "Cuda.Alloc"
-local Range = require "Lib.Range"
-local Grid = require "Grid"
+local Range   = require "Lib.Range"
+local Grid    = require "Grid"
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
