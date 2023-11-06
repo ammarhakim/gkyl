@@ -375,30 +375,23 @@ function GkSpecies:allocCartField(grid,nComp,ghosts,metaData)
    return f
 end
 function GkSpecies:allocDistf()
-   local metaData = {polyOrder = self.basis:polyOrder(),
-                     basisType = self.basis:id(),
-                     charge    = self.charge,
-                     mass      = self.mass,
+   local metaData = {polyOrder = self.basis:polyOrder(),  charge = self.charge,
+                     basisType = self.basis:id(),         mass   = self.mass,
                      grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"}
    return self:allocCartField(self.grid,self.basis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 function GkSpecies:allocMoment()
-   local metaData = {polyOrder = self.confBasis:polyOrder(),
-                     basisType = self.confBasis:id(),
-                     charge    = self.charge,
-                     mass      = self.mass,}
+   local metaData = {polyOrder = self.confBasis:polyOrder(),  charge = self.charge,
+                     basisType = self.confBasis:id(),         mass   = self.mass,}
    return self:allocCartField(self.confGrid,self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 function GkSpecies:allocVectorMoment(dim)
-   local metaData = {polyOrder = self.confBasis:polyOrder(),
-                     basisType = self.confBasis:id(),
-                     charge    = self.charge,
-                     mass      = self.mass,}
+   local metaData = {polyOrder = self.confBasis:polyOrder(),  charge = self.charge,
+                     basisType = self.confBasis:id(),         mass   = self.mass,}
    return self:allocCartField(self.confGrid,dim*self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 function GkSpecies:allocIntMoment(comp)
-   local metaData = {charge = self.charge,
-                     mass   = self.mass,}
+   local metaData = {charge = self.charge,  mass = self.mass,}
    local ncomp = comp or 1
    local f = DataStruct.DynVector {numComponents = ncomp,     writeRank = 0,
                                    metaData      = metaData,  comm      = self.confGrid:commSet().host,}
