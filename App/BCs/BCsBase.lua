@@ -98,6 +98,7 @@ function BCsBase:createBoundaryGrid(ghostRange, ghostVec)
       lower      = reducedLower,     cells         = reducedNumCells,
       upper      = reducedUpper,     decomposition = reducedDecomp,
       rangeLower = reducedLowerRng,  rangeUpper    = reducedUpperRng, 
+      messenger  = msn,
    }
 end
 function BCsBase:createConfBoundaryGrid(ghostRange, ghostVec)
@@ -134,6 +135,7 @@ function BCsBase:createConfBoundaryGrid(ghostRange, ghostVec)
          lower      = reducedLower,     cells         = reducedNumCells,
          upper      = reducedUpper,     decomposition = reducedDecomp,
          rangeLower = reducedLowerRng,  rangeUpper    = reducedUpperRng, 
+         messenger  = self.grid:getMessenger(),
       }
    end
 end
