@@ -318,12 +318,15 @@ function VlasovSpecies:createGrid(confGridIn)
    self.cdim = confGrid:ndim()
    self.ndim = self.cdim+self.vdim
 
+   local msn = confGrid:getMessenger()
+
    -- Create decomposition.
    local decompCuts = {}
    for d = 1, self.cdim do table.insert(decompCuts, confGrid:cuts(d)) end
    for d = 1, self.vdim do table.insert(decompCuts, 1) end -- No decomposition in v-space.
    self.decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts, comm = confGrid:commSet().comm,
+      cuts = decompCuts,
+      comms = {host=msn:getConfComm_host(), device=msn:getConfComm_device(),},
    }
 
    -- Create computational domain.
@@ -374,7 +377,7 @@ function VlasovSpecies:createGrid(confGridIn)
       lower     = lower,  periodicDirs  = confGrid:getPeriodicDirs(),
       upper     = upper,  decomposition = self.decomp,
       cells     = cells,  mappings      = coordinateMap,
-      messenger = confGrid:getMessenger(),
+      messenger = msn,
    }
 
    for _, c in lume.orderedIter(self.collisions) do c:setPhaseGrid(self.grid) end
@@ -442,7 +445,7 @@ function VlasovSpecies:allocIntMoment(comp)
                      mass   = self.mass,}
    local ncomp = comp or 1
    local f = DataStruct.DynVector {numComponents = ncomp,     writeRank = 0,
-                                   metaData      = metaData,  comm      = self.confGrid:commSet().comm,}
+                                   metaData      = metaData,  comm      = self.confGrid:commSet().host,}
    return f
 end
 

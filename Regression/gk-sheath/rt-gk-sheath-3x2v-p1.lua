@@ -108,7 +108,7 @@ plasmaApp = Plasma.App {
    periodicDirs = {2},     -- Periodic in y only.
 
    decompCuts   = {1,1,1},
---   parallelizeSpecies = true,
+   parallelizeSpecies = false,
 
    -- Gyrokinetic electrons.
    electron = Plasma.Species {

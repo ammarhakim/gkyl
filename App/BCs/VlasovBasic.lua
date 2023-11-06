@@ -144,7 +144,7 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
          local ncomp = comp or 1
          local gridWriteRank = self.confBoundaryGrid:commSet().writeRank
          local f = DataStruct.DynVector{numComponents = ncomp,     writeRank = gridWriteRank<0 and gridWriteRank or 0,
-                                        metaData      = metaData,  comm      = self.confBoundaryGrid:commSet().comm,}
+                                        metaData      = metaData,  comm      = self.confBoundaryGrid:commSet().host,}
          return f
       end
 

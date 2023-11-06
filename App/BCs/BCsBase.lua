@@ -7,11 +7,11 @@
 --------------------------------------------------------------------------------
 
 local Proto      = require "Lib.Proto"
-local Mpi        = require "Comm.Mpi"
 local CartDecomp = require "Lib.CartDecomp"
 local Grid       = require "Grid"
 local Range      = require "Lib.Range"
 local Lin        = require "Lib.Linalg"
+local Mpi        = require "Comm.Mpi"
 
 -- Empty shell source base class.
 local BCsBase = Proto()
@@ -62,7 +62,7 @@ function BCsBase:createBoundaryGrid(ghostRange, ghostVec)
          table.insert(reducedUpperRng, self.grid:globalRange():upper(d))
       end
    end
-   local worldComm = self.grid:commSet().comm
+   local worldComm = self.grid:commSet().host
    local worldRank = Mpi.Comm_rank(worldComm)
    local dirRank   = worldRank
    local cuts      = {}
@@ -76,7 +76,12 @@ function BCsBase:createBoundaryGrid(ghostRange, ghostVec)
       dirRank = math.floor(worldRank/cuts[1]/cuts[2])
    end
 
+   local msn = self.grid:getMessenger()
    self._splitComm = Mpi.Comm_split(worldComm, dirRank, worldRank)
+   if GKYL_HAVE_CUDA then
+      self._splitComm_dev, self.ncclIdSplit = msn:newCommDevice(self._splitComm)
+   end
+
    -- Set up which ranks to write from.
    if (self.bcEdge == "lower" and dirRank == 0) or
       (self.bcEdge == "upper" and dirRank == self.grid:cuts(self.bcDir)-1) then
@@ -86,8 +91,8 @@ function BCsBase:createBoundaryGrid(ghostRange, ghostVec)
    end
    self.writeRank = writeRank
    local reducedDecomp = CartDecomp.CartProd {
-      comm      = self._splitComm,  cuts = reducedCuts,
-      writeRank = writeRank,
+      cuts  = reducedCuts,  writeRank = writeRank,
+      comms = {host=self._splitComm, device=self._splitComm_dev,},
    }
    self.boundaryGrid = Grid.RectCart {
       lower      = reducedLower,     cells         = reducedNumCells,
@@ -122,8 +127,8 @@ function BCsBase:createConfBoundaryGrid(ghostRange, ghostVec)
          end
       end
       local reducedDecomp = CartDecomp.CartProd {
-         comm      = self._splitComm,  cuts = reducedCuts,
-         writeRank = self.writeRank,
+         cuts  = reducedCuts,  writeRank = self.writeRank,
+         comms = {host=self._splitComm, device=self._splitComm_dev,},
       }
       self.confBoundaryGrid = Grid.RectCart {
          lower      = reducedLower,     cells         = reducedNumCells,

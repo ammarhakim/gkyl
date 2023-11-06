@@ -216,7 +216,7 @@ local function test_ser_op_none_par()
    }
    local decompCutsPhase = {decompCuts[1], 1, 1} 
    local decompPhase = DecompRegionCalc.CartProd {
-      cuts = decompCutsPhase,  comm = confGrid:commSet().comm,
+      cuts = decompCutsPhase,  comm = confGrid:commSet().host,
    }
    local phaseGrid = Grid.RectCart {
       lower = phaseLower,  decomposition = decompPhase,

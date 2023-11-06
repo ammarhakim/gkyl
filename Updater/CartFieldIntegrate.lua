@@ -128,7 +128,7 @@ function CartFieldIntegrate:_advance(tCurr, inFld, outFld)
    -- All-reduce across processors.
    local messenger = self.onGrid:getMessenger()
    if messenger then
-      messenger:Allreduce(self.localVals:data(), self.globalVals:data(), nvals, "double", "sum", self.onGrid:commSet().comm)
+      messenger:Allreduce(self.localVals:data(), self.globalVals:data(), nvals, "double", "sum", self.onGrid:commSet().default)
    else
       for i = 1, nvals do self.globalVals[i] = self.localVals[i] end
    end
@@ -138,12 +138,12 @@ function CartFieldIntegrate:_advance(tCurr, inFld, outFld)
 end
 
 function CartFieldIntegrate:_advanceOnDevice(tCurr, inFld, outFld)
-   local field, multfac = inFld[1], inFld[2]
-   local dynVecOut      = outFld[1]
+   local field      = inFld[1]
+   local dynVecOut  = outFld[1]
 
    local multfac = inFld[2] or 1.
    local weight  = inFld[3] 
-   if weight then weight = weight._zero end
+   if weight then weight = weight._zeroDevice end
 
    local onRange = self.onGhosts and field:localExtRange() or field:localRange()
 
@@ -155,7 +155,7 @@ function CartFieldIntegrate:_advanceOnDevice(tCurr, inFld, outFld)
    -- All-reduce across processors.
    local messenger = self.onGrid:getMessenger()
    if messenger then
-      messenger:Allreduce(self.localVals, self.globalVals, nvals, "double", "sum", self.onGrid:commSet().comm)
+      messenger:Allreduce(self.localVals, self.globalVals, nvals, "double", "sum", self.onGrid:commSet().default)
    else
       local _ = cuda.Memcpy(self.globalVals, self.localVals, nvals*self.elmSz, cuda.MemcpyDeviceToDevice)
    end
