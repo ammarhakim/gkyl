@@ -135,7 +135,7 @@ function RectCart:init(tbl)
       -- In parallel, we need to adjust local range. 
       self._commSet         = self.decomp:commSet()
       self._decomposedRange = self.decomp:decompose(self._globalRange)
-      local subDomIdx       = getSubDomIndex(self._commSet.comm)
+      local subDomIdx       = getSubDomIndex(self._commSet.host)
       self._block           = subDomIdx
       local localRange      = self._decomposedRange:subDomain(subDomIdx)
       self._localRange:copy(localRange)

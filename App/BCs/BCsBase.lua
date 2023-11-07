@@ -7,12 +7,11 @@
 --------------------------------------------------------------------------------
 
 local Proto      = require "Lib.Proto"
-local Mpi        = require "Comm.Mpi"
 local CartDecomp = require "Lib.CartDecomp"
 local Grid       = require "Grid"
 local Range      = require "Lib.Range"
 local Lin        = require "Lib.Linalg"
-local Adios      = require "Io.Adios"
+local Mpi        = require "Comm.Mpi"
 
 -- Empty shell source base class.
 local BCsBase = Proto()
@@ -63,37 +62,43 @@ function BCsBase:createBoundaryGrid(ghostRange, ghostVec)
          table.insert(reducedUpperRng, self.grid:globalRange():upper(d))
       end
    end
-   local worldComm = self.grid:commSet().comm
-   local worldRank = Mpi.Comm_rank(worldComm)
-   local dirRank   = worldRank
+   local parentComm = self.grid:commSet().host
+   local parentRank = Mpi.Comm_rank(parentComm)
+   local dirRank   = parentRank
    local cuts      = {}
    for d=1,3 do cuts[d] = self.grid:cuts(d) or 1 end
    local writeRank = Mpi.PROC_NULL
    if self.bcDir == 1 then
-      dirRank = worldRank % (cuts[1]*cuts[2]) % cuts[1]
+      dirRank = parentRank % (cuts[1]*cuts[2]) % cuts[1]
    elseif self.bcDir == 2 then
-      dirRank = math.floor(worldRank/cuts[1]) % cuts[2]
+      dirRank = math.floor(parentRank/cuts[1]) % cuts[2]
    elseif self.bcDir == 3 then
-      dirRank = math.floor(worldRank/cuts[1]/cuts[2])
+      dirRank = math.floor(parentRank/cuts[1]/cuts[2])
    end
 
-   self._splitComm = Mpi.Comm_split(worldComm, dirRank, worldRank)
+   local msn = self.grid:getMessenger()
+   self._splitComm = Mpi.Comm_split(parentComm, dirRank, parentRank)
+   if GKYL_HAVE_CUDA then
+      self._splitComm_dev, self.ncclIdSplit = msn:newCommDevice(self._splitComm)
+   end
+
    -- Set up which ranks to write from.
    if (self.bcEdge == "lower" and dirRank == 0) or
       (self.bcEdge == "upper" and dirRank == self.grid:cuts(self.bcDir)-1) then
-      local worldGrp, splitGrp = Mpi.Comm_group(worldComm), Mpi.Comm_group(self._splitComm)
-      local worldRanks = Lin.IntVec(1);  worldRanks[1] = worldRank
-      writeRank = Mpi.Group_translate_ranks(worldGrp, worldRanks, splitGrp)[1]
+      local parentGrp, splitGrp = Mpi.Comm_group(parentComm), Mpi.Comm_group(self._splitComm)
+      local parentRanks = Lin.IntVec(1);  parentRanks[1] = parentRank
+      writeRank = Mpi.Group_translate_ranks(parentGrp, parentRanks, splitGrp)[1]
    end
    self.writeRank = writeRank
    local reducedDecomp = CartDecomp.CartProd {
-      comm      = self._splitComm,  cuts = reducedCuts,
-      writeRank = writeRank,
+      cuts  = reducedCuts,  writeRank = writeRank,
+      comms = {host=self._splitComm, device=self._splitComm_dev,},
    }
    self.boundaryGrid = Grid.RectCart {
       lower      = reducedLower,     cells         = reducedNumCells,
       upper      = reducedUpper,     decomposition = reducedDecomp,
       rangeLower = reducedLowerRng,  rangeUpper    = reducedUpperRng, 
+      messenger  = msn,
    }
 end
 function BCsBase:createConfBoundaryGrid(ghostRange, ghostVec)
@@ -123,13 +128,14 @@ function BCsBase:createConfBoundaryGrid(ghostRange, ghostVec)
          end
       end
       local reducedDecomp = CartDecomp.CartProd {
-         comm      = self._splitComm,  cuts = reducedCuts,
-         writeRank = self.writeRank,
+         cuts  = reducedCuts,  writeRank = self.writeRank,
+         comms = {host=self._splitComm, device=self._splitComm_dev,},
       }
       self.confBoundaryGrid = Grid.RectCart {
          lower      = reducedLower,     cells         = reducedNumCells,
          upper      = reducedUpper,     decomposition = reducedDecomp,
          rangeLower = reducedLowerRng,  rangeUpper    = reducedUpperRng, 
+         messenger  = self.grid:getMessenger(),
       }
    end
 end

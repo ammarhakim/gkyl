@@ -29,7 +29,7 @@ local FemParPoisson  = require "Updater.FemParPoisson"
 local DataStruct     = require "DataStruct"
 local Time           = require "Lib.Time"
 local Logger         = require "Lib.Logger"
-local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
+local CartFieldIntegrate = require "Updater.CartFieldIntegrate"
 local Mpi
 if GKYL_HAVE_MPI then Mpi = require "Comm.Mpi" end
 
@@ -342,11 +342,9 @@ function FemPerpPoisson:beginAssembly(tCurr, src)
       local tmStart = Time.clock()
       -- Integrate source.
       if self._first then
-         self.calcInt = CartFieldIntegratedQuantCalc {
+         self.calcInt = CartFieldIntegrate {
             onGrid        = grid,
             basis         = self._basis,
-            numComponents = 1,
-            quantity      = "V",
          }
       end
       self.calcInt:advance(0.0, {src}, {self.dynVec})

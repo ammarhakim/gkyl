@@ -400,9 +400,9 @@ local implementation = function()
    local _intL1 = Proto(DiagsImplBase)
    function _intL1:fullInit(diagApp, specIn, fieldIn, owner)
       self.field   = owner:allocIntMoment()
-      self.updater = Updater.CartFieldIntegratedQuantCalc {
+      self.updater = Updater.CartFieldIntegrate {
          onGrid = specIn.grid,   numComponents = 1,
-         basis  = specIn.basis,  quantity      = "AbsV",
+         basis  = specIn.basis,  operator      = "abs",
       }
       self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
       self.done = false
@@ -417,9 +417,9 @@ local implementation = function()
    local _intL2 = Proto(DiagsImplBase)
    function _intL2:fullInit(diagApp, specIn, fieldIn, owner)
       self.field   = owner:allocIntMoment()
-      self.updater = Updater.CartFieldIntegratedQuantCalc {
+      self.updater = Updater.CartFieldIntegrate {
          onGrid = specIn.grid,   numComponents = 1,
-         basis  = specIn.basis,  quantity      = "V2",
+         basis  = specIn.basis,  operator      = "sq",
       }
       self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
       self.done = false

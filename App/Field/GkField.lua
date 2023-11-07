@@ -789,19 +789,22 @@ end
 
 function GkField:createDiagnostics()
    -- Updaters for computing integrated quantities.
-   self.int2Calc = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = self.grid,   quantity = "V2",
-      basis  = self.basis,
+   self.intCalc = Updater.CartFieldIntegrate {
+      onGrid = self.grid,  basis = self.basis,
    }
-   self.intCalc = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = self.grid,   quantity = "V",
+   self.intSqCalc = Updater.CartFieldIntegrate {
+      onGrid = self.grid,   operator = "sq",
       basis  = self.basis,
    }
    if self.ndim == 1 then
       self.energyCalc = self.intCalc
-   elseif self.basis:polyOrder()==1 then -- GradPerpV2 only implemented for p=1 currently.
-      self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.grid,   quantity = "GradPerpV2",
+   else
+      self.gradPerpSqIntCalc = Updater.CartFieldIntegrate {
+         onGrid = self.grid,   operator = "gradperp_sq",
+         basis  = self.basis,
+      }
+      self.energyCalc = Updater.CartFieldIntegrate {
+         onGrid = self.grid,   operator = "eps_gradperp_sq",
          basis  = self.basis,
       }
    end
@@ -826,20 +829,21 @@ function GkField:createDiagnostics()
    self.calcPhiIntDiags =  (self.evolve and (not self.externalPhi))
    and function(tm, force)
           -- Compute integrated quantities over domain.
-          self.int2Calc:advance(tm, { self.potentials[1].phi }, { self.intPhiSq })
+          self.intSqCalc:advance(tm, { self.potentials[1].phi }, { self.intPhiSq })
           if self.energyCalc then 
              if self.ndim > 1 then
-                self.energyCalc:advance(tm, { self.potentials[1].phi, self.unitField }, { self.gradPerpPhiSq })
+--                self.energyCalc:advance(tm, { self.potentials[1].phi, self.unitField }, { self.gradPerpPhiSq })
+                self.gradPerpSqIntCalc:advance(tm, { self.potentials[1].phi }, { self.gradPerpPhiSq })
              end
              if self.linearizedPolarization then
                 if self.uniformPolarization then
                    if self.ndim == 1 then 
-                      self.weakMultiply:advance(0., {self.potentials[1].phiAux, self.potentials[1].phiAux},
+                      self.weakMultiply:advance(0., {self.potentials[1].phi, self.potentials[1].phi},
                                                 {self.phiSq})
                       self.weakMultiply:advance(0., {self.phiSq, self.esEnergyFac}, {self.phiSq})
                       self.energyCalc:advance(tm, { self.phiSq }, { self.esEnergy })
                    else
-                      self.energyCalc:advance(tm, { self.potentials[1].phiAux, self.esEnergyFac }, { self.esEnergy })
+                      self.energyCalc:advance(tm, { self.potentials[1].phi, 1., self.esEnergyFac }, { self.esEnergy })
                    end
    
                    if self.adiabatic and self.ndim > 1 then
@@ -871,40 +875,46 @@ function GkField:createDiagnostics()
        end
    or function(tm, force) end
    
-   self.calcAparGridDiags = (self.evolve and self.isElectromagnetic)
-   and function(tm, force) end
-   or function(tm, force) end
-   
-   self.writeAparGridDiags = (self.evolve and self.isElectromagnetic)
-   and (self.evolve and function(tm, force)
-          self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
-          self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
-        end or function(tm, force)
-           if self.ioFrame == 0 then
-              self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
-              self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
-           end
-        end)
-   or function(tm, force) end
-   
-   self.calcAparIntDiags = (self.evolve and self.isElectromagnetic)
-   and function(tm, force)
-          -- Compute integrated quantities over domain.
-          self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.aparSq })
-          if self.energyCalc then 
-             local emEnergyFac = .5/self.mu0
-             if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperpSq end
-             self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy })
-          end
-       end
-   or function(tm, force) end
-   
-   self.writeAparIntDiags = (self.evolve and self.isElectromagnetic)
-   and function(tm, force)
-          self.aparSq:write(string.format("aparSq.bp"), tm, self.ioFrame)
-          self.emEnergy:write(string.format("emEnergy.bp"), tm, self.ioFrame)
-       end
-   or function(tm, force) end
+   self.calcAparGridDiags  = function(tm, force) end
+   self.writeAparGridDiags = function(tm, force) end
+   self.calcAparIntDiags   = function(tm, force) end
+   self.writeAparIntDiags  = function(tm, force) end
+
+   if self.isElectromagnetic then
+      self.calcAparGridDiags = self.evolve
+         and function(tm, force) end
+         or function(tm, force) end
+      
+      self.writeAparGridDiags = self.evolve
+         and function(tm, force)
+                self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
+                self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
+             end
+         or function(tm, force)
+               if self.ioFrame == 0 then
+                  self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
+                  self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
+               end
+            end
+      
+      local emEnergyIntCalc = self.ndim == 1 and self.intSqCalc or self.gradPerpSqIntCalc
+      local emEnergyFac = .5/self.mu0
+      if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperpSq end
+      self.calcAparIntDiags = self.evolve
+         and function(tm, force)
+                -- Compute integrated quantities over domain.
+                self.intSqCalc:advance(tm, { self.potentials[1].apar }, { self.aparSq })
+                emEnergyIntCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy })
+             end
+         or function(tm, force) end
+      
+      self.writeAparIntDiags = self.evolve
+         and function(tm, force)
+                self.aparSq:write(string.format("aparSq.bp"), tm, self.ioFrame)
+                self.emEnergy:write(string.format("emEnergy.bp"), tm, self.ioFrame)
+             end
+         or function(tm, force) end
+   end
 
 end
 

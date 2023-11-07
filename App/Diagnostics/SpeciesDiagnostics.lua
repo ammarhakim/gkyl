@@ -130,7 +130,7 @@ function SpeciesDiagnostics:fullInit(mySpecies, field, diagOwner)
    end
 
    -- Organize diagnostics and identify dependencies.
-   local comm = mySpecies.confGrid:commSet().comm
+   local comm = mySpecies.confGrid:commSet().host
    orgDiagnostics(comm, diagsImpl, self.diags, self.diagGroups)
 
    -- Initialize diagnostics.

@@ -171,9 +171,9 @@ function test_femparproj_1x(nx, polyOrder)
 --   phiSmooth:write("phi-smooth-1d.bp", 0.0)
 --   err:write("error-1d.bp", 0.0)
 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt = Updater.CartFieldIntegrate {
       onGrid = grid,   numComponents = 1,
-      basis  = basis,  quantity      = "V2",
+      basis  = basis,  operator      = "sq",
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -282,9 +282,9 @@ function test_femparproj_3x(nx, ny, nz, polyOrder)
 --   phiSmooth:write("phi-smooth-3d.bp", 0.0)
 --   err:write("error-1d.bp", 0.0)
 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt = Updater.CartFieldIntegrate {
       onGrid = grid,   numComponents = 1,
-      basis  = basis,  quantity      = "V2",
+      basis  = basis,  operator      = "sq",
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -428,9 +428,9 @@ function test_femparproj_3x_zglobalOnly(nx, ny, nz, polyOrder)
 --   phiSmooth:write("phi-smooth-3d.bp", 0.0)
 --   err:write("error-1d.bp", 0.0)
 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt = Updater.CartFieldIntegrate {
       onGrid = grid,   numComponents = 1,
-      basis  = basis,  quantity      = "V2",
+      basis  = basis,  operator      = "sq",
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})

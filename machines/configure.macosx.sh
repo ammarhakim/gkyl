@@ -3,7 +3,7 @@
 # Build directory
 OUT=build
 # Install location
-GKYLSOFT=$HOME/Documents/gkeyll/code/g2adios/gkylsoft
+GKYLSOFT=$HOME/gkylsoft
 PREFIX=$GKYLSOFT/gkyl
 
 # Compile flags (set optimization/debug flags here)

@@ -43,7 +43,7 @@ function _M:init(tbl)
    -- Some updaters use the communicators to perform parallel operations.
    local onGrid = tbl.onGrid
    if onGrid then
-      self._comm = onGrid:commSet().comm
+      self._comm = onGrid:commSet().host
    end
 
    self.totalTime = 0.0  -- Time taken by the advance method.

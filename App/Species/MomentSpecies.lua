@@ -538,7 +538,7 @@ end
 
 function MomentSpecies:createDiagnostics()
    -- Create updater to compute volume-integrated moments.
-   self.intMom2Calc = Updater.CartFieldIntegratedQuantCalc {
+   self.intMom2Calc = Updater.CartFieldIntegrate {
       onGrid = self.grid,
       basis = self.basis,
       numComponents = self.nMoments,

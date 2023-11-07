@@ -135,7 +135,7 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
    end
 
    local grid     = field:grid()
-   local dataComm = grid:commSet().comm
+   local dataComm = Mpi.getComm(field:grid():commSet().host)
 
    self.ad_io = self.ad_io or Adios.declare_io(GKYL_ADIOS2_MPI, fName)
 
@@ -284,7 +284,7 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
    end
 
    local grid = field:grid()
-   local comm = grid:commSet().comm
+   local comm = Mpi.getComm(field:grid():commSet().host)
 
    self.ad_io = self.ad_io or Adios.declare_io(GKYL_ADIOS2_MPI, fName)
 
