@@ -155,8 +155,7 @@ function Bc:init(tbl)
       end
       local commSet   = self._grid:commSet()
       local worldComm = commSet.comm
-      local nodeComm  = commSet.nodeComm
-      local nodeRank  = Mpi.Comm_rank(nodeComm)
+      local nodeRank  = Mpi.Comm_rank(worldComm)
       local dirRank   = nodeRank
       local cuts      = {}
       for d=1,3 do cuts[d] = self._grid:cuts(d) or 1 end

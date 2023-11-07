@@ -62,7 +62,7 @@ sim = Plasma.App {
             return T_e
          end,
          driftSpeed = function (t, xn)
-            return {vd_e}
+            return vd_e
          end
       },
       evolve = true, -- Evolve species?
@@ -86,7 +86,7 @@ sim = Plasma.App {
             return T_i
          end,
          driftSpeed = function (t, xn)
-            return {vd_i}
+            return vd_i
          end
       },
       evolve = true, -- Evolve species?

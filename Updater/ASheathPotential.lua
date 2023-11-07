@@ -136,7 +136,7 @@ function ASheathPotential:init(tbl)
    if GKYL_HAVE_MPI then
       -- Need a communicator to broadcast the sheath potential and density along z.
       local commSet   = grid:commSet()
-      local worldComm = commSet.comm
+      local worldComm = commSet.host
       if Mpi.Comm_size(worldComm) > 1 then
          local worldRank = Mpi.Comm_rank(worldComm)
          local zCommRank = 0

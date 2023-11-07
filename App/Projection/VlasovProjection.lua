@@ -33,7 +33,7 @@ function VlasovProjection:fullInit(mySpecies)
    self.scaleWithSourcePower = xsys.pickBool(self.tbl.scaleWithSourcePower, false)
 end
 
-function VlasovProjection:fullInit(mySpecies)
+function VlasovProjection:createSolver(mySpecies)
    self.phaseBasis = mySpecies.basis
    self.phaseGrid  = mySpecies.grid
    self.confBasis  = mySpecies.confBasis

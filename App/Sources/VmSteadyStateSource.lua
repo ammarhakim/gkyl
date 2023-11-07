@@ -57,11 +57,8 @@ function VmSteadyStateSource:createSolver(mySpecies, extField)
    end
 
    if self.power then
-      local calcInt = Updater.CartFieldIntegratedQuantCalc {
-         onGrid        = self.confGrid,
-         basis         = self.confBasis,
-         numComponents = 1,
-         quantity      = "V",
+      local calcInt = Updater.CartFieldIntegrate {
+         onGrid = self.confGrid,  basis = self.confBasis,
       }
       local intKE = DataStruct.DynVector{numComponents = 1}
       mySpecies.ptclEnergyCalc:advance(0.0, {self.fSource}, {mySpecies.ptclEnergyAux})

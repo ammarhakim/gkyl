@@ -68,13 +68,13 @@ local function distFmoment(fIn,momOut,grid,pBasis,cBasis,mom)
    return momUp
 end
 
-local function intQuantCalc(grid,basis,quant,vComp) 
+local function intQuantCalc(grid,basis,op,vComp) 
    vComp = vComp or 1
-   local intQuant = Updater.CartFieldIntegratedQuantCalc {
+   local intQuant = Updater.CartFieldIntegrate {
       onGrid        = grid,
       basis         = basis,
       numComponents = vComp,
-      quantity      = quant,
+      operator      = op,
    }
    return intQuant
 end
@@ -124,11 +124,11 @@ local function test_one(pOrder, basis)
    local calcNumDensity = distFmoment(distf,numDensity,phaseGrid,phaseBasis,confBasis,"M0")
    calcNumDensity:advance(0.0, {distf}, {numDensity})
 
-   -- Compute integrated f and integrated moment with CartFieldIntegratedQuantCalc.
+   -- Compute integrated f and integrated moment with CartFieldIntegrate.
    local intF  = DataStruct.DynVector {numComponents = 1,}
    local intM0 = DataStruct.DynVector {numComponents = 1,}
-   local intQuantP = intQuantCalc(phaseGrid,phaseBasis,"V")
-   local intQuantC = intQuantCalc(confGrid,confBasis,"V")
+   local intQuantP = intQuantCalc(phaseGrid,phaseBasis,"none")
+   local intQuantC = intQuantCalc(confGrid,confBasis,"none")
    intQuantP:advance(0.0, {distf}, {intF})
    intQuantC:advance(0.0, {numDensity}, {intM0})
    local _, NP = intF:lastData()
@@ -204,9 +204,9 @@ local function test_x2v1(pOrder, basis)
    local calcMomDensity = distFmoment(distf,momDensity,phaseGrid,phaseBasis,confBasis,"M1i")
    calcMomDensity:advance(0.0, {distf}, {momDensity})
 
-   -- Compute integrated M1_1 moment with CartFieldIntegratedQuantCalc.
+   -- Compute integrated M1_1 moment with CartFieldIntegrate.
    local intM1_1   = DataStruct.DynVector {numComponents = vDim,}
-   local intQuantC = intQuantCalc(confGrid,confBasis,"V",vDim)
+   local intQuantC = intQuantCalc(confGrid,confBasis,"none",vDim)
    intQuantC:advance(0.0, {momDensity}, {intM1_1})
    local _, intM1  = intM1_1:lastData()
 
@@ -254,9 +254,9 @@ local function test_x3v2(pOrder, basis)
    local calcMomDensity = distFmoment(distf,momDensity,phaseGrid,phaseBasis,confBasis,"M1i")
    calcMomDensity:advance(0.0, {distf}, {momDensity})
 
-   -- Compute integrated M1_1 moment with CartFieldIntegratedQuantCalc.
+   -- Compute integrated M1_1 moment with CartFieldIntegrate.
    local intM1_1   = DataStruct.DynVector {numComponents = vDim,}
-   local intQuantC = intQuantCalc(confGrid,confBasis,"V",vDim)
+   local intQuantC = intQuantCalc(confGrid,confBasis,"none",vDim)
    intQuantC:advance(0.0, {momDensity}, {intM1_1})
    local _, intM1  = intM1_1:lastData()
 
@@ -305,9 +305,9 @@ local function test_x4v3(pOrder, basis)
    local calcMomDensity = distFmoment(distf,momDensity,phaseGrid,phaseBasis,confBasis,"M1i")
    calcMomDensity:advance(0.0, {distf}, {momDensity})
 
-   -- Compute integrated M1_1 moment with CartFieldIntegratedQuantCalc.
+   -- Compute integrated M1_1 moment with CartFieldIntegrate.
    local intM1_1   = DataStruct.DynVector {numComponents = vDim,}
-   local intQuantC = intQuantCalc(confGrid,confBasis,"V",vDim)
+   local intQuantC = intQuantCalc(confGrid,confBasis,"none",vDim)
    intQuantC:advance(0.0, {momDensity}, {intM1_1})
    local _, intM1  = intM1_1:lastData()
 
@@ -359,9 +359,9 @@ local function test_x5v3(pOrder, basis)
    local calcMomDensity = distFmoment(distf,momDensity,phaseGrid,phaseBasis,confBasis,"M1i")
    calcMomDensity:advance(0.0, {distf}, {momDensity})
 
-   -- Compute integrated M1_1 moment with CartFieldIntegratedQuantCalc.
+   -- Compute integrated M1_1 moment with CartFieldIntegrate.
    local intM1_1   = DataStruct.DynVector {numComponents = vDim,}
-   local intQuantC = intQuantCalc(confGrid,confBasis,"V",vDim)
+   local intQuantC = intQuantCalc(confGrid,confBasis,"none",vDim)
    intQuantC:advance(0.0, {momDensity}, {intM1_1})
    local _, intM1  = intM1_1:lastData()
 
@@ -768,9 +768,9 @@ local function test_v1SqvSq(pOrder, basis)
    local calcEnergyDensity = distFmoment(distf,energyDensity,phaseGrid,phaseBasis,confBasis,"M2")
    calcEnergyDensity:advance(0.0, {distf}, {energyDensity})
 
-   -- Compute integrated f and integrated moment with CartFieldIntegratedQuantCalc.
+   -- Compute integrated f and integrated moment with CartFieldIntegrate.
    local intM2     = DataStruct.DynVector {numComponents = 1,}
-   local intQuantC = intQuantCalc(confGrid,confBasis,"V")
+   local intQuantC = intQuantCalc(confGrid,confBasis,"none")
    intQuantC:advance(0.0, {energyDensity}, {intM2})
    local _, NC     = intM2:lastData()
 
