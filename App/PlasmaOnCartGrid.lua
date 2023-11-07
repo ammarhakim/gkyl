@@ -219,6 +219,7 @@ local function buildApplication(self, tbl)
 
    -- Setup each species.
    for _, s in population.iterGlobal() do
+      print(s.name)
       -- Set up conf grid and basis.
       s:setConfGrid(confGrid)
       s:setConfBasis(confBasis)
@@ -925,7 +926,8 @@ return {
 	 MaxwellianProjection = require ("App.Projection.GkProjection").MaxwellianProjection,
 	 Species = require "App.Species.GkSpecies",
 	 Source = require "App.Sources.GkSource",
-	 Vlasov = require ("App.Species.VlasovSpecies"),
+	 --Vlasov = require ("App.Species.VlasovSpecies"),
+	 Vlasov = require ("App.Species.VlasovSpecies").VlasovNeutral,
 	 VmMaxwellianProjection = require ("App.Projection.VlasovProjection").MaxwellianProjection,
 	 VmSource = require "App.Sources.VmSource",
       }

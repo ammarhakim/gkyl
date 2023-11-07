@@ -160,21 +160,11 @@ function GkIonization:createSolver(mySpecies, externalField)
    self.b_i = externalField.geo.b_i
 
    -- Reaction rate to be used for diagnostics
-   self.reactRate = DataStruct.Field {
-      onGrid        = self.confGrid,
-      numComponents = self.confBasis:numBasis(),
-      ghost         = {1, 1},
-      metaData      = { polyOrder = self.confBasis:polyOrder(),
-                        basisType = self.confBasis:id() },
-   }
-   self.ionizSrc = DataStruct.Field {
-      onGrid        = self.phaseGrid,
-      numComponents = self.phaseBasis:numBasis(),
-      ghost         = {1, 1},
-      metaData      = { polyOrder = self.phaseBasis:polyOrder(),
-                        basisType = self.phaseBasis:id() },
-   }
+   self.reactRate = mySpecies:allocMoment()
 
+   -- Ionization source term
+   self.ionizSrc = mySpecies:allocDistf()
+   
    -- Get conf and phase range
    self.confRange = self.bmag:localRange()
    self.phaseRange = self.ionizSrc:localRange()
@@ -197,15 +187,17 @@ function GkIonization:advance(tCurr, fIn, population, out)
 
    local fRhsOut = out[1]
    local cflRateByCell = out[2]
-
+   
+   self.ionizSrc:clear(0.0)
    self.collisionSlvr:advance(tCurr, {momsElc, momsDonor, self.bmag, self.jacobTot, self.b_i, fIn},
    			      {self.ionizSrc, cflRateByCell})
+   species[self.speciesName].distIo:write(self.ionizSrc,string.format("%s_izSrc_%d.bp", self.speciesName, species[self.speciesName].diagIoFrame))
 
    fRhsOut:accumulate(1.0,self.ionizSrc)
 
    self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 end
-   
+
 function GkIonization:write(tm, frame) end
 
 function GkIonization:setCfl(cfl)
