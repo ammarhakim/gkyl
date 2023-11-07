@@ -145,10 +145,9 @@ end
 
 -- Methods for EM field object.
 function GkField:hasEB() return true, self.isElectromagnetic end
-function GkField:setGrid(grid, myadios)
-   self.grid    = grid
-   self.myadios = myadios
-   self.ndim    = self.grid:ndim()
+function GkField:setGrid(grid)
+   self.grid = grid
+   self.ndim = self.grid:ndim()
 
    local keepDims = {};  for i = 1, self.ndim do keepDims[i] = i end
    local gridInfo = grid:childGrid(keepDims)
@@ -250,12 +249,12 @@ function GkField:alloc(nRkDup)
    self.esEnergyFac = createField(self.grid,self.basis,{1,1})
 
    -- For storing integrated energies.
-   self.intPhiSq          = DataStruct.DynVector { numComponents = 1, ioSystem = self.myadios, }
-   self.esEnergyAdiabatic = DataStruct.DynVector { numComponents = 1, ioSystem = self.myadios, }
-   self.gradPerpPhiSq     = DataStruct.DynVector { numComponents = 1, ioSystem = self.myadios, }
-   self.aparSq            = DataStruct.DynVector { numComponents = 1, ioSystem = self.myadios, }
-   self.esEnergy          = DataStruct.DynVector { numComponents = 1, ioSystem = self.myadios, }
-   self.emEnergy          = DataStruct.DynVector { numComponents = 1, ioSystem = self.myadios, }
+   self.intPhiSq          = DataStruct.DynVector { numComponents = 1, }
+   self.esEnergyAdiabatic = DataStruct.DynVector { numComponents = 1, }
+   self.gradPerpPhiSq     = DataStruct.DynVector { numComponents = 1, }
+   self.aparSq            = DataStruct.DynVector { numComponents = 1, }
+   self.esEnergy          = DataStruct.DynVector { numComponents = 1, }
+   self.emEnergy          = DataStruct.DynVector { numComponents = 1, }
 end
 
 -- Solve for initial fields self-consistently 
@@ -1070,10 +1069,9 @@ function GkGeometry:fullInit(appTbl)
    self.timers = {advance = 0.,   bc = 0.}
 end
 
-function GkGeometry:setGrid(grid, myadios)
-   self.grid    = grid
-   self.myadios = myadios
-   self.ndim    = self.grid:ndim()
+function GkGeometry:setGrid(grid)
+   self.grid = grid
+   self.ndim = self.grid:ndim()
 end
 
 function GkGeometry:alloc()

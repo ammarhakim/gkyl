@@ -302,9 +302,8 @@ function VlasovSpecies:setConfBasis(basis)
    for _, src in lume.orderedIter(self.sources) do src:setConfBasis(basis) end
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:setConfBasis(basis) end
 end
-function VlasovSpecies:setConfGrid(grid, myadios)
+function VlasovSpecies:setConfGrid(grid)
    self.confGrid = grid
-   self.myadios  = myadios
 
    for _, c in lume.orderedIter(self.collisions) do c:setConfGrid(grid) end
    for _, src in lume.orderedIter(self.sources) do src:setConfGrid(grid) end
@@ -373,7 +372,7 @@ function VlasovSpecies:createGrid(confGridIn)
       lower     = lower,  periodicDirs  = confGrid:getPeriodicDirs(),
       upper     = upper,  decomposition = self.decomp,
       cells     = cells,  mappings      = coordinateMap,
-      messenger = confGrid:getMessenger(),  ioSystem = self.myadios,
+      messenger = confGrid:getMessenger(),
    }
 
    for _, c in lume.orderedIter(self.collisions) do c:setPhaseGrid(self.grid) end
@@ -439,7 +438,7 @@ end
 function VlasovSpecies:allocIntMoment(comp)
    local metaData = {charge = self.charge,  mass = self.mass,}
    local ncomp = comp or 1
-   local f = DataStruct.DynVector {numComponents = ncomp,     writeRank = 0,  ioSystem = self.myadios,
+   local f = DataStruct.DynVector {numComponents = ncomp,     writeRank = 0,
                                    metaData      = metaData,  comm      = self.confGrid:commSet().comm,}
    return f
 end

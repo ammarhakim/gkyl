@@ -30,6 +30,10 @@ local ffi              = require "ffi"
 
 math = require("sci.math").generic -- this is global so that it affects input file
 
+-- Adios object for I/O. Declared as global so objects can use it without
+-- having to pass it through every function as an argument.
+GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(Mpi.COMM_WORLD)
+
 -- App loads (do not load specific app objects here, but only things
 -- needed to run the App itself. Specific objects should be loaded in
 -- the  methods defined at the bottom of this file)
@@ -113,9 +117,6 @@ local function buildApplication(self, tbl)
    -- Create basis function for configuration space.
    local confBasis = createBasis(basisNm, cdim, polyOrder)
 
-   -- Adios object for I/O
-   local myadios = Adios.init_mpi(Mpi.COMM_WORLD)
-
    -- Optional wallclock time allotted for this simulation.
    local maxWallTime = tbl.maxWallTime and tbl.maxWallTime or GKYL_MAX_DOUBLE
 
@@ -145,7 +146,7 @@ local function buildApplication(self, tbl)
    local cflFrac = tbl.cflFrac or timeStepper.cflFrac   -- CFL fraction.
 
    -- Tracker for timestep
-   local dtTracker = DataStruct.DynVector { numComponents = 1, ioSystem = myadios}
+   local dtTracker = DataStruct.DynVector { numComponents = 1}
    local dtPtr = Lin.Vec(1)
 
    -- Used in reducing time step across species communicator.
@@ -186,8 +187,8 @@ local function buildApplication(self, tbl)
       lower = tbl.lower,  decomposition = commManager:getConfDecomp(),
       upper = tbl.upper,  mappings      = tbl.coordinateMap,
       cells = tbl.cells,  mapc2p        = tbl.mapc2p,
-      periodicDirs = periodicDirs,  world    = tbl.world, 
-      messenger    = commManager,   ioSystem = myadios,
+      periodicDirs = periodicDirs,  world = tbl.world, 
+      messenger    = commManager,
    }
    -- Read in information about each species.
    local population = PopApp{ messenger = commManager }
@@ -217,7 +218,7 @@ local function buildApplication(self, tbl)
    -- Setup each species.
    for _, s in population.iterGlobal() do
       -- Set up conf grid and basis.
-      s:setConfGrid(confGrid, myadios)
+      s:setConfGrid(confGrid)
       s:setConfBasis(confBasis)
       -- Set up phase grid and basis.
       s:createGrid(confGrid)
@@ -241,7 +242,7 @@ local function buildApplication(self, tbl)
    local function completeFieldSetup(fld, plasmaField)
       fld:fullInit(tbl, plasmaField) -- Complete initialization.
       fld:setBasis(confBasis)
-      fld:setGrid(confGrid, myadios)
+      fld:setGrid(confGrid)
       do
 	 local myCfl = tbl.cfl and tbl.cfl or cflFrac
 	 if fld.isElliptic then
@@ -842,7 +843,7 @@ local function buildApplication(self, tbl)
       -- Perform other numerical/performance diagnostics.
       devDiagnose()
 
-      Adios.finalize(myadios)
+      if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end
 
       if file_exists(stopfile) then os.remove(stopfile) end -- Clean up.
    end

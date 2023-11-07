@@ -220,10 +220,9 @@ function FluidSpecies:setConfBasis(basis)
    for _, src in pairs(self.sources) do src:setConfBasis(basis) end
    for _, bc in pairs(self.nonPeriodicBCs) do bc:setConfBasis(basis) end
 end
-function FluidSpecies:setConfGrid(grid, myadios)
-   self.grid    = grid
-   self.myadios = myadios
-   self.ndim    = self.grid:ndim()
+function FluidSpecies:setConfGrid(grid)
+   self.grid = grid
+   self.ndim = self.grid:ndim()
    for _, c in pairs(self.collisions) do c:setConfGrid(grid) end
    for _, src in pairs(self.sources) do src:setConfGrid(grid) end
    for _, bc in pairs(self.nonPeriodicBCs) do bc:setConfGrid(grid) end

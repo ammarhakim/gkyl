@@ -188,10 +188,8 @@ end
 function MaxwellField:hasEB() return true, self.hasMagField end
 function MaxwellField:setCfl(cfl) self.cfl = cfl end
 function MaxwellField:getCfl() return self.cfl end
-function MaxwellField:setGrid(grid, myadios)
-   self.grid    = grid
-   self.myadios = myadios
-
+function MaxwellField:setGrid(grid)
+   self.grid = grid
    self.ndim = self.grid:ndim()
 
    local keepDims = {};  for i = 1, self.ndim do keepDims[i] = i end
@@ -298,7 +296,7 @@ function MaxwellField:alloc(nRkDup)
       self.dtGlobal    = ffi.new("double[2]")
       
       -- For storing integrated energy components.
-      self.emEnergy = DataStruct.DynVector { numComponents = 8, ioSystem = self.myadios, }
+      self.emEnergy = DataStruct.DynVector { numComponents = 8, }
 
    else   -- Poisson equation.
       -- Electrostatic potential, phi, and external magnetic potential A_ext (computed by ExternalField).
@@ -311,7 +309,7 @@ function MaxwellField:alloc(nRkDup)
       self.globalSol    = createField(self.gridGlobal, self.basis, {1,1}, self.basis:numBasis())
    
       -- For storing integrated energy components.
-      self.emEnergy = DataStruct.DynVector { numComponents = self.grid:ndim(), ioSystem = self.myadios, }
+      self.emEnergy = DataStruct.DynVector { numComponents = self.grid:ndim(), }
    end
 end
 
@@ -754,10 +752,7 @@ function ExternalMaxwellField:fullInit(appTbl, plasmaField)
 end
 
 function ExternalMaxwellField:hasEB() return true, self.hasMagField end
-function ExternalMaxwellField:setGrid(grid, myadios)
-   self.grid    = grid
-   self.myadios = myadios
-end
+function ExternalMaxwellField:setGrid(grid) self.grid = grid end
 
 function ExternalMaxwellField:alloc(nField)
    local ghostNum = {1,1}

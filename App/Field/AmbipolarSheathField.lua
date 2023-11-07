@@ -58,10 +58,9 @@ end
 
 function AmbipolarSheathField:hasEB() return true, false end
 
-function AmbipolarSheathField:setGrid(grid, myadios)
-   self.grid    = grid
-   self.myadios = myadios
-   self.ndim    = self.grid:ndim()
+function AmbipolarSheathField:setGrid(grid)
+   self.grid = grid
+   self.ndim = self.grid:ndim()
 end
 
 local function createField(grid, basis, ghostCells, vComp, periodicSync, useDevice)
@@ -97,7 +96,7 @@ function AmbipolarSheathField:alloc(nRkDup)
    end
 
    -- For storing integrated energies.
-   self.intPhiSq = DataStruct.DynVector { numComponents = 1, ioSystem = self.myadios, }
+   self.intPhiSq = DataStruct.DynVector { numComponents = 1, }
 end
 
 -- Solve for initial fields self-consistently

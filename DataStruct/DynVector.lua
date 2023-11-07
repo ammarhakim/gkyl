@@ -58,10 +58,10 @@ function DynVector:init(tbl)
    self.flushed = false
 
    -- Adios object for I/O.
-   if tbl.ioSystem then
+   if GKYL_ADIOS2_MPI then
       self.adiosIo = AdiosDynVectorIo {
-        ioSystem  = tbl.ioSystem,   comm     = tbl.comm,
-        writeRank = tbl.writeRank,  metaData = tbl.metaData,      
+        writeRank = tbl.writeRank,  comm = tbl.comm,
+        metaData  = tbl.metaData,      
       }
    end
 
@@ -196,7 +196,7 @@ function DynVector:numComponents() return self._numComponents end
 
 -- Returns time-stamp and frame number.
 function DynVector:read(fName)
-   assert(self.adiosIo, "DataStruct.DynVector: must specify 'ioSystem' in order to do I/O.")
+   assert(self.adiosIo, "DataStruct.DynVector: 'GKYL_ADIOS2_MPI' must be defined in order to do I/O.")
    self.adiosIo:read(self, fName)
 end
 
@@ -222,7 +222,7 @@ end
 function DynVector:timeMesh() return self._timeMesh end
 
 function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
-   assert(self.adiosIo, "DataStruct.DynVector: must specify 'ioSystem' in order to do I/O.")
+   assert(self.adiosIo, "DataStruct.DynVector: 'GKYL_ADIOS2_MPI' must be defined in order to do I/O.")
    local flushData = xsys.pickBool(flushData, true)  -- Default flush data on write.
 
    if appendData and (frNum and frNum>=0) then 

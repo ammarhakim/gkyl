@@ -19,12 +19,10 @@ function _M.createBoundaryTools(mySpecies, field, externalField, bcApp)
    local localGhostRange = self.bcEdge=="lower" and distf:localGhostRangeLower()[self.bcDir]
                                                  or distf:localGhostRangeUpper()[self.bcDir]
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
-   self:createBoundaryGrid(localGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec(),
-                           mySpecies.myadios)
+   self:createBoundaryGrid(localGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
 
    -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
-   self:createConfBoundaryGrid(localGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec(),
-                               mySpecies.myadios)
+   self:createConfBoundaryGrid(localGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
 
    -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
    self.allocCartField = function(self, grid, nComp, ghosts, metaData, syncPeriodic)
@@ -51,8 +49,7 @@ function _M.createBoundaryTools(mySpecies, field, externalField, bcApp)
       local ncomp = comp or 1
       local gridWriteRank = self.confBoundaryGrid:commSet().writeRank
       local f = DataStruct.DynVector{numComponents = ncomp,     writeRank = gridWriteRank<0 and gridWriteRank or 0,
-                                     metaData      = metaData,  comm      = self.confBoundaryGrid:commSet().comm,
-                                     ioSystem      = mySpecies.myadios,}
+                                     metaData      = metaData,  comm      = self.confBoundaryGrid:commSet().comm,}
       return f
    end
 

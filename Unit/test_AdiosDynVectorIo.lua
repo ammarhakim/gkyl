@@ -27,10 +27,10 @@ end
 
 function test_1w(comm)
    -- Test writing a single DynVector in one file.
-   local ad = Adios.init_mpi(comm)
+   GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(comm)
 
    local dynVec = DataStruct.DynVector {
-      numComponents = 2,  ioSystem = ad,
+      numComponents = 2,
       metaData      = {testNumber = 2}
    }
    assert_equal(dynVec:numComponents(), 2, "test_1w: Testing number of components")
@@ -41,15 +41,15 @@ function test_1w(comm)
    assert_equal(5, dynVec:size(), "test_1w: Checking size")
    dynVec:write("test_1w_0.bp", 1.5, "")  -- The "" here is so the variables in the file don't have 0 in the name.
 
-   Adios.finalize(ad)
+   if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end
 end
 
 function test_1r(comm)
    -- Test reading a single DynVector in one file.
-   local ad = Adios.init_mpi(comm)
+   GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(comm)
 
    local dynVec = DataStruct.DynVector {
-      numComponents = 2,  ioSystem = ad,
+      numComponents = 2,
       metaData      = {testNumber = 2}
    }
    assert_equal(dynVec:numComponents(), 2, "test_1w: Testing number of components")
@@ -71,15 +71,15 @@ function test_1r(comm)
       assert_equal(2.5*i^2+0.5, v[2], "test_1r: Checking contents[2]")
    end
 
-   Adios.finalize(ad)
+   if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end
 end
 
 function test_2w(comm)
    -- Test writing two separate DynVectors in two separate files.
-   local ad = Adios.init_mpi(comm)
+   GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(comm)
 
    local dynVecA = DataStruct.DynVector {
-      numComponents = 2,  ioSystem = ad,
+      numComponents = 2,
       metaData      = {testNumber = 2}
    }
    assert_equal(dynVecA:numComponents(), 2, "test_2w: Testing number of components")
@@ -91,7 +91,7 @@ function test_2w(comm)
    dynVecA:write("test_2w_0.bp", 1.5, 0)
 
    local dynVecB = DataStruct.DynVector {
-      numComponents = 3,  ioSystem = ad,
+      numComponents = 3,
       metaData      = {testNumber = 2}
    }
    for i = 6, 11 do
@@ -100,15 +100,15 @@ function test_2w(comm)
    assert_equal(6, dynVecB:size(), "test_2w: Checking size")
    dynVecB:write("test_2w_1.bp", 1.5, 1)
 
-   Adios.finalize(ad)
+   if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end
 end
 
 function test_2r(comm)
    -- Test reading two separate DynVectors from two separate files.
-   local ad = Adios.init_mpi(comm)
+   GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(comm)
 
    local dynVecA = DataStruct.DynVector {
-      numComponents = 2,  ioSystem = ad,
+      numComponents = 2,
       metaData      = {testNumber = 2}
    }
 
@@ -131,7 +131,7 @@ function test_2r(comm)
 
    -- Now read and check the other DynVector.
    local dynVecB = DataStruct.DynVector {
-      numComponents = 3,  ioSystem = ad,
+      numComponents = 3,
       metaData      = {testNumber = 2}
    }
 
@@ -153,15 +153,15 @@ function test_2r(comm)
       assert_equal(2.5*(i+5)^2+0.5, v[3], "test_2r: Checking B contents[3]")
    end
 
-   Adios.finalize(ad)
+   if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end
 end
 
 function test_3w(comm)
    -- Test writing a DynVector to the same file multiple times.
-   local ad = Adios.init_mpi(comm)
+   GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(comm)
 
    local dynVec = DataStruct.DynVector {
-      numComponents = 2,  ioSystem = ad,
+      numComponents = 2,
       metaData      = {testNumber = 2}
    }
    assert_equal(dynVec:numComponents(), 2, "test_3w: Testing number of components")
@@ -184,15 +184,15 @@ function test_3w(comm)
    assert_equal(3, dynVec:size(), "test_3w: Checking size")
    dynVec:write("test_3w_0.bp", 4.5, 2)  -- The "" here is so the variables in the file don't have 0 in the name.
 
-   Adios.finalize(ad)
+   if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end
 end
 
 function test_3r(comm)
    -- Test reading a single DynVector written to one file multiple times.
-   local ad = Adios.init_mpi(comm)
+   GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(comm)
 
    local dynVec = DataStruct.DynVector {
-      numComponents = 2,  ioSystem = ad,
+      numComponents = 2,
       metaData      = {testNumber = 2}
    }
 
@@ -221,7 +221,7 @@ function test_3r(comm)
       end
    end
 
-   Adios.finalize(ad)
+   if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end
 end
 
 function allReduceOneInt(localv)

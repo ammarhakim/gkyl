@@ -40,7 +40,7 @@ end
 function BCsBase:initCrossSpeciesCoupling(species) end
 function BCsBase:createSolver(thisSpecies, extField) end
 function BCsBase:createCouplingSolver(species, field, externalField) end
-function BCsBase:createBoundaryGrid(ghostRange, ghostVec, myadios)
+function BCsBase:createBoundaryGrid(ghostRange, ghostVec)
    -- Create a ghost boundary grid with only one cell in the direction of the BC.
    local reducedLower, reducedUpper, reducedNumCells, reducedCuts = {}, {}, {}, {}
    local reducedLowerRng, reducedUpperRng = {}, {}
@@ -94,10 +94,9 @@ function BCsBase:createBoundaryGrid(ghostRange, ghostVec, myadios)
       lower      = reducedLower,     cells         = reducedNumCells,
       upper      = reducedUpper,     decomposition = reducedDecomp,
       rangeLower = reducedLowerRng,  rangeUpper    = reducedUpperRng, 
-      ioSystem   = myadios,
    }
 end
-function BCsBase:createConfBoundaryGrid(ghostRange, ghostVec, myadios)
+function BCsBase:createConfBoundaryGrid(ghostRange, ghostVec)
    -- Create reduced boundary config-space grid with 1 cell in dimension of self._dir.
    if self.cdim == self.grid:ndim() then
       self.confBoundaryGrid = self.boundaryGrid
@@ -131,7 +130,6 @@ function BCsBase:createConfBoundaryGrid(ghostRange, ghostVec, myadios)
          lower      = reducedLower,     cells         = reducedNumCells,
          upper      = reducedUpper,     decomposition = reducedDecomp,
          rangeLower = reducedLowerRng,  rangeUpper    = reducedUpperRng, 
-         ioSystem   = myadios,
       }
    end
 end

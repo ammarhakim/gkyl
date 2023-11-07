@@ -288,7 +288,7 @@ function MappedCart:getNodalCoords()
    end
    -- Create a grid of nodes.
    local grid = RectCart {
-      lower = lower,  cells = cells,  ioSystem = self:ioSystem(),
+      lower = lower,  cells = cells,
       upper = upper,  decomposition = self.decomp,
    }
    local nodalCoords = DataStruct.Field {

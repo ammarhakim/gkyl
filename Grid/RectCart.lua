@@ -155,12 +155,9 @@ function RectCart:init(tbl)
       self._block = 1
       self._cuts  = cuts
    end
-
-   self.ioSys = tbl.ioSystem
 end
 
 -- Member functions.
-function RectCart:ioSystem() return self.ioSys end
 function RectCart:id() return "uniform" end
 function RectCart:getMessenger() return self._messenger end
 function RectCart:commSet() return self._commSet end 

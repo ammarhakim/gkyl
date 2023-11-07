@@ -68,8 +68,7 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
    local globalGhostRange = self.bcEdge=="lower" and distf:localGhostRangeLower()[self.bcDir]
                                                   or distf:localGhostRangeUpper()[self.bcDir]
-   self:createBoundaryGrid(globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec(),
-                           mySpecies.myadios)
+   self:createBoundaryGrid(globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
 
 
    -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
@@ -129,8 +128,7 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
                                                       or distf:localGlobalGhostRangeIntersectUpper()[self.bcDir]
 
       -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
-      self:createConfBoundaryGrid(globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec(),
-                                  mySpecies.myadios)
+      self:createConfBoundaryGrid(globalGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
 
       self.allocMoment = function(self)
          return self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(), {0,0}, numDensity:getMetaData())
@@ -146,8 +144,7 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
          local ncomp = comp or 1
          local gridWriteRank = self.confBoundaryGrid:commSet().writeRank
          local f = DataStruct.DynVector{numComponents = ncomp,     writeRank = gridWriteRank<0 and gridWriteRank or 0,
-                                        metaData      = metaData,  comm      = self.confBoundaryGrid:commSet().comm,
-                                        ioSystem      = mySpecies.myadios,}
+                                        metaData      = metaData,  comm      = self.confBoundaryGrid:commSet().comm,}
          return f
       end
 

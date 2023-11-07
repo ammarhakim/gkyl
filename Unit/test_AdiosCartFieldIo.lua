@@ -35,12 +35,12 @@ function test_1w(comm)
       return
    end
 
-   local ad = Adios.init_mpi(comm)
+   GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(comm)
 
    -- Different grids need a different Adios IO object.
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},  cells = {10, 10},
-      upper = {1.0, 1.0},  ioSystem = ad,
+      upper = {1.0, 1.0},
    }
    local field = DataStruct.Field {
       onGrid = grid,  numComponents = 1,
@@ -66,7 +66,7 @@ function test_1w(comm)
 
    adiosIo:write({field=field,auxField=auxField}, "twoFields.bp", 3.2, 43)
 
-   Adios.finalize(ad)
+   if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end
 end
 
 function test_1r(comm)
@@ -77,12 +77,12 @@ function test_1r(comm)
       return
    end
 
-   local ad = Adios.init_mpi(comm)
+   GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(comm)
 
    -- Different grids need a different Adios IO object.
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},  cells = {10, 10},
-      upper = {1.0, 1.0},  ioSystem = ad,
+      upper = {1.0, 1.0},
    }
    local field = DataStruct.Field {
       onGrid = grid,  numComponents = 1,
@@ -128,7 +128,7 @@ function test_1r(comm)
       end
    end
 
-   Adios.finalize(ad)
+   if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end
 end
 
 function test_2w(comm)
@@ -143,13 +143,12 @@ function test_2w(comm)
       return
    end
 
-   local ad = Adios.init_mpi(comm)
+   GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(comm)
 
    local decomp = DecompRegionCalc.CartProd { cuts = { nproc } }
    local grid = Grid.RectCart {
       lower = lower,  cells = cells,
       upper = upper,  decomposition = decomp,
-      ioSystem = ad,
    }
    local field = DataStruct.Field {
       onGrid = grid,  numComponents = 3,  ghost = { 1, 1 },
@@ -171,7 +170,7 @@ function test_2w(comm)
    }
    adiosIo:write(field, "field_decomp.bp", 3.3, 44)
 
-   Adios.finalize(ad)
+   if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end
 end
 
 function test_2r(comm)
@@ -186,12 +185,12 @@ function test_2r(comm)
       return
    end
 
-   local ad = Adios.init_mpi(comm)
+   GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(comm)
 
    local decomp = DecompRegionCalc.CartProd { cuts = { nproc } }
    local grid = Grid.RectCart {
       lower = lower,  cells = cells,
-      upper = upper,  decomposition = decomp,  ioSystem = ad,
+      upper = upper,  decomposition = decomp,
    }
    local field = DataStruct.Field {
       onGrid = grid,  numComponents = 3,  ghost = { 1, 1 },
@@ -229,7 +228,7 @@ function test_2r(comm)
       end
    end
 
-   Adios.finalize(ad)
+   if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end
 end
 
 function allReduceOneInt(localv)

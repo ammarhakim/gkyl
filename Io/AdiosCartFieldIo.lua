@@ -135,10 +135,9 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
    end
 
    local grid     = field:grid()
-   local ad       = grid:ioSystem()
    local dataComm = grid:commSet().comm
 
-   self.ad_io = self.ad_io or Adios.declare_io(ad, fName)
+   self.ad_io = self.ad_io or Adios.declare_io(GKYL_ADIOS2_MPI, fName)
 
    -- No need to do anything if communicator is not valid.
    if not Mpi.Is_comm_valid(dataComm) then return end
@@ -285,10 +284,9 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
    end
 
    local grid = field:grid()
-   local ad   = grid:ioSystem()
    local comm = grid:commSet().comm
 
-   self.ad_io = self.ad_io or Adios.declare_io(ad, fName)
+   self.ad_io = self.ad_io or Adios.declare_io(GKYL_ADIOS2_MPI, fName)
 
    -- Only read in data if communicator is valid.
    if Mpi.Is_comm_valid(comm) then
