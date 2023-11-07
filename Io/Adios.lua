@@ -584,7 +584,7 @@ local _M = {}
 -- and maximum number of attributes/variables.
 _M.name_char_num_max = 20
 _M.varattr_num_max   = 20
-_M.string_num_max    = 100
+_M.string_num_max    = 100000
 
 local function new_adios2_adios() return new("adios2_adios[1]") end
 local function new_adios2_io() return new("adios2_io[1]") end
@@ -858,11 +858,13 @@ end
 -- adios2_attribute_type_string
 function _M.attribute_type_string(attr_h)
    local size = Lin.UInt64Vec(1)
-   local typeStrC = new("char [?]", _M.name_char_num_max)
-   local err = ffiC.adios2_attribute_type_string(typeStrC, size:data(), _M.get_attribute(attr_h))
+   -- Call it once with ia null pointer to get the size.
+   local err = ffiC.adios2_attribute_type_string(nil, size:data(), _M.get_attribute(attr_h))
+   -- Call it again to fill the new string with type of attribute.
+   local typeStrC = Lin.CharVec(tonumber(size[1])+1)
+   local err = ffiC.adios2_attribute_type_string(typeStrC:data(), size:data(), _M.get_attribute(attr_h))
    assert(err == 0, string.format("Io.Adios: error in attribute_type_string. Error code: %d.",tonumber(err)))
-   local typeStrOut = ffi.string(typeStrC)
-   return typeStrOut
+   return ffi.string(typeStrC:data())
 end
 
 -- adios2_attribute_is_value
@@ -884,7 +886,8 @@ end
 -- adios2_attribute_data
 function _M.attribute_data(attr_h)
    local typ, sz = _M.attribute_type(attr_h), _M.attribute_size(attr_h)
-   local dataOut
+   -- Call it once with ia null pointer to get the size.
+   local dataOut, sizeOut = nil, Lin.UInt64Vec(1)
    if typ == _M.type_string then
       dataOut = Lin.CharVec(_M.string_num_max)
    elseif typ == _M.type_float then
@@ -896,7 +899,6 @@ function _M.attribute_data(attr_h)
    elseif typ == _M.type_uint64_t then
       dataOut = Lin.UInt64Vec(sz)
    end
-   local sizeOut = Lin.UInt64Vec(1)
    local err = ffiC.adios2_attribute_data(dataOut:data(), sizeOut:data(), _M.get_attribute(attr_h))
    assert(err == 0, string.format("Io.Adios: error in attribute_data. Error code: %d.",tonumber(err)))
 
@@ -925,11 +927,13 @@ end
 -- adios2_variable_type_string
 function _M.variable_type_string(var_h)
    local size = Lin.UInt64Vec(1)
-   local typeStrC = new("char [?]", _M.name_char_num_max)
-   local err = ffiC.adios2_attribute_type_string(typeStrC, size:data(), _M.get_variable(var_h))
+   -- Call it once with ia null pointer to get the size.
+   local err = ffiC.adios2_variable_type_string(nil, size:data(), _M.get_variable(var_h))
+   -- Call it again to fill the new string with type of attribute.
+   local typeStrC = Lin.CharVec(tonumber(size[1])+1)
+   local err = ffiC.adios2_variable_type_string(typeStrC:data(), size:data(), _M.get_variable(var_h))
    assert(err == 0, string.format("Io.Adios: error in variable_type_string. Error code: %d.",tonumber(err)))
-   local typeStrOut = ffi.string(typeStrC)
-   return typeStrOut
+   return ffi.string(typeStrC:data())
 end
 
 -- adios2_variable_shapeid

@@ -203,7 +203,7 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
          elseif v.vType == "string" then
             Adios.define_attribute(self.ad_io, attrNm, Adios.type_string, v.value:data())
          elseif v.vType == "table" then
-            Adios.define_attribute_array(self.ad_io, attrNm, v.elementType, v.numElements, v.value:data())
+            Adios.define_attribute_array(self.ad_io, attrNm, v.elementType, v.value:data(), v.numElements)
          end
       end
       
