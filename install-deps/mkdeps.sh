@@ -8,9 +8,11 @@ CC=gcc
 CXX=g++
 MPICC=mpicc
 MPICXX=mpicxx
+USE_GPU= #no GPU build of gkylzero be default
 
 # by default, don't build anything. will check later to see if things
 # should be installed.
+BUILD_GKYLZERO=
 BUILD_LUAJIT=
 BUILD_LUAJIT_BETA3=
 BUILD_LUAJIT_PPCLE=
@@ -44,12 +46,14 @@ MPICXX                      C, C++, MPI C and MPI C++ compilers to use
 --help                      This help.
 --prefix=DIR                Prefix where dependencies should be installed.
                             Default is $HOME/gkylsoft
+--use-gpu                   [no] Build GPU version of gkylzero?
 
 The following flags specify which libraries to build. By default, only
 builds libraries that haven't yet been built or can't be found. 
 If you build libraries that depend on MPI please specify the MPI C 
 and C++ compilers to use.
 
+--build-gkylzero            Should we build Gkylzero?
 --build-luajit              Should we build LuaJIT?
 --build-luajit-beta3        Should we build LuaJIT-beta3?
 --build-luajit-ppcle        Should we build LuaJIT for PPC64 LE?
@@ -131,6 +135,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       PREFIX="$value"
       ;;
+   --use-gpu)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      USE_GPU="$value"
+      ;;
    --build-openmpi)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_OPENMPI="$value"
@@ -138,6 +146,10 @@ do
    --build-eigen)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_EIGEN="$value"
+      ;;
+   --build-gkylzero)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_GKYLZERO="$value"
       ;;
    --build-luajit)
       [ -n "$value" ] || die "Missing value in flag $key."
@@ -177,8 +189,8 @@ done
 # if mpicc doesn't work (because it doesn't exist or it's not in path), try to use installed openmpi version
 if ! [ -x "$(command -v $MPICC)" ]
 then
-    MPICC=$PREFIX/openmpi-4.0.5/bin/mpicc
-    MPICXX=$PREFIX/openmpi-4.0.5/bin/mpicxx
+    MPICC=$PREFIX/openmpi/bin/mpicc
+    MPICXX=$PREFIX/openmpi/bin/mpicxx
 fi
 # if mpicc still doesn't work, force to install openmpi
 if ! [ -x "$(command -v $MPICC)" ] 
@@ -197,6 +209,7 @@ CC=$CC
 CXX=$CXX
 MPICC=$MPICC
 MPICXX=$MPICXX
+USE_GPU=$USE_GPU
 
 EOF1
 
@@ -216,12 +229,20 @@ build_eigen() {
     fi
 }
 
+build_gkylzero() {
+    if [[ ! "$BUILD_GKYLZERO" = "no" && ("$BUILD_GKYLZERO" = "yes" || ! -f $PREFIX/gkylzero/include/luajit-2.1/lua.hpp) ]]
+    then   
+   echo "Building Gkylzero"
+   ./build-gkylzero.sh 
+    fi
+}
+
 build_luajit() {
-    if [[ ! "$BUILD_LUAJIT" = "no" && ("$BUILD_LUAJIT" = "yes" || ! -f $PREFIX/luajit/include/luajit-2.1/lua.hpp) ]]
+    if [[ ! "$BUILD_LUAJIT" = "no" && ("$BUILD_LUAJIT" = "yes" || ! -f $PREFIX/luajit/include/gkylzero.h) ]]
     then    
-	echo "Building LuaJIT"
-	#./build-luajit-beta3.sh
-	./build-luajit-openresty.sh
+   echo "Building LuaJIT"
+   #./build-luajit-beta3.sh
+   ./build-luajit-openresty.sh
     fi
 }
 
@@ -276,6 +297,7 @@ build_czmq() {
 echo "Installations will be in $PREFIX"
 
 build_openmpi
+build_gkylzero
 build_luajit
 build_luajit_beta3
 build_luajit_ppcle
