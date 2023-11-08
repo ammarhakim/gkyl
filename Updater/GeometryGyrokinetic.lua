@@ -17,6 +17,11 @@ ffi.cdef [[
 // Object type
 typedef struct gkyl_geo_gyrokinetic gkyl_geo_gyrokinetic;
 
+struct gkyl_range* gkyl_geo_gyrokinetic_get_nrange(gkyl_geo_gyrokinetic* geo);
+struct gkyl_array* gkyl_geo_gyrokinetic_get_mc2p_nodal_fd(gkyl_geo_gyrokinetic* geo);
+double* gkyl_geo_gyrokinetic_get_dzc(gkyl_geo_gyrokinetic* geo);
+
+
 // Type of flux surface
 enum gkyl_geo_gyrokinetic_type {
   GKYL_SOL_DN, // SOL of double-null configuration
@@ -51,7 +56,6 @@ struct gkyl_geo_gyrokinetic_inp {
 // Inputs to create geometry for a specific computational grid
 struct gkyl_geo_gyrokinetic_geo_inp {
   const struct gkyl_rect_grid *cgrid;
-  int* bcs;
   const struct gkyl_basis *cbasis;
 
   enum gkyl_geo_gyrokinetic_type ftype; // type of geometry
@@ -194,7 +198,7 @@ typedef struct gkyl_calc_metric gkyl_calc_metric;
  * @return New updater pointer.
  */
 gkyl_calc_metric* gkyl_calc_metric_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_rect_grid *grid, const int *bcs, bool use_gpu);
+  const struct gkyl_rect_grid *grid, bool use_gpu);
 
 /**
  * Advance calc_metric (compute the metric coefficients).
@@ -205,8 +209,7 @@ gkyl_calc_metric* gkyl_calc_metric_new(const struct gkyl_basis *cbasis,
  * @param gFld output field where metric coefficients will be placed
  */
 
-void gkyl_calc_metric_advance(const gkyl_calc_metric *up, const struct gkyl_range *crange,
-    struct gkyl_array *XYZ, struct gkyl_array *gFld);
+void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, double *dzc, struct gkyl_array *gFld, struct gkyl_range *update_range);
 
 /**
  * Delete updater.
@@ -282,17 +285,18 @@ function GeometryGyrokinetic:init(tbl)
    for i = 1, self.grid:ndim() do
       self.BCs[i] = 1
    end
-   if self.BCs[1] == 1 then
-      local lower = self.localRangeExt:lowerAsVec()
-      local upper = self.localRangeExt:upperAsVec()
-      lower[1] = lower[1]+1
-      upper[1] = upper[1]-1
-      lower[3] = lower[3]+1
-      upper[3] = upper[3]-1
-      self.conversionRange = self.localRangeExt:subRange(lower, upper)
-   else 
-      self.conversionRange = self.localRange
-   end
+   --if self.BCs[1] == 1 then
+   --   local lower = self.localRangeExt:lowerAsVec()
+   --   local upper = self.localRangeExt:upperAsVec()
+   --   lower[1] = lower[1]+1
+   --   upper[1] = upper[1]-1
+   --   lower[3] = lower[3]+1
+   --   upper[3] = upper[3]-1
+   --   self.conversionRange = self.localRangeExt:subRange(lower, upper)
+   --else 
+   --   self.conversionRange = self.localRange
+   --end
+   self.conversionRange = self.localRange
    
 
    if self.calcGeom then
@@ -318,12 +322,12 @@ function GeometryGyrokinetic:init(tbl)
       self.ginp.zmax = self.zmax or self.rzGrid:upper(2)
       self.ginp.write_node_coord_array = true
       self.ginp.node_file_nm = "grid.gkyl"
-      self.ginp.bcs = self.BCs:data()
+      --self.ginp.bcs = self.BCs:data()
       self._zero_bmag = ffi.gc(ffiC.gkyl_calc_bmag_new(self.basis._zero, self.rzBasis._zero, self.grid._zero, self.rzGrid._zero, self.geo, self.ginp, false), ffiC.gkyl_calc_bmag_release)
    end
 
 
-   self._zero_metric = ffi.gc(ffiC.gkyl_calc_metric_new(self.basis._zero, self.grid._zero, self.BCs:data(), false), ffiC.gkyl_calc_metric_release)
+   self._zero_metric = ffi.gc(ffiC.gkyl_calc_metric_new(self.basis._zero, self.grid._zero, false), ffiC.gkyl_calc_metric_release)
    self._zero_derived = ffi.gc(ffiC.gkyl_calc_derived_geo_new(self.basis._zero, self.grid._zero, false), ffiC.gkyl_calc_derived_geo_release)
 
 
@@ -350,7 +354,8 @@ function GeometryGyrokinetic:_advance(tCurr, inFlds, outFlds)
    end
 
    -- Fill metrics
-   ffiC.gkyl_calc_metric_advance(self._zero_metric, self.localRange, mapc2p_field._zero, gFld._zero)
+   --ffiC.gkyl_calc_metric_advance(self._zero_metric, self.localRange, mapc2p_field._zero, gFld._zero)
+   ffiC.gkyl_calc_metric_advance(self._zero_metric, ffiC.gkyl_geo_gyrokinetic_get_nrange(self._zero_geom), ffiC.gkyl_geo_gyrokinetic_get_mc2p_nodal_fd(self._zero_geom), ffiC.gkyl_geo_gyrokinetic_get_dzc(self._zero_geom), gFld._zero, self.conversionRange)
 
    -- Fill derived geo. Includes adjustment  of g_zz to preserve cmag = const.
    -- Need to add argument about whether or not to do the adjustment
