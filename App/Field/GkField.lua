@@ -1089,6 +1089,7 @@ function GkGeometry:fullInit(appTbl)
    self.hasRZ = tbl.hasRZ
    self.efitFile = tbl.efitFile
    if tbl.hasRZ then
+      print("has rz")
       self.zmin = tbl.zmin
       self.zmax = tbl.zmax
       if not self.efitFile then
@@ -1106,7 +1107,9 @@ function GkGeometry:fullInit(appTbl)
 end
 
 function GkGeometry:setGrid(grid, rzGrid, efitFile) 
+   print("setting grid")
    self.grid = grid
+   print("grid ndim = ", self.grid:ndim())
    self.ndim = self.grid:ndim() 
 
    if rzGrid then
@@ -1126,6 +1129,7 @@ function GkGeometry:setGrid(grid, rzGrid, efitFile)
    
    -- Need to augment grid for geometry calculation
    if self.ndim < 3 then
+      print("augenting")
       self.augmented = true
       self.remDirs = Lin.IntVec(3)
       for i = 1,3 do
@@ -1156,6 +1160,7 @@ function GkGeometry:setGrid(grid, rzGrid, efitFile)
             keepCount = keepCount + 1
          end
       end
+      print("#lower =", #lower)
       self.augmentedGrid = Grid.MappedCart{
          lower = lower,  
          upper = upper,
@@ -1174,7 +1179,9 @@ end
 function GkGeometry:setBasis(basis, rzBasis)
    self.basis = basis 
    self.rzBasis = rzBasis 
-   if self.augmented then
+   if self.basis:ndim() < 3 then
+      self.augmented = true
+      print("is augmented")
       self.augmentedBasis =  createBasis(self.basis:id(), 3, self.basis:polyOrder())
    else
       self.augmentedBasis = self.basis
@@ -1395,10 +1402,13 @@ function GkGeometry:initField(population)
          if not self.efitFile then
             self.rzLocalRange = self.geo.psiRZ:localRange()
             self.rzLocalRangeExt = self.geo.psiRZ:localExtRange()
+            print("about to make the psi evals")
             local psieval = Updater.EvalOnNodes {
                onGrid = self.rzGrid,   evaluate = self.psifunc,
                basis  = self.rzBasis,  onGhosts = true,
             }
+
+            print("made first psi eval")
 
             local psibyreval = Updater.EvalOnNodes {
                onGrid = self.rzGrid,   evaluate = self.psibyrfunc,
@@ -1408,6 +1418,7 @@ function GkGeometry:initField(population)
                onGrid = self.rzGrid,   evaluate = self.psibyr2func,
                basis  = self.rzBasis,  onGhosts = true,
             }
+            print("made the psi evals")
             psieval:advance(0.0, {}, {self.geo.psiRZ})
             psibyreval:advance(0.0, {}, {self.geo.psibyrRZ})
             psibyr2eval:advance(0.0, {}, {self.geo.psibyr2RZ})
@@ -1424,13 +1435,18 @@ function GkGeometry:initField(population)
          bphieval:advance(0.0, {}, {self.geo.bphiRZ})
          end
       else
+         print("projecting mapc2p")
+         print("grid ndim = ", self.augmentedGrid:ndim())
+         print("basis ndim = ", self.augmentedBasis:ndim())
          -- project mapc2p and bmag
          local projMapc2p = Updater.EvalOnNodes{
             onGrid = self.augmentedGrid,   evaluate = function(t, xn) return self.augmentedGrid:mapc2p(xn) end,
             basis  = self.augmentedBasis,  onGhosts = false,
             globalUpdateRange = self.globalMapc2pRange
          }
+         print("projecting mapc2p (2)")
          projMapc2p:advance(0., {}, {self.augmentedGeo.mapc2pField})
+         print("projected mapc2p")
 
          local projBmag = Updater.EvalOnNodes{
             onGrid = self.augmentedGrid,   
@@ -1470,6 +1486,8 @@ function GkGeometry:initField(population)
          rzLocalRangeExt = self.rzLocalRangeExt,
          B0 = self.B0 or self.EfitUpdater.B0,
          R0 = self.R0 or self.EfitUpdater.R0,
+         --B0 = nil and (self.B0 or self.EfitUpdater.B0),
+         --R0 = nil and (self.R0 or self.EfitUpdater.R0),
          psiRZ = self.geo.psiRZ,
          calcGeom = self.rzGrid,
          calcBmag = self.rzGrid,
