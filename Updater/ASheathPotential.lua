@@ -27,9 +27,8 @@ local DataStruct  = require "DataStruct"
 local Lin         = require "Lib.Linalg"
 local Proto       = require "Lib.Proto"
 local xsys        = require "xsys"
-local ModDecl     = require "Updater.aSheathPotentialData.asheath_potential_mod_decl"
 local Mpi         = require "Comm.Mpi"
-local ffi            = require "ffi"
+local ffi         = require "ffi"
 
 local ffiC = ffi.C
 require "Lib.ZeroUtil"
