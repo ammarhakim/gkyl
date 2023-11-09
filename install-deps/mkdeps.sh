@@ -8,7 +8,6 @@ CC=gcc
 CXX=g++
 MPICC=mpicc
 MPICXX=mpicxx
-USE_GPU= #no GPU build of gkylzero be default
 
 # by default, don't build anything. will check later to see if things
 # should be installed.
@@ -46,7 +45,6 @@ MPICXX                      C, C++, MPI C and MPI C++ compilers to use
 --help                      This help.
 --prefix=DIR                Prefix where dependencies should be installed.
                             Default is $HOME/gkylsoft
---use-gpu                   [no] Build GPU version of gkylzero?
 
 The following flags specify which libraries to build. By default, only
 builds libraries that haven't yet been built or can't be found. 
@@ -135,10 +133,6 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       PREFIX="$value"
       ;;
-   --use-gpu)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      USE_GPU="$value"
-      ;;
    --build-openmpi)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_OPENMPI="$value"
@@ -209,7 +203,6 @@ CC=$CC
 CXX=$CXX
 MPICC=$MPICC
 MPICXX=$MPICXX
-USE_GPU=$USE_GPU
 
 EOF1
 
