@@ -1427,13 +1427,13 @@ function GkGeometry:initField(population)
          self.EfitUpdater:advance(0, {}, {self.geo.psiRZ, self.geo.psibyrRZ, self.geo.psibyr2RZ})
          self.rzLocalRange = self.geo.psiRZ:localRange()
          self.rzLocalRangeExt = self.geo.psiRZ:localExtRange()
+         end
          local bphieval = Updater.EvalOnNodes {
             onGrid = self.rzGrid,   evaluate = self.bphifunc,
             basis  = self.rzBasis,  onGhosts = true,
          }
          self.geo.psiRZ:write("psiRZ.bp", 0, 0, false)
          bphieval:advance(0.0, {}, {self.geo.bphiRZ})
-         end
       else
          print("projecting mapc2p")
          print("grid ndim = ", self.augmentedGrid:ndim())
