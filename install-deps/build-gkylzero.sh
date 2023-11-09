@@ -40,6 +40,6 @@ elif [ "$MACHINE_NAME" = 'linux-dev' ]; then
     ./machines/mkdeps.linux.sh
     ./machines/configure.linux.dev.sh  
 fi
-make -j
+make -j16
 make install
 
