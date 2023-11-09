@@ -22,11 +22,11 @@ elif [ "$MACHINE_NAME" = 'stellar-amd' ]; then
     ./machines/mkdeps.stellar-amd.sh
     ./machines/configure.stellar-amd.sh  
 elif [ "$MACHINE_NAME" = 'perlmutter-cpu' ]; then
-    ./machines/mkdeps.perlmutter-cpu.sh
-    ./machines/configure.perlmutter-cpu.sh     
+    ./machines/mkdeps.perlmutter.cpu.sh
+    ./machines/configure.perlmutter.cpu.sh     
 elif [ "$MACHINE_NAME" = 'perlmutter-gpu' ]; then
-    ./machines/mkdeps.perlmutter-gpu.sh
-    ./machines/configure.perlmutter-gpu.sh   
+    ./machines/mkdeps.perlmutter.gpu.sh
+    ./machines/configure.perlmutter.gpu.sh   
 elif [ "$MACHINE_NAME" = 'della-gpu' ]; then
     ./machines/mkdeps.della-gpu.sh
     ./machines/configure.della-gpu.sh  
