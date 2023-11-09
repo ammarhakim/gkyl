@@ -12,6 +12,6 @@ if [ `dirname "$0"` == "." ]
   then
     cd ..
 fi
-export GKYLSOFT=$HOME/perlmutter/gkeyll/code/gpu/gkylsoft
+export GKYLSOFT=$HOME/gkylsoft
 cd install-deps
 ./mkdeps.sh CC=$CC CXX=$CXX MPICC=$MPICC MPICXX=$MPICXX --prefix=$GKYLSOFT --build-luajit=yes --build-adios=yes --build-eigen=yes --build-openmpi=no
