@@ -521,7 +521,8 @@ function MaxwellField:writeRestart(tm)
    self.fieldIo:write(self.em[1], "field_restart.bp", tm, self.ioFrame, false)
 
    -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
-   self.emEnergy:write("fieldEnergy_restart.bp", tm, self.dynVecRestartFrame, false, false)
+   -- MF 2023/11/10: disabling writing and reading of all dynVector restart files. Not needed.
+--   self.emEnergy:write("fieldEnergy_restart.bp", tm, self.dynVecRestartFrame, false, false)
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
@@ -530,7 +531,6 @@ function MaxwellField:readRestart()
    self:applyBc(tm, self.em[1])
    self.em[1]:sync() -- Must get all ghost-cell data correct.
      
-   self.emEnergy:read("fieldEnergy_restart.bp", tm)
    self.ioFrame = fr
    -- Iterate triggers.
    self.ioTrigger(tm)

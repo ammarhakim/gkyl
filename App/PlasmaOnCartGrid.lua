@@ -357,8 +357,7 @@ local function buildApplication(self, tbl)
    -- Function to read from restart frame.
    local function readRestart() --> Time at which restart was written.
       local rTime = 0.0
-      dtTracker:read(string.format("dt.bp"))
-      local _, dtLast = dtTracker:lastData()
+      local _, dtLast = dtTracker:read(string.format("dt.bp"), true)
       -- Read fields first, in case needed for species init or BCs.
       field:readRestart()
       externalField:readRestart()

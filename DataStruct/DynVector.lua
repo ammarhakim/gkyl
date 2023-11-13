@@ -195,9 +195,19 @@ end
 function DynVector:numComponents() return self._numComponents end
 
 -- Returns time-stamp and frame number.
-function DynVector:read(fName)
+function DynVector:read(fName, flushData)
    assert(self.adiosIo, "DataStruct.DynVector: 'GKYL_ADIOS2_MPI' must be defined in order to do I/O.")
    self.adiosIo:read(self, fName)
+
+   local tLast, dLast = self:lastData()
+
+   if flushData then 
+      self.tLast = tLast
+      for i = 1, self._numComponents do self.dLast[i] = dLast[i] end
+      self:clear()
+      self.flushed = true
+   end
+   return tLast, dLast
 end
 
 function DynVector:removeLast()
