@@ -51,8 +51,8 @@ Lx = 4 -- [m]
 plasmaApp = Plasma.App {
    logToFile = false,
    
-   tEnd        = 0.10/nuElcIon,    -- End time.
-   nFrame      = 1,              -- Number of frames to write.
+   tEnd        = 1.0/nuElcIon,    -- End time.
+   nFrame      = 1,               -- Number of frames to write.
    lower       = {-Lx/2},         -- Configuration space lower coordinate.
    upper       = { Lx/2},         -- Configuration space upper coordinate.
    cells       = {12},            -- Configuration space cells.
@@ -89,18 +89,16 @@ plasmaApp = Plasma.App {
             return Te0
          end,
       },
+      polarizationDensityFactor = n0,
       -- Evolve species?
       evolve = true,
+      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
       coll = Plasma.BGKCollisions {
          collideWith = { "elc", "ion" },
          frequencies = { nuElc, nuElcIon },
---         collideWith = { "elc" },
---         frequencies = { nuElc },
---         collideWith = { "ion" },
---         frequencies = { nuElcIon },
          -- Optional arguments:
 --         betaGreene  = 1.0,    -- Free parameter, must be >-1.
       },
@@ -128,18 +126,16 @@ plasmaApp = Plasma.App {
             return Ti0
          end,
       },
+      polarizationDensityFactor = n0,
       -- Evolve species?
       evolve = true,
+      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
       coll = Plasma.BGKCollisions {
          collideWith = { "ion", "elc" },
          frequencies = { nuIon, nuIonElc },
---         collideWith = { "ion" },
---         frequencies = { nuIon },
---         collideWith = { "elc" },
---         frequencies = { nuIonElc },
          -- Optional arguments:
 --         betaGreene  = 1.0,    -- Free parameter, must be >-1.
       },
