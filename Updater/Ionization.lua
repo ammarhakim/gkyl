@@ -5,20 +5,11 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local Alloc       = require "Lib.Alloc"
-local Basis       = require "Basis.BasisCdef"
-local DataStruct  = require "DataStruct"
-local EqBase      = require "Eq.EqBase"
-local Grid        = require "Grid.RectCart"
-local CartField   = require "DataStruct.CartField"
-local Lin         = require "Lib.Linalg"
-local Mpi         = require "Comm.Mpi"
 local Proto       = require "Lib.Proto"
-local Range       = require "Lib.Range"
-local Time        = require "Lib.Time"
 local UpdaterBase = require "Updater.Base"
 local ffi         = require "ffi"
 local xsys        = require "xsys"
+local DataStruct  = require "DataStruct"
 
 local ffiC = ffi.C
 local new, sizeof, typeof, metatype = xsys.from(ffi,
@@ -48,38 +39,29 @@ enum gkyl_dg_iz_self
   GKYL_IZ_DONOR, // Reacting species (donates electron)
 };
 
+struct gkyl_dg_iz_inp {
+  const struct gkyl_rect_grid* grid; // Grid object needed for fmax
+  struct gkyl_basis* cbasis; // Configuration-space basis-functions
+  struct gkyl_basis* pbasis; // Phase-space basis-functions
+  const struct gkyl_range *conf_rng; // Configuration range
+  const struct gkyl_range *phase_rng; // Phase range
+  double mass_ion; // Mass of the ion 
+  enum gkyl_dg_iz_type type_ion; // Enum for type of ion for ionization (H thru 0)
+  int charge_state; // Ion charge state
+  enum gkyl_dg_iz_self type_self; // Species type (ion, electron or donor)
+  bool all_gk; // To indicate if all 3 interacting species are GK or not
+  const char* base; // File path to locate adas data
+};
+
 // Object type
 typedef struct gkyl_dg_iz gkyl_dg_iz;
 
 /**
  * Create new updater to calculate ionization temperature or reaction rate
- * @param grid Grid object needed for fmax
- * @param cbasis Configuration-space basis-functions
- * @param pbasis Phase-space basis-functions (GK)
- * @param conf_rng Configuration range
- * @param phase_rng Phase range
- * @param elem_charge Elementary charge value
- * @param mass_elc Mass of the electron 
- * @param mass_elc Mass of the ion
- * @param type_ion Enum for type of ion for ionization (support H, He, Li)
- * @param charge_state Int for ion charge state
- * @param type_self Enum for species type (electron, ion or neutral)
- * @param all_gk Boolean to indicate if all 3 species are gyrokinetic
+ * @param gkyl_dg_iz_inp
  * @param use_gpu Boolean for whether struct is on host or device
  */
-struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, double elem_charge,
-  double mass_elc, double mass_ion, enum gkyl_dg_iz_type type_ion, int charge_state, enum gkyl_dg_iz_self type_self,
-  bool all_gk, const char *base, bool use_gpu); 
-
-/**
- * Create new ionization updater type object on NV-GPU: 
- * see new() method above for documentation.
- */
-struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, double elem_charge,
-  double mass_elc, double mass_ion, enum gkyl_dg_iz_type type_ion, int charge_state, enum gkyl_dg_iz_self type_self, 
-  bool all_gk, const char *base); 
+struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_dg_iz_inp inp, bool use_gpu);
 
 /**
  * Compute ionization collision term for use in neutral reactions. 
@@ -124,6 +106,7 @@ function Ionization:init(tbl)
    Ionization.super.init(self, tbl) -- setup base object
 
    self._onGrid = assert(tbl.onGrid, "Updater.Ionization: Must provide grid object using 'onGrid'")
+   self._confGrid = assert(tbl.confGrid, "Updater.Ionization: Must provide grid object using 'confGrid'")
    self._confBasis = assert(tbl.confBasis, "Updater.Ionization: Must provide configuration space basis object using 'confBasis'")
    self._phaseBasis = assert(tbl.phaseBasis, "Updater.Ionization: Must provide phase space basis object using 'phaseBasis'")
    self._confRange = assert(tbl.confRange, "Updater.Ionization: Must provide configuration space range object using 'confRange'")
@@ -134,39 +117,43 @@ function Ionization:init(tbl)
    self._plasma = assert(tbl.plasma, "Updater.Ionization: Must provide ion element type using 'plasma'")
    self._chargeState = assert(tbl.chargeState, "Updater.Ionization: Must provide charge state of donor species using 'chargeState'")
    self._selfSpecies = assert(tbl.selfSpecies, "Updater.Ionization: Must provide self species type using 'selfSpecies'")
-   
-   if self._plasma == "H" then
-      self._ionType = "GKYL_IZ_H"
-   elseif self._plasma == "He" then
-      self._ionType = "GKYL_IZ_HE"
-   elseif self._plasma == "Li" then
-      self._ionType = "GKYL_IZ_LI"
-   elseif self._plasma == "Be" then
-      self._ionType = "GKYL_IZ_BE"
-   elseif self._plasma == "B" then
-      self._ionType = "GKYL_IZ_B"
-   elseif self._plasma == "C" then
-      self._ionType = "GKYL_IZ_C"
-   elseif self._plasma == "N" then
-      self._ionType = "GKYL_IZ_N"
-   elseif self._plasma == "O" then
-      self._ionType = "GKYL_IZ_O"
+
+   local ion_type, self_type
+   if self._plasma == "H" then ion_type = 0
+   elseif self._plasma == "He" then ion_type = 1
+   elseif self._plasma == "Li" then ion_type = 2
+   elseif self._plasma == "Be" then ion_type = 3
+   elseif self._plasma == "B" then ion_type = 4
+   elseif self._plasma == "C" then ion_type = 5
+   elseif self._plasma == "N" then ion_type = 6
+   elseif self._plasma == "O" then ion_type = 7
    else error("Updater.Ionization: 'ionType' must be one of 'H','He','Li','Be','B','C','N','O'. Was " .. self._plasma .. " instead") end
 
-   if self._selfSpecies == 'elc' then
-      self._selfType = "GKYL_IZ_ELC"
-   elseif self._selfSpecies == 'ion' then
-      self._selfType = "GKYL_IZ_ION"
-   elseif self._selfSpecies == 'donor' then
-      self._selfType = "GKYL_IZ_DONOR"
+   if self._selfSpecies == 'elc' then self_type = 0
+   elseif self._selfSpecies == 'ion' then self_type = 1
+   elseif self._selfSpecies == 'donor' then self_type = 2
    else error("Updater.Ionization: 'selfSpecies' must be one of 'elc', 'ion', or 'donor'. Was " .. self._plasma .. " instead") end
 
-   local allGK = true --fix this
-      
+   -- The following is cardcoded for Vlasov (neutral) donor species:
+   local allGK = false --fix this
+
+   local izInp  = ffi.new("struct gkyl_dg_iz_inp")
+      izInp.grid = self._onGrid._zero
+      izInp.cbasis = self._confBasis._zero
+      izInp.pbasis = self._phaseBasis._zero
+      izInp.conf_rng = self._confRange
+      izInp.phase_rng = self._phaseRange
+      izInp.mass_ion = self._ionMass
+      izInp.type_ion = ion_type
+      izInp.charge_state = self._chargeState
+      izInp.type_self = self_type
+      izInp.all_gk = allGK
+      izInp.base = g0_share_prefix
+   
    self._zero = ffi.gc(
-                  ffiC.gkyl_dg_iz_new(self._onGrid._zero, self._confBasis._zero, self._phaseBasis._zero, self._confRange, self._phaseRange, self._elemCharge, self._elcMass, self._ionMass, self._ionType, self._chargeState, self._selfType, allGK, g0_share_prefix, GKYL_USE_GPU or 0),
-                  ffiC.gkyl_dg_iz_release
-                )
+      ffiC.gkyl_dg_iz_new(izInp, GKYL_USE_GPU or 0),
+      ffiC.gkyl_dg_iz_release
+   )
    return self
 end
 
@@ -176,7 +163,7 @@ function Ionization:advance(tCurr, inFld, outFld)
    local momsDonor = assert(inFld[2], "Ionization.advance: Must pass input momsDonor")
    local bmag = assert(inFld[3], "Ionization.advance: Must pass input bmag")
    local jacobTot = assert(inFld[4], "Ionization.advance: Must pass input jacobTot")
-   local b_i = assert(inFld[5], "Ionization.advance: Must pass input b_i")
+   local b_i = assert(inFld[5], "Ionization.advance: Must pass input b_i") -- check geo fields...
    local distfSelf = assert(inFld[6], "Ionization.advance: Must pass input distfSelf")
    
    local collIz  = assert(outFld[1], "Ionization.advance: Must specifiy output field collIz")

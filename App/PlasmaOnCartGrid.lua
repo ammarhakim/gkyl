@@ -219,7 +219,6 @@ local function buildApplication(self, tbl)
 
    -- Setup each species.
    for _, s in population.iterGlobal() do
-      print(s.name)
       -- Set up conf grid and basis.
       s:setConfGrid(confGrid)
       s:setConfBasis(confBasis)
