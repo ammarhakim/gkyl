@@ -2,8 +2,9 @@
 --
 -- This test initializes Maxwellian electrons and ions with different
 -- bulk velocity and temperature and collides them.
--- We will use cross collisions only as a default, but one can add
--- self collisions as well.
+-- The default has both self and cross collisions, and maxwellian correction,
+-- but the collisionless term is turned off for conservation test.
+-- 
 --
 local Plasma    = require("App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
@@ -30,7 +31,7 @@ vte = math.sqrt(Te0/me)
 -- Bulk flow speed along B-field.
 uPare = 0.5*math.sqrt(me/mi)*vte
 uPari = 50.0*(me/mi)*vti
-
+print(vte, uPare)
 nuFrac       = 1.0
 -- Electron collision frequency.
 logLambdaElc = 6.6 - 0.5*math.log(n0/1e20) + 1.5*math.log(Te0/eV)
@@ -65,7 +66,7 @@ plasmaApp = Plasma.App {
 
    -- Boundary conditions for configuration space.
    periodicDirs = {1},            -- Periodic directions.
-
+   
    -- Neutral species with a rectangular/square IC.
    elc = Plasma.Species {
       charge = qe, mass = me,
@@ -90,13 +91,13 @@ plasmaApp = Plasma.App {
       },
       -- Evolve species?
       evolve = true,
---      evolveCollisionless = false,
+      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
       coll = Plasma.BGKCollisions {
-         collideWith = {"elc", "ion", },
-         frequencies = {nuElc, nuElcIon, },
+         collideWith = {"elc", "ion"},
+         frequencies = {nuElc, nuElcIon},
 --         collideWith = { "ion" },
 --         frequencies = { nuElcIon },
          -- Optional arguments:
@@ -128,7 +129,7 @@ plasmaApp = Plasma.App {
       },
       -- Evolve species?
       evolve = true,
---      evolveCollisionless = false,
+      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
