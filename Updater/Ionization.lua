@@ -117,7 +117,7 @@ function Ionization:init(tbl)
    self._plasma = assert(tbl.plasma, "Updater.Ionization: Must provide ion element type using 'plasma'")
    self._chargeState = assert(tbl.chargeState, "Updater.Ionization: Must provide charge state of donor species using 'chargeState'")
    self._selfSpecies = assert(tbl.selfSpecies, "Updater.Ionization: Must provide self species type using 'selfSpecies'")
-   self._allGk = assert(tbl.allGk, "Updater.Ionization: Must indicate whether all species are GK using 'allGk' ")
+   self._allGk = tbl.donorGk
 
    local ion_type, self_type
    if self._plasma == "H" then ion_type = 0
