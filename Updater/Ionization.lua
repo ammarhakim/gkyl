@@ -21,22 +21,22 @@ ffi.cdef [[
 // Identifiers for different ionization types
 enum gkyl_dg_iz_type
 {
-  GKYL_IZ_H,  // Hydrogen ions
-  GKYL_IZ_HE, // Helium ions
-  GKYL_IZ_LI, // Lithium ions
-  GKYL_IZ_BE, // Beryllium ions
-  GKYL_IZ_B,  // Boron ions
-  GKYL_IZ_C,  // Carbon ions
-  GKYL_IZ_N,  // Nitrogen ions
-  GKYL_IZ_O,  // Oxygen ions
+  GKYL_IZ_H = 0,  // Hydrogen ions
+  GKYL_IZ_HE = 1, // Helium ions
+  GKYL_IZ_LI = 2, // Lithium ions
+  GKYL_IZ_BE = 3, // Beryllium ions
+  GKYL_IZ_B = 4,  // Boron ions
+  GKYL_IZ_C = 5,  // Carbon ions
+  GKYL_IZ_N = 6,  // Nitrogen ions
+  GKYL_IZ_O = 7,  // Oxygen ions
 };
 
 // Identifiers for self species to determine form of collision operator
 enum gkyl_dg_iz_self
 {
-  GKYL_IZ_ELC, // Electron species
-  GKYL_IZ_ION, // Resulting ion species (increases charge state)
-  GKYL_IZ_DONOR, // Reacting species (donates electron)
+  GKYL_IZ_ELC = 0, // Electron species
+  GKYL_IZ_ION = 1, // Resulting ion species (increases charge state)
+  GKYL_IZ_DONOR = 2, // Reacting species (donates electron)
 };
 
 struct gkyl_dg_iz_inp {
@@ -61,7 +61,7 @@ typedef struct gkyl_dg_iz gkyl_dg_iz;
  * @param gkyl_dg_iz_inp
  * @param use_gpu Boolean for whether struct is on host or device
  */
-struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_dg_iz_inp inp, bool use_gpu);
+struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu);
 
 /**
  * Compute ionization collision term for use in neutral reactions. 
