@@ -128,6 +128,7 @@ function GkIonization:fullInit(speciesTbl)
    self.plasma = tbl.plasma
    self.chargeState = tbl.chargeState
    self.selfSpecies = tbl.selfSpecies
+   self.allGk = assert(tbl.allGk, "App.GkIonization: Must indicate whether all species are GK using 'allGk'. ")
 
    self.timers = {nonSlvr = 0.}
 end
@@ -176,6 +177,7 @@ function GkIonization:createSolver(mySpecies, externalField)
       elemCharge = self.elemCharge,   elcMass = self.elcMass,
       ionMass = self.ionMass,         plasma = self.plasma,
       chargeState = self.chargeState, selfSpecies = self.selfSpecies,
+      allGk = self.allGk,
    }
 end
 

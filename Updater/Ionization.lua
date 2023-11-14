@@ -117,6 +117,7 @@ function Ionization:init(tbl)
    self._plasma = assert(tbl.plasma, "Updater.Ionization: Must provide ion element type using 'plasma'")
    self._chargeState = assert(tbl.chargeState, "Updater.Ionization: Must provide charge state of donor species using 'chargeState'")
    self._selfSpecies = assert(tbl.selfSpecies, "Updater.Ionization: Must provide self species type using 'selfSpecies'")
+   self._allGk = assert(tbl.allGk, "Updater.Ionization: Must indicate whether all species are GK using 'allGk' ")
 
    local ion_type, self_type
    if self._plasma == "H" then ion_type = 0
@@ -134,9 +135,6 @@ function Ionization:init(tbl)
    elseif self._selfSpecies == 'donor' then self_type = 2
    else error("Updater.Ionization: 'selfSpecies' must be one of 'elc', 'ion', or 'donor'. Was " .. self._plasma .. " instead") end
 
-   -- The following is cardcoded for Vlasov (neutral) donor species:
-   local allGK = false --fix this
-
    local izInp  = ffi.new("struct gkyl_dg_iz_inp")
       izInp.grid = self._onGrid._zero
       izInp.cbasis = self._confBasis._zero
@@ -147,7 +145,7 @@ function Ionization:init(tbl)
       izInp.type_ion = ion_type
       izInp.charge_state = self._chargeState
       izInp.type_self = self_type
-      izInp.all_gk = allGK
+      izInp.all_gk = self._allGk
       izInp.base = g0_share_prefix
    
    self._zero = ffi.gc(
