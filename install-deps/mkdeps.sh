@@ -223,7 +223,7 @@ build_eigen() {
 }
 
 build_gkylzero() {
-    if [[ ! "$BUILD_GKYLZERO" = "no" && ("$BUILD_GKYLZERO" = "yes" || ! -f $PREFIX/gkylzero/include/luajit-2.1/lua.hpp) ]]
+    if [[ ! "$BUILD_GKYLZERO" = "no" && ("$BUILD_GKYLZERO" = "yes" || ! -f $PREFIX/gkylzero/include/gkylzero.h) ]]
     then   
    echo "Building Gkylzero"
    ./build-gkylzero.sh 
@@ -231,7 +231,7 @@ build_gkylzero() {
 }
 
 build_luajit() {
-    if [[ ! "$BUILD_LUAJIT" = "no" && ("$BUILD_LUAJIT" = "yes" || ! -f $PREFIX/luajit/include/gkylzero.h) ]]
+    if [[ ! "$BUILD_LUAJIT" = "no" && ("$BUILD_LUAJIT" = "yes" || ! -f $PREFIX/luajit/include/luajit-2.1/lua.hpp) ]]
     then    
    echo "Building LuaJIT"
    #./build-luajit-beta3.sh
