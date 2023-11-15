@@ -144,7 +144,7 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
          local ncomp = comp or 1
          local gridWriteRank = self.confBoundaryGrid:commSet().writeRank
          local f = DataStruct.DynVector{numComponents = ncomp,     writeRank = gridWriteRank<0 and gridWriteRank or 0,
-                                        metaData      = metaData,  comm      = self.confBoundaryGrid:commSet().comm,}
+                                        metaData      = metaData,  comm      = self.confBoundaryGrid:commSet().host,}
          return f
       end
 
@@ -226,13 +226,13 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
          }
          -- Volume integral operator (for diagnostics).
          self.volIntegral = {
-            scalar = Updater.CartFieldIntegratedQuantCalc {
+            scalar = Updater.CartFieldIntegrate {
                onGrid = self.confBoundaryGrid,  numComponents = 1,
-               basis  = self.confBasis,         quantity      = "V",
+               basis  = self.confBasis,
             },
-            vector = Updater.CartFieldIntegratedQuantCalc {
+            vector = Updater.CartFieldIntegrate {
                onGrid = self.confBoundaryGrid,  numComponents = self.vdim,
-               basis  = self.confBasis,         quantity      = "V",
+               basis  = self.confBasis,
             },
          }
          -- Moment calculators (for diagnostics).

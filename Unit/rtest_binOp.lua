@@ -186,11 +186,11 @@ function test_binOp1x(nx, p, writeMatrix)
    Ui:write("Ui.bp", 0.0)
    UiA:write("UiA.bp", 0.0)
 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt = Updater.CartFieldIntegrate {
       onGrid        = confGrid,
       basis         = basis,
       numComponents = 1,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecUi = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {errU}, {dynVecUi})
@@ -510,11 +510,11 @@ function test_binOp2x(nx, ny, p, writeMatrix)
    Ke:write("Ke.bp", 0.0)
    KeA:write("KeA.bp", 0.0)
 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt = Updater.CartFieldIntegrate {
       onGrid        = confGrid,
       basis         = basis,
       numComponents = 1,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecUi = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {errU}, {dynVecUi})
@@ -526,11 +526,11 @@ function test_binOp2x(nx, ny, p, writeMatrix)
    local tmMom1, lvMom1 = dynVecMom1:lastData()
    io.write("Average RMS in Mom1 error = ", math.sqrt(lvMom1[1]), "\n")
 
-   local calcInt2D = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt2D = Updater.CartFieldIntegrate {
       onGrid        = confGrid,
       basis         = basis,
       numComponents = 2,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecUi2D = DataStruct.DynVector { numComponents = 2 }
    calcInt2D:advance(0.0, {errU2D}, {dynVecUi2D})
@@ -850,11 +850,11 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
    Ke:write("Ke.bp", 0.0)
    KeA:write("KeA.bp", 0.0)
 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt = Updater.CartFieldIntegrate {
       onGrid        = confGrid,
       basis         = basis,
       numComponents = 1,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecUi = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {errU}, {dynVecUi})
@@ -866,11 +866,11 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
    local tmMom1, lvMom1 = dynVecMom1:lastData()
    io.write("Average RMS in Mom1 error = ", math.sqrt(lvMom1[1]), "\n")
 
-   local calcInt3D = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt3D = Updater.CartFieldIntegrate {
       onGrid        = confGrid,
       basis         = basis,
       numComponents = 3,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecUi3D = DataStruct.DynVector { numComponents = 3 }
    calcInt3D:advance(0.0, {errU3D}, {dynVecUi3D})
@@ -1102,22 +1102,22 @@ function test_binOp1x1v(nx, nv, p, writeMatrix)
    Ui:write("Ui.bp", 0.0)
    UiA:write("UiA.bp", 0.0)
 
-   local calcIntF = Updater.CartFieldIntegratedQuantCalc {
+   local calcIntF = Updater.CartFieldIntegrate {
       onGrid        = phaseGrid,
       basis         = phaseBasis,
       numComponents = 1,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecF = DataStruct.DynVector { numComponents = 1 }
    calcIntF:advance(0.0, {errF}, {dynVecF})
    local tmF, lvF = dynVecF:lastData()
    io.write("Average RMS in F error = ", math.sqrt(lvF[1]), "\n")
 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt = Updater.CartFieldIntegrate {
       onGrid        = confGrid,
       basis         = confBasis,
       numComponents = 1,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecUi = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {errU}, {dynVecUi})
@@ -1414,22 +1414,22 @@ function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
    Ui:write("Ui.bp", 0.0)
    UiA:write("UiA.bp", 0.0)
 
-   local calcIntF = Updater.CartFieldIntegratedQuantCalc {
+   local calcIntF = Updater.CartFieldIntegrate {
       onGrid        = phaseGrid,
       basis         = phaseBasis,
       numComponents = 1,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecF = DataStruct.DynVector { numComponents = 1 }
    calcIntF:advance(0.0, {errF}, {dynVecF})
    local tmF, lvF = dynVecF:lastData()
    io.write("Average RMS in F error = ", math.sqrt(lvF[1]), "\n")
 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt = Updater.CartFieldIntegrate {
       onGrid        = confGrid,
       basis         = confBasis,
       numComponents = 1,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecUi = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {errU}, {dynVecUi})
@@ -1441,11 +1441,11 @@ function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
    local tmMom1, lvMom1 = dynVecMom1:lastData()
    io.write("Average RMS in Mom1 error = ", math.sqrt(lvMom1[1])," \n")
 
-   local calcInt2D = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt2D = Updater.CartFieldIntegrate {
       onGrid        = confGrid,
       basis         = confBasis,
       numComponents = 2,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecUi2D = DataStruct.DynVector { numComponents = 2 }
    calcInt2D:advance(0.0, {errU2D}, {dynVecUi2D})
@@ -1748,22 +1748,22 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
    Ui:write("Ui.bp", 0.0)
    UiA:write("UiA.bp", 0.0)
 
-   local calcIntF = Updater.CartFieldIntegratedQuantCalc {
+   local calcIntF = Updater.CartFieldIntegrate {
       onGrid        = phaseGrid,
       basis         = phaseBasis,
       numComponents = 1,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecF = DataStruct.DynVector { numComponents = 1 }
    calcIntF:advance(0.0, {errF}, {dynVecF})
    local tmF, lvF = dynVecF:lastData()
    io.write("Average RMS in F error = ", math.sqrt(lvF[1]), "\n")
 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt = Updater.CartFieldIntegrate {
       onGrid        = confGrid,
       basis         = confBasis,
       numComponents = 1,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecUi = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {errU}, {dynVecUi})
@@ -1775,11 +1775,11 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
    local tmMom1, lvMom1 = dynVecMom1:lastData()
    io.write("Average RMS in Mom1 error = ", math.sqrt(lvMom1[1])," \n")
 
-   local calcInt2D = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt2D = Updater.CartFieldIntegrate {
       onGrid        = confGrid,
       basis         = confBasis,
       numComponents = 2,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecUi2D = DataStruct.DynVector { numComponents = 2 }
    calcInt2D:advance(0.0, {errU2D}, {dynVecUi2D})
@@ -2084,22 +2084,22 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
    Ui:write("Ui.bp", 0.0)
    UiA:write("UiA.bp", 0.0)
 
-   local calcIntF = Updater.CartFieldIntegratedQuantCalc {
+   local calcIntF = Updater.CartFieldIntegrate {
       onGrid        = phaseGrid,
       basis         = phaseBasis,
       numComponents = 1,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecF = DataStruct.DynVector { numComponents = 1 }
    calcIntF:advance(0.0, {errF}, {dynVecF})
    local tmF, lvF = dynVecF:lastData()
    io.write("Average RMS in F error = ", math.sqrt(lvF[1]), "\n")
 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt = Updater.CartFieldIntegrate {
       onGrid        = confGrid,
       basis         = confBasis,
       numComponents = 1,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecUi = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {errU}, {dynVecUi})
@@ -2111,11 +2111,11 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
    local tmMom1, lvMom1 = dynVecMom1:lastData()
    io.write("Average RMS in Mom1 error = ", math.sqrt(lvMom1[1])," \n")
 
-   local calcInt3D = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt3D = Updater.CartFieldIntegrate {
       onGrid        = confGrid,
       basis         = confBasis,
       numComponents = 3,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecUi3D = DataStruct.DynVector { numComponents = 3 }
    calcInt3D:advance(0.0, {errU3D}, {dynVecUi3D})
@@ -2421,22 +2421,22 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
    Ui:write("Ui.bp", 0.0)
    UiA:write("UiA.bp", 0.0)
 
-   local calcIntF = Updater.CartFieldIntegratedQuantCalc {
+   local calcIntF = Updater.CartFieldIntegrate {
       onGrid        = phaseGrid,
       basis         = phaseBasis,
       numComponents = 1,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecF = DataStruct.DynVector { numComponents = 1 }
    calcIntF:advance(0.0, {errF}, {dynVecF})
    local tmF, lvF = dynVecF:lastData()
    io.write("Average RMS in F error = ", math.sqrt(lvF[1]), "\n")
 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt = Updater.CartFieldIntegrate {
       onGrid        = confGrid,
       basis         = confBasis,
       numComponents = 1,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecUi = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {errU}, {dynVecUi})
@@ -2448,11 +2448,11 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
    local tmMom1, lvMom1 = dynVecMom1:lastData()
    io.write("Average RMS in Mom1 error = ", math.sqrt(lvMom1[1])," \n")
 
-   local calcInt3D = Updater.CartFieldIntegratedQuantCalc {
+   local calcInt3D = Updater.CartFieldIntegrate {
       onGrid        = confGrid,
       basis         = confBasis,
       numComponents = 3,
-      quantity      = "V2"
+      operator      = "sq"
    }
    local dynVecUi3D = DataStruct.DynVector { numComponents = 3 }
    calcInt3D:advance(0.0, {errU3D}, {dynVecUi3D})

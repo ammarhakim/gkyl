@@ -156,9 +156,9 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
       break
    end
 
-   local dataComm = Mpi.getComm(field:grid():commSet().comm)
+   local dataComm = Mpi.getComm(field:grid():commSet().host)
    -- (the extra getComm() is needed as Lua has no concept of
-   -- pointers and hence we don't know before hand if nodeComm is a
+   -- pointers and hence we don't know before hand if comm is a
    -- pointer or an object)
 
    -- No need to do anything if communicator is not valid.
@@ -321,9 +321,9 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, fram
       break
    end
 
-   local comm = Mpi.getComm(field:grid():commSet().comm)
+   local comm = Mpi.getComm(field:grid():commSet().host)
    -- (the extra getComm() is needed as Lua has no concept of
-   -- pointers and hence we don't know before hand if nodeComm is a
+   -- pointers and hence we don't know before hand if comm is a
    -- pointer or an object)
 
    -- Create time stamp and frame number arrays outside of if statement.

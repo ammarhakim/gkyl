@@ -6,7 +6,7 @@ fi
 export GKYLSOFT='~/gkylsoft'
 cd install-deps
 # first build OpenMPI
-./mkdeps.sh CC=clang CXX=clang++ --build-openmpi=yes
+./mkdeps.sh CC=clang CXX=clang++ --build-openmpi=yes --prefix=$GKYLSOFT
 # get OSX version (XX.XX.X)
 vers=`sw_vers -productVersion`   
 # remove patch version, so that only XX.XX

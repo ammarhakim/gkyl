@@ -299,12 +299,15 @@ function GkSpecies:createGrid(confGridIn)
    self.cdim = confGrid:ndim()
    self.ndim = self.cdim+self.vdim
 
+   local msn = confGrid:getMessenger()
+
    -- Create decomposition.
    local decompCuts = {}
    for d = 1, self.cdim do table.insert(decompCuts, confGrid:cuts(d)) end
    for d = 1, self.vdim do table.insert(decompCuts, 1) end -- No decomposition in v-space.
    self.decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts, comm = confGrid:commSet().comm,
+      cuts  = decompCuts,
+      comms = {host=msn:getConfComm_host(), device=msn:getConfComm_device(),},
    }
 
    -- Create computational domain.
@@ -355,7 +358,7 @@ function GkSpecies:createGrid(confGridIn)
       lower     = lower,  periodicDirs  = confGrid:getPeriodicDirs(),
       upper     = upper,  decomposition = self.decomp,
       cells     = cells,  mappings      = coordinateMap,
-      messenger = confGrid:getMessenger(),
+      messenger = msn,
    }
 
    for _, c in lume.orderedIter(self.collisions) do c:setPhaseGrid(self.grid) end
@@ -372,33 +375,26 @@ function GkSpecies:allocCartField(grid,nComp,ghosts,metaData)
    return f
 end
 function GkSpecies:allocDistf()
-   local metaData = {polyOrder = self.basis:polyOrder(),
-                     basisType = self.basis:id(),
-                     charge    = self.charge,
-                     mass      = self.mass,
+   local metaData = {polyOrder = self.basis:polyOrder(),  charge = self.charge,
+                     basisType = self.basis:id(),         mass   = self.mass,
                      grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"}
    return self:allocCartField(self.grid,self.basis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 function GkSpecies:allocMoment()
-   local metaData = {polyOrder = self.confBasis:polyOrder(),
-                     basisType = self.confBasis:id(),
-                     charge    = self.charge,
-                     mass      = self.mass,}
+   local metaData = {polyOrder = self.confBasis:polyOrder(),  charge = self.charge,
+                     basisType = self.confBasis:id(),         mass   = self.mass,}
    return self:allocCartField(self.confGrid,self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 function GkSpecies:allocVectorMoment(dim)
-   local metaData = {polyOrder = self.confBasis:polyOrder(),
-                     basisType = self.confBasis:id(),
-                     charge    = self.charge,
-                     mass      = self.mass,}
+   local metaData = {polyOrder = self.confBasis:polyOrder(),  charge = self.charge,
+                     basisType = self.confBasis:id(),         mass   = self.mass,}
    return self:allocCartField(self.confGrid,dim*self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 function GkSpecies:allocIntMoment(comp)
-   local metaData = {charge = self.charge,
-                     mass   = self.mass,}
+   local metaData = {charge = self.charge,  mass = self.mass,}
    local ncomp = comp or 1
    local f = DataStruct.DynVector {numComponents = ncomp,     writeRank = 0,
-                                   metaData      = metaData,  comm      = self.confGrid:commSet().comm,}
+                                   metaData      = metaData,  comm      = self.confGrid:commSet().host,}
    return f
 end
 
@@ -620,9 +616,9 @@ function GkSpecies:createSolver(field, externalField)
    -- Create an updater for volume integrals. Used by diagnostics.
    -- Placed in a table with key 'scalar' to keep consistency with VlasovSpecies (makes diagnostics simpler).
    self.volIntegral = {
-      scalar = Updater.CartFieldIntegratedQuantCalc {
+      scalar = Updater.CartFieldIntegrate {
          onGrid = self.confGrid,   numComponents = 1,
-         basis  = self.confBasis,  quantity      = "V",
+         basis  = self.confBasis,
       }
    }
 
@@ -913,7 +909,6 @@ function GkSpecies:advanceStep2(tCurr, population, emIn, inIdx, outIdx)
    local emFunc = emIn[2]:rkStepperFields()[1]
 
    if self.evolveCollisionless then
-      self.solverStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solverStep2:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
    end
    self.timers.advance = self.timers.advance + Time.clock() - tmStart

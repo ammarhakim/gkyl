@@ -12,7 +12,7 @@
 
 -- Gkyl libraries
 local Basis = require "Basis"
-local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
+local CartFieldIntegrate = require "Updater.CartFieldIntegrate"
 local DataStruct = require "DataStruct"
 local GaussQuadRules = require "Lib.GaussQuadRules"
 local Lin = require "Lib.Linalg"
@@ -401,11 +401,9 @@ function DiscontPoisson:_advance(tCurr, inFld, outFld)
    if self.isAllPeriodic then
      -- integrate source
      if self._first then
-       self.calcInt = CartFieldIntegratedQuantCalc {
+       self.calcInt = CartFieldIntegrate {
          onGrid = self.grid,
          basis = self.basis,
-         numComponents = 1,
-         quantity = "V",
        }
      end
      self.calcInt:advance(0.0, {src}, {self.dynVec})
