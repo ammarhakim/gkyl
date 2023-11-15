@@ -13,6 +13,7 @@ local GkBGKCollisions        = require "App.Collisions.GkBGKCollisions"
 local GkLBOCollisions        = require "App.Collisions.GkLBOCollisions"
 local GkChargeExchange       = require "App.Collisions.GkChargeExchange"
 local GkIonization           = require "App.Collisions.GkIonization"
+local GkRecombinatio         = require "App.Collisions.GkRecombination"
 local VmBGKCollisions        = require "App.Collisions.VmBGKCollisions"
 local VmLBOCollisions        = require "App.Collisions.VmLBOCollisions"
 local VmChargeExchange       = require "App.Collisions.VmChargeExchange"
@@ -27,6 +28,7 @@ return {
   GkLBOCollisions        = GkLBOCollisions,
   GkChargeExchange       = GkChargeExchange,
   GkIonization           = GkIonization,
+  GkRecombination        = GkRecombination,
   VmBGKCollisions        = VmBGKCollisions,
   VmLBOCollisions        = VmLBOCollisions,
   VmChargeExchange       = VmChargeExchange,

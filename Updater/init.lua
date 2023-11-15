@@ -52,6 +52,7 @@ local PositivityCheck = require "Updater.PositivityCheck"
 local PositivityRescale = require "Updater.PositivityRescale"
 local ProjectFluxFunc = require "Updater.ProjectFluxFunc"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
+local Recombination = require "Updater.Recombination"
 local SelfPrimMoments = require "Updater.SelfPrimMoments"
 local SeparateVectorComponents = require "Updater.SeparateVectorComponents"
 local SolidSurface = require "Updater.SolidSurface"
@@ -118,6 +119,7 @@ return {
    PositivityRescale = PositivityRescale,
    ProjectFluxFunc = ProjectFluxFunc,
    ProjectOnBasis = ProjectOnBasis,
+   Recombination = Recombination,
    SelfPrimMoments = SelfPrimMoments,
    SeparateVectorComponents = SeparateVectorComponents,
    SolidSurface = SolidSurface,

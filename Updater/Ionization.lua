@@ -106,13 +106,10 @@ function Ionization:init(tbl)
    Ionization.super.init(self, tbl) -- setup base object
 
    self._onGrid = assert(tbl.onGrid, "Updater.Ionization: Must provide grid object using 'onGrid'")
-   self._confGrid = assert(tbl.confGrid, "Updater.Ionization: Must provide grid object using 'confGrid'")
    self._confBasis = assert(tbl.confBasis, "Updater.Ionization: Must provide configuration space basis object using 'confBasis'")
    self._phaseBasis = assert(tbl.phaseBasis, "Updater.Ionization: Must provide phase space basis object using 'phaseBasis'")
    self._confRange = assert(tbl.confRange, "Updater.Ionization: Must provide configuration space range object using 'confRange'")
    self._phaseRange = assert(tbl.phaseRange, "Updater.Ionization: Must provide phase space range object using 'phaseRange'")
-   self._elemCharge = assert(tbl.elemCharge, "Updater.Ionization: Must provide elementary charge using 'elemCharge'")
-   self._elcMass = assert(tbl.elcMass, "Updater.Ionization: Must provide electron mass using 'elcMass'")
    self._ionMass = assert(tbl.ionMass, "Updater.Ionization: Must provide ion mass using 'ionMass'")
    self._plasma = assert(tbl.plasma, "Updater.Ionization: Must provide ion element type using 'plasma'")
    self._chargeState = assert(tbl.chargeState, "Updater.Ionization: Must provide charge state of donor species using 'chargeState'")
