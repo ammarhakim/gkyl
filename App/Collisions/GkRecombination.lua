@@ -160,8 +160,8 @@ function GkRecombination:createSolver(mySpecies, externalField)
    self.recombSrc = mySpecies:allocDistf()
    
    -- Get conf and phase range
-   self.confRange = self.bmag:localRange()
-   self.phaseRange = self.recombSrc:localRange()
+   self.confRange = self.bmag:localExtRange()
+   self.phaseRange = self.recombSrc:localExtRange()
    
    self.collisionSlvr = Updater.Recombination {
       onGrid = self.phaseGrid,        recvrGk = self.recvrGk,

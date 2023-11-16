@@ -29,6 +29,7 @@ enum gkyl_dg_recomb_type
   GKYL_RECOMB_C = 5,  // Carbon ions
   GKYL_RECOMB_N = 6,  // Nitrogen ions
   GKYL_RECOMB_O = 7,  // Oxygen ions
+  GKYL_RECOMB_AR = 8, // Argon ions
 };
 
 // Identifiers for self species to determine form of collision operator
@@ -62,13 +63,13 @@ typedef struct gkyl_dg_recomb gkyl_dg_recomb;
  * @param gkyl_dg_recomb_inp
  * @param use_gpu Boolean for whether struct is on host or device
  */
-struct gkyl_dg_recomb* gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp inp, bool use_gpu); 
+struct gkyl_dg_recomb* gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu); 
 
 /**
  * Create new ionrecombation updater type object on NV-GPU: 
  * see new() method above for documentation.
  */
-struct gkyl_dg_recomb* gkyl_dg_recomb_cu_dev_new(struct gkyl_dg_recomb_inp inp); 
+struct gkyl_dg_recomb* gkyl_dg_recomb_cu_dev_new(struct gkyl_dg_recomb_inp *inp); 
 
 /**
  * Compute recombation collision term for use in neutral reactions. 
@@ -130,7 +131,8 @@ function Recombination:init(tbl)
    elseif self._plasma == "C" then ion_type = 5
    elseif self._plasma == "N" then ion_type = 6
    elseif self._plasma == "O" then ion_type = 7
-   else error("Updater.Recombination: 'ionType' must be one of 'H','He','Li','Be','B','C','N','O'. Was " .. self._plasma .. " instead") end
+   elseif self._plasma == "Ar" then ion_type = 8
+   else error("Updater.Recombination: 'ionType' must be one of 'H','He','Li','Be','B','C','N','O','Ar'. Was " .. self._plasma .. " instead") end
 
    if self._selfSpecies == 'elc' then self_type = 0
    elseif self._selfSpecies == 'ion' then self_type = 1

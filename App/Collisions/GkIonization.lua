@@ -161,8 +161,8 @@ function GkIonization:createSolver(mySpecies, externalField)
    self.ionizSrc = mySpecies:allocDistf()
    
    -- Get conf and phase range
-   self.confRange = self.bmag:localRange()
-   self.phaseRange = self.ionizSrc:localRange()
+   self.confRange = self.bmag:localExtRange()
+   self.phaseRange = self.ionizSrc:localExtRange()
    
    self.collisionSlvr = Updater.Ionization {
       onGrid = self.phaseGrid,        donorGk = self.donorGk,
@@ -186,7 +186,6 @@ function GkIonization:advance(tCurr, fIn, population, out)
    self.ionizSrc:clear(0.0)
    self.collisionSlvr:advance(tCurr, {momsElc, momsDonor, self.bmag, self.jacobTot, self.b_i, fIn},
    			      {self.ionizSrc, cflRateByCell})
-   -- species[self.speciesName].distIo:write(self.ionizSrc,string.format("%s_izSrc_%d.bp", self.speciesName, species[self.speciesName].diagIoFrame))
 
    fRhsOut:accumulate(1.0,self.ionizSrc)
 

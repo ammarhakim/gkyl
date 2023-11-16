@@ -29,6 +29,7 @@ enum gkyl_dg_iz_type
   GKYL_IZ_C = 5,  // Carbon ions
   GKYL_IZ_N = 6,  // Nitrogen ions
   GKYL_IZ_O = 7,  // Oxygen ions
+  GKYL_IZ_AR = 8, // Argon ions
 };
 
 // Identifiers for self species to determine form of collision operator
@@ -125,7 +126,8 @@ function Ionization:init(tbl)
    elseif self._plasma == "C" then ion_type = 5
    elseif self._plasma == "N" then ion_type = 6
    elseif self._plasma == "O" then ion_type = 7
-   else error("Updater.Ionization: 'ionType' must be one of 'H','He','Li','Be','B','C','N','O'. Was " .. self._plasma .. " instead") end
+   elseif self._plasma == "Ar" then ion_type = 8
+   else error("Updater.Ionization: 'ionType' must be one of 'H','He','Li','Be','B','C','N','O','Ar'. Was " .. self._plasma .. " instead") end
 
    if self._selfSpecies == 'elc' then self_type = 0
    elseif self._selfSpecies == 'ion' then self_type = 1
@@ -158,7 +160,7 @@ function Ionization:advance(tCurr, inFld, outFld)
    local momsDonor = assert(inFld[2], "Ionization.advance: Must pass input momsDonor")
    local bmag = assert(inFld[3], "Ionization.advance: Must pass input bmag")
    local jacobTot = assert(inFld[4], "Ionization.advance: Must pass input jacobTot")
-   local b_i = assert(inFld[5], "Ionization.advance: Must pass input b_i") -- check geo fields...
+   local b_i = assert(inFld[5], "Ionization.advance: Must pass input b_i")
    local distfSelf = assert(inFld[6], "Ionization.advance: Must pass input distfSelf")
    
    local collIz  = assert(outFld[1], "Ionization.advance: Must specifiy output field collIz")
