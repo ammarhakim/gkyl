@@ -2,16 +2,16 @@
 
 source ./build-opts.sh
 
-## This script builds OpenRESTY branch of LuaJIT
+## This script builds LuaJIT using the luajit git repo.
 
 # Install prefix
-PREFIX=$GKYLSOFT/luajit-2.1.0-beta3-openresty
+PREFIX=$GKYLSOFT/luajit-git/
 
 # delete old checkout and builds
-rm -rf luajit2
+rm -rf luajit
 
-git clone https://github.com/openresty/luajit2.git
-cd luajit2
+git clone https://luajit.org/git/luajit.git
+cd luajit
 make PREFIX=$PREFIX CC=$CC CFLAGS=-fPIC
 make XCFLAGS=-DLUAJIT_ENABLE_GC64 install PREFIX=$PREFIX
 
@@ -20,5 +20,5 @@ ln -sfn $PREFIX $GKYLSOFT/luajit
 
 # soft-link executable name "lua". This allows running various tools
 # (luarocks) needing lua executable to run
-ln -sfn $PREFIX/bin/luajit-2.1.0-beta3 $PREFIX/bin/lua
+ln -sfn $PREFIX/bin/luajit $PREFIX/bin/lua
 

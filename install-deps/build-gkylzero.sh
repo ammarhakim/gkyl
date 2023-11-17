@@ -13,32 +13,32 @@ rm -rf gkylzero
 git clone https://github.com/ammarhakim/gkylzero.git
 cd gkylzero
 if [ "$MACHINE_NAME" = 'frontera' ]; then
-    ./machines/mkdeps.frontera.sh
-    ./machines/configure.frontera.sh
+    PREFIX=$GKYLSOFT ./machines/mkdeps.frontera.sh
+    PREFIX=$GKYLSOFT ./machines/configure.frontera.sh
 elif [ "$MACHINE_NAME" = 'stellar-intel' ]; then
-    ./machines/mkdeps.stellar-intel.sh
-    ./machines/configure.stellar-intel.sh  
+    PREFIX=$GKYLSOFT ./machines/mkdeps.stellar-intel.sh
+    PREFIX=$GKYLSOFT ./machines/configure.stellar-intel.sh  
 elif [ "$MACHINE_NAME" = 'stellar-amd' ]; then
-    ./machines/mkdeps.stellar-amd.sh
-    ./machines/configure.stellar-amd.sh  
+    PREFIX=$GKYLSOFT ./machines/mkdeps.stellar-amd.sh
+    PREFIX=$GKYLSOFT ./machines/configure.stellar-amd.sh  
 elif [ "$MACHINE_NAME" = 'perlmutter-cpu' ]; then
-    ./machines/mkdeps.perlmutter.cpu.sh
-    ./machines/configure.perlmutter.cpu.sh     
+    PREFIX=$GKYLSOFT ./machines/mkdeps.perlmutter.cpu.sh
+    PREFIX=$GKYLSOFT ./machines/configure.perlmutter.cpu.sh     
 elif [ "$MACHINE_NAME" = 'perlmutter-gpu' ]; then
-    ./machines/mkdeps.perlmutter.gpu.sh
-    ./machines/configure.perlmutter.gpu.sh   
+    PREFIX=$GKYLSOFT ./machines/mkdeps.perlmutter.gpu.sh
+    PREFIX=$GKYLSOFT ./machines/configure.perlmutter.gpu.sh   
 elif [ "$MACHINE_NAME" = 'della-gpu' ]; then
-    ./machines/mkdeps.della-gpu.sh
-    ./machines/configure.della-gpu.sh  
+    PREFIX=$GKYLSOFT ./machines/mkdeps.della-gpu.sh
+    PREFIX=$GKYLSOFT ./machines/configure.della-gpu.sh  
 elif [ "$MACHINE_NAME" = 'macos' ]; then
-    ./machines/mkdeps.macos.sh
-    ./machines/configure.macos.sh  
+    PREFIX=$GKYLSOFT ./machines/mkdeps.macos.sh
+    PREFIX=$GKYLSOFT ./machines/configure.macos.sh  
 elif [ "$MACHINE_NAME" = 'linux' ]; then
-    ./machines/mkdeps.linux.sh
-    ./machines/configure.linux.host.sh  
-elif [ "$MACHINE_NAME" = 'linux-dev' ]; then
-    ./machines/mkdeps.linux.sh
-    ./machines/configure.linux.dev.sh  
+    PREFIX=$GKYLSOFT ./machines/mkdeps.linux.sh
+    PREFIX=$GKYLSOFT ./machines/configure.linux.cpu.sh  
+elif [ "$MACHINE_NAME" = 'linux-gpu' ]; then
+    PREFIX=$GKYLSOFT ./machines/mkdeps.linux.sh
+    PREFIX=$GKYLSOFT ./machines/configure.linux.gpu.sh  
 fi
 make -j16
 make install
