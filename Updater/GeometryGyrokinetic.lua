@@ -56,16 +56,21 @@ struct gkyl_geo_gyrokinetic_inp {
 // Inputs to create geometry for a specific computational grid
 struct gkyl_geo_gyrokinetic_geo_inp {
   const struct gkyl_rect_grid *cgrid;
+  int* bcs;
   const struct gkyl_basis *cbasis;
 
   enum gkyl_geo_gyrokinetic_type ftype; // type of geometry
   
   double rclose; // closest R to discrimate
+  double rleft; // closest R to discrimate
+  double rright; // closest R to discrimate
   double zmin, zmax; // extents of Z for integration
 
   bool write_node_coord_array; // set to true if nodal coordinates should be written
   const char *node_file_nm; // name of nodal coordinate file
 };
+
+
 
 // Some cumulative statistics
 struct gkyl_geo_gyrokinetic_stat {
@@ -187,6 +192,7 @@ void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *c
  */
 void gkyl_calc_bmag_release(gkyl_calc_bmag* up);
 
+
 // Object type
 typedef struct gkyl_calc_metric gkyl_calc_metric;
 
@@ -194,22 +200,24 @@ typedef struct gkyl_calc_metric gkyl_calc_metric;
  * Create new updater to compute the metric coefficients
  *
  * @param cbasis Basis object (configuration space).
+ * @param grid configuration space grid.
+ * @param bcs 0 for periodic 1 for non-periodic. Determines whether mapc2p extends to ghost cells
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
 gkyl_calc_metric* gkyl_calc_metric_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_rect_grid *grid, bool use_gpu);
+  const struct gkyl_rect_grid *grid, const int *bcs, bool use_gpu);
 
 /**
- * Advance calc_metric (compute the metric coefficients).
+ * Use finite differences to calculate metric coefficients at nodes
  *
  * @param up calc_metric updater object.
- * @param crange Config-space range.
- * @param XYZ field containing DG rep of cartesian coordinates
+ * @param nrange nodal range.
+ * @param mc2p_nodal_fd nodal array containing cartesian coordinates at nodes and nearby nodes used for FD
  * @param gFld output field where metric coefficients will be placed
  */
-
 void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, double *dzc, struct gkyl_array *gFld, struct gkyl_range *update_range);
+//void gkyl_calc_metric_advance(const gkyl_calc_metric *up, const struct gkyl_range *crange, struct gkyl_array *XYZ, struct gkyl_array *gFld);
 
 /**
  * Delete updater.
@@ -217,7 +225,6 @@ void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, s
  * @param up Updater to delete.
  */
 void gkyl_calc_metric_release(gkyl_calc_metric* up);
-
 // Object type
 typedef struct gkyl_calc_derived_geo gkyl_calc_derived_geo;
 
@@ -272,6 +279,7 @@ function GeometryGyrokinetic:init(tbl)
    self.calcBmag = tbl.calcBmag
    self.zmin = tbl.zmin
    self.zmax = tbl.zmax
+   self.rclose = tbl.rclose
 
 
    
@@ -285,6 +293,7 @@ function GeometryGyrokinetic:init(tbl)
    for i = 1, self.grid:ndim() do
       self.BCs[i] = 1
    end
+   self.BCs[2] = 0
    --if self.BCs[1] == 1 then
    --   local lower = self.localRangeExt:lowerAsVec()
    --   local upper = self.localRangeExt:upperAsVec()
@@ -317,17 +326,17 @@ function GeometryGyrokinetic:init(tbl)
       self.ginp.cgrid = self.grid._zero
       self.ginp.cbasis = self.basis._zero
       --self.ginp.ftype = GKYL_SOL_DN
-      self.ginp.rclose = self.rzGrid:upper(1)
+      self.ginp.rclose = self.rclose --self.rzGrid:lower(1)
       self.ginp.zmin = self.zmin or self.rzGrid:lower(2)
       self.ginp.zmax = self.zmax or self.rzGrid:upper(2)
       self.ginp.write_node_coord_array = true
       self.ginp.node_file_nm = "grid.gkyl"
-      --self.ginp.bcs = self.BCs:data()
+      self.ginp.bcs = self.BCs:data()
       self._zero_bmag = ffi.gc(ffiC.gkyl_calc_bmag_new(self.basis._zero, self.rzBasis._zero, self.grid._zero, self.rzGrid._zero, self.geo, self.ginp, false), ffiC.gkyl_calc_bmag_release)
    end
 
 
-   self._zero_metric = ffi.gc(ffiC.gkyl_calc_metric_new(self.basis._zero, self.grid._zero, false), ffiC.gkyl_calc_metric_release)
+   self._zero_metric = ffi.gc(ffiC.gkyl_calc_metric_new(self.basis._zero, self.grid._zero, self.BCs:data(), false), ffiC.gkyl_calc_metric_release)
    self._zero_derived = ffi.gc(ffiC.gkyl_calc_derived_geo_new(self.basis._zero, self.grid._zero, false), ffiC.gkyl_calc_derived_geo_release)
 
 
