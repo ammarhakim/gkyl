@@ -15,4 +15,4 @@ fi
 export GKYLSOFT=$HOME/perlmutter/gkeyll/code/gpu/gkylsoft
 export MACHINE_NAME='perlmutter-gpu'
 cd install-deps
-./mkdeps.sh CC=$CC CXX=$CXX MPICC=$MPICC MPICXX=$MPICXX --prefix=$GKYLSOFT --build-gkylzero=yes --build-luajit=yes --build-adios=yes --build-eigen=yes --build-openmpi=no
+./mkdeps.sh CC=$CC CXX=$CXX MPICC=$MPICC MPICXX=$MPICXX --prefix=$GKYLSOFT --build-gkylzero=yes --build-luajit=yes --build-adios=yes --build-openmpi=no

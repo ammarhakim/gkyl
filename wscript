@@ -25,7 +25,7 @@ from waflib.Options import options
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkyl luajit mpi adios eigen sqlite3 cutools nccl gkylzero superlu openblas',
+    opt.load('gkyl luajit mpi adios sqlite3 cutools nccl gkylzero superlu openblas',
              tooldir='waf_tools')
 
 def configure(conf):
@@ -38,7 +38,6 @@ def configure(conf):
     conf.check_luajit()
     conf.check_mpi()
     conf.check_adios()
-    conf.check_eigen()
     conf.check_sqlite3()
     conf.check_cutools()
     conf.check_nccl()
@@ -243,7 +242,7 @@ def buildExec(bld):
         bld.env.SHLIB_MARKER = '-Wl,-Bdynamic,--no-as-needed'
 
     # list of objects to use
-    useList = 'lib datastruct eq unit comm updater tool proto basis grid gkylzero LUAJIT ADIOS EIGEN MPI SUPERLU OPENBLAS M DL'
+    useList = 'lib datastruct eq unit comm updater tool proto basis grid gkylzero LUAJIT ADIOS MPI SUPERLU OPENBLAS M DL'
     if bld.env['USE_SQLITE']:
         useList = ' sqlite3 ' + useList
     if bld.env['CUTOOLS_FOUND']:
@@ -282,4 +281,4 @@ def buildExec(bld):
 
 def dist(ctx):
     ctx.algo = "zip" # use ZIP instead of tar.bz2
-    ctx.excl = " **/.waf* **/*~ **/*.pyc **/*.swp **/.lock-w* configure-par.sh **/.hg **/.hgignore install-deps/build-opts.sh install-deps/luajit-2.0 install-deps/eigen-eigen-* install-deps/adios-1.* install-deps/luarocks-2.4.3* install-deps/openmpi-* build build-par build-ser"
+    ctx.excl = " **/.waf* **/*~ **/*.pyc **/*.swp **/.lock-w* configure-par.sh **/.hg **/.hgignore install-deps/build-opts.sh install-deps/luajit-2.0 install-deps/adios-1.* install-deps/luarocks-2.4.3* install-deps/openmpi-* build build-par build-ser"

@@ -18,7 +18,6 @@ BUILD_LUAJIT_PPCLE=
 BUILD_LUAROCKS=
 BUILD_ADIOS=
 BUILD_OPENMPI=
-BUILD_EIGEN=
 BUILD_ZMQ=
 BUILD_CZMQ=
 
@@ -58,7 +57,6 @@ and C++ compilers to use.
 --build-luarocks            Should we build Luarocks?
 --build-adios               Should we build ADIOS?
 --build-openmpi             Should we build OpenMPI?
---build-eigen               Should we build Eigen?
 --build-zmq                 Should we build ZeroMQ?
 --build-czmq                Should we build C interface to ZeroMQ?
 
@@ -137,10 +135,6 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_OPENMPI="$value"
       ;;
-   --build-eigen)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      BUILD_EIGEN="$value"
-      ;;
    --build-gkylzero)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_GKYLZERO="$value"
@@ -211,14 +205,6 @@ build_openmpi() {
     then
 	echo "Building OpenMPI"
 	./build-openmpi.sh
-    fi
-}
-
-build_eigen() {
-    if [[ ! "$BUILD_EIGEN" = "no" && ("$BUILD_EIGEN" = "yes" || ! -f $PREFIX/eigen3/include/eigen3/Eigen/Core) ]]
-    then
-	echo "Building EIGEN"
-	./build-eigen.sh
     fi
 }
 
@@ -295,6 +281,5 @@ build_luajit_beta3
 build_luajit_ppcle
 build_luarocks
 build_adios
-build_eigen
 build_zmq
 build_czmq

@@ -43,9 +43,6 @@ ENABLE_ADIOS="--enable-adios" # set to blank to disable ADIOS
 ADIOS_INC_DIR=$GKYLSOFT/adios/include
 ADIOS_LIB_DIR=$GKYLSOFT/adios/lib
 
-# EIGEN options
-EIGEN_INC_DIR=/cluster/software/Eigen/3.3.8-GCCcore-10.2.0/include/
-
 # CUDA options
 CUTOOLS_INC_DIR=$CPATH
 CUTOOLS_LIB_DIR=$LIBRARY_PATH

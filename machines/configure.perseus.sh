@@ -33,9 +33,6 @@ ENABLE_ADIOS="--enable-adios" # set to blank to disable ADIOS
 ADIOS_INC_DIR=$HOME/gkylsoft/adios/include
 ADIOS_LIB_DIR=$HOME/gkylsoft/adios/lib
 
-# EIGEN options
-EIGEN_INC_DIR=$HOME/gkylsoft/eigen3/include/eigen3
-
 # CUDA options
 CUTOOLS_INC_DIR=
 CUTOOLS_LIB_DIR=

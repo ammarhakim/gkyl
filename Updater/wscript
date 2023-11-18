@@ -26,7 +26,7 @@ def build(bld):
     bld.shlib(source = sources,
 
               includes = '. ../Cuda',
-              use='lib EIGEN MPI CUTOOLS gkylzero', target = 'updater', name = 'updater', vum = '1.0', features = 'cxx')
+              use='lib MPI CUTOOLS gkylzero', target = 'updater', name = 'updater', vum = '1.0', features = 'cxx')
     
 ## Removed the following files from the build for now
 #    interpolateCalcData/CartFieldInterpSer1x.cpp

@@ -13,4 +13,4 @@ export GKYLSOFT=$(readlink -f ../gkylsoft)
 PREFIX=$GKYLSOFT/gkyl
 
 cd install-deps
-./mkdeps.sh --prefix=$GKYLSOFT CC=gcc CXX=g++ MPICC=mpicc MPICXX=mpicxx --build-luajit=yes --build-adios=yes --build-eigen=yes --build-openmpi=no
+./mkdeps.sh --prefix=$GKYLSOFT CC=gcc CXX=g++ MPICC=mpicc MPICXX=mpicxx --build-luajit=yes --build-adios=yes --build-openmpi=no

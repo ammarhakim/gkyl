@@ -10,4 +10,4 @@ fi
 export GKYLSOFT=$HOME/gkylsoft-gpu
 export MACHINE_NAME='della-gpu'
 cd install-deps
-./mkdeps.sh CC=mpicc CXX=mpicxx MPICC=mpicc MPICXX=mpicxx --prefix=$GKYLSOFT --build-gkylzero=yes --build-luajit=yes --build-adios=yes --build-eigen=yes --build-openmpi=no
+./mkdeps.sh CC=mpicc CXX=mpicxx MPICC=mpicc MPICXX=mpicxx --prefix=$GKYLSOFT --build-gkylzero=yes --build-luajit=yes --build-adios=yes --build-openmpi=no

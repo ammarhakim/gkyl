@@ -29,9 +29,6 @@ ENABLE_ADIOS="--enable-adios" # set to blank to disable ADIOS
 ADIOS_INC_DIR=$GKYLSOFT/adios/include
 ADIOS_LIB_DIR=$GKYLSOFT/adios/lib
 
-# EIGEN options
-EIGEN_INC_DIR=$GKYLSOFT/eigen3/include/eigen3
-
 OPENBLAS_INC_DIR=$GKYLSOFT/OpenBLAS/include
 OPENBLAS_LIB_DIR=$GKYLSOFT/OpenBLAS/lib
 

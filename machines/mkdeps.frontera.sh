@@ -7,4 +7,4 @@ fi
 export GKYLSOFT=$HOME/gkylsoft
 export MACHINE_NAME='frontera'
 cd install-deps
-./mkdeps.sh CC=mpicc CXX=mpicxx MPICC=mpicc MPICXX=mpicxx --build-gkylzero=yes --build-luajit=yes --build-adios=yes --build-eigen=yes --build-openmpi=no
+./mkdeps.sh CC=mpicc CXX=mpicxx MPICC=mpicc MPICXX=mpicxx --build-gkylzero=yes --build-luajit=yes --build-adios=yes --build-openmpi=no

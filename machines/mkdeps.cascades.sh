@@ -8,4 +8,4 @@ if [ `dirname "$0"` == "." ]
 fi
 export GKYLSOFT='$HOME/cascades/gkylsoft'
 cd install-deps
-./mkdeps.sh CC=gcc CXX=g++ MPICC=mpicc MPICXX=mpicxx --prefix=$GKYLSOFT --build-luajit=yes --build-adios=yes --build-eigen=yes --build-openmpi=no --build-luarocks=yes
+./mkdeps.sh CC=gcc CXX=g++ MPICC=mpicc MPICXX=mpicxx --prefix=$GKYLSOFT --build-luajit=yes --build-adios=yes --build-openmpi=no --build-luarocks=yes
