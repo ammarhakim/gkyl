@@ -9,6 +9,7 @@
 --------------------------------------------------------------------------------
 
 -- Infrastructure loads
+local Adios            = require "Io.Adios"
 local Alloc            = require "Alloc"
 local Basis            = require "Basis"
 local DataStruct       = require "DataStruct"
@@ -28,6 +29,10 @@ local xsys             = require "xsys"
 local ffi              = require "ffi"
 
 math = require("sci.math").generic -- this is global so that it affects input file
+
+-- Adios object for I/O. Declared as global so objects can use it without
+-- having to pass it through every function as an argument.
+GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(Mpi.COMM_WORLD)
 
 -- App loads (do not load specific app objects here, but only things
 -- needed to run the App itself. Specific objects should be loaded in
@@ -112,12 +117,6 @@ local function buildApplication(self, tbl)
    -- Create basis function for configuration space.
    local confBasis = createBasis(basisNm, cdim, polyOrder)
 
-   -- I/O method
-   local ioMethod = tbl.ioMethod and tbl.ioMethod or "MPI"
-   if ioMethod ~= "POSIX" and ioMethod ~= "MPI" then
-      assert(false, "ioMethod must be one of 'MPI' or 'POSIX'. Provided '" .. ioMethod .. "' instead")
-   end
-
    -- Optional wallclock time allotted for this simulation.
    local maxWallTime = tbl.maxWallTime and tbl.maxWallTime or GKYL_MAX_DOUBLE
 
@@ -147,7 +146,7 @@ local function buildApplication(self, tbl)
    local cflFrac = tbl.cflFrac or timeStepper.cflFrac   -- CFL fraction.
 
    -- Tracker for timestep
-   local dtTracker = DataStruct.DynVector { numComponents = 1, }
+   local dtTracker = DataStruct.DynVector { numComponents = 1}
    local dtPtr = Lin.Vec(1)
 
    -- Used in reducing time step across species communicator.
@@ -186,10 +185,10 @@ local function buildApplication(self, tbl)
    -- Setup configuration space grid.
    local confGrid = GridConstructor {
       lower = tbl.lower,  decomposition = commManager:getConfDecomp(),
-      upper = tbl.upper,  mappings = tbl.coordinateMap,
-      cells = tbl.cells,  mapc2p = tbl.mapc2p,
+      upper = tbl.upper,  mappings      = tbl.coordinateMap,
+      cells = tbl.cells,  mapc2p        = tbl.mapc2p,
       periodicDirs = periodicDirs,  world = tbl.world, 
-      messenger = commManager,
+      messenger    = commManager,
    }
    -- Read in information about each species.
    local population = PopApp{ messenger = commManager }
@@ -197,7 +196,6 @@ local function buildApplication(self, tbl)
       if SpeciesBase.is(val) then
 	 population.species[nm] = val
 	 population.species[nm]:setName(nm)
-	 population.species[nm]:setIoMethod(ioMethod)
       end
    end
    lume.setOrder(population:getSpecies())  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
@@ -243,7 +241,6 @@ local function buildApplication(self, tbl)
 
    local function completeFieldSetup(fld, plasmaField)
       fld:fullInit(tbl, plasmaField) -- Complete initialization.
-      fld:setIoMethod(ioMethod)
       fld:setBasis(confBasis)
       fld:setGrid(confGrid)
       do
@@ -360,8 +357,7 @@ local function buildApplication(self, tbl)
    -- Function to read from restart frame.
    local function readRestart() --> Time at which restart was written.
       local rTime = 0.0
-      dtTracker:read(string.format("dt.bp"))
-      local _, dtLast = dtTracker:lastData()
+      local _, dtLast = dtTracker:read(string.format("dt.bp"), true)
       -- Read fields first, in case needed for species init or BCs.
       field:readRestart()
       externalField:readRestart()
@@ -845,6 +841,8 @@ local function buildApplication(self, tbl)
 
       -- Perform other numerical/performance diagnostics.
       devDiagnose()
+
+      if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end
 
       if file_exists(stopfile) then os.remove(stopfile) end -- Clean up.
    end

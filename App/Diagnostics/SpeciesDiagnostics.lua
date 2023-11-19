@@ -145,7 +145,6 @@ function SpeciesDiagnostics:fullInit(mySpecies, field, diagOwner)
    -- MF 2021/06/06: Writing all integrated diagnostics to a single file is currently not available.
    if self.inTwoFiles then
       self.gridDiagsToWrite, self.gridDiagsToRead = {}, {}
-      self.ioMethod = "MPI"
       local elemType
       for _, diagNm in ipairs(self.diagGroups["grid"]) do
          local diag = self.diags[diagNm]
@@ -157,7 +156,6 @@ function SpeciesDiagnostics:fullInit(mySpecies, field, diagOwner)
          and "serendipity" or mySpecies.basis:id()
       self.diagIo = AdiosCartFieldIo {
          elemType   = elemType,
-         method     = self.ioMethod,
          writeGhost = self.writeGhost,
          metaData   = {polyOrder = mySpecies.basis:polyOrder(),
                        basisType = basisID,},
@@ -172,11 +170,11 @@ function SpeciesDiagnostics:fullInit(mySpecies, field, diagOwner)
          -- Write restart files for integrated moments. Note: these are only needed for the rare case that the
          -- restart write frequency is higher than the normal write frequency from nFrame.
          -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
-         SpeciesDiagnostics["writeRestartIntegratedDiagnostics_separateFiles"](self, tm, intFr)
+--         SpeciesDiagnostics["writeRestartIntegratedDiagnostics_separateFiles"](self, tm, intFr)
       end
       self.readRestartFunc = function()
          local tm, fr = SpeciesDiagnostics["readRestartGridDiagnostics_oneFile"](self)
-         SpeciesDiagnostics["readRestartIntegratedDiagnostics_separateFiles"](self)
+--         SpeciesDiagnostics["readRestartIntegratedDiagnostics_separateFiles"](self)
          return tm, fr
       end
    else
@@ -190,11 +188,11 @@ function SpeciesDiagnostics:fullInit(mySpecies, field, diagOwner)
          -- Write restart files for integrated moments. Note: these are only needed for the rare case that the
          -- restart write frequency is higher than the normal write frequency from nFrame.
          -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
-         SpeciesDiagnostics["writeRestartIntegratedDiagnostics_separateFiles"](self, tm, intFr)
+--         SpeciesDiagnostics["writeRestartIntegratedDiagnostics_separateFiles"](self, tm, intFr)
       end
       self.readRestartFunc = function()
          local tm, fr = SpeciesDiagnostics["readRestartGridDiagnostics_separateFiles"](self)
-         SpeciesDiagnostics["readRestartIntegratedDiagnostics_separateFiles"](self)
+--         SpeciesDiagnostics["readRestartIntegratedDiagnostics_separateFiles"](self)
          return tm, fr
       end
    end
@@ -297,11 +295,11 @@ function SpeciesDiagnostics:writeRestartGridDiagnostics_separateFiles(tm, fr)
    end
 end
 function SpeciesDiagnostics:writeRestartIntegratedDiagnostics_separateFiles(tm, fr)
---   -- Write a restart file for each integrated diagnostic.
---   for _, diagNm in ipairs(self.diagGroups["integrated"]) do 
---      local diag = self.diags[diagNm]
---      diag.field:write(string.format("%s_%s_restart.bp", self.name, diagNm), tm, fr, false, false)
---   end
+   -- Write a restart file for each integrated diagnostic.
+   for _, diagNm in ipairs(self.diagGroups["integrated"]) do 
+      local diag = self.diags[diagNm]
+      diag.field:write(string.format("%s_%s_restart.bp", self.name, diagNm), tm, fr, false, false)
+   end
 end
 
 function SpeciesDiagnostics:writeRestartGridDiagnostics_oneFile(tm, fr)
@@ -336,10 +334,10 @@ function SpeciesDiagnostics:readRestartGridDiagnostics_oneFile()
 end
 
 function SpeciesDiagnostics:readRestartIntegratedDiagnostics_separateFiles()
---   for _, diagNm in ipairs(self.diagGroups["integrated"]) do 
---      local diag = self.diags[diagNm]
---      diag.field:read(string.format("%s_%s_restart.bp", self.name, diagNm))
---   end
+   for _, diagNm in ipairs(self.diagGroups["integrated"]) do 
+      local diag = self.diags[diagNm]
+      diag.field:read(string.format("%s_%s_restart.bp", self.name, diagNm))
+   end
 end
 function SpeciesDiagnostics:readRestartIntegratedDiagnostics_oneFile()
    -- Read from a single restart file for all integrated diagnostics.

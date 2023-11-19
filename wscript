@@ -256,6 +256,7 @@ def buildExec(bld):
     appendToList(fullRpath, bld.env.LIBDIR)
     appendToList(fullRpath, bld.env.LIBPATH_LUAJIT)
     appendToList(fullRpath, bld.env.LIBPATH_gkylzero)
+    appendToList(fullRpath, bld.env.LIBPATH_ADIOS)
 
 
     # build gkyl executable
@@ -282,4 +283,4 @@ def buildExec(bld):
 
 def dist(ctx):
     ctx.algo = "zip" # use ZIP instead of tar.bz2
-    ctx.excl = " **/.waf* **/*~ **/*.pyc **/*.swp **/.lock-w* configure-par.sh **/.hg **/.hgignore install-deps/build-opts.sh install-deps/luajit-2.0 install-deps/eigen-eigen-* install-deps/adios-1.* install-deps/luarocks-2.4.3* install-deps/openmpi-* build build-par build-ser"
+    ctx.excl = " **/.waf* **/*~ **/*.pyc **/*.swp **/.lock-w* configure-par.sh **/.hg **/.hgignore install-deps/build-opts.sh install-deps/luajit-2.0 install-deps/eigen-eigen-* install-deps/adios2-2.* install-deps/luarocks-2.4.3* install-deps/openmpi-* build build-par build-ser"

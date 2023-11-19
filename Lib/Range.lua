@@ -188,7 +188,14 @@ local range_mt = {
 	 return v
       end,
       shape = function (self, dir)
-	 return math.max(0, self._upper[dir-1]-self._lower[dir-1]+1)
+         local shapeOut
+         if dir then
+            shapeOut = math.max(0, self._upper[dir-1]-self._lower[dir-1]+1)
+         else
+            shapeOut = {}
+            for dir = 1, self._ndim do shapeOut[dir] = math.max(0, self._upper[dir-1]-self._lower[dir-1]+1) end
+         end
+         return shapeOut
       end,
       volume = function (self)
 	 local v = 1

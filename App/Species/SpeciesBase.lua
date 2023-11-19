@@ -15,7 +15,6 @@ local SpeciesBase = Proto()
 function SpeciesBase:init(tbl) end
 function SpeciesBase:fullInit(appTbl) end
 function SpeciesBase:setName(nm) self.name = nm end -- Needs to be called before fullInit().
-function SpeciesBase:setIoMethod(ioMethod) end
 function SpeciesBase:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs, cMap) end
 function SpeciesBase:setConfBasis(basis) end
 function SpeciesBase:createBasis() end

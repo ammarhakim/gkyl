@@ -61,11 +61,9 @@ function FunctionProjection:createSolver(mySpecies)
    assert(type(self.initFunc) == "function", "The input must be a table containing function")
 
    if self.fromFile then
-      self.ioMethod  = "MPI"
       self.writeGhost = true
       self.fieldIo = AdiosCartFieldIo {
          elemType   = mySpecies.distf[1]:elemType(),
-         method     = self.ioMethod,
          writeGhost = self.writeGhost,
          metaData   = {polyOrder = self.phaseBasis:polyOrder(),
                        basisType = self.phaseBasis:id()}
@@ -152,11 +150,9 @@ function MaxwellianProjection:createSolver(mySpecies)
    ) )
 
    if self.fromFile then
-      self.ioMethod  = "MPI"
       self.writeGhost = true
       self.fieldIo = AdiosCartFieldIo {
          elemType  = mySpecies.distf[1]:elemType(),
-         method    = self.ioMethod,
          writeGhost = self.writeGhost,
          metaData  = {polyOrder = self.phaseBasis:polyOrder(),
                       basisType = self.phaseBasis:id(),

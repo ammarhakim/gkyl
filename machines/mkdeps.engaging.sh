@@ -7,10 +7,6 @@ if [ `dirname "$0"` == "." ]
     cd ..
 fi
 
-# Install location... by default, puts gkylsoft directory
-# on same level as gkyl directory (where we are now, presumably)
-export GKYLSOFT=$(readlink -f ../gkylsoft)
-PREFIX=$GKYLSOFT/gkyl
-
+export GKYLSOFT=$HOME/gkylsoft
 cd install-deps
 ./mkdeps.sh --prefix=$GKYLSOFT CC=gcc CXX=g++ MPICC=mpicc MPICXX=mpicxx --build-luajit=yes --build-adios=yes --build-eigen=yes --build-openmpi=no

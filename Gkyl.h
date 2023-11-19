@@ -27,9 +27,8 @@
 # include <GkylMpiFuncs.h>
 #endif
 
-#ifdef HAVE_ADIOS_H
-# include <adios.h>
-# include <adios_read.h>
+#ifdef HAVE_ADIOS2_C_H
+#include <adios2_c.h>
 #endif
 
 #ifdef HAVE_EIGEN_CORE
@@ -275,7 +274,7 @@ std::string Gkyl::createTopLevelDefs() const {
   varDefs << "GKYL_HAVE_MPI = false" << std::endl;
 #endif
 
-#ifdef HAVE_ADIOS_H
+#ifdef HAVE_ADIOS2_C_H
   varDefs << "GKYL_HAVE_ADIOS = true" << std::endl;
 #else
   varDefs << "GKYL_HAVE_ADIOS = false" << std::endl;
@@ -353,7 +352,7 @@ std::string Gkyl::createTopLevelDefs() const {
   varDefs << "GKYL_MAX_INT16 = " << INT16_MAX << std::endl;  
 
   // flag to indicate if input file should be embedded in ouput
-  varDefs << "GKYL_EMBED_INP = true" << std::endl; // default true
+  varDefs << "GKYL_EMBED_INP = true" << std::endl; // default false
 
   // set some JIT parameters to fiddle around with optimizations
   varDefs << "if jit.opt then jit.opt.start('callunroll=40', 'loopunroll=80', 'maxmcode=40960', 'maxtrace=100000', 'maxrecord=40000', 'maxside=1000', 'minstitch=3') end"
