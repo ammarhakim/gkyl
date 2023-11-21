@@ -434,7 +434,7 @@ function GkField:createSolver(population, externalField)
          -- Calculate weight on polarization term: sum_s m_s * jacobGeo * n_s / B^2.
          self.polarizationWeightLocal:clear(0.)
          for _, s in population.iterLocal() do
-            if Species.GkSpecies.is(s) or Species.GyrofluidSpecies.is(s) then
+            if Species.GkSpecies.is(s) then
                self.polarizationWeightLocal:accumulate(1., s:getPolarizationWeight())
             end
          end
