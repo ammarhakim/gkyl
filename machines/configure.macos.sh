@@ -4,7 +4,6 @@
 OUT=build
 # Install location
 GKYLSOFT=$HOME/gkylsoft
-PREFIX=$GKYLSOFT/gkyl
 
 # Compile flags (set optimization/debug flags here)
 CC=clang
@@ -39,6 +38,7 @@ SUPERLU_LIB_DIR=$GKYLSOFT/superlu/lib
 GKYLZERO_INC_DIR=$GKYLSOFT/gkylzero/include
 GKYLZERO_LIB_DIR=$GKYLSOFT/gkylzero/lib
 
+PREFIX=$GKYLSOFT/gkyl
 # You probably do not need to modify the command itself
 cmd="./waf CC=$CC CXX=$CXX MPICC=$MPICC MPICXX=$MPICXX --out=$OUT -p $GKYLSOFT --prefix=$PREFIX --cxxflags=$CXXFLAGS --luajit-inc-dir=$LUAJIT_INC_DIR --luajit-lib-dir=$LUAJIT_LIB_DIR --luajit-share-dir=$LUAJIT_SHARE_DIR $ENABLE_MPI --mpi-inc-dir=$MPI_INC_DIR --mpi-lib-dir=$MPI_LIB_DIR --mpi-link-libs=$MPI_LINK_LIBS $ENABLE_ADIOS --adios-inc-dir=$ADIOS_INC_DIR --adios-lib-dir=$ADIOS_LIB_DIR --adios-link-libs=$ADIOS_LINK_LIBS --enable-gkylzero --gkylzero-inc-dir=$GKYLZERO_INC_DIR --gkylzero-lib-dir=$GKYLZERO_LIB_DIR --enable-superlu --superlu-inc-dir=$SUPERLU_INC_DIR --superlu-lib-dir=$SUPERLU_LIB_DIR --enable-openblas --openblas-inc-dir=$OPENBLAS_INC_DIR --openblas-lib-dir=$OPENBLAS_LIB_DIR configure"
 # if we are in machines directory, go up a directory before executing cmd

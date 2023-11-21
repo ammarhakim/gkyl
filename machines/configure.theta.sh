@@ -9,7 +9,7 @@ MPICXX=CC
 # Build directory
 OUT=build
 # Install location
-PREFIX=$HOME/gkylsoft
+GKYLSOFT=$HOME/gkylsoft
 PREFIX=$GKYLSOFT/gkyl
 
 # Compile flags (set optimization/debug flags here)
