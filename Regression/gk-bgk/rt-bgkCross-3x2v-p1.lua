@@ -27,6 +27,10 @@ Ti0 = 200*eV   -- Ion temperature.
 -- Thermal speeds.
 vti = math.sqrt(Ti0/mi)
 vte = math.sqrt(Te0/me)
+c_s = math.sqrt(Te0/mi)
+omega_ci = math.sqrt(qi*B0/mi)
+rho_s = c_s / omega_ci
+--print(string.format("c_s=%10.8e, omega_ci=%10.8e, rho_s=%10.8e\n", c_s, omega_ci, rho_s))
 
 -- Bulk flow speed along B-field.
 uPare = 0.5*math.sqrt(me/mi)*vte
@@ -44,28 +48,31 @@ nuIon        = nuFrac*logLambdaIon*(eV^4)*n0
 -- Electron-Ion collision frequency.
 nuElcIon     = nuElc*2.0
 nuIonElc     = me*nuElcIon/mi -- Ion-electron collision frequency.
+--print(string.format("nuElc=%10.8e, nuIon=%10.8e, nuElcIon=%10.8e, nuIonElc=%10.8e", nuElc, nuIon, nuElcIon, nuIonElc))
 
 -- Box size.
 Lx = 4 -- [m]
+Ly = 4
+Lz = 4 -- [m]
 
 plasmaApp = Plasma.App {
    logToFile = false,
    
-   tEnd        = 0.10/nuElcIon,    -- End time.
+   tEnd        = 0.10/nuElcIon,   -- End time.
    nFrame      = 1,               -- Number of frames to write.
-   lower       = {-Lx/2},         -- Configuration space lower coordinate.
-   upper       = { Lx/2},         -- Configuration space upper coordinate.
-   cells       = {32},            -- Configuration space cells.
+   lower       = {-Lx/2, -Ly/2, -Lz/2},   -- Configuration space lower coordinate.
+   upper       = { Lx/2,  Ly/2,  Lz/2},   -- Configuration space upper coordinate.
+   cells       = {4, 4, 4},       -- Configuration space cells.
    basis       = "serendipity",   -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,               -- Polynomial order.
    timeStepper = "rk3",           -- One of "rk2", "rk3" or "rk3s4".
    cflFrac     = 1.0,
    
    -- Decomposition for configuration space.
-   decompCuts = {1},              -- Cuts in each configuration direction.
+   decompCuts = {4,4,4},              -- Cuts in each configuration direction.
 
    -- Boundary conditions for configuration space.
-   periodicDirs = {1},            -- Periodic directions.
+   periodicDirs = {1,2,3},            -- Periodic directions.
 
    -- Neutral species with a rectangular/square IC.
    elc = Plasma.Species {
@@ -73,20 +80,20 @@ plasmaApp = Plasma.App {
       -- Velocity space grid.
       lower      = {-5*vte, 0.0},
       upper      = { 5*vte, 12*me*(vte^2)/(2*B0)},
-      cells      = {16, 8},
+      cells      = {8, 4},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
-            local x, vpar, mu = xn[1], xn[2], xn[3]
+            local x, y, z = xn[1], xn[2], xn[3]
             return n0 * (1.0+0.2*math.cos(2.*math.pi*x))
          end,
          driftSpeed = function (t, xn)
-            local x, vpar, mu = xn[1], xn[2], xn[3]
-            return uPare * (1.0+0.2*math.cos(2.*math.pi*x))
+            local x, y, z = xn[1], xn[2], xn[3]
+            return uPare * (1.0+0.2*math.cos(2.*math.pi*y))
          end,
          temperature = function (t, xn)
-            local x, vpar, mu = xn[1], xn[2], xn[3]
-            return Te0 * (1.0+0.2*math.cos(2.*math.pi*x))
+            local x, y, z = xn[1], xn[2], xn[3]
+            return Te0 * (1.0+0.2*math.cos(2.*math.pi*z))
          end,
       },
       polarizationDensityFactor = n0,
@@ -110,20 +117,20 @@ plasmaApp = Plasma.App {
       -- Velocity space grid.
       lower      = {-5*vti, 0.0},
       upper      = { 5*vti, 12*mi*(vti^2)/(2*B0)},
-      cells      = {16, 8},
+      cells      = {8, 4},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
-            local x, vpar, mu = xn[1], xn[2], xn[3]
+            local x, y, z = xn[1], xn[2], xn[3]
             return n0 * (1.0+0.2*math.cos(2.*math.pi*x))
          end,
          driftSpeed = function (t, xn)
-            local x, vpar, mu = xn[1], xn[2], xn[3]
-            return uPari * (1.0+0.2*math.cos(2.*math.pi*x))
+            local x, y, z = xn[1], xn[2], xn[3]
+            return uPari * (1.0+0.2*math.cos(2.*math.pi*y))
          end,
          temperature = function (t, xn)
-            local x, vpar, mu = xn[1], xn[2], xn[3]
-            return Ti0 * (1.0+0.2*math.cos(2.*math.pi*x))
+            local x, y, z = xn[1], xn[2], xn[3]
+            return Ti0 * (1.0+0.2*math.cos(2.*math.pi*z))
          end,
       },
       polarizationDensityFactor = n0,

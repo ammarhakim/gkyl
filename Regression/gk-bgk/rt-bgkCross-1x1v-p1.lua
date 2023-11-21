@@ -62,7 +62,7 @@ plasmaApp = Plasma.App {
 --   cflFrac     = 1.0,
    
    -- Decomposition for configuration space.
-   decompCuts = {1},              -- Cuts in each configuration direction.
+   decompCuts = {32},              -- Cuts in each configuration direction.
 
    -- Boundary conditions for configuration space.
    periodicDirs = {1},            -- Periodic directions.
@@ -78,15 +78,15 @@ plasmaApp = Plasma.App {
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
             local x, vpar = xn[1], xn[2]
-            return n0
+            return n0 * (1.0+0.2*math.cos(2.*math.pi*x))
          end,
          driftSpeed = function (t, xn)
             local x, vpar = xn[1], xn[2]
-            return uPare
+            return uPare * (1.0+0.2*math.cos(2.*math.pi*x))
          end,
          temperature = function (t, xn)
             local x, vpar = xn[1], xn[2]
-            return Te0
+            return Te0 * (1.0+0.2*math.cos(2.*math.pi*x))
          end,
       },
       -- Evolve species?
@@ -116,15 +116,15 @@ plasmaApp = Plasma.App {
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
             local x, vpar = xn[1], xn[2]
-            return n0
+            return n0 * (1.0+0.2*math.cos(2.*math.pi*x))
          end,
          driftSpeed = function (t, xn)
             local x, vpar = xn[1], xn[2]
-            return uPari
+            return uPari * (1.0+0.2*math.cos(2.*math.pi*x))
          end,
          temperature = function (t, xn)
             local x, vpar = xn[1], xn[2]
-            return Ti0
+            return Ti0 * (1.0+0.2*math.cos(2.*math.pi*x))
          end,
       },
       -- Evolve species?

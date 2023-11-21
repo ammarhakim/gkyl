@@ -77,7 +77,7 @@ plasmaApp = Plasma.App {
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
             local x, vpar, mu = xn[1], xn[2], xn[3]
-            return n0
+            return n0 * (1.0+0.1*math.cos(2.*math.pi*x))
          end,
          driftSpeed = function (t, xn)
             local x, vpar, mu = xn[1], xn[2], xn[3]
@@ -113,7 +113,7 @@ plasmaApp = Plasma.App {
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
             local x, vpar, mu = xn[1], xn[2], xn[3]
-            return n0
+            return n0 * (1.0+0.1*math.cos(2.*math.pi*x))
          end,
          driftSpeed = function (t, xn)
             local x, vpar, mu = xn[1], xn[2], xn[3]

@@ -47,25 +47,26 @@ nuIonElc     = me*nuElcIon/mi -- Ion-electron collision frequency.
 
 -- Box size.
 Lx = 4 -- [m]
+Ly = 4 -- [m]
 
 plasmaApp = Plasma.App {
    logToFile = false,
    
    tEnd        = 0.10/nuElcIon,    -- End time.
    nFrame      = 1,               -- Number of frames to write.
-   lower       = {-Lx/2},         -- Configuration space lower coordinate.
-   upper       = { Lx/2},         -- Configuration space upper coordinate.
-   cells       = {32},            -- Configuration space cells.
+   lower       = {-Lx/2, -Ly/2},  -- Configuration space lower coordinate.
+   upper       = { Lx/2,  Ly/2},  -- Configuration space upper coordinate.
+   cells       = {4, 4},            -- Configuration space cells.
    basis       = "serendipity",   -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,               -- Polynomial order.
    timeStepper = "rk3",           -- One of "rk2", "rk3" or "rk3s4".
    cflFrac     = 1.0,
    
    -- Decomposition for configuration space.
-   decompCuts = {1},              -- Cuts in each configuration direction.
+   decompCuts = {1, 1},           -- Cuts in each configuration direction.
 
    -- Boundary conditions for configuration space.
-   periodicDirs = {1},            -- Periodic directions.
+   periodicDirs = {1, 2},         -- Periodic directions.
 
    -- Neutral species with a rectangular/square IC.
    elc = Plasma.Species {
@@ -73,20 +74,20 @@ plasmaApp = Plasma.App {
       -- Velocity space grid.
       lower      = {-5*vte, 0.0},
       upper      = { 5*vte, 12*me*(vte^2)/(2*B0)},
-      cells      = {16, 8},
+      cells      = {8, 4},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
-            local x, vpar, mu = xn[1], xn[2], xn[3]
+            local x, y = xn[1], xn[2]
             return n0 * (1.0+0.2*math.cos(2.*math.pi*x))
          end,
          driftSpeed = function (t, xn)
-            local x, vpar, mu = xn[1], xn[2], xn[3]
-            return uPare * (1.0+0.2*math.cos(2.*math.pi*x))
+            local x, y = xn[1], xn[2]
+            return uPare * (1.0+0.2*math.cos(2.*math.pi*y))
          end,
          temperature = function (t, xn)
-            local x, vpar, mu = xn[1], xn[2], xn[3]
-            return Te0 * (1.0+0.2*math.cos(2.*math.pi*x))
+            local x, y = xn[1], xn[2]
+            return Te0
          end,
       },
       polarizationDensityFactor = n0,
@@ -110,20 +111,20 @@ plasmaApp = Plasma.App {
       -- Velocity space grid.
       lower      = {-5*vti, 0.0},
       upper      = { 5*vti, 12*mi*(vti^2)/(2*B0)},
-      cells      = {16, 8},
+      cells      = {8, 4},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
-            local x, vpar, mu = xn[1], xn[2], xn[3]
+            local x, y = xn[1], xn[2]
             return n0 * (1.0+0.2*math.cos(2.*math.pi*x))
          end,
          driftSpeed = function (t, xn)
-            local x, vpar, mu = xn[1], xn[2], xn[3]
-            return uPari * (1.0+0.2*math.cos(2.*math.pi*x))
+            local x, y = xn[1], xn[2]
+            return uPari * (1.0+0.2*math.cos(2.*math.pi*y))
          end,
          temperature = function (t, xn)
-            local x, vpar, mu = xn[1], xn[2], xn[3]
-            return Ti0 * (1.0+0.2*math.cos(2.*math.pi*x))
+            local x, y = xn[1], xn[2]
+            return Ti0
          end,
       },
       polarizationDensityFactor = n0,
