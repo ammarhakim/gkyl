@@ -9,7 +9,7 @@ module load rh/devtoolset/8
 # Build directory
 OUT=build
 # Install location
-GKYLSOFT=$HOME/gkylsoftl
+GKYLSOFT=$HOME/gkylsoft
 PREFIX=$GKYLSOFT/gkyl
 
 # Compile flags (set optimization/debug flags here)
