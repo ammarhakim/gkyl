@@ -234,8 +234,8 @@ plasmaApp = Plasma.App {
    -- Field solver.
    field = Plasma.Field {
       -- Dirichlet in x, Dirichlet in y, no bc in z.
-      bcLowerPhi = {{T ="D", V = 0.0}, {T ="D", V = 0.0}, {T ="N", V = 0.0}},
-      bcUpperPhi = {{T ="D", V = 0.0}, {T ="D", V = 0.0}, {T ="N", V = 0.0}},
+      bcLowerPhi = {{T ="D", V = 0.0}, {T ="D", V = 0.0}},
+      bcUpperPhi = {{T ="D", V = 0.0}, {T ="D", V = 0.0}},
       evolve = true,   -- Evolve fields?
    },
 
