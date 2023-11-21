@@ -29,9 +29,6 @@ ADIOS_INC_DIR=$HOME/gkylsoft/adios2/include
 ADIOS_LIB_DIR=$HOME/gkylsoft/adios2/lib
 ADIOS_LINK_LIBS="adios2_c_mpi"
 
-# EIGEN options
-EIGEN_INC_DIR=$HOME/gkylsoft/eigen3/include/eigen3
-
 OPENBLAS_INC_DIR=$HOME/gkylsoft/OpenBLAS/include
 OPENBLAS_LIB_DIR=$HOME/gkylsoft/OpenBLAS/lib
 

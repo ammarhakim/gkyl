@@ -8,5 +8,6 @@ if [ `dirname "$0"` == "." ]
 fi
 
 export GKYLSOFT=$HOME/gkylsoft
+export MACHINE_NAME='engaging'
 cd install-deps
-./mkdeps.sh --prefix=$GKYLSOFT CC=gcc CXX=g++ MPICC=mpicc MPICXX=mpicxx --build-luajit=yes --build-adios=yes --build-eigen=yes --build-openmpi=no
+./mkdeps.sh --prefix=$GKYLSOFT CC=gcc CXX=g++ MPICC=mpicc MPICXX=mpicxx --build-gkylzero=yes --build-luajit=yes --build-adios=yes --build-openmpi=no

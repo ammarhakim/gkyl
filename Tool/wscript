@@ -16,7 +16,7 @@ def build(bld):
               includes = '.',
               name = 'tool',
               vnum = '1.0',
-              target = 'tool', use='EIGEN', features='cxx')
+              target = 'tool', use='', features='cxx')
 
     # compile stand-alone executable tools
     

@@ -37,9 +37,6 @@ ADIOS_INC_DIR=$GKYLSOFT/adios2/include
 ADIOS_LIB_DIR=$GKYLSOFT/adios2/lib64
 ADIOS_LINK_LIBS="adios2_c_mpi"
 
-# EIGEN options
-EIGEN_INC_DIR=$GKYLSOFT/eigen3/include/eigen3
-
 # CUDA options
 ENABLE_CUDA="--enable-cuda"
 CUTOOLS_INC_DIR=$CPATH

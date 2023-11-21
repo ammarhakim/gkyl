@@ -59,9 +59,6 @@ ADIOS_INC_DIR=$OLCF_ADIOS_ROOT/include
 ADIOS_LIB_DIR=$OLCF_ADIOS_ROOT/lib64
 ADIOS_LINK_LIBS="adios2_c_mpi"
 
-# EIGEN options
-EIGEN_INC_DIR=$GKYLSOFT/eigen3/include/eigen3
-
 # CUDA options
 ENABLE_CUDA="--enable-cuda"
 CUTOOLS_INC_DIR=$CUDA_DIR/include/

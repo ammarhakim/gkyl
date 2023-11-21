@@ -10,5 +10,6 @@ CXX=mpicxxc
 MPICC=mpicc
 MPICXX=mpicxx
 export GKYLSOFT=$HOME/gkylsoft
+export MACHINE_NAME='theta-ga'
 cd install-deps
-./mkdeps.sh CC=$CC CXX=$CXX MPICC=$MPICC MPICXX=$MPICXX --prefix=$GKYLSOFT --build-luajit=yes --build-adios=yes --build-eigen=yes --build-openmpi=no
+./mkdeps.sh CC=$CC CXX=$CXX MPICC=$MPICC MPICXX=$MPICXX --prefix=$GKYLSOFT --build-gkylzero=yes --build-luajit=yes --build-adios=yes --build-openmpi=no

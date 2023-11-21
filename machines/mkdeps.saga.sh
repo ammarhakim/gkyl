@@ -13,4 +13,4 @@ if [ -z "$GKYLSOFT" ]
     export GKYLSOFT=$(readlink -f ../gkylsoft)
 fi
 cd install-deps
-./mkdeps.sh --prefix=$GKYLSOFT CC=mpicc CXX=mpicxx MPICC=mpicc MPICXX=mpicxx --build-luajit=yes --build-adios=yes --build-eigen=no --build-openmpi=no
+./mkdeps.sh --prefix=$GKYLSOFT CC=mpicc CXX=mpicxx MPICC=mpicc MPICXX=mpicxx --build-luajit=yes --build-adios=yes --build-openmpi=no

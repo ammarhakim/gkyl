@@ -7,8 +7,6 @@
 
 local CollisionsBase         = require "App.Collisions.CollisionsBase"
 local Diffusion              = require "App.Collisions.Diffusion"
-local GfHeatFlux             = require "App.Collisions.GfHeatFlux"
-local GfPitchAngleScattering = require "App.Collisions.GfPitchAngleScattering"
 local GkBGKCollisions        = require "App.Collisions.GkBGKCollisions"
 local GkLBOCollisions        = require "App.Collisions.GkLBOCollisions"
 local GkChargeExchange       = require "App.Collisions.GkChargeExchange"
@@ -21,8 +19,6 @@ local VmIonization           = require "App.Collisions.VmIonization"
 return {
   CollisionsBase         = CollisionsBase,
   Diffusion              = Diffusion,
-  GfHeatFlux             = GfHeatFlux,
-  GfPitchAngleScattering = GfPitchAngleScattering,
   GkBGKCollisions        = GkBGKCollisions,
   GkLBOCollisions        = GkLBOCollisions,
   GkChargeExchange       = GkChargeExchange,

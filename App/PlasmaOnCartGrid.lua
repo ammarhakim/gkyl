@@ -868,28 +868,6 @@ function App:run()
 end
 
 return {
-   Gyrofluid = function ()
-      App.label = "Gyrofluid"
-      return  {
-	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
-         AdiabaticBasicBC = require "App.BCs.AdiabaticBasic",
-	 App = App,
-         BasicBC = require ("App.BCs.GyrofluidBasic").GyrofluidBasic,
-         AbsorbBC = require ("App.BCs.GyrofluidBasic").GyrofluidAbsorb,
-         CopyBC = require ("App.BCs.GyrofluidBasic").GyrofluidCopy,
-         SheathBC = require ("App.BCs.GyrofluidBasic").GyrofluidSheath,
-         ZeroFluxBC = require ("App.BCs.GyrofluidBasic").GyrofluidZeroFlux,
-	 Field = require ("App.Field.GkField").GkField,
-	 FunctionProjection = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
-	 Geometry = require ("App.Field.GkField").GkGeometry,
-	 GyrofluidProjection = require ("App.Projection.GyrofluidProjection").GyrofluidProjection, 
-         HeatFlux = require "App.Collisions.GfHeatFlux",
-         PASCollisions = require "App.Collisions.GfPitchAngleScattering",
-         Source = require "App.Sources.GyrofluidSource",
-	 Species = require "App.Species.GyrofluidSpecies",
-      }
-   end,
-
    Gyrokinetic = function ()
       App.label = "Gyrokinetic"
       return  {
@@ -926,31 +904,6 @@ return {
 	 Vlasov = require ("App.Species.VlasovSpecies"),
 	 VmMaxwellianProjection = require ("App.Projection.VlasovProjection").MaxwellianProjection,
 	 VmSource = require "App.Sources.VmSource",
-      }
-   end,
-
-   IncompEuler = function ()
-      App.label = "Incompressible Euler"
-      return {
-	 App = App,
-         BasicBC = require ("App.BCs.FluidBasic").FluidBasic,
-         AbsorbBC = require ("App.BCs.FluidBasic").FluidAbsorb,
-         CopyBC = require ("App.BCs.FluidBasic").FluidCopy,
-         ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
-	 Diffusion = require "App.Collisions.Diffusion",
-	 Field = require ("App.Field.GkField").GkField,
-         Source = require "App.Sources.FluidSource",
-	 Species = require "App.Species.IncompEulerSpecies",
-      }
-   end,
-
-   HasegawaWakatani = function ()
-      App.label = "Hasegawa-Wakatani"
-      return {
-	 App = App,
-	 Field = require ("App.Field.GkField").GkField,
-	 Species = require "App.Species.HasegawaWakataniSpecies",
-	 Diffusion = require "App.Collisions.Diffusion",
       }
    end,
 
@@ -1002,37 +955,77 @@ return {
       }
    end,
    
-   PassiveAdvection = function ()
-      App.label = "Passively-advected scalar fluid"
-      return {
-	 App = App,
-         BasicBC = require ("App.BCs.FluidBasic").FluidBasic,
-         AbsorbBC = require ("App.BCs.FluidBasic").FluidAbsorb,
-         CopyBC = require ("App.BCs.FluidBasic").FluidCopy,
-         ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
-         TwistShiftBC = require "App.BCs.TwistShift",
-	 Diffusion = require "App.Collisions.Diffusion",
-         Source = require "App.Sources.FluidSource",
-	 Species = require "App.Species.PassiveAdvectionSpecies",
-      }
-   end,
-   
-   EulerIso = function ()
-      App.label = "Isothermal Euler"
-      return {
-        App = App,
-        BasicBC = require ("App.BCs.FluidBasic").FluidBasic,
-        AbsorbBC = require ("App.BCs.FluidBasic").FluidAbsorb,
-        CopyBC = require ("App.BCs.FluidBasic").FluidCopy,
-        ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
-        Species = require "App.Species.EulerSpecies",
-      }
-   end,
-
-   Moments = function ()
-      -- this is a mere redirection to the stand-alone Moments App
-      -- that wraps the G0 Moments App
-      local App = require("App.Moments.Moments")
-      return App
-   end,
+--   IncompEuler = function ()
+--      App.label = "Incompressible Euler"
+--      return {
+--	 App = App,
+--         BasicBC = require ("App.BCs.FluidBasic").FluidBasic,
+--         AbsorbBC = require ("App.BCs.FluidBasic").FluidAbsorb,
+--         CopyBC = require ("App.BCs.FluidBasic").FluidCopy,
+--         ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
+--	 Diffusion = require "App.Collisions.Diffusion",
+--	 Field = require ("App.Field.GkField").GkField,
+--         Source = require "App.Sources.FluidSource",
+--	 Species = require "App.Species.IncompEulerSpecies",
+--      }
+--   end,
+--
+--   HasegawaWakatani = function ()
+--      App.label = "Hasegawa-Wakatani"
+--      return {
+--	 App = App,
+--	 Field = require ("App.Field.GkField").GkField,
+--	 Species = require "App.Species.HasegawaWakataniSpecies",
+--	 Diffusion = require "App.Collisions.Diffusion",
+--      }
+--   end,
+--
+--   Gyrofluid = function ()
+--      App.label = "Gyrofluid"
+--      return  {
+--	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
+--         AdiabaticBasicBC = require "App.BCs.AdiabaticBasic",
+--	 App = App,
+--         BasicBC = require ("App.BCs.GyrofluidBasic").GyrofluidBasic,
+--         AbsorbBC = require ("App.BCs.GyrofluidBasic").GyrofluidAbsorb,
+--         CopyBC = require ("App.BCs.GyrofluidBasic").GyrofluidCopy,
+--         SheathBC = require ("App.BCs.GyrofluidBasic").GyrofluidSheath,
+--         ZeroFluxBC = require ("App.BCs.GyrofluidBasic").GyrofluidZeroFlux,
+--	 Field = require ("App.Field.GkField").GkField,
+--	 FunctionProjection = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
+--	 Geometry = require ("App.Field.GkField").GkGeometry,
+--	 GyrofluidProjection = require ("App.Projection.GyrofluidProjection").GyrofluidProjection, 
+--         HeatFlux = require "App.Collisions.GfHeatFlux",
+--         PASCollisions = require "App.Collisions.GfPitchAngleScattering",
+--         Source = require "App.Sources.GyrofluidSource",
+--	 Species = require "App.Species.GyrofluidSpecies",
+--      }
+--   end,
+--
+--   PassiveAdvection = function ()
+--      App.label = "Passively-advected scalar fluid"
+--      return {
+--	 App = App,
+--         BasicBC = require ("App.BCs.FluidBasic").FluidBasic,
+--         AbsorbBC = require ("App.BCs.FluidBasic").FluidAbsorb,
+--         CopyBC = require ("App.BCs.FluidBasic").FluidCopy,
+--         ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
+--         TwistShiftBC = require "App.BCs.TwistShift",
+--	 Diffusion = require "App.Collisions.Diffusion",
+--         Source = require "App.Sources.FluidSource",
+--	 Species = require "App.Species.PassiveAdvectionSpecies",
+--      }
+--   end,
+--   
+--   EulerIso = function ()
+--      App.label = "Isothermal Euler"
+--      return {
+--        App = App,
+--        BasicBC = require ("App.BCs.FluidBasic").FluidBasic,
+--        AbsorbBC = require ("App.BCs.FluidBasic").FluidAbsorb,
+--        CopyBC = require ("App.BCs.FluidBasic").FluidCopy,
+--        ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
+--        Species = require "App.Species.EulerSpecies",
+--      }
+--   end,
 }
