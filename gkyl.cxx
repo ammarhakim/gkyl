@@ -26,8 +26,13 @@
 
 // Compiler specific includes
 #if defined(__clang__)
-// nothing to include
+#if defined(__arm__) || defined(__arm64__)
+// nothing for m1 chip
+#else
+// include intrinsics header for intel chip.
 # include <xmmintrin.h>
+#endif
+
 #elif defined(__powerpc__)
 // nothing to include
 #elif defined(__GNUC__) || defined(__GNUG__)
@@ -127,7 +132,11 @@ main(int argc, char **argv) {
   // code. Otherwise, the code become horribly slow in some rare (but
   // not impossible to reproduce) situations.
 #if defined(__GNUC__) || defined(__GNUG__)
+#if defined(__arm__) || defined(__arm64__)
+// nothing for Apple m1 chip
+#else
   _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+#endif
 #endif
 
 #if defined(__clang__)
