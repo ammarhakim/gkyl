@@ -102,9 +102,6 @@ void showVersion() {
 #ifdef HAVE_ADIOS2_C_H
   std::cout << " Adios";
 #endif    
-#ifdef HAVE_EIGEN_CORE
-  std::cout << " Eigen";
-#endif
 #ifdef USING_SQLITE3
   std::cout << " Sqlite3";
 #endif    

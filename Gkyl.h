@@ -31,10 +31,6 @@
 #include <adios2_c.h>
 #endif
 
-#ifdef HAVE_EIGEN_CORE
-#include <Eigen/Core>
-#endif
-
 #ifdef HAVE_ZMQ_H
 #include <zmq.h>
 #endif
