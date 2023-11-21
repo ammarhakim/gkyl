@@ -25,19 +25,23 @@
 #include <unistd.h>
 
 // Compiler specific includes
-#if defined(__clang__)
+#if defined(__GNUC__) || defined(__GNUG__)
 #if defined(__arm__) || defined(__arm64__)
-// nothing for m1 chip
+// nothing for arm chips
 #else
-// include intrinsics header for intel chip.
-# include <xmmintrin.h>
+#include <xmmintrin.h>
+#endif
 #endif
 
-#elif defined(__powerpc__)
-// nothing to include
-#elif defined(__GNUC__) || defined(__GNUG__)
-# include <xmmintrin.h>
+#if defined(__clang__)
+#if defined(__APPLE__)
+#if defined(__arm__) || defined(__arm64__)
+// nothing for Apple m1 chip
+#else
+#include <fenv.h>
 #endif
+#endif
+#endif  
 
 // Compiler specifics defines
 
@@ -133,17 +137,21 @@ main(int argc, char **argv) {
   // not impossible to reproduce) situations.
 #if defined(__GNUC__) || defined(__GNUG__)
 #if defined(__arm__) || defined(__arm64__)
-// nothing for Apple m1 chip
+// nothing for arm chips
 #else
   _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
 #endif
 #endif
 
 #if defined(__clang__)
-# if defined(__APPLE__)
-  fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);  
-# endif
+#if defined(__APPLE__)
+#if defined(__arm__) || defined(__arm64__)
+// nothing for Apple m1 chip
+#else
+  fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
 #endif
+#endif
+#endif  
 
   MPI_Init(&argc, &argv);
 
