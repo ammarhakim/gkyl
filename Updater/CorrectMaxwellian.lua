@@ -22,8 +22,9 @@ typedef struct gkyl_correct_maxwellian_gyrokinetic gkyl_correct_maxwellian_gyrok
  * moments.
  *
  * @param grid Grid on which updater lives
- * @param conf_basis Conf space basis functions
+ * @param conf_grid Conf grid on which updater lives
  * @param phase_basis Phase space basis functions
+ * @param conf_basis Conf space basis functions
  * @param conf_local Local configuration space range
  * @param conf_local_ext Local extended configuration space range
  * @param bmag Magnetic field
@@ -32,8 +33,8 @@ typedef struct gkyl_correct_maxwellian_gyrokinetic gkyl_correct_maxwellian_gyrok
  * @param use_gpu Bool to determine if on GPU
  */
 gkyl_correct_maxwellian_gyrokinetic *gkyl_correct_maxwellian_gyrokinetic_new(
-  const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
+  const struct gkyl_rect_grid *grid, const struct gkyl_rect_grid *conf_grid, 
+  const struct gkyl_basis *phase_basis, const struct gkyl_basis *conf_basis, 
   const struct gkyl_range *conf_local, const struct gkyl_range *conf_local_ext,
   const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, double mass, bool use_gpu);
 
@@ -84,7 +85,7 @@ function CorrectMaxwellian:init(tbl)
    self.confRange = bmag:localRange() 
    self.confRangeExt = bmag:localExtRange()
 
-   self._zero = ffi.gc(ffiC.gkyl_correct_maxwellian_gyrokinetic_new(phaseGrid._zero, confBasis._zero, phaseBasis._zero, self.confRange, self.confRangeExt, bmagFld, jacobTotFld, self.mass, self._useGPU), ffiC.gkyl_correct_maxwellian_gyrokinetic_release)
+   self._zero = ffi.gc(ffiC.gkyl_correct_maxwellian_gyrokinetic_new(phaseGrid._zero, confGrid._zero, phaseBasis._zero, confBasis._zero, self.confRange, self.confRangeExt, bmagFld, jacobTotFld, self.mass, self._useGPU), ffiC.gkyl_correct_maxwellian_gyrokinetic_release)
 end
 
 function CorrectMaxwellian:_advance(tCurr, inFld, outFld)
@@ -93,7 +94,7 @@ function CorrectMaxwellian:_advance(tCurr, inFld, outFld)
    local fOut =  assert(outFld[1], "CorrectMaxwellian.advance: Must specify an output field in 'outFld[1]'")
 
    local phaseRange = fM:localRange() 
-
+   
    ffiC.gkyl_correct_maxwellian_gyrokinetic_advance(self._zero, fM._zero, moms._zero, self.err_max, self.iter_max, self.confRange, phaseRange)
    fOut:copy(fM)
 end
