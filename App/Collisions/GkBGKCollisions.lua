@@ -160,7 +160,7 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
          phaseBasis = self.phaseBasis,  confBasis = self.confBasis,
          mass       = self.mass,
          bmag       = self.bmag,        jacobTot   = self.jacobTot,
-         iter_max   = 100,               err_max    = 1e-14,
+         iter_max   = 50,               err_max    = 1e-14,
          useDevice  = false,
       }
    end
@@ -390,7 +390,6 @@ function GkBGKCollisions:advance(tCurr, fIn, population, out)
       --Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
       -- Call the CorrectMaxwellian updater.
       self.correctMaxwellian:advance(tCurr, {self.nufMaxwellSum, momsSelf}, {self.nufMaxwellSum})
-      print("Maxwellian is corrected for the self collisions!")
    end
    self.phaseMul:advance(tCurr, {self.nuSum, self.nufMaxwellSum}, {self.nufMaxwellSum})
    
