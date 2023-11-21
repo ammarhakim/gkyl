@@ -143,14 +143,6 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_LUAJIT="$value"
       ;;
-   --build-luajit-beta3)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      BUILD_LUAJIT_BETA3="$value"
-      ;;   
-   --build-luajit-ppcle)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      BUILD_LUAJIT_PPCLE="$value"
-      ;;   
    --build-adios)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_ADIOS="$value"
@@ -221,22 +213,6 @@ build_luajit() {
     then    
    echo "Building LuaJIT"
    ./build-luajit.sh
-    fi
-}
-
-build_luajit_beta3() {
-    if [[ "$BUILD_LUAJIT_BETA3" = "yes" ]]
-    then    
-	echo "Building LuaJIT=beta3"
-	./build-luajit-beta3.sh
-    fi
-}
-
-build_luajit_ppcle() {
-    if [[ "$BUILD_LUAJIT_PPCLE" = "yes" ]]
-    then    
-	echo "Building LuaJIT=beta3"
-	./build-luajit-ppcle.sh
     fi
 }
 

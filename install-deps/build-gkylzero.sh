@@ -10,7 +10,7 @@ PREFIX=$GKYLSOFT/gkylzero
 # delete old checkout and builds
 rm -rf gkylzero
 
-git clone https://github.com/ammarhakim/gkylzero.git
+git clone -b machineFileEdits https://github.com/ammarhakim/gkylzero.git
 cd gkylzero
 if [ "$MACHINE_NAME" = 'frontera' ]; then
     PREFIX=$GKYLSOFT ./machines/mkdeps.frontera.sh
@@ -39,6 +39,9 @@ elif [ "$MACHINE_NAME" = 'linux' ]; then
 elif [ "$MACHINE_NAME" = 'linux-gpu' ]; then
     PREFIX=$GKYLSOFT ./machines/mkdeps.linux.sh
     PREFIX=$GKYLSOFT ./machines/configure.linux.gpu.sh  
+else
+    echo 'Machine option not implemented in build-gkylzero.sh'
+    exit 1
 fi
 make -j16
 make install

@@ -73,7 +73,6 @@ function MaxwellField:fullInit(appTbl, plasmaField)
    
    self.epsilon0 = tbl.epsilon0
    self.mu0      = tbl.mu0
-   self.ioMethod = "MPI"
    self.evolve   = xsys.pickBool(tbl.evolve, true) -- By default evolve field.
 
    -- By default, do not write data if evolve is false.
@@ -252,7 +251,7 @@ function MaxwellField:alloc(nRkDup)
       self.dtGlobal    = ffi.new("double[2]")
       
       -- For storing integrated energy components.
-      self.emEnergy = DataStruct.DynVector { numComponents = 8 }
+      self.emEnergy = DataStruct.DynVector { numComponents = 8, }
 
    else   -- Poisson equation.
       -- Electrostatic potential, phi, and external magnetic potential A_ext (computed by ExternalField).
@@ -265,7 +264,7 @@ function MaxwellField:alloc(nRkDup)
       self.globalSol    = createField(self.gridGlobal, self.basis, {1,1}, self.basis:numBasis())
    
       -- For storing integrated energy components.
-      self.emEnergy = DataStruct.DynVector { numComponents = self.grid:ndim() }
+      self.emEnergy = DataStruct.DynVector { numComponents = self.grid:ndim(), }
    end
 end
 
@@ -274,7 +273,6 @@ function MaxwellField:createSolver(population)
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.em[1]:elemType(),
-      method   = self.ioMethod,
       metaData = {polyOrder = self.basis:polyOrder(),
                   basisType = self.basis:id(),
                   epsilon0  = self.epsilon0,
@@ -523,7 +521,8 @@ function MaxwellField:writeRestart(tm)
    self.fieldIo:write(self.em[1], "field_restart.bp", tm, self.ioFrame, false)
 
    -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
-   self.emEnergy:write("fieldEnergy_restart.bp", tm, self.dynVecRestartFrame, false, false)
+   -- MF 2023/11/10: disabling writing and reading of all dynVector restart files. Not needed.
+--   self.emEnergy:write("fieldEnergy_restart.bp", tm, self.dynVecRestartFrame, false, false)
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
@@ -532,7 +531,6 @@ function MaxwellField:readRestart()
    self:applyBc(tm, self.em[1])
    self.em[1]:sync() -- Must get all ghost-cell data correct.
      
-   self.emEnergy:read("fieldEnergy_restart.bp", tm)
    self.ioFrame = fr
    -- Iterate triggers.
    self.ioTrigger(tm)
@@ -658,7 +656,6 @@ end
 function ExternalMaxwellField:fullInit(appTbl, plasmaField)
    local tbl = self.tbl -- Previously store table.
 
-   self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- By default evolve field.
 
    -- By default there is a plasma-generated magnetic field, unless running Vlasov-Poisson.
@@ -729,7 +726,6 @@ function ExternalMaxwellField:createSolver(population)
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.em:elemType(),
-      method   = self.ioMethod,
       metaData = {polyOrder = self.basis:polyOrder(),
                   basisType = self.basis:id(),
                   epsilon0  = self.epsilon0,

@@ -27,6 +27,7 @@
 // Compiler specific includes
 #if defined(__clang__)
 // nothing to include
+# include <xmmintrin.h>
 #elif defined(__powerpc__)
 // nothing to include
 #elif defined(__GNUC__) || defined(__GNUG__)
@@ -51,19 +52,9 @@
 # define GKYL_COMPILER_ID "UNKNOWN"
 #endif
 
-// These dummy calls are a hack to force the linker to pull in symbols
-// from static libraries. There must be a better way to do this ...
-#ifdef HAVE_ADIOS_H
-int _adios_init(const char *cf, MPI_Comm comm) { return adios_init(cf, comm); }
-ADIOS_FILE*
-_adios_read_open_file(const char *fname, enum ADIOS_READ_METHOD method, MPI_Comm comm)
-{ return adios_read_open_file(fname, method, comm); }
-#endif
-
 // Finish simulation
 int finish(int err) {
   int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  adios_finalize(rank);
   MPI_Finalize();
   return err;
 }
@@ -99,7 +90,7 @@ void showVersion() {
 #ifdef HAVE_MPI_H
   std::cout << " MPI";
 #endif      
-#ifdef HAVE_ADIOS_H
+#ifdef HAVE_ADIOS2_C_H
   std::cout << " Adios";
 #endif    
 #ifdef HAVE_EIGEN_CORE
@@ -146,7 +137,6 @@ main(int argc, char **argv) {
 #endif
 
   MPI_Init(&argc, &argv);
-  adios_init_noxml(MPI_COMM_WORLD);
 
   bool optShowToolList = false;
   std::string luaExpr;

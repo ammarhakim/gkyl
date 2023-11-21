@@ -47,9 +47,6 @@ end
 function FuncVlasovSpecies:setName(nm)
    self.name = nm
 end
-function FuncVlasovSpecies:setIoMethod(ioMethod)
-   self.ioMethod = ioMethod
-end
 function FuncVlasovSpecies:setConfBasis(basis)
    self.confBasis = basis
 end

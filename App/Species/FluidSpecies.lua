@@ -193,7 +193,6 @@ function FluidSpecies:fullInit(appTbl)
    self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
    self.positivityRescale = xsys.pickBool(tbl.positivityRescale, false)
 
-   self.ioMethod           = "MPI"
    self.diagIoFrame        = 0 -- Frame number for diagnostics.
    self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
    self.cfl      = 0.1
@@ -214,8 +213,6 @@ function FluidSpecies:setCfl(cfl)
    for _, c in pairs(self.collisions) do c:setCfl(cfl) end
    for _, src in pairs(self.sources) do src:setCfl(cfl) end
 end
-
-function FluidSpecies:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 
 function FluidSpecies:setConfBasis(basis)
    self.basis = basis
@@ -250,10 +247,8 @@ end
 -- of the following four functions instead of calling DataStruct directly.
 function FluidSpecies:allocCartField(grid, nComp, ghosts, metaData)
    local f = DataStruct.Field {
-      onGrid        = grid,
-      numComponents = nComp,
-      ghost         = ghosts,
-      metaData      = metaData,
+      onGrid        = grid,   ghost    = ghosts,
+      numComponents = nComp,  metaData = metaData,
    }
    f:clear(0.0)
    return f
@@ -412,7 +407,6 @@ function FluidSpecies:alloc(nRkDup)
    -- Create Adios object for field I/O.
    self.momIo = AdiosCartFieldIo {
       elemType = self.moments[1]:elemType(),
-      method   = self.ioMethod,
       metaData = {polyOrder = self.basis:polyOrder(),
                   basisType = self.basis:id(),
                   charge    = self.charge,
