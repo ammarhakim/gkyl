@@ -407,6 +407,8 @@ plasmaApp = Plasma.App {
    -- Magnetic geometry.
    externalField = Plasma.Geometry {
       -- Background magnetic field.
+      -- Beware: allGeo file needs to be regenerated (comment fromFile line out) if the geometry
+      -- or the resolution is changed.
       fromFile='allGeo_restart.in',
       bmag = function (t, xn)
          local x, y, z = xn[1], xn[2], xn[3]
