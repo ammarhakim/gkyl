@@ -28,6 +28,8 @@ local Grid       = require "Grid"
 local DataStruct = require "DataStruct"
 local Basis      = require "Basis"
 local Updater    = require "Updater"
+local Mpi        = require "Comm.Mpi"
+local Adios      = require "Io.Adios"
 
 local vt   = 1.0   -- Thermal speed.
 local mass = 1.0
@@ -61,6 +63,7 @@ local fldDoFunc = function(t, xn)
 end
 -- ....................... END OF USER INPUTS (maybe) ........................... --
 
+GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(Mpi.COMM_WORLD)
 
 -- Donor field function that only allows projection in the z skin cell.
 local fldDoFuncZskinOnly = {
@@ -294,3 +297,5 @@ for i, edge in ipairs(edges) do
    intFldTar[edge]:write("fldTar_intV_"..edge..".bp", 0., 0)
 
 end
+
+if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end
