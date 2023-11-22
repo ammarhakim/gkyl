@@ -6,7 +6,6 @@ return {
    "./dg-maxwell/rt-maxwell-2d-plane-p3.lua",
    "./dg-maxwell/rt-maxwell-2d-reflect-p3.lua",
    "./dg-maxwell/rt-maxwell-3d-plane-p3.lua",
-   "./gk-limited-tokamak/rt-gkLTX-3x2v-p1.lua",
    "./gk-neutrals/rt-nstx-neut-lowRes-p2.lua",
    "./gk-neutrals/rt-recycleBCs-1x2v-p2.lua",
    "./gk-sheath/rt-gk-sheath-solovev-R.lua",

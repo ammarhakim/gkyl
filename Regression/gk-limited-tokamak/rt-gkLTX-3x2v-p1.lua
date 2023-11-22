@@ -252,7 +252,7 @@ log(string.format("  omega_H = kpar*vte/(kperp*rhos) = %e rad/s\n", omega_H))
 log("\n")
 
 local wallTime  = 1.*3600.
-local finalTime = .2e-7
+local finalTime = 1.0e-8 --.2e-7
 local numFrames = 1
 
 plasmaApp = Plasma.App {
