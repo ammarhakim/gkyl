@@ -416,7 +416,11 @@ local function list_tests(args)
 	 end
       end
    else
-      for dir, fn, _ in dirtree(".") do addTest(dir .. "/" .. fn) end
+      for dir, fn, _ in dirtree(".") do 
+	 if (not dir:find("__needs_implementation")) then
+	    addTest(dir .. "/" .. fn) 
+	 end
+      end
    end
 
    -- this function is used to filter out tests that should NOT be
