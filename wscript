@@ -118,10 +118,6 @@ def build(bld):
         "${PREFIX}/bin/Unit",
         Unit_dir.ant_glob('**/*.lua'),
         cwd=Unit_dir, relative_trick=True)
-    bld.install_files(
-        "${PREFIX}/bin/Unit",
-        ['Unit/t2-two-stream_elc_10.bp'],
-        cwd=Unit_dir, relative_trick=True)    
 
     # - Regression
     Regression_dir = bld.path.find_dir('Regression')
