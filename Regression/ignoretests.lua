@@ -1,9 +1,7 @@
 -- File with list of regression tests to ignore: this is mainly used
 -- as a stop-gap while some things are being debugged.
 return {
-   "./constDiffusion/rt-gyrokineticDiff-1x1v-p1.lua",
    "./constDiffusion/rt-langmuirLandauDampingWdiff-p2.lua",
-   "./constDiffusion/rt-vlasovDiff-1x1v-p1.lua",
    "./dg-maxwell/rt-maxwell-1d-plane-p3.lua",
    "./dg-maxwell/rt-maxwell-2d-plane-p3.lua",
    "./dg-maxwell/rt-maxwell-2d-reflect-p3.lua",

@@ -147,13 +147,13 @@ end
 
 -- Initialize a random seed for initial conditions
 -- will be used for both ions and electrons.
-randomseed = 100000*Mpi.Comm_rank(Mpi.COMM_WORLD)+os.time()
+randomseed = 10.0 -- 100000*Mpi.Comm_rank(Mpi.COMM_WORLD)+os.time()
 
 local dr = r_s * 0.7
 local Rmax = Lx/2
 local Rmin = 0.05*Rmax
 
-local finalTime = 1.e-6
+local finalTime = 1.e-8 --1.e-6
 local numFrames = 1
 
 plasmaApp = Plasma.App {
