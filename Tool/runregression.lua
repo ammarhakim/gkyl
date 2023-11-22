@@ -271,7 +271,7 @@ local function copyAllFiles(srcPath, ext, destPath)
    -- for now using os.execute to run the "cp" command. Perhaps this
    -- is not the best way to do this and one might want to use a more
    -- Lua-ish way
-   local cp = "cp -r" .. " " .. srcPath .. "_*." .. ext .. " " .. destPath
+   local cp = "cp -rf" .. " " .. srcPath .. "_*." .. ext .. " " .. destPath
    verboseLog(string.format("... executing %s ...\n", cp))
    os.execute(cp)
 end
