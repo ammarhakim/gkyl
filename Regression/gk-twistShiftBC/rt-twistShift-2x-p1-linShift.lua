@@ -23,6 +23,8 @@ local Grid       = require "Grid"
 local DataStruct = require "DataStruct"
 local Basis      = require "Basis"
 local Updater    = require "Updater"
+local Mpi        = require "Comm.Mpi"
+local Adios      = require "Io.Adios"
 
 local polyOrder       = 1
 local lower           = {-2.0, -1.50}
@@ -46,6 +48,8 @@ local fldDoFunc = function(t, xn)
 end
 
 -- ....................... END OF USER INPUTS (maybe) ........................... --
+
+GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(Mpi.COMM_WORLD)
 
 local yShiftBackFunc = function(t, xn) return -yShiftFunc(t, xn) end
 
@@ -181,3 +185,5 @@ for gI, numCells in ipairs(cells) do
    intFldDoBack:write(fileName("fldDoBack_intV"), 0., 0)
 
 end
+
+if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end

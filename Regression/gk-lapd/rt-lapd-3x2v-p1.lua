@@ -138,7 +138,7 @@ end
 -- will be used for both ions and electrons.
 randomseed = 100000*Mpi.Comm_rank(Mpi.COMM_WORLD) --+os.time()
 
-local finalTime = .25e-6
+local finalTime = 1.0e-7 -- .25e-6
 local numFrames = 1
 
 plasmaApp = Plasma.App {

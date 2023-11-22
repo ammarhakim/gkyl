@@ -271,7 +271,7 @@ local function copyAllFiles(srcPath, ext, destPath)
    -- for now using os.execute to run the "cp" command. Perhaps this
    -- is not the best way to do this and one might want to use a more
    -- Lua-ish way
-   local cp = "cp -r" .. " " .. srcPath .. "_*." .. ext .. " " .. destPath
+   local cp = "cp -rf" .. " " .. srcPath .. "_*." .. ext .. " " .. destPath
    verboseLog(string.format("... executing %s ...\n", cp))
    os.execute(cp)
 end
@@ -416,7 +416,11 @@ local function list_tests(args)
 	 end
       end
    else
-      for dir, fn, _ in dirtree(".") do addTest(dir .. "/" .. fn) end
+      for dir, fn, _ in dirtree(".") do 
+	 if (not dir:find("__needs_implementation")) then
+	    addTest(dir .. "/" .. fn) 
+	 end
+      end
    end
 
    -- this function is used to filter out tests that should NOT be

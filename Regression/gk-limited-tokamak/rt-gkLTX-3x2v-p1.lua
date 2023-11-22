@@ -252,7 +252,7 @@ log(string.format("  omega_H = kpar*vte/(kperp*rhos) = %e rad/s\n", omega_H))
 log("\n")
 
 local wallTime  = 1.*3600.
-local finalTime = .1e-6
+local finalTime = 1.0e-8 --.2e-7
 local numFrames = 1
 
 plasmaApp = Plasma.App {
@@ -407,6 +407,8 @@ plasmaApp = Plasma.App {
    -- Magnetic geometry.
    externalField = Plasma.Geometry {
       -- Background magnetic field.
+      -- Beware: allGeo file needs to be regenerated (comment fromFile line out) if the geometry
+      -- or the resolution is changed.
       fromFile='allGeo_restart.in',
       bmag = function (t, xn)
          local x, y, z = xn[1], xn[2], xn[3]

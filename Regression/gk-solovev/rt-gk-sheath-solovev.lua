@@ -413,6 +413,8 @@ plasmaApp = Plasma.App {
    funcField = Plasma.Geometry {
       -- Read pre-generated geo file. 
       -- To compute geo from scratch, comment out this line (it's expensive).
+      -- Beware: allGeo file needs to be regenerated (comment fromFile line out) if the geometry
+      -- or the resolution is changed.
       fromFile = "allGeo.read",
 
       -- Background magnetic field.

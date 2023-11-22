@@ -10,6 +10,9 @@ local Time = require "Lib.Time"
 local Basis = require "Basis"
 local Updater = require "Updater"
 
+local Mpi = require "Comm.Mpi"
+local Adios = require "Io.Adios"
+GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(Mpi.COMM_WORLD)
 
 polyOrder = 2 -- polynomial order
 VDIM = 1 -- velocity dimensions
