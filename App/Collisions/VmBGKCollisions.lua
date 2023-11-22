@@ -126,7 +126,7 @@ function VmBGKCollisions:fullInit(speciesTbl)
 
    self.nuFrac = tbl.nuFrac and tbl.nuFrac or 1.0
 
-   self.exactLagFixM012 = xsys.pickBool(tbl.exactLagFixM012, true) 
+   self.exactLagFixM012 = xsys.pickBool(tbl.exactLagFixM012, false) 
 
    self.timers = {mom = 0.,   momcross = 0.,   advance = 0.,}
 end
