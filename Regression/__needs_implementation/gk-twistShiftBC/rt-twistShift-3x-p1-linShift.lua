@@ -20,6 +20,8 @@ local Grid       = require "Grid"
 local DataStruct = require "DataStruct"
 local Basis      = require "Basis"
 local Updater    = require "Updater"
+local Mpi        = require "Comm.Mpi"
+local Adios      = require "Io.Adios"
 
 local polyOrder       = 1
 local lower           = {-2.0, -1.50, -3.0}
@@ -43,6 +45,8 @@ local fldDoFunc = function(t, xn)
 end
 
 -- ....................... END OF USER INPUTS (maybe) ........................... --
+
+GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(Mpi.COMM_WORLD)
 
 local dz = (upper[3]-lower[3])/cells[1][3]
 
@@ -219,3 +223,5 @@ for gI, numCells in ipairs(cells) do
    
    end
 end
+
+if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end
