@@ -26,6 +26,16 @@ local new, sizeof, typeof, metatype = xsys.from(ffi,
      "new, sizeof, typeof, metatype")
 
 ffi.cdef [[ 
+// Struct containing the pointers to auxiliary fields.
+struct gkyl_dg_lbo_vlasov_drag_auxfields {
+  const struct gkyl_array *nuSum;
+  const struct gkyl_array *nuPrimMomsSum;
+};
+
+struct gkyl_dg_lbo_vlasov_diff_auxfields { 
+  const struct gkyl_array *nuSum;
+  const struct gkyl_array *nuPrimMomsSum;
+};
 
 // Object type
 typedef struct gkyl_dg_updater_collisions gkyl_dg_updater_collisions;
@@ -33,18 +43,21 @@ typedef struct gkyl_dg_updater_collisions gkyl_dg_updater_collisions;
 /**
  * Create new updater to update lbo equations using hyper dg.
  *
- * @param grid Grid object
- * @param cbasis Configuration space basis functions
- * @param pbasis Phase-space basis function
- * @param conf_range Config space range
- * @param model_id Enum for type of LBO (e.g., Vlasov vs. PKPM model)
+ * @param phase_grid Phase space grid object
+ * @param conf_basis Configuration space basis functions
+ * @param phase_basis Phase space basis function
+ * @param conf_range Configuration space range
+ * @param drag_inp Input struct to vlasov drag operator (see gkyl_dg_lbo_vlasov_drag.h) 
+ * @param diff_inp Input struct to vlasov diffusion operator (see gkyl_dg_lbo_vlasov_diff.h) 
  * @param use_gpu Bool for whether updater is on host or device
  * @return New LBO updater object
  */
 struct gkyl_dg_updater_collisions* 
-gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
-  const struct gkyl_range *conf_range, enum gkyl_model_id model_id, bool use_gpu);
+gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *phase_grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
+  const struct gkyl_range *conf_range, 
+  struct gkyl_dg_lbo_vlasov_drag_auxfields *drag_inp, struct gkyl_dg_lbo_vlasov_diff_auxfields *diff_inp, 
+  bool use_gpu);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -61,15 +74,7 @@ gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid,
  * @param rhs RHS output
  */
 void gkyl_dg_updater_lbo_vlasov_advance(struct gkyl_dg_updater_collisions *lbo,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
-  const struct gkyl_array* fIn,
-  struct gkyl_array* cflrate, struct gkyl_array* rhs);
-
-void gkyl_dg_updater_lbo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *lbo,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
-  const struct gkyl_array* fIn,
+  const struct gkyl_range *update_rng, const struct gkyl_array* fIn,
   struct gkyl_array* cflrate, struct gkyl_array* rhs);
 
 /**
@@ -93,10 +98,22 @@ function VlasovLBO:init(tbl)
 
    self._confRange = assert(tbl.confRange, "Updater.VlasovLBO: Must specify conf-space range using 'confRange'")
 
-   self._modelId = "GKYL_MODEL_DEFAULT"
+   self._auxfieldsDrag = ffi.new("struct gkyl_dg_lbo_vlasov_drag_auxfields")
+   self._auxfieldsDiff = ffi.new("struct gkyl_dg_lbo_vlasov_diff_auxfields")
+   if self._useGPU then
+      self._auxfieldsDrag.nuSum = tbl.fldPtrs[1]._zeroDevice
+      self._auxfieldsDrag.nuPrimMomsSum = tbl.fldPtrs[2]._zeroDevice
+      self._auxfieldsDiff.nuSum = tbl.fldPtrs[1]._zeroDevice
+      self._auxfieldsDiff.nuPrimMomsSum = tbl.fldPtrs[2]._zeroDevice
+   else
+      self._auxfieldsDrag.nuSum = tbl.fldPtrs[1]._zero
+      self._auxfieldsDrag.nuPrimMomsSum = tbl.fldPtrs[2]._zero
+      self._auxfieldsDiff.nuSum = tbl.fldPtrs[1]._zero
+      self._auxfieldsDiff.nuPrimMomsSum = tbl.fldPtrs[2]._zero
+   end
 
    self._zero = ffi.gc(ffiC.gkyl_dg_updater_lbo_vlasov_new(self._onGrid._zero, self._confBasis._zero, self._phaseBasis._zero, 
-                       self._confRange, self._modelId, GKYL_USE_GPU or 0),
+                       self._confRange, self._auxfieldsDrag, self._auxfieldsDiff, GKYL_USE_GPU or 0),
                        ffiC.gkyl_dg_updater_lbo_vlasov_release)
 
    return self
@@ -106,14 +123,12 @@ end
 function VlasovLBO:_advance(tCurr, inFld, outFld)
 
    local fIn = assert(inFld[1], "VlasovLBO.advance: Must pass input distf")
-   local nu_prim_moms = assert(inFld[2], "VlasovLBO.advance: Must pass nu_prim_moms")
-   local nu_sum = assert(inFld[3], "VlasovLBO.advance: Must pass nu_sum")
  
    local fRhsOut = assert(outFld[1], "VlasovLBO.advance: Must specify an output field")
    local cflRateByCell = assert(outFld[2], "VlasovLBO.advance: Must pass cflRate field in output table")
 
    local localRange = fRhsOut:localRange()
-   ffiC.gkyl_dg_updater_lbo_vlasov_advance(self._zero, localRange, nu_sum._zero, nu_prim_moms._zero, fIn._zero, cflRateByCell._zero, fRhsOut._zero)
+   ffiC.gkyl_dg_updater_lbo_vlasov_advance(self._zero, localRange, fIn._zero, cflRateByCell._zero, fRhsOut._zero)
 
 end
 
@@ -121,14 +136,12 @@ end
 function VlasovLBO:_advanceOnDevice(tCurr, inFld, outFld)
 
    local fIn = assert(inFld[1], "VlasovLBO.advance: Must pass input distf")
-   local nu_prim_moms = assert(inFld[2], "VlasovLBO.advance: Must pass nu_prim_moms")
-   local nu_sum = assert(inFld[3], "VlasovLBO.advance: Must pass nu_sum")
  
    local fRhsOut = assert(outFld[1], "VlasovLBO.advance: Must specify an output field")
    local cflRateByCell = assert(outFld[2], "VlasovLBO.advance: Must pass cflRate field in output table")
 
    local localRange = fRhsOut:localRange()
-   ffiC.gkyl_dg_updater_lbo_vlasov_advance_cu(self._zero, localRange, nu_sum._zeroDevice, nu_prim_moms._zeroDevice, fIn._zeroDevice, cflRateByCell._zeroDevice, fRhsOut._zeroDevice)
+   ffiC.gkyl_dg_updater_lbo_vlasov_advance(self._zero, localRange, fIn._zeroDevice, cflRateByCell._zeroDevice, fRhsOut._zeroDevice)
 
 end
 

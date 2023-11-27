@@ -166,6 +166,12 @@ function VmLBOCollisions:setPhaseGrid(grid)   self.phaseGrid   = grid end
 function VmLBOCollisions:createSolver(mySpecies, extField)
    self.vdim = self.phaseGrid:ndim() - self.confGrid:ndim()
 
+   -- Collisionality, nu, summed over all species pairs.
+   self.nuSum = mySpecies:allocMoment()
+   -- Sum of flow velocities in vdim directions and squared
+   -- thermal speeds multiplied by respective collisionalities.
+   self.nuPrimMomsSum = mySpecies:allocVectorMoment(self.vdim+1)
+
    -- Self-species collisionality, which varies in space.
    self.nuSelf = mySpecies:allocMoment()
    -- Allocate fields to store self-species primitive moments.
@@ -211,9 +217,12 @@ function VmLBOCollisions:createSolver(mySpecies, extField)
       weakBasis = self.confBasis,  operation = "Multiply",
    }
    -- Lenard-Bernstein operator (LBO) collisions updater.
+   -- Create table of pointers to fields needed in update
+   self.fldPtrs = {self.nuSum, self.nuPrimMomsSum}
    self.collisionSlvr = Updater.VlasovLBO {
       onGrid     = self.phaseGrid,   confBasis = self.confBasis,
       phaseBasis = self.phaseBasis,  confRange = self.nuSelf:localRange(),
+      fldPtrs    = self.fldPtrs
    }
 
    if self.crossCollisions then
@@ -243,12 +252,6 @@ function VmLBOCollisions:createSolver(mySpecies, extField)
 
       self.m0Other = self.timeDepNu and mySpecies:allocMoment() or nil  -- M0, to be extracted from fiveMoments.
    end
-
-   -- Collisionality, nu, summed over all species pairs.
-   self.nuSum = mySpecies:allocMoment()
-   -- Sum of flow velocities in vdim directions and squared
-   -- thermal speeds multiplied by respective collisionalities.
-   self.nuPrimMomsSum = mySpecies:allocVectorMoment(self.vdim+1)
 end
 
 
