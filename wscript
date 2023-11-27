@@ -229,9 +229,6 @@ def appendToList(target, val):
         
 def buildExec(bld):
     r"""Build top-level executable"""
-    if platform.system() == 'Darwin' and platform.machine() == 'x86_64':
-        # we need to append special flags to get stuff to work on a 64 bit Mac
-        EXTRA_LINK_FLAGS.append('-pagezero_size 10000 -image_base 100000000')
 
     # Link flags on Linux
     if platform.system() == 'Linux':
