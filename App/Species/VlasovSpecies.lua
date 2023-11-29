@@ -25,6 +25,7 @@ local LinearTrigger    = require "Lib.LinearTrigger"
 local Mpi              = require "Comm.Mpi"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
+local Adios            = require "Io.Adios"
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local xsys             = require "xsys"
 local lume             = require "Lib.lume"
@@ -97,7 +98,6 @@ function VlasovSpecies:alloc(nRkDup)
    -- Create Adios object for field I/O.
    self.distIo = AdiosCartFieldIo {
       elemType   = self.distf[1]:elemType(),
-      method     = self.ioMethod,
       writeGhost = self.writeGhost,
       metaData   = {polyOrder = self.basis:polyOrder(),
                     basisType = self.basis:id(),
@@ -276,7 +276,6 @@ function VlasovSpecies:fullInit(appTbl)
       self.hasExtForce = true
    end
 
-   self.ioMethod           = "MPI"
    self.distIoFrame        = 0 -- Frame number for distribution function.
    self.diagIoFrame        = 0 -- Frame number for diagnostics.
    self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
@@ -297,8 +296,6 @@ function VlasovSpecies:setCfl(cfl)
    for _, c in lume.orderedIter(self.collisions) do c:setCfl(cfl) end
 end
 
-function VlasovSpecies:setIoMethod(ioMethod) self.ioMethod = ioMethod end
-
 function VlasovSpecies:setConfBasis(basis)
    self.confBasis = basis
    for _, c in lume.orderedIter(self.collisions) do c:setConfBasis(basis) end
@@ -307,6 +304,7 @@ function VlasovSpecies:setConfBasis(basis)
 end
 function VlasovSpecies:setConfGrid(grid)
    self.confGrid = grid
+
    for _, c in lume.orderedIter(self.collisions) do c:setConfGrid(grid) end
    for _, src in lume.orderedIter(self.sources) do src:setConfGrid(grid) end
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:setConfGrid(grid) end
@@ -441,8 +439,7 @@ function VlasovSpecies:allocVectorVelMoment(dim)
    return self:allocCartField(self.velGrid,dim*self.velBasis:numBasis(),{0,0},metaData)
 end
 function VlasovSpecies:allocIntMoment(comp)
-   local metaData = {charge = self.charge,
-                     mass   = self.mass,}
+   local metaData = {charge = self.charge,  mass = self.mass,}
    local ncomp = comp or 1
    local f = DataStruct.DynVector {numComponents = ncomp,     writeRank = 0,
                                    metaData      = metaData,  comm      = self.confGrid:commSet().host,}

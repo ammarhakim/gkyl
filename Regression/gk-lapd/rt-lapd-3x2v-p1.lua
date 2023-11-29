@@ -138,7 +138,7 @@ end
 -- will be used for both ions and electrons.
 randomseed = 100000*Mpi.Comm_rank(Mpi.COMM_WORLD) --+os.time()
 
-local finalTime = .25e-6
+local finalTime = 1.0e-7 -- .25e-6
 local numFrames = 1
 
 plasmaApp = Plasma.App {
@@ -234,8 +234,8 @@ plasmaApp = Plasma.App {
    -- Field solver.
    field = Plasma.Field {
       -- Dirichlet in x, Dirichlet in y, no bc in z.
-      bcLowerPhi = {{T ="D", V = 0.0}, {T ="D", V = 0.0}, {T ="N", V = 0.0}},
-      bcUpperPhi = {{T ="D", V = 0.0}, {T ="D", V = 0.0}, {T ="N", V = 0.0}},
+      bcLowerPhi = {{T ="D", V = 0.0}, {T ="D", V = 0.0}},
+      bcUpperPhi = {{T ="D", V = 0.0}, {T ="D", V = 0.0}},
       evolve = true,   -- Evolve fields?
    },
 

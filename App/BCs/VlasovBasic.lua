@@ -1,7 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 -- Basic boundary condition for a Vlasov species, i.e. those that can be
--- applied with Updater/Bc.lua using just a function (e.g. bcAbsorb, bcOpen)
+-- applied with Updater/Bc.lua using just a function (e.g. bcAbsorb)
 -- and no additional setup.
 --
 --    _______     ___
@@ -53,11 +53,6 @@ end
 
 function VlasovBasicBC:setName(nm) self.name = self.speciesName.."_"..nm end
 
-function VlasovBasicBC:bcOpen(dir, tm, idxIn, fIn, fOut)
-   -- Requires skinLoop = "pointwise".
-   self.basis:flipSign(dir, fIn:data(), fOut:data())
-end
-
 function VlasovBasicBC:createSolver(mySpecies, field, externalField)
 
    self.basis, self.grid = mySpecies.basis, mySpecies.grid
@@ -96,10 +91,7 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
       }
    else
       -- g2, to be deleted.
-      if self.bcKind == "open" then
-         bcFunc   = function(...) return self:bcOpen(...) end
-         skinType = "pointwise"
-      elseif self.bcKind == "function" then
+      if self.bcKind == "function" then
          bcFunc   = function(...) return self:bcCopy(...) end
          skinType = "pointwise"
       else
@@ -326,12 +318,6 @@ function VlasovCopyBC:fullInit(mySpecies)
    VlasovCopyBC.super.fullInit(self, mySpecies)
 end
 
-local VlasovOpenBC = Proto(VlasovBasicBC)
-function VlasovOpenBC:fullInit(mySpecies)
-   self.tbl.kind  = "copy"
-   VlasovOpenBC.super.fullInit(self, mySpecies)
-end
-
 local VlasovZeroFluxBC = Proto(BCsBase)
 function VlasovZeroFluxBC:init(tbl)
    self.tbl      = tbl
@@ -342,6 +328,5 @@ end
 return {VlasovBasic    = VlasovBasicBC,
         VlasovAbsorb   = VlasovAbsorbBC,
         VlasovCopy     = VlasovCopyBC,
-        VlasovOpen     = VlasovOpenBC,
         VlasovReflect  = VlasovReflectBC,
         VlasovZeroFlux = VlasovZeroFluxBC}

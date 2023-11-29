@@ -15,7 +15,6 @@ function FieldBase:fullInit(tbl, plasmaField) end
 function FieldBase:readRestart() end
 function FieldBase:hasEB() return nil, nil end
 function FieldBase:setCfl() end
-function FieldBase:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 function FieldBase:setBasis(basis) self.basis = basis end
 function FieldBase:printDevDiagnostics() end
 function FieldBase:accumulateCurrent(dt, current, em) end
@@ -38,7 +37,6 @@ function ExternalFieldBase:init(tbl) self.isElliptic = false end
 function ExternalFieldBase:fullInit(tbl, plasmaField) end
 function ExternalFieldBase:hasEB() return nil, nil end
 function ExternalFieldBase:setCfl() end
-function ExternalFieldBase:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 function ExternalFieldBase:setBasis(basis) self.basis = basis end
 function ExternalFieldBase:readRestart() end
 function ExternalFieldBase:printDevDiagnostics() end
@@ -63,7 +61,6 @@ function NoField:init(tbl) NoField.super.init(tbl) end
 function NoField:fullInit(tbl, plasmaField) end
 function NoField:hasEB() return nil, nil end
 function NoField:setCfl() end
-function NoField:setIoMethod(ioMethod) end
 function NoField:setBasis(basis) end
 function NoField:setGrid(grid) end
 function NoField:alloc(nField) end

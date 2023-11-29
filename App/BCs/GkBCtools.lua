@@ -17,7 +17,7 @@ function _M.createBoundaryTools(mySpecies, field, externalField, bcApp)
    local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
 
    local localGhostRange = self.bcEdge=="lower" and distf:localGhostRangeLower()[self.bcDir]
-                                                  or distf:localGhostRangeUpper()[self.bcDir]
+                                                 or distf:localGhostRangeUpper()[self.bcDir]
    -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
    self:createBoundaryGrid(localGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
 

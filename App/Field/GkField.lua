@@ -65,7 +65,6 @@ end
 function GkField:fullInit(appTbl)
    local tbl = self.tbl -- Previously store table.
    
-   self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- By default evolve field.
 
    self.isElectromagnetic = xsys.pickBool(tbl.isElectromagnetic, false) -- Electrostatic by default.
@@ -132,14 +131,6 @@ function GkField:fullInit(appTbl)
       if self.isElectromagnetic then self.mu0 = tbl.mu0 or Constants.MU0 end
 
    end
-
-   -- For storing integrated energies.
-   self.intPhiSq          = DataStruct.DynVector { numComponents = 1 }
-   self.esEnergyAdiabatic = DataStruct.DynVector { numComponents = 1 }
-   self.gradPerpPhiSq     = DataStruct.DynVector { numComponents = 1 }
-   self.aparSq            = DataStruct.DynVector { numComponents = 1 }
-   self.esEnergy          = DataStruct.DynVector { numComponents = 1 }
-   self.emEnergy          = DataStruct.DynVector { numComponents = 1 }
 
    -- Create trigger for how frequently to compute field energy.
    -- Do not compute the integrated diagnostics less frequently than we output data.
@@ -256,6 +247,14 @@ function GkField:alloc(nRkDup)
    -- For diagnostics:
    self.phiSq = createField(self.grid,self.basis,{1,1})
    self.esEnergyFac = createField(self.grid,self.basis,{1,1})
+
+   -- For storing integrated energies.
+   self.intPhiSq          = DataStruct.DynVector { numComponents = 1, }
+   self.esEnergyAdiabatic = DataStruct.DynVector { numComponents = 1, }
+   self.gradPerpPhiSq     = DataStruct.DynVector { numComponents = 1, }
+   self.aparSq            = DataStruct.DynVector { numComponents = 1, }
+   self.esEnergy          = DataStruct.DynVector { numComponents = 1, }
+   self.emEnergy          = DataStruct.DynVector { numComponents = 1, }
 end
 
 -- Solve for initial fields self-consistently 
@@ -435,7 +434,7 @@ function GkField:createSolver(population, externalField)
          -- Calculate weight on polarization term: sum_s m_s * jacobGeo * n_s / B^2.
          self.polarizationWeightLocal:clear(0.)
          for _, s in population.iterLocal() do
-            if Species.GkSpecies.is(s) or Species.GyrofluidSpecies.is(s) then
+            if Species.GkSpecies.is(s) then
                self.polarizationWeightLocal:accumulate(1., s:getPolarizationWeight())
             end
          end
@@ -579,51 +578,50 @@ function GkField:createSolver(population, externalField)
          self.parSmooth = function(tCurr, fldIn, fldOut) fldOut:copy(fldIn) end
          if self.ndim == 3 and not self.discontinuousPhi then
             if (self.bcLowerPhi[3] and self.bcUpperPhi[3]) then
-               if self.bcLowerPhi[3].T == "AxisymmetricLimitedTokamak" or self.bcUpperPhi[3].T == "AxisymmetricLimitedTokamak" then
-                  assert(self.bcLowerPhi[3].T == self.bcUpperPhi[3].T, "App.Field.GkField: 'bcLowerPhi[3]' and 'bcUpperPhi[3]' must be equal.")
-                  assert(self.bcLowerPhi[3].xLCFS == self.bcUpperPhi[3].xLCFS, "App.Field.GkField: 'bcLowerPhi[3]' and 'bcUpperPhi[3]' must be equal.")
+               assert(self.bcLowerPhi[3].T == "AxisymmetricLimitedTokamak", "App.Field.GkField: z BC not supported. Use a supported option or remove this z BC from the input file.")
+               assert(self.bcLowerPhi[3].T == self.bcUpperPhi[3].T, "App.Field.GkField: 'bcLowerPhi[3]' and 'bcUpperPhi[3]' must be equal.")
+               assert(self.bcLowerPhi[3].xLCFS == self.bcUpperPhi[3].xLCFS, "App.Field.GkField: 'bcLowerPhi[3]' and 'bcUpperPhi[3]' must be equal.")
 
-                  -- Reduce range to the core part and SOL part.
-                  -- Assume the split happens at a cell boundary and within the domain.
-                  local xLCFS = self.bcLowerPhi[3].xLCFS 
-                  assert(self.grid:lower(1)<xLCFS and xLCFS<self.grid:upper(1), "App.Field.GkField: 'xLCFS' coordinate must be within the x-domain.")
-                  local needint = (xLCFS-self.grid:lower(1))/self.grid:dx(1)
-                  assert(math.floor(math.abs(needint-math.floor(needint))) < 1., "App.Field.GkField: 'xLCFS' must fall on a cell boundary along x.")
-                  -- Determine the index of the cell that abuts xLCFS from below.
-                  local coordLCFS, idxLCFS = {xLCFS-1.e-7}, {-9}
-                  local xGridIngr = self.grid:childGrid({1})
-                  local xGrid = Grid.RectCart {
-                     lower = xGridIngr.lower,  periodicDirs  = xGridIngr.periodicDirs,
-                     upper = xGridIngr.upper,  decomposition = xGridIngr.decomposition,
-                     cells = xGridIngr.cells,
-                  }
-                  xGrid:findCell(coordLCFS, idxLCFS)
-                  local solRange     = self.globalSolZ:localRange():shortenFromBelow(1, self.grid:numCells(1)-idxLCFS[1]+1)
-                  local coreRange    = self.globalSolZ:localRange():shorten(1, idxLCFS[1]+1)
-                  local solRangeExt  = self.globalSolZ:localExtRange():shortenFromBelow(1, self.grid:numCells(1)-idxLCFS[1]+1)
-                  local coreRangeExt = self.globalSolZ:localExtRange():shorten(1, idxLCFS[1]+1)
-                  self.solRange     = self.globalSolZ:localExtRange():subRange(    solRange:lowerAsVec(),    solRange:upperAsVec())
-                  self.coreRange    = self.globalSolZ:localExtRange():subRange(   coreRange:lowerAsVec(),   coreRange:upperAsVec())
-                  self.solRangeExt  = self.globalSolZ:localExtRange():subRange( solRangeExt:lowerAsVec(), solRangeExt:upperAsVec())
-                  self.coreRangeExt = self.globalSolZ:localExtRange():subRange(coreRangeExt:lowerAsVec(),coreRangeExt:upperAsVec())
+               -- Reduce range to the core part and SOL part.
+               -- Assume the split happens at a cell boundary and within the domain.
+               local xLCFS = self.bcLowerPhi[3].xLCFS 
+               assert(self.grid:lower(1)<xLCFS and xLCFS<self.grid:upper(1), "App.Field.GkField: 'xLCFS' coordinate must be within the x-domain.")
+               local needint = (xLCFS-self.grid:lower(1))/self.grid:dx(1)
+               assert(math.floor(math.abs(needint-math.floor(needint))) < 1., "App.Field.GkField: 'xLCFS' must fall on a cell boundary along x.")
+               -- Determine the index of the cell that abuts xLCFS from below.
+               local coordLCFS, idxLCFS = {xLCFS-1.e-7}, {-9}
+               local xGridIngr = self.grid:childGrid({1})
+               local xGrid = Grid.RectCart {
+                  lower = xGridIngr.lower,  periodicDirs  = xGridIngr.periodicDirs,
+                  upper = xGridIngr.upper,  decomposition = xGridIngr.decomposition,
+                  cells = xGridIngr.cells,
+               }
+               xGrid:findCell(coordLCFS, idxLCFS)
+               local solRange     = self.globalSolZ:localRange():shortenFromBelow(1, self.grid:numCells(1)-idxLCFS[1]+1)
+               local coreRange    = self.globalSolZ:localRange():shorten(1, idxLCFS[1]+1)
+               local solRangeExt  = self.globalSolZ:localExtRange():shortenFromBelow(1, self.grid:numCells(1)-idxLCFS[1]+1)
+               local coreRangeExt = self.globalSolZ:localExtRange():shorten(1, idxLCFS[1]+1)
+               self.solRange     = self.globalSolZ:localExtRange():subRange(    solRange:lowerAsVec(),    solRange:upperAsVec())
+               self.coreRange    = self.globalSolZ:localExtRange():subRange(   coreRange:lowerAsVec(),   coreRange:upperAsVec())
+               self.solRangeExt  = self.globalSolZ:localExtRange():subRange( solRangeExt:lowerAsVec(), solRangeExt:upperAsVec())
+               self.coreRangeExt = self.globalSolZ:localExtRange():subRange(coreRangeExt:lowerAsVec(),coreRangeExt:upperAsVec())
 
-                  self.parSmootherCore = Updater.FemParproj {
-                     onGrid  = self.gridGlobalZ,  basis               = self.basis,
-                     onField = self.globalSolZ,   periodicParallelDir = true,
-                     onRange = self.coreRange,    onExtRange          = self.coreRangeExt,
-                  }
-                  self.parSmootherSOL = Updater.FemParproj {
-                     onGrid  = self.gridGlobalZ,  basis               = self.basis,
-                     onField = self.globalSolZ,   periodicParallelDir = false,
-                     onRange = self.solRange,     onExtRange          = self.solRangeExt,
-                  }
-                  self.parSmoother = {
-                     advance = function(tCurr, fldIn, fldOut)
-                        self.parSmootherCore:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
-                        self.parSmootherSOL:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
-                     end,
-                  }
-               end
+               self.parSmootherCore = Updater.FemParproj {
+                  onGrid  = self.gridGlobalZ,  basis               = self.basis,
+                  onField = self.globalSolZ,   periodicParallelDir = true,
+                  onRange = self.coreRange,    onExtRange          = self.coreRangeExt,
+               }
+               self.parSmootherSOL = Updater.FemParproj {
+                  onGrid  = self.gridGlobalZ,  basis               = self.basis,
+                  onField = self.globalSolZ,   periodicParallelDir = false,
+                  onRange = self.solRange,     onExtRange          = self.solRangeExt,
+               }
+               self.parSmoother = {
+                  advance = function(tCurr, fldIn, fldOut)
+                     self.parSmootherCore:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
+                     self.parSmootherSOL:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
+                  end,
+               }
             else
                self.parSmootherUpd = Updater.FemParproj {
                   onGrid  = self.gridGlobalZ,  basis = self.basis,
@@ -746,7 +744,6 @@ function GkField:createSolver(population, externalField)
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
       elemType   = self.potentials[1].phi:elemType(),
-      method     = self.ioMethod,
       writeGhost = self.writeGhost,
       metaData   = {polyOrder = self.basis:polyOrder(),
                     basisType = self.basis:id(),},
@@ -1060,7 +1057,6 @@ end
 function GkGeometry:fullInit(appTbl)
    local tbl = self.tbl -- previously store table.
 
-   self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, false) -- by default these fields are not time-dependent.
 
    -- Create triggers to write fields.
@@ -1082,7 +1078,10 @@ function GkGeometry:fullInit(appTbl)
    self.timers = {advance = 0.,   bc = 0.}
 end
 
-function GkGeometry:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
+function GkGeometry:setGrid(grid)
+   self.grid = grid
+   self.ndim = self.grid:ndim()
+end
 
 function GkGeometry:alloc()
    -- Allocate fields.
@@ -1254,7 +1253,6 @@ function GkGeometry:createSolver(population)
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
       elemType   = self.geo.bmag:elemType(),
-      method     = self.ioMethod,
       writeGhost = self.writeGhost,
       metaData   = { polyOrder = self.basis:polyOrder(),
 	             basisType = self.basis:id(),

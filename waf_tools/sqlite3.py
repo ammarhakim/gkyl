@@ -29,4 +29,4 @@ def check_sqlite3(conf):
     return 1
 
 def detect(conf):
-    return detect_eigen(conf)
+    return 1

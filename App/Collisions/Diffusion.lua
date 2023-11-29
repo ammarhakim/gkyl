@@ -148,7 +148,7 @@ function Diffusion:createSolver(mySpecies, externalField)
    -- When using mapped coordinates (default for gyrokinetics), scale the distribution
    -- function by the reciprocal of the configuration-space Jacobian.
    self.fNoJacobGeo = nil
-   self.divByJacobGeo = function(tm, fIn, fOut) fOut = fIn end
+   self.divByJacobGeo = function(tm, fIn, fOut) end
    if externalField.geo then
       if externalField.geo.jacobGeo and externalField.geo.jacobGeoInv then
          assert(isVarCoeff, "App.Diffusion: diffusion coefficient must be a function if using mapped coordinates.") 
@@ -195,7 +195,8 @@ function Diffusion:advance(tCurr, fIn, population, outFlds)
 
    local fRhsOut, cflRateByCell = outFlds[1], outFlds[2]
 
-   self.divByJacobGeo(tm, fIn, self.fNoJacobGeo)
+   self.fNoJacobGeo = self.fNoJacobGeo or fIn
+   self.divByJacobGeo(tCurr, fIn, self.fNoJacobGeo)
    self.collisionSlvr:advance(tCurr, {self.fNoJacobGeo, self.coefficient}, {fRhsOut, cflRateByCell})
 
    self.timers.advance = self.timers.advance + Time.clock() - tmStart

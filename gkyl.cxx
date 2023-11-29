@@ -25,13 +25,23 @@
 #include <unistd.h>
 
 // Compiler specific includes
-#if defined(__clang__)
-// nothing to include
-#elif defined(__powerpc__)
-// nothing to include
-#elif defined(__GNUC__) || defined(__GNUG__)
-# include <xmmintrin.h>
+#if defined(__GNUC__) || defined(__GNUG__)
+#if defined(__arm__) || defined(__arm64__)
+// nothing for arm chips
+#else
+#include <xmmintrin.h>
 #endif
+#endif
+
+#if defined(__clang__)
+#if defined(__APPLE__)
+#if defined(__arm__) || defined(__arm64__)
+// nothing for Apple m1 chip
+#else
+#include <fenv.h>
+#endif
+#endif
+#endif  
 
 // Compiler specifics defines
 
@@ -51,19 +61,9 @@
 # define GKYL_COMPILER_ID "UNKNOWN"
 #endif
 
-// These dummy calls are a hack to force the linker to pull in symbols
-// from static libraries. There must be a better way to do this ...
-#ifdef HAVE_ADIOS_H
-int _adios_init(const char *cf, MPI_Comm comm) { return adios_init(cf, comm); }
-ADIOS_FILE*
-_adios_read_open_file(const char *fname, enum ADIOS_READ_METHOD method, MPI_Comm comm)
-{ return adios_read_open_file(fname, method, comm); }
-#endif
-
 // Finish simulation
 int finish(int err) {
   int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  adios_finalize(rank);
   MPI_Finalize();
   return err;
 }
@@ -99,12 +99,9 @@ void showVersion() {
 #ifdef HAVE_MPI_H
   std::cout << " MPI";
 #endif      
-#ifdef HAVE_ADIOS_H
+#ifdef HAVE_ADIOS2_C_H
   std::cout << " Adios";
 #endif    
-#ifdef HAVE_EIGEN_CORE
-  std::cout << " Eigen";
-#endif
 #ifdef USING_SQLITE3
   std::cout << " Sqlite3";
 #endif    
@@ -136,17 +133,24 @@ main(int argc, char **argv) {
   // code. Otherwise, the code become horribly slow in some rare (but
   // not impossible to reproduce) situations.
 #if defined(__GNUC__) || defined(__GNUG__)
+#if defined(__arm__) || defined(__arm64__)
+// nothing for arm chips
+#else
   _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+#endif
 #endif
 
 #if defined(__clang__)
-# if defined(__APPLE__)
-  fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);  
-# endif
+#if defined(__APPLE__)
+#if defined(__arm__) || defined(__arm64__)
+// nothing for Apple m1 chip
+#else
+  fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
 #endif
+#endif
+#endif  
 
   MPI_Init(&argc, &argv);
-  adios_init_noxml(MPI_COMM_WORLD);
 
   bool optShowToolList = false;
   std::string luaExpr;

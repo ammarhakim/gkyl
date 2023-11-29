@@ -330,8 +330,8 @@ function MappedCart:write(basis, rankInComm)
          numComponents = self:rdim()*basis:numBasis(),  metaData = metaData,
       }
       local gridIo = AdiosCartFieldIo {
-         elemType = mapc2pDG:elemType(),  writeGhost      = false,
-         method   = "MPI",                writeRankInComm = rankInComm,
+         elemType = mapc2pDG:elemType(),  writeGhost = false,
+         writeRankInComm = rankInComm,
       }
    
       gridIo:write(self:getNodalCoords(), "grid.bp", 0., 0)

@@ -43,7 +43,6 @@ local HyperDisContCellBased = require "Updater.HyperDisContCellBased"
 local Ionization = require "Updater.Ionization"
 local IntegratedDGMoment = require "Updater.IntegratedDGMoment"
 local Ionization = require "Updater.Ionization"
-local IterPoisson = require "Updater.IterPoisson"
 local LagrangeFix = require "Updater.LagrangeFix"
 local MGpoisson = require "Updater.MGpoisson"
 local MappedPoisson = require "Updater.MappedPoisson"
@@ -109,7 +108,6 @@ return {
    Ionization = Ionization,
    IntegratedDGMoment = IntegratedDGMoment,
    Ionization = Ionization,
-   IterPoisson = IterPoisson,
    LagrangeFix = LagrangeFix,
    MGpoisson = MGpoisson,
    MappedPoisson = MappedPoisson,
