@@ -1,6 +1,6 @@
 module load PrgEnv-gnu/8.3.3
 module load cray-mpich/8.1.25
-module load python/3.9-anaconda-2021.11
+module load python/3.11
 module unload darshan
 CC=cc
 CXX=CC
@@ -12,5 +12,6 @@ if [ `dirname "$0"` == "." ]
     cd ..
 fi
 export GKYLSOFT=$HOME/gkylsoft
+export MACHINE_NAME='perlmutter-cpu'
 cd install-deps
-./mkdeps.sh CC=$CC CXX=$CXX MPICC=$MPICC MPICXX=$MPICXX --prefix=$GKYLSOFT --build-luajit=yes --build-adios=yes --build-eigen=yes --build-openmpi=no
+./mkdeps.sh CC=$CC CXX=$CXX MPICC=$MPICC MPICXX=$MPICXX --prefix=$GKYLSOFT --build-gkylzero=yes --build-luajit=yes --build-adios=yes --build-openmpi=no

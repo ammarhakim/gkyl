@@ -308,6 +308,16 @@ function lume.any(t, fn)
 end
 
 
+function lume.anyKey(t, fn)
+  fn = iteratee(fn)
+  local iter = getiter(t)
+  for k, _ in iter(t) do
+    if fn(k) then return true end
+  end
+  return false
+end
+
+
 function lume.reduce(t, fn, first)
   local acc = first
   local started = first and true or false

@@ -25,6 +25,7 @@ if [ `dirname "$0"` == "." ]
   then
     cd ..
 fi
-export GKYLSOFT='~/gkylsoft'
+export GKYLSOFT=$HOME/gkylsoft
+export MACHINE_NAME='ascent'
 cd install-deps
-./mkdeps.sh CC=mpicc CXX=mpiCC MPICC=mpicc MPICXX=mpiCC --build-luajit=yes --build-adios=no --build-eigen=yes --build-openmpi=no
+./mkdeps.sh CC=mpicc CXX=mpiCC MPICC=mpicc MPICXX=mpiCC --prefix=$GKYLSOFT --build-gkylzero=yes --build-luajit=yes --build-adios=no --build-openmpi=no

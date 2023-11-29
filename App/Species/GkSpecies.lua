@@ -25,6 +25,7 @@ local LinearTrigger    = require "Lib.LinearTrigger"
 local Mpi              = require "Comm.Mpi"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
+local Adios            = require "Io.Adios"
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local xsys             = require "xsys"
 local lume             = require "Lib.lume"
@@ -82,7 +83,6 @@ function GkSpecies:alloc(nRkDup)
    -- Create Adios object for field I/O.
    self.distIo = AdiosCartFieldIo {
       elemType   = self.distf[1]:elemType(),
-      method     = self.ioMethod,
       writeGhost = self.writeGhost,
       metaData   = {polyOrder = self.basis:polyOrder(),
                     basisType = self.basis:id(),
@@ -257,7 +257,6 @@ function GkSpecies:fullInit(appTbl)
    end
    lume.setOrder(self.collisions)
 
-   self.ioMethod           = "MPI"
    self.distIoFrame        = 0 -- Frame number for distribution function.
    self.diagIoFrame        = 0 -- Frame number for diagnostics.
    self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
@@ -277,8 +276,6 @@ function GkSpecies:setCfl(cfl)
    self.cfl = cfl
    for _, c in lume.orderedIter(self.collisions) do c:setCfl(cfl) end
 end
-
-function GkSpecies:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 
 function GkSpecies:setConfBasis(basis)
    self.confBasis = basis
@@ -1181,7 +1178,7 @@ function GkSpecies:write(tm, field, force)
             dOb:calcGridDiagnostics(tm, self, field)
          end
 
-         for _, dOb in lume.orderedIter(self.diagnostics) do   -- Write grid and integrated diagnostics.
+         for nm, dOb in lume.orderedIter(self.diagnostics) do   -- Write grid and integrated diagnostics.
             dOb:write(tm, self.diagIoFrame)
          end
 

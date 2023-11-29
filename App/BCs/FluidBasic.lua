@@ -13,7 +13,7 @@ local Updater    = require "Updater"
 local Mpi        = require "Comm.Mpi"
 local Proto      = require "Lib.Proto"
 local Time       = require "Lib.Time"
-local ConstDiffusionModDecl = require "Eq.constDiffusionData.ConstDiffusionModDecl"
+--local ConstDiffusionModDecl = require "Eq.constDiffusionData.ConstDiffusionModDecl"
 
 local FluidBasicBC = Proto(BCsBase)
 
@@ -66,15 +66,18 @@ function FluidBasicBC:createSolver(mySpecies, field, externalField)
       bcFunc   = function(...) return self:bcAbsorb(...) end
       skinType = "pointwise"
    elseif self.bcKind == "dirichlet" then
-      self.constDiffDirichletBCs = ConstDiffusionModDecl.selectBCs(self.basis:id(), self.basis:ndim(), 
-                                                                   self.basis:polyOrder(), 2, "Dirichlet")
-      bcFunc   = function(...) return self:bcDirichlet(...) end
-      skinType = "pointwise"
+--      self.constDiffDirichletBCs = ConstDiffusionModDecl.selectBCs(self.basis:id(), self.basis:ndim(), 
+--                                                                   self.basis:polyOrder(), 2, "Dirichlet")
+--      bcFunc   = function(...) return self:bcDirichlet(...) end
+--      skinType = "pointwise"
+--
+      assert(false, "FluidBasicBC: BC kind not available.")
    elseif self.bcKind == "neumann" then
-      self.constDiffNeumannBCs = ConstDiffusionModDecl.selectBCs(self.basis:id(), self.basis:ndim(), 
-                                                                 self.basis:polyOrder(), 2, "Neumann")
-      bcFunc   = function(...) return self:bcNeumann(...) end
-      skinType = "pointwise"
+--      self.constDiffNeumannBCs = ConstDiffusionModDecl.selectBCs(self.basis:id(), self.basis:ndim(), 
+--                                                                 self.basis:polyOrder(), 2, "Neumann")
+--      bcFunc   = function(...) return self:bcNeumann(...) end
+--      skinType = "pointwise"
+      assert(false, "FluidBasicBC: BC kind not available.")
    else
       assert(false, "FluidBasicBC: BC kind not recognized.")
    end

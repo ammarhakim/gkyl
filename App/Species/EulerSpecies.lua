@@ -35,7 +35,6 @@ function EulerSpecies:alloc(nRkDup)
   -- Create Adios object for uvar I/O.
   self.uvarIo = AdiosCartFieldIo {
      elemType = self.uvar:elemType(),
-     method   = self.ioMethod,
      metaData = {polyOrder = self.basis:polyOrder(),
                  basisType = self.basis:id(),
                  charge    = self.charge,

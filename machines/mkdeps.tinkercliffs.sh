@@ -10,9 +10,10 @@ if [ `dirname "$0"` == "." ]
   then
     cd ..
 fi
-export GKYLSOFT='$HOME/tinkercliffs/gkylsoft'
+export GKYLSOFT=$HOME/tinkercliffs/gkylsoft
+export MACHINE_NAME='tinkercliffs'
 cd install-deps
 # gcc
-#./mkdeps.sh CC=gcc CXX=g++ MPICC=mpicc MPICXX=mpicxx --prefix=$GKYLSOFT --build-luajit=yes --build-adios=yes --build-eigen=yes --build-openmpi=no --build-luarocks=yes 
+#./mkdeps.sh CC=gcc CXX=g++ MPICC=mpicc MPICXX=mpicxx --prefix=$GKYLSOFT --build-gkylzero=yes --build-luajit=yes --build-adios=yes --build-openmpi=no --build-luarocks=yes 
 # intel
-./mkdeps.sh CC=icc CXX=icpc MPICC=mpicc MPICXX=mpicxx --prefix=$GKYLSOFT --build-luajit=yes --build-adios=yes --build-eigen=yes --build-openmpi=no --build-luarocks=yes
+./mkdeps.sh CC=icc CXX=icpc MPICC=mpicc MPICXX=mpicxx --prefix=$GKYLSOFT --build-gkylzero=yes --build-luajit=yes --build-adios=yes --build-openmpi=no --build-luarocks=yes

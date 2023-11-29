@@ -168,9 +168,9 @@ function RectCart:subGridIdByDim(idx)
 end
 function RectCart:decomposedRange() return self._decomposedRange end
 function RectCart:ndim() return self._ndim end
-function RectCart:lower(dir) return self._lower[dir] end
+function RectCart:lower(dir) return dir and self._lower[dir] or self._lower end
 function RectCart:mid(dir) return (self._lower[dir]+self._upper[dir])/2 end
-function RectCart:upper(dir) return self._upper[dir] end
+function RectCart:upper(dir) return dir and self._upper[dir] or self._upper end
 function RectCart:numCells(dir) return self._numCells[dir] end
 function RectCart:totalNumCells()
    total = 1

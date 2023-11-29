@@ -1,4 +1,4 @@
-module load python/3.9-anaconda-2021.11
+module load python/3.11
 module load openmpi/5.0.0rc12
 module load cudatoolkit/12.0
 module load nccl/2.18.3-cu12
@@ -12,6 +12,7 @@ if [ `dirname "$0"` == "." ]
   then
     cd ..
 fi
-export GKYLSOFT=$HOME/perlmutter/gkeyll/code/gpu/gkylsoft
+export GKYLSOFT=$HOME/gkylsoft
+export MACHINE_NAME='perlmutter-gpu'
 cd install-deps
-./mkdeps.sh CC=$CC CXX=$CXX MPICC=$MPICC MPICXX=$MPICXX --prefix=$GKYLSOFT --build-luajit=yes --build-adios=yes --build-eigen=yes --build-openmpi=no
+./mkdeps.sh CC=$CC CXX=$CXX MPICC=$MPICC MPICXX=$MPICXX --prefix=$GKYLSOFT --build-gkylzero=yes --build-luajit=yes --build-adios=yes --build-openmpi=no
