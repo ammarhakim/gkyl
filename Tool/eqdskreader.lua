@@ -108,7 +108,10 @@ function Iter1D:seek(idx)
    self.currIdx = idx
 end
 function Iter1D:next()
-   local val = self.arr[self.currIdx]
+   local val = 0
+   if self.currIdx <= self.arr:size() then
+      val = self.arr[self.currIdx]
+   end
    self.currIdx = self.currIdx+1
    return val
 end
@@ -184,17 +187,24 @@ for i = 1, nx do
    qpsi:get(i)[1] = dataItr:next()
 end
 
+-- read (R,Z) coordinates of LCFS
+local sepR = DataStruct.DynVector { numComponents = 1 }
+local sepZ = DataStruct.DynVector { numComponents = 1 }
+
 local nbbbs = dataItr:next()
 local limtr = dataItr:next()
 
 for i = 1, nbbbs do
-   
+   sepR:appendData(i, { dataItr:next() } )
+   sepZ:appendData(i, { dataItr:next() } )
 end
 
--- write data to BP file
+-- write data to BP files
 fpol:write("fpol.bp")
 pres:write("pres.bp")
 ffprime:write("ffprime.bp")
 pprime:write("pprime.bp")
 psi:write("psi.bp")
 qpsi:write("qpsi.bp")
+sepR:write("sepR.bp")
+sepZ:write("sepZ.bp")
