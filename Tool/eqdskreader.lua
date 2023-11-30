@@ -188,15 +188,13 @@ for i = 1, nx do
 end
 
 -- read (R,Z) coordinates of LCFS
-local sepR = DataStruct.DynVector { numComponents = 1 }
-local sepZ = DataStruct.DynVector { numComponents = 1 }
+local sepRZ = DataStruct.DynVector { numComponents = 2 }
 
 local nbbbs = dataItr:next()
 local limtr = dataItr:next()
 
 for i = 1, nbbbs do
-   sepR:appendData(i, { dataItr:next() } )
-   sepZ:appendData(i, { dataItr:next() } )
+   sepRZ:appendData(i, { dataItr:next(), dataItr:next() } )
 end
 
 -- write data to BP files
@@ -206,5 +204,4 @@ ffprime:write("ffprime.bp")
 pprime:write("pprime.bp")
 psi:write("psi.bp")
 qpsi:write("qpsi.bp")
-sepR:write("sepR.bp")
-sepZ:write("sepZ.bp")
+sepRZ:write("sepRZ.bp")
