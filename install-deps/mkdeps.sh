@@ -13,8 +13,6 @@ MPICXX=mpicxx
 # should be installed.
 BUILD_GKYLZERO=
 BUILD_LUAJIT=
-BUILD_LUAJIT_BETA3=
-BUILD_LUAJIT_PPCLE=
 BUILD_LUAROCKS=
 BUILD_ADIOS=
 BUILD_OPENMPI=
@@ -253,8 +251,6 @@ echo "Installations will be in $PREFIX"
 build_openmpi
 build_gkylzero
 build_luajit
-build_luajit_beta3
-build_luajit_ppcle
 build_luarocks
 build_adios
 build_zmq
