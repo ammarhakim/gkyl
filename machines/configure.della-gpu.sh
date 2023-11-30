@@ -9,7 +9,7 @@ module load anaconda3/2020.11
 # Build directory
 OUT=build
 # Install location
-GKYLSOFT=$HOME/gkylsoft-gpu
+GKYLSOFT=$HOME/gkylsoft
 
 # Compile flags (set optimization/debug flags here)
 CC=mpicc
