@@ -11,6 +11,11 @@ local DataStruct = require "DataStruct"
 local Grid = require "Grid"
 local argparse = require "Lib.argparse"
 
+local Mpi = require "Comm.Mpi"
+local Adios = require "Io.Adios"
+
+GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(Mpi.COMM_WORLD)
+
 -- Create CLI parser to handle commands and options
 local parser = argparse()
    :name("eqdskreader")
@@ -114,8 +119,8 @@ local metaData = {
 
 -- create grids
 local grid1d = Grid.RectCart {
-   lower = { rleft },
-   upper = { rleft + rdim },
+   lower = { simag },
+   upper = { sibry },
    cells = { nx }
 }
 local grid2d = Grid.RectCart {
