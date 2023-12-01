@@ -330,14 +330,22 @@ function MappedCart:write(basis, rankInComm)
          numComponents = self:rdim()*basis:numBasis(),  metaData = metaData,
       }
       local gridIo = AdiosCartFieldIo {
-         elemType = mapc2pDG:elemType(),  writeGhost      = false,
-         method   = "MPI",                writeRankInComm = rankInComm,
+         elemType = mapc2pDG:elemType(),  writeGhost = false,
+         writeRankInComm = rankInComm,
       }
    
       gridIo:write(self:getNodalCoords(), "grid.bp", 0., 0)
    
+      local mapc2pWorld = function(t, xn) return self:mapc2p(xn) end
+      if self._useWorld then
+         -- Complement the computational coordinates xc w/ dimensions not simulated.
+         mapc2pWorld = function(t, xn)
+            for d = 1, self:ndim() do self._worldCoord[self._compIdx[d]] = xn[d] end
+            return self:mapc2p(self._worldCoord)
+         end
+      end
       local projUpd = evOnNodes {
-         onGrid = self,   evaluate = function(t, xn) return self:mapc2p(xn) end,
+         onGrid = self,   evaluate = mapc2pWorld,
          basis  = basis,  onGhosts = false,
       }
       projUpd:advance(0., {}, {mapc2pDG})

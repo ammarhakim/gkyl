@@ -26,7 +26,6 @@ local xsys              = require "xsys"
 local ffi               = require "ffi"
 local lume              = require "Lib.lume"
 local Lin               = require "Lib.Linalg"
-local MGpoissonDecl     = require "Updater.mgPoissonCalcData.MGpoissonModDecl"
 local LinearDecomp      = require "Lib.LinearDecomp"
 
 -- MaxwellField ---------------------------------------------------------------------
@@ -37,28 +36,11 @@ local LinearDecomp      = require "Lib.LinearDecomp"
 
 local MaxwellField = Proto(FieldBase.FieldBase)
 
--- Add constants to object indicate various supported boundary conditions.
-local EM_BC_REFLECT = 1
-local EM_BC_SYMMETRY = 2
-local EM_BC_COPY = 3
--- AHH: This was 2 but seems that is unstable. So using plain copy.
-local EM_BC_OPEN = EM_BC_COPY
-local EM_BC_AXIS = 7
-
-MaxwellField.bcOpen     = EM_BC_OPEN    -- Zero gradient.
-MaxwellField.bcCopy     = EM_BC_COPY    -- Copy fields.
-MaxwellField.bcReflect  = EM_BC_REFLECT -- Perfect electric conductor.
-MaxwellField.bcSymmetry = EM_BC_SYMMETRY
-MaxwellField.bcAxis     = EM_BC_AXIS
-
--- Function to check if BC type is good.
-local function isBcGood(bcType)
-   if bcType == EM_BC_OPEN or bcType == EM_BC_REFLECT or bcType == EM_BC_SYMMETRY then
-      return true
-   end
-   if type(bcType) == "table" then return true end
-   return false
-end
+-- These have to match those in Updater/BcBasic.
+MaxwellField.bcCopy             = "copy"    -- Copy fields.
+MaxwellField.bcPerfectConductor = "maxwell_pec" -- Perfect electric conductor.
+MaxwellField.bcReflect          = "maxwell_pec" -- Perfect electric conductor.
+MaxwellField.bcSymmetry         = "maxwell_sym"
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
@@ -74,7 +56,6 @@ function MaxwellField:fullInit(appTbl, plasmaField)
    
    self.epsilon0 = tbl.epsilon0
    self.mu0      = tbl.mu0
-   self.ioMethod = "MPI"
    self.evolve   = xsys.pickBool(tbl.evolve, true) -- By default evolve field.
 
    -- By default, do not write data if evolve is false.
@@ -111,6 +92,21 @@ function MaxwellField:fullInit(appTbl, plasmaField)
          return ex, ey, ez, bx, by, bz, 0.0, 0.0
       end
 
+      -- Read in boundary conditions.
+      self.bcInDir = {{ }, { }, { }}   -- List of BCs to apply.
+      if tbl.bcx then
+         if tbl.bcx[1] == nil or tbl.bcx[2] == nil then assert(false, "MaxwellField: unsupported BC type") end
+         self.bcInDir[1] = {tbl.bcx[1], tbl.bcx[2]}
+      end
+      if tbl.bcy then
+         if tbl.bcy[1] == nil or tbl.bcy[2] == nil then assert(false, "MaxwellField: unsupported BC type") end
+         self.bcInDir[2] = {tbl.bcy[1], tbl.bcy[2]}
+      end
+      if tbl.bcz then
+         if tbl.bcz[1] == nil or tbl.bcz[2] == nil then assert(false, "MaxwellField: unsupported BC type") end
+         self.bcInDir[3] = {tbl.bcz[1], tbl.bcz[2]}
+      end
+
    else
 
       -- Read in boundary conditions for the potential phi.
@@ -141,8 +137,6 @@ function MaxwellField:fullInit(appTbl, plasmaField)
          end
       end
 
-      self.esEnergyFirst = true
-
    end
 
    -- Create triggers to write fields.
@@ -154,26 +148,6 @@ function MaxwellField:fullInit(appTbl, plasmaField)
 
    self.ioFrame = 0 -- Frame number for IO.
    self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
-
-   self.hasNonPeriodicBc = false -- To indicate if we have non-periodic BCs.
-   self.bcx, self.bcy, self.bcz = { }, { }, { }
-   
-   -- Read in boundary conditions.
-   if tbl.bcx then
-      self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
-      assert(isBcGood(self.bcx[1]) and isBcGood(self.bcx[2]), "MaxwellField: Incorrect X BC type specified!")
-      self.hasNonPeriodicBc = true
-   end
-   if tbl.bcy then
-      self.bcy[1], self.bcy[2] = tbl.bcy[1], tbl.bcy[2]
-      assert(isBcGood(self.bcy[1]) and isBcGood(self.bcy[2]), "MaxwellField: Incorrect Y BC type specified!")
-      self.hasNonPeriodicBc = true
-   end
-   if tbl.bcz then
-      self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
-      assert(isBcGood(self.bcz[1]) and isBcGood(self.bcz[2]), "MaxwellField: Incorrect Z BC type specified!")
-      self.hasNonPeriodicBc = true
-   end
 
    -- Create trigger for how frequently to compute integrated EM fields.
    if appTbl.calcIntQuantEvery then
@@ -225,48 +199,6 @@ function MaxwellField:getMu0() return self.mu0 end
 function MaxwellField:getElcErrorSpeedFactor() return self.ce end
 function MaxwellField:getMgnErrorSpeedFactor() return self.cb end
 
-function MaxwellField:esEnergy(tCurr, fldIn, outDynV)
-   -- Compute the electrostatic field energy given the potential. Here outDynV must
-   -- be a DynVector with the same number of components as there are dimensions.
-   local phiIn, esE = fldIn[1], outDynV[1]
-   if GKYL_USE_GPU then
-      phiIn:copyDeviceToHost()
-   end
-
-   local grid, dim = phiIn:grid(), phiIn:grid():ndim()
-
-   if self.esEnergyFirst then
-      -- Kernels and buffers used in computing electrostatic field energy.
-      self.localEnergy, self.globalEnergy = Lin.Vec(dim), Lin.Vec(dim)
-      self.dxBuf = Lin.Vec(dim)
-      self._esEnergyCalc = MGpoissonDecl.selectESenergy(self.basis:id(), dim, self.basis:polyOrder(), nil)
-   end
-
-   local indexer, phiItr = phiIn:genIndexer(), phiIn:get(1)
-
-   -- Clear local values.
-   for d = 1, dim do self.localEnergy[d] = 0.0 end
-
-   local phiRange = phiIn:localRange()
-
-   for idx in phiRange:rowMajorIter() do
-      grid:setIndex(idx)
-      grid:getDx(self.dxBuf)
-
-      phiIn:fill(indexer(idx), phiItr)
-
-      self._esEnergyCalc(self.dxBuf:data(), phiItr:data(), self.localEnergy:data())
-   end
-
-   -- All-reduce across processors and push result into dyn-vector.
-   Mpi.Allreduce(
-      self.localEnergy:data(), self.globalEnergy:data(), dim, Mpi.DOUBLE, Mpi.SUM, grid:commSet().comm)
-
-   esE:appendData(tCurr, self.globalEnergy)
-
-   if self.esEnergyFirst then self.esEnergyFirst = false end
-end
-
 local function createField(grid, basis, ghostCells, ncomp, periodicSync, useDevice)
    local metadata = basis and {polyOrder = basis:polyOrder(), basisType = basis:id()} or nil
    local fld = DataStruct.Field {
@@ -297,7 +229,7 @@ function MaxwellField:alloc(nRkDup)
       self.dtGlobal    = ffi.new("double[2]")
       
       -- For storing integrated energy components.
-      self.emEnergy = DataStruct.DynVector { numComponents = 8 }
+      self.emEnergy = DataStruct.DynVector { numComponents = 8, }
 
    else   -- Poisson equation.
       -- Electrostatic potential, phi, and external magnetic potential A_ext (computed by ExternalField).
@@ -310,7 +242,7 @@ function MaxwellField:alloc(nRkDup)
       self.globalSol    = createField(self.gridGlobal, self.basis, {1,1}, self.basis:numBasis())
    
       -- For storing integrated energy components.
-      self.emEnergy = DataStruct.DynVector { numComponents = self.grid:ndim() }
+      self.emEnergy = DataStruct.DynVector { numComponents = self.grid:ndim(), }
    end
 end
 
@@ -319,7 +251,6 @@ function MaxwellField:createSolver(population)
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.em[1]:elemType(),
-      method   = self.ioMethod,
       metaData = {polyOrder = self.basis:polyOrder(),
                   basisType = self.basis:id(),
                   epsilon0  = self.epsilon0,
@@ -327,6 +258,8 @@ function MaxwellField:createSolver(population)
                   grid      = GKYL_OUT_PREFIX .. "_grid.bp"},
       writeRankInComm = {0, population:getComm_host(),},
    }
+
+   self.nonPeriodicBCs = {}
 
    if self.hasMagField then   -- Maxwell's induction equations.
 
@@ -341,8 +274,27 @@ function MaxwellField:createSolver(population)
          basis  = self.basis,  equation = self.equation,
       }
 
-      self.emEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.grid,   quantity      = "V2",
+      local dirLabel  = {'X','Y','Z'}
+      local edgeLabel = {'lower','upper'}
+      self.bcBuffer = nil
+      for bcDir, bcsInDir in ipairs(self.bcInDir) do
+         for eIdx, bcKind in ipairs(bcsInDir) do
+            local nm = 'bc'..dirLabel[bcDir]..edgeLabel[eIdx]
+            -- This buffer could be just as big as the biggest ghost cell layer,
+            -- but we'll allocate it as a whole volume field for simplicity.
+            self.bcBuffer = self.bcBuffer or createField(self.grid, self.basis, {1,1}, 8*self.basis:numBasis())
+
+            self.nonPeriodicBCs[nm] = Updater.BasicBc{
+               onGrid  = self.grid,  edge   = edgeLabel[eIdx],
+               cdim    = self.ndim,  basis  = self.basis,
+               dir     = bcDir,      bcType = bcKind,
+               onField = self:rkStepperFields()[1],
+            }
+         end
+      end
+
+      self.emEnergyUpd = Updater.CartFieldIntegrate {
+         onGrid = self.grid,   operator      = "sq",
          basis  = self.basis,  numComponents = 8,
       }
       self.emEnergyCalc = function(tCurr, inFld, outDynV) self.emEnergyUpd:advance(tCurr, inFld, outDynV) end
@@ -376,116 +328,14 @@ function MaxwellField:createSolver(population)
          basis   = self.basis,       bcUpper = self.bcUpperPhi,
          epsilon = self.epsilon0,
       }
-      self.esEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.grid,   quantity = "V2",
+      self.esEnergyUpd = Updater.CartFieldIntegrate {
+         onGrid = self.grid,   operator = "grad_sq",
          basis  = self.basis,
       }
-      self.emEnergyCalc = function(tCurr, inFld, outDynV) self:esEnergy(tCurr, inFld, outDynV) end
+      self.emEnergyCalc = function(tCurr, inFld, outDynV) self.esEnergyUpd:advance(tCurr, inFld, outDynV) end
    end
 
-   -- Function to construct a BC updater.
-   local function makeBcUpdater(dir, edge, bcList)
-      return Updater.Bc {
-         onGrid             = self.grid,  dir  = dir,
-         boundaryConditions = bcList,     edge = edge,
-      }
-   end
-
-   -- Indices for tangent and normal components of E and B for dir.
-   local idxEt = {{2, 3}, {1, 3}, {1, 2}}
-   local idxEn = {1, 2, 3}
-   local idxBt = {{5, 6}, {4, 6}, {4, 5}}
-   local idxBn = {4, 5, 6}
-
-   -- Various functions to apply BCs of different types.
-   local function bcOpen(dir, tm, xc, fIn, fOut)
-      local nb = self.basis:numBasis()
-      local fInData, fOutData = fIn:data(), fOut:data()
-      for i = 1, 8 do
-	 self.basis:flipSign(dir, fInData+(i-1)*nb, fOutData+(i-1)*nb)
-      end
-   end
-   local function bcCopy(dir, tm, xc, fIn, fOut)
-      for i = 1, 8*self.basis:numBasis() do fOut[i] = fIn[i] end
-   end 
-   local function bcReflect(dir, tm, xc, fIn, fOut)
-      local nb = self.basis:numBasis()
-      local fInData, fOutData = fIn:data(), fOut:data()
-      -- Zero gradient for all the components.
-      for i = 1, 8 do
-	 self.basis:flipSign(dir, fInData+(i-1)*nb, fOutData+(i-1)*nb)
-      end
-      for i = 1, self.basis:numBasis() do
-	 -- Zero tangent for electric field.
-	 fOutData[(idxEt[dir][1]-1)*nb + i - 1] = 
-	    -1.0 * fOutData[(idxEt[dir][1]-1)*nb + i - 1]
-	 fOutData[(idxEt[dir][2]-1)*nb + i - 1] = 
-	    -1.0 * fOutData[(idxEt[dir][2]-1)*nb + i - 1]
-	 -- Zero normal for magnetic field.
-	 fOutData[(idxBn[dir]-1)*nb + i - 1] = 
-	    -1.0 * fOutData[(idxBn[dir]-1)*nb + i - 1]
-      end
-   end
-   local function bcSymmetry(dir, tm, xc, fIn, fOut)
-      local nb = self.basis:numBasis()
-      local fInData, fOutData = fIn:data(), fOut:data()
-      -- Zero gradient for all the components.
-      for i = 1, 8 do
-	 self.basis:flipSign(dir, fInData+(i-1)*nb, fOutData+(i-1)*nb)
-      end
-      for i = 1, self.basis:numBasis() do
-	 -- Zero normal for electric field.
-	 fOutData[(idxEn[dir]-1)*nb + i - 1] = 
-	    -1.0 * fOutData[(idxEn[dir]-1)*nb + i - 1]
-	 -- Zero tangent for magnetic field.
-	 fOutData[(idxBt[dir][1]-1)*nb + i - 1] = 
-	    -1.0 * fOutData[(idxBt[dir][1]-1)*nb + i - 1]
-	 fOutData[(idxBt[dir][2]-1)*nb + i - 1] = 
-	    -1.0 * fOutData[(idxBt[dir][2]-1)*nb + i - 1]
-      end
-   end
-
-   -- Functions to make life easier while reading in BCs to apply.
-   self.boundaryConditions = { } -- List of Bcs to apply.
-   local function appendBoundaryConditions(dir, edge, bcType)
-      if bcType == EM_BC_OPEN then
-	 table.insert(self.boundaryConditions,
-		      makeBcUpdater(dir, edge, { bcCopy }))
-      elseif bcType == EM_BC_COPY then
-	 table.insert(self.boundaryConditions,
-		      makeBcUpdater(dir, edge, { bcCopy }))
-      elseif bcType == EM_BC_REFLECT then
-	 table.insert(self.boundaryConditions,
-		      makeBcUpdater(dir, edge, { bcReflect }))
-      elseif bcType == EM_BC_SYMMETRY then
-	 table.insert(self.boundaryConditions,
-		      makeBcUpdater(dir, edge, { bcSymmetry }))
-      elseif bcType == EM_BC_AXIS then
-	 table.insert(self.boundaryConditions,
-		      makeBcUpdater(dir, edge,  PerfMaxwell.bcAxis ))
-      elseif type(bcType) == "table" then
-	 table.insert(self.boundaryConditions,
-		      makeBcUpdater(dir, edge, bcType))
-      else
-	 assert(false, "MaxwellField: Unsupported BC type!")
-      end
-   end
-
-   local function handleBc(dir, bc)
-      if bc[1] then
-	 appendBoundaryConditions(dir, "lower", bc[1])
-      end
-      if bc[2] then
-	 appendBoundaryConditions(dir, "upper", bc[2])
-      end
-   end
-   
-   -- Add various BCs to list of BCs to apply.
-   handleBc(1, self.bcx)
-   handleBc(2, self.bcy)
-   handleBc(3, self.bcz)
-
-   self.bcTime = 0.0 -- Timer for BCs.
+   lume.setOrder(self.nonPeriodicBCs)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 end
 
 function MaxwellField:AllgatherField(fldLocal, fldGlobal)
@@ -568,7 +418,8 @@ function MaxwellField:writeRestart(tm)
    self.fieldIo:write(self.em[1], "field_restart.bp", tm, self.ioFrame, false)
 
    -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
-   self.emEnergy:write("fieldEnergy_restart.bp", tm, self.dynVecRestartFrame, false, false)
+   -- MF 2023/11/10: disabling writing and reading of all dynVector restart files. Not needed.
+--   self.emEnergy:write("fieldEnergy_restart.bp", tm, self.dynVecRestartFrame, false, false)
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
@@ -577,7 +428,6 @@ function MaxwellField:readRestart()
    self:applyBc(tm, self.em[1])
    self.em[1]:sync() -- Must get all ghost-cell data correct.
      
-   self.emEnergy:read("fieldEnergy_restart.bp", tm)
    self.ioFrame = fr
    -- Iterate triggers.
    self.ioTrigger(tm)
@@ -669,15 +519,11 @@ function MaxwellField:applyBcIdx(tCurr, idx)
    self:applyBc(tCurr, self:rkStepperFields()[idx])
 end 
 
-function MaxwellField:applyBc(tCurr, emIn, dir)
+function MaxwellField:applyBc(tCurr, emIn)
    local tmStart = Time.clock()
-   if self.hasNonPeriodicBc then
-      for _, bc in ipairs(self.boundaryConditions) do
-         if (not dir) or dir == bc:getDir() then
-	    bc:advance(tCurr, {}, {emIn})
-         end
-      end
-   end   
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
+      bc:advance(tCurr, {self.bcBuffer}, {emIn})
+   end
 
    emIn:sync()
    self.timers.bc = self.timers.bc + Time.clock() - tmStart
@@ -703,7 +549,6 @@ end
 function ExternalMaxwellField:fullInit(appTbl, plasmaField)
    local tbl = self.tbl -- Previously store table.
 
-   self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- By default evolve field.
 
    -- By default there is a plasma-generated magnetic field, unless running Vlasov-Poisson.
@@ -740,7 +585,7 @@ function ExternalMaxwellField:fullInit(appTbl, plasmaField)
    else
       if self.hasMagField then
          self.emFunc = function (t, xn)
-            local phi, ax, ay, az = tal.emFunc(t, xn)
+            local phi, ax, ay, az = tbl.emFunc(t, xn)
             return phi, ax, ay, az
          end
       else
@@ -774,7 +619,6 @@ function ExternalMaxwellField:createSolver(population)
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.em:elemType(),
-      method   = self.ioMethod,
       metaData = {polyOrder = self.basis:polyOrder(),
                   basisType = self.basis:id(),
                   epsilon0  = self.epsilon0,

@@ -6,16 +6,77 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Proto      = require "Lib.Proto"
-local Updater    = require "Updater"
-local xsys       = require "xsys"
-local DataStruct = require "DataStruct"
-local FunctionProjectionParent   = require ("App.Projection.KineticProjection").FunctionProjection
-local MaxwellianProjectionParent = require ("App.Projection.KineticProjection").MaxwellianProjection
+local Proto            = require "Lib.Proto"
+local ProjectionBase   = require "App.Projection.ProjectionBase"
+local xsys             = require "xsys"
+local Updater          = require "Updater"
+local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
+local DataStruct       = require "DataStruct"
+local lume             = require "Lib.lume"
+
+-- Shell class for gyrokinetic projections.
+local GyrokineticProjection = Proto(ProjectionBase)
+
+-- This ctor simply stores what is passed to it and defers actual
+-- construction to the fullInit() method below.
+function GyrokineticProjection:init(tbl) self.tbl = tbl end
+
+function GyrokineticProjection:fullInit(mySpecies)
+   self.mass   = mySpecies:getMass()
+   self.charge = mySpecies:getCharge()
+
+   self.fromFile = self.tbl.fromFile
+
+   self.exactScaleM0    = xsys.pickBool(self.tbl.exactScaleM0, true)
+   self.exactScaleM012  = xsys.pickBool(self.tbl.exactScaleM012, false)
+   if self.exactScaleM012 then self.exactScaleM0 = false end
+
+   self.power = self.tbl.power
+   self.scaleWithSourcePower = xsys.pickBool(self.tbl.scaleWithSourcePower, false)
+end
+
+function GyrokineticProjection:createSolver(mySpecies)
+   self.phaseBasis = mySpecies.basis
+   self.phaseGrid  = mySpecies.grid
+   self.confBasis  = mySpecies.confBasis
+   self.confGrid   = mySpecies.confGrid
+
+   self.cdim = self.confGrid:ndim()
+   self.vdim = self.phaseGrid:ndim() - self.confGrid:ndim()
+
+   self.weakMultiplyConfPhase = Updater.CartFieldBinOp {
+      weakBasis  = self.phaseBasis,  operation = "Multiply",
+      fieldBasis = self.confBasis,   onGhosts  = true,
+   }
+end
 
 --------------------------------------------------------------------------------
--- Gk-specific GkProjection.FunctionProjection includes Jacobian factors in initFunc.
-local FunctionProjection = Proto(FunctionProjectionParent)
+local FunctionProjection = Proto(GyrokineticProjection)
+
+function FunctionProjection:createSolver(mySpecies)
+   FunctionProjection.super.createSolver(self, mySpecies)
+
+   self.initFunc = self.tbl.func
+   if not self.initFunc then self.initFunc = self.tbl[1] end
+
+   assert(self.initFunc, "FunctionProjection: Must specify the function")
+   assert(type(self.initFunc) == "function", "The input must be a table containing function")
+
+   if self.fromFile then
+      self.writeGhost = true
+      self.fieldIo = AdiosCartFieldIo {
+         elemType   = mySpecies.distf[1]:elemType(),
+         writeGhost = self.writeGhost,
+         metaData   = {polyOrder = self.phaseBasis:polyOrder(),
+                       basisType = self.phaseBasis:id()}
+      }
+   else
+      self.project = Updater.ProjectOnBasis {
+         onGrid = self.phaseGrid,   evaluate = self.initFunc,
+         basis  = self.phaseBasis,  onGhosts = true
+      }
+   end
+end
 
 function FunctionProjection:allocConfField(metaData)
    local m = DataStruct.Field {
@@ -28,58 +89,117 @@ function FunctionProjection:allocConfField(metaData)
    m:clear(0.0)
    return m
 end
+
 function FunctionProjection:advance(time, inFlds, outFlds)
-   local extField = inFlds[1]
-   local distf    = outFlds[1]
+   local mySpecies, extField = inFlds[1], inFlds[2]
+   local distf = outFlds[1]
    if self.fromFile then
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
---      if self.species.jacobPhaseFunc and self.vdim > 1 then
---         local initFuncWithoutJacobian = self.initFunc
---         self.initFunc = function (t, xn)
---            local xconf = {}
---            for d = 1, self.cdim do xconf[d] = xn[d] end
---            local J = self.species.jacobPhaseFunc(t,xconf)
---            local f = initFuncWithoutJacobian(t,xn)
---            return J*f
---         end
---      end
-
-      -- Note: don't use self.project as this does not have jacobian factors in initFunc.
-      local project = Updater.ProjectOnBasis {
-         onGrid = self.phaseGrid,   evaluate = self.initFunc,
-         basis  = self.phaseBasis,  onGhosts = true
-      }
-      project:advance(time, {}, {distf})
+      -- Multiply by the phase jacobian. Unclear whether we should weak multiply or multiply
+      -- within the projection. We choose the latter for now (since that's what's also done
+      -- in MaxwellianProjection/MaxwellianOnBasis.
+      local initFunc = self.initFunc
+      if extField then
+	 if extField.bmagFunc then
+            initFunc = function(t, xn)
+               local xconf = {}
+               for d = 1, self.cdim do xconf[d] = xn[d] end
+               local J = extField.bmagFunc(t,xconf) -- Phase space Jacobian.
+               local f = self.initFunc(t,xn)
+               return J*f
+            end
+         end
+      end
+      self.project:setFunc(initFunc)
+      self.project:advance(time, {}, {distf})
    end
-
-   local jacobTot, jacobPhase = extField.geo.jacobTot, extField.geo.bmag
-   if jacobTot then self.weakMultiplyConfPhase:advance(0, {distf, jacobTot}, {distf})
-   elseif jacobPhase then self.weakMultiplyConfPhase:advance(0, {distf, jacobPhase}, {distf}) end
 end
 
-function FunctionProjection:createCouplingSolver(species,field, externalField)
+function FunctionProjection:scaleDensity(mySpecies, distf, currentM0, targetM0)
+   local M0mod = mySpecies:allocMoment()
+
+   local weakDivision = Updater.CartFieldBinOp {
+      weakBasis = self.confBasis,         operation = "Divide",
+      onRange   = M0mod:localExtRange(),  onGhosts  = true,
+   }
+
+   -- Calculate M0mod = targetM0 / currentM0.
+   weakDivision:advance(0.0, {currentM0, targetM0}, {M0mod})
+   -- Calculate distff = M0mod * distf.
+   self.weakMultiplyConfPhase:advance(0.0, {M0mod, distf}, {distf})
+end
+
+function FunctionProjection:createCouplingSolver(species, field, externalField)
    if not self.fromFile then
-      if self.species.charge < 0.0 then
-         local numDens = self:allocConfField()
-         local numDensScaleTo = self:allocConfField()
-         local ionName = nil
+      local mySpecies = nil
+      for _, s in lume.orderedIter(species) do
+         if s.charge == self.charge then mySpecies = s end
+      end
+
+      if self.charge < 0.0 then
+         -- Scale the electrons to have the same density as the ions.
+         local numDens, numDensScaleTo = self:allocConfField(), self:allocConfField()
+         local ionName, elcName = nil, nil
          for nm, s in lume.orderedIter(species) do
-            if 0.0 < s.charge then ionName = nm end
+            if 0. < s.charge then ionName = nm end
+            if s.charge < 0. then elcName = nm end
          end
-         self.species.numDensityCalc:advance(0.0, {self.species:getDistF()}, {numDens})
+         species[elcName].numDensityCalc:advance(0.0, {species[elcName]:getDistF()}, {numDens})
          species[ionName].numDensityCalc:advance(0.0, {species[ionName]:getDistF()}, {numDensScaleTo})
-         self:scaleDensity(self.species:getDistF(), numDens, numDensScaleTo)
+         self:scaleDensity(species[elcName], species[elcName]:getDistF(), numDens, numDensScaleTo)
       end
       local jacobGeo = externalField.geo.jacobGeo
-      if jacobGeo then self.weakMultiplyConfPhase:advance(0, {self.species:getDistF(), jacobGeo}, {self.species:getDistF()}) end
+      if jacobGeo then self.weakMultiplyConfPhase:advance(0, {mySpecies:getDistF(), jacobGeo}, {mySpecies:getDistF()}) end
    end
 end
 
 --------------------------------------------------------------------------------
--- Gk-specific GkProjection.MaxwellianProjection extends MaxwellianProjection base class, including 
--- adding jacobian factors in initFunc.
-local MaxwellianProjection = Proto(MaxwellianProjectionParent)
+local MaxwellianProjection = Proto(GyrokineticProjection)
+
+function MaxwellianProjection:createSolver(mySpecies)
+   MaxwellianProjection.super.createSolver(self, mySpecies)
+
+   local tbl = self.tbl
+   self.density     = assert(tbl.density, "Maxwellian: must specify 'density'")
+   self.driftSpeed  = tbl.driftSpeed or function(t, zn) return 0. end
+   self.temperature = assert(tbl.temperature,
+                             "Maxwellian: must specify 'temperature'")
+
+   -- Check for constants instead of functions.
+   if type(self.density) == "number" then
+      self.density = function (t, zn) return tbl.density end
+   end
+   if type(self.driftSpeed) == "number" then
+      self.driftSpeed = function (t, zn) return tbl.driftSpeed end
+   end
+   if type(self.temperature) == "number" then
+      self.temperature = function (t, zn) return tbl.temperature end
+   end
+
+   self.initFunc = function (t, zn)
+      return mySpecies:Maxwellian(zn, self.density(t, zn),
+                                      self.driftSpeed(t, zn),
+                                      self.temperature(t, zn))
+   end
+
+   if self.fromFile then
+      self.writeGhost = true
+      self.fieldIo = AdiosCartFieldIo {
+         elemType  = mySpecies.distf[1]:elemType(),
+         writeGhost = self.writeGhost,
+         metaData  = {polyOrder = self.phaseBasis:polyOrder(),
+                      basisType = self.phaseBasis:id(),
+                      charge    = self.charge,
+                      mass      = self.mass,},
+      }
+   else
+      self.project = Updater.ProjectOnBasis {
+         onGrid = self.phaseGrid,   evaluate = self.initFunc,
+         basis  = self.phaseBasis,  onGhosts = true
+      }
+   end
+end
 
 function MaxwellianProjection:allocConfField(vComp)
    local vComp = vComp or 1
@@ -94,60 +214,30 @@ function MaxwellianProjection:allocConfField(vComp)
    return m
 end
 
-function MaxwellianProjection:lagrangeFix(distf)
-   local M0, dM0 = self.species:allocMoment(), self.species:allocMoment()
-   local M1, dM1 = self.species:allocMoment(), self.species:allocMoment()
-   local M2, dM2 = self.species:allocMoment(), self.species:allocMoment()
+function MaxwellianProjection:scaleDensity(mySpecies, distf)
+   local M0e, M0 = mySpecies:allocMoment(), mySpecies:allocMoment()
+   local M0mod   = mySpecies:allocMoment()
 
+   mySpecies.numDensityCalc:advance(0.0, {distf}, {M0})
    local project = Updater.ProjectOnBasis {
-      onGrid   = self.confGrid,
-      basis    = self.confBasis,
-      evaluate = function(t,xn) return 0. end,   -- Set below.
-      onGhosts = true,
+      onGrid = self.confGrid,   evaluate = function (t, zn) return self.density(t, zn) end,
+      basis  = self.confBasis,  onGhosts = true,
+   }
+   project:advance(0.0, {}, {M0e})
+
+   local weakDivision = Updater.CartFieldBinOp {
+      weakBasis = self.confBasis,  operation = "Divide",
+      onRange   = M0e:localExtRange(),  onGhosts  = true,
    }
 
-   self.species.numDensityCalc:advance(0.0, {distf}, {M0})
-   local func = function (t, zn)
-      return self.density(t, zn, self.species)
-   end
-   project:setFunc(func)
-   project:advance(0.0, {}, {dM0})
-   dM0:accumulate(-1.0, M0)
-
-   self.species.momDensityCalc:advance(0.0, {distf}, {M1})
-   func = function (t, zn)
-      return self.density(t, zn, self.species) *
-	 self.driftSpeed(t, zn, self.species)
-   end
-   project:setFunc(func)
-   project:advance(0.0, {}, {dM1})
-   dM1:accumulate(-1.0, M1)
-
-   self.species.ptclEnergyCalc:advance(0.0, {distf}, {M2})
-   func = function (t, zn)
-      local drifts = self.driftSpeed(t, zn, self.species)
-      if self.vdim == 1 then
-	 return self.density(t, zn, self.species) *
-	    (self.driftSpeed(t, zn, self.species)*self.driftSpeed(t, zn, self.species) + self.temperature(t, zn, self.species)/self.species.mass )
-      else
-	 return self.density(t, zn, self.species) *
-	    (self.driftSpeed(t, zn, self.species)*self.driftSpeed(t, zn, self.species) + 3*self.temperature(t, zn, self.species)/self.species.mass )
-      end
-   end
-   project:setFunc(func)
-   project:advance(0.0, {}, {dM2})
-   dM2:accumulate(-1.0, M2)
-
-   local lagFix = Updater.LagrangeFix {
-      onGrid     = self.phaseGrid,   confBasis  = self.confBasis,
-      phaseBasis = self.phaseBasis,  mode       = 'gk',
-      confGrid   = self.confGrid,    mass       = self.species.mass,
-   }
-   lagFix:advance(0.0, {dM0, dM1, dM2, self.species.bmag}, {distf})
+   -- Calculate M0mod = M0e / M0.
+   weakDivision:advance(0.0, {M0, M0e}, {M0mod})
+   -- Calculate distff = M0mod * distf.
+   self.weakMultiplyConfPhase:advance(0.0, {M0mod, distf}, {distf})
 end
 
-function MaxwellianProjection:scaleM012(distf)
-   local sp                                        = self.species
+function MaxwellianProjection:scaleM012(mySpecies, distf)
+   local sp                                        = mySpecies
    local M0, M2par, M2perp                         = sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
    local M0_e, M2_e                                = sp:allocMoment(), sp:allocMoment()
    local M0_mod, M2par_mod, M2perp_mod             = sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
@@ -198,13 +288,13 @@ function MaxwellianProjection:scaleM012(distf)
       onGhosts = true,
    }
    local M0func = function (t, zn)
-      return self.density(t, zn, sp)
+      return self.density(t, zn)
    end
    confProject:setFunc(M0func)
    confProject:advance(0.0, {}, {M0_e})
 
    local M2func = function (t, zn)
-      return self.density(t, zn, sp)*self.temperature(t, zn, sp)/sp.mass
+      return self.density(t, zn)*self.temperature(t, zn, sp)/sp.mass
    end
    confProject:setFunc(M2func)
    confProject:advance(0.0, {}, {M2_e})
@@ -266,186 +356,9 @@ function MaxwellianProjection:scaleM012(distf)
    if self.vdim > 1 then distf:accumulate(1, distf2perp) end
 end
 
--- this implementation also corrects Upar, still being tested.
---function MaxwellianProjection:scaleM012(distf)
---   local sp = self.species
---
---   -- initialize maxwellian distribution distf0 = FM, along with 
---   -- distf_vpar = vpar*FM, distf_vpar2 = vpar^2*FM, and distf_muB = mu*B*FM
---   local distf0, distf_vpar, distf_vpar2, distf_muB = sp:allocDistf(), sp:allocDistf(), sp:allocDistf(), sp:allocDistf()
---   distf0:copy(distf)
---   local distf_vparFunc = function (t, zn)
---      local vpar = zn[self.cdim+1]
---      return vpar*self.initFunc(t,zn)
---   end
---   local project_vpar = Updater.ProjectOnBasis {
---      onGrid = self.phaseGrid,   evaluate = distf_vparFunc,
---      basis  = self.phaseBasis,  onGhosts = true
---   }
---   project_vpar:advance(0.0, {}, {distf_vpar})
---   local distf_vpar2Func = function (t, zn)
---      local vpar = zn[self.cdim+1]
---      return vpar^2*self.initFunc(t,zn)
---   end
---   local project_vpar2 = Updater.ProjectOnBasis {
---      onGrid = self.phaseGrid,   evaluate = distf_vpar2Func,
---      basis  = self.phaseBasis,  onGhosts = true
---   }
---   project_vpar2:advance(0.0, {}, {distf_vpar2})
---   if self.vdim == 2 then 
---      local distf_muBFunc = function (t, zn)
---         local mu = zn[self.cdim+2]
---         return mu*sp.bmagFunc(t,zn)*self.initFunc(t,zn)
---      end
---      local project_muB = Updater.ProjectOnBasis {
---         onGrid = self.phaseGrid,   evaluate = distf_muBFunc,
---         basis  = self.phaseBasis,  onGhosts = true
---      }
---      project_muB:advance(0.0, {}, {distf_muB})
---   end
---
---   -- calculate (inexact) moments of initial distribution function
---   local Dens, M1, M2par, M2perp = sp:allocMoment(), sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
---
---   -- initialize weak multiplication/division operators
---   local weakDivision = Updater.CartFieldBinOp {
---      weakBasis = self.confBasis,  operation = "Divide",
---      onRange   = M1:localExtRange(),  onGhosts = true,
---   }
---   local weakMultiplicationConf = Updater.CartFieldBinOp {
---      weakBasis = self.confBasis,  operation = "Multiply",
---      onGhosts  = true,
---   }
---   local weakMultiplicationPhase = Updater.CartFieldBinOp {
---      weakBasis  = self.phaseBasis,  operation = "Multiply",
---      fieldBasis = self.confBasis,   onGhosts  = true,
---   }
---
---   sp.numDensityCalc:advance(0.0, {distf}, {Dens})
---   sp.momDensityCalc:advance(0.0, {distf}, {M1})
---   sp.M2parCalc:advance(0.0, {distf}, {M2par})
---   if self.vdim == 2 then sp.M2perpCalc:advance(0.0, {distf}, {M2perp}) end
---
---   -- calculate weak moments
---   local Upar, Upar_sq, Tpar, Tperp = sp:allocMoment(), sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
---   -- Upar = M1/Dens
---   weakDivision:advance(0.0, {Dens, M1}, {Upar})
---   -- Upar^2
---   weakMultiplicationConf:advance(0.0, {Upar, Upar}, {Upar_sq})
---   -- Tpar = m*(M2par/Dens - M1^2/Dens^2) = m*(M2par/Dens - Upar^2)
---   weakDivision:advance(0.0, {Dens, M2par}, {Tpar})
---   Tpar:accumulate(-1.0, Upar_sq)
---   Tpar:scale(sp.mass)
---   -- Tperp = m*M2perp/Dens
---   if self.vdim == 2 then
---      weakDivision:advance(0.0, {Dens, M2perp}, {Tperp})
---      Tperp:scale(sp.mass)
---   end
---
---   -- initialize exact moments
---   local Dens_e, Upar_e, Temp_e = sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
---   local projectDens = Updater.ProjectOnBasis {
---      onGrid = self.confGrid,   evaluate = function(t, zn) return self.density(t, zn, sp) end,
---      basis  = self.confBasis,  onGhosts = true,
---   }
---   projectDens:advance(0.0, {}, {Dens_e})
---
---   local projectUpar = Updater.ProjectOnBasis {
---      onGrid = self.confGrid,   evaluate = function(t, zn) return self.driftSpeed(t, zn, sp) end,
---      basis  = self.confBasis,  onGhosts = true,
---   }
---   projectUpar:advance(0.0, {}, {Upar_e})
---
---   local projectTemp = Updater.ProjectOnBasis {
---      onGrid = self.confGrid,   evaluate = function(t, zn) return self.temperature(t, zn, sp) end,
---      basis  = self.confBasis,  onGhosts = true,
---   }
---   projectTemp:advance(0.0, {}, {Temp_e})
---
---   local unitField, TparInv, TperpInv = sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
---   local projectUnity = Updater.ProjectOnBasis {
---      onGrid = self.confGrid,   evaluate = function(t, zn) return 1.0 end,
---      basis  = self.confBasis,  onGhosts = true,
---   }
---   projectUnity:advance(0.0, {}, {unitField})
---
---   -- calculate TparInv = 1/Tpar
---   weakDivision:advance(0.0, {Tpar, unitField}, {TparInv})
---   -- calculate TperpInv = 1/Tperp
---   if self.vdim == 2 then weakDivision:advance(0.0, {Tperp, unitField}, {TperpInv}) end
---
---   -- calculate modifier terms for correcting Upar, Tpar, and Tperp:
---   local Dens_mod, Upar_mod, Tpar_mod, Tperp_mod = sp:allocMoment(), sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
---   local Ppar_mod, Pperp_mod = sp:allocMoment(), sp:allocMoment()
---   local UparDiff, UparDiff_sq = sp:allocMoment(), sp:allocMoment()
---   -- calculate Dens_mod = Dens_e / Dens
---   weakDivision:advance(0.0, {Dens, Dens_e}, {Dens_mod})
---   -- calculate Tpar_mod = Temp_e / Tpar
---   weakDivision:advance(0.0, {Tpar, Temp_e}, {Tpar_mod})
---   -- calculate Tperp_mod = Temp_e / Tperp
---   if self.vdim == 2 then weakDivision:advance(0.0, {Tperp, Temp_e}, {Tperp_mod}) end
---
---   -- calculate Ppar_mod = Dens_e*Temp_e/(Dens*Tpar) = Dens_mod * Tpar_mod
---   weakMultiplicationConf:advance(0.0, {Dens_mod, Tpar_mod}, {Ppar_mod})
---   -- calculate Pperp_mod = Dens_e*Temp_e/(Dens*Tperp) = Dens_mod * Tperp_mod
---   if self.vdim == 2 then weakMultiplicationConf:advance(0.0, {Dens_mod, Tperp_mod}, {Pperp_mod}) end
---
---   -- calculate UparDiff = Upar_e - Upar
---   UparDiff:combine(1.0, Upar_e, -1.0, Upar)
---   -- calculate UparDiff_sq = UparDiff^2 = (Upar_e - Upar)^2
---   weakMultiplicationConf:advance(0.0, {UparDiff, UparDiff}, {UparDiff_sq})
---
---   -- calculate Upar_mod = m*Dens_e/Dens*(Upar_e-Upar)/Tpar
---   weakDivision:advance(0.0, {Tpar, UparDiff}, {Upar_mod}) -- (Upar_e-Upar)/Tpar
---   weakMultiplicationConf:advance(0.0, {Dens_mod, Upar_mod}, {Upar_mod}) -- Dens_e/Dens*(Upar_e-Upar)/Tpar
---   Upar_mod:scale(sp.mass)
---
---   -- calculate Tpar_mod = Dens_e*Tpar_e/(Dens*Tpar) - Dens_e/Dens + m*Dens_e/Dens*(Upar_e-Upar)^2/Tpar
---   weakDivision:advance(0.0, {Tpar, UparDiff_sq}, {Tpar_mod}) -- (Upar_e-Upar)^2/Tpar
---   weakMultiplicationConf:advance(0.0, {Dens_mod, Tpar_mod}, {Tpar_mod}) -- Dens_e/Dens*(Upar_e-Upar)^2/Tpar
---   Tpar_mod:combine(1.0, Ppar_mod, -1.0, Dens_mod, sp.mass, Tpar_mod)
---   
---   -- calculate Tperp_mod = Dens_e/Dens*Tperp_e/Tperp - Dens_e/Dens
---   if self.vdim == 2 then Tperp_mod:combine(1.0, Pperp_mod, -1.0, Dens_mod) end
---
---   -- calculate weighted maxwellians to correct Upar, Tpar, and Tperp:
---   local distf_Upar, distf_Tpar, distf_Tperp = sp:allocDistf(), sp:allocDistf(), sp:allocDistf()
---   -- calculate distf_Upar = (vpar - Upar)*FM
---   weakMultiplicationPhase:advance(0.0, {Upar, distf0}, {distf_Upar}) -- Upar*FM
---   distf_Upar:combine(1.0, distf_vpar, -1.0, distf_Upar) 
---
---   -- calculate distf_Tpar = (m*(vpar - Upar)^2/(2*Tpar) - 1/2)*FM
---   weakMultiplicationPhase:advance(0.0, {Upar, distf0}, {distf_Tpar}) -- Upar*FM
---   distf_Tpar:combine(1.0, distf_vpar, -.5, distf_Tpar) -- vpar*FM - Upar/2*FM
---   weakMultiplicationPhase:advance(0.0, {Upar, distf_Tpar}, {distf_Tpar}) -- Upar*(vpar*FM - Upar/2*FM)
---   distf_Tpar:combine(.5, distf_vpar2, -1, distf_Tpar) -- vpar^2/2*FM - Upar*(vpar*FM - Upar/2*FM)
---   weakMultiplicationPhase:advance(0.0, {TparInv, distf_Tpar}, {distf_Tpar}) -- (vpar^2/2*FM - Upar*(vpar*FM - Upar/2*FM))/Tpar
---   distf_Tpar:combine(sp.mass, distf_Tpar, -.5, distf0)
---  
---   -- calculate distf_Tperp = (mu*B/Tperp - 1)*FM
---   if self.vdim == 2 then 
---      weakMultiplicationPhase:advance(0.0, {TperpInv, distf_muB}, {distf_Tperp}) -- mu*B/Tperp*FM
---      distf_Tperp:combine(1.0, distf_Tperp, -1.0, distf0)
---   end
---
---   -- multiply weighted maxwellians by modifier terms:
---   -- calculate distf0 = Dens_mod*distf0
---   weakMultiplicationPhase:advance(0.0, {Dens_mod, distf0}, {distf0})
---   -- calculate distf_Upar = Upar_mod*distf_Upar
---   weakMultiplicationPhase:advance(0.0, {Upar_mod, distf_Upar}, {distf_Upar})
---   -- calculate distf_Tpar = Tpar_mod*distf_Tpar
---   weakMultiplicationPhase:advance(0.0, {Tpar_mod, distf_Tpar}, {distf_Tpar})
---   -- calculate distf_Tperp = Tperp_mod*distf_Tperp
---   if self.vdim == 2 then weakMultiplicationPhase:advance(0.0, {Tperp_mod, distf_Tperp}, {distf_Tperp}) end
---
---   -- combine and finish
---   distf:combine(1, distf0, 1, distf_Upar, distf_Tpar)
---   if self.vdim == 2 then distf:accumulate(1, distf_Tperp) end
---end
-
 function MaxwellianProjection:advance(time, inFlds, outFlds)
-   local extField = inFlds[1]
-   local distf    = outFlds[1]
+   local mySpecies, extField = inFlds[1], inFlds[2]
+   local distf = outFlds[1]
    if self.fromFile then
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
@@ -479,17 +392,16 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
       }
       -- Use bmag as the total jacobian here because we weak multiply by jacobGeo later.
       projMaxwell:advance(time,{numDens,primMoms,bmag,bmag},{distf})
-   end
 
-   if self.exactScaleM0 then
-      self:scaleDensity(distf)
-   elseif self.exactScaleM012 then
-      self:scaleM012(distf)
-   end
-   if self.exactLagFixM012 then self:lagrangeFix(distf) end
+      if self.exactScaleM0 then
+         self:scaleDensity(mySpecies, distf)
+      elseif self.exactScaleM012 then
+         self:scaleM012(mySpecies, distf)
+      end
 
-   local jacobGeo = extField.geo.jacobGeo
-   if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
+      local jacobGeo = extField.geo.jacobGeo
+      if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
+   end
 end
 
 

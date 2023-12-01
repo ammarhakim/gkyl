@@ -25,6 +25,7 @@ local LinearTrigger    = require "Lib.LinearTrigger"
 local Mpi              = require "Comm.Mpi"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
+local Adios            = require "Io.Adios"
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local xsys             = require "xsys"
 local lume             = require "Lib.lume"
@@ -32,39 +33,6 @@ local ffi              = require "ffi"
 local Constants        = require "Lib.Constants"
 
 local GkSpecies = Proto(SpeciesBase)
-
--- ............. Backwards compatible treatment of BCs .....................--
--- Add constants to object indicate various supported boundary conditions.
-local SP_BC_ABSORB   = 1
-local SP_BC_REFLECT  = 3
-local SP_BC_ZEROFLUX = 5
-local SP_BC_COPY     = 6
-GkSpecies.bcAbsorb   = SP_BC_ABSORB      -- Absorb all particles.
-GkSpecies.bcReflect  = SP_BC_REFLECT     -- Specular reflection.
-GkSpecies.bcZeroFlux = SP_BC_ZEROFLUX    -- Zero flux.
-GkSpecies.bcCopy     = SP_BC_COPY        -- Copy stuff.
-
-function GkSpecies:makeBcApp(bcIn, dir, edge)
-   local bcOut
-   if type(bcIn) == "function" then
-      bcOut = BasicBC{kind="function", bcFunction=bcIn, diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_COPY then
-      print("GkSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
-      bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_ABSORB then
-      print("GkSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
-      bcOut = BasicBC{kind="absorb", diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_REFLECT then
-      print("GkSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
-      bcOut = BasicBC{kind="reflect", diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_ZEROFLUX or bcIn.tbl.kind=="zeroFlux" then
-      bcOut = "zeroFlux"
-      table.insert(self.zeroFluxDirections, dir)
-   end
-   return bcOut
-end
-
--- ............. End of backwards compatibility for BCs .....................--
 
 -- This ctor stores what is passed to it and defers most of the
 -- construction to the fullInit() method below.
@@ -115,7 +83,6 @@ function GkSpecies:alloc(nRkDup)
    -- Create Adios object for field I/O.
    self.distIo = AdiosCartFieldIo {
       elemType   = self.distf[1]:elemType(),
-      method     = self.ioMethod,
       writeGhost = self.writeGhost,
       metaData   = {polyOrder = self.basis:polyOrder(),
                     basisType = self.basis:id(),
@@ -204,7 +171,7 @@ function GkSpecies:fullInit(appTbl)
          self.sources[nm] = val
          val:setSpeciesName(self.name)
          val:setName(nm)   -- Do :setName after :setSpeciesName for sources.
-         val:fullInit(tbl) -- Initialize sources
+         val:fullInit(self) -- Initialize sources
       end
    end
    lume.setOrder(self.sources)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
@@ -218,16 +185,19 @@ function GkSpecies:fullInit(appTbl)
    -- It is possible to use the keywords 'init' and 'background'
    -- to specify a function directly without using a Projection object.
    if type(tbl.init) == "function" then
-      self.projections["init"] = Projection.KineticProjection.FunctionProjection {
+      self.projections["init"] = Projection.GkProjection.FunctionProjection {
          func = function(t, zn) return tbl.init(t, zn, self) end,
       }
    end
    if type(tbl.background) == "function" then
-      self.projections["background"] = Projection.KineticProjection.FunctionProjection {
+      self.projections["background"] = Projection.GkProjection.FunctionProjection {
          func = function(t, zn) return tbl.background(t, zn, self) end,
       }
    end
    lume.setOrder(self.projections)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
+   for _, pr in lume.orderedIter(self.projections) do
+      pr:fullInit(self)
+   end
 
    self.deltaF         = xsys.pickBool(appTbl.deltaF, false)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
@@ -253,24 +223,24 @@ function GkSpecies:fullInit(appTbl)
    self.nonPeriodicBCs = {}
    local dirLabel  = {'X','Y','Z'}
    local edgeLabel = {'lower','upper'}
-   for d, bcsTbl in ipairs(self.bcInDir) do
+   for dir, bcsTbl in ipairs(self.bcInDir) do
       for e, bcOb in ipairs(bcsTbl) do
-         local goodBC = false
-         local val    = bcOb
-         if not BCsBase.is(val) then val = self:makeBcApp(bcOb, d, e) end
+         local val  = bcOb
          if BCsBase.is(val) then
-            local nm = 'bc'..dirLabel[d]..edgeLabel[e]
+            local nm = 'bc'..dirLabel[dir]..edgeLabel[e]
             self.nonPeriodicBCs[nm] = val
             val:setSpeciesName(self.name)
             val:setName(nm)   -- Do :setName after :setSpeciesName for BCs.
-            val:setDir(d)
+            val:setDir(dir)
             val:setEdge(edgeLabel[e])
             val:fullInit(tbl)
-            goodBC = true
-         elseif val=="zeroFlux" then
-            goodBC = true
+         else
+            assert(false, "GkSpecies: bc not recognized.")
          end
-         assert(goodBC, "GkSpecies: bc not recognized.")
+      end
+      if #bcsTbl > 0 and bcsTbl[1].tbl.kind == "zeroFlux" then
+         assert(bcsTbl[2].tbl.kind == "zeroFlux", "GkSpecies: ZeroFlux direction only supported for both lower and upper boundaries.")
+         table.insert(self.zeroFluxDirections, dir)
       end
    end
    lume.setOrder(self.nonPeriodicBCs)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
@@ -287,7 +257,6 @@ function GkSpecies:fullInit(appTbl)
    end
    lume.setOrder(self.collisions)
 
-   self.ioMethod           = "MPI"
    self.distIoFrame        = 0 -- Frame number for distribution function.
    self.diagIoFrame        = 0 -- Frame number for diagnostics.
    self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
@@ -308,8 +277,6 @@ function GkSpecies:setCfl(cfl)
    for _, c in lume.orderedIter(self.collisions) do c:setCfl(cfl) end
 end
 
-function GkSpecies:setIoMethod(ioMethod) self.ioMethod = ioMethod end
-
 function GkSpecies:setConfBasis(basis)
    self.confBasis = basis
    for _, c in lume.orderedIter(self.collisions) do c:setConfBasis(basis) end
@@ -329,12 +296,15 @@ function GkSpecies:createGrid(confGridIn)
    self.cdim = confGrid:ndim()
    self.ndim = self.cdim+self.vdim
 
+   local msn = confGrid:getMessenger()
+
    -- Create decomposition.
    local decompCuts = {}
    for d = 1, self.cdim do table.insert(decompCuts, confGrid:cuts(d)) end
    for d = 1, self.vdim do table.insert(decompCuts, 1) end -- No decomposition in v-space.
    self.decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts, comm = confGrid:commSet().comm,
+      cuts  = decompCuts,
+      comms = {host=msn:getConfComm_host(), device=msn:getConfComm_device(),},
    }
 
    -- Create computational domain.
@@ -385,7 +355,7 @@ function GkSpecies:createGrid(confGridIn)
       lower     = lower,  periodicDirs  = confGrid:getPeriodicDirs(),
       upper     = upper,  decomposition = self.decomp,
       cells     = cells,  mappings      = coordinateMap,
-      messenger = confGrid:getMessenger(),
+      messenger = msn,
    }
 
    for _, c in lume.orderedIter(self.collisions) do c:setPhaseGrid(self.grid) end
@@ -402,39 +372,32 @@ function GkSpecies:allocCartField(grid,nComp,ghosts,metaData)
    return f
 end
 function GkSpecies:allocDistf()
-   local metaData = {polyOrder = self.basis:polyOrder(),
-                     basisType = self.basis:id(),
-                     charge    = self.charge,
-                     mass      = self.mass,
+   local metaData = {polyOrder = self.basis:polyOrder(),  charge = self.charge,
+                     basisType = self.basis:id(),         mass   = self.mass,
                      grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"}
    return self:allocCartField(self.grid,self.basis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 function GkSpecies:allocMoment()
-   local metaData = {polyOrder = self.confBasis:polyOrder(),
-                     basisType = self.confBasis:id(),
-                     charge    = self.charge,
-                     mass      = self.mass,}
+   local metaData = {polyOrder = self.confBasis:polyOrder(),  charge = self.charge,
+                     basisType = self.confBasis:id(),         mass   = self.mass,}
    return self:allocCartField(self.confGrid,self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 function GkSpecies:allocVectorMoment(dim)
-   local metaData = {polyOrder = self.confBasis:polyOrder(),
-                     basisType = self.confBasis:id(),
-                     charge    = self.charge,
-                     mass      = self.mass,}
+   local metaData = {polyOrder = self.confBasis:polyOrder(),  charge = self.charge,
+                     basisType = self.confBasis:id(),         mass   = self.mass,}
    return self:allocCartField(self.confGrid,dim*self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 function GkSpecies:allocIntMoment(comp)
-   local metaData = {charge = self.charge,
-                     mass   = self.mass,}
+   local metaData = {charge = self.charge,  mass = self.mass,}
    local ncomp = comp or 1
    local f = DataStruct.DynVector {numComponents = ncomp,     writeRank = 0,
-                                   metaData      = metaData,  comm      = self.confGrid:commSet().comm,}
+                                   metaData      = metaData,  comm      = self.confGrid:commSet().host,}
    return f
 end
 
-local function vtSqMinCalc(mass,grid,cdim,vdim,bmagMid)
-   local TparMin  = (mass/6.)*grid:dx(cdim+1)
-   local TperpMin = vdim==1 and TparMin or (bmagMid/3.)*grid:dx(cdim+2)
+local function vtSqMinCalc(mass,phaseGrid,cdim,vdim,bmagMid)
+   local TparMin  = (mass/6.)*phaseGrid:dx(cdim+1)
+   local TperpMin = vdim==1 and TparMin or (bmagMid/3.)*phaseGrid:dx(cdim+2)
    return (TparMin + 2.*TperpMin)/(3.*mass)
 end
 
@@ -506,8 +469,7 @@ function GkSpecies:createSolver(field, externalField)
 
    -- Set up Jacobian.
    if externalField then
-      self.bmagFunc = externalField.bmagFunc
-      -- If vdim>1, get the phase-space Jacobian (=bmag) from geo.
+      self.bmagFunc       = externalField.bmagFunc
       self.jacobPhaseFunc = self.bmagFunc
       self.jacobGeoFunc   = externalField.jacobGeoFunc
 
@@ -524,7 +486,6 @@ function GkSpecies:createSolver(field, externalField)
       local xMid = {}
       for d = 1,self.cdim do xMid[d]=self.confGrid:mid(d) end
       self.bmagMid = self.bmagFunc(0.0, xMid)
-
    end
 
    -- Minimum vtSq supported by the grid (for p=1 only for now):
@@ -544,9 +505,10 @@ function GkSpecies:createSolver(field, externalField)
    -- Create updater to advance solution by one time-step.
    if self.evolveCollisionless then
       self.solver = Updater.GyrokineticDG {
-         onGrid     = self.grid,       confRange = self.bmag:localRange(), 
-         confBasis  = self.confBasis,  charge    = self.charge,
-         phaseBasis = self.basis,      mass      = self.mass,
+         onGrid       = self.grid,       confRange = self.bmag:localRange(), 
+         confBasis    = self.confBasis,  charge    = self.charge,
+         phaseBasis   = self.basis,      mass      = self.mass,
+         zeroFluxDirs = self.zeroFluxDirections,
       }
       self.collisionlessAdvance = function(tCurr, inFlds, outFlds)
          self.solver:advance(tCurr, inFlds, outFlds)
@@ -651,9 +613,9 @@ function GkSpecies:createSolver(field, externalField)
    -- Create an updater for volume integrals. Used by diagnostics.
    -- Placed in a table with key 'scalar' to keep consistency with VlasovSpecies (makes diagnostics simpler).
    self.volIntegral = {
-      scalar = Updater.CartFieldIntegratedQuantCalc {
+      scalar = Updater.CartFieldIntegrate {
          onGrid = self.confGrid,   numComponents = 1,
-         basis  = self.confBasis,  quantity      = "V",
+         basis  = self.confBasis,
       }
    }
 
@@ -779,8 +741,8 @@ function GkSpecies:initDist(extField)
    local initCnt, backgroundCnt = 0, 0
    local scaleInitWithSourcePower = false
    for nm, pr in lume.orderedIter(self.projections) do
-      pr:fullInit(self)
-      pr:advance(0.0, {extField}, {self.distf[2]})
+      pr:createSolver(self)
+      pr:advance(0.0, {self, extField}, {self.distf[2]})
       if string.find(nm,"init") then
          self.distf[1]:accumulate(1.0, self.distf[2])
          initCnt = initCnt + 1
@@ -836,13 +798,15 @@ function GkSpecies:initCrossSpeciesCoupling(population)
          self.collPairs[sN][sO] = {}
          -- Need next below because species[].collisions is created as an empty table.
          if species[sN].collisions and next(species[sN].collisions) then
-            for collNm, _ in pairs(species[sN].collisions) do
+            for collNm, collOp in pairs(species[sN].collisions) do
+	       if collOp.collidingSpecies then  -- MF 2023/10/05: Needed to support diffusion+collisions.
                -- This species collides with someone.
-               self.collPairs[sN][sO].on = lume.any(species[sN].collisions[collNm].collidingSpecies,
-                                                    function(e) return e==sO end)
-               if self.collPairs[sN][sO].on then
-                  self.collPairs[sN][sO].kind = species[sN].collisions[collNm].collKind
-                  self.needThreeMoments = true  -- MF 2022/09/16: currently all collision models need M0, M1, M2.
+                  self.collPairs[sN][sO].on = lume.any(collOp.collidingSpecies,
+                                                       function(e) return e==sO end)
+                  if self.collPairs[sN][sO].on then
+                     self.collPairs[sN][sO].kind = collOp.collKind
+                     self.needThreeMoments = true  -- MF 2022/09/16: currently all collision models need M0, M1, M2.
+                  end
                end
             end
          else
@@ -942,7 +906,6 @@ function GkSpecies:advanceStep2(tCurr, population, emIn, inIdx, outIdx)
    local emFunc = emIn[2]:rkStepperFields()[1]
 
    if self.evolveCollisionless then
-      self.solverStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solverStep2:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
    end
    self.timers.advance = self.timers.advance + Time.clock() - tmStart
@@ -1215,7 +1178,7 @@ function GkSpecies:write(tm, field, force)
             dOb:calcGridDiagnostics(tm, self, field)
          end
 
-         for _, dOb in lume.orderedIter(self.diagnostics) do   -- Write grid and integrated diagnostics.
+         for nm, dOb in lume.orderedIter(self.diagnostics) do   -- Write grid and integrated diagnostics.
             dOb:write(tm, self.diagIoFrame)
          end
 

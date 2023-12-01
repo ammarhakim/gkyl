@@ -401,8 +401,8 @@ plasmaApp = Plasma.App {
 
    -- Field solver.
    field = Plasma.Field {
-      bcLowerPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T = "N", V = 0.0}}, 
-      bcUpperPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T = "N", V = 0.0}},
+      bcLowerPhi  = {{T = "D", V = 0.0}, {T = "P"}}, 
+      bcUpperPhi  = {{T = "D", V = 0.0}, {T = "P"}},
       bcLowerApar = {{T = "D", V = 0.0}, {T = "P"}},
       bcUpperApar = {{T = "D", V = 0.0}, {T = "P"}},
       evolve = true, -- Evolve fields?
@@ -413,6 +413,8 @@ plasmaApp = Plasma.App {
    funcField = Plasma.Geometry {
       -- Read pre-generated geo file. 
       -- To compute geo from scratch, comment out this line (it's expensive).
+      -- Beware: allGeo file needs to be regenerated (comment fromFile line out) if the geometry
+      -- or the resolution is changed.
       fromFile = "allGeo.read",
 
       -- Background magnetic field.

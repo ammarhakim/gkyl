@@ -6,68 +6,65 @@
 import os
 
 def build(bld):
-    bld.shlib(source = r"""
-    TenMomentImpl.cpp
-
-    hasegawaWakataniData/hasegawa_wakatani_vol_2x_p1_Ser.cpp
-    hasegawaWakataniData/hasegawa_wakatani_vol_2x_p2_Ser.cpp
-    hasegawaWakataniData/hasegawa_wakatani_surf_2x_p1_Ser.cpp
-    hasegawaWakataniData/hasegawa_wakatani_surf_2x_p2_Ser.cpp
-
-    incompEulerData/IncompEulerSer2xP1.cpp
-    incompEulerData/IncompEulerSer2xP2.cpp
-    incompEulerData/IncompEulerSurfSer2xP1.cpp
-    incompEulerData/IncompEulerSurfSer2xP2.cpp
-    incompEulerData/IncompEulerSurfPositivitySer2xP1.cpp
-
-    pbData/CanonicalSer1x1v.cpp
-    pbData/CanonicalSer2x2v.cpp
-    pbData/CanonicalSurfSer1x1v.cpp
-    pbData/CanonicalSurfSer2x2v.cpp
-    pbData/CanonicalDisContSurfSer1x1v.cpp
-    pbData/CanonicalSurfPositivitySer1x1v.cpp
-
-    gyrofluidData/gyrofluid_surf_1x_p0_ser.cpp
-    gyrofluidData/gyrofluid_surf_1x_p1_ser.cpp
-    gyrofluidData/gyrofluid_surf_1x_p2_ser.cpp
-    gyrofluidData/gyrofluid_vol_1x_p0_ser.cpp
-    gyrofluidData/gyrofluid_vol_1x_p1_ser.cpp
-    gyrofluidData/gyrofluid_vol_1x_p2_ser.cpp
-
-    gfHeatFluxData/gyrofluid_heatflux_surf_1x_p0_ser.cpp
-    gfHeatFluxData/gyrofluid_heatflux_surf_1x_p1_ser.cpp
-    gfHeatFluxData/gyrofluid_heatflux_surf_1x_p2_ser.cpp
-    gfHeatFluxData/gyrofluid_heatflux_vol_1x_p0_ser.cpp
-    gfHeatFluxData/gyrofluid_heatflux_vol_1x_p1_ser.cpp
-    gfHeatFluxData/gyrofluid_heatflux_vol_1x_p2_ser.cpp
-
-    passiveAdvectionData/PassiveAdvectionSer1xP1.cpp
-    passiveAdvectionData/PassiveAdvectionSer2xP1.cpp
-    passiveAdvectionData/PassiveAdvectionSer3xP1.cpp
-    passiveAdvectionData/PassiveAdvectionSer4xP1.cpp
-    passiveAdvectionData/PassiveAdvectionSer5xP1.cpp
-    passiveAdvectionData/PassiveAdvectionSer1xP2.cpp
-    passiveAdvectionData/PassiveAdvectionSer2xP2.cpp
-    passiveAdvectionData/PassiveAdvectionSer3xP2.cpp
-    passiveAdvectionData/PassiveAdvectionSurfSer1xP1.cpp
-    passiveAdvectionData/PassiveAdvectionSurfSer2xP1.cpp
-    passiveAdvectionData/PassiveAdvectionSurfSer3xP1.cpp
-    passiveAdvectionData/PassiveAdvectionSurfSer4xP1.cpp
-    passiveAdvectionData/PassiveAdvectionSurfSer5xP1.cpp
-    passiveAdvectionData/PassiveAdvectionSurfSer1xP2.cpp
-    passiveAdvectionData/PassiveAdvectionSurfSer2xP2.cpp
-    passiveAdvectionData/PassiveAdvectionSurfSer3xP2.cpp
-
-    Positivity.cpp
-
-    """,
-              name = 'eq',
-              target = 'eq', use='EIGEN CUTOOLS', includes = '. hasegawaWakataniData incompEulerData pbData gyrofluidData gfHeatFluxData passiveAdvectionData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct',
-              vnum = '1.0',
-              
+    bld.shlib(
+        source = r"""
+        """,
+        target = 'eq', name = 'eq', vnum = '1.0',
+        includes = '.', features = 'cxx',
     )
-
 ## Removed the following files from the build for now
 #    gkData/EmGyrokineticGenGeoTensor1x2vP2.cpp
 
-
+#    TenMomentImpl.cpp
+#
+#    hasegawaWakataniData/hasegawa_wakatani_vol_2x_p1_Ser.cpp
+#    hasegawaWakataniData/hasegawa_wakatani_vol_2x_p2_Ser.cpp
+#    hasegawaWakataniData/hasegawa_wakatani_surf_2x_p1_Ser.cpp
+#    hasegawaWakataniData/hasegawa_wakatani_surf_2x_p2_Ser.cpp
+#
+#    incompEulerData/IncompEulerSer2xP1.cpp
+#    incompEulerData/IncompEulerSer2xP2.cpp
+#    incompEulerData/IncompEulerSurfSer2xP1.cpp
+#    incompEulerData/IncompEulerSurfSer2xP2.cpp
+#    incompEulerData/IncompEulerSurfPositivitySer2xP1.cpp
+#
+#    pbData/CanonicalSer1x1v.cpp
+#    pbData/CanonicalSer2x2v.cpp
+#    pbData/CanonicalSurfSer1x1v.cpp
+#    pbData/CanonicalSurfSer2x2v.cpp
+#    pbData/CanonicalDisContSurfSer1x1v.cpp
+#    pbData/CanonicalSurfPositivitySer1x1v.cpp
+#
+#    gyrofluidData/gyrofluid_surf_1x_p0_ser.cpp
+#    gyrofluidData/gyrofluid_surf_1x_p1_ser.cpp
+#    gyrofluidData/gyrofluid_surf_1x_p2_ser.cpp
+#    gyrofluidData/gyrofluid_vol_1x_p0_ser.cpp
+#    gyrofluidData/gyrofluid_vol_1x_p1_ser.cpp
+#    gyrofluidData/gyrofluid_vol_1x_p2_ser.cpp
+#
+#    gfHeatFluxData/gyrofluid_heatflux_surf_1x_p0_ser.cpp
+#    gfHeatFluxData/gyrofluid_heatflux_surf_1x_p1_ser.cpp
+#    gfHeatFluxData/gyrofluid_heatflux_surf_1x_p2_ser.cpp
+#    gfHeatFluxData/gyrofluid_heatflux_vol_1x_p0_ser.cpp
+#    gfHeatFluxData/gyrofluid_heatflux_vol_1x_p1_ser.cpp
+#    gfHeatFluxData/gyrofluid_heatflux_vol_1x_p2_ser.cpp
+#
+#    passiveAdvectionData/PassiveAdvectionSer1xP1.cpp
+#    passiveAdvectionData/PassiveAdvectionSer2xP1.cpp
+#    passiveAdvectionData/PassiveAdvectionSer3xP1.cpp
+#    passiveAdvectionData/PassiveAdvectionSer4xP1.cpp
+#    passiveAdvectionData/PassiveAdvectionSer5xP1.cpp
+#    passiveAdvectionData/PassiveAdvectionSer1xP2.cpp
+#    passiveAdvectionData/PassiveAdvectionSer2xP2.cpp
+#    passiveAdvectionData/PassiveAdvectionSer3xP2.cpp
+#    passiveAdvectionData/PassiveAdvectionSurfSer1xP1.cpp
+#    passiveAdvectionData/PassiveAdvectionSurfSer2xP1.cpp
+#    passiveAdvectionData/PassiveAdvectionSurfSer3xP1.cpp
+#    passiveAdvectionData/PassiveAdvectionSurfSer4xP1.cpp
+#    passiveAdvectionData/PassiveAdvectionSurfSer5xP1.cpp
+#    passiveAdvectionData/PassiveAdvectionSurfSer1xP2.cpp
+#    passiveAdvectionData/PassiveAdvectionSurfSer2xP2.cpp
+#    passiveAdvectionData/PassiveAdvectionSurfSer3xP2.cpp
+#
+#    Positivity.cpp
+#

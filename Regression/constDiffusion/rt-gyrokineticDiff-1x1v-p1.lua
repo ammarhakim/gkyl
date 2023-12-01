@@ -44,7 +44,7 @@ plasmaApp = Plasma.App {
       -- Write out density, flow, total energy, and heat flux moments.
       diagnostics = { "M0", "M1", "M2", "intM0", "intM1", "intM2Flow", "intM2Thermal" },
       diff = Plasma.Diffusion {
-         coefficient   = nu_x,
+         coefficient   = {function(t,xn) return nu_x end},
          -- Optional inputs:
          diffusiveDirs = {1},
          order = 2,   -- Diffusion order: 2, 4, or 6.

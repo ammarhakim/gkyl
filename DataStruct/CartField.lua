@@ -317,15 +317,15 @@ local function Field_meta_ctor(elct)
       -- Get info for periodic syncs without MPI datatypes.
       self._syncPerNeigh = {}
       self._syncPerSendRng, self._syncPerRecvRng = {}, {}
-      self._onPerBound = {}
+      self._onBoundary = {}
       for dir = 1, self._ndim do
          -- set up periodic-sync Datatypes for all dirs, in case we want to change periodicDirs later
          if self._lowerGhost > 0 and self._upperGhost > 0 and decomposedRange:numSubDomains() > 1 then
-            self._onPerBound[dir] = false
+            self._onBoundary[dir] = false
             local skelIds = decomposedRange:boundarySubDomainIds(dir)
             for i = 1, #skelIds do
                local loId, upId = skelIds[i].lower, skelIds[i].upper
-	       self._onPerBound[dir] = self._onPerBound[dir] or ((myId==skelIds[i].lower) or (myId==skelIds[i].upper))
+	       self._onBoundary[dir] = self._onBoundary[dir] or ((myId==skelIds[i].lower) or (myId==skelIds[i].upper))
                -- Only create if we are on proper ranks.
                -- Note that if the node communicator has rank size of 1, then we can access all the
                -- memory needed for periodic boundary conditions and no communication is needed.
@@ -800,7 +800,7 @@ local function Field_meta_ctor(elct)
              local grid = self._grid
              local localVal = {}
              Mpi.Allreduce(self.localReductionVal_h:data(), self.globalReductionVal:data(),
-                self._numComponents, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
+                self._numComponents, elctCommType, reduceOpsMPI[opIn], grid:commSet().host)
 
              --self.localReductionVal:copy(self.globalReductionVal)
              for k = 1, self._numComponents do localVal[k] = self.globalReductionVal:data()[k - 1] end
@@ -819,7 +819,7 @@ local function Field_meta_ctor(elct)
          self._zeroForOps:copy_from_buffer(dataPointer, rgn)
       end,
       _field_periodic_sync = function(self, dataPtr)
-         local comm = self._grid:commSet().nodeComm -- Communicator to use.
+         local comm = self._grid:commSet().host -- Communicator to use.
          if not Mpi.Is_comm_valid(comm) then
             return                                  -- No need to do anything if communicator is not valid
          end

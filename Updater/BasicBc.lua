@@ -27,10 +27,11 @@ enum gkyl_edge_loc { GKYL_LOWER_EDGE = 0, GKYL_UPPER_EDGE = 1 };
 
 // BC types in this updater.
 enum gkyl_bc_basic_type { 
-   GKYL_BC_COPY = 0, 
-   GKYL_BC_ABSORB = 1, 
-   GKYL_BC_REFLECT = 2,
-   GKYL_BC_MAXWELL_PEC = 3, 
+  GKYL_BC_COPY = 0,
+  GKYL_BC_ABSORB = 1,
+  GKYL_BC_REFLECT = 2,
+  GKYL_BC_MAXWELL_PEC = 3,
+  GKYL_BC_MAXWELL_SYM = 4,
 };
 
 // Object type
@@ -98,10 +99,13 @@ function BasicBc:init(tbl)
    local numGhostVec   = self._edge == 'lower' and onField:lowerGhostVec() or onField:upperGhostVec()
 
    local bctype -- Match gkyl_bc_basic_type in gkylzero/zero/gkyl_bc_basic.h
-       if self._bcType == "copy"        then bctype = 0
-   elseif self._bcType == "absorb"      then bctype = 1 
-   elseif self._bcType == "reflect"     then bctype = 2 
-   elseif self._bcType == "maxwell_pec" then bctype = 3 
+   if     self._bcType == "copy"        then bctype = 0
+   elseif self._bcType == "absorb"      then bctype = 1
+   elseif self._bcType == "reflect"     then bctype = 2
+   elseif self._bcType == "maxwell_pec" then bctype = 3
+   elseif self._bcType == "maxwell_sym" then bctype = 4
+   else
+      assert(false, "Updater.BasicBc: BC not supported/implemented.")
    end
 
    local skinRange, ghostRange

@@ -72,7 +72,7 @@ sim = Plasma.App {
 	 frequencies = {nu},
       },
 
-      bcx = { Plasma.OpenBC{}, Plasma.OpenBC{} },
+      bcx = { Plasma.CopyBC{}, Plasma.CopyBC{} },
 
       diagnostics = { "M0", "M1i", "M2", "M3i", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
    },

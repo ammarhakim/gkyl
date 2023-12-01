@@ -30,8 +30,6 @@ function AmbipolarSheathField:init(tbl) self.tbl = tbl end
 function AmbipolarSheathField:fullInit(appTbl)
    local tbl = self.tbl -- Previously store table.
 
-   self.ioMethod = "MPI"
-
    -- Create triggers to write diagnostics.
    local nFrame = tbl.nFrame or appTbl.nFrame
    self.ioTrigger = LinearTrigger(0, appTbl.tEnd, nFrame)
@@ -50,9 +48,6 @@ function AmbipolarSheathField:fullInit(appTbl)
    -- Write ghost cells on boundaries of global domain (for BCs).
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 
-   -- For storing integrated energies.
-   self.intPhiSq = DataStruct.DynVector { numComponents = 1 }
-
    self.adiabatic = false  -- Electrons must be adiabatic. We check this later.
    self.discontinuousPhi = xsys.pickBool(tbl.discontinuousPhi, false)
 
@@ -62,7 +57,11 @@ function AmbipolarSheathField:fullInit(appTbl)
 end
 
 function AmbipolarSheathField:hasEB() return true, false end
-function AmbipolarSheathField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
+
+function AmbipolarSheathField:setGrid(grid)
+   self.grid = grid
+   self.ndim = self.grid:ndim()
+end
 
 local function createField(grid, basis, ghostCells, vComp, periodicSync, useDevice)
    vComp = vComp or 1
@@ -95,6 +94,9 @@ function AmbipolarSheathField:alloc(nRkDup)
       self.potentials[i].apar    = self.zeroField
       self.potentials[i].dApardt = self.zeroField
    end
+
+   -- For storing integrated energies.
+   self.intPhiSq = DataStruct.DynVector { numComponents = 1, }
 end
 
 -- Solve for initial fields self-consistently
@@ -132,7 +134,7 @@ function AmbipolarSheathField:createSolver(population, externalField)
    self.ionBC = {}
    local hasNonPeriodic = false 
    for _, bc in lume.orderedIter(ionSpec.nonPeriodicBCs) do
-      if bc.bcKind=="sheath" or bc.bcKind=="absorb" then
+      if ionSpec.hasSheathBCs or bc.bcKind == "absorb" then
          if (ndim==3 and bc:getDir()==3) or ndim==1 then
             self.ionBC[bc:getEdge()] = bc
             self.ionBC[bc:getEdge()]:setSaveFlux(true)
@@ -157,8 +159,8 @@ function AmbipolarSheathField:createSolver(population, externalField)
                         upper=self.ionBC["upper"].confBoundaryGrid},
    }
    self.phiZSmoother = Updater.FemParproj {
-      onGrid = self.grid,  basis = self.basis, 
-      periodicParallelDir = false,
+      onGrid              = self.grid,  basis   = self.basis, 
+      periodicParallelDir = false,      onField = self:rkStepperFields()[1].phi,
    }
 
    -- We will need the reciprocal of the conf-space Jacobian (1/J) later.
@@ -167,7 +169,6 @@ function AmbipolarSheathField:createSolver(population, externalField)
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
       elemType   = self.potentials[1].phi:elemType(),
-      method     = self.ioMethod,
       writeGhost = self.writeGhost,
       metaData   = {polyOrder = self.basis:polyOrder(),
                     basisType = self.basis:id(),},
@@ -177,8 +178,8 @@ end
 
 function AmbipolarSheathField:createDiagnostics()
    -- Updaters for computing integrated quantities.
-   self.intSqCalc = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = self.grid,   quantity = "V2",
+   self.intSqCalc = Updater.CartFieldIntegrate {
+      onGrid = self.grid,   operator = "sq",
       basis  = self.basis,
    }
 end

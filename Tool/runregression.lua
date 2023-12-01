@@ -24,11 +24,13 @@ if not string.match(currDir, "Regression$") then
 end
 
 local AdiosReader = require "Io.AdiosReader"
+local Alloc = require "Lib.Alloc"
 local Logger = require "Lib.Logger"
 local Time = require "Lib.Time"
 local argparse = require "Lib.argparse"
 local date = require "xsys.date"
 local lume = require "Lib.lume"
+local Lin = require "Lib.Linalg"
 local sql = require "sqlite3"
 
 -- need to change this as it is keyed on input file name
@@ -269,7 +271,7 @@ local function copyAllFiles(srcPath, ext, destPath)
    -- for now using os.execute to run the "cp" command. Perhaps this
    -- is not the best way to do this and one might want to use a more
    -- Lua-ish way
-   local cp = "cp " .. srcPath .. "_*." .. ext .. " " .. destPath
+   local cp = "cp -rf" .. " " .. srcPath .. "_*." .. ext .. " " .. destPath
    verboseLog(string.format("... executing %s ...\n", cp))
    os.execute(cp)
 end
@@ -291,7 +293,7 @@ local function runLuaTest(test)
    f:close()
 
    -- before running tests delete all old output
-   local rm = "rm -f " .. string.sub(test, 1, -5) .. "_*.bp"
+   local rm = "rm -rf " .. string.sub(test, 1, -5) .. "_*.bp"
    os.execute(rm)
 
    -- construct command to run
@@ -414,7 +416,11 @@ local function list_tests(args)
 	 end
       end
    else
-      for dir, fn, _ in dirtree(".") do addTest(dir .. "/" .. fn) end
+      for dir, fn, _ in dirtree(".") do 
+	 if (not dir:find("__needs_implementation")) then
+	    addTest(dir .. "/" .. fn) 
+	 end
+      end
    end
 
    -- this function is used to filter out tests that should NOT be
@@ -506,9 +512,7 @@ end
 -- calculates maximum value in supplied field
 local function maxValueInField(fld)
    local maxVal = 0.0
-   for i = 1, fld:size() do
-      maxVal = math.max(maxVal, math.abs(fld[i]))
-   end
+   for i = 1, #fld do maxVal = math.max(maxVal, math.abs(fld[i])) end
    return maxVal
 end
 
@@ -567,14 +571,14 @@ local function compareFiles(f1, f2)
       -- compare CartField data
       local d1, d2 = r1:getVar("CartGridField"):read(), r2:getVar("CartGridField"):read()
 
-      if d1:size() ~= d2:size() then
+      if #d1 ~= #d2 then
 	 verboseLog(string.format(
 		       " ... CartGridField in files %s and %s not the same size!\n", f1, f2))
 	 return false
       end
 
       local maxVal = maxValueInField(d1) -- maximum value (for numeric comparison)
-      for i = 1, d1:size() do
+      for i = 1, #d1 do
 	 if check_equal_numeric(d1[i], d2[i], maxVal) == false then
 	    currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i], maxVal))
 	    cmpPass = false
@@ -590,21 +594,28 @@ local function compareFiles(f1, f2)
       if r1:hasVar("TimeMesh") then 
          t1 = r1:getVar("TimeMesh"):read()
          d1 = r1:getVar("Data"):read()
-      -- If multiple datasets, read and append into single array
       elseif r1:hasVar("TimeMesh0") then
-         t1 = r1:getVar("TimeMesh0"):read()
-         d1 = r1:getVar("Data0"):read()
-         frNum = 1
-         while r1:hasVar("TimeMesh"..frNum) do
-            local t1N = r1:getVar("TimeMesh"..frNum):read()
-            local d1N = r1:getVar("Data"..frNum):read()
-            for i = 1, t1N:size() do
-               t1:push(t1N[i])
-            end
-            for i = 1, d1N:size() do
-               d1:push(d1N[i])
-            end
+         -- If multiple datasets, read and append into single array
+
+         -- Determine the total size of the DynVector
+         local frNum, tsz1, dsz1 = 0, 0, 0
+         local tvar1, dvar1 = r1:getVar("TimeMesh"..frNum), r1:getVar("Data"..frNum)
+         while tvar1 do
+            tsz1, dsz1 = tsz1+tvar1:get_size(), dsz1+dvar1:get_size()
             frNum = frNum + 1
+            tvar1, dvar1 = r1:getVar("TimeMesh"..frNum), r1:getVar("Data"..frNum)
+         end
+         t1, d1 = Lin.Vec(tsz1), Lin.Vec(dsz1)
+
+         -- Read and concatenate datasets.
+         local frNum, toff1, doff1 = 0, 0, 0
+         local tvar1, dvar1 = r1:getVar("TimeMesh"..frNum), r1:getVar("Data"..frNum)
+         while tvar1 do
+            local t1N, d1N = tvar1:read(), dvar1:read()
+            for i = 1, #t1N do t1[toff1+i] = t1N[i] end
+            for i = 1, #d1N do d1[doff1+i] = d1N[i] end
+            frNum, toff1, doff1 =  frNum+1, toff1+#t1N, doff1+#d1N
+            tvar1, dvar1 = r1:getVar("TimeMesh"..frNum), r1:getVar("Data"..frNum)
          end
       end
 
@@ -615,31 +626,39 @@ local function compareFiles(f1, f2)
          d2 = r2:getVar("Data"):read()
       -- If multiple datasets, read and append into single array
       elseif r2:hasVar("TimeMesh0") then
-         t2 = r2:getVar("TimeMesh0"):read()
-         d2 = r2:getVar("Data0"):read()
-         frNum = 1
-         while r2:hasVar("TimeMesh"..frNum) do
-            local t2N = r2:getVar("TimeMesh"..frNum):read()
-            local d2N = r2:getVar("Data"..frNum):read()
-            for i = 1, t2N:size() do
-               t2:push(t2N[i])
-            end
-            for i = 1, d2N:size() do
-               d2:push(d2N[i])
-            end
+         -- If multiple datasets, read and append into single array
+
+         -- Determine the total size of the DynVector
+         local frNum, tsz2, dsz2 = 0, 0, 0
+         local tvar2, dvar2 = r2:getVar("TimeMesh"..frNum), r2:getVar("Data"..frNum)
+         while tvar2 do
+            tsz2, dsz2 = tsz2+tvar2:get_size(), dsz2+dvar2:get_size()
             frNum = frNum + 1
+            tvar2, dvar2 = r2:getVar("TimeMesh"..frNum), r2:getVar("Data"..frNum)
+         end
+         t2, d2 = Lin.Vec(tsz2), Lin.Vec(dsz2)
+
+         -- Read and concatenate datasets.
+         local frNum, toff2, doff2 = 0, 0, 0
+         local tvar2, dvar2 = r2:getVar("TimeMesh"..frNum), r2:getVar("Data"..frNum)
+         while tvar2 do
+            local t2N, d2N = tvar2:read(), dvar2:read()
+            for i = 1, #t2N do t2[toff2+i] = t2N[i] end
+            for i = 1, #d2N do d2[doff2+i] = d2N[i] end
+            frNum, toff2, doff2 =  frNum+1, toff2+#t2N, doff2+#d2N
+            tvar2, dvar2 = r2:getVar("TimeMesh"..frNum), r2:getVar("Data"..frNum)
          end
       end
 
       -- Check equivalence
-      if d1:size() ~= d2:size() then
+      if #d1 ~= #d2 then
          verboseLog(string.format(
           	  " ... DynVector in files %s and %s not the same size!\n", f1, f2))
          return false
       end
       
       local maxVal = math.max(maxValueInField(d1),maxValueInField(d2)) -- maximum value (for numeric comparison)
-      for i = 1, d1:size() do
+      for i = 1, #d1 do
          if check_equal_numeric(d1[i], d2[i], maxVal) == false then
             currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i], maxVal))
             cmpPass = false
@@ -675,7 +694,7 @@ local function check_action(test)
    for fn in lfs.dir(outDirName) do
       local fullNm = outDirName .. fn
       local attr = lfs.attributes(fullNm)
-      if attr.mode == "file" then
+      if attr.mode == "directory" then
 	 if string.find(fullNm, testPrefix) and string.sub(fullNm, -3, -1) == ".bp" then
 	    count = count + 1 -- increment number of files compared
 	    local acceptedFileNm = fullResultsDir .. "/" .. string.sub(fullNm, vloc+1, -1)

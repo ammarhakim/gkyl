@@ -176,6 +176,7 @@ return {
    FloatVec = new_vec_ct(typeof("float")),
    ComplexVec = new_vec_ct(typeof("double complex")),
    FloatComplexVec = new_vec_ct(typeof("float complex")),
+   CharVec = new_vec_ct(typeof("char")),
    
    -- some specialized types
    UInt64Vec = new_vec_ct(typeof("uint64_t")),

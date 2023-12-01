@@ -5,9 +5,10 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+local Mpi = require "Comm.Mpi"
+local Adios = require "Io.Adios"
 local AdiosReader = require "Io.AdiosReader"
 local Lin = require "Lib.Linalg"
-local Mpi = require "Comm.Mpi"
 local Range = require "Range"
 local Unit = require "Unit"
 
@@ -38,12 +39,12 @@ function test_1(comm)
    local time = reader:getVar("time")
    assert_equal("time", time.name, "Checking time ")
    assert_equal(50.001874949619, time:read(), "Checking time-value")
-   assert_equal("double", time.type, "Checking time-type")
+   assert_equal(Adios.type_double, time.type, "Checking time-type")
 
    local frame = reader:getVar("frame")
    assert_equal("frame", frame.name, "Checking frame ")
    assert_equal(10, frame:read(), "Checking frame-value")
-   assert_equal("integer", frame.type, "Checking frame-type")
+   assert_equal(Adios.type_int32_t, frame.type, "Checking frame-type")
 
    local field = reader:getVar("CartGridField")
    assert_equal("CartGridField", field.name, "Checking name")

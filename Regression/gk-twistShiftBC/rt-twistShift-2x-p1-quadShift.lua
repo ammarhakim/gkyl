@@ -23,6 +23,8 @@ local Grid       = require "Grid"
 local DataStruct = require "DataStruct"
 local Basis      = require "Basis"
 local Updater    = require "Updater"
+local Mpi        = require "Comm.Mpi"
+local Adios      = require "Io.Adios"
 
 -- The following domain and shift are similar to what is used in a CBC ITG benchmark.
 local L_ref  = 1.67
@@ -67,6 +69,7 @@ end
 
 -- ....................... END OF USER INPUTS (maybe) ........................... --
 
+GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(Mpi.COMM_WORLD)
 local yShiftBackFunc = function(t, xn) return -yShiftFunc(t, xn) end
 
 local wrapNum = function (val, lims, pickUpper)
@@ -148,9 +151,8 @@ for gI, numCells in ipairs(cells) do
    fldDoShifted:write(fileName("fldDoShifted"))
    
    -- Compute the integral of the donor field.
-   intQuants[gI] = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = grid,   numComponents = 1,
-      basis  = basis,  quantity      = "V",
+   intQuants[gI] = Updater.CartFieldIntegrate {
+      onGrid = grid,  basis = basis,
    }
    local intQuant = intQuants[gI]
    intFldDos[gI] = DataStruct.DynVector { numComponents = 1, }
@@ -202,3 +204,5 @@ for gI, numCells in ipairs(cells) do
    intFldDoBack:write(fileName("fldDoBack_intV"), 0., 0)
 
 end
+
+if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end

@@ -9,6 +9,7 @@
 --------------------------------------------------------------------------------
 
 -- Infrastructure loads
+local Adios            = require "Io.Adios"
 local Alloc            = require "Alloc"
 local Basis            = require "Basis"
 local DataStruct       = require "DataStruct"
@@ -28,6 +29,10 @@ local xsys             = require "xsys"
 local ffi              = require "ffi"
 
 math = require("sci.math").generic -- this is global so that it affects input file
+
+-- Adios object for I/O. Declared as global so objects can use it without
+-- having to pass it through every function as an argument.
+GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(Mpi.COMM_WORLD)
 
 -- App loads (do not load specific app objects here, but only things
 -- needed to run the App itself. Specific objects should be loaded in
@@ -112,12 +117,6 @@ local function buildApplication(self, tbl)
    -- Create basis function for configuration space.
    local confBasis = createBasis(basisNm, cdim, polyOrder)
 
-   -- I/O method
-   local ioMethod = tbl.ioMethod and tbl.ioMethod or "MPI"
-   if ioMethod ~= "POSIX" and ioMethod ~= "MPI" then
-      assert(false, "ioMethod must be one of 'MPI' or 'POSIX'. Provided '" .. ioMethod .. "' instead")
-   end
-
    -- Optional wallclock time allotted for this simulation.
    local maxWallTime = tbl.maxWallTime and tbl.maxWallTime or GKYL_MAX_DOUBLE
 
@@ -147,7 +146,7 @@ local function buildApplication(self, tbl)
    local cflFrac = tbl.cflFrac or timeStepper.cflFrac   -- CFL fraction.
 
    -- Tracker for timestep
-   local dtTracker = DataStruct.DynVector { numComponents = 1, }
+   local dtTracker = DataStruct.DynVector { numComponents = 1}
    local dtPtr = Lin.Vec(1)
 
    -- Used in reducing time step across species communicator.
@@ -186,10 +185,10 @@ local function buildApplication(self, tbl)
    -- Setup configuration space grid.
    local confGrid = GridConstructor {
       lower = tbl.lower,  decomposition = commManager:getConfDecomp(),
-      upper = tbl.upper,  mappings = tbl.coordinateMap,
-      cells = tbl.cells,  mapc2p = tbl.mapc2p,
+      upper = tbl.upper,  mappings      = tbl.coordinateMap,
+      cells = tbl.cells,  mapc2p        = tbl.mapc2p,
       periodicDirs = periodicDirs,  world = tbl.world, 
-      messenger = commManager,
+      messenger    = commManager,
    }
    -- Read in information about each species.
    local population = PopApp{ messenger = commManager }
@@ -197,7 +196,6 @@ local function buildApplication(self, tbl)
       if SpeciesBase.is(val) then
 	 population.species[nm] = val
 	 population.species[nm]:setName(nm)
-	 population.species[nm]:setIoMethod(ioMethod)
       end
    end
    lume.setOrder(population:getSpecies())  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
@@ -243,7 +241,6 @@ local function buildApplication(self, tbl)
 
    local function completeFieldSetup(fld, plasmaField)
       fld:fullInit(tbl, plasmaField) -- Complete initialization.
-      fld:setIoMethod(ioMethod)
       fld:setBasis(confBasis)
       fld:setGrid(confGrid)
       do
@@ -333,9 +330,9 @@ local function buildApplication(self, tbl)
       -- This is a dummy forwardEuler call because some BCs require 
       -- auxFields to be set, which is controlled by species solver.
       if s.charge == 0.0 then
-      	 s:advance(0, population, {NoField {}, NoField {}}, 1, 2)
+         s:advance(0, population, {NoField {}, NoField {}}, 1, 2)
       else
-	 s:advance(0, population, {field, externalField}, 1, 2)
+         s:advance(0, population, {field, externalField}, 1, 2)
       end
       s:applyBcInitial(0, field, externalField, 1, 1)
    end
@@ -360,8 +357,7 @@ local function buildApplication(self, tbl)
    -- Function to read from restart frame.
    local function readRestart() --> Time at which restart was written.
       local rTime = 0.0
-      dtTracker:read(string.format("dt.bp"))
-      local _, dtLast = dtTracker:lastData()
+      local _, dtLast = dtTracker:read(string.format("dt.bp"), true)
       -- Read fields first, in case needed for species init or BCs.
       field:readRestart()
       externalField:readRestart()
@@ -846,6 +842,8 @@ local function buildApplication(self, tbl)
       -- Perform other numerical/performance diagnostics.
       devDiagnose()
 
+      if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end
+
       if file_exists(stopfile) then os.remove(stopfile) end -- Clean up.
    end
 end
@@ -870,40 +868,18 @@ function App:run()
 end
 
 return {
-   Gyrofluid = function ()
-      App.label = "Gyrofluid"
-      return  {
-	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
-         AdiabaticBasicBC = require "App.BCs.AdiabaticBasic",
-	 App = App,
-         BasicBC = require ("App.BCs.GyrofluidBasic").GyrofluidBasic,
-         AbsorbBC = require ("App.BCs.GyrofluidBasic").GyrofluidAbsorb,
-         CopyBC = require ("App.BCs.GyrofluidBasic").GyrofluidCopy,
-         SheathBC = require ("App.BCs.GyrofluidBasic").GyrofluidSheath,
-         ZeroFluxBC = require ("App.BCs.GyrofluidBasic").GyrofluidZeroFlux,
-	 Field = require ("App.Field.GkField").GkField,
-	 FunctionProjection = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
-	 Geometry = require ("App.Field.GkField").GkGeometry,
-	 GyrofluidProjection = require ("App.Projection.GyrofluidProjection").GyrofluidProjection, 
-         HeatFlux = require "App.Collisions.GfHeatFlux",
-         PASCollisions = require "App.Collisions.GfPitchAngleScattering",
-         Source = require "App.Sources.GyrofluidSource",
-	 Species = require "App.Species.GyrofluidSpecies",
-      }
-   end,
-
    Gyrokinetic = function ()
       App.label = "Gyrokinetic"
       return  {
 	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
          AdiabaticBasicBC = require "App.BCs.AdiabaticBasic",
 	 App = App,
+         AxisymmetricTokamakLimiterBC = require "App.BCs.AxisymmetricTokamakLimiter",
          BasicBC = require ("App.BCs.GkBasic").GkBasic,
          MaxwellianBC = require("App.BCs.GkMaxwellianBC"),
          AbsorbBC = require ("App.BCs.GkBasic").GkAbsorb,
          CopyBC = require ("App.BCs.GkBasic").GkCopy,
          NeutralRecyclingBC = require "App.BCs.NeutralRecycling",
-         OpenBC = require ("App.BCs.GkBasic").GkOpen,
          ReflectBC = require ("App.BCs.GkBasic").GkReflect,
          SheathBC = require "App.BCs.GkSheath",
          ZeroFluxBC = require ("App.BCs.GkBasic").GkZeroFlux,
@@ -930,31 +906,6 @@ return {
       }
    end,
 
-   IncompEuler = function ()
-      App.label = "Incompressible Euler"
-      return {
-	 App = App,
-         BasicBC = require ("App.BCs.FluidBasic").FluidBasic,
-         AbsorbBC = require ("App.BCs.FluidBasic").FluidAbsorb,
-         CopyBC = require ("App.BCs.FluidBasic").FluidCopy,
-         ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
-	 Diffusion = require "App.Collisions.Diffusion",
-	 Field = require ("App.Field.GkField").GkField,
-         Source = require "App.Sources.FluidSource",
-	 Species = require "App.Species.IncompEulerSpecies",
-      }
-   end,
-
-   HasegawaWakatani = function ()
-      App.label = "Hasegawa-Wakatani"
-      return {
-	 App = App,
-	 Field = require ("App.Field.GkField").GkField,
-	 Species = require "App.Species.HasegawaWakataniSpecies",
-	 Diffusion = require "App.Collisions.Diffusion",
-      }
-   end,
-
    VlasovMaxwell = function ()
       App.label = "Vlasov-Maxwell"
       GenSpecies = {
@@ -977,7 +928,6 @@ return {
          AbsorbBC = require ("App.BCs.VlasovBasic").VlasovAbsorb,
          CopyBC = require ("App.BCs.VlasovBasic").VlasovCopy,
          NeutralRecyclingBC = require "App.BCs.NeutralRecycling",
-         OpenBC = require ("App.BCs.VlasovBasic").VlasovOpen,
          ReflectBC = require ("App.BCs.VlasovBasic").VlasovReflect,
          ZeroFluxBC = require ("App.BCs.VlasovBasic").VlasovZeroFlux,
          BronoldFehskeBC = require "App.BCs.BronoldFehskeReflection",
@@ -1003,37 +953,77 @@ return {
       }
    end,
    
-   PassiveAdvection = function ()
-      App.label = "Passively-advected scalar fluid"
-      return {
-	 App = App,
-         BasicBC = require ("App.BCs.FluidBasic").FluidBasic,
-         AbsorbBC = require ("App.BCs.FluidBasic").FluidAbsorb,
-         CopyBC = require ("App.BCs.FluidBasic").FluidCopy,
-         ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
-         TwistShiftBC = require "App.BCs.TwistShift",
-	 Diffusion = require "App.Collisions.Diffusion",
-         Source = require "App.Sources.FluidSource",
-	 Species = require "App.Species.PassiveAdvectionSpecies",
-      }
-   end,
-   
-   EulerIso = function ()
-      App.label = "Isothermal Euler"
-      return {
-        App = App,
-        BasicBC = require ("App.BCs.FluidBasic").FluidBasic,
-        AbsorbBC = require ("App.BCs.FluidBasic").FluidAbsorb,
-        CopyBC = require ("App.BCs.FluidBasic").FluidCopy,
-        ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
-        Species = require "App.Species.EulerSpecies",
-      }
-   end,
-
-   Moments = function ()
-      -- this is a mere redirection to the stand-alone Moments App
-      -- that wraps the G0 Moments App
-      local App = require("App.Moments.Moments")
-      return App
-   end,
+--   IncompEuler = function ()
+--      App.label = "Incompressible Euler"
+--      return {
+--	 App = App,
+--         BasicBC = require ("App.BCs.FluidBasic").FluidBasic,
+--         AbsorbBC = require ("App.BCs.FluidBasic").FluidAbsorb,
+--         CopyBC = require ("App.BCs.FluidBasic").FluidCopy,
+--         ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
+--	 Diffusion = require "App.Collisions.Diffusion",
+--	 Field = require ("App.Field.GkField").GkField,
+--         Source = require "App.Sources.FluidSource",
+--	 Species = require "App.Species.IncompEulerSpecies",
+--      }
+--   end,
+--
+--   HasegawaWakatani = function ()
+--      App.label = "Hasegawa-Wakatani"
+--      return {
+--	 App = App,
+--	 Field = require ("App.Field.GkField").GkField,
+--	 Species = require "App.Species.HasegawaWakataniSpecies",
+--	 Diffusion = require "App.Collisions.Diffusion",
+--      }
+--   end,
+--
+--   Gyrofluid = function ()
+--      App.label = "Gyrofluid"
+--      return  {
+--	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
+--         AdiabaticBasicBC = require "App.BCs.AdiabaticBasic",
+--	 App = App,
+--         BasicBC = require ("App.BCs.GyrofluidBasic").GyrofluidBasic,
+--         AbsorbBC = require ("App.BCs.GyrofluidBasic").GyrofluidAbsorb,
+--         CopyBC = require ("App.BCs.GyrofluidBasic").GyrofluidCopy,
+--         SheathBC = require ("App.BCs.GyrofluidBasic").GyrofluidSheath,
+--         ZeroFluxBC = require ("App.BCs.GyrofluidBasic").GyrofluidZeroFlux,
+--	 Field = require ("App.Field.GkField").GkField,
+--	 FunctionProjection = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
+--	 Geometry = require ("App.Field.GkField").GkGeometry,
+--	 GyrofluidProjection = require ("App.Projection.GyrofluidProjection").GyrofluidProjection, 
+--         HeatFlux = require "App.Collisions.GfHeatFlux",
+--         PASCollisions = require "App.Collisions.GfPitchAngleScattering",
+--         Source = require "App.Sources.GyrofluidSource",
+--	 Species = require "App.Species.GyrofluidSpecies",
+--      }
+--   end,
+--
+--   PassiveAdvection = function ()
+--      App.label = "Passively-advected scalar fluid"
+--      return {
+--	 App = App,
+--         BasicBC = require ("App.BCs.FluidBasic").FluidBasic,
+--         AbsorbBC = require ("App.BCs.FluidBasic").FluidAbsorb,
+--         CopyBC = require ("App.BCs.FluidBasic").FluidCopy,
+--         ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
+--         TwistShiftBC = require "App.BCs.TwistShift",
+--	 Diffusion = require "App.Collisions.Diffusion",
+--         Source = require "App.Sources.FluidSource",
+--	 Species = require "App.Species.PassiveAdvectionSpecies",
+--      }
+--   end,
+--   
+--   EulerIso = function ()
+--      App.label = "Isothermal Euler"
+--      return {
+--        App = App,
+--        BasicBC = require ("App.BCs.FluidBasic").FluidBasic,
+--        AbsorbBC = require ("App.BCs.FluidBasic").FluidAbsorb,
+--        CopyBC = require ("App.BCs.FluidBasic").FluidCopy,
+--        ZeroFluxBC = require ("App.BCs.FluidBasic").FluidZeroFlux,
+--        Species = require "App.Species.EulerSpecies",
+--      }
+--   end,
 }

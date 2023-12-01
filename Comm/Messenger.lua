@@ -68,16 +68,13 @@ function Messenger:init(tbl)
    self.speciesComm   = Mpi.Comm_split(Mpi.COMM_WORLD, speciesColor, self.worldRank)
    self.confRank, self.speciesRank = Mpi.Comm_rank(self.confComm), Mpi.Comm_rank(self.speciesComm)
 
-   -- Configuration space decomp object.
-   self.decompConf = DecompRegionCalc.CartProd {cuts = self.decompCutsConf, comm = self.confComm}
-
    -- Buffers for CartField sync, one for each type of
    -- CartField communicated. They get assigned later.
    self.syncBufs = {}
 
    -- Initiage GPU comms if needed, and select Allreduce, Send, Isend and Irecv functions.
    if GKYL_USE_GPU then
-      self:initGPUcomms()
+      self:initCommsDevice()
 
       self.defaultComms = {world=Mpi.COMM_WORLD, conf=self.confComm_dev, species=self.speciesComm_dev}
       self.reduceOps    = {max = Nccl.Max, min = Nccl.Min, sum = Nccl.Sum}
@@ -95,14 +92,20 @@ function Messenger:init(tbl)
 
       -- A NCCL group is needed to send multiple messages concurrently, e.g. electrons
       -- sending their moments to ions, and ions sending their moments to electrons.
-      self.startCommGroupFunc = function()
-         local ncclErr = Nccl.GroupStart()
-      end
+      self.startCommGroupFunc = function() local ncclErr = Nccl.GroupStart() end
 
-      self.endCommGroupFunc = function()
-         local ncclErr = Nccl.GroupEnd()
-      end
+      self.endCommGroupFunc = function() local ncclErr = Nccl.GroupEnd() end
 
+      self.AllreduceFunc = function(dataIn, dataOut, numValuesOut, ncclDataType, ncclOp, comm)
+         Nccl.AllReduce(dataIn, dataOut, numValuesOut, ncclDataType, ncclOp, comm, self.ncclStream)
+         local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
+         while (self.ncclResult[0] == Nccl.InProgress) do
+            local _ = Nccl.CommGetAsyncError(comm, self.ncclResult)
+         end
+         -- Completing NCCL operation by synchronizing on the CUDA stream.
+         local _ = cuda.StreamSynchronize(self.ncclStream)
+      end
+      
       self.AllreduceByCellFunc = function(fldIn, fldOut, ncclOp, comm)
          Nccl.AllReduce(fldIn:deviceDataPointer(), fldOut:deviceDataPointer(), fldIn:size(),
             self:getCommDataType(fldIn:elemType()), ncclOp, comm, self.ncclStream)
@@ -216,6 +219,9 @@ function Messenger:init(tbl)
          Mpi.Allgather(fldIn:dataPointer(), fldIn:size(), fldIn:elemCommType(),
                        fldOut:dataPointer(), fldIn:size(), fldOut:elemCommType(), comm)
       end
+      self.AllreduceFunc = function(dataIn, dataOut, numValuesOut, mpiDataType, mpiOp, comm)
+         Mpi.Allreduce(dataIn, dataOut, numValuesOut, mpiDataType, mpiOp, comm)
+      end
       self.AllreduceByCellFunc = function(fldIn, fldOut, mpiOp, comm)
          Mpi.Allreduce(fldIn:dataPointer(), fldOut:dataPointer(),
             fldOut:size(), fldOut:elemCommType(), mpiOp, comm)
@@ -245,9 +251,36 @@ function Messenger:init(tbl)
          Messenger["syncPeriodicCartFieldMPI"](self, fld, comm, dirs)
       end
    end
+
+   -- Configuration space decomp object.
+   self.decompConf = DecompRegionCalc.CartProd {
+      cuts  = self.decompCutsConf,
+      comms = {host=self.confComm, device=self.confComm_dev},
+   }
+
 end
 
-function Messenger:initGPUcomms()
+function Messenger:newCommDevice(commIn)
+   local rank, commSz = Mpi.Comm_rank(commIn), Mpi.Comm_size(commIn)
+
+   -- Get NCCL unique ID at rank 0 and broadcast it to all others.
+   local ncclId = Nccl.UniqueId()
+   if rank == 0 then local _ = Nccl.GetUniqueId(ncclId) end
+   Mpi.Bcast(ncclId, sizeof(ncclId), Mpi.BYTE, 0, commIn)
+
+   -- NCCL Result object needed to query status of a communicator.
+   local ncclResult, commConfig, commIn_dev = Nccl.Result(), Nccl.Config(), Nccl.Comm()
+   commConfig[0].blocking = 0;   -- Nonblocking comm.
+   local _ = Nccl.CommInitRankConfig(commIn_dev, commSz, ncclId, rank, commConfig)
+   local _ = Nccl.CommGetAsyncError(commIn_dev, ncclResult)
+   while (ncclResult[0] == Nccl.InProgress) do
+      local _ = Nccl.CommGetAsyncError(commIn_dev, ncclResult)
+   end
+
+   return commIn_dev, ncclId
+end
+
+function Messenger:initCommsDevice()
    -- If Cuda/NCCL are present create device communicators for conf/species comms.
    local numDevices, _ = cuda.GetDeviceCount()
    -- Assume number of devices must be the same as number of MPI processes.
@@ -486,9 +519,9 @@ function Messenger:syncPeriodicCartFieldMPI(fld, comm, dirs)
    local dataType = self:getCommDataType(fld:elemType())
    local tag      = 32 -- Communicator tag for periodic messages.
    local syncDirs = dirs or fld:grid():getPeriodicDirs()
-   local onPerBoundary = fld._onPerBound
+   local onBoundary = fld._onBoundary
    for _, dir in ipairs(syncDirs) do
-      if onPerBoundary[dir] then
+      if onBoundary[dir] then
          if fld:grid():cuts(dir) == 1 then
             fld:periodicCopyInDir(dir)
          else
@@ -525,9 +558,9 @@ function Messenger:syncPeriodicCartFieldNCCL(fld, comm, dirs)
    local dataType = self:getCommDataType(fld:elemType())
    local syncDirs = dirs or fld:grid():getPeriodicDirs()
    local myId     = fld:grid():subGridId() -- Grid ID on this processor.
-   local onPerBoundary = fld._onPerBound
+   local onBoundary = fld._onBoundary
    for _, dir in ipairs(syncDirs) do
-      if onPerBoundary[dir] then
+      if onBoundary[dir] then
          if fld:grid():cuts(dir) == 1 then
             fld:periodicCopyInDir(dir)
          else
@@ -601,6 +634,10 @@ end
 
 function Messenger:endCommGroup()
    return self.endCommGroupFunc()
+end
+
+function Messenger:Allreduce(dataIn, dataOut, numValuesOut, dataType, op, comm)
+   self.AllreduceFunc(dataIn, dataOut, numValuesOut, self.commTypes[dataType], self.reduceOps[op], comm)
 end
 
 function Messenger:AllreduceByCell(fieldIn, fieldOut, op, comm)

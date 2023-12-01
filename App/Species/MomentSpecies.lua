@@ -55,7 +55,6 @@ function MomentSpecies:fullInit(appTbl)
    self.cfl =  0.1
    self.charge = tbl.charge and tbl.charge or 1.0
    self.mass = tbl.mass and tbl.mass or 1.0
-   self.ioMethod = "MPI"
 
    self.evolve = xsys.pickBool(tbl.evolve, true) -- Default: evolve species.
    self.forceWrite = xsys.pickBool(tbl.forceWrite, false) -- Default: don't write species if not evolved.
@@ -176,9 +175,6 @@ function MomentSpecies:setName(nm)
 end
 function MomentSpecies:setCfl(cfl)
    self.cfl = cfl
-end
-function MomentSpecies:setIoMethod(ioMethod)
-   self.ioMethod = ioMethod
 end
 function MomentSpecies:setConfBasis(basis)
    self.basis = basis
@@ -358,7 +354,6 @@ function MomentSpecies:alloc(nRkDup)
    -- Create Adios object for field I/O.
    self.momIo = AdiosCartFieldIo {
       elemType = self.moments[1]:elemType(),
-      method = self.ioMethod,
       metaData = {
          polyOrder = self.basis:polyOrder(),
          basisType = self.basis:id(),
@@ -543,7 +538,7 @@ end
 
 function MomentSpecies:createDiagnostics()
    -- Create updater to compute volume-integrated moments.
-   self.intMom2Calc = Updater.CartFieldIntegratedQuantCalc {
+   self.intMom2Calc = Updater.CartFieldIntegrate {
       onGrid = self.grid,
       basis = self.basis,
       numComponents = self.nMoments,

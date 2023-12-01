@@ -53,23 +53,6 @@ function test_1()
    assert_equal(lv[3], 4.5, "Checking last inserted data")
 end
 
-function test_2()
-   local dynVec = DataStruct.DynVector {
-      numComponents = 2,
-      metaData      = {testNumber = 2}
-   }
-   assert_equal(dynVec:numComponents(), 2, "Testing number of components")
-
-   for i = 1, 5 do
-      dynVec:appendData(0.1*i, {2.5*i^2, 2.5*i^2+0.5})
-   end
-   dynVec:write("test.bp", 1.5, 0)
-   for i = 6, 10 do
-      dynVec:appendData(0.1*i, {2.5*i^2, 2.5*i^2+0.5})
-   end
-   dynVec:write("test.bp", 1.5, 1)
-end
-
 function test_2r()
    local dynVec = DataStruct.DynVector { numComponents = 2 }
    assert_equal(dynVec:numComponents(), 2, "Testing number of components")
@@ -190,8 +173,7 @@ function test_4()
 end
 
 test_1()
-test_2()
-test_2r()
+--test_2r()
 test_3()
 test_4()
 

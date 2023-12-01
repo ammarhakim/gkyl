@@ -80,16 +80,9 @@ function VmSource:createSolver(mySpecies, extField)
 
    self.profile:advance(0.0, {extField}, {self.fSource})
 
-   if self.positivityRescale then
-      mySpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
-   end
-
    if self.power then
-      local calcInt = Updater.CartFieldIntegratedQuantCalc {
-         onGrid        = self.confGrid,
-         basis         = self.confBasis,
-         numComponents = 1,
-         quantity      = "V",
+      local calcInt = Updater.CartFieldIntegrate {
+         onGrid = self.confGrid,  basis = self.confBasis,
       }
       local intKE = DataStruct.DynVector{numComponents = 1}
       mySpecies.ptclEnergyCalc:advance(0.0, {self.fSource}, {mySpecies.ptclEnergyAux})

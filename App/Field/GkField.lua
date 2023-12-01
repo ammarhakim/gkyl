@@ -29,17 +29,12 @@ local xsys             = require "xsys"
 
 local GkField = Proto(FieldBase.FieldBase)
 
-local EM_BC_OPEN = 1
-
-local checkBCs = function(dimIn, isDirPer, bcLoIn, bcUpIn, bcLoOut, bcUpOut, setLastDir)
+local checkBCs = function(dimIn, isDirPer, bcLoIn, bcUpIn, bcLoOut, bcUpOut)
    local periodicDomain = true
    for d=1,dimIn do periodicDomain = periodicDomain and isDirPer[d] end
    if bcLoIn==nil and bcUpIn==nil then
       if periodicDomain then
-         for d=1,dimIn do
-            bcLoOut[d] = d<3 and {T="P"} or {T="N", V=0.0} 
-            bcUpOut[d] = bcLoOut[d]
-         end
+         for d=1,dimIn do bcLoOut[d], bcUpOut[d] = {T="P"}, {T="P"} end
       else
          assert(dimIn==1, "App.Field.GkField: must specify 'bcLower' and 'bcUpper' if dimensions > 1.")
       end
@@ -54,10 +49,6 @@ local checkBCs = function(dimIn, isDirPer, bcLoIn, bcUpIn, bcLoOut, bcUpOut, set
                 string.format("App.Field.GkField: direction %d is periodic. Must use {T='P'} in bcLower/bcUpper.",d))
      
       end
-   end
-   if setLastDir and (bcLoOut[dimIn]==nil or bcUpOut[dimIn]==nil) then
-      -- Assume homogeneous Neumann since this would only be used in the z-smoothing.
-      bcLoOut[dimIn], bcUpOut[dimIn] = {T="N", V=0.0}, {T="N", V=0.0} 
    end
 end
 
@@ -74,7 +65,6 @@ end
 function GkField:fullInit(appTbl)
    local tbl = self.tbl -- Previously store table.
    
-   self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- By default evolve field.
 
    self.isElectromagnetic = xsys.pickBool(tbl.isElectromagnetic, false) -- Electrostatic by default.
@@ -108,57 +98,18 @@ function GkField:fullInit(appTbl)
       self.bcLowerPhi, self.bcUpperPhi   = {}, {}
       self.bcLowerApar, self.bcUpperApar = {}, {}
    
-      -- ******* The following BC options are kept for backwards compatibility ******* --
-      if tbl.phiBcLeft or tbl.phiBcRight or tbl.phiBcBottom or tbl.phiBcTop or tbl.phiBcBack or tbl.phiBcFront then
-         if tbl.phiBcLeft and tbl.phiBcRight then
-            print("App.Field.GkField: warning... phiBcLeft/phiBcRight will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
-            self.bcLowerPhi[1], self.bcUpperPhi[1] = tbl.phiBcLeft, tbl.phiBcRight
-         elseif isDirPeriodic[1] then
-            self.bcLowerPhi[1], self.bcUpperPhi[1] = {T = "P"}, {T = "P"} 
-         end
-         if tbl.phiBcBottom and tbl.phiBcTop then
-            print("App.Field.GkField: warning... phiBcBottom/phiBcTop will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
-            self.bcLowerPhi[2], self.bcUpperPhi[2] = tbl.phiBcBottom, tbl.phiBcTop
-         elseif isDirPeriodic[2] then
-            self.bcLowerPhi[2], self.bcUpperPhi[2] = {T = "P"}, {T = "P"} 
-         end
-         if tbl.phiBcBack and tbl.phiBcFront then
-            print("App.Field.GkField: warning... phiBcBack/phiBcFront will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
-            self.bcLowerPhi[3], self.bcUpperPhi[3] = tbl.phiBcBack, tbl.phiBcFront
-         elseif isDirPeriodic[3] then
-            -- Set it to homogeneous Neumann since this is likely only used for smoothing in z.
-            self.bcLowerPhi[3], self.bcUpperPhi[3] = {T = "N", V = 0.0}, {T = "N", V = 0.0} 
-         end
-      end
-      if tbl.aparBcLeft or tbl.aparBcRight or tbl.aparBcBottom or tbl.aparBcTop then
-         if tbl.aparBcLeft and tbl.aparBcRight then
-            print("App.Field.GkField: warning... aparBcLeft/aparBcRight will be deprecated. Please use bcLowerApar/bcUpperApar.") 
-            self.bcLowerApar[1], self.bcUpperApar[1]= tbl.aparBcLeft, tbl.aparBcRight
-         elseif isDirPeriodic[1] then
-            self.bcLowerApar[1], self.bcUpperApar[1] = {T = "P"}, {T = "P"} 
-         end
-         if tbl.aparBcBottom and tbl.aparBcTop then
-            print("App.Field.GkField: warning... aparBcBottom/aparBcTop will be deprecated. Please use bcLowerApar/bcUpperApar.") 
-            self.bcLowerApar[2], self.bcUpperApar[2] = tbl.aparBcBottom, tbl.aparBcTop
-         elseif isDirPeriodic[2] then
-            self.bcLowerApar[2], self.bcUpperApar[2] = {T = "P"}, {T = "P"} 
-         end
-      end
-      -- ******* The above BC options are  kept for backwards compatibility ******* --
-   
-   
       -- Allow unspecified BCs if domain is periodic. Or if domain is not periodic
       -- allow unspecified z-BCs, but do not allow unspecified xy-BCs for ndim>1.
       assert((tbl.bcLowerPhi and tbl.bcUpperPhi) or (tbl.bcLowerPhi==nil and tbl.bcUpperPhi==nil),
              "App.Field.GkField: must specify both 'bcLowerPhi' and 'bcUpperPhi' or none.")
       if #self.bcLowerPhi==0 and #self.bcUpperPhi==0 then  -- Needed to not override the backward compatible part above.
-         checkBCs(ndim, isDirPeriodic, tbl.bcLowerPhi, tbl.bcUpperPhi, self.bcLowerPhi, self.bcUpperPhi, true)
+         checkBCs(ndim, isDirPeriodic, tbl.bcLowerPhi, tbl.bcUpperPhi, self.bcLowerPhi, self.bcUpperPhi)
       end
       if self.isElectromagnetic then
          assert((tbl.bcLowerApar and tbl.bcUpperApar) or (tbl.bcLowerApar==nil and tbl.bcUpperApar==nil),
                 "App.Field.GkField: must specify both 'bcLowerApar' and 'bcUpperApar' or none.")
          if #self.bcLowerApar==0 and #self.bcUpperApar==0 then  -- Needed to not override the backward compatible part above.
-            checkBCs(ndim, isDirPeriodic, tbl.bcLowerApar, tbl.bcUpperApar, self.bcLowerApar, self.bcUpperApar, false)
+            checkBCs(ndim, isDirPeriodic, tbl.bcLowerApar, tbl.bcUpperApar, self.bcLowerApar, self.bcUpperApar)
          end
       end
 
@@ -180,14 +131,6 @@ function GkField:fullInit(appTbl)
       if self.isElectromagnetic then self.mu0 = tbl.mu0 or Constants.MU0 end
 
    end
-
-   -- For storing integrated energies.
-   self.intPhiSq          = DataStruct.DynVector { numComponents = 1 }
-   self.esEnergyAdiabatic = DataStruct.DynVector { numComponents = 1 }
-   self.gradPerpPhiSq     = DataStruct.DynVector { numComponents = 1 }
-   self.aparSq            = DataStruct.DynVector { numComponents = 1 }
-   self.esEnergy          = DataStruct.DynVector { numComponents = 1 }
-   self.emEnergy          = DataStruct.DynVector { numComponents = 1 }
 
    -- Create trigger for how frequently to compute field energy.
    -- Do not compute the integrated diagnostics less frequently than we output data.
@@ -304,6 +247,14 @@ function GkField:alloc(nRkDup)
    -- For diagnostics:
    self.phiSq = createField(self.grid,self.basis,{1,1})
    self.esEnergyFac = createField(self.grid,self.basis,{1,1})
+
+   -- For storing integrated energies.
+   self.intPhiSq          = DataStruct.DynVector { numComponents = 1, }
+   self.esEnergyAdiabatic = DataStruct.DynVector { numComponents = 1, }
+   self.gradPerpPhiSq     = DataStruct.DynVector { numComponents = 1, }
+   self.aparSq            = DataStruct.DynVector { numComponents = 1, }
+   self.esEnergy          = DataStruct.DynVector { numComponents = 1, }
+   self.emEnergy          = DataStruct.DynVector { numComponents = 1, }
 end
 
 -- Solve for initial fields self-consistently 
@@ -448,11 +399,7 @@ function GkField:createSolver(population, externalField)
       assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")
 
       self.unitField = createField(self.grid,self.basis,{1,1})
-      local initUnit = Updater.ProjectOnBasis {
-         onGrid = self.grid,   evaluate = function (t,xn) return 1.0 end,
-         basis  = self.basis,  onGhosts = true,
-      }
-      initUnit:advance(0.,{},{self.unitField})
+      self.unitField:shiftc(1.*(math.sqrt(2.)^(self.ndim)), 0)
 
       -- Metric coefficients in the Poisson and Ampere equations for phi and Apar.
       local gxxPoisson, gxyPoisson, gyyPoisson
@@ -487,7 +434,7 @@ function GkField:createSolver(population, externalField)
          -- Calculate weight on polarization term: sum_s m_s * jacobGeo * n_s / B^2.
          self.polarizationWeightLocal:clear(0.)
          for _, s in population.iterLocal() do
-            if Species.GkSpecies.is(s) or Species.GyrofluidSpecies.is(s) then
+            if Species.GkSpecies.is(s) then
                self.polarizationWeightLocal:accumulate(1., s:getPolarizationWeight())
             end
          end
@@ -630,16 +577,68 @@ function GkField:createSolver(population, externalField)
 
          self.parSmooth = function(tCurr, fldIn, fldOut) fldOut:copy(fldIn) end
          if self.ndim == 3 and not self.discontinuousPhi then
-            self.parSmoother = Updater.FemParproj {
-               onGrid  = self.gridGlobalZ,  basis = self.basis,
-               onField = self.globalSolZ,
-               periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
-            }
+            if (self.bcLowerPhi[3] and self.bcUpperPhi[3]) then
+               assert(self.bcLowerPhi[3].T == "AxisymmetricLimitedTokamak", "App.Field.GkField: z BC not supported. Use a supported option or remove this z BC from the input file.")
+               assert(self.bcLowerPhi[3].T == self.bcUpperPhi[3].T, "App.Field.GkField: 'bcLowerPhi[3]' and 'bcUpperPhi[3]' must be equal.")
+               assert(self.bcLowerPhi[3].xLCFS == self.bcUpperPhi[3].xLCFS, "App.Field.GkField: 'bcLowerPhi[3]' and 'bcUpperPhi[3]' must be equal.")
+
+               -- Reduce range to the core part and SOL part.
+               -- Assume the split happens at a cell boundary and within the domain.
+               local xLCFS = self.bcLowerPhi[3].xLCFS 
+               assert(self.grid:lower(1)<xLCFS and xLCFS<self.grid:upper(1), "App.Field.GkField: 'xLCFS' coordinate must be within the x-domain.")
+               local needint = (xLCFS-self.grid:lower(1))/self.grid:dx(1)
+               assert(math.floor(math.abs(needint-math.floor(needint))) < 1., "App.Field.GkField: 'xLCFS' must fall on a cell boundary along x.")
+               -- Determine the index of the cell that abuts xLCFS from below.
+               local coordLCFS, idxLCFS = {xLCFS-1.e-7}, {-9}
+               local xGridIngr = self.grid:childGrid({1})
+               local xGrid = Grid.RectCart {
+                  lower = xGridIngr.lower,  periodicDirs  = xGridIngr.periodicDirs,
+                  upper = xGridIngr.upper,  decomposition = xGridIngr.decomposition,
+                  cells = xGridIngr.cells,
+               }
+               xGrid:findCell(coordLCFS, idxLCFS)
+               local solRange     = self.globalSolZ:localRange():shortenFromBelow(1, self.grid:numCells(1)-idxLCFS[1]+1)
+               local coreRange    = self.globalSolZ:localRange():shorten(1, idxLCFS[1]+1)
+               local solRangeExt  = self.globalSolZ:localExtRange():shortenFromBelow(1, self.grid:numCells(1)-idxLCFS[1]+1)
+               local coreRangeExt = self.globalSolZ:localExtRange():shorten(1, idxLCFS[1]+1)
+               self.solRange     = self.globalSolZ:localExtRange():subRange(    solRange:lowerAsVec(),    solRange:upperAsVec())
+               self.coreRange    = self.globalSolZ:localExtRange():subRange(   coreRange:lowerAsVec(),   coreRange:upperAsVec())
+               self.solRangeExt  = self.globalSolZ:localExtRange():subRange( solRangeExt:lowerAsVec(), solRangeExt:upperAsVec())
+               self.coreRangeExt = self.globalSolZ:localExtRange():subRange(coreRangeExt:lowerAsVec(),coreRangeExt:upperAsVec())
+
+               self.parSmootherCore = Updater.FemParproj {
+                  onGrid  = self.gridGlobalZ,  basis               = self.basis,
+                  onField = self.globalSolZ,   periodicParallelDir = true,
+                  onRange = self.coreRange,    onExtRange          = self.coreRangeExt,
+               }
+               self.parSmootherSOL = Updater.FemParproj {
+                  onGrid  = self.gridGlobalZ,  basis               = self.basis,
+                  onField = self.globalSolZ,   periodicParallelDir = false,
+                  onRange = self.solRange,     onExtRange          = self.solRangeExt,
+               }
+               self.parSmoother = {
+                  advance = function(tCurr, fldIn, fldOut)
+                     self.parSmootherCore:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
+                     self.parSmootherSOL:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
+                  end,
+               }
+            else
+               self.parSmootherUpd = Updater.FemParproj {
+                  onGrid  = self.gridGlobalZ,  basis = self.basis,
+                  onField = self.globalSolZ,
+                  periodicParallelDir = lume.any(self.periodicDirs, function(t) return t==self.ndim end),
+               }
+               self.parSmoother = {
+                  advance = function(tCurr, fldIn, fldOut)
+                     self.parSmootherUpd:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
+                  end,
+               }
+            end
             self.parSmooth = function(tCurr, fldIn, fldOut)
                -- Gather the discontinuous field onto a global field.
                self:AllgatherFieldZ(fldIn, self.globalSolZ)
 
-               self.parSmoother:advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
+               self.parSmoother.advance(tCurr, {self.globalSolZ}, {self.globalSolZ})
 
                -- Copy portion of the global field belonging to this process.
                fldOut:copyRangeToRange(self.globalSolZ, fldOut:localRange(), self.zSrcRange)
@@ -745,7 +744,6 @@ function GkField:createSolver(population, externalField)
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
       elemType   = self.potentials[1].phi:elemType(),
-      method     = self.ioMethod,
       writeGhost = self.writeGhost,
       metaData   = {polyOrder = self.basis:polyOrder(),
                     basisType = self.basis:id(),},
@@ -790,19 +788,22 @@ end
 
 function GkField:createDiagnostics()
    -- Updaters for computing integrated quantities.
-   self.int2Calc = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = self.grid,   quantity = "V2",
-      basis  = self.basis,
+   self.intCalc = Updater.CartFieldIntegrate {
+      onGrid = self.grid,  basis = self.basis,
    }
-   self.intCalc = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = self.grid,   quantity = "V",
+   self.intSqCalc = Updater.CartFieldIntegrate {
+      onGrid = self.grid,   operator = "sq",
       basis  = self.basis,
    }
    if self.ndim == 1 then
       self.energyCalc = self.intCalc
-   elseif self.basis:polyOrder()==1 then -- GradPerpV2 only implemented for p=1 currently.
-      self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.grid,   quantity = "GradPerpV2",
+   else
+      self.gradPerpSqIntCalc = Updater.CartFieldIntegrate {
+         onGrid = self.grid,   operator = "gradperp_sq",
+         basis  = self.basis,
+      }
+      self.energyCalc = Updater.CartFieldIntegrate {
+         onGrid = self.grid,   operator = "eps_gradperp_sq",
          basis  = self.basis,
       }
    end
@@ -827,20 +828,21 @@ function GkField:createDiagnostics()
    self.calcPhiIntDiags =  (self.evolve and (not self.externalPhi))
    and function(tm, force)
           -- Compute integrated quantities over domain.
-          self.int2Calc:advance(tm, { self.potentials[1].phi }, { self.intPhiSq })
+          self.intSqCalc:advance(tm, { self.potentials[1].phi }, { self.intPhiSq })
           if self.energyCalc then 
              if self.ndim > 1 then
-                self.energyCalc:advance(tm, { self.potentials[1].phi, self.unitField }, { self.gradPerpPhiSq })
+--                self.energyCalc:advance(tm, { self.potentials[1].phi, self.unitField }, { self.gradPerpPhiSq })
+                self.gradPerpSqIntCalc:advance(tm, { self.potentials[1].phi }, { self.gradPerpPhiSq })
              end
              if self.linearizedPolarization then
                 if self.uniformPolarization then
                    if self.ndim == 1 then 
-                      self.weakMultiply:advance(0., {self.potentials[1].phiAux, self.potentials[1].phiAux},
+                      self.weakMultiply:advance(0., {self.potentials[1].phi, self.potentials[1].phi},
                                                 {self.phiSq})
                       self.weakMultiply:advance(0., {self.phiSq, self.esEnergyFac}, {self.phiSq})
                       self.energyCalc:advance(tm, { self.phiSq }, { self.esEnergy })
                    else
-                      self.energyCalc:advance(tm, { self.potentials[1].phiAux, self.esEnergyFac }, { self.esEnergy })
+                      self.energyCalc:advance(tm, { self.potentials[1].phi, 1., self.esEnergyFac }, { self.esEnergy })
                    end
    
                    if self.adiabatic and self.ndim > 1 then
@@ -872,40 +874,46 @@ function GkField:createDiagnostics()
        end
    or function(tm, force) end
    
-   self.calcAparGridDiags = (self.evolve and self.isElectromagnetic)
-   and function(tm, force) end
-   or function(tm, force) end
-   
-   self.writeAparGridDiags = (self.evolve and self.isElectromagnetic)
-   and (self.evolve and function(tm, force)
-          self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
-          self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
-        end or function(tm, force)
-           if self.ioFrame == 0 then
-              self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
-              self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
-           end
-        end)
-   or function(tm, force) end
-   
-   self.calcAparIntDiags = (self.evolve and self.isElectromagnetic)
-   and function(tm, force)
-          -- Compute integrated quantities over domain.
-          self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.aparSq })
-          if self.energyCalc then 
-             local emEnergyFac = .5/self.mu0
-             if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperpSq end
-             self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy })
-          end
-       end
-   or function(tm, force) end
-   
-   self.writeAparIntDiags = (self.evolve and self.isElectromagnetic)
-   and function(tm, force)
-          self.aparSq:write(string.format("aparSq.bp"), tm, self.ioFrame)
-          self.emEnergy:write(string.format("emEnergy.bp"), tm, self.ioFrame)
-       end
-   or function(tm, force) end
+   self.calcAparGridDiags  = function(tm, force) end
+   self.writeAparGridDiags = function(tm, force) end
+   self.calcAparIntDiags   = function(tm, force) end
+   self.writeAparIntDiags  = function(tm, force) end
+
+   if self.isElectromagnetic then
+      self.calcAparGridDiags = self.evolve
+         and function(tm, force) end
+         or function(tm, force) end
+      
+      self.writeAparGridDiags = self.evolve
+         and function(tm, force)
+                self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
+                self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
+             end
+         or function(tm, force)
+               if self.ioFrame == 0 then
+                  self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
+                  self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
+               end
+            end
+      
+      local emEnergyIntCalc = self.ndim == 1 and self.intSqCalc or self.gradPerpSqIntCalc
+      local emEnergyFac = .5/self.mu0
+      if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperpSq end
+      self.calcAparIntDiags = self.evolve
+         and function(tm, force)
+                -- Compute integrated quantities over domain.
+                self.intSqCalc:advance(tm, { self.potentials[1].apar }, { self.aparSq })
+                emEnergyIntCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy })
+             end
+         or function(tm, force) end
+      
+      self.writeAparIntDiags = self.evolve
+         and function(tm, force)
+                self.aparSq:write(string.format("aparSq.bp"), tm, self.ioFrame)
+                self.emEnergy:write(string.format("emEnergy.bp"), tm, self.ioFrame)
+             end
+         or function(tm, force) end
+   end
 
 end
 
@@ -1049,7 +1057,6 @@ end
 function GkGeometry:fullInit(appTbl)
    local tbl = self.tbl -- previously store table.
 
-   self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, false) -- by default these fields are not time-dependent.
 
    -- Create triggers to write fields.
@@ -1071,7 +1078,10 @@ function GkGeometry:fullInit(appTbl)
    self.timers = {advance = 0.,   bc = 0.}
 end
 
-function GkGeometry:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
+function GkGeometry:setGrid(grid)
+   self.grid = grid
+   self.ndim = self.grid:ndim()
+end
 
 function GkGeometry:alloc()
    -- Allocate fields.
@@ -1235,13 +1245,6 @@ function GkGeometry:createSolver(population)
       }
    end
 
-   self.unitWeight = createField(self.grid,self.basis,{1,1})
-   local initUnit = Updater.ProjectOnBasis {
-      onGrid = self.grid,   evaluate = function (t,xn) return 1.0 end,
-      basis  = self.basis,  onGhosts = true,
-   }
-   initUnit:advance(0.,{},{self.unitWeight})
-
    -- Updater to separate vector components packed into a single CartField.
    self.separateComponents = Updater.SeparateVectorComponents {
       onGrid = self.grid,  basis = self.basis,
@@ -1250,7 +1253,6 @@ function GkGeometry:createSolver(population)
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
       elemType   = self.geo.bmag:elemType(),
-      method     = self.ioMethod,
       writeGhost = self.writeGhost,
       metaData   = { polyOrder = self.basis:polyOrder(),
 	             basisType = self.basis:id(),
@@ -1283,15 +1285,17 @@ function GkGeometry:initField(population)
 
    -- Compute 1/B and 1/(B^2). LBO collisions require that this is
    -- done via weak operations instead of projecting 1/B or 1/B^2.
+   local unitField = createField(self.grid,self.basis,{1,1})
+   unitField:shiftc(1.*(math.sqrt(2.)^(self.ndim)), 0)
    local confWeakMultiply = Updater.CartFieldBinOp {
       weakBasis = self.basis,  operation = "Multiply",
-      onGhosts  = true,
+      onGhosts  = false,
    }
    local confWeakDivide = Updater.CartFieldBinOp {
       weakBasis = self.basis,  operation = "Divide",
-      onRange   = self.unitWeight:localExtRange(),  onGhosts = true,
+      onRange   = unitField:localRange(),  onGhosts = false,
    }
-   confWeakDivide:advance(0., {self.geo.bmag, self.unitWeight}, {self.geo.bmagInv})
+   confWeakDivide:advance(0., {self.geo.bmag, unitField}, {self.geo.bmagInv})
    confWeakMultiply:advance(0., {self.geo.bmagInv, self.geo.bmagInv}, {self.geo.bmagInvSq})
 
    log("...Finished initializing the geometry\n")

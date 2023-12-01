@@ -81,7 +81,7 @@ function FemPoissonPerp:init(tbl)
    local kSq    = tbl.kSq  -- Wave number squared.
    self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
 
-   local ndim = self._grid:ndim()
+   local perpDim = self._grid:ndim() - 1
 
    local function translateBcType(bcTypeIn)
       -- These have to match gkyl_poisson_bc_type in gkylzero/zero/gkyl_fem_poisson_perp.h.
@@ -98,7 +98,7 @@ function FemPoissonPerp:init(tbl)
 
    local bc_zero = ffi.new("struct gkyl_poisson_bc")
    if tbl.bcLower and tbl.bcUpper then
-      for d = 1,ndim do
+      for d = 1,perpDim do
          bc_zero.lo_type[d-1] = translateBcType(tbl.bcLower[d].T)
          bc_zero.up_type[d-1] = translateBcType(tbl.bcUpper[d].T)
 

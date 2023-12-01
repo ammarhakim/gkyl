@@ -8,84 +8,6 @@ from waflib import Utils
 
 def build(bld):
     sources = r"""
-    aSheathPotentialData/asheath_potential_1x_p1_ser.cpp
-    aSheathPotentialData/asheath_potential_1x_p2_ser.cpp
-
-    momentCalcData/IntegratedDGMomentSer1x.cpp
-    momentCalcData/IntegratedDGMomentSer2x.cpp
-    momentCalcData/IntegratedDGMomentSer3x.cpp
-    momentCalcData/IntegratedDGMomentSer4x.cpp
-    momentCalcData/IntegratedDGMomentSer5x.cpp
-    momentCalcData/IntegratedDGMomentSer6x.cpp
-    momentCalcData/IntegratedDGMomentSer1x1v.cpp
-    momentCalcData/IntegratedDGMomentSer1x2v.cpp
-    momentCalcData/IntegratedDGMomentSer1x3v.cpp
-    momentCalcData/IntegratedDGMomentSer2x2v.cpp
-    momentCalcData/IntegratedDGMomentSer2x3v.cpp
-    momentCalcData/IntegratedDGMomentSer3x3v.cpp
-
-    interpolateCalcData/CartFieldInterpSer1x.cpp
-    interpolateCalcData/CartFieldInterpSer2x.cpp
-
-    mgPoissonCalcData/MGpoissonDGSer1x.cpp
-    mgPoissonCalcData/MGpoissonDGSer2x.cpp
-    mgPoissonCalcData/MGpoissonFEMSer1x.cpp
-    mgPoissonCalcData/MGpoissonFEMSer2x.cpp
-    mgPoissonCalcData/MGpoissonESenergySer1x.cpp
-    mgPoissonCalcData/MGpoissonESenergySer2x.cpp
-
-    momentCalcData/DistFuncMomentLBOCalcSer1x1v.cpp
-    momentCalcData/DistFuncMomentLBOCalcSer1x2v.cpp
-    momentCalcData/DistFuncMomentLBOCalcSer1x3v.cpp
-    momentCalcData/DistFuncMomentLBOCalcSer2x2v.cpp
-    momentCalcData/DistFuncMomentLBOCalcSer2x3v.cpp
-    momentCalcData/DistFuncMomentLBOCalcSer3x3v.cpp
-    momentCalcData/DistFuncGkMomentLBOCalcSer1x1v.cpp
-    momentCalcData/DistFuncGkMomentLBOCalcSer1x2v.cpp
-    momentCalcData/DistFuncGkMomentLBOCalcSer2x2v.cpp
-    momentCalcData/DistFuncGkMomentLBOCalcSer3x2v.cpp
-
-    momentCalcData/DistFuncMomentLBOCalcTensor1x1v.cpp
-    momentCalcData/DistFuncMomentLBOCalcTensor1x2v.cpp
-    momentCalcData/DistFuncMomentLBOCalcTensor1x3v.cpp
-    momentCalcData/DistFuncMomentLBOCalcTensor2x2v.cpp
-    momentCalcData/DistFuncGkMomentLBOCalcTensor1x1v.cpp
-    momentCalcData/DistFuncGkMomentLBOCalcTensor1x2v.cpp
-    momentCalcData/DistFuncGkMomentLBOCalcTensor2x2v.cpp
-
-    momentCalcData/DistFuncMomentCalcSer1x1v.cpp
-    momentCalcData/DistFuncMomentCalcSer1x2v.cpp
-    momentCalcData/DistFuncMomentCalcSer1x3v.cpp
-    momentCalcData/DistFuncMomentCalcSer2x2v.cpp
-    momentCalcData/DistFuncMomentCalcSer2x3v.cpp
-    momentCalcData/DistFuncMomentCalcSer3x3v.cpp
-
-    momentCalcData/DistFuncMomentCalcTensor1x1v.cpp
-    momentCalcData/DistFuncMomentCalcTensor1x2v.cpp
-    momentCalcData/DistFuncMomentCalcTensor1x3v.cpp
-    momentCalcData/DistFuncMomentCalcTensor2x2v.cpp
-
-    momentCalcData/DistFuncGkMomentCalcSer1x1v.cpp
-    momentCalcData/DistFuncGkMomentCalcSer1x2v.cpp
-    momentCalcData/DistFuncGkMomentCalcSer2x2v.cpp
-    momentCalcData/DistFuncGkMomentCalcSer3x2v.cpp
-
-    momentCalcData/DistFuncGkMomentCalcTensor1x1v.cpp
-    momentCalcData/DistFuncGkMomentCalcTensor1x2v.cpp
-    momentCalcData/DistFuncGkMomentCalcTensor2x2v.cpp
-
-    momentCalcData/DistFuncIntegratedMomentCalcSer1x1v.cpp
-    momentCalcData/DistFuncIntegratedMomentCalcSer1x2v.cpp
-    momentCalcData/DistFuncIntegratedMomentCalcSer1x3v.cpp
-    momentCalcData/DistFuncIntegratedMomentCalcSer2x2v.cpp
-    momentCalcData/DistFuncIntegratedMomentCalcSer2x3v.cpp
-    momentCalcData/DistFuncIntegratedMomentCalcSer3x3v.cpp
-
-    CartFieldIntegratedQuantCalcImpl.cpp
-
-    projectFluxOnGhostsData/ProjectFluxOnGhostsSer.cpp
-
-    EvaluateBronoldFehskeBCImpl.cpp
     """
 
     ## HyperDisContDeviceShared.cu
@@ -103,11 +25,17 @@ def build(bld):
 
     bld.shlib(source = sources,
 
-              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData momentCalcData twistShiftData projectFluxOnGhostsData aSheathPotentialData', 
-
-              use='lib EIGEN MPI CUTOOLS gkylzero', target = 'updater', name = 'updater', vum = '1.0')
+              includes = '. ../Cuda',
+              use='lib MPI CUTOOLS gkylzero', target = 'updater', name = 'updater', vum = '1.0', features = 'cxx')
     
 ## Removed the following files from the build for now
+#    interpolateCalcData/CartFieldInterpSer1x.cpp
+#    interpolateCalcData/CartFieldInterpSer2x.cpp
+#
+#    projectFluxOnGhostsData/ProjectFluxOnGhostsSer.cpp
+#
+#    EvaluateBronoldFehskeBCImpl.cpp
+
 #    MomentSrcCommon.cpp
 #    FiveMomentSrcImpl.cpp
 #    TenMomentSrcImpl.cpp

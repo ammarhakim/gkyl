@@ -65,10 +65,14 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
       confBasis = self.confBasis,  edge            = self.bcEdge,
    }
 
-   -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
-   self:createBoundaryGrid()
-
    local distf = mySpecies["getDistF"] and mySpecies:getDistF() or mySpecies:getMoments()
+
+   -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
+   local localGhostRange = self.bcEdge=="lower" and distf:localGhostRangeLower()[self.bcDir]
+                                                 or distf:localGhostRangeUpper()[self.bcDir]
+   -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
+   self:createBoundaryGrid(localGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
+
    -- Define methods to allocate fields defined on boundary grid (used by e.g. diagnostics).
    self.allocCartField = function(self, grid, nComp, ghosts, metaData)
       local f = DataStruct.Field {
@@ -96,8 +100,10 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
    -- the fluxes through a boundary (e.g. neutral recycling).
    if self.saveFlux then
+      local localGhostRange = self.bcEdge=="lower" and distf:localGhostRangeLower()[self.bcDir]
+                                                    or distf:localGhostRangeUpper()[self.bcDir]
       -- Create reduced boundary config-space grid with 1 cell in dimension of self.bcDir.
-      self:createConfBoundaryGrid()
+      self:createConfBoundaryGrid(localGhostRange, self.bcEdge=="lower" and distf:lowerGhostVec() or distf:upperGhostVec())
 
       local numDensity = mySpecies:getNumDensity()
       self.allocMoment = function(self)
@@ -204,9 +210,9 @@ function TwistShiftBC:createSolver(mySpecies, field, externalField)
          }
          -- Volume integral operator (for diagnostics).
          self.volIntegral = {
-            scalar = Updater.CartFieldIntegratedQuantCalc {
+            scalar = Updater.CartFieldIntegrate {
                onGrid = self.confBoundaryGrid,  numComponents = 1,
-               basis  = self.confBasis,         quantity      = "V",
+               basis  = self.confBasis,
             }
          }
          -- Moment calculators (for diagnostics).

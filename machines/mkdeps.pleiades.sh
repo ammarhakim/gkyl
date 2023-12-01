@@ -12,4 +12,6 @@ if [ `dirname "$0"` == "." ]
     cd ..
 fi
 cd install-deps
-./mkdeps.sh CC=$CC CXX=$CXX MPICC=$MPICC MPICXX=$MPICXX --build-luajit=yes --build-adios=yes --build-eigen=yes --build-openmpi=no
+export GKYLSOFT=$HOME/gkylsoft
+export MACHINE_NAME='pleiades'
+./mkdeps.sh CC=$CC CXX=$CXX MPICC=$MPICC MPICXX=$MPICXX --prefix=$GKYLSOFT --build-gkylzero=yes --build-luajit=yes --build-adios=yes --build-openmpi=no

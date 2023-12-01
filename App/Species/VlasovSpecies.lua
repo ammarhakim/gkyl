@@ -25,57 +25,13 @@ local LinearTrigger    = require "Lib.LinearTrigger"
 local Mpi              = require "Comm.Mpi"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
+local Adios            = require "Io.Adios"
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local xsys             = require "xsys"
 local lume             = require "Lib.lume"
 local ffi              = require "ffi"
 
 local VlasovSpecies = Proto(SpeciesBase)
-
-local SP_BC_EXTERN  = 4
-local SP_BC_RECYCLE = 7
-VlasovSpecies.bcExternal = SP_BC_EXTERN     -- Load external BC file.
-VlasovSpecies.bcRecycle  = SP_BC_RECYCLE
-
--- ............. Backwards compatible treatment of BCs .....................--
--- Add constants to object indicate various supported boundary conditions.
-local SP_BC_ABSORB    = 1
-local SP_BC_REFLECT   = 3
-local SP_BC_COPY      = 5
--- AHH: This was 2 but seems that is unstable. So using plain copy.
-local SP_BC_OPEN      = SP_BC_COPY
-local SP_BC_ZEROFLUX  = 6
-VlasovSpecies.bcCopy      = SP_BC_COPY       -- Copy stuff.
-VlasovSpecies.bcAbsorb    = SP_BC_ABSORB     -- Absorb all particles.
-VlasovSpecies.bcOpen      = SP_BC_OPEN       -- Zero gradient.
-VlasovSpecies.bcReflect   = SP_BC_REFLECT    -- Specular reflection.
-VlasovSpecies.bcZeroFlux  = SP_BC_ZEROFLUX
-
-function VlasovSpecies:makeBcApp(bcIn, dir, edge)
-   local bcOut
-   if type(bcIn) == "function" then
-      bcOut = BasicBC{kind="function", bcFunction=bcIn, diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_COPY then
-      print("VlasovSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
-      bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_ABSORB then
-      print("VlasovSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
-      bcOut = BasicBC{kind="absorb", diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_OPEN then
-      print("VlasovSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
-      -- AHH: open seems unstable. So using plain copy.
-      bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_REFLECT then
-      print("VlasovSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
-      bcOut = BasicBC{kind="reflect", diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_ZEROFLUX or bcIn.tbl.kind=="zeroFlux" then
-      bcOut = "zeroFlux"
-      table.insert(self.zeroFluxDirections, dir)
-   end
-   return bcOut
-end
-
--- ............. End of backwards compatibility for BCs .....................--
 
 -- This ctor stores what is passed to it and defers most of the
 -- construction to the fullInit() method below.
@@ -142,7 +98,6 @@ function VlasovSpecies:alloc(nRkDup)
    -- Create Adios object for field I/O.
    self.distIo = AdiosCartFieldIo {
       elemType   = self.distf[1]:elemType(),
-      method     = self.ioMethod,
       writeGhost = self.writeGhost,
       metaData   = {polyOrder = self.basis:polyOrder(),
                     basisType = self.basis:id(),
@@ -248,14 +203,17 @@ function VlasovSpecies:fullInit(appTbl)
          self.projections[nm] = val
       end
    end
-   -- It is possible to use the keywords 'init' and 'background'
-   -- to specify a function directly without using a Projection object.
+   -- It is possible to use the keywords 'init' to specify a
+   -- function directly without using a Projection object.
    if type(tbl.init) == "function" then
-      self.projections["init"] = Projection.KineticProjection.FunctionProjection {
+      self.projections["init"] = Projection.VlasovProjection.FunctionProjection {
          func = function(t, zn) return tbl.init(t, zn, self) end,
       }
    end
    lume.setOrder(self.projections)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
+   for _, pr in lume.orderedIter(self.projections) do
+      pr:fullInit(self)
+   end
 
    self.zeroFluxDirections = {}
 
@@ -277,24 +235,24 @@ function VlasovSpecies:fullInit(appTbl)
    self.nonPeriodicBCs = {}
    local dirLabel  = {'X','Y','Z'}
    local edgeLabel = {'lower','upper'}
-   for d, bcsTbl in ipairs(self.bcInDir) do
+   for dir, bcsTbl in ipairs(self.bcInDir) do
       for e, bcOb in ipairs(bcsTbl) do
-         local goodBC = false
          local val    = bcOb
-         if not BCsBase.is(val) then val = self:makeBcApp(bcOb, d, e) end
          if BCsBase.is(val) then
-            local nm = 'bc'..dirLabel[d]..edgeLabel[e]
+            local nm = 'bc'..dirLabel[dir]..edgeLabel[e]
             self.nonPeriodicBCs[nm] = val
             val:setSpeciesName(self.name)
             val:setName(nm)   -- Do :setName after :setSpeciesName for BCs.
-            val:setDir(d)
+            val:setDir(dir)
             val:setEdge(edgeLabel[e])
             val:fullInit(tbl)
-            goodBC = true
-         elseif val=="zeroFlux" then
-            goodBC = true
+         else
+            assert(false, "VlasovSpecies: bc not recognized.")
          end
-         assert(goodBC, "VlasovSpecies: bc not recognized.")
+      end
+      if #bcsTbl > 0 and bcsTbl[1].tbl.kind == "zeroFlux" then
+         assert(bcsTbl[2].tbl.kind == "zeroFlux", "VlasovSpecies: ZeroFlux direction only supported for both lower and upper boundaries.")
+         table.insert(self.zeroFluxDirections, dir)
       end
    end
    lume.setOrder(self.nonPeriodicBCs)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
@@ -318,7 +276,6 @@ function VlasovSpecies:fullInit(appTbl)
       self.hasExtForce = true
    end
 
-   self.ioMethod           = "MPI"
    self.distIoFrame        = 0 -- Frame number for distribution function.
    self.diagIoFrame        = 0 -- Frame number for diagnostics.
    self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
@@ -339,8 +296,6 @@ function VlasovSpecies:setCfl(cfl)
    for _, c in lume.orderedIter(self.collisions) do c:setCfl(cfl) end
 end
 
-function VlasovSpecies:setIoMethod(ioMethod) self.ioMethod = ioMethod end
-
 function VlasovSpecies:setConfBasis(basis)
    self.confBasis = basis
    for _, c in lume.orderedIter(self.collisions) do c:setConfBasis(basis) end
@@ -349,6 +304,7 @@ function VlasovSpecies:setConfBasis(basis)
 end
 function VlasovSpecies:setConfGrid(grid)
    self.confGrid = grid
+
    for _, c in lume.orderedIter(self.collisions) do c:setConfGrid(grid) end
    for _, src in lume.orderedIter(self.sources) do src:setConfGrid(grid) end
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:setConfGrid(grid) end
@@ -360,12 +316,15 @@ function VlasovSpecies:createGrid(confGridIn)
    self.cdim = confGrid:ndim()
    self.ndim = self.cdim+self.vdim
 
+   local msn = confGrid:getMessenger()
+
    -- Create decomposition.
    local decompCuts = {}
    for d = 1, self.cdim do table.insert(decompCuts, confGrid:cuts(d)) end
    for d = 1, self.vdim do table.insert(decompCuts, 1) end -- No decomposition in v-space.
    self.decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts, comm = confGrid:commSet().comm,
+      cuts = decompCuts,
+      comms = {host=msn:getConfComm_host(), device=msn:getConfComm_device(),},
    }
 
    -- Create computational domain.
@@ -416,17 +375,14 @@ function VlasovSpecies:createGrid(confGridIn)
       lower     = lower,  periodicDirs  = confGrid:getPeriodicDirs(),
       upper     = upper,  decomposition = self.decomp,
       cells     = cells,  mappings      = coordinateMap,
-      messenger = confGrid:getMessenger(),
+      messenger = msn,
    }
 
    for _, c in lume.orderedIter(self.collisions) do c:setPhaseGrid(self.grid) end
 
-   -- Construct velocity space grid from phase space grid
+   -- Construct velocity space grid from phase space grid.
    local dimsV = {}
-   for d = 1, self.vdim do
-      table.insert(dimsV, self.cdim+d)
-   end
-   -- Get the ingredients of the velocity space grid from the phase space grid
+   for d = 1, self.vdim do table.insert(dimsV, self.cdim+d) end
    local velGridIngr = self.grid:childGrid(dimsV)
    self.velGrid = GridConstructor {
       lower = velGridIngr.lower,  periodicDirs  = velGridIngr.periodicDirs,
@@ -483,17 +439,16 @@ function VlasovSpecies:allocVectorVelMoment(dim)
    return self:allocCartField(self.velGrid,dim*self.velBasis:numBasis(),{0,0},metaData)
 end
 function VlasovSpecies:allocIntMoment(comp)
-   local metaData = {charge = self.charge,
-                     mass   = self.mass,}
+   local metaData = {charge = self.charge,  mass = self.mass,}
    local ncomp = comp or 1
    local f = DataStruct.DynVector {numComponents = ncomp,     writeRank = 0,
-                                   metaData      = metaData,  comm      = self.confGrid:commSet().comm,}
+                                   metaData      = metaData,  comm      = self.confGrid:commSet().host,}
    return f
 end
 
-local function vtSqMinCalc(mass,grid,cdim,vdim)
+local function vtSqMinCalc(mass,phaseGrid,cdim,vdim)
    local TempMin = 0.
-   for d = 1, vdim do TempMin = TempMin + (1./3.)*(mass/6.)*grid:dx(cdim+d) end
+   for d = 1, vdim do TempMin = TempMin + (1./3.)*(mass/6.)*phaseGrid:dx(cdim+d) end
    return TempMin/mass	
 end
 
@@ -528,7 +483,7 @@ function VlasovSpecies:createSolver(field, externalField)
    end
 
    -- Minimum vtSq supported by the grid (for p=1 only for now):
-   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.confGrid,self.cdim,self.vdim)
+   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.grid,self.cdim,self.vdim)
 
    -- Create solvers for collisions.
    for _, c in lume.orderedIter(self.collisions) do c:createSolver(self, externalField) end
@@ -580,9 +535,11 @@ function VlasovSpecies:createSolver(field, externalField)
    -- Create updater to advance solution by one time-step.
    if self.evolveCollisionless then
       self.solver = Updater.VlasovDG {
-         onGrid    = self.grid,                      confBasis = self.confBasis,                phaseBasis = self.basis, 
-         confRange = self.totalEmField:localRange(), velRange = self.p_over_gamma:localRange(), phaseRange = self.distf[1]:localRange(), 
-         model_id  = self.model_id,                  field_id = self.field_id,                  fldPtrs    = self.fldPtrs, 
+         onGrid     = self.grid,       confRange    = self.totalEmField:localRange(),
+         confBasis  = self.confBasis,  velRange     = self.p_over_gamma:localRange(),
+         phaseBasis = self.basis,      phaseRange   = self.distf[1]:localRange(), 
+         model_id   = self.model_id,   field_id     = self.field_id,                 
+         fldPtrs    = self.fldPtrs,    zeroFluxDirs = self.zeroFluxDirections,
       }
       self.collisionlessAdvance = function(tCurr, inFlds, outFlds)
          self.solver:advance(tCurr, inFlds, outFlds)
@@ -724,13 +681,13 @@ function VlasovSpecies:createSolver(field, externalField)
 
    -- Create an updater for volume integrals. Used by diagnostics.
    self.volIntegral = {
-      scalar = Updater.CartFieldIntegratedQuantCalc {
+      scalar = Updater.CartFieldIntegrate {
          onGrid = self.confGrid,   numComponents = 1,
-         basis  = self.confBasis,  quantity      = "V",
+         basis  = self.confBasis,
       },
-      vector = Updater.CartFieldIntegratedQuantCalc {
+      vector = Updater.CartFieldIntegrate {
          onGrid = self.confGrid,   numComponents = self.vdim,
-         basis  = self.confBasis,  quantity      = "V",
+         basis  = self.confBasis,
       },
    }
 
@@ -751,8 +708,8 @@ function VlasovSpecies:initDist(extField)
 
    local initCnt = 0
    for nm, pr in lume.orderedIter(self.projections) do
-      pr:fullInit(self)
-      pr:advance(0.0, {extField}, {self.distf[2]})
+      pr:createSolver(self)
+      pr:advance(0.0, {self,extField}, {self.distf[2]})
       if string.find(nm,"init") then
          self.distf[1]:accumulate(1.0, self.distf[2])
          initCnt = initCnt + 1
@@ -773,7 +730,7 @@ function VlasovSpecies:createCouplingSolver(population, field, externalField)
    -- Minimum vtSq supported by the grid (for p=1 only for now).
    -- Recomputed here because we need it for all species (for species parallelization)
    -- and createSolver is only called for the local species.
-   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.confGrid,self.cdim,self.vdim)
+   self.vtSqMinSupported = vtSqMinCalc(self.mass,self.grid,self.cdim,self.vdim)
 
    -- Create cross collision solvers.
    for _, c in lume.orderedIter(self.collisions) do c:createCouplingSolver(population, field, externalField) end
@@ -807,13 +764,15 @@ function VlasovSpecies:initCrossSpeciesCoupling(population)
          self.collPairs[sN][sO] = {}
          -- Need next below because species[].collisions is created as an empty table. 
          if species[sN].collisions and next(species[sN].collisions) then 
-            for collNm, _ in pairs(species[sN].collisions) do
-               -- This species collides with someone.
-               self.collPairs[sN][sO].on = lume.any(species[sN].collisions[collNm].collidingSpecies,
-                                                    function(e) return e==sO end)
-               if self.collPairs[sN][sO].on then
-                  self.collPairs[sN][sO].kind = species[sN].collisions[collNm].collKind
-                  self.needFiveMoments = true  -- MF 2022/09/16: currently all collision models need M0, M1, M2.
+            for collNm, collOp in pairs(species[sN].collisions) do
+               if collOp.collidingSpecies then  -- MF 2023/10/05: Needed to support diffusion+collisions.
+                  -- This species collides with someone.
+                  self.collPairs[sN][sO].on = lume.any(collOp.collidingSpecies,
+                                                       function(e) return e==sO end)
+                  if self.collPairs[sN][sO].on then
+                     self.collPairs[sN][sO].kind = collOp.collKind
+                     self.needFiveMoments = true  -- MF 2022/09/16: currently all collision models need M0, M1, M2.
+                  end
                end
             end
          else
@@ -840,17 +799,17 @@ function VlasovSpecies:initCrossSpeciesCoupling(population)
       if sO~=self.name and info.on then
          if isThisSpeciesMine then
             -- Only species owned by this rank send fiveMoments to other ranks.
-            if (not lume.any(self.threeMomentsXfer.destRank, function(e) return e==sOrank end)) and
+            if (not lume.any(self.fiveMomentsXfer.destRank, function(e) return e==sOrank end)) and
                (not population:isSpeciesMine(sO)) then
                table.insert(self.fiveMomentsXfer.destRank, sOrank)
-               table.insert(self.threeMomentsXfer.sendReqStat, messenger:newRequestStatus())
+               table.insert(self.fiveMomentsXfer.sendReqStat, messenger:newRequestStatus())
             end
          else
             -- Only species not owned by this rank receive fiveMoments from other ranks.
-            if (not lume.any(self.threeMomentsXfer.srcRank, function(e) return e==selfRank end)) and
+            if (not lume.any(self.fiveMomentsXfer.srcRank, function(e) return e==selfRank end)) and
                (not population:isSpeciesMine(self.name)) then
                table.insert(self.fiveMomentsXfer.srcRank, selfRank)
-               table.insert(self.threeMomentsXfer.recvReqStat, messenger:newRequestStatus())
+               table.insert(self.fiveMomentsXfer.recvReqStat, messenger:newRequestStatus())
             end
          end
       end
@@ -966,10 +925,6 @@ function VlasovSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
 
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:copyBoundaryFluxField(aIdx, outIdx) end
-
-   if self.positivity then
-      self.fDelPos[outIdx]:copy(self.fDelPos[aIdx])
-   end
 end
 
 function VlasovSpecies:combineRk(outIdx, a, aIdx, ...)
@@ -982,13 +937,6 @@ function VlasovSpecies:combineRk(outIdx, a, aIdx, ...)
 
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
       bc:combineBoundaryFluxField(outIdx, a, aIdx, ...)
-   end
-
-   if self.positivity then
-      self.fDelPos[outIdx]:combine(a, self.fDelPos[aIdx])
-      for i = 1, nFlds do -- Accumulate rest of the fields.
-         self.fDelPos[outIdx]:accumulate(args[2*i-1], self.fDelPos[args[2*i]])
-      end
    end
 end
 
@@ -1106,13 +1054,12 @@ function VlasovSpecies:getMomDensity(rkIdx)
    return self.momDensity
 end
 
--- Please test this for higher than 1x1v... (MF: JJ?).
 function VlasovSpecies:Maxwellian(xn, n0, vdnIn, T0)
    local vdn = vdnIn or {0, 0, 0}
    local vt2 = T0/self.mass
    local v2 = 0.0
    for d = self.cdim+1, self.cdim+self.vdim do
-      v2 = v2 + (xn[d] - vdnIn[d-self.cdim])^2
+      v2 = v2 + (xn[d] - vdn[d-self.cdim])^2
    end
    return n0 / math.sqrt(2*math.pi*vt2)^self.vdim * math.exp(-v2/(2*vt2))
 end

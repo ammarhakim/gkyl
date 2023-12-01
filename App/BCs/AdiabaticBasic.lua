@@ -51,12 +51,9 @@ function AdiabaticBasicBC:createSolver(mySpecies, field, externalField)
    end
 
    self.bcSolver = Updater.Bc {
-      onGrid             = self.grid,
-      cdim               = self.grid:ndim(),
-      dir                = self.bcDir,
-      edge               = self.bcEdge,
-      boundaryConditions = {bcFunc},
-      skinLoop           = skinType,
+      onGrid = self.grid,         edge               = self.bcEdge,
+      cdim   = self.grid:ndim(),  boundaryConditions = {bcFunc},
+      dir    = self.bcDir,        skinLoop           = skinType,
    }
 end
 

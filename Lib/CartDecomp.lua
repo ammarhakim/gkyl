@@ -148,31 +148,35 @@ function CartProdDecomp:init(tbl)
 
    self._cutsRange = Range.Range(ones, tbl.cuts)
 
-   local comm = Mpi.COMM_WORLD
+   local comm_host, comm_dev, comm_default = Mpi.COMM_WORLD, nil, Mpi.COMM_WORLD
    -- Use a different communicator if one is specified.
-   if tbl.comm then comm = tbl.comm end
-   -- Denote specific ranks from which writes should happen (defaults to all ranks).
-   local writeRank = tbl.writeRank or Mpi.Comm_rank(comm)
+   if tbl.comm then comm_host, comm_default = tbl.comm, tbl.comm end
+   -- Specify host and device communicators.
+   if tbl.comms then
+      comm_host, comm_dev = tbl.comms.host, tbl.comms.device
+      comm_default = GKYL_USE_GPU and comm_dev or comm_host
+   end
 
-   -- MF 2022/08/09: node communicator is a remnant from MPI-shm. We'll keep it for potential
-   -- future use but for now we just set it to the world comm.
-   local nodeComm = comm
+   -- Denote specific ranks from which writes should happen (defaults to all ranks).
+   local writeRank = tbl.writeRank or Mpi.Comm_rank(comm_host)
+
    -- Check if total number of domains specified by 'cuts' matches
-   -- number of MPI ranks in nodeComm.
+   -- number of MPI ranks in comm.
    if not tbl.__serTesting then   -- Skip check if just testing.
-      if Mpi.Is_comm_valid(comm) then
-	 if Mpi.Comm_size(comm) ~= self._cutsRange:volume() then
+      if Mpi.Is_comm_valid(comm_host) then
+	 if Mpi.Comm_size(comm_host) ~= self._cutsRange:volume() then
 	    assert(false,
 		   string.format(
 		      "CartProdDecomp: Number of sub-domains (%d) and comm size (%d) must match",
-		      self._cutsRange:volume(), Mpi.Comm_size(comm)))
+		      self._cutsRange:volume(), Mpi.Comm_size(comm_host)))
 	 end
       end
    end
 
    -- Store various communicators in a table.
    self._commSet = {
-      comm = comm, nodeComm = nodeComm, writeRank = writeRank,
+      default = comm_default,  writeRank = writeRank,
+      host    = comm_host,     device    = comm_dev,
    }
 end
 
@@ -233,7 +237,7 @@ function CartProdDecomp:childDecomp(keepDir)
    for d=1,parentDim do parentCuts[d] = self:cuts(d) or 1 end
    for d=1,childDim do childCuts[d] = self:cuts(keepDir[d]) or 1 end
 
-   local parentRank                = Mpi.Comm_rank(self:commSet().comm)
+   local parentRank                = Mpi.Comm_rank(self:commSet().host)
    local childRank, childWriteRank = parentRank, parentRank
    if (parentDim > 1) and (childDim < parentDim) then
       -- The following assumes a colum-major order distribution of MPI processes.
@@ -292,7 +296,7 @@ function CartProdDecomp:childDecomp(keepDir)
       -- For now assume only the ranks with the lowest childRank do IO. 
       if childRank == 0 then childWriteRank = parentRank end
    end
-   local childComm = Mpi.Comm_split(self:commSet().comm, childRank, parentRank)
+   local childComm = Mpi.Comm_split(self:commSet().host, childRank, parentRank)
 
    return childComm, childWriteRank, childCuts
 end

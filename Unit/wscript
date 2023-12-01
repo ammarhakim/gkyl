@@ -6,20 +6,4 @@
 import os
 
 def build(bld):
-    # CUDA specific code
-    if bld.env['CUTOOLS_FOUND']:
-        bld(source = 'test_SimpleKernel.cpp',
-            name = 'unit_cu', target='unit_cu',
-            includes='../Grid ../Lib ../Basis ../DataStruct ../Cuda', features='cxx nvcc cushlib'
-        )
-
-    bld.shlib(source = 'test_cfuncs.cpp', includes = '.',
-              name = 'unit',
-              vnum = '1.0',
-              target = 'unit', features='cxx')
-
-#    bld.program(
-#        source = 'ctest_ForwardDiff.cxx',
-#        target = 'ctest_ForwardDiff',
-#        includes = '../Lib .'
-#    )
+    pass
