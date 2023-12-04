@@ -154,7 +154,7 @@ function Ionization:init(tbl)
    return self
 end
 
-function Ionization:advance(tCurr, inFld, outFld)
+function Ionization:_advance(tCurr, inFld, outFld)
 
    local momsElc = assert(inFld[1], "Ionization.advance: Must pass input momsElc")
    local momsDonor = assert(inFld[2], "Ionization.advance: Must pass input momsDonor")
@@ -167,6 +167,22 @@ function Ionization:advance(tCurr, inFld, outFld)
    local cflRateByCell = assert(outFld[2], "Ionization.advance: Must pass cflRate field in output table")
    
    ffiC.gkyl_dg_iz_coll(self._zero, momsElc._zero, momsDonor._zero, bmag._zero, jacobTot._zero, b_i._zero, distfSelf._zero, collIz._zero, cflRateByCell._zero)
+
+end
+
+function Ionization:_advanceOnDevice(tCurr, inFld, outFld)
+
+   local momsElc = assert(inFld[1], "Ionization.advance: Must pass input momsElc")
+   local momsDonor = assert(inFld[2], "Ionization.advance: Must pass input momsDonor")
+   local bmag = assert(inFld[3], "Ionization.advance: Must pass input bmag")
+   local jacobTot = assert(inFld[4], "Ionization.advance: Must pass input jacobTot")
+   local b_i = assert(inFld[5], "Ionization.advance: Must pass input b_i")
+   local distfSelf = assert(inFld[6], "Ionization.advance: Must pass input distfSelf")
+   
+   local collIz  = assert(outFld[1], "Ionization.advance: Must specifiy output field collIz")
+   local cflRateByCell = assert(outFld[2], "Ionization.advance: Must pass cflRate field in output table")
+   
+   ffiC.gkyl_dg_iz_coll(self._zero, momsElc._zeroDevice, momsDonor._zeroDevice, bmag._zeroDevice, jacobTot._zeroDevice, b_i._zeroDevice, distfSelf._zeroDevice, collIz._zeroDevice, cflRateByCell._zeroDevice)
 
 end
 

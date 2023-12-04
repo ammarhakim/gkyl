@@ -159,7 +159,7 @@ function Recombination:init(tbl)
    return self
 end
 
-function Recombination:advance(tCurr, inFld, outFld)
+function Recombination:_advance(tCurr, inFld, outFld)
 
    local momsElc = assert(inFld[1], "Recombination.advance: Must pass input momsElc")
    local momsIon = assert(inFld[2], "Recombination.advance: Must pass input momsIon")
@@ -172,6 +172,22 @@ function Recombination:advance(tCurr, inFld, outFld)
    local cflRateByCell = assert(outFld[2], "Recombination.advance: Must pass cflRate field in output table")
    
    ffiC.gkyl_dg_recomb_coll(self._zero, momsElc._zero, momsIon._zero, bmag._zero, jacobTot._zero, b_i._zero, distfSelf._zero, collRecomb._zero, cflRateByCell._zero)
+
+end
+
+function Recombination:_advanceOnDevice(tCurr, inFld, outFld)
+
+   local momsElc = assert(inFld[1], "Recombination.advance: Must pass input momsElc")
+   local momsIon = assert(inFld[2], "Recombination.advance: Must pass input momsIon")
+   local bmag = assert(inFld[3], "Recombination.advance: Must pass input bmag")
+   local jacobTot = assert(inFld[4], "Recombination.advance: Must pass input jacobTot")
+   local b_i = assert(inFld[5], "Recombination.advance: Must pass input b_i") -- check geo fields...
+   local distfSelf = assert(inFld[6], "Recombination.advance: Must pass input distfSelf")
+   
+   local collRecomb  = assert(outFld[1], "Recombination.advance: Must specifiy output field collRecom")
+   local cflRateByCell = assert(outFld[2], "Recombination.advance: Must pass cflRate field in output table")
+   
+   ffiC.gkyl_dg_recomb_coll(self._zero, momsElc._zeroDevice, momsIon._zeroDevice, bmag._zeroDevice, jacobTot._zeroDevice, b_i._zeroDevice, distfSelf._zeroDevice, collRecomb._zeroDevice, cflRateByCell._zeroDevice)
 
 end
 
