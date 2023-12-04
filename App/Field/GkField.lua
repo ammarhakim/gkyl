@@ -1328,7 +1328,7 @@ function GkGeometry:write(tm)
    -- Not evolving geometry, so only write geometry at beginning.
    if self.ioFrame == 0 then
       -- Write the geometry quantities to a file.
-      for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
+      for _, v in ipairs({{"%d",self.writeGhost},{"restart",true}}) do
          self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
             jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
             cmag=self.geo.cmag, b_x=self.geo.b_x, b_y=self.geo.b_y, b_z=self.geo.b_z, b_i=self.geo.b_i, gxx=self.geo.gxx,
