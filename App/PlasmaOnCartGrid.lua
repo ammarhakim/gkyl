@@ -115,6 +115,7 @@ local function buildApplication(self, tbl)
    local rzBasis
    local rzPolyOrder
    local rzBasisNm
+   local fBasis
    if tbl.hasRZ then
       rzBasisNm = tbl.rzBasis and tbl.rzBasis or "serendipity"
       if rzBasisNm ~= "serendipity" and rzBasisNm ~= "maximal-order" and rzBasisNm ~= "tensor" then
@@ -122,6 +123,7 @@ local function buildApplication(self, tbl)
       end
       rzPolyOrder = assert(tbl.rzPolyOrder, "Must specify polynomial order in 'polyOrder'.")
       rzBasis = createBasis(rzBasisNm, 2, rzPolyOrder)
+      fBasis = createBasis(rzBasisNm, 1, 1)
    end
 
 
@@ -273,7 +275,7 @@ local function buildApplication(self, tbl)
    local function completeExtFieldSetup(fld, plasmaField)
       fld:fullInit(tbl, plasmaField) -- Complete initialization.
       fld:setIoMethod(ioMethod)
-      fld:setBasis(confBasis, rzBasis)
+      fld:setBasis(confBasis, rzBasis, fBasis)
       fld:setGrid(confGrid, rzGrid, tbl.efitFile)
       do
 	 local myCfl = tbl.cfl and tbl.cfl or cflFrac

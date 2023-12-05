@@ -1118,11 +1118,15 @@ function GkGeometry:setGrid(grid, rzGrid, efitFile)
    end
    if efitFile then 
       -- do grid and stuff from efit
+      print("init efit updater")
       self.EfitUpdater = Updater.Efit{
          efitFile = efitFile,
          rzBasis = self.rzBasis,
+         fBasis = self.fBasis,
       }
+      print("did init efit updater")
       self.rzGrid = self.EfitUpdater:getRZGrid()
+      self.fGrid = self.EfitUpdater:getfGrid()
       local lower = self.rzGrid._lower
       local upper = self.rzGrid._upper
 
@@ -1177,9 +1181,10 @@ function GkGeometry:setGrid(grid, rzGrid, efitFile)
    end
 end
 
-function GkGeometry:setBasis(basis, rzBasis)
+function GkGeometry:setBasis(basis, rzBasis, fBasis)
    self.basis = basis 
    self.rzBasis = rzBasis 
+   self.fBasis = fBasis
    if self.basis:ndim() < 3 then
       self.augmented = true
       print("is augmented")
@@ -1257,6 +1262,8 @@ function GkGeometry:alloc()
       self.geo.psibyrRZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
       self.geo.psibyr2RZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
       self.geo.bphiRZ = createField(self.rzGrid, self.rzBasis, ghostNum, 1, syncPeriodic)
+      self.geo.fpol = createField(self.fGrid, self.fBasis, ghostNum, 1, syncPeriodic)
+      self.geo.qFlux = createField(self.fGrid, self.fBasis, ghostNum, 1, syncPeriodic)
    end
    self.geo.mapc2pField = createField(self.grid, self.basis, ghostNum, 3, true)
    self.geo.gFld = createField(self.grid,self.basis,ghostNum,6,syncPeriodic)
@@ -1425,9 +1432,13 @@ function GkGeometry:initField(population)
             psibyr2eval:advance(0.0, {}, {self.geo.psibyr2RZ})
          else
 
-         self.EfitUpdater:advance(0, {}, {self.geo.psiRZ, self.geo.psibyrRZ, self.geo.psibyr2RZ})
+         print("advanceing efit updater")
+         self.EfitUpdater:advance(0, {}, {self.geo.psiRZ, self.geo.psibyrRZ, self.geo.psibyr2RZ, self.geo.fpol, self.geo.qFlux})
+         print("Finished advanceing efit updater")
          self.rzLocalRange = self.geo.psiRZ:localRange()
          self.rzLocalRangeExt = self.geo.psiRZ:localExtRange()
+         self.fLocalRange = self.geo.fpol:localRange()
+         self.fLocalRangeExt = self.geo.fpol:localExtRange()
          end
          local bphieval = Updater.EvalOnNodes {
             onGrid = self.rzGrid,   evaluate = self.bphifunc,
@@ -1479,17 +1490,24 @@ function GkGeometry:initField(population)
       self.GeoUpdater = Updater.GeometryGyrokinetic{
          grid = self.augmentedGrid,
          rzGrid = self.rzGrid,
+         fGrid = self.fGrid,
          basis = self.augmentedBasis,
          rzBasis = self.rzBasis,
+         fBasis = self.fBasis,
          localRange = self.augmentedLocalRange,
          localRangeExt = self.augmentedLocalRangeExt,
          rzLocalRange = self.rzLocalRange,
          rzLocalRangeExt = self.rzLocalRangeExt,
+         fLocalRange = self.fLocalRange,
+         fLocalRangeExt = self.fLocalRangeExt,
          B0 = self.B0 or self.EfitUpdater.B0,
          R0 = self.R0 or self.EfitUpdater.R0,
+         psiSep = self.psiSep or self.EfitUpdater.psiSep,
          --B0 = nil and (self.B0 or self.EfitUpdater.B0),
          --R0 = nil and (self.R0 or self.EfitUpdater.R0),
          psiRZ = self.geo.psiRZ,
+         fpol = self.geo.fpol,
+         qFlux = self.geo.qFlux,
          calcGeom = self.rzGrid,
          calcBmag = self.rzGrid,
          zmin = self.zmin,
@@ -1497,7 +1515,7 @@ function GkGeometry:initField(population)
          rclose = self.rclose
       }
 
-      self.GeoUpdater:advance(0.0, {self.geo.psiRZ, self.geo.psibyrRZ, self.geo.psibyr2RZ, self.geo.bphiRZ}, {self.augmentedGeo.mapc2pField, self.augmentedGeo.gFld, self.augmentedGeo.jacobGeo, self.augmentedGeo.jacobGeoInv, self.augmentedGeo.jacobTot, self.augmentedGeo.jacobTotInv, self.augmentedGeo.bmagInv, self.augmentedGeo.bmagInvSq, self.augmentedGeo.gxxJ, self.augmentedGeo.gxyJ, self.augmentedGeo.gyyJ, self.augmentedGeo.grFld, self.augmentedGeo.b_i, self.augmentedGeo.cmag, self.augmentedGeo.bmag})
+      self.GeoUpdater:advance(0.0, {self.geo.psiRZ, self.geo.psibyrRZ, self.geo.psibyr2RZ, self.geo.bphiRZ, self.geo.fpol}, {self.augmentedGeo.mapc2pField, self.augmentedGeo.gFld, self.augmentedGeo.jacobGeo, self.augmentedGeo.jacobGeoInv, self.augmentedGeo.jacobTot, self.augmentedGeo.jacobTotInv, self.augmentedGeo.bmagInv, self.augmentedGeo.bmagInvSq, self.augmentedGeo.gxxJ, self.augmentedGeo.gxyJ, self.augmentedGeo.gyyJ, self.augmentedGeo.grFld, self.augmentedGeo.b_i, self.augmentedGeo.cmag, self.augmentedGeo.bmag})
 
 
       if self.augmented then

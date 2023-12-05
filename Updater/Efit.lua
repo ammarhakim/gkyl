@@ -24,7 +24,7 @@ typedef struct gkyl_efit gkyl_efit;
 struct gkyl_efit{
   const struct gkyl_basis *rzbasis;
   bool use_gpu;
-  char* filepath;
+  const char* filepath;
   int nr, nz;
   double rdim, zdim, rcentr, rleft, zmid, rmaxis, zmaxis, simag, sibry, bcentr, current, xdum;
   double rmin, rmax, zmin, zmax;
@@ -32,6 +32,12 @@ struct gkyl_efit{
   double *rzupper;
   int *rzcells;
   int *rzghost;
+
+  const struct gkyl_basis *fluxbasis;
+  double *fluxlower;
+  double *fluxupper;
+  int *fluxcells;
+  int *fluxghost;
 };
 
 
@@ -44,20 +50,22 @@ struct gkyl_efit{
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_efit* gkyl_efit_new(const char *filepath, const struct gkyl_basis *rzbasis, bool use_gpu);
+gkyl_efit* gkyl_efit_new(const char *filepath, const struct gkyl_basis *rzbasis, const struct gkyl_basis *fluxbasis, bool use_gpu);
 
 
 
 /**
  * Project psi, psi/R, psi/R^2
  *
- * @param psi gkyl_array to be filled
+ * @param rzbasis Basis object 
+ * @param rz grid to be filled from efit
+ * @param use_gpu boolean indicating whether to use the GPU.
+ * @return New updater pointer.
  */
 
-void gkyl_efit_advance(gkyl_efit* up, struct gkyl_rect_grid* rzgrid, struct gkyl_range* rzlocal, struct gkyl_range* rzlocal_ext, struct gkyl_array* psizr, struct gkyl_array* psibyrzr,struct gkyl_array* psibyr2zr);
+void gkyl_efit_advance(gkyl_efit* up, struct gkyl_rect_grid* rzgrid, struct gkyl_rect_grid* fluxgrid, struct gkyl_range* rzlocal, struct gkyl_range* rzlocal_ext, struct gkyl_array* psizr, struct gkyl_array* psibyrzr,struct gkyl_array* psibyr2zr, struct gkyl_range* fluxlocal, struct gkyl_range* fluxlocal_ext, struct gkyl_array* fpolflux, struct gkyl_array* qflux);
 
 void gkyl_efit_release(gkyl_efit* up);
-
 ]]
 
 -- Boundary condition updater.
@@ -83,8 +91,9 @@ function Efit:init(tbl)
    Efit.super.init(self, tbl) -- Setup base object.
    self.efitFile = tbl.efitFile
    self.rzBasis = tbl.rzBasis
+   self.fBasis = tbl.fBasis
 
-   self._zero = ffi.gc(ffiC.gkyl_efit_new(self.efitFile, self.rzBasis._zero, false), ffiC.gkyl_efit_release)
+   self._zero = ffi.gc(ffiC.gkyl_efit_new(self.efitFile, self.rzBasis._zero, self.fBasis._zero, false), ffiC.gkyl_efit_release)
 
    self.rzCells = {}
    self.rzLower = {}
@@ -107,21 +116,43 @@ function Efit:init(tbl)
       cells = self.rzCells,
    }
 
-   local lower = self.rzGrid._lower
-   local upper = self.rzGrid._upper
-
-
    local psiRZ = createField(self.rzGrid, self.rzBasis, self.rzGhost, 1, false)
    self.rzLocalRange = psiRZ:localRange()
    self.rzLocalRangeExt = psiRZ:localExtRange()
 
+   self.fCells = {}
+   self.fLower = {}
+   self.fUpper = {}
+   self.fGhost = {}
+
+   self.fCells[1] = self._zero.fluxcells[0]
+   self.fLower[1] = self._zero.fluxlower[0]
+   self.fUpper[1] = self._zero.fluxupper[0]
+   self.fGhost[1] = self._zero.fluxghost[0]
+   self.fGhost[2] = self._zero.fluxghost[1]
+
+   self.fGrid = Grid.RectCart{
+      lower = self.fLower,
+      upper = self.fUpper,
+      cells = self.fCells,
+   }
+
+   local fpol = createField(self.fGrid, self.fBasis, self.fGhost, 1, false)
+   self.fLocalRange = fpol:localRange()
+   self.fLocalRangeExt = fpol:localExtRange()
+
    self.B0 = self._zero.bcentr
    self.R0 = self._zero.rcentr
+   self.psiSep = self._zero.sibry
 
 end
 
 function Efit:getRZGrid()
    return self.rzGrid
+end
+
+function Efit:getfGrid()
+   return self.fGrid
 end
 
 function Efit:bphifunc(t,xn)
@@ -130,8 +161,8 @@ function Efit:bphifunc(t,xn)
 end
 
 function Efit:_advance(tCurr, inFlds, outFlds)
-   local psiRZ, psibyrRZ, psibyr2RZ = outFlds[1], outFlds[2], outFlds[3]
-   ffiC.gkyl_efit_advance( self._zero, self.rzGrid._zero, self.rzLocalRange, self.rzLocalRangeExt, psiRZ._zero, psibyrRZ._zero, psibyr2RZ._zero)
+   local psiRZ, psibyrRZ, psibyr2RZ, fpol, qflux = outFlds[1], outFlds[2], outFlds[3], outFlds[4], outFlds[5]
+   ffiC.gkyl_efit_advance( self._zero, self.rzGrid._zero, self.fGrid._zero, self.rzLocalRange, self.rzLocalRangeExt, psiRZ._zero, psibyrRZ._zero, psibyr2RZ._zero, self.fLocalRange, self.fLocalRangeExt, fpol._zero, qflux._zero)
 end
 
 return Efit
