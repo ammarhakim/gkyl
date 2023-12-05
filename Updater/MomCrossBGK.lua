@@ -74,12 +74,6 @@ function MomCrossBGK:init(tbl)
    
    self._useGPU = xsys.pickBool(tbl.useDevice, GKYL_USE_GPU or false)
   
-   --self.beta   = tbl.beta
-   --self.mass_s = tbl.mass_s
-   --self.mass_r = tbl.mass_r
-   --self.nu_sr  = tbl.nu_sr
-   --self.nu_rs  = tbl.nu_rs
- 
    self._zero = ffi.gc(ffiC.gkyl_mom_cross_bgk_gyrokinetic_new(phaseBasis._zero, confBasis._zero, self._useGPU), ffiC.gkyl_mom_cross_bgk_gyrokinetic_release)
 end
 
@@ -95,7 +89,6 @@ function MomCrossBGK:_advance(tCurr, inFld, outFld)
 
    local confRange = moms_cross:localRange() 
 
-   --ffiC.gkyl_mom_cross_bgk_gyrokinetic_advance(self._zero, confRange, self.beta, self.mass_s, moms_s._zero, self.mass_r, moms_r._zero, self.nu_sr, self.nu_rs, moms_cross._zero)
    ffiC.gkyl_mom_cross_bgk_gyrokinetic_advance(self._zero, confRange, beta, mass_s, moms_s._zero, mass_r, moms_r._zero, nu_sr._zero, nu_rs._zero, moms_cross._zero)
 end
 --[[
