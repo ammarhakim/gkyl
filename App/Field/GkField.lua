@@ -1486,36 +1486,48 @@ function GkGeometry:initField(population)
       end
 
 
+      if self.rzGrid then
+         self.GeoUpdater = Updater.GeometryGyrokinetic{
+            grid = self.augmentedGrid,
+            rzGrid = self.rzGrid,
+            fGrid = self.fGrid,
+            basis = self.augmentedBasis,
+            rzBasis = self.rzBasis,
+            fBasis = self.fBasis,
+            localRange = self.augmentedLocalRange,
+            localRangeExt = self.augmentedLocalRangeExt,
+            rzLocalRange = self.rzLocalRange,
+            rzLocalRangeExt = self.rzLocalRangeExt,
+            fLocalRange = self.fLocalRange,
+            fLocalRangeExt = self.fLocalRangeExt,
+            B0 = self.B0 or self.EfitUpdater.B0,
+            R0 = self.R0 or self.EfitUpdater.R0,
+            psiSep = self.psiSep or self.EfitUpdater.psiSep,
+            --B0 = nil and (self.B0 or self.EfitUpdater.B0),
+            --R0 = nil and (self.R0 or self.EfitUpdater.R0),
+            psiRZ = self.geo.psiRZ,
+            fpol = self.geo.fpol,
+            qFlux = self.geo.qFlux,
+            calcGeom = self.rzGrid,
+            calcBmag = self.rzGrid,
+            zmin = self.zmin,
+            zmax = self.zmax,
+            rclose = self.rclose
+         }
+         self.GeoUpdater:advance(0.0, {self.geo.psiRZ, self.geo.psibyrRZ, self.geo.psibyr2RZ, self.geo.bphiRZ, self.geo.fpol}, {self.augmentedGeo.mapc2pField, self.augmentedGeo.gFld, self.augmentedGeo.jacobGeo, self.augmentedGeo.jacobGeoInv, self.augmentedGeo.jacobTot, self.augmentedGeo.jacobTotInv, self.augmentedGeo.bmagInv, self.augmentedGeo.bmagInvSq, self.augmentedGeo.gxxJ, self.augmentedGeo.gxyJ, self.augmentedGeo.gyyJ, self.augmentedGeo.grFld, self.augmentedGeo.b_i, self.augmentedGeo.cmag, self.augmentedGeo.bmag})
+      else
+         print("Making the simple geo updaer")
+         self.GeoUpdater = Updater.SimpleGeo{
+            grid = self.augmentedGrid,
+            basis = self.augmentedBasis,
+            localRange = self.augmentedLocalRange,
+            localRangeExt = self.augmentedLocalRangeExt,
+         }
+         print("Made it, going to advance simple geo")
+         self.GeoUpdater:advance(0.0, {}, {self.augmentedGeo.mapc2pField, self.augmentedGeo.gFld, self.augmentedGeo.jacobGeo, self.augmentedGeo.jacobGeoInv, self.augmentedGeo.jacobTot, self.augmentedGeo.jacobTotInv, self.augmentedGeo.bmagInv, self.augmentedGeo.bmagInvSq, self.augmentedGeo.gxxJ, self.augmentedGeo.gxyJ, self.augmentedGeo.gyyJ, self.augmentedGeo.grFld, self.augmentedGeo.b_i, self.augmentedGeo.cmag, self.augmentedGeo.bmag})
+      end
 
-      self.GeoUpdater = Updater.GeometryGyrokinetic{
-         grid = self.augmentedGrid,
-         rzGrid = self.rzGrid,
-         fGrid = self.fGrid,
-         basis = self.augmentedBasis,
-         rzBasis = self.rzBasis,
-         fBasis = self.fBasis,
-         localRange = self.augmentedLocalRange,
-         localRangeExt = self.augmentedLocalRangeExt,
-         rzLocalRange = self.rzLocalRange,
-         rzLocalRangeExt = self.rzLocalRangeExt,
-         fLocalRange = self.fLocalRange,
-         fLocalRangeExt = self.fLocalRangeExt,
-         B0 = self.B0 or self.EfitUpdater.B0,
-         R0 = self.R0 or self.EfitUpdater.R0,
-         psiSep = self.psiSep or self.EfitUpdater.psiSep,
-         --B0 = nil and (self.B0 or self.EfitUpdater.B0),
-         --R0 = nil and (self.R0 or self.EfitUpdater.R0),
-         psiRZ = self.geo.psiRZ,
-         fpol = self.geo.fpol,
-         qFlux = self.geo.qFlux,
-         calcGeom = self.rzGrid,
-         calcBmag = self.rzGrid,
-         zmin = self.zmin,
-         zmax = self.zmax,
-         rclose = self.rclose
-      }
 
-      self.GeoUpdater:advance(0.0, {self.geo.psiRZ, self.geo.psibyrRZ, self.geo.psibyr2RZ, self.geo.bphiRZ, self.geo.fpol}, {self.augmentedGeo.mapc2pField, self.augmentedGeo.gFld, self.augmentedGeo.jacobGeo, self.augmentedGeo.jacobGeoInv, self.augmentedGeo.jacobTot, self.augmentedGeo.jacobTotInv, self.augmentedGeo.bmagInv, self.augmentedGeo.bmagInvSq, self.augmentedGeo.gxxJ, self.augmentedGeo.gxyJ, self.augmentedGeo.gyyJ, self.augmentedGeo.grFld, self.augmentedGeo.b_i, self.augmentedGeo.cmag, self.augmentedGeo.bmag})
 
 
       if self.augmented then

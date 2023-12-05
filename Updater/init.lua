@@ -72,6 +72,7 @@ local BraginskiiViscosityDiffusion = require "Updater.BraginskiiViscosityDiffusi
 local AnisotropicDiffusion = require "Updater.AnisotropicDiffusion"
 local GeometryGyrokinetic = require "Updater.GeometryGyrokinetic"
 local GeometryDeflate = require "Updater.GeometryDeflate"
+local SimpleGeo = require "Updater.SimpleGeo"
 local Efit = require "Updater.Efit"
 
 return {
@@ -141,5 +142,6 @@ return {
    AnisotropicDiffusion = AnisotropicDiffusion,
    GeometryGyrokinetic = GeometryGyrokinetic,
    GeometryDeflate = GeometryDeflate,
+   SimpleGeo = SimpleGeo,
    Efit = Efit,
 }
