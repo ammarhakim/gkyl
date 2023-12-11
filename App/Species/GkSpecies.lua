@@ -532,14 +532,21 @@ function GkSpecies:createSolver(field, externalField)
 --      end
 
       -- Boundary flux updater.
-      self.boundaryFluxSlvr = Updater.BoundaryFluxCalc {
-         onGrid = self.grid,  equation    = self.solver:getEquation(),
-         cdim   = self.cdim,  equation_id = "gyrokinetic",
-      }
-      self.collisionlessBoundaryAdvance = function(tCurr, inFlds, outFlds)
-         local tmStart = Time.clock()
-         self.boundaryFluxSlvr:advance(tCurr, inFlds, outFlds)
-         self.timers.boundflux = self.timers.boundflux + Time.clock() - tmStart
+      self.collisionlessBoundaryAdvance = function(tCurr, inFlds, outFlds) end
+      local hasNonPeriodicBCs = false
+      for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
+         hasNonPeriodicBCs = true;   break
+      end
+      if hasNonPeriodicBCs then
+         self.boundaryFluxSlvr = Updater.BoundaryFluxCalc {
+            onGrid = self.grid,  equation    = self.solver:getEquation(),
+            cdim   = self.cdim,  equation_id = "gyrokinetic",
+         }
+         self.collisionlessBoundaryAdvance = function(tCurr, inFlds, outFlds)
+            local tmStart = Time.clock()
+            self.boundaryFluxSlvr:advance(tCurr, inFlds, outFlds)
+            self.timers.boundflux = self.timers.boundflux + Time.clock() - tmStart
+         end
       end
 
    else

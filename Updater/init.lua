@@ -62,6 +62,7 @@ local TenMomentSrc = require "Updater.TenMomentSrc"
 local TwistShiftBC = require "Updater.TwistShiftBC"
 local WavePropagation = require "Updater.WavePropagation"
 local VlasovDG = require "Updater.VlasovDG"
+local VlasovPoissonDG = require "Updater.VlasovPoissonDG"
 local VlasovLBO = require "Updater.VlasovLBO"
 local AxisymmetricFiveMomentSrc = require "Updater.AxisymmetricFiveMomentSrc"
 local AxisymmetricPhMaxwellSrc = require "Updater.AxisymmetricPhMaxwellSrc"
@@ -127,6 +128,7 @@ return {
    TwistShiftBC = TwistShiftBC,
    WavePropagation = WavePropagation,
    VlasovDG = VlasovDG,
+   VlasovPoissonDG = VlasovPoissonDG,
    VlasovLBO = VlasovLBO,
    AxisymmetricFiveMomentSrc = AxisymmetricFiveMomentSrc,
    AxisymmetricPhMaxwellSrc = AxisymmetricPhMaxwellSrc,

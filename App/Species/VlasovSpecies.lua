@@ -99,10 +99,8 @@ function VlasovSpecies:alloc(nRkDup)
    self.distIo = AdiosCartFieldIo {
       elemType   = self.distf[1]:elemType(),
       writeGhost = self.writeGhost,
-      metaData   = {polyOrder = self.basis:polyOrder(),
-                    basisType = self.basis:id(),
-                    charge    = self.charge,
-                    mass      = self.mass,
+      metaData   = {polyOrder = self.basis:polyOrder(),  charge = self.charge,
+                    basisType = self.basis:id(),         mass   = self.mass,
                     grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"},
    }
 
@@ -135,6 +133,12 @@ function VlasovSpecies:alloc(nRkDup)
    self.V_drift = self:allocVectorMoment(self.vdim)
    self.GammaV2 = self:allocMoment()
    self.GammaV_inv = self:allocMoment()
+
+   if self.tbl.mapc2p then
+      -- Velocity space mapc2p.
+      self.vel_mapc2p = self:allocVectorVelMoment(self.vdim)
+      self.nonUniformV = true
+   end
 end
 
 -- Actual function for initialization. This indirection is needed as
@@ -153,7 +157,6 @@ function VlasovSpecies:fullInit(appTbl)
 
    assert(#self.lower == self.vdim, "'lower' must have " .. self.vdim .. " entries")
    assert(#self.upper == self.vdim, "'upper' must have " .. self.vdim .. " entries")
-   self.coordinateMap = tbl.coordinateMap
 
    local nFrame = tbl.nDiagnosticFrame and tbl.nDiagnosticFrame or appTbl.nFrame
    -- Create triggers to write distribution functions and moments.
@@ -340,42 +343,10 @@ function VlasovSpecies:createGrid(confGridIn)
       table.insert(cells, self.cells[d])
    end
 
-   local GridConstructor = Grid.RectCart
-   local coordinateMap = {} -- Table of functions
-   -- Construct comp -> phys mappings if they exist
-   if self.coordinateMap or confGrid:getMappings() then
-      if confGrid:getMappings() and self.coordinateMap then
-         for d = 1, self.cdim do
-            lower[d], upper[d] = confGrid:logicalLower(d), confGrid:logicalUpper(d)
-            table.insert(coordinateMap, confGrid:getMappings(d))
-         end
-         for d = 1, self.vdim do
-            table.insert(coordinateMap, self.coordinateMap[d])
-         end
-      elseif confGrid:getMappings() then
-         for d = 1, self.cdim do
-            lower[d], upper[d] = confGrid:logicalLower(d), confGrid:logicalUpper(d)
-            table.insert(coordinateMap, confGrid:getMappings(d))
-         end
-         for d = 1, self.vdim do
-            table.insert(coordinateMap, function (z) return z end)
-         end
-      else
-         for d = 1, self.cdim do
-            table.insert(coordinateMap, function (z) return z end)
-         end
-         for d = 1, self.vdim do
-            table.insert(coordinateMap, self.coordinateMap[d])
-         end
-      end
-      GridConstructor = Grid.NonUniformRectCart
-   end
-
-   self.grid = GridConstructor {
-      lower     = lower,  periodicDirs  = confGrid:getPeriodicDirs(),
-      upper     = upper,  decomposition = self.decomp,
-      cells     = cells,  mappings      = coordinateMap,
-      messenger = msn,
+   self.grid = Grid.RectCart {
+      lower = lower,  periodicDirs  = confGrid:getPeriodicDirs(),
+      upper = upper,  decomposition = self.decomp,
+      cells = cells,  messenger     = msn,
    }
 
    for _, c in lume.orderedIter(self.collisions) do c:setPhaseGrid(self.grid) end
@@ -384,7 +355,7 @@ function VlasovSpecies:createGrid(confGridIn)
    local dimsV = {}
    for d = 1, self.vdim do table.insert(dimsV, self.cdim+d) end
    local velGridIngr = self.grid:childGrid(dimsV)
-   self.velGrid = GridConstructor {
+   self.velGrid = Grid.RectCart {
       lower = velGridIngr.lower,  periodicDirs  = velGridIngr.periodicDirs,
       upper = velGridIngr.upper,  decomposition = velGridIngr.decomposition,
       cells = velGridIngr.cells,      
@@ -402,40 +373,30 @@ function VlasovSpecies:allocCartField(grid,nComp,ghosts,metaData)
    return f
 end
 function VlasovSpecies:allocDistf()
-   local metaData = {polyOrder = self.basis:polyOrder(),
-                     basisType = self.basis:id(),
-                     charge    = self.charge,
-                     mass      = self.mass,
+   local metaData = {polyOrder = self.basis:polyOrder(),  charge = self.charge,
+                     basisType = self.basis:id(),         mass   = self.mass,
                      grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"}
    return self:allocCartField(self.grid,self.basis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 function VlasovSpecies:allocMoment()
-   local metaData = {polyOrder = self.confBasis:polyOrder(),
-                     basisType = self.confBasis:id(),
-                     charge    = self.charge,
-                     mass      = self.mass,}
+   local metaData = {polyOrder = self.confBasis:polyOrder(),  charge = self.charge,
+                     basisType = self.confBasis:id(),         mass   = self.mass,}
    return self:allocCartField(self.confGrid,self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 function VlasovSpecies:allocVectorMoment(dim)
-   local metaData = {polyOrder = self.confBasis:polyOrder(),
-                     basisType = self.confBasis:id(),
-                     charge    = self.charge,
-                     mass      = self.mass,}
+   local metaData = {polyOrder = self.confBasis:polyOrder(),  charge = self.charge,
+                     basisType = self.confBasis:id(),         mass   = self.mass,}
    return self:allocCartField(self.confGrid,dim*self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 -- Velocity space arrays (no ghost cells in velocity space arrays)
 function VlasovSpecies:allocVelMoment()
-   local metaData = {polyOrder = self.velBasis:polyOrder(),
-                     basisType = self.velBasis:id(),
-                     charge    = self.charge,
-                     mass      = self.mass,}
+   local metaData = {polyOrder = self.velBasis:polyOrder(),  charge = self.charge,
+                     basisType = self.velBasis:id(),         mass   = self.mass,}
    return self:allocCartField(self.velGrid,self.velBasis:numBasis(),{0,0},metaData)
 end
 function VlasovSpecies:allocVectorVelMoment(dim)
-   local metaData = {polyOrder = self.velBasis:polyOrder(),
-                     basisType = self.velBasis:id(),
-                     charge    = self.charge,
-                     mass      = self.mass,}
+   local metaData = {polyOrder = self.velBasis:polyOrder(),  charge = self.charge,
+                     basisType = self.velBasis:id(),         mass   = self.mass,}
    return self:allocCartField(self.velGrid,dim*self.velBasis:numBasis(),{0,0},metaData)
 end
 function VlasovSpecies:allocIntMoment(comp)
@@ -513,6 +474,15 @@ function VlasovSpecies:createSolver(field, externalField)
 
    self.computePlasmaB = true and plasmaB or extHasB
 
+   if self.nonUniformV then
+      local projUpd = Updater.EvalOnNodes {
+         onGrid = self.velGrid,  onGhosts = false,
+         basis  = self.velBasis,
+         evaluate = function(t, xn) return self.tbl.mapc2p(xn) end,
+      }
+      projUpd:advance(0., {}, {self.vel_mapc2p})
+   end
+
    if self.model_id == "GKYL_MODEL_SR" then 
       -- Initialize velocity-space arrays for relativistic Vlasov
       -- Only need to do this once, so we don't need to store the updater
@@ -534,26 +504,44 @@ function VlasovSpecies:createSolver(field, externalField)
 
    -- Create updater to advance solution by one time-step.
    if self.evolveCollisionless then
-      self.solver = Updater.VlasovDG {
-         onGrid     = self.grid,       confRange    = self.totalEmField:localRange(),
-         confBasis  = self.confBasis,  velRange     = self.p_over_gamma:localRange(),
-         phaseBasis = self.basis,      phaseRange   = self.distf[1]:localRange(), 
-         model_id   = self.model_id,   field_id     = self.field_id,                 
-         fldPtrs    = self.fldPtrs,    zeroFluxDirs = self.zeroFluxDirections,
-      }
+      if self.model_id == "GKYL_MODEL_DEFAULT"
+         and (self.field_id == "GKYL_FIELD_PHI" or self.field_id == "GKYL_FIELD_PHI_A") then
+         self.solver = Updater.VlasovPoissonDG {
+            onGrid     = self.grid,       confRange    = self.totalEmField:localRange(),
+            confBasis  = self.confBasis,  velRange     = self.p_over_gamma:localRange(),
+            phaseBasis = self.basis,      velocityMap  = self.vel_mapc2p,
+            field_id   = self.field_id,                 
+            fldPtrs    = self.fldPtrs,    zeroFluxDirs = self.zeroFluxDirections,
+         }
+      else
+         self.solver = Updater.VlasovDG {
+            onGrid     = self.grid,       confRange    = self.totalEmField:localRange(),
+            confBasis  = self.confBasis,  velRange     = self.p_over_gamma:localRange(),
+            phaseBasis = self.basis,      phaseRange   = self.distf[1]:localRange(), 
+            model_id   = self.model_id,   field_id     = self.field_id,                 
+            fldPtrs    = self.fldPtrs,    zeroFluxDirs = self.zeroFluxDirections,
+         }
+      end
       self.collisionlessAdvance = function(tCurr, inFlds, outFlds)
          self.solver:advance(tCurr, inFlds, outFlds)
       end
 
       -- Boundary flux updater.
-      self.boundaryFluxSlvr = Updater.BoundaryFluxCalc {
-         onGrid = self.grid,  equation    = self.solver:getEquation(), 
-         cdim   = self.cdim,  equation_id = "vlasov",
-      }
-      self.collisionlessBoundaryAdvance = function(tCurr, inFlds, outFlds)
-         local tmStart = Time.clock()
-         self.boundaryFluxSlvr:advance(tCurr, inFlds, outFlds)
-         self.timers.boundflux = self.timers.boundflux + Time.clock() - tmStart
+      self.collisionlessBoundaryAdvance = function(tCurr, inFlds, outFlds) end
+      local hasNonPeriodicBCs = false
+      for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
+         hasNonPeriodicBCs = true;   break
+      end
+      if hasNonPeriodicBCs then
+         self.boundaryFluxSlvr = Updater.BoundaryFluxCalc {
+            onGrid = self.grid,  equation    = self.solver:getEquation(), 
+            cdim   = self.cdim,  equation_id = "vlasov",
+         }
+         self.collisionlessBoundaryAdvance = function(tCurr, inFlds, outFlds)
+            local tmStart = Time.clock()
+            self.boundaryFluxSlvr:advance(tCurr, inFlds, outFlds)
+            self.timers.boundflux = self.timers.boundflux + Time.clock() - tmStart
+         end
       end
    else
       self.solver = {totalTime = 0.}
