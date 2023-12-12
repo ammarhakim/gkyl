@@ -27,8 +27,8 @@ typedef struct gkyl_dg_updater_bflux_vlasov gkyl_dg_updater_bflux_vlasov;
 /**
  * Create new updater to compute the boundary flux contributions from
  * Vlasov equations. These are DG surface terms using hyper dg.
- * Supports Vlasov-Maxwell, Vlasov-Poisson (with and without vector potential A)
- * and special relativistic Vlasov-Maxwell
+ * Supports Vlasov-Maxwell, special relativistic Vlasov-Maxwell and
+ * neutral Vlasov.
  *
  * @param grid Grid object.
  * @param cdim Number of configuration space dimensions.
@@ -65,6 +65,52 @@ void gkyl_dg_updater_bflux_vlasov_advance_cu(gkyl_dg_updater_bflux_vlasov *up,
  * @param up Boundary flux updater.
  */
 void gkyl_dg_updater_bflux_vlasov_release(gkyl_dg_updater_bflux_vlasov* up);
+
+// Dependent object type
+typedef struct gkyl_dg_updater_vlasov_poisson gkyl_dg_updater_vlasov_poisson;
+
+// Object type
+typedef struct gkyl_dg_updater_bflux_vlasov_poisson gkyl_dg_updater_bflux_vlasov_poisson;
+
+/**
+ * Create new updater to compute the boundary flux contributions from
+ * Vlasov Poisson equations. These are DG surface terms using hyper dg.
+ *
+ * @param grid Grid object.
+ * @param cdim Number of configuration space dimensions.
+ * @param vlasov objects which performs the Vlasov-Poisson DG update.
+ * @param use_gpu Boolean to determine whether struct objects are on host or device
+ *
+ * @return New boundary flux updater object.
+ */
+struct gkyl_dg_updater_bflux_vlasov_poisson* gkyl_dg_updater_bflux_vlasov_poisson_new(const struct gkyl_rect_grid *grid,
+  int cdim, const gkyl_dg_updater_vlasov_poisson *vlasov, bool use_gpu);
+
+/**
+ * Compute RHS of DG update. The update_rng MUST be a sub-range of the
+ * range on which the array is defined. That is, it must be either the
+ * same range as the array range, or one created using the
+ * gkyl_sub_range_init method.
+ *
+ * @param up Boundary flux updater.
+ * @param update_rng Range on which to compute.
+ * @param fIn Input to updater.
+ * @param rhs RHS output.
+ */
+void gkyl_dg_updater_bflux_vlasov_poisson_advance(struct gkyl_dg_updater_bflux_vlasov_poisson *up,
+  const struct gkyl_range *update_rng,
+  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT rhs);
+
+void gkyl_dg_updater_bflux_vlasov_poisson_advance_cu(struct gkyl_dg_updater_bflux_vlasov_poisson *up,
+  const struct gkyl_range *update_rng,
+  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT rhs);
+
+/**
+ * Delete updater.
+ *
+ * @param up Boundary flux updater.
+ */
+void gkyl_dg_updater_bflux_vlasov_poisson_release(struct gkyl_dg_updater_bflux_vlasov_poisson *up);
 
 // Dependent object type
 typedef struct gkyl_dg_updater_gyrokinetic gkyl_dg_updater_gyrokinetic;
@@ -135,6 +181,15 @@ function BoundaryFluxCalc:init(tbl)
       end
       self._bfluxAdvanceOnDevice = function(updateRange, fIn, fOut)
          ffiC.gkyl_dg_updater_bflux_vlasov_advance_cu(self._zero, updateRange, fIn._zeroDevice, fOut._zeroDevice)
+      end
+   elseif equation_id == "vlasov_poisson" then
+      self._zero = ffi.gc(ffiC.gkyl_dg_updater_bflux_vlasov_poisson_new(grid._zero, cdim, equation, useGPU or 0),
+                          ffiC.gkyl_dg_updater_bflux_vlasov_poisson_release)
+      self._bfluxAdvance = function(updateRange, fIn, fOut)
+         ffiC.gkyl_dg_updater_bflux_vlasov_poisson_advance(self._zero, updateRange, fIn._zero, fOut._zero)
+      end
+      self._bfluxAdvanceOnDevice = function(updateRange, fIn, fOut)
+         ffiC.gkyl_dg_updater_bflux_vlasov_poisson_advance_cu(self._zero, updateRange, fIn._zeroDevice, fOut._zeroDevice)
       end
    elseif equation_id == "gyrokinetic" then
       self._zero = ffi.gc(ffiC.gkyl_dg_updater_bflux_gyrokinetic_new(grid._zero, cdim, equation, useGPU or 0),

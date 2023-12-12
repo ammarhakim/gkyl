@@ -504,8 +504,10 @@ function VlasovSpecies:createSolver(field, externalField)
 
    -- Create updater to advance solution by one time-step.
    if self.evolveCollisionless then
+      local eqnID = "vlasov"
       if self.model_id == "GKYL_MODEL_DEFAULT"
          and (self.field_id == "GKYL_FIELD_PHI" or self.field_id == "GKYL_FIELD_PHI_A") then
+         eqnID = "vlasov_poisson"
          self.solver = Updater.VlasovPoissonDG {
             onGrid     = self.grid,       confRange    = self.totalEmField:localRange(),
             confBasis  = self.confBasis,  velRange     = self.p_over_gamma:localRange(),
@@ -535,7 +537,7 @@ function VlasovSpecies:createSolver(field, externalField)
       if hasNonPeriodicBCs then
          self.boundaryFluxSlvr = Updater.BoundaryFluxCalc {
             onGrid = self.grid,  equation    = self.solver:getEquation(), 
-            cdim   = self.cdim,  equation_id = "vlasov",
+            cdim   = self.cdim,  equation_id = eqnID,
          }
          self.collisionlessBoundaryAdvance = function(tCurr, inFlds, outFlds)
             local tmStart = Time.clock()
