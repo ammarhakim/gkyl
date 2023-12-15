@@ -1,4 +1,3 @@
-module load python/3.11
 module load openmpi/5.0.0rc12
 module load cudatoolkit/12.0
 module load nccl/2.18.3-cu12

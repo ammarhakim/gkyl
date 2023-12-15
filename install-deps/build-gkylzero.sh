@@ -10,7 +10,7 @@ PREFIX=$GKYLSOFT/gkylzero
 # delete old checkout and builds
 rm -rf gkylzero
 
-git clone https://github.com/ammarhakim/gkylzero.git
+git clone -b neutrals_adas_ar https://github.com/ammarhakim/gkylzero.git
 cd gkylzero
 if [ "$MACHINE_NAME" = 'frontera' ]; then
     PREFIX=$GKYLSOFT ./machines/mkdeps.frontera.sh
