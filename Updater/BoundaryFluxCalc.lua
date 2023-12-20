@@ -99,11 +99,11 @@ struct gkyl_dg_updater_bflux_vlasov_poisson* gkyl_dg_updater_bflux_vlasov_poisso
  */
 void gkyl_dg_updater_bflux_vlasov_poisson_advance(struct gkyl_dg_updater_bflux_vlasov_poisson *up,
   const struct gkyl_range *update_rng,
-  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT rhs);
+  const struct gkyl_array* fIn, struct gkyl_array* rhs);
 
 void gkyl_dg_updater_bflux_vlasov_poisson_advance_cu(struct gkyl_dg_updater_bflux_vlasov_poisson *up,
   const struct gkyl_range *update_rng,
-  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT rhs);
+  const struct gkyl_array* fIn, struct gkyl_array* rhs);
 
 /**
  * Delete updater.
