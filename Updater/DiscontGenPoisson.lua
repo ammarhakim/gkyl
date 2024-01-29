@@ -48,7 +48,7 @@ function DiscontGenPoisson:init(tbl)
    assert(self.grid:ndim() == self.basis:ndim(),
           "Dimensions of basis and grid must match")
    assert(self.grid:ndim() == 2, "DiscontGenPoisson is currently implemented only for 2D")
-   
+
    self.ndim = self.grid:ndim()
    self.numBasis = self.basis:numBasis()
    local polyOrder = self.basis:polyOrder()
@@ -61,7 +61,7 @@ function DiscontGenPoisson:init(tbl)
    end
 
    local writeMatrix = xsys.pickBool(tbl.writeMatrix, false)
-   local use2cell = xsys.pickBool(tbl.use2cell, false)
+   local scheme = assert(tbl.scheme, "Updater.DiscontGenPoisson: Must specify basis a 'scheme'")
 
    -- Read boundary conditions
    assert(#tbl.bcLower == self.ndim, "Updater.DiscontGenPoisson: Must provide lower boundary conditions for all the dimesions using 'bcLower'")
@@ -118,48 +118,43 @@ function DiscontGenPoisson:init(tbl)
    local stiffMatrixRange = Range.Range(lower, upper)
    self.stiffMatrixIndexer = Range.makeRowMajorGenIndexer(stiffMatrixRange)
 
-   local use2cellStr = ""
-   if use2cell then
-      use2cellStr = "_2cell"
-   end
-   
    self._matrixFn = require(
       string.format(
-         "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_p%d",
-         use2cellStr, basisNm:lower(), self.ndim, polyOrder))
+         "Updater.discontGenPoissonData.dg_gen_poisson_%s_%s_%dx_p%d",
+         scheme, basisNm:lower(), self.ndim, polyOrder))
    self._matrixFn_T = require(
       string.format(
-         "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_T_p%d",
-         use2cellStr, basisNm:lower(), self.ndim, polyOrder))
+         "Updater.discontGenPoissonData.dg_gen_poisson_%s_%s_%dx_T_p%d",
+         scheme, basisNm:lower(), self.ndim, polyOrder))
    self._matrixFn_B = require(
       string.format(
-         "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_B_p%d",
-         use2cellStr, basisNm:lower(), self.ndim, polyOrder))
+         "Updater.discontGenPoissonData.dg_gen_poisson_%s_%s_%dx_B_p%d",
+         scheme, basisNm:lower(), self.ndim, polyOrder))
    self._matrixFn_L = require(
       string.format(
-         "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_L_p%d",
-         use2cellStr, basisNm:lower(), self.ndim, polyOrder))
+         "Updater.discontGenPoissonData.dg_gen_poisson_%s_%s_%dx_L_p%d",
+         scheme, basisNm:lower(), self.ndim, polyOrder))
    self._matrixFn_R = require(
       string.format(
-         "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_R_p%d",
-         use2cellStr, basisNm:lower(), self.ndim, polyOrder))
+         "Updater.discontGenPoissonData.dg_gen_poisson_%s_%s_%dx_R_p%d",
+         scheme, basisNm:lower(), self.ndim, polyOrder))
    self._matrixFn_TL = require(
       string.format(
-         "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_T_L_p%d",
-         use2cellStr, basisNm:lower(), self.ndim, polyOrder))
+         "Updater.discontGenPoissonData.dg_gen_poisson_%s_%s_%dx_T_L_p%d",
+         scheme, basisNm:lower(), self.ndim, polyOrder))
    self._matrixFn_TR = require(
       string.format(
-         "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_T_R_p%d",
-         use2cellStr, basisNm:lower(), self.ndim, polyOrder))
+         "Updater.discontGenPoissonData.dg_gen_poisson_%s_%s_%dx_T_R_p%d",
+         scheme, basisNm:lower(), self.ndim, polyOrder))
    self._matrixFn_BL = require(
       string.format(
-         "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_B_L_p%d",
-         use2cellStr, basisNm:lower(), self.ndim, polyOrder))
+         "Updater.discontGenPoissonData.dg_gen_poisson_%s_%s_%dx_B_L_p%d",
+         scheme, basisNm:lower(), self.ndim, polyOrder))
    self._matrixFn_BR = require(
       string.format(
-         "Updater.discontGenPoissonData.dg_poisson_anisotropic%s_%s_%dx_B_R_p%d",
-         use2cellStr, basisNm:lower(), self.ndim, polyOrder))
-   
+         "Updater.discontGenPoissonData.dg_gen_poisson_%s_%s_%dx_B_R_p%d",
+         scheme, basisNm:lower(), self.ndim, polyOrder))
+
    self.nnonzero = self.numBasis^2
    self.poisson = ffiC.new_DiscontPoisson(
       GKYL_OUT_PREFIX, self.ncell, self.ndim, self.numBasis,
@@ -190,7 +185,7 @@ function DiscontGenPoisson:getBlock(idxs)
    idxsB[1], idxsB[2] = idxs[1], idxs[2]-1
    idxsL[1], idxsL[2] = idxs[1]-1, idxs[2]
    idxsR[1], idxsR[2] = idxs[1]+1, idxs[2]
-   
+
    -- as we only use two-cell recovery for Dij only values in five
    -- face neighbors of cell idxs are needed
    local DxxCPtr = self.Dxx:get(indexer(idxs))
