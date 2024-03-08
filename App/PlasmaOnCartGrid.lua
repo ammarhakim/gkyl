@@ -334,10 +334,12 @@ local function buildApplication(self, tbl)
       else
          s:advance(0, population, {field, externalField}, 1, 2)
       end
-      s:applyBcInitial(0, field, externalField, 1, 1)
    end
    for _, s in population.iterGlobal() do
       s:advanceCrossSpeciesCoupling(0, population, {field, externalField}, 1, 2)
+   end
+   for _, s in population.iterGlobal() do
+      s:applyBcInitial(0, field, externalField, 1, 1)
    end
 
    -- Function to write data to file.
@@ -931,6 +933,7 @@ return {
          ReflectBC = require ("App.BCs.VlasovBasic").VlasovReflect,
          ZeroFluxBC = require ("App.BCs.VlasovBasic").VlasovZeroFlux,
          BronoldFehskeBC = require "App.BCs.BronoldFehskeReflection",
+         VlasovEmissionBC = require "App.BCs.VlasovEmission",
          -- Backwards compatible species and field objects
          Species = require ("App.Species.VlasovSpecies").VlasovMaxwell,
          FuncSpecies = require "App.Species.FuncVlasovSpecies",
