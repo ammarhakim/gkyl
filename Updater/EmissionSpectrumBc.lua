@@ -1,7 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Apply a basic boundary condition, in which the function in the ghost cell
--- is only a function of the skin cell next to it.
+-- Apply an emission boundary condition, in which the ghost cells are some
+-- emission spectrum function scaled by a flux-dependent normalization factor 
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -117,11 +117,11 @@ function EmissionSpectrumBc:init(tbl)
    self._gammaType  = assert(tbl.gammaType,
 			     "Updater.EmissionSpectrumBc: Must specify SEY model type in 'gammaType'.")
    self._bcParam  = assert(tbl.bcParam,
-      "Updater.EmissionSpectrumBc: Must specify BC type in 'bcType'.")
+      "Updater.EmissionSpectrumBc: Must specify BC params in 'bcParam'.")
    self._gammaParam  = assert(tbl.gammaParam,
-			     "Updater.EmissionSpectrumBc: Must specify SEY model type in 'gammaType'.")
+			     "Updater.EmissionSpectrumBc: Must specify SEY model params in 'gammaParam'.")
    local onGrid = assert(tbl.onGrid,
-      "Updater.EmissionSpectrumBc: Must specify the field we'll apply BCs to in 'onGrid'.")
+      "Updater.EmissionSpectrumBc: Must specify the grid we'll apply BCs to in 'onGrid'.")
    local onField = assert(tbl.onField,
       "Updater.EmissionSpectrumBc: Must specify the field we'll apply BCs to in 'onField'.")
 
@@ -167,11 +167,11 @@ end
 
 function EmissionSpectrumBc:_advance(tCurr, inFld, outFld)
    local fOther = assert(inFld[1],
-      "EmissionSpectrumBc.advance: Must-specify a buffer as large as the ghost cells for this BC.")
+      "EmissionSpectrumBc.advance: Must-specify impacting species distribution.")
    local param = assert(inFld[2],
       "EmissionSpectrumBc.advance: Must-specify BC params.")
    local fProj = assert(inFld[3],
-      "EmissionSpectrumBc.advance: Must-specify a buffer as large as the ghost cells for this BC.")
+      "EmissionSpectrumBc.advance: Must-specify projected emission spectrum.")
    local flux = assert(inFld[4],
       "EmissionSpectrumBc.advance: Must-specify flux.")
    local inGrid = assert(inFld[5],
@@ -179,11 +179,11 @@ function EmissionSpectrumBc:_advance(tCurr, inFld, outFld)
    local gamma = assert(inFld[6],
       "EmissionSpectrumBc.advance: Must-specify gamma.")
    local weight     = assert(outFld[1],
-      "EmissionSpectrumBc.advance: Must-specify weight output field")
+      "EmissionSpectrumBc.advance: Must-specify weighting output field")
    local k     = assert(outFld[2],
-      "EmissionSpectrumBc.advance: Must-specify k output field")
+      "EmissionSpectrumBc.advance: Must-specify normalization factor k output field")
    local fBuff     = assert(outFld[3],
-      "EmissionSpectrumBc.advance: Must-specify an output field")
+      "EmissionSpectrumBc.advance: Must-specify a buffer as large as the ghost cells for this BC.")
    local otherRange = assert(inFld[7],
       "EmissionSpectrumBc.advance: Must-specify other species range")
    local boundRange = gamma:localRange()
@@ -194,11 +194,11 @@ end
 
 function EmissionSpectrumBc:_advanceOnDevice(tCurr, inFld, outFld)
    local fOther = assert(inFld[1],
-      "EmissionSpectrumBc.advance: Must-specify a buffer as large as the ghost cells for this BC.")
+      "EmissionSpectrumBc.advance: Must-specify impacting species distribution.")
    local param = assert(inFld[2],
       "EmissionSpectrumBc.advance: Must-specify BC params.")
    local fProj = assert(inFld[3],
-      "EmissionSpectrumBc.advance: Must-specify a buffer as large as the ghost cells for this BC.")
+      "EmissionSpectrumBc.advance: Must-specify projected emission spectrum.")
    local flux = assert(inFld[4],
       "EmissionSpectrumBc.advance: Must-specify flux.")
    local inGrid = assert(inFld[5],
@@ -206,11 +206,11 @@ function EmissionSpectrumBc:_advanceOnDevice(tCurr, inFld, outFld)
    local gamma = assert(inFld[6],
       "EmissionSpectrumBc.advance: Must-specify gamma.")
    local weight     = assert(outFld[1],
-      "EmissionSpectrumBc.advance: Must-specify an output field")
+      "EmissionSpectrumBc.advance: Must-specify weighting output field")
    local k     = assert(outFld[2],
-      "EmissionSpectrumBc.advance: Must-specify an output field")
+      "EmissionSpectrumBc.advance: Must-specify normalization factor k output field")
    local fBuff     = assert(outFld[3],
-      "EmissionSpectrumBc.advance: Must-specify an output field")
+      "EmissionSpectrumBc.advance: Must-specify a buffer as large as the ghost cells for this BC.")
    local otherRange = assert(inFld[7],
       "EmissionSpectrumBc.advance: Must-specify other species range")
    local boundRange = gamma:localRange()
