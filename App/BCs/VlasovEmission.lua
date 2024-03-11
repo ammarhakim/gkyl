@@ -342,13 +342,13 @@ function VlasovEmissionBC:createSolver(mySpecies, field, externalField)
          }
          -- Volume integral operator (for diagnostics).
          self.volIntegral = {
-            scalar = Updater.CartFieldIntegratedQuantCalc {
+            scalar = Updater.CartFieldIntegrate {
                onGrid = self.confBoundaryGrid,  numComponents = 1,
-               basis  = self.confBasis,         quantity      = "V",
+               basis  = self.confBasis,
             },
-            vector = Updater.CartFieldIntegratedQuantCalc {
+            vector = Updater.CartFieldIntegrate {
                onGrid = self.confBoundaryGrid,  numComponents = self.vdim,
-               basis  = self.confBasis,         quantity      = "V",
+               basis  = self.confBasis,
             },
          }
          -- Moment calculators (for diagnostics).
