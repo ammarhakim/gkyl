@@ -89,7 +89,7 @@ function VmSteadyStateSource:initCrossSpeciesCoupling(population)
    local hasNonPeriodic = false 
    for _, otherNm in ipairs(self.sourceSpecies) do
       for _, bc in lume.orderedIter(species[otherNm].nonPeriodicBCs) do
-         self.srcBC[bc:getEdge()] = bc
+	 self.srcBC[bc:getEdge()] = bc
          self.srcBC[bc:getEdge()]:setSaveFlux(true)
          hasNonPeriodic = true
       end
@@ -114,6 +114,7 @@ function VmSteadyStateSource:advanceCrossSpeciesCoupling(tCurr, species, outIdx)
    local mySpecies = species[self.speciesName]
 
    local fRhsOut = mySpecies:rkStepperFields()[outIdx]
+   self.localEdgeFlux:data()[0] = 0.0
 
    for _, bc in lume.orderedIter(self.srcBC) do
       local confRange = self.bcSrcFlux[bc:getEdge()]:localExtRange()
@@ -121,18 +122,16 @@ function VmSteadyStateSource:advanceCrossSpeciesCoupling(tCurr, species, outIdx)
       bc.integNumDensityCalc:advance(tCurr, {bc:getBoundaryFluxFields()[outIdx], confRange, phaseRange}, {self.bcSrcFlux[bc:getEdge()]})
 
       local flux = self.bcSrcFlux[bc:getEdge()]
-      self.localEdgeFlux:data()[0] = 0.0
-
+      
       if GKYL_USE_GPU then flux:copyDeviceToHost() end
 
       local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(0)
       for idx in flux:localExtRangeIter() do
          flux:fill(fluxIndexer(idx), fluxItr)
-         self.localEdgeFlux:data()[0] = self.localEdgeFlux:data()[0] + fluxItr[1]
+         self.localEdgeFlux:data()[0] = self.localEdgeFlux:data()[0] + math.abs(fluxItr[1])
       end
       Mpi.Allreduce(self.localEdgeFlux:data(), self.globalEdgeFlux:data(), 1, Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().host)
    end
-   
    local densFactor = self.globalEdgeFlux:data()[0]/self.sourceLength
 
    fRhsOut:accumulate(densFactor, self.fSource)
