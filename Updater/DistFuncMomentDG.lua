@@ -145,8 +145,8 @@ function DistFuncMomentDG:_advance(tCurr, inFld, outFld)
    local qIn = assert(inFld[1], "DistFuncMomentDG.advance: Must specify an input field")
    local mOut = assert(outFld[1], "DistFuncMomentDG.advance: Must specify an output field")
 
-   local confRange = mOut:localExtRange()
-   local phaseRange = qIn:localExtRange()
+   local confRange = inFld[2] or mOut:localExtRange()
+   local phaseRange = inFld[3] or qIn:localExtRange()
 
    ffiC.gkyl_dg_updater_moment_advance(self._zero, phaseRange, confRange, qIn._zero, mOut._zero)
 end

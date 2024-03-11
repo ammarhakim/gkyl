@@ -35,7 +35,7 @@ function VmSteadyStateSource:fullInit(speciesTbl)
    assert(type(tbl.profile) == "function", "App.VmSteadyStateSource: 'profile' must be a function")
    self.profile = Projection.VlasovProjection.FunctionProjection { func = function(t, zn) return tbl.profile(t, zn, self) end, }
 
-   self.tmEvalSrc = 0.0
+   self.timers = {advance = 0.}
 end
 
 function VmSteadyStateSource:setName(nm) self.name = self.speciesName.."_"..nm end
@@ -49,7 +49,7 @@ function VmSteadyStateSource:createSolver(mySpecies, extField)
    
    self.profile:fullInit(mySpecies)
    self.fSource = mySpecies:allocDistf()
-   
+   self.profile:createSolver(mySpecies)
    self.profile:advance(0.0, {mySpecies, extField}, {self.fSource})
 
    if self.positivityRescale then
@@ -89,7 +89,7 @@ function VmSteadyStateSource:initCrossSpeciesCoupling(population)
    local hasNonPeriodic = false 
    for _, otherNm in ipairs(self.sourceSpecies) do
       for _, bc in lume.orderedIter(species[otherNm].nonPeriodicBCs) do
-         self.srcBC[bc:getEdge()] = bc
+	 self.srcBC[bc:getEdge()] = bc
          self.srcBC[bc:getEdge()]:setSaveFlux(true)
          hasNonPeriodic = true
       end
@@ -109,33 +109,34 @@ function VmSteadyStateSource:createCouplingSolver(population, field, extField)
 end
 
 function VmSteadyStateSource:advanceCrossSpeciesCoupling(tCurr, species, outIdx)
-   local tm = Time.clock()
+   local tmStart = Time.clock()
 
    local mySpecies = species[self.speciesName]
 
    local fRhsOut = mySpecies:rkStepperFields()[outIdx]
+   self.localEdgeFlux:data()[0] = 0.0
 
    for _, bc in lume.orderedIter(self.srcBC) do
-      bc.integNumDensityCalc:advance(tCurr, {bc:getBoundaryFluxFields()[outIdx]}, {self.bcSrcFlux[bc:getEdge()]})
+      local confRange = self.bcSrcFlux[bc:getEdge()]:localExtRange()
+      local phaseRange = bc:getBoundaryFluxFields()[outIdx]:localExtRange()
+      bc.integNumDensityCalc:advance(tCurr, {bc:getBoundaryFluxFields()[outIdx], confRange, phaseRange}, {self.bcSrcFlux[bc:getEdge()]})
 
       local flux = self.bcSrcFlux[bc:getEdge()]
-      self.localEdgeFlux:data()[0] = 0.0
-
+      
       if GKYL_USE_GPU then flux:copyDeviceToHost() end
 
       local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(0)
       for idx in flux:localExtRangeIter() do
          flux:fill(fluxIndexer(idx), fluxItr)
-         self.localEdgeFlux:data()[0] = self.localEdgeFlux:data()[0] + fluxItr[1]
+         self.localEdgeFlux:data()[0] = self.localEdgeFlux:data()[0] + math.abs(fluxItr[1])
       end
-      Mpi.Allreduce(self.localEdgeFlux:data(), self.globalEdgeFlux:data(), 1, Mpi.DOUBLE, Mpi.SUM, bc.confBoundaryGrid:commSet().comm)
+      Mpi.Allreduce(self.localEdgeFlux:data(), self.globalEdgeFlux:data(), 1, Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().host)
    end
-   
    local densFactor = self.globalEdgeFlux:data()[0]/self.sourceLength
 
    fRhsOut:accumulate(densFactor, self.fSource)
    
-   self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
+   self.timers.advance = self.timers.advance + Time.clock() - tmStart
 end
 
 function VmSteadyStateSource:createDiagnostics(thisSpecies, momTable)

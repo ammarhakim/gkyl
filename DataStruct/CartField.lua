@@ -428,6 +428,9 @@ local function Field_meta_ctor(elct)
       clear = function(self, val)
          self._zeroForOps:clear(val)
       end,
+      clearRange = function (self, val, rng)
+	 self._zeroForOps:clearRange(val, rng)
+      end,
       fill = function(self, k, fc)
          local loc = (k - 1) * self._numComponents -- (k-1) as k is 1-based index	
          fc._cdata = self._data + loc

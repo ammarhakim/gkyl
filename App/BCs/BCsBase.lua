@@ -142,7 +142,7 @@ end
 function BCsBase:createDiagnostics(mySpecies) end
 function BCsBase:storeBoundaryFlux(tCurr, rkIdx, qOut) end
 function BCsBase:calcCouplingMoments(tCurr, rkIdx, species) end
-function BCsBase:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
+function BCsBase:advanceCrossSpeciesCoupling(tCurr, species, inIdx, outIdx) end
 function BCsBase:copyBoundaryFluxField(inIdx, outIdx) end
 function BCsBase:combineBoundaryFluxField(outIdx, a, aIdx, ...) end
 function BCsBase:computeBoundaryFluxRate(dtIn) end
