@@ -12,12 +12,7 @@ MPICXX=mpicxx
 # by default, don't build anything. will check later to see if things
 # should be installed.
 BUILD_GKYLZERO=
-BUILD_LUAJIT=
-BUILD_LUAROCKS=
 BUILD_ADIOS=
-BUILD_OPENMPI=
-BUILD_ZMQ=
-BUILD_CZMQ=
 
 # ----------------------------------------------------------------------------
 # FUNCTION DEFINITIONS
@@ -49,14 +44,7 @@ If you build libraries that depend on MPI please specify the MPI C
 and C++ compilers to use.
 
 --build-gkylzero            Should we build Gkylzero?
---build-luajit              Should we build LuaJIT?
---build-luajit-beta3        Should we build LuaJIT-beta3?
---build-luajit-ppcle        Should we build LuaJIT for PPC64 LE?
---build-luarocks            Should we build Luarocks?
 --build-adios               Should we build ADIOS?
---build-openmpi             Should we build OpenMPI?
---build-zmq                 Should we build ZeroMQ?
---build-czmq                Should we build C interface to ZeroMQ?
 
 The behavior of the flags for library xxx is as follows:
 --build-xxx=no              Don't build xxx, even if it can't be found in PREFIXDIR
@@ -129,33 +117,13 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       PREFIX="$value"
       ;;
-   --build-openmpi)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      BUILD_OPENMPI="$value"
-      ;;
    --build-gkylzero)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_GKYLZERO="$value"
       ;;
-   --build-luajit)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      BUILD_LUAJIT="$value"
-      ;;
    --build-adios)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_ADIOS="$value"
-      ;;
-   --build-luarocks)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      BUILD_LUAROCKS="$value"
-      ;;
-   --build-czmq)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      BUILD_CZMQ="$value"
-      ;;   
-   --build-zmq)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      BUILD_ZMQ="$value"
       ;;
    *)
       die "Error: Unknown flag: $1"
@@ -163,18 +131,6 @@ do
    esac
    shift
 done
-
-# if mpicc doesn't work (because it doesn't exist or it's not in path), try to use installed openmpi version
-if ! [ -x "$(command -v $MPICC)" ]
-then
-    MPICC=$PREFIX/openmpi/bin/mpicc
-    MPICXX=$PREFIX/openmpi/bin/mpicxx
-fi
-# if mpicc still doesn't work, force to install openmpi
-if ! [ -x "$(command -v $MPICC)" ] 
-then
-    BUILD_OPENMPI="yes"
-fi
 
 # Write out build options for scripts to use
 cat <<EOF1 > build-opts.sh
@@ -190,27 +146,11 @@ MPICXX=$MPICXX
 
 EOF1
 
-build_openmpi() {
-    if [ "$BUILD_OPENMPI" = "yes" ]
-    then
-	echo "Building OpenMPI"
-	./build-openmpi.sh
-    fi
-}
-
 build_gkylzero() {
     if [[ ! "$BUILD_GKYLZERO" = "no" && ("$BUILD_GKYLZERO" = "yes" || ! -f $PREFIX/gkylzero/include/gkylzero.h) ]]
     then   
    echo "Building Gkylzero"
    ./build-gkylzero.sh 
-    fi
-}
-
-build_luajit() {
-    if [[ ! "$BUILD_LUAJIT" = "no" && ("$BUILD_LUAJIT" = "yes" || ! -f $PREFIX/luajit/include/luajit-2.1/lua.hpp) ]]
-    then    
-   echo "Building LuaJIT"
-   ./build-luajit.sh
     fi
 }
 
@@ -222,36 +162,7 @@ build_adios() {
     fi
 }
 
-build_luarocks() {
-    if [ "$BUILD_LUAROCKS" = "yes" ]
-    then    
-	echo "Building Luarocks"
-	./build-luarocks.sh
-    fi
-}
-
-build_zmq() {
-    if [ "$BUILD_ZMQ" = "yes" ]
-    then    
-	echo "Building ZMQ"
-	./build-zmq.sh
-    fi
-}
-
-build_czmq() {
-    if [ "$BUILD_CZMQ" = "yes" ]
-    then    
-	echo "Building CZMQ"
-	./build-czmq.sh
-    fi
-}
-
 echo "Installations will be in $PREFIX"
 
-build_openmpi
 build_gkylzero
-build_luajit
-build_luarocks
 build_adios
-build_zmq
-build_czmq
