@@ -5,10 +5,13 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
-#include <iostream>
+#ifdef GKYL_HAVE_MPI
 
 #include <mpi.h>
-#include <GkylMpiFuncs.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+#include <gkyl_mpi_funcs.h>
 
 // Sizeof operators for various objects
 GET_MPI_OBJ_SIZE(MPI_Status);
@@ -114,3 +117,4 @@ int gkyl_mpi_get_status_count(const MPI_Status *instat, MPI_Datatype datatype, i
   return err;
 }
 
+#endif

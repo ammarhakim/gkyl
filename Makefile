@@ -6,7 +6,6 @@
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
-CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 INSTALL_PREFIX ?= ${PREFIX}
@@ -29,10 +28,12 @@ else
 	SUPERLU_LIB = $(PREFIX)/superlu/lib/libsuperlu.a
 endif
 
+BUILD_DIR ?= build
+
 # Include config.mak file (if it exists)
 -include $(PREFIX)/gkylzero/share/config.mak
 
-CFLAGS = -O3 -g -ffast-math -I.
+CFLAGS = -O3 -g -I.
 
 G0_INC_DIR = ${PREFIX}/gkylzero/include
 G0_LIB_DIR = ${PREFIX}/gkylzero/lib
@@ -107,14 +108,36 @@ ifeq (${USE_LUA}, 1)
 	CFLAGS += -DGKYL_HAVE_LUA
 endif
 
-INCLUDES = -I${G0_INC_DIR} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${LUA_INC_DIR} -I${NCCL_INC_DIR}
+G2_INCLUDES = -IComm
+INCLUDES = -I${G0_INC_DIR} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${LUA_INC_DIR} -I${NCCL_INC_DIR} ${G2_INCLUDES}
 LIB_DIRS = -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${LUA_LIB_DIR} -L${NCCL_LIB_DIR}
 EXT_LIBS = ${LAPACK_LIB} ${SUPERLU_LIB} ${MPI_LIBS} ${LUA_LIBS} ${NCCL_LIBS} -lm -lpthread -ldl
 
-all: gkyl
+# Directories containing source code
+SRC_DIRS := Comm
 
-gkyl: gkyl.c ## Build main Gkeyll executable (gkyl)
-	 ${CC} ${CFLAGS} ${INCLUDES} gkyl.c -o gkyl -L${G0_LIB_DIR} ${G0_RPATH} ${G0_LIBS} ${LIB_DIRS} ${EXT_LIBS}
+# List of source files
+SRCS := $(shell find $(SRC_DIRS) -name '*.c')
+
+OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
+DEPS := $(OBJS:.o=.d)
+
+# main build target
+all: gkyl ## Build Gkeyll executable (gkyl)
+
+# Build commands for C source
+$(BUILD_DIR)/%.c.o: %.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(ARCH_FLAGS) $(INCLUDES) -c $< -o $@
+
+# Build commands for C source
+$(BUILD_DIR)/sqlite3/sqlite3.c.o: sqlite3/sqlite3.c
+	$(MKDIR_P) $(dir $@)
+	$(CC)  -Wno-implicit-int-float-conversion -g -O -c $< -o $@
+
+gkyl: ${OBJS} gkyl.c ## Build main Gkeyll executable (gkyl)
+	@echo "OBJS are " $(OBJS)
+	${CC} ${CFLAGS} ${INCLUDES} gkyl.c $(OBJS) -o gkyl -L${G0_LIB_DIR} ${G0_RPATH} ${G0_LIBS} ${LIB_DIRS} ${EXT_LIBS}
 
 install: all ## Install library and headers
 # Construct install directories
@@ -167,6 +190,7 @@ install: all ## Install library and headers
 
 clean:
 	rm -rf gkyl gkyl.dSYM
+	rm -rf ${BUILD_DIR}
 
 # command to make dir
 MKDIR_P ?= mkdir -p
