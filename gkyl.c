@@ -38,7 +38,6 @@ struct tool_description {
 static struct tool_description tool_list[] = {
   {"man", "man.lua", "Gkeyll online manual"},
   {"woman", "man.lua", "Gkeyll online manual (Woe without man)"},
-  {"examples", "examples.lua", "Example input files"},
   {"queryrdb", "queryrdb.lua", "Query/modify regression test DB"},
   {"runregression", "runregression.lua", "Run regression/unit tests"},
   {"comparefiles", "comparefiles.lua", "Compare two BP files"},
@@ -256,6 +255,14 @@ main(int argc, char **argv)
     lua_pushboolean(L, false);
     lua_setglobal(L, "GKYL_MPI_COMM");
   }
+
+#ifdef GKYL_HAVE_NCCL
+    lua_pushboolean(L, true);
+    lua_setglobal(L, "GKYL_HAVE_CUDA");
+#else
+    lua_pushboolean(L, false);
+    lua_setglobal(L, "GKYL_HAVE_CUDA");
+#endif  
 
   lua_pushstring(L, app_args->exec_path);
   lua_setglobal(L, "GKYL_EXEC_PATH");

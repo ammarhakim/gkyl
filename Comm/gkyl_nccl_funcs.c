@@ -5,15 +5,15 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
-#ifndef GKYL_NCCL_FUNCS_H
-#define GKYL_NCCL_FUNCS_H
+#ifdef GKYL_HAVE_NCCL
 
-#include <mpi.h>
-#include <nccl.h>
+#include <gkyl_nccl_funcs.h>
 
 // Initialize a ncclConfig_t.
-extern "C" {
-  void gkyl_NCCL_CONFIG_INITIALIZER(ncclConfig_t *nc);
+void
+gkyl_NCCL_CONFIG_INITIALIZER(ncclConfig_t *nc)
+{
+  nc[0] = NCCL_CONFIG_INITIALIZER;
 }
 
-#endif // GKYL_NCCL_FUNCS_H
+#endif
