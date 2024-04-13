@@ -10,7 +10,7 @@ local keywordMap = require "Tool.HelpKeywordMap"
 
 -- Create CLI parser to handle commands and options
 local parser = argparse()
-   :name("help")
+   :name("man")
    :description [[
 Open Gkeyll documentation webpage at gkeyll.rtfd.io and optionally
 search within it via keywords. To just open the documentation page

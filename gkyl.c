@@ -11,6 +11,7 @@
 
 #include <assert.h>
 #include <limits.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -25,6 +26,54 @@
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
 #endif
+
+// Tool description struct
+struct tool_description {
+  const char *tool_name;
+  const char *tool_lua;
+  const char *tool_help;
+};
+
+// List of available Tools
+static struct tool_description tool_list[] = {
+  {"man", "man.lua", "Gkeyll online manual"},
+  {"woman", "man.lua", "Gkeyll online manual (Woe without man)"},
+  {"examples", "examples.lua", "Example input files"},
+  {"queryrdb", "queryrdb.lua", "Query/modify regression test DB"},
+  {"runregression", "runregression.lua", "Run regression/unit tests"},
+  {"comparefiles", "comparefiles.lua", "Compare two BP files"},
+  {"exacteulerrp", "exacteulerrp.lua", "Exact Euler Riemann problem solver"},
+  {"multimomlinear", "multimomlinear.lua",
+   "Linear dispersion solver for multi-moment, multifluid equations"},
+  {"eqdskreader", "eqdskreader.lua",
+   "Read eqdsk file, writing to ADIOS-BP files"},
+#ifdef GKYL_HAVE_NCCL
+  {"deviceinfo", "deviceinfo.lua", "Information about device"},
+#endif
+  {0, 0}
+};
+
+static int max2(int a, int b) { return a>b ? a : b; }
+
+// Show list of available Tools
+static void
+show_tool_list(void)
+{
+  printf("Following tools are available. Query tool help for more information.\n\n");
+  for (int i=0; tool_list[i].tool_name != 0; ++i)
+    printf("%s %s\n", tool_list[i].tool_name, tool_list[i].tool_help);
+}
+
+// Returns tool Lua script name given tool name. Returns 0 if Tool
+// does no exist
+static const char *
+get_tool_from_name(const char *nm)
+{
+  for (int i=0; tool_list[i].tool_name != 0; ++i)
+    if (strcmp(tool_list[i].tool_name, nm) == 0)
+      return tool_list[i].tool_lua;
+  return 0;
+}
 
 static char *
 find_exec_path(void)
@@ -65,7 +114,6 @@ release_opt_args(struct app_args *args)
     gkyl_free(args->echunk);
 
   gkyl_free(args->exec_path);
-  
   gkyl_free(args);
 }
 
@@ -132,7 +180,8 @@ parse_app_args(int argc, char **argv)
         break;
 
       case 't':
-        // TODO
+        show_tool_list();
+        exit(1);
         break;
 
       case 'e':
@@ -211,6 +260,16 @@ main(int argc, char **argv)
   lua_pushstring(L, app_args->exec_path);
   lua_setglobal(L, "GKYL_EXEC_PATH");
 
+  // push extra arguments into a Lua table to Tools and App can get
+  // them
+  lua_newtable(L);
+  for (int i=1; i<app_args->num_opt_args; ++i) {
+    lua_pushinteger(L, i);
+    lua_pushstring(L, app_args->opt_args[i]);
+    lua_rawset(L, -3);
+  }
+  lua_setglobal(L, "GKYL_COMMANDS");
+
   // set package paths so we find installed libraries
   do {
     const char *fmt = "package.path = package.path .. \";%s/?.lua;%s/Lib/?.lua;%s/?/init.lua \"";
@@ -228,18 +287,36 @@ main(int argc, char **argv)
     glua_run_lua(L, app_args->echunk, strlen(app_args->echunk), 0);
 
   if (app_args->num_opt_args > 0) {
-    // read input file and run it
+
     const char *inp_name = app_args->opt_args[0];
-     if (gkyl_check_file_exists(inp_name)) {
+    if (gkyl_check_file_exists(inp_name)) {
+
       const char *suff = get_fname(inp_name);
       const char *suff1 = suff ? suff+1 : inp_name;
       lua_pushlstring(L, suff1, calc_output_prefix_len(suff1));
       lua_setglobal(L, "GKYL_OUT_PREFIX");
       
-      int64_t sz;
+      int64_t sz = 0;
       char *buff = gkyl_load_file(inp_name, &sz);
       glua_run_lua(L, buff, sz, stderr);
       gkyl_free(buff);
+    }
+    else {
+      // check if it is a Tool, and run it if so
+      const char *tlua = get_tool_from_name(app_args->opt_args[0]);
+      if (tlua) {
+        const char *fmt = "%s/Tool/%s";
+        size_t len = gkyl_calc_strlen(fmt, app_args->exec_path, tlua);
+        char *tool_name = gkyl_malloc(len+1);
+        snprintf(tool_name, len+1, fmt, app_args->exec_path, tlua);
+        
+        int64_t sz = 0;
+        char *buff = gkyl_load_file(tool_name, &sz);
+        glua_run_lua(L, buff, sz, stderr);
+        gkyl_free(buff);
+        
+        gkyl_free(tool_name);
+      }
     }
   }
   
