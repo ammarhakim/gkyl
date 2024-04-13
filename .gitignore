@@ -27,3 +27,4 @@ Regression/*/*.bp
 Benchmarks/*/*.bp
 runregression.config.lua
 .nfs*
+build
