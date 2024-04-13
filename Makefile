@@ -61,9 +61,6 @@ endif
 G0_LIBS = ${G0_LIB} ${CUDA_LIBS} -lm -lpthread
 G0_RPATH = -Wl,-rpath,${G0_LIB_DIR}
 
-# determine OS we are running on
-UNAME = $(shell uname)
-
 # On OSX we should use Accelerate framework
 ifeq ($(UNAME), Darwin)
 	LAPACK_INC = . # dummy
@@ -189,6 +186,9 @@ install: all ## Install library and headers
 #
 	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Basis
 	find Basis -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkyl/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Unit
+	find Unit -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkyl/bin
 
 clean:
 	rm -rf gkyl gkyl.dSYM

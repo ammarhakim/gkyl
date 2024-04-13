@@ -19,6 +19,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <lfs.h>
 #include <whereami.h>
 
 #include <gkylzero.h>
@@ -236,6 +237,9 @@ main(int argc, char **argv)
   lua_State *L = luaL_newstate();
   lua_gc(L, LUA_GCSTOP, 0);
   luaL_openlibs(L);
+  luaopen_lfs(L); // Lua file-system library
+
+  // G0 librararies
   gkyl_zero_lw_openlibs(L);
   gkyl_vlasov_lw_openlibs(L);
   gkyl_moment_lw_openlibs(L);
