@@ -18,11 +18,14 @@ LAPACK_INC = $(PREFIX)/OpenBLAS/include
 LAPACK_LIB_DIR = $(PREFIX)/OpenBLAS/lib
 LAPACK_LIB = -lopenblas
 
+RLINK_DYNAMIC = 
+
 # SuperLU includes and librararies
 SUPERLU_INC = $(PREFIX)/superlu/include
-ifeq ($(UNAME_S),Linux)
+ifeq ($(UNAME),Linux)
 	SUPERLU_LIB_DIR = $(PREFIX)/superlu/lib64
 	SUPERLU_LIB = $(PREFIX)/superlu/lib64/libsuperlu.a
+	RLINK_DYNAMIC = -rdynamic
 else
 	SUPERLU_LIB_DIR = $(PREFIX)/superlu/lib
 	SUPERLU_LIB = $(PREFIX)/superlu/lib/libsuperlu.a
@@ -136,7 +139,7 @@ $(BUILD_DIR)/sqlite3/sqlite3.c.o: sqlite3/sqlite3.c
 	$(CC)  -Wno-implicit-int-float-conversion -g -O -c $< -o $@
 
 gkyl: ${OBJS} gkyl.c ## Build main Gkeyll executable (gkyl)
-	${CC} ${CFLAGS} ${INCLUDES} gkyl.c $(OBJS) -o gkyl -L${G0_LIB_DIR} ${G0_RPATH} ${G0_LIBS} ${LIB_DIRS} ${EXT_LIBS}
+	${CC} ${CFLAGS} ${INCLUDES} gkyl.c $(OBJS) -o gkyl -L${G0_LIB_DIR} ${G0_RPATH} ${G0_LIBS} ${LIB_DIRS} ${EXT_LIBS} ${RLINK_DYNAMIC}
 
 install: all ## Install library and headers
 # Construct install directories
