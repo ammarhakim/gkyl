@@ -114,7 +114,7 @@ LIB_DIRS = -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${LUA_LIB
 EXT_LIBS = ${LAPACK_LIB} ${SUPERLU_LIB} ${MPI_LIBS} ${LUA_LIBS} ${NCCL_LIBS} -lm -lpthread -ldl
 
 # Directories containing source code
-SRC_DIRS := Comm Lib
+SRC_DIRS := sqlite3 Comm Lib
 
 # List of source files
 SRCS := $(shell find $(SRC_DIRS) -name '*.c')
@@ -146,46 +146,46 @@ install: all ## Install library and headers
 	cp -f gkyl ${INSTALL_PREFIX}/gkyl/bin/gkyl
 # Copy Lua code from various directories
 	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/xsys
-	find xsys -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+	find xsys -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkyl/bin
 #
 	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/sci
-	find sci -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+	find sci -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkyl/bin
 #
 	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Tool
-	find Tool -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+	find Tool -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkyl/bin
 #
 	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/sqlite3
-	find sqlite3 -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+	find sqlite3 -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkyl/bin
 #
 	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Lib
-	find Lib -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+	find Lib -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkyl/bin
 #
 	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Grid
-	find Grid -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+	find Grid -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkyl/bin
 #
 	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/DataStruct
-	find DataStruct -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+	find DataStruct -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkyl/bin
 #
 	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Eq
-	find Eq -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+	find Eq -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkyl/bin
 #
 	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Updater
-	find Updater -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+	find Updater -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkyl/bin
 #
 	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/App
-	find App -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+	find App -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkyl/bin
 #
 	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Cuda
-	find Cuda -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+	find Cuda -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkyl/bin
 #
 	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Comm
-	find Comm -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+	find Comm -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkyl/bin
 #
 	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Io
-	find Io -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+	find Io -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkyl/bin
 #
 	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Basis
-	find Basis -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+	find Basis -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkyl/bin
 
 clean:
 	rm -rf gkyl gkyl.dSYM
