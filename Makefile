@@ -108,13 +108,13 @@ ifeq (${USE_LUA}, 1)
 	CFLAGS += -DGKYL_HAVE_LUA
 endif
 
-G2_INCLUDES = -IComm
+G2_INCLUDES = -IComm -ILib
 INCLUDES = -I${G0_INC_DIR} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${LUA_INC_DIR} -I${NCCL_INC_DIR} ${G2_INCLUDES}
 LIB_DIRS = -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${LUA_LIB_DIR} -L${NCCL_LIB_DIR}
 EXT_LIBS = ${LAPACK_LIB} ${SUPERLU_LIB} ${MPI_LIBS} ${LUA_LIBS} ${NCCL_LIBS} -lm -lpthread -ldl
 
 # Directories containing source code
-SRC_DIRS := Comm
+SRC_DIRS := Comm Lib
 
 # List of source files
 SRCS := $(shell find $(SRC_DIRS) -name '*.c')
@@ -136,7 +136,6 @@ $(BUILD_DIR)/sqlite3/sqlite3.c.o: sqlite3/sqlite3.c
 	$(CC)  -Wno-implicit-int-float-conversion -g -O -c $< -o $@
 
 gkyl: ${OBJS} gkyl.c ## Build main Gkeyll executable (gkyl)
-	@echo "OBJS are " $(OBJS)
 	${CC} ${CFLAGS} ${INCLUDES} gkyl.c $(OBJS) -o gkyl -L${G0_LIB_DIR} ${G0_RPATH} ${G0_LIBS} ${LIB_DIRS} ${EXT_LIBS}
 
 install: all ## Install library and headers

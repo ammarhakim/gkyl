@@ -18,11 +18,23 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <whereami.h>
+
 #include <gkylzero.h>
 
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
 #endif
+
+static char *
+find_exec_path(void)
+{
+  int len = wai_getExecutablePath(NULL, 0, NULL);
+  char *path = gkyl_malloc(len+1);
+  int dirname_len; wai_getExecutablePath(path, len, &dirname_len);
+  path[dirname_len] = '\0'; // only directory path is returned
+  return path;
+}
 
 // Input arguments to gkyl executable. You must call release_app_args
 // when done with this struct
@@ -32,12 +44,30 @@ struct app_args {
   bool trace_mem; // should we trace memory allocation/deallocations?
   int num_steps; // number of steps
   bool is_restart; // is this a restarted sim?
+  bool use_mpi; // should we use MPI?
 
   char *echunk; // chunk of lua code to execute
   
   int num_opt_args; // number of optional arguments
   char **opt_args; // optional arguments
+
+  char *exec_path; // location of executable
 };
+
+static void
+release_opt_args(struct app_args *args)
+{
+  for (int i=0; i<args->num_opt_args; ++i)
+    gkyl_free(args->opt_args[i]);
+  gkyl_free(args->opt_args);
+  
+  if (args->echunk)
+    gkyl_free(args->echunk);
+
+  gkyl_free(args->exec_path);
+  
+  gkyl_free(args);
+}
 
 static int
 calc_output_prefix_len(const char *fn)
@@ -61,7 +91,8 @@ show_usage()
   printf("  -t         Show list of registered tools\n");
   printf("  -v         Show version information\n");
   printf("  -g         Run on NVIDIA GPU (if available and built with CUDA)\n\n");
-  printf("  -m         Run memory tracer\n");    
+  printf("  -m         Run memory tracer\n");
+  printf("  -S         Do not initialize MPI\n");  
 
   printf("Most app input files take the following commands:\n");
   printf("  run        Run simulation. Default if nothing specified\n");
@@ -74,20 +105,25 @@ show_usage()
 static struct app_args*
 parse_app_args(int argc, char **argv)
 {
-  bool use_gpu = false;
-  bool trace_mem = false;
-
   struct app_args *args = gkyl_malloc(sizeof(*args));
 
   args->use_gpu = false;
   args->step_mode = false;
-  args->num_steps = INT_MAX;
+
+#ifdef GKYL_HAVE_MPI  
+  args->use_mpi = true;
+#else
+  args->use_mpi = false;
+#endif
+  
+  args->trace_mem = false;
   args->is_restart = false;
+  args->num_steps = INT_MAX;
   args->num_opt_args = 0;
   args->echunk = 0;
 
   int c;
-  while ((c = getopt(argc, argv, "+hvtme:g")) != -1) {
+  while ((c = getopt(argc, argv, "+hvtmSe:g")) != -1) {
     switch (c)
     {
       case 'h':
@@ -105,11 +141,15 @@ parse_app_args(int argc, char **argv)
         break;
         
       case 'g':
-        use_gpu = true;
+        args->use_gpu = true;
         break;
 
+      case 'S':
+        args->use_mpi = false;
+        break;
+        
       case 'm':
-        trace_mem = true;
+        args->trace_mem = true;
         break;
 
       case '?':
@@ -117,30 +157,19 @@ parse_app_args(int argc, char **argv)
     }
   }
 
-  args->use_gpu = use_gpu;
-  args->trace_mem = trace_mem;
-
   args->num_opt_args = 0;
   // collect remaining options into a list
   for (int oind=optind; oind < argc; ++oind) args->num_opt_args += 1;
   args->opt_args = gkyl_malloc(sizeof(char*)*args->num_opt_args);
 
   for (int i=0, oind=optind; oind < argc; ++oind, ++i) {
-    args->opt_args[i] = gkyl_malloc(strlen(argv[oind]+1));
+    args->opt_args[i] = gkyl_malloc(strlen(argv[oind])+1);
     strcpy(args->opt_args[i], argv[oind]);
   }
-  return args;
-}
 
-static void
-release_opt_args(struct app_args *args)
-{
-  for (int i=0; i<args->num_opt_args; ++i)
-    gkyl_free(args->opt_args[i]);
-  gkyl_free(args->opt_args);
-  if (args->echunk)
-    gkyl_free(args->echunk);
-  gkyl_free(args);
+  args->exec_path = find_exec_path();
+  
+  return args;
 }
 
 int
@@ -148,9 +177,8 @@ main(int argc, char **argv)
 {
   struct app_args *app_args = parse_app_args(argc, argv);
   
-#ifdef GKYL_HAVE_MPI
-  MPI_Init(&argc, &argv);
-#endif
+  if (app_args->use_mpi)
+    MPI_Init(&argc, &argv);
 
   if (app_args->trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -165,19 +193,35 @@ main(int argc, char **argv)
   gkyl_moment_lw_openlibs(L);
   lua_gc(L, LUA_GCRESTART, -1);
 
-#ifdef GKYL_HAVE_MPI
-  lua_pushboolean(L, 1);
-  lua_setglobal(L, "GKYL_HAVE_MPI");
-  
-  lua_pushlightuserdata(L, MPI_COMM_WORLD);
-  lua_setglobal(L, "GKYL_MPI_COMM");
-#else
-  lua_pushboolean(L, 0);
-  lua_setglobal(L, "GKYL_HAVE_MPI");
+  if (app_args->use_mpi) {
+    lua_pushboolean(L, true);
+    lua_setglobal(L, "GKYL_HAVE_MPI");
+    
+    lua_pushlightuserdata(L, MPI_COMM_WORLD);
+    lua_setglobal(L, "GKYL_MPI_COMM");
+  }
+  else {
+    lua_pushboolean(L, false);
+    lua_setglobal(L, "GKYL_HAVE_MPI");
+    
+    lua_pushboolean(L, false);
+    lua_setglobal(L, "GKYL_MPI_COMM");
+  }
 
-  lua_pushboolean(L, 0);
-  lua_setglobal(L, "GKYL_MPI_COMM");
-#endif
+  lua_pushstring(L, app_args->exec_path);
+  lua_setglobal(L, "GKYL_EXEC_PATH");
+
+  // set package paths so we find installed libraries
+  do {
+    const char *fmt = "package.path = package.path .. \";%s/?.lua;%s/Lib/?.lua;%s/?/init.lua \"";
+    size_t len = gkyl_calc_strlen(fmt, app_args->exec_path, app_args->exec_path, app_args->exec_path);
+
+    char *str = gkyl_malloc(len+1);
+    snprintf(str, len+1, fmt, app_args->exec_path, app_args->exec_path, app_args->exec_path);
+    glua_run_lua(L, str, strlen(str), 0);
+    
+    gkyl_free(str);
+  } while (0);
 
   // run Lua code (if it exists) before running input file
   if (app_args->echunk)
@@ -187,7 +231,6 @@ main(int argc, char **argv)
     // read input file and run it
     const char *inp_name = app_args->opt_args[0];
      if (gkyl_check_file_exists(inp_name)) {
-      // set file prefix as a global (THIS WILL BE REPLACED!!)
       const char *suff = get_fname(inp_name);
       const char *suff1 = suff ? suff+1 : inp_name;
       lua_pushlstring(L, suff1, calc_output_prefix_len(suff1));
@@ -202,11 +245,10 @@ main(int argc, char **argv)
   
   lua_close(L);  
   
-  release_opt_args(app_args);
+  if (app_args->use_mpi)
+    MPI_Finalize();
 
-#ifdef GKYL_HAVE_MPI
-  MPI_Finalize();
-#endif
+  release_opt_args(app_args);
   
   return 0;
 }
