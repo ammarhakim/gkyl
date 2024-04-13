@@ -257,12 +257,22 @@ main(int argc, char **argv)
   }
 
 #ifdef GKYL_HAVE_NCCL
+  lua_pushboolean(L, true);
+  lua_setglobal(L, "GKYL_HAVE_CUDA");
+
+  if (app_args->use_gpu) {
     lua_pushboolean(L, true);
-    lua_setglobal(L, "GKYL_HAVE_CUDA");
+    lua_setglobal(L, "GKYL_USE_GPU");
+  }
+  
 #else
-    lua_pushboolean(L, false);
-    lua_setglobal(L, "GKYL_HAVE_CUDA");
-#endif  
+  lua_pushboolean(L, false);
+  lua_setglobal(L, "GKYL_HAVE_CUDA");
+
+  lua_pushboolean(L, false);
+  lua_setglobal(L, "GKYL_USE_GPU");  
+#endif
+
 
   lua_pushstring(L, app_args->exec_path);
   lua_setglobal(L, "GKYL_EXEC_PATH");

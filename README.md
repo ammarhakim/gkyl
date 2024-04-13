@@ -4,7 +4,7 @@ This is the Gkeyll code. The name is pronounced as in the book "The
 Strange Case of Dr. Jekyll and Mr. Hyde" which is required reading for
 all members of the Gkeyll Team. Gkeyll is written in a combination of
 LuaJIT and C/C++.  Gkeyll is developed at Princeton Plasma Physics
-Laboratory (PPPL) and is copyrighted 2016-2023 by Ammar Hakim and the
+Laboratory (PPPL) and is copyrighted 2016-2024 by Ammar Hakim and the
 Gkeyll Team.
 
 Documentation for the code is available at http://gkeyll.rtfd.io.
@@ -13,12 +13,11 @@ Documentation for the code is available at http://gkeyll.rtfd.io.
 
 Building gkyl requires
 
-- a modern C/C++ compiler.
-- Python 3 (for use in the `waf` build system and post-processing).
+- A modern C/C++ compiler.
 - NVIDIA Cuda compiler (nvcc) if using (NVIDIA) GPUs.
 - The NCCL multi-GPU communication library.
 - gkylzero (https://github.com/ammarhakim/gkylzero) compiled and
-installed.
+  installed.
 
 The following instructions assume that these tools are present.
 
@@ -27,7 +26,7 @@ dependencies, configuring, and building the executable. If we have built
 gkyl in the computer of interest before, we likely saved scripts
 (machine files) that simplify this process. If we haven't, you'll
 need to either build new machine files or perform each of the
-installation steps manually.                                       
+installation steps manually.                                 
 
 ## On a known computer using machine files
 
@@ -59,9 +58,9 @@ module load cudatoolkit/11.7
 module load nccl/2.15.5-ofi
 module unload darshan
 ```
-Finally, build the gkyl executable using
+Finally, build and install the gkyl executable using
 ```
-./waf build install
+make install
 ```
 The result will be a `gkyl` executable located in the
 `$HOME/gkylsoft/gkyl/bin/` directory.
@@ -105,98 +104,4 @@ You can run the full suite of unit tests using
 cd Regression/
 $HOME/gkylsoft/gkyl/bin/gkyl runregression config
 $HOME/gkylsoft/gkyl/bin/gkyl runregression rununit
-```
-
-# Diagnostic tools
-
-The `postgkyl` python package has been developed for plotting diagnostic
-files from Gkeyll.  It can be installed via `conda` using
-
-```
-conda install -c gkyl -c conda-forge postgkyl
-```
-
-For more information about `postgkyl` and how to use it, please see
-https://gkeyll.readthedocs.io/en/latest/postgkyl/main.html.
-
-# Code contribution and formatting guidelines
-
-All contributions to the code that improve the code via new
-functionality and/or refactoring of existing functionality are
-welcomes. Please strive for excellence in your programming and follow
-carefully the rest of the code structure while doing so.
-
-
-## Formatting guidelines
-
-Formatting guidelines given below are meant to reduce the thought
-given to minor (but asthetically important) issues. There are as many
-opionions on how to format code as there are developers. Hence, in
-Gkeyll these guidelines have been determined by the lead developer of
-the code and are not open for further discussion.
-
-- **Do not** modify existing code alignment or comments unless the code is
-  wrong or the comment is incorrect, or if the formatting is
-  egregiously bad.
-  
-- **Do not** align multiple consecutive statements with = signs.
-
-- **Do not** mix tabs and spaces. Uses **spaces consistently**
-
-- **Leave single space** between LHS and RHS expressions.
-
-- You **may or may not** leave spaces between operators.
-
-- You **may or may not** leave spaces after a comma in a function
-  call.
-
-- **Do not** comment obvious pieces of code.
-
-- **Comment** function call signatures for user-facing functions.
-
-# License
-
-**Gkeyll can be used freely for research at universities, national
-laboratories and other research institutions. 
-If you want to use Gkeyll in a commercial environment,
-please ask us first.**
-
-We follow an *open-source but closed development model*. Even though
-read access to the code is available to everyone, write access to the
-source-code repository is restricted to those who need to modify the
-code. In practice, this means researchers at PPPL and our partner
-institutions. In particular, this means that for write access you
-either need to have jointly funded projects or jointly supervised
-graduate students or postdocs with Princeton University/PPPL.
-
-In general, we allow users to "fork" the code to make their own
-modifications. However, we would appreciate if you would work with us
-to merge your features back into the main-line (if those features are
-useful to the larger Gkeyll team). You can submit a "pull request" and
-we will try our best to merge your changes into the
-mainline. Contributed code should compile and have sufficient
-unit/regression tests.
-
-# Authors
-
-Gkeyll is developed at the Princeton Plasma Physics Laboratory (PPPL),
-a Department of Energy (DOE) national lab, managed by Princeton
-University. Funding for the code comes from Department of Energy,
-Airforce Office of Scientific Research, Advanced Projects Agency -
-Energy, National Science Foundation and NASA.
-
-The institutions involved in Gkeyll development are PPPL, Princeton
-University, Virginia Tech, University of Maryland and MIT.
-
-The CEO and Algorithm Alchemist of the project is Ammar Hakim.
-
-The lead physicists for the project are Greg Hammett, Jason TenBarge
-and Ammar Hakim.
-
-The major contributors to the code are: Noah Mandell, Manaure (Mana)
-Francisquez, Petr Cagas, James (Jimmy) Juno, Liang Wang and Tess
-Bernard.
-
-```
-sed -i '' -e "s/[[:space:]]* =/ =/g"
 ```
