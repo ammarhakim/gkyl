@@ -1,6 +1,0 @@
-load("basis-precalc/basis-pre-cdim-calc");
-
-for c : 1 thru 1 do (
-  fname : sconcat("~/max-out/basisTensor", c, "x", ".lisp"),
-  writeBasisToFile(c, 7, makeTensorBasis, fname)
-)$

@@ -2,10 +2,8 @@
 *.gkyl
 *.json
 *#
-build/*
-build-*/*
-.waf*
-.lock-waf*
+.cache
+gkyl
 install-deps/luajit*
 install-deps/LuaJIT*
 install-deps/eigen-*
@@ -28,5 +26,4 @@ Regression/runregression.config.lua
 Regression/*/*.bp
 Benchmarks/*/*.bp
 runregression.config.lua
-waf_tools/__pycache__/
 .nfs*

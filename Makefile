@@ -9,6 +9,7 @@ CUDA_ARCH ?= 70
 CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
+INSTALL_PREFIX ?= ${PREFIX}
 
 # determine OS we are running on
 UNAME = $(shell uname)
@@ -29,7 +30,7 @@ else
 endif
 
 # Include config.mak file (if it exists)
--include /home/gandalf/gkylsoft/gkylzero/share/config.mak
+-include $(PREFIX)/gkylzero/share/config.mak
 
 CFLAGS = -O3 -g -ffast-math -I.
 
@@ -112,9 +113,69 @@ EXT_LIBS = ${LAPACK_LIB} ${SUPERLU_LIB} ${MPI_LIBS} ${LUA_LIBS} ${NCCL_LIBS} -lm
 
 all: gkyl
 
-gkyl: gkyl.c
+gkyl: gkyl.c ## Build main Gkeyll executable (gkyl)
 	 ${CC} ${CFLAGS} ${INCLUDES} gkyl.c -o gkyl -L${G0_LIB_DIR} ${G0_RPATH} ${G0_LIBS} ${LIB_DIRS} ${EXT_LIBS}
+
+install: all ## Install library and headers
+# Construct install directories
+	$(MKDIR_P) ${INSTALL_PREFIX}/gkyl/bin
+	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/lib
+# Copy main executable
+	cp -f gkyl ${INSTALL_PREFIX}/gkyl/bin/gkyl
+# Copy Lua code from various directories
+	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/xsys
+	find xsys -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/sci
+	find sci -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Tool
+	find Tool -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/sqlite3
+	find sqlite3 -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Lib
+	find Lib -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Grid
+	find Grid -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/DataStruct
+	find DataStruct -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Eq
+	find Eq -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Updater
+	find Updater -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/App
+	find App -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Cuda
+	find Cuda -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Comm
+	find Comm -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Io
+	find Io -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/Basis
+	find Basis -name '*.lua' | xargs cp --parents -fv -t ${INSTALL_PREFIX}/gkyl/bin
 
 clean:
 	rm -rf gkyl gkyl.dSYM
 
+# command to make dir
+MKDIR_P ?= mkdir -p
+
+# From: https://www.client9.com/self-documenting-makefiles/
+.PHONY: help
+help: ## Show help
+	@echo "Makefile help. You can set parameters on the command line:"
+	@echo ""
+	@awk -F ':|##' '/^[^\t].+?:.*?##/ {\
+        printf "\033[36m%-30s\033[0m %s\n", $$1, $$NF \
+        }' $(MAKEFILE_LIST)
