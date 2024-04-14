@@ -277,9 +277,19 @@ main(int argc, char **argv)
   lua_setglobal(L, "GKYL_USE_GPU");  
 #endif
 
-
   lua_pushstring(L, app_args->exec_path);
   lua_setglobal(L, "GKYL_EXEC_PATH");
+
+  // NOT FULLY CORRECT: NEED TO FIX THESE ...
+  lua_pushstring(L, "gkyl");
+  lua_setglobal(L, "GKYL_EXEC");
+
+  lua_pushstring(L, "1.0");
+  lua_setglobal(L, "GKYL_GIT_CHANGESET");
+
+  lua_pushstring(L, "1.0");
+  lua_setglobal(L, "GKYL_BUILD_DATE");
+  // ... END OF THINGS TO FIX
 
   // push extra arguments into a Lua table to Tools and App can get
   // them

@@ -468,13 +468,6 @@ function test_fs_gkhybrid_1x1v_p1()
    assert_equal(fIn[6], fOut[6], "Checking if flip-sign worked")
 end
 
----- Disabling tests of maximal order basis (not kept in g0).
---test_2d_m_p1()
---test_2d_m_p2()
---
---test_fs_m_2d_p1()
---test_fs_m_2d_p2()
-
 test_2d_s_p1()
 test_2d_s_p2()
 
