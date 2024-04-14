@@ -23,7 +23,7 @@ if not string.match(currDir, "Regression$") then
    return 1
 end
 
---local AdiosReader = require "Io.AdiosReader"
+local AdiosReader = require "Io.AdiosReader"
 local Alloc = require "Lib.Alloc"
 local Logger = require "Lib.Logger"
 local Time = require "Lib.Time"
