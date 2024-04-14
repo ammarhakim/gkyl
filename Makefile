@@ -18,17 +18,21 @@ LAPACK_INC = $(PREFIX)/OpenBLAS/include
 LAPACK_LIB_DIR = $(PREFIX)/OpenBLAS/lib
 LAPACK_LIB = -lopenblas
 
-RLINK_DYNAMIC = 
-
 # SuperLU includes and librararies
 SUPERLU_INC = $(PREFIX)/superlu/include
 ifeq ($(UNAME),Linux)
 	SUPERLU_LIB_DIR = $(PREFIX)/superlu/lib64
 	SUPERLU_LIB = $(PREFIX)/superlu/lib64/libsuperlu.a
-	RLINK_DYNAMIC = -rdynamic
 else
 	SUPERLU_LIB_DIR = $(PREFIX)/superlu/lib
 	SUPERLU_LIB = $(PREFIX)/superlu/lib/libsuperlu.a
+endif
+
+EXTRA_LD_FLAGS = 
+RLINK_DYNAMIC = 
+ifeq ($(UNAME),Linux)
+	RLINK_DYNAMIC = -rdynamic
+	EXTRA_LD_FLAGS = -Wl,-Bdynamic,--no-as-needed
 endif
 
 BUILD_DIR ?= build
@@ -70,7 +74,7 @@ endif
 
 # Read MPI paths and flags if needed 
 USING_MPI =
-MPI_INC_DIR = zero # dummy
+MPI_INC_DIR = Lib # dummy
 MPI_LIB_DIR = .
 ifeq (${USE_MPI}, 1)
 	USING_MPI = yes
@@ -82,7 +86,7 @@ endif
 
 # Read NCCL paths and flags if needed (needs MPI and NVCC)
 USING_NCCL =
-NCCL_INC_DIR = zero # dummy
+NCCL_INC_DIR = Lib # dummy
 NCCL_LIB_DIR = .
 ifeq (${USE_NCCL}, 1)
 ifdef USING_MPI
@@ -98,7 +102,7 @@ endif
 
 # Read LUA paths and flags if needed 
 USING_LUA =
-LUA_INC_DIR = zero # dummy
+LUA_INC_DIR = Lib # dummy
 LUA_LIB_DIR = .
 ifeq (${USE_LUA}, 1)
 	USING_LUA = yes
@@ -108,13 +112,28 @@ ifeq (${USE_LUA}, 1)
 	CFLAGS += -DGKYL_HAVE_LUA
 endif
 
-G2_INCLUDES = -IComm -ILib
-INCLUDES = -I${G0_INC_DIR} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${LUA_INC_DIR} -I${NCCL_INC_DIR} ${G2_INCLUDES}
-LIB_DIRS = -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${LUA_LIB_DIR} -L${NCCL_LIB_DIR}
-EXT_LIBS = ${LAPACK_LIB} ${SUPERLU_LIB} ${MPI_LIBS} ${LUA_LIBS} ${NCCL_LIBS} -lm -lpthread -ldl
+# ADIOS2 ... just assuming it exsit. Probably needs modifications
+USING_ADIOS =
+ADIOS_INC_DIR = ${PREFIX}/adios2/include
+ADIOS_LIB_DIR = ${PREFIX}/adios2/lib
+ADIOS_RPATH = -Wl,-rpath,${ADIOS_LIB_DIR}
+ADIOS_LIBS = -ladios_nompi
+CFLAGS += -DGKYL_HAVE_ADIOS
+ifeq (${USE_MPI}, 1)
+	ADIOS_LIBS = -ladios2_c -ladios2_c_mpi
+	CFLAGS += -DADIOS2_USE_MPI
+else
+	CFLAGS += -D_NOMPI
+endif
 
+INCLUDES = -I${G0_INC_DIR} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${LUA_INC_DIR} -I${NCCL_INC_DIR} -I${ADIOS_INC_DIR} ${G2_INCLUDES}
+LIB_DIRS = -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${LUA_LIB_DIR} -L${NCCL_LIB_DIR} -L${ADIOS_LIB_DIR}
+EXT_LIBS = ${LAPACK_LIB} ${SUPERLU_LIB} ${MPI_LIBS} ${LUA_LIBS} ${NCCL_LIBS} ${ADIOS_RPATH} ${ADIOS_LIBS} -lm -lpthread -ldl
+
+# Includes for G2
+G2_INCLUDES = -IComm -ILib -IGrid
 # Directories containing source code
-SRC_DIRS := sqlite3 Comm Lib
+SRC_DIRS := sqlite3 Comm Lib Grid
 
 # List of source files
 SRCS := $(shell find $(SRC_DIRS) -name '*.c')
@@ -136,7 +155,7 @@ $(BUILD_DIR)/sqlite3/sqlite3.c.o: sqlite3/sqlite3.c
 	$(CC)  -Wno-implicit-int-float-conversion -g -O -c $< -o $@
 
 gkyl: ${OBJS} gkyl.c ## Build main Gkeyll executable (gkyl)
-	${CC} ${CFLAGS} ${INCLUDES} gkyl.c $(OBJS) -o gkyl -L${G0_LIB_DIR} ${G0_RPATH} ${G0_LIBS} ${LIB_DIRS} ${EXT_LIBS} ${RLINK_DYNAMIC}
+	${CC} ${CFLAGS} ${INCLUDES} gkyl.c $(OBJS) -o gkyl ${EXTRA_LD_FLAGS} -L${G0_LIB_DIR} ${G0_RPATH} ${G0_LIBS} ${LIB_DIRS} ${EXT_LIBS} ${RLINK_DYNAMIC}
 
 install: all ## Install library and headers
 # Construct install directories

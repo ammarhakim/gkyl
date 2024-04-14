@@ -10,6 +10,7 @@
 #include <lauxlib.h>
 
 #include <assert.h>
+#include <float.h>
 #include <limits.h>
 #include <math.h>
 #include <stdbool.h>
@@ -26,6 +27,10 @@
 
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
+#endif
+
+#ifdef GKYL_HAVE_ADIOS
+#include <adios2_c.h>
 #endif
 
 // Tool description struct
@@ -225,7 +230,7 @@ int
 main(int argc, char **argv)
 {
   struct app_args *app_args = parse_app_args(argc, argv);
-  
+
   if (app_args->use_mpi)
     MPI_Init(&argc, &argv);
 
@@ -268,7 +273,6 @@ main(int argc, char **argv)
     lua_pushboolean(L, true);
     lua_setglobal(L, "GKYL_USE_GPU");
   }
-  
 #else
   lua_pushboolean(L, false);
   lua_setglobal(L, "GKYL_HAVE_CUDA");
@@ -277,8 +281,47 @@ main(int argc, char **argv)
   lua_setglobal(L, "GKYL_USE_GPU");  
 #endif
 
+#ifdef GKYL_HAVE_ADIOS
+  lua_pushboolean(L, true);
+  lua_setglobal(L, "GKYL_HAVE_ADIOS");
+#else
+  lua_pushboolean(L, false);
+  lua_setglobal(L, "GKYL_HAVE_ADIOS");
+#endif  
+
   lua_pushstring(L, app_args->exec_path);
   lua_setglobal(L, "GKYL_EXEC_PATH");
+
+  lua_pushnumber(L, DBL_MIN);
+  lua_setglobal(L, "GKYL_MIN_DOUBLE");
+  lua_pushnumber(L, DBL_MAX);
+  lua_setglobal(L, "GKYL_MAX_DOUBLE");
+
+  lua_pushnumber(L, FLT_MIN);
+  lua_setglobal(L, "GKYL_MIN_FLOAT");
+  lua_pushnumber(L, FLT_MAX);
+  lua_setglobal(L, "GKYL_MAX_FLOAT");
+
+  lua_pushinteger(L, INT_MIN);
+  lua_setglobal(L, "GKYL_MIN_INT");
+  lua_pushinteger(L, INT_MAX);
+  lua_setglobal(L, "GKYL_MAX_INT");
+
+  lua_pushinteger(L, LONG_MIN);
+  lua_setglobal(L, "GKYL_MIN_LONG");
+  lua_pushinteger(L, LONG_MAX);
+  lua_setglobal(L, "GKYL_MAX_LONG");
+
+  lua_pushinteger(L, LONG_MIN);
+  lua_setglobal(L, "GKYL_MIN_LONG_LONG");
+  lua_pushinteger(L, LONG_MAX);
+  lua_setglobal(L, "GKYL_MAX_LONG_LONG");
+
+  lua_pushnumber(L, DBL_EPSILON);
+  lua_setglobal(L, "GKYL_EPSILON");
+  
+  lua_pushinteger(L, INT16_MAX);
+  lua_setglobal(L, "GKYL_MAX_INT16");
 
   // NOT FULLY CORRECT: NEED TO FIX THESE ...
   lua_pushstring(L, "gkyl");

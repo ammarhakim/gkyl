@@ -27,8 +27,6 @@ if GKYL_HAVE_CUDA then
 end
 
 ffi.cdef [[
-  void cellCenter(int ndim, double* lower, int* currIdx, double* dx, double* xc);
-
 /**
  * Rectangular grid object.
  */
@@ -216,7 +214,9 @@ function RectCart:cellUpperInDir(d)
    return self:lower(d) + (self._currIdx[d])*self:dx(d)
 end
 function RectCart:cellCenter(xc)
-   ffiC.cellCenter(self._ndim, self._lower:data(), self._currIdx:data(), self._dx:data(), xc:data())
+   for d = 1, self._ndim do
+      xc[d] = self:cellCenterInDir(d)
+   end
 end
 function RectCart:cellVolume() return self._vol end
 function RectCart:gridVolume() return self._gridVol end
