@@ -63,6 +63,11 @@ function App:init(tbl)
    -- construct G0 Moments App object
    self.g0App = G0.Moments.App.new(tbl)
 
+   -- The following builds various objects to use internally in the G2
+   -- driver, for which the G0 object needs to be properly
+   -- constructed. Hence, the G0.Moments.App.new needs to be made
+   -- already
+
    -- grid object
    self.grid = Grid.RectCart {
       lower = tbl.lower,
@@ -73,7 +78,27 @@ function App:init(tbl)
 
    -- ghost cell layout
    self.nghost = self.g0App:nghost()
+   
+end
 
+-- Compute field diagnostics
+function App:calcFieldDiagnostics(tm)
+   self.g0App:calc_field_energy(tm)
+end
+
+-- Write field diagnostics
+function App:writeFieldDiagnostics(tm)
+   self.g0App:write_field_energy()
+end
+
+-- Compute field diagnostics
+function App:calcSpeciesDiagnostics(tm)
+   self.g0App:calc_integrated_mom(tm)
+end
+
+-- Write field diagnostics
+function App:writeSpeciesDiagnostics(tm)
+   self.g0App:write_integrated_mom()
 end
 
 -- Run simulation
@@ -124,8 +149,8 @@ function App:run()
    local function writeData(tCurr)
       if ioTrigger(tCurr) then
 	 self.g0App:write(tCurr, ioFrame)
-	 self.g0App:write_integrated_mom()
-	 self.g0App:write_field_energy()
+	 self:writeFieldDiagnostics(tCurr)
+	 self:writeSpeciesDiagnostics(tcurr)
 
 	 ioFrame = ioFrame + 1
       end
@@ -152,8 +177,8 @@ function App:run()
 
    -- Apply initial conditions
    self.g0App:apply_ic(tCurr)
-   self.g0App:calc_integrated_mom(tCurr)
-   self.g0App:calc_field_energy(tCurr)
+   self:calcFieldDiagnostics(tCurr)
+   self:calcSpeciesDiagnostics(tCurr)
 
    writeData(tCurr)
 
@@ -182,8 +207,8 @@ function App:run()
       tCurr = tCurr + upStatus.dt_actual
       dt = upStatus.dt_suggested
       
-      self.g0App:calc_integrated_mom(tCurr)
-      self.g0App:calc_field_energy(tCurr)
+      self:calcFieldDiagnostics(tCurr)
+      self:calcSpeciesDiagnostics(tCurr)
 
       if (tCurr >= tEnd) then break end
 

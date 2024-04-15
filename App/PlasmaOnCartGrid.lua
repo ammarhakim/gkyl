@@ -6,6 +6,8 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+local Adios = require "Io.Adios"
+local Mpi = require "Comm.Mpi"
 
 return {
    -- Return function to create Moments app objects

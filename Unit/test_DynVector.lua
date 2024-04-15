@@ -10,6 +10,7 @@ local Unit = require "Unit"
 local Grid = require "Grid"
 local DataStruct = require "DataStruct"
 local Mpi = require "Comm.Mpi"
+local Adios = require "Io.Adios"
 
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
@@ -17,6 +18,10 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
+
+-- Adios object for I/O. Declared as global so objects can use it without
+-- having to pass it through every function as an argument.
+GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(Mpi.COMM_WORLD)
 
 function log(msg)
    local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
@@ -172,10 +177,25 @@ function test_4()
 
 end
 
+function test_io()
+   local dynVec = DataStruct.DynVector { numComponents = 2 }
+
+   dynVec:appendData(0, { 0, 1 })
+   dynVec:write("test_io_0.bp", 0.0, 1)
+   for i = 1, 10 do
+      dynVec:appendData(0.1*i, { i, i+1 })
+   end
+   print("Size", dynVec:size())
+   dynVec:write("test_io_0.bp", 1.0, 2)
+
+   if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end
+end
+
 test_1()
 --test_2r()
 test_3()
 test_4()
+test_io()
 
 totalFail = allReduceOneInt(stats.fail)
 totalPass = allReduceOneInt(stats.pass)
