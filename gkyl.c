@@ -292,9 +292,6 @@ main(int argc, char **argv)
   lua_setglobal(L, "GKYL_HAVE_ADIOS");
 #endif  
 
-  lua_pushstring(L, app_args->exec_path);
-  lua_setglobal(L, "GKYL_EXEC_PATH");
-
   lua_pushnumber(L, DBL_MIN);
   lua_setglobal(L, "GKYL_MIN_DOUBLE");
   lua_pushnumber(L, DBL_MAX);
@@ -326,9 +323,21 @@ main(int argc, char **argv)
   lua_pushinteger(L, INT16_MAX);
   lua_setglobal(L, "GKYL_MAX_INT16");
 
-  // NOT FULLY CORRECT: NEED TO FIX THESE ...
-  lua_pushstring(L, "gkyl");
-  lua_setglobal(L, "GKYL_EXEC");
+  lua_pushstring(L, app_args->exec_path);
+  lua_setglobal(L, "GKYL_EXEC_PATH");
+  
+  do {
+    const char *fmt = "%s/gkyl";
+    size_t len = gkyl_calc_strlen(fmt, app_args->exec_path);
+
+    char *str = gkyl_malloc(len+1);
+    snprintf(str, len+1, fmt, app_args->exec_path);
+
+    lua_pushstring(L, str);
+    lua_setglobal(L, "GKYL_EXEC");
+
+    gkyl_free(str);
+  } while (0);  
 
 #ifdef GKYL_GIT_CHANGESET
   lua_pushstring(L, STRINGIFY(GKYL_GIT_CHANGESET));

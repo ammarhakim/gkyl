@@ -153,7 +153,7 @@ $(BUILD_DIR)/%.c.o: %.c
 # Build commands for C source
 $(BUILD_DIR)/sqlite3/sqlite3.c.o: sqlite3/sqlite3.c
 	$(MKDIR_P) $(dir $@)
-	$(CC)  -Wno-implicit-int-float-conversion -g -O -c $< -o $@
+	$(CC)  -Wno-implicit-int-float-conversion -g -c $< -o $@
 
 gkyl: ${OBJS} gkyl.c ## Build main Gkeyll executable (gkyl)
 	${CC} ${CFLAGS} ${INCLUDES} gkyl.c $(OBJS) -o gkyl ${EXTRA_LD_FLAGS} -L${G0_LIB_DIR} ${G0_RPATH} ${G0_LIBS} ${LIB_DIRS} ${EXT_LIBS} ${RLINK_DYNAMIC}

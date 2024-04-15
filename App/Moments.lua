@@ -5,16 +5,14 @@
 
 -- Infrastructure loads
 local DecompRegionCalc = require "Lib.CartDecomp"
+local Grid = require "Grid"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Logger = require "Lib.Logger"
 local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
 local date = require "xsys.date"
-local lfs = require "lfs"
-local lume = require "Lib.lume"
 local xsys = require "xsys"
-local ffi = require "ffi"
 
 -- Euler equation initialization
 local Euler = function(tbl)
@@ -64,6 +62,18 @@ function App:init(tbl)
 
    -- construct G0 Moments App object
    self.g0App = G0.Moments.App.new(tbl)
+
+   -- grid object
+   self.grid = Grid.RectCart {
+      lower = tbl.lower,
+      upper = tbl.upper,
+      cells = tbl.cells,
+      periodicDirs = tbl.periodicDirs
+   }
+
+   -- ghost cell layout
+   self.nghost = self.g0App:nghost()
+
 end
 
 -- Run simulation
