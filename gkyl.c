@@ -33,6 +33,9 @@
 #include <adios2_c.h>
 #endif
 
+#define STRINGIFY_(x)  #x
+#define STRINGIFY(x)   STRINGIFY_(x)
+
 // Tool description struct
 struct tool_description {
   const char *tool_name;
@@ -327,12 +330,15 @@ main(int argc, char **argv)
   lua_pushstring(L, "gkyl");
   lua_setglobal(L, "GKYL_EXEC");
 
-  lua_pushstring(L, "1.0");
+#ifdef GKYL_GIT_CHANGESET
+  lua_pushstring(L, STRINGIFY(GKYL_GIT_CHANGESET));
   lua_setglobal(L, "GKYL_GIT_CHANGESET");
+#endif  
 
-  lua_pushstring(L, "1.0");
+#ifdef GKYL_BUILD_DATE
+  lua_pushstring(L, STRINGIFY(GKYL_BUILD_DATE));
   lua_setglobal(L, "GKYL_BUILD_DATE");
-  // ... END OF THINGS TO FIX
+#endif  
 
   // push extra arguments into a Lua table to Tools and App can get
   // them

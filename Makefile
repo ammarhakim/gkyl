@@ -1,8 +1,5 @@
 # -*- makefile-gmake -*-
 
-# Sample Makefile to use installed gkylzero library: copy and modify
-# for your needs
-
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
@@ -12,6 +9,10 @@ INSTALL_PREFIX ?= ${PREFIX}
 
 # determine OS we are running on
 UNAME = $(shell uname)
+
+# determine date of build
+BUILD_DATE = $(shell date)
+GIT_TIP = $(shell git describe --abbrev=12 --always --dirty=+)
 
 # Default lapack include and libraries: we prefer linking to static library
 LAPACK_INC = $(PREFIX)/OpenBLAS/include
@@ -40,7 +41,7 @@ BUILD_DIR ?= build
 # Include config.mak file (if it exists)
 -include $(PREFIX)/gkylzero/share/config.mak
 
-CFLAGS = -O3 -g -I.
+CFLAGS = -O3 -g -I. -DGKYL_BUILD_DATE="${BUILD_DATE}" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
 
 G0_INC_DIR = ${PREFIX}/gkylzero/include
 G0_LIB_DIR = ${PREFIX}/gkylzero/lib
