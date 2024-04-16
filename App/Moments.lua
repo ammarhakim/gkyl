@@ -68,13 +68,13 @@ function App:init(tbl)
    -- constructed. Hence, the G0.Moments.App.new needs to be made
    -- already
 
-   -- grid object
-   self.grid = Grid.RectCart {
-      lower = tbl.lower,
-      upper = tbl.upper,
-      cells = tbl.cells,
-      periodicDirs = tbl.periodicDirs
-   }
+   -- grid object (NEED DECOMP!)
+   -- self.grid = Grid.RectCart {
+   --    lower = tbl.lower,
+   --    upper = tbl.upper,
+   --    cells = tbl.cells,
+   --    periodicDirs = tbl.periodicDirs
+   -- }
 
    -- ghost cell layout
    self.nghost = self.g0App:nghost()
