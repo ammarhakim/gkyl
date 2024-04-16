@@ -181,12 +181,11 @@ function test_io()
    local dynVec = DataStruct.DynVector { numComponents = 2 }
 
    dynVec:appendData(0, { 0, 1 })
-   dynVec:write("test_io_0.bp", 0.0, 1)
+   dynVec:write("test_io.bp", 0.0, 0)
    for i = 1, 10 do
       dynVec:appendData(0.1*i, { i, i+1 })
    end
-   print("Size", dynVec:size())
-   dynVec:write("test_io_0.bp", 1.0, 2)
+   dynVec:write("test_io.bp", 1.0, 1)
 
    if GKYL_ADIOS2_MPI then Adios.finalize(GKYL_ADIOS2_MPI);  GKYL_ADIOS2_MPI = nil end
 end

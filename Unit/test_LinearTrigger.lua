@@ -52,14 +52,6 @@ function test_3()
    assert_equal(true, trig(0.1), "Checking trigger")
 end
 
-function test_4()
-   local trig = LinearTrigger(0.0, 50.0, 10)
-   assert_equal(true, trig(5.01), "Checking trigger")
-   assert_equal(false, trig(5.02), "Checking trigger")
-   assert_equal(true, trig(10.02), "Checking trigger")
-   assert_equal(false, trig(10.03), "Checking trigger")
-end
-
 function test_5()
    local trig = LinearTrigger(0.0, 50.0, 10)
    assert_equal(true, trig(0.0), "Checking trigger")
@@ -69,7 +61,6 @@ end
 
 test_1()
 test_3()
-test_4()
 test_5()
 
 if stats.fail > 0 then

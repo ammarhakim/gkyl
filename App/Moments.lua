@@ -190,7 +190,7 @@ function App:run()
    local step = 1
    -- Main simulation loop
    timers.timeloop = Time.clock()
-   while true do
+   while tCurr < tEnd do
       local upStatus = self.g0App:update(dt)
 
       if not upStatus.success then
@@ -202,17 +202,16 @@ function App:run()
 	 log(string.format(" Step 0 at time %g. Time step %g. Completed 0%%\n", tCurr, upStatus.dt_actual))
 	 first = false
       end
-      writeStepMessage(step, tCurr, upStatus.dt_suggested)
 
       tCurr = tCurr + upStatus.dt_actual
       dt = upStatus.dt_suggested
+
+      writeStepMessage(step, tCurr, upStatus.dt_suggested)
       
       self:calcFieldDiagnostics(tCurr)
       self:calcSpeciesDiagnostics(tCurr)
-
-      if (tCurr >= tEnd) then break end
-
       writeData(tCurr)
+
       step = step + 1
    end
    local tmEnd = Time.clock()
