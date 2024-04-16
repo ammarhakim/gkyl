@@ -29,6 +29,16 @@ local TenMoment = function(tbl)
    return G0.Moments.Eq.TenMoment.new(tbl)
 end
 
+-- SR Euler equation initialization
+local SrEuler = function(tbl)
+   return G0.Moments.Eq.SrEuler.new(tbl)
+end
+
+-- Cold-fluid equation initialization
+local ColdFluid = function(tbl)
+   return G0.Moments.Eq.ColdFluid.new(tbl)
+end
+
 -- Moment species initialization
 local Species = function(tbl)
    return G0.Moments.Species.new(tbl)
@@ -264,6 +274,8 @@ return {
    Eq = {
       Euler = Euler,
       IsoEuler = IsoEuler,
-      TenMoment = TenMoment
+      TenMoment = TenMoment,
+      SrEuler = SrEuler,
+      ColdFluid = ColdFluid
    }
 }
