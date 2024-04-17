@@ -16,6 +16,10 @@ local ffi = require "ffi"
 local lfs = require "Lib.lfs"
 local xsys = require "xsys"
 local Time = require "Lib.Time"
+local Mpi = require "Comm.Mpi"
+local Adios = require "Io.Adios"
+
+GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(Mpi.COMM_WORLD)
 
 -- Create CLI parser to handle commands and options
 local parser = argparse()
@@ -89,11 +93,7 @@ end
 
 -- FFI call prototypes 
 ffi.cdef [[
-  typedef struct EigenEigen EigenEigen;
-
-  EigenEigen* new_EigenEigen(int N, double *mre, double *mim, int calcVec);
-  void delete_EigenEigen(EigenEigen *ee);
-  void compute_EigenEigen(EigenEigen* ee, double *ere, double *eim);
+  bool gkyl_multi_mom_eigensolve(double _Complex *A, double _Complex *x, double _Complex *vl, double _Complex *vr, int N, int eig_vec);
 ]]
 
 -- clear out contents of matrix
@@ -115,31 +115,17 @@ local function matrixSubIncr(dest, src, row, col)
    end
 end
 
--- Creates eigenvalue solver from given complex matrix
-local function createEigenSolver(D, calcVec)
-   local N = D:numRows() -- matrix is square
-   local Dre, Dim = Lin.Mat(N,N), Lin.Mat(N,N)
-
-   for i = 1, D:numRows() do
-      for j = 1, D:numCols() do
-	 Dre[i][j], Dim[i][j] = D[i][j].re, D[i][j].im
-      end
-   end
-
-   return ffi.C.new_EigenEigen(
-      D:numRows(), Dre:data(), Dim:data(), calcVec == true and 1 or 0)
-end
-
--- Delete eigen solver
-local function deleteEigenSolver(slvr)
-   ffi.C.delete_EigenEigen(slvr)
-end
-
--- Computes eigensystem from created solver
-local function computeEigenSystem(N, solver)
+-- Computes eigensystem
+local function computeEigenSystem(A, N, calcVec)
    local ere, eim = Lin.Vec(N), Lin.Vec(N)
+   local ecomp = Lin.ComplexVec(N)
+   local vre, vim = Lin.ComplexMat(N, N), Lin.ComplexMat(N, N)
 
-   ffi.C.compute_EigenEigen(solver, ere:data(), eim:data())
+   local info = ffi.C.gkyl_multi_mom_eigensolve(A:data(), ecomp:data(), vre:data(), vim:data(), N, calcVec == true and 1 or 0)
+
+   for i = 1, N do
+      ere[i], eim[i] = ecomp[i].re, ecomp[i].im
+   end
 
    return ere, eim
 end
@@ -150,7 +136,7 @@ local count = 1 -- just a counter for number of wave-vectors
 -- vector, the list of species objects and the field
 -- object. Eigenvalues corresponding to kvec are appended to the
 -- eigValues DynVector.
-local function solveDispEM(kvec, speciesList, field, eigValues)
+local function solveDispEM(kvec, speciesList, field, eigValues, calcEigVec)
    -- total number of equations 
    local numEqn = field:numEquations()
    for _, s in ipairs(speciesList) do
@@ -201,8 +187,7 @@ local function solveDispEM(kvec, speciesList, field, eigValues)
    end
 
    -- create eigenvalue solver and solve system
-   local eigSolver = createEigenSolver(dispMat, calcEigVec)
-   local evr, evi = computeEigenSystem(dispMat:numRows(), eigSolver)
+   local evr, evi = computeEigenSystem(dispMat, dispMat:numRows(), calcEigVec)
 
    -- append to output field
    local kw = { kvec[1], kvec[2], kvec[3] }
@@ -212,7 +197,7 @@ local function solveDispEM(kvec, speciesList, field, eigValues)
    eigValues:appendData(count, kw )
    count = count+1
 
-   deleteEigenSolver(eigSolver)
+   --deleteEigenSolver(eigSolver)
 end
 
 -- open input file and read contents: this loads 'speciesList' and
@@ -262,7 +247,7 @@ local tmStart = Time.clock()
 
 -- solve dispersion relation for each kvector
 for _, kv in ipairs(kvectors) do
-   solveDispEM(kv, speciesList, field, eigValues)
+   solveDispEM(kv, speciesList, field, eigValues, calcEigVec)
 end
 
 -- write out eigenvaules
