@@ -39,6 +39,11 @@ local ColdFluid = function(tbl)
    return G0.Moments.Eq.ColdFluid.new(tbl)
 end
 
+-- Ideal MHD equation initialization
+local Mhd = function(tbl)
+   return G0.Moments.Eq.Mhd.new(tbl)
+end
+
 -- Moment species initialization
 local Species = function(tbl)
    return G0.Moments.Species.new(tbl)
@@ -276,6 +281,7 @@ return {
       IsoEuler = IsoEuler,
       TenMoment = TenMoment,
       SrEuler = SrEuler,
-      ColdFluid = ColdFluid
+      ColdFluid = ColdFluid,
+      Mhd = Mhd
    }
 }
