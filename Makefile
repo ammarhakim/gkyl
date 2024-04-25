@@ -135,9 +135,9 @@ LIB_DIRS = -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${LUA_LIB
 EXT_LIBS = ${LAPACK_LIB} ${SUPERLU_LIB} ${MPI_RPATH} ${MPI_LIBS} ${LUA_RPATH} ${LUA_LIBS} ${NCCL_LIBS} ${ADIOS_RPATH} ${ADIOS_LIBS} -lm -lpthread -ldl
 
 # Includes for G2
-G2_INCLUDES = -IComm -ILib -IGrid
+G2_INCLUDES = -IComm -ILib -IGrid -ITool
 # Directories containing source code
-SRC_DIRS := sqlite3 Comm Lib Grid
+SRC_DIRS := sqlite3 Comm Lib Grid Tool
 
 # List of source files
 SRCS := $(shell find $(SRC_DIRS) -name '*.c')
