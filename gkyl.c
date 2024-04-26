@@ -138,24 +138,24 @@ static const char *get_fname(const char *fn) { return strrchr(fn, '/'); }
 static void
 show_usage()
 {
-  printf("This is the Gkeyll code. See gkeyll.rtfd.io for details.\n");
-  printf("Type 'gkyl man' for help.\n\n");
+  fprintf(stdout, "This is the Gkeyll code. See gkeyll.rtfd.io for details.\n");
+  fprintf(stdout, "Type 'gkyl man' for help.\n\n");
 
-  printf("gkyl [OPTIONS] app/tool [APP-OPTIONS]\n");
-  printf("Available options are\n");
-  printf("  -e chunk   Execute string 'chunk'\n");
-  printf("  -t         Show list of registered tools\n");
-  printf("  -v         Show version information\n");
-  printf("  -g         Run on NVIDIA GPU (if available and built with CUDA)\n\n");
-  printf("  -m         Run memory tracer\n");
-  printf("  -S         Do not initialize MPI\n");  
+  fprintf(stdout, "gkyl [OPTIONS] input-file/tool-name [APP-OPTIONS]\n");
+  fprintf(stdout, "Available options are\n");
+  fprintf(stdout, "  -e chunk   Execute string 'chunk'\n");
+  fprintf(stdout, "  -t         Show list of registered tools\n");
+  fprintf(stdout, "  -v         Show version information\n");
+  fprintf(stdout, "  -g         Run on NVIDIA GPU (if available and built with CUDA)\n\n");
+  fprintf(stdout, "  -m         Run memory tracer\n");
+  fprintf(stdout, "  -S         Do not initialize MPI\n\n");  
 
-  printf("Most app input files take the following commands:\n");
-  printf("  run        Run simulation. Default if nothing specified\n");
-  printf("  init       Only initialize simulation but do not run it\n");
-  printf("  restart    Restart simulation from last saved restart frame\n\n");
+  fprintf(stdout, "Most app input files take the following commands:\n");
+  fprintf(stdout, "  run        Run simulation. Default if nothing specified\n");
+  fprintf(stdout, "  restart    Restart simulation \n");
+  fprintf(stdout, "To get help for commands type command name followed by -h\n\n");
 
-  printf("Individual tools may take other options and commands. See their specific help.\n");
+  fprintf(stdout, "Individual tools may take other options and commands. See their specific help.\n");
 }
 
 static struct app_args*

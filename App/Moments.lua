@@ -13,6 +13,19 @@ local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
 local date = require "xsys.date"
 local xsys = require "xsys"
+local argparse = require "Lib.argparse"
+
+-- argument parser for run command
+local runParser = argparse()
+   :name("run")
+   :description("Run command")
+
+runParser:option("-s --steps", "Maximum number of steps to use", GKYL_MAX_INT, tonumber)
+
+local function runParserEval(cline, paramList)
+   local opts = runParser:parse(cline)
+   paramList.maxSteps = opts.steps
+end
 
 -- Euler equation initialization
 local Euler = function(tbl)
@@ -54,85 +67,13 @@ local Field = function(tbl)
    return G0.Moments.Field.new(tbl)
 end
 
--- top-level moments App
-local App = Proto()
+-- Run simulation: "app" is a pre-conructed Moment App object
+local function runSimulation(app, paramList)
+   local log = app.log
+   local maxSteps = paramList.maxSteps
 
--- Initialize the App object
-function App:init(tbl)
-   self.label = "Moments"
-   self.tStart = tbl.tStart and tbl.tStart or 0.0
-   self.tEnd  = tbl.tEnd
-   self.nFrame = tbl.nFrame
-
-   self.comm = Mpi.COMM_WORLD
-   local commSz = Mpi.Comm_size(self.comm)
-
-   if not tbl.cuts then
-      if commSz > 1 then
-	 -- build cuts table if not specified explicitly
-	 local cuts = DecompRegionCalc.makeCuts(#tbl.cells, commSz, tbl.cells)
-	 tbl.decompCuts = cuts
-      end
-   end
-
-   -- construct G0 Moments App object
-   self.g0App = G0.Moments.App.new(tbl)
-
-   -- The following builds various objects to use internally in the G2
-   -- driver, for which the G0 object needs to be properly
-   -- constructed. Hence, the G0.Moments.App.new needs to be made
-   -- already
-
-   -- grid object (NEED DECOMP!)
-   -- self.grid = Grid.RectCart {
-   --    lower = tbl.lower,
-   --    upper = tbl.upper,
-   --    cells = tbl.cells,
-   --    periodicDirs = tbl.periodicDirs
-   -- }
-
-   -- ghost cell layout
-   self.nghost = self.g0App:nghost()
-   
-end
-
--- Compute field diagnostics
-function App:calcFieldDiagnostics(tm)
-   self.g0App:calc_field_energy(tm)
-end
-
--- Write field diagnostics
-function App:writeFieldDiagnostics(tm)
-   self.g0App:write_field_energy()
-end
-
--- Compute field diagnostics
-function App:calcSpeciesDiagnostics(tm)
-   self.g0App:calc_integrated_mom(tm)
-end
-
--- Write field diagnostics
-function App:writeSpeciesDiagnostics(tm)
-   self.g0App:write_integrated_mom()
-end
-
--- Run simulation
-function App:run()
-
-   local maxSteps = GKYL_MAX_INT
-
-   local log = Logger { logToFile = false }
-   log(date(false):fmt()); log("\n") -- Time-stamp for sim start.
-
-   if GKYL_GIT_CHANGESET then
-      log(string.format("Gkyl built with %s\n", GKYL_GIT_CHANGESET))
-   end
-   if GKYL_BUILD_DATE then
-      log(string.format("Gkyl built on %s\n", GKYL_BUILD_DATE))
-   end
-
-   local tStart, tEnd = self.tStart, self.tEnd
-   local nFrame = self.nFrame
+   local tStart, tEnd = app.tStart, app.tEnd
+   local nFrame = app.nFrame
    local tCurr = tStart
 
    local timers = {
@@ -142,7 +83,7 @@ function App:run()
    }
    timers.total = Time.clock()
    timers.init  = timers.total
-   log(string.format("Initializing %s simulation ...\n", self.label))
+   log(string.format("Initializing %s simulation ...\n", app.label))
 
    -- Triggers
    local ioTrigger = LinearTrigger(0, tEnd, nFrame)
@@ -163,9 +104,9 @@ function App:run()
    -- function to write data to file
    local function writeData(tCurr)
       if ioTrigger(tCurr) then
-	 self.g0App:write(tCurr, ioFrame)
-	 self:writeFieldDiagnostics(tCurr)
-	 self:writeSpeciesDiagnostics(tcurr)
+	 app.g0App:write(tCurr, ioFrame)
+	 app:writeFieldDiagnostics(tCurr)
+	 app:writeSpeciesDiagnostics(tcurr)
 
 	 ioFrame = ioFrame + 1
       end
@@ -191,9 +132,9 @@ function App:run()
    end
 
    -- Apply initial conditions
-   self.g0App:apply_ic(tCurr)
-   self:calcFieldDiagnostics(tCurr)
-   self:calcSpeciesDiagnostics(tCurr)
+   app.g0App:apply_ic(tCurr)
+   app:calcFieldDiagnostics(tCurr)
+   app:calcSpeciesDiagnostics(tCurr)
 
    writeData(tCurr)
 
@@ -202,11 +143,11 @@ function App:run()
 
    local first = true
    local dt = tEnd - tStart
-   local step = 1
+   local step = 0
    -- Main simulation loop
    timers.timeloop = Time.clock()
-   while tCurr < tEnd do
-      local upStatus = self.g0App:update(dt)
+   while (tCurr < tEnd) and (step < maxSteps) do
+      local upStatus = app.g0App:update(dt)
 
       if not upStatus.success then
 	 log(string.format("*** Simulation failed at step %d, time %g! Aborting\n", step, tCurr))
@@ -223,8 +164,8 @@ function App:run()
 
       writeStepMessage(step, tCurr, upStatus.dt_suggested)
       
-      self:calcFieldDiagnostics(tCurr)
-      self:calcSpeciesDiagnostics(tCurr)
+      app:calcFieldDiagnostics(tCurr)
+      app:calcSpeciesDiagnostics(tCurr)
       writeData(tCurr)
 
       step = step + 1
@@ -233,12 +174,114 @@ function App:run()
    timers.timeloop = tmEnd - timers.timeloop
    timers.total = tmEnd - timers.total
 
-   self.g0App:stat_write()
+   app.g0App:stat_write()
 
    log(string.format("\n\nTotal number of time-steps %s\n", step))
    log(string.format("Main-loop took %g secs to run\n", timers.timeloop))
    log(string.format("Simulation took a total of %g secs to run\n", timers.total))
    log(string.format("See log file for details\n"))
+end
+
+-- Does nothing
+local function nullSimulation(app, paramList)
+   local log = Logger { logToFile = false }
+   log(string.format("*** Incorrect simulation command specified!\n"))
+end
+
+-- top-level moments App
+local App = Proto()
+
+-- Initialize the App object
+function App:init(tbl)
+   self.log = Logger { logToFile = false }
+
+   local log = self.log
+   log(date(false):fmt()); log("\n") -- Time-stamp for sim start.
+
+   if GKYL_GIT_CHANGESET then
+      log(string.format("Gkyl built with %s\n", GKYL_GIT_CHANGESET))
+   end
+   if GKYL_BUILD_DATE then
+      log(string.format("Gkyl built on %s\n", GKYL_BUILD_DATE))
+   end
+
+   self.label = "Moments"
+   self.tStart = tbl.tStart and tbl.tStart or 0.0
+   self.tEnd  = tbl.tEnd
+   self.nFrame = tbl.nFrame
+
+   self.comm = Mpi.COMM_WORLD
+   local commSz = Mpi.Comm_size(self.comm)
+
+   if not tbl.cuts then
+      if commSz > 1 then
+	 -- build cuts table if not specified explicitly
+	 local cuts = DecompRegionCalc.makeCuts(#tbl.cells, commSz, tbl.cells)
+	 tbl.decompCuts = cuts
+      end
+   end
+
+   -- construct G0 Moments App object
+   self.g0App = G0.Moments.App.new(tbl)
+
+   local cmdParsers = { 
+      run = runParser
+   }
+
+ -- list of parsers
+   local parsers = {
+      run = runParserEval,
+   }
+
+   -- by default, run the whole simulation
+   self.runMethod = runSimulation
+   self.paramList = { maxSteps = GKYL_MAX_INT }
+
+   local cline = { }
+   -- constuct run method based on commands
+   if #GKYL_COMMANDS > 0 then
+      local cmd = GKYL_COMMANDS[1]
+      if #GKYL_COMMANDS > 1 then
+	 for i = 2, #GKYL_COMMANDS do
+	    cline[i-1] = GKYL_COMMANDS[i]
+	 end
+      end
+
+      -- fetch parser and run it
+      local parserFunc = parsers[cmd]
+      if parserFunc then
+	 parserFunc(cline, self.paramList)
+      else
+	 self.runMethod = nullSimulation
+      end
+   end
+   
+end
+
+-- Compute field diagnostics
+function App:calcFieldDiagnostics(tm)
+   self.g0App:calc_field_energy(tm)
+end
+
+-- Write field diagnostics
+function App:writeFieldDiagnostics(tm)
+   self.g0App:write_field_energy()
+end
+
+-- Compute field diagnostics
+function App:calcSpeciesDiagnostics(tm)
+   self.g0App:calc_integrated_mom(tm)
+end
+
+-- Write field diagnostics
+function App:writeSpeciesDiagnostics(tm)
+   self.g0App:write_integrated_mom()
+end
+
+
+-- Run simulation
+function App:run()
+   self.runMethod(self, self.paramList)
 end
 
 -- run using G0 run method
