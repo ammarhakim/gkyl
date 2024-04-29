@@ -82,7 +82,7 @@ local function runSimulation(app, paramList)
       timeloop = 0.0,
    }
    timers.total = Time.clock()
-   timers.init  = timers.total
+   timers.init = timers.total
    log(string.format("Initializing %s simulation ...\n", app.label))
 
    -- Triggers
