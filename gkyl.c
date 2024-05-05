@@ -158,6 +158,24 @@ show_usage()
   fprintf(stdout, "Individual tools may take other options and commands. See their specific help.\n");
 }
 
+static void
+show_version()
+{
+  fprintf(stdout, "This is the Gkeyll code. See gkeyll.rtfd.io for details.\n");
+  fprintf(stdout, "Type 'gkyl -h' for help.\n\n");
+#ifdef GKYL_GIT_CHANGESET  
+  fprintf(stdout, "Built with git changeset %s\n", STRINGIFY(GKYL_GIT_CHANGESET));
+#endif
+#ifdef GKYL_BUILD_DATE
+  fprintf(stdout, "Built on %s\n", STRINGIFY(GKYL_BUILD_DATE));
+#endif
+#ifdef GKYL_HAVE_NCCL
+  fprintf(stdout, "Built with CUDA\n");
+#else
+  fprintf(stdout, "Built without CUDA\n");
+#endif
+    }
+
 static struct app_args*
 parse_app_args(int argc, char **argv)
 {
@@ -186,6 +204,11 @@ parse_app_args(int argc, char **argv)
         show_usage();
         exit(-1);
         break;
+
+      case 'v':
+        show_version();
+        exit(-1);
+        break;        
 
       case 't':
         show_tool_list();
