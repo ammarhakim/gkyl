@@ -24,9 +24,11 @@ gkyl_multi_mom_eigensolve(double _Complex *A, double _Complex *x, double _Comple
 {
   char calc_vec = 'N';
   calc_vec = (eig_vec == 1) ? 'V' : 'N';
-    
+#ifdef GKYL_USING_FRAMEWORK_ACCELERATE  
+  int info = 1;
+#else  
   int info = LAPACKE_zgeev(LAPACK_COL_MAJOR, calc_vec, calc_vec, N, A,
     N, x, vl, N, vr, N);
-  
+#endif
   return info == 0 ? true : false;
 }

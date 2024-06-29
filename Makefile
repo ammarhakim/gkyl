@@ -121,7 +121,7 @@ USING_ADIOS =
 ADIOS_INC_DIR = ${PREFIX}/adios2/include
 ADIOS_LIB_DIR = ${PREFIX}/adios2/lib
 ADIOS_RPATH = -Wl,-rpath,${ADIOS_LIB_DIR}
-ADIOS_LIBS = -ladios_nompi
+ADIOS_LIBS = -ladios2_c
 CFLAGS += -DGKYL_HAVE_ADIOS
 ifeq (${USE_MPI}, 1)
 	ADIOS_LIBS = -ladios2_c -ladios2_c_mpi

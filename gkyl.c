@@ -257,8 +257,10 @@ main(int argc, char **argv)
 {
   struct app_args *app_args = parse_app_args(argc, argv);
 
+#ifdef GKYL_HAVE_MPI
   if (app_args->use_mpi)
     MPI_Init(&argc, &argv);
+#endif
 
   if (app_args->trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -279,8 +281,12 @@ main(int argc, char **argv)
   if (app_args->use_mpi) {
     lua_pushboolean(L, true);
     lua_setglobal(L, "GKYL_HAVE_MPI");
-    
+ 
+#ifdef GKYL_HAVE_MPI 
     lua_pushlightuserdata(L, MPI_COMM_WORLD);
+#else
+    lua_pushlightuserdata(L, false);
+#endif
     lua_setglobal(L, "GKYL_MPI_COMM");
   }
   else {
@@ -433,9 +439,11 @@ main(int argc, char **argv)
   }
   
   lua_close(L);  
-  
+
+#ifdef GKYL_HAVE_MPI
   if (app_args->use_mpi)
     MPI_Finalize();
+#endif
 
   release_opt_args(app_args);
   
