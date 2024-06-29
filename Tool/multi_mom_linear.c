@@ -9,8 +9,15 @@
 
 #include <gkyl_multi_mom_linear.h>
 #include <complex.h>
-#include <cblas.h>
-#include <lapacke.h>
+
+// BLAS and LAPACKE includes
+#ifdef GKYL_USING_FRAMEWORK_ACCELERATE
+# include <Accelerate/Accelerate.h>
+#else
+// On non-Darwin platforms use OpenBLAS
+# include <cblas.h>
+# include <lapacke.h>
+#endif
 
 bool
 gkyl_multi_mom_eigensolve(double _Complex *A, double _Complex *x, double _Complex *vl, double _Complex *vr, int N, int eig_vec)
