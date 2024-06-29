@@ -13,18 +13,18 @@ local lfs = require "Lib.lfs"
 local ffi = require "ffi"
 
 ffi.cdef [[
-    typedef struct {
-        double dl, ul, pl;
-        double dr, ur, pr;
-        double lower, upper;
-        int ncell;
-        double tEnd;
-        double gas_gamma;
-        double disLoc;
-    } ProblemState;
 
-    void solveRiemannProblem(ProblemState _ps,
-      double *density, double *velocity, double *pressure, double *internalenergy);
+struct ProblemState {
+  double dl, ul, pl;
+  double dr, ur, pr;
+  double lower, upper;
+  int ncell;
+  double tEnd;
+  double gas_gamma;
+  double disLoc;
+};
+
+void solveRiemannProblem(struct ProblemState ps, const char *out_prefix);
 ]]
 
 -- Create CLI parser to handle commands and options
@@ -48,8 +48,8 @@ it:
 
 This will produce the following files:
 
- exacteulerinp_density.bp, exacteulerinp_velocity.bp,
- exacteulerinp_pressure.bp, exacteulerinp_internalenergy.bp
+ exacteulerinp_density.gkyl, exacteulerinp_velocity.gkyl,
+ exacteulerinp_pressure.gkyl
 
 These can be vizualized/postprocessed as usual with pgkyl.
 ]]
@@ -108,9 +108,9 @@ local velocity = makeField()
 local pressure = makeField()
 local internalenergy = makeField()
 
-GKYL_OUT_PREFIX = lfs.currentdir() .. "/" .. args.input:sub(1, args.input:len()-4)
+local outPrefix = lfs.currentdir() .. "/" .. args.input:sub(1, args.input:len()-4)
 
-local problemState = ffi.new("ProblemState")
+local problemState = ffi.new("struct ProblemState")
 problemState.dl, problemState.ul, problemState.pl = leftState[1], leftState[2], leftState[3]
 problemState.dr, problemState.ur, problemState.pr = rightState[1], rightState[2], rightState[3]
 problemState.disLoc = location
@@ -119,12 +119,4 @@ problemState.ncell = ncell
 problemState.tEnd = tEnd
 problemState.gas_gamma = gasGamma
 
-ffi.C.solveRiemannProblem(
-   problemState, density:getDataPtrAt(1), velocity:getDataPtrAt(1),
-   pressure:getDataPtrAt(1), internalenergy:getDataPtrAt(1)
-)
-
-density:write("density.bp")
-velocity:write("velocity.bp")
-pressure:write("pressure.bp")
-internalenergy:write("internalenergy.bp")
+ffi.C.solveRiemannProblem(problemState, outPrefix)

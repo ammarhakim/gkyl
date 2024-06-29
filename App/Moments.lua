@@ -15,6 +15,8 @@ local date = require "xsys.date"
 local xsys = require "xsys"
 local argparse = require "Lib.argparse"
 
+local BAD_FRAME = -42 -- for indicating a bad frame was specified
+
 -- argument parser for run command
 local runParser = argparse()
    :name("run")
@@ -25,6 +27,19 @@ runParser:option("-s --steps", "Maximum number of steps to use", GKYL_MAX_INT, t
 local function runParserEval(cline, paramList)
    local opts = runParser:parse(cline)
    paramList.maxSteps = opts.steps
+end
+
+-- argument parser for restart command
+local restartParser = argparse()
+   :name("restart")
+   :description("Restart command")
+
+restartParser:option("-f --frame", "Frame to restart from", BAD_FRAME, tonumber)
+
+local function restartParserEval(cline, paramList)
+   local opts = restartParser:parse(cline)
+   paramList.isRestarting = true
+   paramList.restartFrame = opts.frame
 end
 
 -- Euler equation initialization
@@ -131,12 +146,23 @@ local function runSimulation(app, paramList)
       end
    end
 
-   -- Apply initial conditions
-   app.g0App:apply_ic(tCurr)
-   app:calcFieldDiagnostics(tCurr)
-   app:calcSpeciesDiagnostics(tCurr)
+   if paramList.isRestarting then
+      if paramList.restartFrame < 0 then
+	 log(string.format("*** Improper restart frame %d specified\n\n", paramList.restartFrame))
+	 return
+      end
 
-   writeData(tCurr)
+      
+
+   else
+      -- Apply initial conditions
+      app.g0App:apply_ic(tCurr)
+      app:calcFieldDiagnostics(tCurr)
+      app:calcSpeciesDiagnostics(tCurr)
+      
+      writeData(tCurr)
+   end
+
 
    timers.init = Time.clock()-timers.init
    log(string.format("Initialization completed in %g sec\n\n", timers.init))
@@ -224,18 +250,19 @@ function App:init(tbl)
    -- construct G0 Moments App object
    self.g0App = G0.Moments.App.new(tbl)
 
-   local cmdParsers = { 
-      run = runParser
-   }
-
  -- list of parsers
    local parsers = {
       run = runParserEval,
+      restart = restartParserEval,
    }
 
    -- by default, run the whole simulation
    self.runMethod = runSimulation
-   self.paramList = { maxSteps = GKYL_MAX_INT }
+   self.paramList = { 
+      maxSteps = GKYL_MAX_INT,
+      isRestarting = false,
+      restartFrame = BAD_FRAME,
+   }
 
    local cline = { }
    -- constuct run method based on commands
