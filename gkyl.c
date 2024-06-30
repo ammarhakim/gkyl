@@ -67,9 +67,17 @@ static int max2(int a, int b) { return a>b ? a : b; }
 static void
 show_tool_list(void)
 {
-  printf("Following tools are available. Query tool help for more information.\n\n");
+  fprintf(stdout, "Following tools are available. Query tool help for more information.\n\n");
+
+  int mlen = 0;
+  for (int i=0; tool_list[i].tool_name != 0; ++i) {
+    int len = strlen(tool_list[i].tool_name);
+    mlen = len > mlen ? len : mlen;
+  }
+  
   for (int i=0; tool_list[i].tool_name != 0; ++i)
-    printf("%s %s\n", tool_list[i].tool_name, tool_list[i].tool_help);
+    fprintf(stdout, "%*s %s\n", mlen+2, tool_list[i].tool_name, tool_list[i].tool_help);
+  fprintf(stdout, "\n");
 }
 
 // Returns tool Lua script name given tool name. Returns 0 if Tool
@@ -405,6 +413,7 @@ main(int argc, char **argv)
     glua_run_lua(L, app_args->echunk, strlen(app_args->echunk), 0);
 
   if (app_args->num_opt_args > 0) {
+    bool something_run = false;
 
     const char *inp_name = app_args->opt_args[0];
     if (gkyl_check_file_exists(inp_name)) {
@@ -418,6 +427,7 @@ main(int argc, char **argv)
       char *buff = gkyl_load_file(inp_name, &sz);
       glua_run_lua(L, buff, sz, stderr);
       gkyl_free(buff);
+      something_run = true;
     }
     else {
       // check if it is a Tool, and run it if so
@@ -434,8 +444,11 @@ main(int argc, char **argv)
         gkyl_free(buff);
         
         gkyl_free(tool_name);
+        something_run = true;
       }
     }
+    if (!something_run)
+      fprintf(stderr, "No Lua code was run!\n");
   }
   
   lua_close(L);  
