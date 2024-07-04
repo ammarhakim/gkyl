@@ -444,6 +444,9 @@ local array_fn = {
    clear = function (self, val)
       ffiC.gkyl_array_clear(self, val)
    end,
+   clearRange = function (self, val, rng)
+      ffiC.gkyl_array_clear_range(self, val, rng)
+   end,
    set = function (self, val, fld)
       ffiC.gkyl_array_set(self, val, fld)
    end,

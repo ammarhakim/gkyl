@@ -10,13 +10,19 @@ local Alloc = require "Lib.Alloc"
 local DataStruct = require "DataStruct"
 local Grid = require "Grid"
 local argparse = require "Lib.argparse"
+local Proto = require "Lib.Proto"
+
+local Mpi = require "Comm.Mpi"
+local Adios = require "Io.Adios"
+
+GKYL_ADIOS2_MPI = GKYL_ADIOS2_MPI or Adios.init_mpi(Mpi.COMM_WORLD)
 
 -- Create CLI parser to handle commands and options
 local parser = argparse()
    :name("eqdskreader")
    :description [[
 Reads eqdsk files and converts the data into ADIOS-BP so they can be
-read in gkyel and postgkyl. The eqdsk file format is somewhat strange
+read in gkyell and postgkyl. The eqdsk file format is somewhat strange
 and it is not clear if this tool can read every eqdsk file out
 there. Some caution is needed.
 ]]
@@ -55,15 +61,20 @@ local function readEqdsk(fh)
    local data = Alloc.Double()
 
    numMatch = "[+-]?%d+%.%d+[eE][+-]%d+"
+   intNumMatch = "[+-]?%d+"
    for ln in fh:lines() do
       local n = ln:len()
       local ln1 = ln:sub(1, n) -- copy so we can mod
    
       while true do
 	 local s,e = ln1:find(numMatch)
+	 local ints,inte = ln1:find(intNumMatch)
 	 if s ~= nil and e ~= nil then
 	    data:push( tonumber(ln1:sub(s,e)) )
 	    ln1 = ln1:sub(e+1, n)
+	 elseif ints ~= nil and inte ~= nil then
+	    data:push( tonumber(ln1:sub(ints,inte)) )
+	    ln1 = ln1:sub(inte+1, n)
 	 else
 	    break
 	 end
@@ -87,17 +98,35 @@ local function makeField(meta, grid)
    }
 end
 
+-- 1D iterator
+local Iter1D = Proto()
+function Iter1D:init(arr)
+   self.arr = arr
+   self.currIdx = 1
+end
+function Iter1D:seek(idx)
+   self.currIdx = idx
+end
+function Iter1D:next()
+   local val = 0
+   if self.currIdx <= self.arr:size() then
+      val = self.arr[self.currIdx]
+   end
+   self.currIdx = self.currIdx+1
+   return val
+end
 
+
+dataItr = Iter1D(data) -- so we can read number by number
 -- extract various pieces of from read data
-local rdim, zdim = data[1], data[2]
-local rcenter, rleft = data[3], data[4]
-local zmid = data[5]
+local rdim, zdim = dataItr:next(), dataItr:next()
+local rcenter, rleft = dataItr:next(), dataItr:next()
+local zmid = dataItr:next()
 
-local rmaxis, zmaxis = data[6], data[7]
-local simag, sibry = data[8], data[9]
-local bcenter = data[10]
-
-local current = data[11]
+local rmaxis, zmaxis = dataItr:next(), dataItr:next()
+local simag, sibry = dataItr:next(), dataItr:next()
+local bcenter = dataItr:next()
+local current = dataItr:next()
 
 -- store scalars in a table to put into meta-data file
 local metaData = {
@@ -114,8 +143,8 @@ local metaData = {
 
 -- create grids
 local grid1d = Grid.RectCart {
-   lower = { rleft },
-   upper = { rleft + rdim },
+   lower = { simag },
+   upper = { sibry },
    cells = { nx }
 }
 local grid2d = Grid.RectCart {
@@ -132,27 +161,47 @@ pprime = makeField(meta, grid1d)
 psi = makeField(meta, grid2d)
 qpsi = makeField(meta, grid1d)
 
+dataItr:seek(21) -- need to skip forward
 -- construct 1D arrays
 for i = 1, nx do
-   fpol:get(i)[1] = data[i+20]
-   pres:get(i)[1] = data[i+20 + nx]
-   ffprime:get(i)[1] = data[i+20 + 2*nx]
-   pprime:get(i)[1] = data[i+20 + 3*nx]
-   qpsi:get(i)[1] = data[i+20 + 4*nx + nx*ny]
+   fpol:get(i)[1] = dataItr:next()
+end
+for i = 1, nx do
+   pres:get(i)[1] = dataItr:next()
+end
+for i = 1, nx do
+   ffprime:get(i)[1] = dataItr:next()
+end
+for i = 1, nx do
+   pprime:get(i)[1] = dataItr:next()
 end
 
 local indexer = psi:indexer()
-for i = 1, nx do
-   for j = 1, ny do
-      psi:get(indexer(i,j))[1] = data[(i-1)+20 + (j-1)*nx + 4*nx + 1]
+for j = 1, ny do
+   for i = 1, nx do
+      psi:get(indexer(i,j))[1] = dataItr:next()
    end
 end
 
--- write data to BP file
+for i = 1, nx do
+   qpsi:get(i)[1] = dataItr:next()
+end
+
+-- read (R,Z) coordinates of LCFS
+local sepRZ = DataStruct.DynVector { numComponents = 2 }
+
+local nbbbs = dataItr:next()
+local limtr = dataItr:next()
+
+for i = 1, nbbbs do
+   sepRZ:appendData(i, { dataItr:next(), dataItr:next() } )
+end
+
+-- write data to BP files
 fpol:write("fpol.bp")
 pres:write("pres.bp")
 ffprime:write("ffprime.bp")
 pprime:write("pprime.bp")
 psi:write("psi.bp")
 qpsi:write("qpsi.bp")
-
+sepRZ:write("sepRZ.bp")

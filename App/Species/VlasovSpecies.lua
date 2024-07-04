@@ -881,7 +881,7 @@ function VlasovSpecies:advanceCrossSpeciesCoupling(tCurr, population, emIn, inId
       coll:advanceCrossSpeciesCoupling(tCurr, population, emIn, inIdx, outIdx)
    end
 
-   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, inIdx, outIdx) end
 
    for _, src in lume.orderedIter(self.sources) do src:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
 

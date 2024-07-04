@@ -397,7 +397,7 @@ function NeutralRecyclingBC:calcCouplingMoments(tCurr, rkIdx, species)
    self.recycleTestFlux:scale(1.0/self.recycleFrac) -- This can be written out from KineticSpecies, if necessary.
 end
 
-function NeutralRecyclingBC:advanceCrossSpeciesCoupling(tCurr, species, outIdx)
+function NeutralRecyclingBC:advanceCrossSpeciesCoupling(tCurr, species, inIdx, outIdx)
    -- Compute the 0th moment of the ion boundary flux.
    self.recIonBC.numDensityCalc:advance(tCurr, {self.recIonBC:getBoundaryFluxFields()[outIdx]}, {self.bcIonM0fluxField})
 end

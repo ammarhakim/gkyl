@@ -15,6 +15,7 @@ local GkSheath                   = require "App.BCs.GkSheath"
 local NeutralRecycling           = require "App.BCs.NeutralRecycling"
 local TwistShift                 = require "App.BCs.TwistShift"
 local VlasovBasic                = require "App.BCs.VlasovBasic"
+local VlasovEmission             = require "App.BCs.VlasovEmission"
 local GkMaxwellianBc             = require "App.BCs.GkMaxwellianBC"
 
 return {
@@ -28,4 +29,5 @@ return {
    NeutralRecyclingBasic      = NeutralRecyclingBasic,
    TwistShift                 = TwistShift,
    VlasovBasic                = VlasovBasic,
+   VlasovEmission             = VlasovEmission,
 }

@@ -105,6 +105,8 @@ function AdiosCartFieldIo:init(tbl)
 
    self.ad_ios = {}
    self.localSz, self.globalSz, self.offset = {}, {}, {}
+
+   self.cells, self.lower, self.upper = {}, {}, {}
 end
 
 -- Writes field(s) to file.
@@ -183,16 +185,14 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
          Adios.define_attribute(ad_io, "grid", Adios.type_string, gridFullNm)
       end
       
-      local cells, lower, upper = globalRange:shape(), grid:lower(), grid:upper()
-      if _writeGhost then
-         for d = 1, ndim do 
-            lower[d] = lower[d] - field:lowerGhost()*grid:dx(d)
-            upper[d] = upper[d] + field:upperGhost()*grid:dx(d)
-         end
+      for d = 1, ndim do 
+         self.cells[d] = globalRange:shape(d)
+         self.lower[d] = grid:lower(d) - (_writeGhost and field:lowerGhost()*grid:dx(d) or 0)
+         self.upper[d] = grid:upper(d) + (_writeGhost and field:upperGhost()*grid:dx(d) or 0)
       end
-      Adios.define_attribute_array(ad_io, "numCells", Adios.type_int32_t, cells, ndim)
-      Adios.define_attribute_array(ad_io, "lowerBounds", Adios.type_double, lower, ndim)
-      Adios.define_attribute_array(ad_io, "upperBounds", Adios.type_double, upper, ndim)
+      Adios.define_attribute_array(ad_io, "numCells",   Adios.type_int32_t, self.cells, ndim)
+      Adios.define_attribute_array(ad_io, "lowerBounds", Adios.type_double, self.lower, ndim)
+      Adios.define_attribute_array(ad_io, "upperBounds", Adios.type_double, self.upper, ndim)
       
       -- Write meta-data for this file.
       for attrNm, v in pairs(self._metaData) do
