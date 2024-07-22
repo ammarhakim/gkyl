@@ -121,20 +121,10 @@ function VlasovSpecies:alloc(nRkDup)
 
    -- Special relativistic only arrays
    -- Allocate fields to store velocity space arrays:
-   -- p/gamma (relativistic velocity)
    -- gamma (particle Lorentz boost factor = sqrt(1 + p^2))
    -- gamma_inv = 1/gamma
-   self.p_over_gamma  = self:allocVectorVelMoment(self.vdim)
    self.gamma  = self:allocVelMoment()
    self.gamma_inv  = self:allocVelMoment()
-
-   -- Allocate additional auxiliary fields needed for certain relativistic moments
-   -- V_drift (bulk velocity)
-   -- GammaV2 (bulk velocity Lorentz boost factor squared = 1/(1 - V_drift^2))
-   -- GammaV_inv = 1/GammaV = sqrt(1 - V_drift^2)
-   self.V_drift = self:allocVectorMoment(self.vdim)
-   self.GammaV2 = self:allocMoment()
-   self.GammaV_inv = self:allocMoment()
 end
 
 -- Actual function for initialization. This indirection is needed as
@@ -517,14 +507,17 @@ function VlasovSpecies:createSolver(field, externalField)
       -- Initialize velocity-space arrays for relativistic Vlasov
       -- Only need to do this once, so we don't need to store the updater
       local initSRVarsCalc = Updater.CalcSRVars {
-         velGrid   = self.velGrid,    velBasis   = self.velBasis,  
-         confBasis = self.confBasis,  phaseBasis = self.basis,     
-         operation = "init", 
+         onGrid = self.grid, 
+         velGrid = self.velGrid,    
+         confBasis = self.confBasis,  
+         velBasis = self.velBasis,  
+         confRange = self.totalEmField:localRange(), 
+         velRange = self.gamma:localRange(), 
       }
-      initSRVarsCalc:advance(0.0, {}, {self.p_over_gamma, self.gamma, self.gamma_inv})
+      initSRVarsCalc:advance(0.0, {}, {self.gamma, self.gamma_inv})
       -- Create table of pointers to fields needed in update
-      self.fldPtrs = {self.totalEmField, self.p_over_gamma}
-      self.momPtrs = {self.p_over_gamma, self.gamma, self.gamma_inv}
+      self.fldPtrs = {self.totalEmField, self.gamma}
+      self.momPtrs = {self.gamma}
    else
       -- Create table of pointers to fields needed in update
       self.fldPtrs = {self.totalEmField}
@@ -536,7 +529,7 @@ function VlasovSpecies:createSolver(field, externalField)
    if self.evolveCollisionless then
       self.solver = Updater.VlasovDG {
          onGrid     = self.grid,       confRange    = self.totalEmField:localRange(),
-         confBasis  = self.confBasis,  velRange     = self.p_over_gamma:localRange(),
+         confBasis  = self.confBasis,  velRange     = self.gamma:localRange(),
          phaseBasis = self.basis,      phaseRange   = self.distf[1]:localRange(), 
          model_id   = self.model_id,   field_id     = self.field_id,                 
          fldPtrs    = self.fldPtrs,    zeroFluxDirs = self.zeroFluxDirections,
@@ -565,22 +558,22 @@ function VlasovSpecies:createSolver(field, externalField)
    -- M0 and M1i are common to both non-relativistic and relativistic Vlasov, so use common DistFuncMomentDG 
    self.numDensityCalc = Updater.DistFuncMomentDG {
       onGrid    = self.grid,                      confBasis = self.confBasis,                phaseBasis = self.basis, 
-      confRange = self.totalEmField:localRange(), velRange = self.p_over_gamma:localRange(), 
+      confRange = self.totalEmField:localRange(), velRange = self.gamma:localRange(), 
       model_id  = self.model_id,                  isIntegrated = false,                      momPtrs    = self.momPtrs, 
       moment    = "M0", 
    }
    self.momDensityCalc = Updater.DistFuncMomentDG {
       onGrid    = self.grid,                      confBasis = self.confBasis,                phaseBasis = self.basis, 
-      confRange = self.totalEmField:localRange(), velRange = self.p_over_gamma:localRange(), 
+      confRange = self.totalEmField:localRange(), velRange = self.gamma:localRange(), 
       model_id  = self.model_id,                  isIntegrated = false,                      momPtrs    = self.momPtrs,  
       moment    = "M1i", 
    }
    if self.model_id == "GKYL_MODEL_SR" then
       self.ptclEnergyCalc = Updater.DistFuncMomentDG {
          onGrid    = self.grid,                      confBasis = self.confBasis,                phaseBasis = self.basis, 
-         confRange = self.totalEmField:localRange(), velRange = self.p_over_gamma:localRange(), 
+         confRange = self.totalEmField:localRange(), velRange = self.gamma:localRange(), 
          model_id  = self.model_id,                  isIntegrated = false,                      momPtrs    = self.momPtrs,   
-         moment    = "Energy", 
+         moment    = "M2", 
       } 
    else
       self.ptclEnergyCalc = Updater.DistFuncMomentCalc {

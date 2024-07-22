@@ -113,10 +113,10 @@ local function buildApplication(self, tbl)
    end
 
    local polyOrder = assert(tbl.polyOrder, "Must specify polynomial order in 'polyOrder'.")
-
+   log(string.format("About to create basis ...\n"))
    -- Create basis function for configuration space.
    local confBasis = createBasis(basisNm, cdim, polyOrder)
-
+   log(string.format("Basis created ...\n"))
    -- Optional wallclock time allotted for this simulation.
    local maxWallTime = tbl.maxWallTime and tbl.maxWallTime or GKYL_MAX_DOUBLE
 
@@ -157,7 +157,7 @@ local function buildApplication(self, tbl)
    for _, val in pairs(tbl) do
       if SpeciesBase.is(val) then numSpecies = numSpecies+1 end
    end
-
+   log(string.format("About to initialize communicator ...\n"))
    -- Object that handles MPI/NCCL communication (some comms are still elsewhere).
    local commManager = Messenger{
       cells      = tbl.cells,   decompCutsConf     = tbl.decompCuts,
@@ -210,7 +210,7 @@ local function buildApplication(self, tbl)
       -- Placing this writing step after population:decompose so that only one species rank writes.
       confGrid:write(confBasis, {0, population:getComm_host(),})
    end
-
+   log(string.format("Grids and communicators initialized ...\n"))
    for _, s in population.iterGlobal() do
       s:fullInit(tbl) -- Initialize species.
    end
