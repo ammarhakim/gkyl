@@ -22,12 +22,14 @@ ffi.cdef [[
  * @param ndim Dimension of reference element.
  * @param poly_order Polynomial order.
  */
-void gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order);
+void gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim,
+  int poly_order);
 void gkyl_cart_modal_serendip_cu_dev(struct gkyl_basis *basis, int ndim,
   int poly_order);
 
 /**
  * Create new modal serendipity basis function object.
+ * This basis needs to be deallocated with free/release methods.
  *
  * @param ndim Dimension of reference element.
  * @param poly_order Polynomial order.

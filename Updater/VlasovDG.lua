@@ -28,33 +28,33 @@ struct gkyl_dg_vlasov_auxfields {
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_vlasov_sr_auxfields { 
   const struct gkyl_array *qmem; // q/m * EM
-  const struct gkyl_array *p_over_gamma; // p/gamma (velocity)
+  const struct gkyl_array *gamma; // gamma = sqrt(1 + p^2), particle Lorentz factor
 };
 
 // Object type
 typedef struct gkyl_dg_updater_vlasov gkyl_dg_updater_vlasov;
 
 /**
- * Create new updater to update Vlasov equations using hyper dg.
+ * Create new updater to update vlasov equations using hyper dg.
  * Supports Vlasov-Maxwell, Vlasov-Poisson (with and without vector potential A)
  * and special relativistic Vlasov-Maxwell
  *
  * @param grid Grid object
  * @param cbasis Configuration space basis functions
- * @param pbasis Phase-space basis function
- * @param conf_range Config space range
+ * @param pbasis Phase space basis function
+ * @param conf_range Configuration space range
  * @param vel_range Velocity space range
  * @param phase_range Phase space range
  * @param is_zero_flux_dir True in directions with (lower and upper) zero flux BCs.
- * @param model_id Enum identifier for model type (e.g., SR, General Geometry, PKPM, see gkyl_eqn_type.h)
+ * @param model_id Enum identifier for model type (e.g., SR, General Geometry, see gkyl_eqn_type.h)
  * @param field_id Enum identifier for field type (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h)
  * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
  * @param use_gpu Boolean to determine whether struct objects are on host or device
- *
+ * 
  * @return New vlasov updater object
  */
-gkyl_dg_updater_vlasov* gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+gkyl_dg_updater_vlasov* gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
   const bool *is_zero_flux_dir, enum gkyl_model_id model_id, enum gkyl_field_id field_id, void *aux_inp, bool use_gpu);
 
@@ -117,8 +117,6 @@ function VlasovDG:init(tbl)
    if self._modelId == "GKYL_MODEL_DEFAULT" then model_id = 0
    elseif self._modelId == "GKYL_MODEL_SR"  then model_id = 1
    elseif self._modelId == "GKYL_MODEL_GEN_GEO"  then model_id = 2 
-   elseif self._modelId == "GKYL_MODEL_PKPM"  then model_id = 3
-   elseif self._modelId == "GKYL_MODEL_SR_PKPM"  then model_id = 4
    end   
 
    local field_id
@@ -134,10 +132,10 @@ function VlasovDG:init(tbl)
       self._auxfields = ffi.new("struct gkyl_dg_vlasov_sr_auxfields")
       if self._useGPU then
          self._auxfields.qmem = tbl.fldPtrs[1]._zeroDevice
-         self._auxfields.p_over_gamma = tbl.fldPtrs[2]._zeroDevice
+         self._auxfields.gamma = tbl.fldPtrs[2]._zeroDevice
       else
          self._auxfields.qmem = tbl.fldPtrs[1]._zero
-         self._auxfields.p_over_gamma = tbl.fldPtrs[2]._zero
+         self._auxfields.gamma = tbl.fldPtrs[2]._zero
       end
    else
       self._auxfields = ffi.new("struct gkyl_dg_vlasov_auxfields")

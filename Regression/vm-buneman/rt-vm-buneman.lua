@@ -39,7 +39,7 @@ plasmaApp = Plasma.App {
    periodicDirs = {1}, -- Periodic directions
 
    -- Electrons.
-   elc = Plasma.GenSpecies.VlasovPoisson {
+   elc = Plasma.Species {
       charge = -1.0,  mass = 1.0,
       -- Velocity space grid.
       lower = {-6.0*vDriftElc},
@@ -56,7 +56,7 @@ plasmaApp = Plasma.App {
    },
 
    -- Electrons
-   ion = Plasma.GenSpecies.VlasovPoisson {
+   ion = Plasma.Species {
       charge = 1.0,  mass = massRatio,
       -- Velocity space grid.
       lower = {-32.0*vtIon},
@@ -74,7 +74,7 @@ plasmaApp = Plasma.App {
    -- Field solver.
    field = Plasma.Field {
       epsilon0 = 1.0,  mu0 = 1.0,
-      hasMagneticField = false,
+      useGhostCurrent = true,
       init = function (t, xn)
          return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
       end,

@@ -16,7 +16,7 @@ struct gkyl_basis {
   unsigned ndim, poly_order, num_basis;
   char id[64]; // "serendipity", "tensor", "hybrid, "gkhybrid"
   enum gkyl_basis_type b_type; // identifier for basis function
-
+    
 /**
  * Evaluate basis in unit cell (i.e. a hypercube with each side
  * [-1,1])
@@ -86,5 +86,25 @@ struct gkyl_basis {
  * @param fmodal On output, coefficients of modal expansion
  */
   void (*nodal_to_modal)(const double *fnodal, double *fmodal);
+
+/**
+ * Given expansion coefficients on nodal basis defined by Gauss-Legendre
+ * quadrature points, compute modal expansion coefficients.
+ *
+ * @param fquad Coefficients of nodal expansion in quadrature node basis
+ * @param fmodal On output, coefficients of modal expansion
+ * @param linc2 Modal component being updated (allows for parallelization over basis functions)
+ */
+  void (*quad_nodal_to_modal)(const double *fquad, double *fmodal, long linc2);  
+
+/**
+ * Given expansion coefficients of DG modal basis, evaluate basis at Gauss-Legendre
+ * quadrature points of order p+1 (the Gauss-Legendre nodal basis).
+ * 
+ * @param fmodal Coefficients of modal expansion
+ * @param fquad On output, evaluation of modal expansion at Gauss-Legendre quadrature nodal basis
+ * @param linc2 Quadrature node being updated (allows for parallelization over quadrature points)
+ */
+  void (*modal_to_quad_nodal)(const double *fmodal, double *fquad, long linc2);  
 };
 ]]
