@@ -1,3 +1,5 @@
+**This version of Gkeyll is NO LONGER SUPPORTED AND SHOULD NOT BE USED!!. It remains here only as an archive of past work**
+
 # About
 
 This is the Gkeyll code. The name is pronounced as in the book "The
